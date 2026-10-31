@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Due:").AddDatePicker(new DateTime(2026, 1, 1), "Due Alias", "DueDate");
                 document.AddParagraph("Priority:").AddDropDownList(new[] { "Low", "Medium", "High" }, "Priority Alias", "Priority");
                 document.AddParagraph("Contact:").AddComboBox(new[] { "Email", "Phone" }, "Contact Alias", "ContactMethod", defaultValue: "Email");
-                document.AddParagraph("Logo:").AddPictureControl(imagePath, 24, 24, "Logo Alias", "Logo");
+                document.AddParagraph("Logo:").AddPictureControl(imagePath, OfficeLength.Pixels(24), OfficeLength.Pixels(24), "Logo Alias", "Logo");
                 document.AddParagraph("Items:").AddRepeatingSection("Items", "Items Alias", "Items");
 
                 int updated = document.FillContentControlValues(new Dictionary<string, object?> {
@@ -83,8 +83,10 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("High", textValues);
                 Assert.Contains("Phone", textValues);
 
-                var repeatingItems = wordDocument.MainDocumentPart!.Document.Body!.Descendants()
-                    .Where(element => element.LocalName == "repeatingSectionItem")
+                // Word writes each item as a content control whose properties carry
+                // w15:repeatingSectionItem; the item text lives in that control.
+                var repeatingItems = wordDocument.MainDocumentPart!.Document.Body!.Descendants<SdtRun>()
+                    .Where(sdt => sdt.SdtProperties?.Elements<DocumentFormat.OpenXml.Office2013.Word.SdtRepeatedSectionItem>().Any() == true)
                     .ToList();
                 Assert.True(repeatingItems.Count >= 3);
                 Assert.Contains(repeatingItems, item => item.InnerText.Contains("First"));
@@ -201,7 +203,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Due:").AddDatePicker(new DateTime(2026, 1, 1), "Due Alias", "DueDate");
                 document.AddParagraph("Priority:").AddDropDownList(new[] { "Low", "Medium", "High" }, "Priority Alias", "Priority");
                 document.AddParagraph("Contact:").AddComboBox(new[] { "Email", "Phone" }, "Contact Alias", "ContactMethod", defaultValue: "Email");
-                document.AddParagraph("Logo:").AddPictureControl(imagePath, 24, 24, "Logo Alias", "Logo");
+                document.AddParagraph("Logo:").AddPictureControl(imagePath, OfficeLength.Pixels(24), OfficeLength.Pixels(24), "Logo Alias", "Logo");
                 document.AddParagraph("Items:").AddRepeatingSection("Items", "Items Alias", "Items");
 
                 WordContentControlFormValidationResult valid = document.ValidateContentControlValues(new Dictionary<string, object?> {
@@ -268,7 +270,7 @@ namespace OfficeIMO.Tests {
             byte[] originalBytes;
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddParagraph("Logo:").AddPictureControl(originalImagePath, 24, 24, "Logo Alias", "Logo");
+                document.AddParagraph("Logo:").AddPictureControl(originalImagePath, OfficeLength.Pixels(24), OfficeLength.Pixels(24), "Logo Alias", "Logo");
                 originalBytes = document.GetPictureControlByTag("Logo")!.Image!.ToBytes();
 
                 WordContentControlFormValidationResult validation = document.ValidateContentControlValues(new Dictionary<string, object?> {

@@ -1,5 +1,5 @@
 namespace OfficeIMO.Excel {
-    public static partial class A1 {
+    public static partial class ExcelA1 {
         internal static bool TryParseCellReferenceFast(ReadOnlySpan<char> cellRef, out int row, out int col) {
             row = 0;
             col = 0;

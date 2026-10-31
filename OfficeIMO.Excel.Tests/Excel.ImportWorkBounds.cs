@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
         [InlineData("8", true, "#VALUE!")]
         public void RichValueAliasesPreserveErrorsAndMalformedFallback(string code, bool duplicateKey, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            var sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.SetArrayFormula("A1:A1", "SEQUENCE(0)");
             document.Calculate();
             var workbook = document.WorkbookPartRoot;
@@ -46,8 +46,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expected, sheet.CellAt(1, 1).GetValue().Value);
             byte[] bytes = document.ToBytes();
             foreach (string? selection in new string?[] { null, "Data" }) {
-                using var reader = ExcelDocument.OpenDataReader(new MemoryStream(bytes),
-                    new ExcelReadOptions { SheetName = selection, A1Range = "A1:A1", HasHeaderRow = false });
+                using var reader = ExcelDocument.OpenReader(new MemoryStream(bytes),
+                    new ExcelReaderOptions { SheetName = selection, A1Range = "A1:A1", HasHeaderRow = false });
                 Assert.True(reader.Read());
                 Assert.Equal(expected, reader.GetValue(0));
             }
@@ -60,10 +60,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedRowLayoutPreservesCellsPrecisionAndHiddenState() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(3, 1, "Keep");
             sheet.CellValue(1002, 1, "Tail");
-            sheet.SetRowHeight(3, 25);
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(25)));
             sheet.SetRowHidden(1002, true);
             var heights = Enumerable.Range(1, 1000).Reverse().ToDictionary(index => index, _ => 20.123456789d);
             heights[3] = 0;
@@ -93,8 +93,8 @@ namespace OfficeIMO.Tests {
         [InlineData("ẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂ")]
         public void WrappedRowsIgnoreZeroWidthPrefixWithoutLosingGraphemes(string visible) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
-            sheet.SetColumnWidth(1, 5);
+            var sheet = document.AddSheet("Data");
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(5));
             sheet.CellValue(1, 1, visible);
             sheet.CellValue(2, 1, new string('\u200B', 30000) + visible);
             sheet.CellWrapText(1, 1);

@@ -2,38 +2,40 @@ using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 
-namespace OfficeIMO.Examples.Word {
-    internal static partial class FluentDocument {
-        public static void Example_FluentSectionLayout(string folderPath, bool openWord) {
+namespace OfficeIMO.Examples.Word
+{
+    internal static partial class FluentDocument
+    {
+        public static void Example_FluentSectionLayout(string folderPath, bool openWord)
+        {
             Console.WriteLine("[*] Creating document with section specific layout using fluent API");
             string filePath = Path.Combine(folderPath, "FluentSectionLayout.docx");
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AsFluent()
-                    .PageSetup(ps => ps.Orientation(OfficePageOrientation.Landscape)
-                                         .Size(WordPageSize.A4)
-                                         .Margins(WordMargin.Normal)
-                                         .DifferentFirstPage()
-                                         .DifferentOddAndEvenPages())
-                    .Section(s => s
-                        .New()
-                            .Margins(WordMargin.Narrow)
-                            .Size(WordPageSize.Legal)
-                            .Columns(2)
-                            .PageNumbering(WordNumberFormat.LowerRoman, restart: true)
-                            .Paragraph(p => p.Text("Section 1"))
-                            .Table(t => t.Create(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell 1"))
-                        .New()
-                            .Margins(WordMargin.Wide)
-                            .Size(WordPageSize.A3)
-                            .PageNumbering(restart: true)
-                            .Paragraph(p => p.Text("Section 2"))
-                            .Table(t => t.Create(1, 1).Table!.Rows[0].Cells[0].AddParagraph("Cell 2")))
-                    .End()
-                    .Save();
+            using (WordDocument document = WordDocument.Create(filePath))
+            {
+                document.PageOrientation = OfficePageOrientation.Portrait;
+                document.PageSettings.PageSize = WordPageSize.A4;
+                document.Sections[0].SetMargins(WordMargin.Normal);
+                document.DifferentFirstPage = true;
+                document.DifferentOddAndEvenPages = true;
+                var first = document.AddSection(WordSectionBreakType.NextPage);
+                first.SetMargins(WordMargin.Narrow);
+                first.PageSettings.PageSize = WordPageSize.Legal;
+                first.ColumnCount = 2;
+                first.AddPageNumbering(1, WordNumberFormat.LowerRoman);
+                first.AddParagraph("Section 1");
+                first.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Cell 1");
+                var second = document.AddSection(WordSectionBreakType.NextPage);
+                second.SetMargins(WordMargin.Wide);
+                second.PageSettings.PageSize = WordPageSize.A3;
+                second.AddPageNumbering(1);
+                second.AddParagraph("Section 2");
+                second.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Cell 2");
+                document.Save();
             }
-            if (openWord) ExampleFileLauncher.Open(filePath);
+
+            if (openWord)
+                ExampleFileLauncher.Open(filePath);
         }
     }
 }

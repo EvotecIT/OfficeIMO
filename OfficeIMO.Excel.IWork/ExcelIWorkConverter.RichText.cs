@@ -102,7 +102,7 @@ public static partial class ExcelIWorkConverter {
             Italic = style.Italic ?? defaults?.Italic ?? false,
             Underline = style.Underline ?? defaults?.Underline ?? false,
             Strikethrough = style.Strikethrough ?? defaults?.Strikethrough ?? false,
-            FontSize = style.FontSizePoints ?? defaults?.FontSizePoints,
+            FontSize = (style.FontSizePoints ?? defaults?.FontSizePoints) is double points ? global::OfficeIMO.OfficeLength.Points(points) : (global::OfficeIMO.OfficeLength?)null,
             FontName = style.FontName ?? defaults?.FontName,
             FontColor = style.Color?.RgbHex ?? defaults?.Color?.RgbHex
         };
@@ -134,7 +134,9 @@ public static partial class ExcelIWorkConverter {
                     StringComparison.Ordinal)) return null;
             hyperlink = run.Hyperlink;
         }
-        return hyperlink != null && Uri.TryCreate(hyperlink, UriKind.Absolute, out _)
-            ? hyperlink : null;
+        return hyperlink != null
+            && OfficeDrawingLinkPolicy.TryNormalize(hyperlink, out string normalized)
+            && Uri.TryCreate(normalized, UriKind.Absolute, out _)
+            ? normalized : null;
     }
 }

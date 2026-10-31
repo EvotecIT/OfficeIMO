@@ -8,8 +8,8 @@ namespace OfficeIMO.Tests {
     public sealed class PowerPointFeatureReportCommentBoundsTests {
         [Fact]
         public void FeatureReportPreservesClassicCommentsOutsideBinaryBounds() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             presentation.AddClassicComment(slide,
                 new PowerPointCommentAuthor("Reviewer", "R"), "Review");
@@ -31,8 +31,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FeatureReportPreservesBinaryIncompatibleClassicAuthorIdentity() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             presentation.AddClassicComment(slide,
                 new PowerPointCommentAuthor("Reviewer", "R"), "Review");
@@ -53,8 +53,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void FeatureReportPreservesDuplicateClassicAuthorIdentity() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             presentation.AddClassicComment(slide,
                 new PowerPointCommentAuthor("Alice", "A"), "First");
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertPreserved(
-            PowerPointPresentation presentation) {
+            PowerPointDocument presentation) {
             PowerPointFeatureReport report = presentation.InspectFeatures();
             PowerPointFeatureFinding comments = Assert.Single(
                 report.FindFeatures("Comments"));

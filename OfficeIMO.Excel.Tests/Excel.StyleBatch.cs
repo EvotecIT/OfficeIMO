@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
         public void Wrap_text_batch_can_run_in_another_sheets_workbook_batch() {
             string path = Path.Combine(_directoryWithFiles, "WrapTextBatch.CrossSheet.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var first = document.AddWorksheet("First");
-                var second = document.AddWorksheet("Second");
+                var first = document.AddSheet("First");
+                var second = document.AddSheet("Second");
                 first.CellValue(1, 1, "First value");
                 second.CellValue(1, 1, "Second value");
                 first.Batch(_ => second.CellWrapTextFor(new[] { (1, 1) }));
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
         public void Wrap_text_batch_saves_styles_once_and_preserves_sparse_cell_formatting() {
             string path = Path.Combine(_directoryWithFiles, "WrapTextBatch.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Styled");
+                ExcelSheet sheet = document.AddSheet("Styled");
                 var selected = Enumerable.Range(1, 64).Select(row => (Row: row, Column: row % 2 == 0 ? 3 : 1)).ToArray();
                 foreach (var cell in selected) {
                     sheet.CellValue(cell.Row, cell.Column, cell.Row);
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
         public void Wrap_text_batch_validates_before_editing_and_can_clear_wrapping() {
             string path = Path.Combine(_directoryWithFiles, "WrapTextBatch.Validation.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Styled");
+                ExcelSheet sheet = document.AddSheet("Styled");
                 sheet.CellValue(1, 1, "Preserved");
                 sheet.CellWrapText(1, 1);
                 Assert.Throws<ArgumentOutOfRangeException>(() => sheet.CellWrapTextFor(new[] { (1, 1), (0, 2) }, false));
@@ -81,8 +81,8 @@ namespace OfficeIMO.Tests {
         public void Conversion_style_batch_reuses_distinct_styles_and_saves_valid_workbook() {
             string path = Path.Combine(_directoryWithFiles, "ConversionStyleBatch.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Styled");
-                ExcelSheet second = document.AddWorksheet("Second");
+                ExcelSheet sheet = document.AddSheet("Styled");
+                ExcelSheet second = document.AddSheet("Second");
                 using (sheet.BeginStyleBatch()) {
                     for (int row = 1; row <= 256; row++) {
                         string color = row.ToString("X6");

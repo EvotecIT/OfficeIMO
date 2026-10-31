@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Native DOC byte output");
 
-            byte[] bytes = document.ToBytes(OfficeIMO.Word.WordFileFormat.Doc);
+            byte[] bytes = document.ToBytes(new OfficeIMO.Word.WordSaveOptions{Format=OfficeIMO.Word.WordFileFormat.Doc});
 
             AssertOleCompoundBytes(bytes);
             using WordDocument reloaded = WordDocument.Load(new MemoryStream(bytes));
@@ -117,33 +117,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FormatApi_UsesCanonicalWordNamingWithoutLegacyAliases() {
-            Type documentType = typeof(WordDocument);
-            Type importOptionsType = typeof(LegacyDocImportOptions);
-
-            Assert.NotNull(documentType.GetMethod(nameof(WordDocument.ToBytes),
-                new[] { typeof(WordFileFormat), typeof(WordSaveOptions) }));
-            Assert.NotNull(documentType.GetMethod(nameof(WordDocument.ToStream),
-                new[] { typeof(WordFileFormat), typeof(WordSaveOptions) }));
-            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name is "ToDocx" or "ToDoc" or "ToDocxStream" or "ToDocStream");
-            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name is "Save" or "SaveAsync" &&
-                method.GetParameters().Any(parameter => parameter.ParameterType == typeof(bool)));
-            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name == "Open");
-            Assert.Contains(documentType.GetMethods(), method => method.Name == nameof(WordDocument.OpenInApplication));
-            Assert.Contains(documentType.GetMethods(), method => method.Name == nameof(WordDocument.SaveCopy));
-            Assert.Null(documentType.GetMethod("SaveAsByteArray"));
-            Assert.Null(documentType.GetMethod("SaveAsMemoryStream"));
-            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name == "SaveAs" && method.ReturnType == typeof(WordDocument));
-            Assert.Null(documentType.GetProperty("WasLoadedFromLegacyDoc"));
-            Assert.Null(importOptionsType.GetProperty("MaxWordDocumentStreamBytes"));
-            Assert.Null(importOptionsType.GetProperty("ReportUnsupportedFeatures"));
-            Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyDocImportOptions.MaxInputBytes)));
-            Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyDocImportOptions.MaxDecodedImageBytes)));
-            Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyDocImportOptions.MaxDecodedCharacters)));
-            Assert.NotNull(importOptionsType.GetProperty(nameof(LegacyDocImportOptions.ReportUnsupportedContent)));
-        }
-
-        [Fact]
         public void LegacyDoc_RejectsNonPositiveDecodedImageBudget() {
             byte[] bytes = LegacyDocTestBuilder.CreateSimpleDoc("Image budget");
 
@@ -161,7 +134,7 @@ namespace OfficeIMO.Tests {
                     new LegacyDocImportOptions { MaxDecodedCharacters = 4 });
 
             Assert.Contains(result.Diagnostics, diagnostic =>
-                diagnostic.Code == "DOC-PIECE-TABLE-INVALID" &&
+                diagnostic.Code == "doc-piece-table-invalid" &&
                 diagnostic.Message.Contains(nameof(LegacyDocImportOptions.MaxDecodedCharacters), StringComparison.Ordinal));
         }
 

@@ -88,12 +88,29 @@ internal sealed partial class HtmlRenderStyleResolver {
         return new OfficeFontFaceDescriptor(weight, stretch, slant, angle);
     }
 
-    /// <summary>Preserves Document mode's semantic monospace defaults when a font family is reset.</summary>
+    /// <summary>Preserves the user-agent monospace default of code elements when a font family is reset.</summary>
     internal static string ResolveInitialFontFamily(string tag, HtmlRenderOptions options) =>
-        UsesDocumentMonospaceFamily(tag, options) ? "Consolas" : options.DefaultFontFamily;
+        UsesDocumentMonospaceFamily(tag, options)
+            ? options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Document ? "Consolas" : "monospace"
+            : options.DefaultFontFamily;
 
+    /// <summary>
+    /// Code elements carry a user-agent <c>font-family: monospace</c> rule in both style modes. Like any
+    /// declared value it wins over inheritance, so a proportional family set on an ancestor never reaches code.
+    /// </summary>
     internal static bool UsesDocumentMonospaceFamily(string tag, HtmlRenderOptions options) =>
-        options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Document && tag is "code" or "pre" or "kbd" or "samp";
+        tag is "code" or "pre" or "kbd" or "samp" or "tt" or "listing" or "xmp" or "plaintext";
+
+    /// <summary>Resolves an element family, letting the user-agent monospace rule beat implicit inheritance.</summary>
+    internal static string ResolveElementFontFamily(string tag, HtmlComputedStyle computed, string fallback, HtmlRenderOptions options) {
+        string initial = ResolveInitialFontFamily(tag, options);
+        if (UsesDocumentMonospaceFamily(tag, options)
+            && (!HasAuthoredValue(computed, "font-family") || computed.IsImplicitlyInheritedValue("font-family"))) {
+            return initial;
+        }
+
+        return ResolveFontFamily(tag, computed, fallback, initial);
+    }
 
     internal static string ResolveFontFamily(string tag, HtmlComputedStyle computed, string inherited, string? initialFamily = null) {
         if (tag == "math") {

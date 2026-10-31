@@ -14,7 +14,7 @@ public class PdfMutationPlannerTests {
             OwnerPassword = "owner",
             AllowedPermissions = allowedPermissions
         };
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .TextAnnotation("Restricted annotation")
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "open" };
@@ -209,7 +209,7 @@ public class PdfMutationPlannerTests {
 
     [Fact]
     public void Plan_ChoosesFullRewriteForAuthorizedEncryptedMutation() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted planner source"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "open" };
@@ -227,7 +227,7 @@ public class PdfMutationPlannerTests {
 
     [Fact]
     public void Plan_ChoosesEncryptedAppendWithOwnerAuthorization() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted owner planner source"))
             .ToBytes();
         var ownerOptions = new PdfLoadOptions { Password = "owner" };
@@ -245,8 +245,8 @@ public class PdfMutationPlannerTests {
 
     [Fact]
     public void TryFill_AppendsEncryptedFormRevisionWithOwnerAuthorization() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
-            .TextField("Name", width: 180, height: 24, value: "Ada")
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
+            .TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada")
             .ToBytes();
         var ownerOptions = new PdfLoadOptions { Password = "owner" };
         var values = new Dictionary<string, string> { ["Name"] = "Grace" };
@@ -299,7 +299,7 @@ public class PdfMutationPlannerTests {
             OwnerPassword = "owner",
             AllowedPermissions = PdfStandardPermissions.None
         };
-        byte[] target = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        byte[] target = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .Paragraph(paragraph => paragraph.Text("Target one"))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Target two"))
@@ -420,7 +420,7 @@ public class PdfMutationPlannerTests {
 
     [Fact]
     public void Plan_AllowsAuthenticatedEncryptedExternalSignaturePreparation() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted signature source"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "owner" };
@@ -665,7 +665,7 @@ public class PdfMutationPlannerTests {
 
     [Fact]
     public void EncryptedPageExtractionRetainsSourceEncryption() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted extraction"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "open" };
@@ -686,7 +686,7 @@ public class PdfMutationPlannerTests {
             OwnerPassword = "owner",
             AllowedPermissions = PdfStandardPermissions.None
         };
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .Paragraph(paragraph => paragraph.Text("Restricted extraction"))
             .ToBytes();
         var userOptions = new PdfLoadOptions { Password = "open" };

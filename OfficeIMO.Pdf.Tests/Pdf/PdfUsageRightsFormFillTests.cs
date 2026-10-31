@@ -9,6 +9,38 @@ public class PdfUsageRightsFormFillTests {
     private static readonly Dictionary<string, string> AfterValues = new(StringComparer.Ordinal) { ["Name"] = "after" };
 
     [Fact]
+    public void RepeatedUsageRightsTransformRetainsDistinctPermissionsInOrder() {
+        string rights = "[/FillIn " + string.Join(" ", Enumerable.Range(0, 512).Select(index => "/Grant" + index)) + "]";
+        byte[] source = BuildUsageRightsFormPdf(rights, documentSignature: false);
+        source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            var signature = (PdfDictionary)objects[6].Value;
+            var references = (PdfArray)signature.Items["Reference"];
+            int number = objects.Keys.Max() + 1;
+            objects.Add(number, new PdfIndirectObject(number, 0, references.Items[0]));
+            references.Items.Clear();
+            for (int index = 0; index < 128; index++) references.Items.Add(new PdfReference(number, 0));
+            return security.InfoObjectNumber;
+        });
+
+        PdfDocumentSecurityInfo securityInfo = PdfSyntax.ReadDocumentSecurityInfo(source);
+        Assert.Equal(513, securityInfo.UsageRightsFormPermissions.Count);
+        Assert.Equal("FillIn", securityInfo.UsageRightsFormPermissions[0]);
+        Assert.Equal("Grant511", securityInfo.UsageRightsFormPermissions[512]);
+        Assert.True(securityInfo.UsageRightsAllowFormFillIn);
+    }
+
+    [Fact]
+    public void ExcessiveUsageRightsPermissionsCannotGrantFormFillIn() {
+        string rights = "[/FillIn " + string.Join(" ", Enumerable.Range(0, 8_192).Select(index => "/Grant" + index)) + "]";
+        byte[] source = BuildUsageRightsFormPdf(rights, documentSignature: false);
+
+        PdfDocumentSecurityInfo securityInfo = PdfSyntax.ReadDocumentSecurityInfo(source);
+        Assert.Empty(securityInfo.UsageRightsFormPermissions);
+        Assert.False(securityInfo.UsageRightsAllowFormFillIn);
+        Assert.False(PdfInspector.Preflight(source).CanAppendFormFieldRevision);
+    }
+
+    [Fact]
     public void UsageRightsFillInGrant_AppendsFormRevisionAndKeepsSignedBytes() {
         byte[] original = BuildUsageRightsFormPdf("[/FillIn /Import]", documentSignature: false);
 

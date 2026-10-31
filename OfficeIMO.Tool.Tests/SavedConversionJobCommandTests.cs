@@ -19,10 +19,11 @@ public sealed class SavedConversionJobCommandTests {
         Assert.True(File.Exists(files.Job));
         Assert.False(Directory.Exists(files.Output));
         Assert.False(Directory.Exists(files.State));
-        OfficeConversionJob definition = OfficeConversionJobSerializer.ReadFile(files.Job);
-        Assert.Equal(4, definition.Options.TabSize);
-        Assert.False(Path.IsPathFullyQualified(definition.InputDirectory!));
-        Assert.Equal(files.Input, definition.CreateRequest(Path.GetDirectoryName(files.Job)!).InputDirectory);
+        OfficeBatchOptions definition = OfficeBatchOptions.Load(files.Job);
+        Assert.Equal(4, definition.ConversionOptions.PlainText!.TabSize);
+        using (var document = JsonDocument.Parse(File.ReadAllText(files.Job)))
+            Assert.False(Path.IsPathFullyQualified(document.RootElement.GetProperty("batch").GetProperty("inputDirectory").GetString()!));
+        Assert.Equal(files.Input, definition.InputDirectory);
 
         var plan = await Run("workflow", "job", "plan", files.Job);
         Assert.Equal((int)OfficeImoToolExitCode.Success, plan.Code);
@@ -35,7 +36,7 @@ public sealed class SavedConversionJobCommandTests {
 
         var first = await Run("workflow", "job", "run", files.Job);
         Assert.Equal((int)OfficeImoToolExitCode.Success, first.Code);
-        string artifact = Path.Combine(files.Output, "source.txt.pdf");
+        string artifact = Path.Combine(files.Output, "source.pdf");
         byte[] original = File.ReadAllBytes(artifact);
         Assert.Contains("Saved job flow marker", PdfReadDocument.Open(original).ExtractText());
 
@@ -56,7 +57,7 @@ public sealed class SavedConversionJobCommandTests {
         var saved = await Run("workflow", "batch", "--input-directory", files.Input, "--output", files.Output,
             "--source-password-env", variable, "--save-job", files.Job);
         Assert.Equal((int)OfficeImoToolExitCode.Success, saved.Code);
-        Assert.Equal(variable, OfficeConversionJobSerializer.ReadFile(files.Job).Secrets.SourcePasswordEnvironmentVariable);
+        Assert.Equal(variable, OfficeBatchOptions.Load(files.Job).SourcePasswordEnvironmentVariable);
         Assert.False(Directory.Exists(files.Output));
 
         var executed = await Run("workflow", "job", "run", files.Job);
@@ -123,7 +124,7 @@ public sealed class SavedConversionJobCommandTests {
             Assert.True(report.RootElement.GetProperty("succeeded").GetBoolean());
             Assert.Equal(1, report.RootElement.GetProperty("summary").GetProperty("completed").GetInt64());
         }
-        using var workbook = OfficeIMO.Excel.ExcelDocument.Load(Path.Combine(files.Output, "source.numbers.xlsx"));
+        using var workbook = OfficeIMO.Excel.ExcelDocument.Load(Path.Combine(files.Output, "source.xlsx"));
         Assert.Equal(42d, Assert.Single(workbook.Sheets).CellAt(1, 1).GetValue<double>());
     }
 
@@ -139,16 +140,16 @@ public sealed class SavedConversionJobCommandTests {
         string firstPath = Path.Combine(Path.GetDirectoryName(files.Job)!, "first-run.json");
         var first = await Run("workflow", "job", "run", files.Job, "--report", firstPath);
         Assert.Equal((int)OfficeImoToolExitCode.OperationFailed, first.Code);
-        var report = OfficeConversionJobRunReportSerializer.ReadFile(firstPath);
-        Assert.Equal(1, report.Batch!.Summary.Completed);
-        Assert.Equal(1, report.Batch.Summary.Failed);
-        Assert.Equal(2, report.Batch.Items.Count);
+        var report = OfficeBatchReport.Load(firstPath);
+        Assert.Equal(1, report.Summary.Completed);
+        Assert.Equal(1, report.Summary.Failed);
+        Assert.Equal(2, report.Items.Count);
         byte[] retainedReport = File.ReadAllBytes(firstPath);
-        string goodOutput = Path.Combine(files.Output, "good.txt.pdf");
+        string goodOutput = Path.Combine(files.Output, "good.pdf");
         byte[] retainedPdf = File.ReadAllBytes(goodOutput);
         var inspected = await Run("workflow", "job", "report", firstPath);
         Assert.Equal((int)OfficeImoToolExitCode.Success, inspected.Code);
-        Assert.Equal(report.RunId, OfficeConversionJobRunReportSerializer.Deserialize(inspected.Output).RunId);
+        Assert.Equal(report.RunId, OfficeBatchReport.Parse(inspected.Output).RunId);
         File.Delete(failedSource);
         using (var repaired = OfficeIMO.Word.WordDocument.Create()) {
             repaired.AddParagraph("The failed document is repaired.");
@@ -157,10 +158,10 @@ public sealed class SavedConversionJobCommandTests {
         string secondPath = Path.Combine(Path.GetDirectoryName(files.Job)!, "second-run.json");
         var retry = await Run("workflow", "job", "run", files.Job, "--retry-failed", "--report", secondPath);
         Assert.Equal((int)OfficeImoToolExitCode.Success, retry.Code);
-        var retried = OfficeConversionJobRunReportSerializer.ReadFile(secondPath);
+        var retried = OfficeBatchReport.Load(secondPath);
         Assert.True(retried.RetryFailed);
-        Assert.Equal(2, retried.Batch!.Summary.Completed);
-        Assert.Equal(1, retried.Batch.Summary.Reused);
+        Assert.Equal(2, retried.Summary.Completed);
+        Assert.Equal(1, retried.Summary.Reused);
         Assert.NotEqual(report.RunId, retried.RunId);
         Assert.Equal(retainedReport, File.ReadAllBytes(firstPath));
         Assert.Equal(retainedPdf, File.ReadAllBytes(goodOutput));

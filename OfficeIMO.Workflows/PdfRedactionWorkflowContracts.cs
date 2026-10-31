@@ -295,7 +295,7 @@ public sealed class PdfRedactionWorkflowRequest {
     /// <summary>Trusted expected output SHA-256 for zero-area verification when a security rewrite prevents byte comparison with the source.</summary>
     public string? ExpectedOutputSha256 { get; set; }
     /// <summary>Output conflict behavior.</summary>
-    public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Fail;
+    public OfficePublicationPolicy ConflictPolicy { get; set; } = OfficePublicationPolicy.Fail;
     /// <summary>Resource limits.</summary>
     public PdfRedactionWorkflowLimits Limits { get; set; } = new();
 }

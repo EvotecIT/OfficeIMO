@@ -8,8 +8,8 @@ public sealed class OfficeWorkflowDirectoryPackageInput {
     /// <param name="sourcePublicationGuard">Verifies the selected root identity and rejects destinations inside, containing, or aliasing the source package. It must acquire any permissions needed for these checks.</param>
     /// <param name="maximumEntries">Maximum files and directories admitted before the format owner applies its own limits.</param>
     public OfficeWorkflowDirectoryPackageInput(string name, OfficeWorkflowDirectoryInput directory,
-        IOfficeWorkflowPublicationGuard sourcePublicationGuard, int maximumEntries = 10_000) {
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 4096 || name.IndexOfAny(['/', '\\', '\0']) >= 0)
+        IOfficePublicationGuard sourcePublicationGuard, int maximumEntries = 10_000) {
+        if ((name == null || string.IsNullOrWhiteSpace(name)) || name.Length > 4096 || name.IndexOfAny(['/', '\\', '\0']) >= 0)
             throw new ArgumentException("A provider package filename is required.", nameof(name));
         if (maximumEntries < 1) throw new ArgumentOutOfRangeException(nameof(maximumEntries));
         Name = name;
@@ -23,7 +23,7 @@ public sealed class OfficeWorkflowDirectoryPackageInput {
     /// <summary>Provider enumeration, re-read before publication to verify membership and content.</summary>
     public OfficeWorkflowDirectoryInput Directory { get; }
     /// <summary>Permission-aware root identity and output-separation verification.</summary>
-    public IOfficeWorkflowPublicationGuard SourcePublicationGuard { get; }
+    public IOfficePublicationGuard SourcePublicationGuard { get; }
     /// <summary>Maximum number of provider members, including directories.</summary>
     public int MaximumEntries { get; }
 }

@@ -142,7 +142,7 @@ internal static partial class PdfReaderAdapter {
             string pageOccurrence = selectionIndex.ToString("D4", CultureInfo.InvariantCulture);
             string pageAnchor = "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageOccurrence;
             string idPrefix = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageOccurrence;
-            string markdown = page.ToMarkdown(markdownOptions);
+            string markdown = page.ExtractMarkdown(markdownOptions);
             IReadOnlyList<PdfLogicalTableExtraction> pageTableExtractions = PdfLogicalTableAnalysis.ExtractTables(page, GetMaxTableRows(readerOptions));
             var pageTables = BuildTables(pageTableExtractions, selectionIndex);
             var pageVisuals = BuildVisuals(new[] { page }, selectionIndex);
@@ -198,7 +198,7 @@ internal static partial class PdfReaderAdapter {
             return string.Empty;
         }
 
-        return string.Join(Environment.NewLine + Environment.NewLine, pages.Select(page => page.ToMarkdown(markdownOptions)).Where(text => !string.IsNullOrWhiteSpace(text)));
+        return string.Join(Environment.NewLine + Environment.NewLine, pages.Select(page => page.ExtractMarkdown(markdownOptions)).Where(text => !string.IsNullOrWhiteSpace(text)));
     }
 
     private static IEnumerable<ReaderChunk> BuildChunksFromText(string markdown, SourceMetadata source, ReaderOptions readerOptions, int? page, int sourceBlockIndex, string blockKind, string blockAnchor, IReadOnlyList<ReaderTable>? tables, IReadOnlyList<ReaderVisual>? visuals, IReadOnlyList<ReaderFormField>? formFields, IReadOnlyList<ReaderActionSummary>? actions, ReaderChunkDiagnostics diagnostics, string idPrefix, int maxChars, CancellationToken cancellationToken) {

@@ -9,8 +9,8 @@ namespace OfficeIMO.Tests {
         public void Mutation_rollback_preserves_retained_worksheet_metadata(bool sheetCaching) {
             using var document = ExcelDocument.Create();
             document.SheetCachingEnabled = sheetCaching;
-            ExcelSheet sheet = document.AddWorksheet("Report");
-            document.AddWorksheet("Keep");
+            ExcelSheet sheet = document.AddSheet("Report");
+            document.AddSheet("Keep");
             sheet.CellValue(1, 1, "Before rollback");
             Assert.Throws<InvalidOperationException>(() => sheet.ApplyTransactionalMutation(_ => {
                 sheet.CellValue(1, 1, "Interrupted edit");
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         public void Mutation_rollback_refreshes_retained_alias_cell_caches() {
             using var document = ExcelDocument.Create();
             document.SheetCachingEnabled = false;
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             sheet.CellValue(1, 1, "Before rollback");
             ExcelSheet alias = document.Sheets[0];
             Assert.Equal("Before rollback", alias.CellAt(1, 1).GetValue<string>());

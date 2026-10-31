@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     /// <summary>Builds a safe, immutable, bounded projection of the active raw object graph.</summary>
     public PdfRawDocumentView RawStructure(PdfRawStructureOptions? options = null) {
         DemandContentExtraction("raw object");

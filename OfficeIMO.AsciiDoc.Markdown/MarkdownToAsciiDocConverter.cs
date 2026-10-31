@@ -4,7 +4,7 @@ namespace OfficeIMO.AsciiDoc.Markdown;
 internal static class MarkdownToAsciiDocConverter {
     /// <summary>Converts the OfficeIMO Markdown semantic model to dependency-free AsciiDoc.</summary>
     internal static MarkdownToAsciiDocResult Convert(
-        MarkdownDoc document,
+        MarkdownDocument document,
         MarkdownToAsciiDocOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         options ??= new MarkdownToAsciiDocOptions();

@@ -23,7 +23,7 @@ public sealed class ProvenanceSignatureMutationTests {
             using X509Certificate2 certificate = CreateCertificate();
             OfficePackageSigningResult signed = WordDocument.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate);
             Assert.True(signed.Succeeded, string.Join(" ", signed.Details));
-            Assert.True(WordDocument.InspectPackageSignatures(path).HasSignatures);
+            Assert.True(OfficeIMO.Security.OfficePackageSignatureService.Inspect(path).HasSignatures);
 
             var options = new OfficeProvenanceRemovalOptions {
                 SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures

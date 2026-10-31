@@ -27,6 +27,10 @@ public partial class Word {
             Assert.Single(document.EmbeddedObjects);
             Assert.Single(document.Sections[0].EmbeddedObjects);
         }
+
+        using var package = WordprocessingDocument.Open(filePath, false);
+        var shape = Assert.Single(package.MainDocumentPart!.Document.Descendants<V.Shape>());
+        Assert.Equal("width:64.8pt;height:64.8pt", shape.Style!.Value);
     }
 
     [Fact]
@@ -37,7 +41,7 @@ public partial class Word {
 
         using (var document = WordDocument.Create(filePath)) {
             document.AddParagraph("Add excel object");
-            var options = WordEmbeddedObjectOptions.Icon(iconPath, width: 32, height: 32);
+            var options = WordEmbeddedObjectOptions.Icon(iconPath, width: global::OfficeIMO.OfficeLength.Points(32), height: global::OfficeIMO.OfficeLength.Points(32));
             document.AddEmbeddedObject(excelFilePath, options);
 
             Assert.Single(document.EmbeddedObjects);
@@ -54,19 +58,38 @@ public partial class Word {
         var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithEmbeddedCustomSize.docx");
         string excelFilePath = Path.Combine(_directoryDocuments, "SampleFileExcel.xlsx");
         string iconPath = Path.Combine(_directoryDocuments, "SampleExcelIcon.png");
+        var currentCulture = System.Globalization.CultureInfo.CurrentCulture;
+        try {
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("fr-FR");
+            using (var document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Add excel object");
+                var options = WordEmbeddedObjectOptions.Icon(iconPath,
+                    width: global::OfficeIMO.OfficeLength.Centimeters(2.54), height: global::OfficeIMO.OfficeLength.Pixels(48));
+                document.AddEmbeddedObject(excelFilePath, options);
+                document.AddParagraph().AddEmbeddedObject(excelFilePath, iconPath,
+                    width: global::OfficeIMO.OfficeLength.Millimeters(12.7));
+                document.Save();
+            }
 
-        using (var document = WordDocument.Create(filePath)) {
-            document.AddParagraph("Add excel object");
-            var options = WordEmbeddedObjectOptions.Icon(iconPath, width: 32, height: 32);
-            document.AddEmbeddedObject(excelFilePath, options);
-            document.Save();
+            using (var document = WordDocument.Load(filePath)) {
+                Assert.Equal(2, document.EmbeddedObjects.Count);
+                document.Save();
+            }
+
+            using var package = WordprocessingDocument.Open(filePath, false);
+            var shapes = package.MainDocumentPart!.Document.Descendants<V.Shape>().ToArray();
+            Assert.Equal(2, shapes.Length);
+            Assert.Equal("width:72pt;height:36pt", shapes[0].Style!.Value);
+            Assert.Equal("width:36pt;height:64.8pt", shapes[1].Style!.Value);
+            Assert.Equal(2, package.MainDocumentPart.EmbeddedPackageParts.Count());
+            foreach (var embedded in package.MainDocumentPart.EmbeddedPackageParts) {
+                using var stream = embedded.GetStream(FileMode.Open, FileAccess.Read);
+                using var spreadsheet = SpreadsheetDocument.Open(stream, false);
+                Assert.NotEmpty(spreadsheet.WorkbookPart!.WorksheetParts);
+            }
+        } finally {
+            System.Globalization.CultureInfo.CurrentCulture = currentCulture;
         }
-
-        using var word = WordprocessingDocument.Open(filePath, false);
-        var shape = word.MainDocumentPart?.Document?.Descendants<V.Shape>().FirstOrDefault();
-        Assert.NotNull(shape);
-        Assert.Contains("width:32pt", shape!.Style);
-        Assert.Contains("height:32pt", shape!.Style);
     }
 
     [Fact]

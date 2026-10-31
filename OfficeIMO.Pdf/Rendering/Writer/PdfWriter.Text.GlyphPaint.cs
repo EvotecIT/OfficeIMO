@@ -6,8 +6,8 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Encloses selected glyph paint in PDF coordinates; whitespace has no painted bounds.</summary>
     private static (double Left, double Bottom, double Right, double Top)? GetGlyphPaintBounds(
-        RichSeg segment, string text, double x, double baseline, PdfOptions options,
-        Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, PdfOptions? encodingOptions = null,
+        RichSeg segment, string text, double x, double baseline, PdfCreateOptions options,
+        Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, PdfCreateOptions? encodingOptions = null,
         PdfTextShowCommand? paintCommand = null, CancellationToken cancellationToken = default) {
         double left = double.PositiveInfinity, bottom = double.PositiveInfinity;
         double right = double.NegativeInfinity, top = double.NegativeInfinity;
@@ -24,8 +24,8 @@ internal static partial class PdfWriter {
     /// <summary>Uses selected PDF glyphs and PDF-unit positioning, never a separately shaped approximation.</summary>
     /// <remarks>A supplied outline resolver must return private contours for placement. Font-cache eviction also releases its dependent outlines.</remarks>
     private static IEnumerable<(List<List<OfficePoint>> Contours, bool NominalBounds)> EnumerateGlyphPaintContours(
-        RichSeg segment, string text, double x, double baseline, PdfOptions options,
-        Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, PdfOptions? encodingOptions = null,
+        RichSeg segment, string text, double x, double baseline, PdfCreateOptions options,
+        Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, PdfCreateOptions? encodingOptions = null,
         PdfTextShowCommand? paintCommand = null,
         Func<IOfficeBoundedFontProgram, int, double, List<List<OfficePoint>>>? glyphOutline = null,
         Action? fontCacheCleared = null, CancellationToken cancellationToken = default) {
@@ -82,6 +82,15 @@ internal static partial class PdfWriter {
                         baseline + offsetY - point.Y);
                 }
                 yield return (contours, false);
+                if (options.NeedsSyntheticBold(segment.Font, segment.NamedFont)) {
+                    // Match native fill-and-stroke glyph paint through the shared
+                    // stroke owner. Ink diagnostics must include the added weight.
+                    var paths = contours.Select(points => new OfficeFlattenedPathContour(points, true)).ToArray();
+                    yield return (OfficeStrokeGeometry.Create(paths, ContentStreamBuilder.SyntheticBoldStrokeWidth(size),
+                        OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin.Round, 10D, null, 0D, 4D,
+                        double.NegativeInfinity, double.NegativeInfinity, double.PositiveInfinity, double.PositiveInfinity,
+                        cancellationToken), false);
+                }
             }
             cursor += GetRichGlyphAdvance(segment, text, command, index, options);
         }
@@ -96,7 +105,7 @@ internal static partial class PdfWriter {
         return value;
     }
 
-    private static IOfficeBoundedFontProgram? GetGlyphPaintFont(RichSeg segment, PdfOptions options,
+    private static IOfficeBoundedFontProgram? GetGlyphPaintFont(RichSeg segment, PdfCreateOptions options,
         Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, Action? fontCacheCleared = null) {
         byte[]? data = null;
         if (segment.NamedFont.HasValue) {

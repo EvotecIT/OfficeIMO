@@ -1,5 +1,5 @@
 $path = '.\Pdf-Inspection-Source.pdf'
-PdfNew -Path $path -CreateOutlineFromHeadings {
+New-OfficePdf -Path $path -CreateOutlineFromHeadings {
     PdfMetadata -Title 'Inspection source' -Author 'PSWriteOffice'
     PdfHeading 'Summary'
     PdfParagraph 'The service is ready for review.'

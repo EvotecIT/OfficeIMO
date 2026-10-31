@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_Sparklines_SupportReadUpdateDeleteLifecycle() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.AddSparklines("A1:C2", "D1:D2");
 
             Assert.Equal(new[] { "D1", "D2" }, sheet.GetSparklines().Select(item => item.LocationRange));
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_Sparklines_TypeUpdateSplitsPartiallyMatchedGroup() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.AddSparklines("A1:C2", "D1:D2");
 
             Assert.Equal(1, sheet.SetSparklineType("D1", ExcelSparklineType.Column));
@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_Sparklines_RejectForeignDestinationQualifiers() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.AddSparklines("A1:C1", "D1");
 
             Assert.Throws<System.ArgumentException>(() => sheet.SetSparklineType("Other!D1", ExcelSparklineType.Column));

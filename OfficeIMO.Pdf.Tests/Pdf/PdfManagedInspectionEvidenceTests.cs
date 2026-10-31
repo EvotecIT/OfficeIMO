@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfManagedInspectionEvidenceTests {
     [Fact]
     public void TextOnlyInspectionPreservesFailureKindsAndRepeatedSelectionOrder() {
-        PdfInspectionReadResult result = PdfDocument.Load(BuildMixedDocument()).ReadForInspection(new PdfReadOptions {
+        PdfInspectionReadResult result = PdfDocument.Load(BuildMixedDocument()).ReadForInspection(new PdfLoadOptions {
             IncludeImages = false, IncludeFormWidgets = false, PageSelection = PdfPageSelection.Parse("3,2,1,3")
         });
         Assert.Equal(new[] { 3, 2, 1, 3 }, result.PageOutcomes.Select(outcome => outcome.PageNumber));
@@ -18,7 +18,7 @@ public sealed class PdfManagedInspectionEvidenceTests {
         Assert.Equal(new[] { 3, 1, 3 }, result.Document.Pages.Select(page => page.PageNumber));
         Assert.NotEmpty(result.Document.Pages[0].Analysis.DecodedRuns);
         Assert.False(result.Document.IncludesImages); Assert.False(result.Document.IncludesFormWidgets);
-        PdfInspectionReadResult filtered = PdfDocument.Load(BuildMixedDocument(unsupportedFilter: true)).ReadForInspection(new PdfReadOptions { IncludeImages = false });
+        PdfInspectionReadResult filtered = PdfDocument.Load(BuildMixedDocument(unsupportedFilter: true)).ReadForInspection(new PdfLoadOptions { IncludeImages = false });
         Assert.Equal(PdfPageReadStatus.UnsupportedContentStreamFilter, filtered.PageOutcomes[1].Status);
     }
 
@@ -26,7 +26,7 @@ public sealed class PdfManagedInspectionEvidenceTests {
     public void InspectionRetainsSuccessfulOccurrencesSourceLinksAndExplicitMappingFailures() {
         PdfDocument pdf = PdfDocument.Load(BuildMixedDocument());
         Assert.Throws<PdfUnsupportedTextMappingException>(() => pdf.Read());
-        PdfInspectionReadResult inspection = pdf.ReadForInspection(new PdfReadOptions {
+        PdfInspectionReadResult inspection = pdf.ReadForInspection(new PdfLoadOptions {
             PageSelection = PdfPageSelection.Parse("3,2,1,3")
         });
         Assert.False(inspection.CompletedAllSelectedPages);
@@ -153,7 +153,7 @@ public sealed class PdfManagedInspectionEvidenceTests {
         Assert.Throws<PdfReadLimitException>(() => PdfDocument.Load(bytes,
             new PdfLoadOptions { Limits = new PdfReadLimits { MaxPages = 2 } }).ReadForInspection());
         Assert.Throws<PdfReadLimitException>(() => PdfDocument.Load(bytes).ReadForInspection(
-            new PdfReadOptions { Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 2 } }));
+            new PdfLoadOptions { Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 2 } }));
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         Assert.ThrowsAny<OperationCanceledException>(() => PdfDocument.Load(bytes).ReadForInspection(cancellationToken: cancellation.Token));

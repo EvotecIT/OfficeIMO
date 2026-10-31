@@ -147,7 +147,7 @@ public sealed class AdfConversionOptions : AdfProcessingOptions {
 
     /// <summary>Optional caller-owned projection for extension nodes. Returning null uses the normal fallback. Native extension metadata remains in the ADF model.</summary>
     /// <remarks>Handles extension, bodiedExtension and inlineExtension nodes. An inline projection must contain at most one paragraph.</remarks>
-    public Func<AdfNode, OfficeIMO.Markdown.MarkdownDoc?>? ExtensionResolver { get; set; }
+    public Func<AdfNode, OfficeIMO.Markdown.MarkdownDocument?>? ExtensionResolver { get; set; }
 
     /// <summary>Optional factory for task localId values, called with a stable structural path. Values must be nonempty and unique within a conversion. The default derives deterministic IDs from the document content and path.</summary>
     public Func<string, string>? LocalIdFactory { get; set; }

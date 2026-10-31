@@ -15,6 +15,7 @@ internal sealed class PublisherParseContext {
     private long _textLayoutCharacters;
     private int _imageStoreEntries;
     private long _tableModelItems, _tableModelCharacters;
+    private long _parsedGradientStops;
     internal IReadOnlyList<OfficeConversionFidelityDiagnostic> Diagnostics => _diagnostics;
     internal void Record() {
         Token.ThrowIfCancellationRequested();
@@ -61,6 +62,12 @@ internal sealed class PublisherParseContext {
         if (characters > Options.Limits.MaxTextCharacters - _tableModelCharacters)
             throw new InvalidDataException("Publisher table model text limit exceeded.");
         _tableModelCharacters += characters;
+    }
+    internal void AccountParsedGradientStops(int count) {
+        Token.ThrowIfCancellationRequested();
+        if (count > Options.Limits.MaxItems - _parsedGradientStops)
+            throw new InvalidDataException("Publisher parsed gradient stop limit exceeded.");
+        _parsedGradientStops += count;
     }
     internal void AccountPathWork(int items) {
         Token.ThrowIfCancellationRequested();

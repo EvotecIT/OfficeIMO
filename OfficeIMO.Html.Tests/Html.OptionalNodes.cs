@@ -39,10 +39,10 @@ public sealed class HtmlOptionalNodeTests {
 
     [Fact]
     public void InlineCallbacksAcceptMissingNodesAndStillRejectForeignSnapshots() {
-        var options = new HtmlToMarkdownOptions();
+        var options = new MarkdownHtmlImportOptions();
         HtmlDocument other = Parse("<b>Other</b>");
         bool completed = false;
-        options.InlineElementConverters.Add(new HtmlInlineElementConverter("optional", "Optional nodes", context => {
+        options.InlineElementConverters.Add(new MarkdownHtmlInlineConverter("optional", "Optional nodes", context => {
             if (context.Element.LocalName != "span") return null;
             Assert.Empty(context.ConvertNodesToInlineSequence(context.Element.QuerySelector("missing")?.ChildNodes).Nodes);
             var selected = context.ConvertNodesToInlineSequence(new HtmlNode?[] { null, context.Element.QuerySelector("b"), null });
@@ -51,7 +51,7 @@ public sealed class HtmlOptionalNodeTests {
             completed = true;
             return selected.Nodes;
         }));
-        string markdown = HtmlConversionDocument.Parse("<p><span><b>Kept</b></span></p>").ToMarkdown(options);
+        string markdown = HtmlConversionDocument.Parse("<p><span><b>Kept</b></span></p>").ToMarkdown(options).ToMarkdown();
         Assert.True(completed);
         Assert.Contains("**Kept**", markdown);
         Assert.DoesNotContain("Other", markdown);
@@ -59,10 +59,10 @@ public sealed class HtmlOptionalNodeTests {
 
     [Fact]
     public void BlockCallbacksSkipMissingItemsWithoutAcceptingMissingCollections() {
-        var options = new HtmlToMarkdownOptions();
+        var options = new MarkdownHtmlImportOptions();
         HtmlDocument other = Parse("<p>Other</p>");
         bool completed = false;
-        options.ElementBlockConverters.Add(new HtmlElementBlockConverter("optional", "Optional nodes", context => {
+        options.ElementBlockConverters.Add(new MarkdownHtmlBlockConverter("optional", "Optional nodes", context => {
             if (context.Element.LocalName != "section") return null;
             HtmlElement p = context.Element.QuerySelector("p")!;
             var blocks = context.ConvertNodesToBlocks(new HtmlNode?[] { null, p, null });
@@ -73,7 +73,7 @@ public sealed class HtmlOptionalNodeTests {
             completed = true;
             return blocks;
         }));
-        string markdown = HtmlConversionDocument.Parse("<section><p>Kept</p></section>").ToMarkdown(options);
+        string markdown = HtmlConversionDocument.Parse("<section><p>Kept</p></section>").ToMarkdown(options).ToMarkdown();
         Assert.True(completed);
         Assert.Contains("Kept", markdown);
         Assert.DoesNotContain("Other", markdown);

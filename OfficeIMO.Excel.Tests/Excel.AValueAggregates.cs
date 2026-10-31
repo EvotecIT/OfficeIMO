@@ -10,7 +10,7 @@ public sealed class ExcelAValueAggregateTests {
     [Fact]
     public void Numeric_aggregations_ignore_referenced_text_and_booleans_while_scalar_coercion_remains_available() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Values");
+        ExcelSheet sheet = document.AddSheet("Values");
         sheet.CellValue(1, 1, true); sheet.CellValue(2, 1, 0.2d);
         sheet.CellValue(1, 2, "25"); sheet.CellValue(2, 2, 0.2d);
         (string Formula, double Expected)[] cases = {
@@ -41,7 +41,7 @@ public sealed class ExcelAValueAggregateTests {
     [InlineData("TRUE")]
     public void Boolean_formula_results_keep_their_type_through_references_and_saved_caches(string formula) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Values");
+        ExcelSheet sheet = document.AddSheet("Values");
         sheet.CellFormula(1, 1, formula); sheet.CellValue(2, 1, 2d);
         sheet.CellFormula(1, 2, "A1");
         sheet.CellFormula(1, 4, "SUM(A1:A2)");
@@ -68,7 +68,7 @@ public sealed class ExcelAValueAggregateTests {
     [Fact]
     public void Selected_numeric_looking_text_remains_text_and_information_functions_distinguish_booleans() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Values");
+        ExcelSheet sheet = document.AddSheet("Values");
         sheet.CellValue(1, 1, "25");
         sheet.CellFormula(1, 2, "IF(TRUE,A1,0)");
         sheet.CellFormula(1, 3, "B1");
@@ -94,7 +94,7 @@ public sealed class ExcelAValueAggregateTests {
     [InlineData("AVERAGEA", 0.2d, 0.6d, 0.1d)]
     public void A_value_aggregates_use_referenced_boolean_and_text_types_and_ignore_blank_cells(string function, double numeric, double logical, double text) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Values");
+        ExcelSheet sheet = document.AddSheet("Values");
         sheet.CellValue(1, 1, true); sheet.CellValue(2, 1, numeric);
         sheet.CellValue(1, 2, "25"); sheet.CellValue(2, 2, 0.2d);
         sheet.CellFormula(1, 4, function + "(A1:A3)");
@@ -114,7 +114,7 @@ public sealed class ExcelAValueAggregateTests {
     [InlineData("AVERAGEA", "#DIV/0!")]
     public void A_value_aggregates_resolve_empty_ranges_and_preserve_typed_errors(string function, string? emptyError) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Values");
+        ExcelSheet sheet = document.AddSheet("Values");
         sheet.CellFormula(1, 1, "IFNA(#N/A,#N/A)");
         sheet.CellFormula(1, 4, function + "(B1:B3)");
         sheet.CellFormula(2, 4, function + "(A1:A3)");

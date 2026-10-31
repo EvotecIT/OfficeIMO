@@ -1,13 +1,11 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
-using OfficeIMO.Markdown.Html;
-using OfficeIMO.Word.Html;
 using System.Collections.Generic;
 using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
-        private static bool LocalPathAllowed(string path, MarkdownToWordOptions options) {
+        private static bool LocalPathAllowed(string path, WordMarkdownImportOptions options) {
             if (!options.AllowLocalImages) return false;
             if (options.AllowedImageDirectories.Count == 0) return true;
             try {
@@ -22,9 +20,9 @@ namespace OfficeIMO.Word.Markdown {
 
         private static double EstimatePageContentWidthPixels(WordDocument document) {
             var section = document.Sections.FirstOrDefault();
-            var pageWidthTwips = (double?)section?.PageSettings.Width ?? DefaultPageWidthTwips;
-            var leftMarginTwips = (double?)section?.Margins.Left ?? DefaultHorizontalMarginTwips;
-            var rightMarginTwips = (double?)section?.Margins.Right ?? DefaultHorizontalMarginTwips;
+            var pageWidthTwips = (double?)section?.PageSettings.Width?.ToTwips() ?? DefaultPageWidthTwips;
+            var leftMarginTwips = (double?)section?.Margins.Left?.ToTwips() ?? DefaultHorizontalMarginTwips;
+            var rightMarginTwips = (double?)section?.Margins.Right?.ToTwips() ?? DefaultHorizontalMarginTwips;
             var contentTwips = pageWidthTwips - leftMarginTwips - rightMarginTwips;
 
             if (contentTwips < MinimumContentWidthPixels) {
@@ -42,9 +40,9 @@ namespace OfficeIMO.Word.Markdown {
             WordParagraph paragraph,
             string pathOrUrl,
             string? alt,
-            double? requestedWidth,
-            double? requestedHeight,
-            MarkdownToWordOptions options,
+            global::OfficeIMO.OfficeLength? requestedWidth,
+            global::OfficeIMO.OfficeLength? requestedHeight,
+            WordMarkdownImportOptions options,
             double pageContentWidthPixels,
             int listLevel,
             int quoteDepth,
@@ -56,13 +54,22 @@ namespace OfficeIMO.Word.Markdown {
                 return;
             }
 
-            if (System.IO.File.Exists(imageSource)) {
+            string? localImagePath = ResolveLocalImagePath(imageSource, options);
+            if (localImagePath != null && !System.IO.File.Exists(localImagePath)) {
+                ReportImageLoss(options, OfficeDiagnosticCodes.ImageLoadFailed,
+                    $"Image '{imageSource}' was not found at '{localImagePath}'; its alternative text was written instead.", imageSource);
+                AddImageFallbackText(paragraph, alt, System.IO.Path.GetFileName(imageSource), options);
+                return;
+            }
+
+            if (localImagePath != null) {
+                imageSource = localImagePath;
                 if (options.AllowLocalImages && LocalPathAllowed(imageSource, options)) {
-                    double? naturalW = null;
-                    double? naturalH = null;
+                    global::OfficeIMO.OfficeLength? naturalW = null;
+                    global::OfficeIMO.OfficeLength? naturalH = null;
                     if (TryGetImageDimensionsFromFile(imageSource, out var fileW, out var fileH)) {
-                        naturalW = fileW;
-                        naturalH = fileH;
+                        naturalW = global::OfficeIMO.OfficeLength.Pixels(fileW);
+                        naturalH = global::OfficeIMO.OfficeLength.Pixels(fileH);
                     }
 
                     ResolveImageDimensions(
@@ -79,15 +86,27 @@ namespace OfficeIMO.Word.Markdown {
                         out var finalH,
                         out _);
 
-                    paragraph.AddImage(imageSource, finalW, finalH, description: alt ?? string.Empty);
+                    paragraph.AddImage(imageSource, finalW, finalH, options: new OfficeIMO.Word.WordImageOptions { Description = alt ?? string.Empty });
                 } else {
+                    ReportImageLoss(options, OfficeDiagnosticCodes.ImageSkippedByPolicy,
+                        options.AllowLocalImages
+                            ? $"Local image '{pathOrUrl}' is outside AllowedImageDirectories; its alternative text was written instead."
+                            : $"Local image '{pathOrUrl}' was not embedded because AllowLocalImages is disabled; its alternative text was written instead.",
+                        pathOrUrl);
                     AddImageFallbackText(paragraph, alt, System.IO.Path.GetFileName(imageSource), options);
                 }
 
                 return;
             }
 
-            if (System.Uri.TryCreate(imageSource, System.UriKind.Absolute, out var uri)) {
+            System.Uri? uri;
+            if (!System.Uri.TryCreate(imageSource, System.UriKind.Absolute, out uri)
+                && TryGetRemoteBase(options, out var remoteBase)
+                && !string.IsNullOrWhiteSpace(imageSource)) {
+                System.Uri.TryCreate(remoteBase, imageSource, out uri);
+            }
+
+            if (uri != null) {
                 if (options.AllowedImageSchemes.Contains(uri.Scheme) &&
                     (options.ImageUrlValidator == null || options.ImageUrlValidator(uri))) {
                     if (options.RemoteImageResolver != null) {
@@ -106,11 +125,11 @@ namespace OfficeIMO.Word.Markdown {
                                 fileName = "image";
                             }
 
-                            double? naturalW = null;
-                            double? naturalH = null;
+                            global::OfficeIMO.OfficeLength? naturalW = null;
+                            global::OfficeIMO.OfficeLength? naturalH = null;
                             if (TryGetImageDimensionsFromBytes(bytes, out var remoteW, out var remoteH)) {
-                                naturalW = remoteW;
-                                naturalH = remoteH;
+                                naturalW = global::OfficeIMO.OfficeLength.Pixels(remoteW);
+                                naturalH = global::OfficeIMO.OfficeLength.Pixels(remoteH);
                             }
 
                             ResolveImageDimensions(
@@ -128,7 +147,7 @@ namespace OfficeIMO.Word.Markdown {
                                 out _);
 
                             using var stream = new System.IO.MemoryStream(bytes, writable: false);
-                            paragraph.AddImage(stream, fileName, finalW, finalH, description: alt ?? string.Empty);
+                            paragraph.AddImage(stream, fileName, finalW, finalH, options: new OfficeIMO.Word.WordImageOptions { Description = alt ?? string.Empty });
                         } catch (Exception ex) {
                             options.OnWarning?.Invoke($"Remote image '{uri}' could not be downloaded. {ex.Message}");
                             if (options.FallbackRemoteImagesToHyperlinks) {
@@ -136,7 +155,7 @@ namespace OfficeIMO.Word.Markdown {
                             }
                         }
                     } else {
-                        options.OnWarning?.Invoke($"Remote image '{uri}' was not resolved because MarkdownToWordOptions.RemoteImageResolver is not configured.");
+                        options.OnWarning?.Invoke($"Remote image '{uri}' was not resolved because WordMarkdownImportOptions.RemoteImageResolver is not configured.");
                         if (options.FallbackRemoteImagesToHyperlinks) {
                             paragraph.AddHyperLink(alt ?? uri.ToString(), uri);
                         }
@@ -151,16 +170,98 @@ namespace OfficeIMO.Word.Markdown {
                 return;
             }
 
+            ReportImageLoss(options, OfficeDiagnosticCodes.ImageLoadFailed,
+                $"Image source '{imageSource}' could not be resolved; its alternative text was written instead.", imageSource);
             AddImageFallbackText(paragraph, alt, imageSource, options);
+        }
+
+        private static void ReportImageLoss(WordMarkdownImportOptions options, string code, string message, string? location) {
+            if (options.DiagnosticSink != null) {
+                options.DiagnosticSink(new WordMarkdownConversionDiagnostic(code, message, OfficeConversionLossKind.Omission,
+                    OfficeDiagnosticSeverity.Warning, location, "Markdown"));
+            } else {
+                options.OnWarning?.Invoke(message);
+            }
+        }
+
+        /// <summary>
+        /// Resolves a Markdown image reference to a local file path. Absolute paths and <c>file:</c> URIs are used
+        /// as given; relative references resolve against <see cref="WordMarkdownImportOptions.BaseUri"/> when it is a
+        /// local directory or <c>file:</c> URI, otherwise against the directory of the Markdown source file.
+        /// Returns <see langword="null"/> for remote URLs, data URIs and relative references with no local base.
+        /// </summary>
+        private static string? ResolveLocalImagePath(string source, WordMarkdownImportOptions options) {
+            if (string.IsNullOrWhiteSpace(source)) {
+                return null;
+            }
+
+            string reference = source.Trim();
+            int fragment = reference.IndexOfAny(new[] { '?', '#' });
+            try {
+                if (System.Uri.TryCreate(reference, System.UriKind.Absolute, out var absolute) && !IsDrivePath(reference)) {
+                    return absolute.IsFile ? absolute.LocalPath : null;
+                }
+
+                if (System.IO.Path.IsPathRooted(reference)) {
+                    return System.IO.Path.GetFullPath(reference);
+                }
+
+                string relative = System.Uri.UnescapeDataString(fragment >= 0 ? reference.Substring(0, fragment) : reference)
+                    .Replace('/', System.IO.Path.DirectorySeparatorChar);
+                if (TryGetRemoteBase(options, out _)) {
+                    return null;
+                }
+
+                // Without a base URI or source file, relative paths keep resolving against the working directory.
+                string? baseDirectory = ResolveLocalBaseDirectory(options);
+                return baseDirectory == null
+                    ? System.IO.Path.GetFullPath(relative)
+                    : System.IO.Path.GetFullPath(System.IO.Path.Combine(baseDirectory, relative));
+            } catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is System.IO.PathTooLongException || ex is UriFormatException) {
+                return null;
+            }
+        }
+
+        private static bool IsDrivePath(string value) =>
+            value.Length >= 3 && char.IsLetter(value[0]) && value[1] == ':' && (value[2] == '\\' || value[2] == '/');
+
+        private static bool TryGetRemoteBase(WordMarkdownImportOptions options, out System.Uri? remoteBase) {
+            remoteBase = null;
+            string? baseUri = options.BaseUri?.Trim();
+            if (string.IsNullOrEmpty(baseUri) || IsDrivePath(baseUri!)) {
+                return false;
+            }
+
+            if (System.Uri.TryCreate(baseUri, System.UriKind.Absolute, out var uri) && !uri.IsFile) {
+                remoteBase = uri;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static string? ResolveLocalBaseDirectory(WordMarkdownImportOptions options) {
+            string? baseUri = options.BaseUri;
+            if (!string.IsNullOrWhiteSpace(baseUri)) {
+                string trimmed = baseUri!.Trim();
+                if (System.Uri.TryCreate(trimmed, System.UriKind.Absolute, out var uri) && !IsDrivePath(trimmed)) {
+                    // A remote base (https://...) cannot locate local files; relative images stay unresolved.
+                    return uri.IsFile ? uri.LocalPath : null;
+                }
+
+                return System.IO.Path.GetFullPath(trimmed);
+            }
+
+            return options.SourceDirectory;
         }
 
         private static bool TryRenderDataUriImage(
             WordParagraph paragraph,
             string source,
             string? alt,
-            double? requestedWidth,
-            double? requestedHeight,
-            MarkdownToWordOptions options,
+            global::OfficeIMO.OfficeLength? requestedWidth,
+            global::OfficeIMO.OfficeLength? requestedHeight,
+            WordMarkdownImportOptions options,
             double pageContentWidthPixels,
             double? contextWidthLimit,
             string contextPrefix) {
@@ -183,11 +284,11 @@ namespace OfficeIMO.Word.Markdown {
                 return true;
             }
 
-            double? naturalW = null;
-            double? naturalH = null;
+            global::OfficeIMO.OfficeLength? naturalW = null;
+            global::OfficeIMO.OfficeLength? naturalH = null;
             if (TryGetImageDimensionsFromBytes(bytes, out var dataW, out var dataH)) {
-                naturalW = dataW;
-                naturalH = dataH;
+                naturalW = global::OfficeIMO.OfficeLength.Pixels(dataW);
+                naturalH = global::OfficeIMO.OfficeLength.Pixels(dataH);
             }
 
             ResolveImageDimensions(
@@ -206,7 +307,7 @@ namespace OfficeIMO.Word.Markdown {
 
             using var stream = new System.IO.MemoryStream(bytes, writable: false);
             try {
-                paragraph.AddImage(stream, fileName, finalW, finalH, description: alt ?? string.Empty);
+                paragraph.AddImage(stream, fileName, finalW, finalH, options: new OfficeIMO.Word.WordImageOptions { Description = alt ?? string.Empty });
             } catch (Exception ex) when (IsRecoverableDataUriImageInsertionException(ex)) {
                 options.OnWarning?.Invoke($"Data URI image could not be inserted as a supported Word image. {ex.Message}");
                 AddImageFallbackText(paragraph, alt, string.Empty, options);
@@ -223,7 +324,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static bool TryDecodeDataUriImage(
             string source,
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             out byte[] bytes,
             out string fileName,
             out string? warning) {
@@ -331,7 +432,7 @@ namespace OfficeIMO.Word.Markdown {
             };
         }
 
-        private static void AddImageFallbackText(WordParagraph paragraph, string? alt, string fallback, MarkdownToWordOptions options) {
+        private static void AddImageFallbackText(WordParagraph paragraph, string? alt, string fallback, WordMarkdownImportOptions options) {
             var fallbackText = !string.IsNullOrEmpty(alt) ? alt! : fallback ?? string.Empty;
             var text = paragraph.AddText(fallbackText);
             var defaultFont = ResolveDefaultFontFamily(options);
@@ -341,15 +442,15 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static double? ResolveContextWidthLimitPixels(
-            MarkdownImageLayoutOptions layout,
+            WordMarkdownImageLayoutOptions layout,
             double pageContentWidthPixels,
             int listLevel,
             int quoteDepth) {
-            if (layout.FitMode == MarkdownImageFitMode.None || pageContentWidthPixels <= 0) {
+            if (layout.FitMode == WordMarkdownImageFitMode.None || pageContentWidthPixels <= 0) {
                 return null;
             }
 
-            if (layout.FitMode == MarkdownImageFitMode.PageContentWidth) {
+            if (layout.FitMode == WordMarkdownImageFitMode.PageContentWidth) {
                 return pageContentWidthPixels;
             }
 
@@ -401,29 +502,29 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static void ResolveImageDimensions(
-            MarkdownToWordOptions options,
+            WordMarkdownImportOptions options,
             string source,
             string context,
-            double? requestedWidth,
-            double? requestedHeight,
-            double? naturalWidth,
-            double? naturalHeight,
+            global::OfficeIMO.OfficeLength? requestedWidth,
+            global::OfficeIMO.OfficeLength? requestedHeight,
+            global::OfficeIMO.OfficeLength? naturalWidth,
+            global::OfficeIMO.OfficeLength? naturalHeight,
             double pageContentWidthPixels,
             double? contextWidthLimitPixels,
-            out double? finalWidth,
-            out double? finalHeight,
+            out global::OfficeIMO.OfficeLength? resolvedWidth,
+            out global::OfficeIMO.OfficeLength? resolvedHeight,
             out bool scaledByLayout) {
-            var layout = options.ImageLayout ?? new MarkdownImageLayoutOptions();
-            finalWidth = null;
-            finalHeight = null;
+            var layout = options.ImageLayout ?? new WordMarkdownImageLayoutOptions();
+            double? finalWidth = null;
+            double? finalHeight = null;
             scaledByLayout = false;
 
-            var hasNaturalWidth = NormalizePositiveDimension(naturalWidth, out var naturalWidthPx);
-            var hasNaturalHeight = NormalizePositiveDimension(naturalHeight, out var naturalHeightPx);
-            var hasRequestedWidth = NormalizePositiveDimension(requestedWidth, out var requestedWidthPx);
-            var hasRequestedHeight = NormalizePositiveDimension(requestedHeight, out var requestedHeightPx);
+            var hasNaturalWidth = NormalizePositiveDimension(naturalWidth?.ToPixels(), out var naturalWidthPx);
+            var hasNaturalHeight = NormalizePositiveDimension(naturalHeight?.ToPixels(), out var naturalHeightPx);
+            var hasRequestedWidth = NormalizePositiveDimension(requestedWidth?.ToPixels(), out var requestedWidthPx);
+            var hasRequestedHeight = NormalizePositiveDimension(requestedHeight?.ToPixels(), out var requestedHeightPx);
 
-            if (layout.HintPrecedence == MarkdownImageHintPrecedence.LayoutThenMarkdown) {
+            if (layout.HintPrecedence == WordMarkdownImageHintPrecedence.LayoutThenMarkdown) {
                 if (hasNaturalWidth) {
                     finalWidth = naturalWidthPx;
                 }
@@ -460,10 +561,10 @@ namespace OfficeIMO.Word.Markdown {
             double? effectiveMaxWidth = null;
             double? effectiveMaxHeight = null;
 
-            if (NormalizePositiveDimension(layout.MaxWidthPixels, out var maxWidth)) {
+            if (NormalizePositiveDimension(layout.MaxWidth?.ToPixels(), out var maxWidth)) {
                 effectiveMaxWidth = maxWidth;
             }
-            if (NormalizePositiveDimension(layout.MaxHeightPixels, out var maxHeight)) {
+            if (NormalizePositiveDimension(layout.MaxHeight?.ToPixels(), out var maxHeight)) {
                 effectiveMaxHeight = maxHeight;
             }
             if (NormalizePositiveDimension(layout.MaxWidthPercentOfContent, out var maxWidthPercent)) {
@@ -523,18 +624,21 @@ namespace OfficeIMO.Word.Markdown {
                 finalHeight = null;
             }
 
+            resolvedWidth = finalWidth.HasValue ? global::OfficeIMO.OfficeLength.Pixels(finalWidth.Value) : (global::OfficeIMO.OfficeLength?)null;
+            resolvedHeight = finalHeight.HasValue ? global::OfficeIMO.OfficeLength.Pixels(finalHeight.Value) : (global::OfficeIMO.OfficeLength?)null;
+
             if (options.OnImageLayoutDiagnostic != null) {
-                options.OnImageLayoutDiagnostic(new MarkdownImageLayoutDiagnostic {
+                options.OnImageLayoutDiagnostic(new WordMarkdownImageLayoutDiagnostic {
                     Source = source,
                     Context = context,
-                    RequestedWidthPixels = hasRequestedWidth ? requestedWidthPx : null,
-                    RequestedHeightPixels = hasRequestedHeight ? requestedHeightPx : null,
-                    NaturalWidthPixels = hasNaturalWidth ? naturalWidthPx : null,
-                    NaturalHeightPixels = hasNaturalHeight ? naturalHeightPx : null,
-                    EffectiveMaxWidthPixels = effectiveMaxWidth,
-                    EffectiveMaxHeightPixels = effectiveMaxHeight,
-                    FinalWidthPixels = finalWidth,
-                    FinalHeightPixels = finalHeight,
+                    RequestedWidth = hasRequestedWidth ? requestedWidth : null,
+                    RequestedHeight = hasRequestedHeight ? requestedHeight : null,
+                    NaturalWidth = hasNaturalWidth ? naturalWidth : null,
+                    NaturalHeight = hasNaturalHeight ? naturalHeight : null,
+                    EffectiveMaxWidth = effectiveMaxWidth.HasValue ? global::OfficeIMO.OfficeLength.Pixels(effectiveMaxWidth.Value) : (global::OfficeIMO.OfficeLength?)null,
+                    EffectiveMaxHeight = effectiveMaxHeight.HasValue ? global::OfficeIMO.OfficeLength.Pixels(effectiveMaxHeight.Value) : (global::OfficeIMO.OfficeLength?)null,
+                    FinalWidth = resolvedWidth,
+                    FinalHeight = resolvedHeight,
                     ScaledByLayout = scaledByLayout
                 });
             }

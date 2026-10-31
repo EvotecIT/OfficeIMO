@@ -45,7 +45,7 @@ internal static class ReportEngineVerifier {
 
     private static object VerifyXlsx(string path, int count) {
         WorkbookVerifier.Verify(path);
-        using (var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { SheetName = "Services", A1Range = "A2:F" + (count + 2), HasHeaderRow = true })) {
+        using (var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { SheetName = "Services", A1Range = "A2:F" + (count + 2), HasHeaderRow = true })) {
             Require(reader.FieldCount == Headers.Length && Enumerable.Range(0, Headers.Length).Select(reader.GetName).SequenceEqual(Headers), "XLSX headings differ.");
             int row = 0;
             while (reader.Read()) {
@@ -96,7 +96,7 @@ internal static class ReportEngineVerifier {
     }
 
     private static object VerifyPdf(string path, int count) {
-        PdfReadDocument document = PdfReadDocument.Open(path);
+        using PdfDocument document = PdfDocument.Load(path);
         Require(!document.RepairReport.HasRepairs, "PDF required repairs.");
         string[] spans = document.Pages.SelectMany(page => page.GetTextSpans()).Select(span => span.Text).ToArray();
         string text = string.Concat(spans);

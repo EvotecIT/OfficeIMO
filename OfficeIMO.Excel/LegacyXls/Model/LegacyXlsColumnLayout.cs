@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents formatting and visibility metadata for a legacy XLS column range.
     /// </summary>
-    public sealed class LegacyXlsColumnLayout {
+    internal sealed class LegacyXlsColumnLayout {
         /// <summary>
         /// Creates legacy column layout metadata.
         /// </summary>

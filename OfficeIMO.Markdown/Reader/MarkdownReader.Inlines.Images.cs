@@ -1,11 +1,11 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private const int MaxImageAltNestingDepth = 32;
 
     private static string ExtractImageAltPlainText(
         string altMarkdown,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         int imageAltDepth = 0) {
         if (string.IsNullOrEmpty(altMarkdown)) {

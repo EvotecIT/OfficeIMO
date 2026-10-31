@@ -28,7 +28,7 @@ public sealed class VisioToPdfOptions {
     public VisioDrawingOptions? DrawingOptions { get; set; }
 
     /// <summary>PDF generation settings for diagram pages. Source page sizes and zero margins take precedence.</summary>
-    public PdfOptions? PdfOptions { get; set; }
+    public PdfCreateOptions? PdfOptions { get; set; }
 
     internal void Validate() {
         if (!Enum.IsDefined(typeof(VisioPdfProjectionMode), Mode)) throw new ArgumentOutOfRangeException(nameof(Mode));

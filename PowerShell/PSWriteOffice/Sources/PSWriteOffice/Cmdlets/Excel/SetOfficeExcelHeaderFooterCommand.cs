@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -131,11 +132,11 @@ public sealed class SetOfficeExcelHeaderFooterCommand : AsyncPSCmdlet
         {
             var resolved = SessionState.Path.GetUnresolvedProviderPathFromPSPath(HeaderImagePath);
             var bytes = File.ReadAllBytes(resolved);
-            sheet.SetHeaderImage(HeaderImagePosition, bytes, GetContentType(resolved), ImageWidthPoints, ImageHeightPoints);
+            sheet.SetHeaderImage(HeaderImagePosition, bytes, GetContentType(resolved), ImageWidthPoints.HasValue ? OfficeLength.Points(ImageWidthPoints.Value) : (OfficeLength?)null, ImageHeightPoints.HasValue ? OfficeLength.Points(ImageHeightPoints.Value) : (OfficeLength?)null);
         }
         else if (!string.IsNullOrWhiteSpace(HeaderImageUrl))
         {
-            await sheet.SetHeaderImageFromUrlAsync(HeaderImagePosition, HeaderImageUrl!, ImageWidthPoints, ImageHeightPoints, CancelToken)
+            await sheet.SetHeaderImageFromUrlAsync(HeaderImagePosition, HeaderImageUrl!, ImageWidthPoints.HasValue ? OfficeLength.Points(ImageWidthPoints.Value) : (OfficeLength?)null, ImageHeightPoints.HasValue ? OfficeLength.Points(ImageHeightPoints.Value) : (OfficeLength?)null, CancelToken)
                 .ConfigureAwait(false);
         }
 
@@ -143,11 +144,11 @@ public sealed class SetOfficeExcelHeaderFooterCommand : AsyncPSCmdlet
         {
             var resolved = SessionState.Path.GetUnresolvedProviderPathFromPSPath(FooterImagePath);
             var bytes = File.ReadAllBytes(resolved);
-            sheet.SetFooterImage(FooterImagePosition, bytes, GetContentType(resolved), ImageWidthPoints, ImageHeightPoints);
+            sheet.SetFooterImage(FooterImagePosition, bytes, GetContentType(resolved), ImageWidthPoints.HasValue ? OfficeLength.Points(ImageWidthPoints.Value) : (OfficeLength?)null, ImageHeightPoints.HasValue ? OfficeLength.Points(ImageHeightPoints.Value) : (OfficeLength?)null);
         }
         else if (!string.IsNullOrWhiteSpace(FooterImageUrl))
         {
-            await sheet.SetFooterImageFromUrlAsync(FooterImagePosition, FooterImageUrl!, ImageWidthPoints, ImageHeightPoints, CancelToken)
+            await sheet.SetFooterImageFromUrlAsync(FooterImagePosition, FooterImageUrl!, ImageWidthPoints.HasValue ? OfficeLength.Points(ImageWidthPoints.Value) : (OfficeLength?)null, ImageHeightPoints.HasValue ? OfficeLength.Points(ImageHeightPoints.Value) : (OfficeLength?)null, CancelToken)
                 .ConfigureAwait(false);
         }
 

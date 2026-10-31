@@ -11,7 +11,7 @@ Renders a semantic deck plan through OfficeIMO PowerPoint designer helpers.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Add-OfficePowerPointDesignerDeck -Plan <PowerPointDeckPlan> [-Presentation <PowerPointPresentation>] [-AccentColor <string>] [-Seed <string>] [-Purpose <string>] [-Name <string>] [-Eyebrow <string>] [-FooterLeft <string>] [-FooterRight <string>] [-CreativeDirectionPack <PowerPointCreativeDirectionPack>] [-LayoutStrategy <PowerPointAutoLayoutStrategy>] [-AlternativeCount <int>] [-NoApplyTheme] [-Preview] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointDesignerDeck -Plan <PowerPointDeckPlan> [-Presentation <PowerPointDocument>] [-AccentColor <string>] [-Seed <string>] [-Purpose <string>] [-Name <string>] [-Eyebrow <string>] [-FooterLeft <string>] [-FooterRight <string>] [-CreativeDirectionPack <PowerPointCreativeDirectionPack>] [-LayoutStrategy <PowerPointAutoLayoutStrategy>] [-AlternativeCount <int>] [-NoApplyTheme] [-Preview] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -217,7 +217,7 @@ Accept wildcard characters: False
 Presentation to update. Optional inside New-OfficePowerPoint.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -282,7 +282,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

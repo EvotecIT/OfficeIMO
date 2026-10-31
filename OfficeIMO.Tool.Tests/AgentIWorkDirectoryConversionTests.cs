@@ -35,7 +35,7 @@ public sealed partial class AgentIWorkConversionTests {
         Assert.Equal(files.Input, source.Path);
         Assert.Contains(result.Workflow.Diagnostics, item => item.Code == "SourceSnapshot"
             && item.Details["snapshotKind"] == (directoryPackage ? "DirectoryPackage" : "FileBytes"));
-        Assert.Contains(result.Workflow.Diagnostics, item => item.Code == "OutputReopened");
+        Assert.Contains(result.Workflow.Diagnostics, item => item.Code == "conversion-output-reopened");
         Assert.Equal(64, result.SourceSha256!.Length);
         Assert.NotEqual(contentHash, result.SourceSha256); // File-byte snapshots and canonical package content are distinct.
         if (!directoryPackage) {

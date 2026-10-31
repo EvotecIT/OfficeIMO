@@ -21,11 +21,13 @@ public sealed class HtmlEmailImageExportTests {
         var email = new EmailDocument { Subject = "Bounded message" };
         email.Body.Html = "<h1>Bounded</h1><p>High requested scale.</p>";
 
-        OfficeImageExportResult result = email.ToImage()
-            .WithScale(100D)
-            .FitWithin(360, 360)
-            .AsPng()
-            .Export();
+        var imageOptions1 = new EmailImageExportOptions();
+        imageOptions1.Scale = 100D;
+        imageOptions1.TargetDpi = null;
+        imageOptions1.MaximumOutputWidth = 360;
+        imageOptions1.MaximumOutputHeight = 360;
+        imageOptions1.Format = OfficeImageExportFormat.Png;
+        OfficeImageExportResult result = email.ExportImage(OfficeImageExportFormat.Png, imageOptions1, pageIndex: imageOptions1.PageIndex);
 
         Assert.True(result.Width <= 360);
         Assert.True(result.Height <= 360);
@@ -147,8 +149,7 @@ public sealed class HtmlEmailImageExportTests {
         Assert.True(result.Bytes.Length > 32);
         if (format == OfficeImageExportFormat.Svg) {
             OfficeDrawing drawing = HtmlSvgPaintAssertions.Read(result.Bytes);
-            Assert.Contains(DrawingTestTraversal.Elements(drawing).OfType<OfficeDrawingText>(), text =>
-                text.Text == "Styled" && (text.Font.Style & OfficeFontStyle.Italic) != 0);
+            HtmlSvgPaintAssertions.TextPaint(drawing, result.Bytes, "Styled", OfficeFontStyle.Italic);
             HtmlSvgPaintAssertions.WavyStrokes(drawing, OfficeColor.FromRgb(0x33, 0x66, 0x99), 2);
         }
     }
@@ -441,22 +442,26 @@ public sealed class HtmlEmailImageExportTests {
             "OfficeIMO.EmailImages",
             Guid.NewGuid().ToString("N"));
         try {
-            OfficeImageExportBatchSaveResult saved = await email
-                .ToImages(new EmailImageExportOptions {
+            var imageOptions2 = new EmailImageExportOptions {
                     PageSize = new OfficePageSize(
-                        360D / HtmlRenderOptions.CssPixelsPerInch,
-                        260D / HtmlRenderOptions.CssPixelsPerInch)
-                })
-                .Paged()
-                .AsPng()
-                .WithBatchLimits(20, 20_000_000, 20_000_000)
-                .SaveFilesAsync(folder);
+                        global::OfficeIMO.OfficeLength.Inches(360D / HtmlRenderOptions.CssPixelsPerInch),
+                        global::OfficeIMO.OfficeLength.Inches(260D / HtmlRenderOptions.CssPixelsPerInch))
+                };
+            imageOptions2.Mode = HtmlRenderMode.Paged;
+            imageOptions2.Format = OfficeImageExportFormat.Png;
+            imageOptions2.MaximumOutputCount = 20;
+            imageOptions2.MaximumTotalRasterPixels = 20_000_000;
+            imageOptions2.MaximumTotalEncodedBytes = 20_000_000;
+            OfficeConversionReport saved = await email
+                .SaveAsImagesAsync(folder, imageOptions2);
 
-            Assert.True(saved.Files.Count > 1);
-            Assert.All(saved.Files, file => {
-                Assert.True(File.Exists(file.Path));
-                Assert.Equal(OfficeImageExportFormat.Png, file.Format);
-                Assert.True(file.EncodedLength > 0);
+            Assert.True(saved.ItemsWritten > 1);
+            string[] paths = Directory.GetFiles(folder, "*.png");
+            Assert.Equal(saved.ItemsWritten, paths.Length);
+            Assert.All(paths, path => {
+                byte[] bytes = File.ReadAllBytes(path);
+                Assert.NotEmpty(bytes);
+                Assert.Equal("image/png", OfficeImageReader.Identify(bytes).MimeType);
             });
         } finally {
             if (Directory.Exists(folder)) {

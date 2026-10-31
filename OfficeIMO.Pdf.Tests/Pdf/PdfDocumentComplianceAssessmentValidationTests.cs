@@ -20,8 +20,8 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         Assert.Throws<ArgumentException>(() => new PdfHeaderFooterImage(
             CreateMinimalRgbPng(),
-            24,
-            12,
+            global::OfficeIMO.OfficeLength.Points(24),
+            global::OfficeIMO.OfficeLength.Points(12),
             alternativeText: " "));
     }
 

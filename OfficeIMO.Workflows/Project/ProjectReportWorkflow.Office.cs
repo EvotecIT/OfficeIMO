@@ -15,27 +15,27 @@ public static partial class ProjectReportWorkflow {
 
     /// <summary>Creates a Word report with explicit chart and table selection.</summary>
     public static WordDocument CreateWord(ProjectView view, ProjectOfficeReportOptions options, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(view);
+        if (view == null) throw new ArgumentNullException(nameof(view));
         ValidateOfficeOptions(options);
         cancellationToken.ThrowIfCancellationRequested();
         var document = WordDocument.Create();
         try {
             document.PageOrientation = view.PageWidth >= view.PageHeight ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
-            document.PageSettings.Width = checked((uint)Math.Round(view.PageWidth * 20));
-            document.PageSettings.Height = checked((uint)Math.Round(view.PageHeight * 20));
-            document.Margins.Left = document.Margins.Right = checked((uint)Math.Round(view.PageMargin * 20));
-            document.Margins.Top = document.Margins.Bottom = checked((int)Math.Round(view.PageMargin * 20));
+            document.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(view.PageWidth * 20))) / 20D);
+            document.PageSettings.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(view.PageHeight * 20))) / 20D);
+            document.Margins.Left = document.Margins.Right = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(view.PageMargin * 20))) / 20D);
+            document.Margins.Top = document.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(view.PageMargin * 20))) / 20D);
             if (options.IncludeCharts && view.Kind != ProjectViewKind.Table) AddWordCharts(document, view, options, cancellationToken);
             if (!options.IncludeDataTables && view.Kind != ProjectViewKind.Table) return document;
-            var title = document.AddParagraph(view.Title); title.Bold = true; title.FontSize = 20; title.FontFamily = "Arial"; title.ColorHex = "183047";
+            var title = document.AddParagraph(view.Title); title.Bold = true; title.FontSize = global::OfficeIMO.OfficeLength.Points(20); title.FontFamily = "Arial"; title.ColorHex = "183047";
             foreach (var part in TableParts(view, cancellationToken)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var heading = document.AddParagraph(part.Title); heading.FontFamily = "Arial"; heading.FontSize = 13;
+                var heading = document.AddParagraph(part.Title); heading.FontFamily = "Arial"; heading.FontSize = global::OfficeIMO.OfficeLength.Points(13);
                 heading.Bold = true; heading.ColorHex = "183047"; heading.KeepWithNext = true;
-                heading.LineSpacingBeforePoints = 10; heading.LineSpacingAfterPoints = 6;
+                heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(10D); heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
                 var table = document.AddTable(part.Rows.Length + 1, part.Headers.Length, WordTableStyle.TableGrid);
                 table.SetColumnWidthsPercentage(ColumnWeights(part.Headers));
-                table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4, OfficeColor.ParseHex("#E3EAF0"));
+                table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(0.5), OfficeColor.ParseHex("#E3EAF0"));
                 var tableRows = table.Rows;
                 tableRows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
                 for (int r = 0; r < tableRows.Count; r++) {
@@ -44,11 +44,11 @@ public static partial class ProjectReportWorkflow {
                     for (int c = 0; c < cells.Count; c++) {
                         var cell = cells[c];
                         cell.ShadingFillColorHex = r == 0 ? "183047" : r % 2 == 1 ? "F4F7FA" : "FFFFFF";
-                        cell.MarginTopWidth = cell.MarginBottomWidth = 80;
-                        cell.MarginLeftWidth = cell.MarginRightWidth = 120;
+                        cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Points(4D);
+                        cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(6D);
                         var paragraph = cell.Paragraphs[0];
                         paragraph.Text = r == 0 ? part.Headers[c] : part.Rows[r - 1][c]; paragraph.Bold = r == 0;
-                        paragraph.FontSize = 11; paragraph.FontFamily = "Arial"; paragraph.ColorHex = r == 0 ? "FFFFFF" : "183047";
+                        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11); paragraph.FontFamily = "Arial"; paragraph.ColorHex = r == 0 ? "FFFFFF" : "183047";
                     }
                 }
             }
@@ -57,19 +57,19 @@ public static partial class ProjectReportWorkflow {
     }
 
     /// <summary>Creates chart slides and editable PowerPoint table slides.</summary>
-    public static PowerPointPresentation CreatePowerPoint(ProjectView view, CancellationToken cancellationToken = default) {
+    public static PowerPointDocument CreatePowerPoint(ProjectView view, CancellationToken cancellationToken = default) {
         return CreatePowerPoint(view, new ProjectOfficeReportOptions(), cancellationToken);
     }
 
     /// <summary>Creates a presentation with explicit chart and table selection.</summary>
-    public static PowerPointPresentation CreatePowerPoint(ProjectView view, ProjectOfficeReportOptions options, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(view);
+    public static PowerPointDocument CreatePowerPoint(ProjectView view, ProjectOfficeReportOptions options, CancellationToken cancellationToken = default) {
+        if (view == null) throw new ArgumentNullException(nameof(view));
         ValidateOfficeOptions(options);
         cancellationToken.ThrowIfCancellationRequested();
-        var presentation = PowerPointPresentation.Create();
+        var presentation = PowerPointDocument.Create();
         try {
             if (view.PageWidth > 4032 || view.PageHeight > 4032) throw new ArgumentOutOfRangeException(nameof(view), "PowerPoint pages cannot exceed 56 inches.");
-            presentation.SlideSize.WidthPoints = view.PageWidth; presentation.SlideSize.HeightPoints = view.PageHeight;
+            presentation.SlideSize.Width= OfficeIMO.OfficeLength.Points(view.PageWidth); presentation.SlideSize.Height= OfficeIMO.OfficeLength.Points(view.PageHeight);
             if (options.IncludeCharts && view.Kind != ProjectViewKind.Table) AddPowerPointCharts(presentation, view, options, cancellationToken);
             if (!options.IncludeDataTables && view.Kind != ProjectViewKind.Table) return presentation;
             var measurement = new OfficeRasterCanvas(new OfficeRasterImage(1, 1));
@@ -80,12 +80,12 @@ public static partial class ProjectReportWorkflow {
 
     /// <summary>Creates native Excel cells for selected columns and numeric usage buckets, retaining editable values rather than images.</summary>
     public static ExcelDocument CreateExcel(ProjectView view, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(view);
+        if (view == null) throw new ArgumentNullException(nameof(view));
         cancellationToken.ThrowIfCancellationRequested();
         ValidateExcelGrid(view);
         var document = ExcelDocument.Create();
         try {
-            var sheet = document.AddWorksheet("Report");
+            var sheet = document.AddSheet("Report");
             for (int c = 0; c < view.Columns.Count; c++) sheet.CellValue(1, c + 1, ProjectView.ColumnTitle(view.Columns[c]));
             for (int r = 0; r < view.Rows.Count; r++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -105,7 +105,7 @@ public static partial class ProjectReportWorkflow {
             }
             FinishSheet(sheet, cancellationToken, view.Rows.Count + 1, view.Columns.Count);
             if (IsUsage(view)) {
-                var usage = document.AddWorksheet("Work hours"); usage.CellValue(1, 1, "UID"); usage.CellValue(1, 2, "Name");
+                var usage = document.AddSheet("Work hours"); usage.CellValue(1, 1, "UID"); usage.CellValue(1, 2, "Name");
                 for (int b = 0; b < view.Buckets.Count; b++) { usage.CellValue(1, b + 3, view.Buckets[b].Start); usage.FormatCell(1, b + 3, "yyyy-mm-dd"); }
                 for (int r = 0; r < view.Rows.Count; r++) {
                     cancellationToken.ThrowIfCancellationRequested();

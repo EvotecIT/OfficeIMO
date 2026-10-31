@@ -11,12 +11,12 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         switch (context.Options.Base64Images) {
-            case HtmlBase64ImageHandling.Include:
+            case MarkdownHtmlBase64ImageHandling.Include:
                 return true;
-            case HtmlBase64ImageHandling.Skip:
+            case MarkdownHtmlBase64ImageHandling.Skip:
                 source = string.Empty;
                 return false;
-            case HtmlBase64ImageHandling.SaveToFile:
+            case MarkdownHtmlBase64ImageHandling.SaveToFile:
                 if (context.SavedBase64ImagesBySource.TryGetValue(originalSource, out string? savedPath)) {
                     source = savedPath;
                     return source.Length > 0;

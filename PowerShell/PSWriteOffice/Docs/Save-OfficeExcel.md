@@ -6,62 +6,30 @@ schema: 2.0.0
 ---
 # Save-OfficeExcel
 ## SYNOPSIS
-Saves an Excel workbook without disposing it.
+Saves a live Excel workbook without closing it.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Save-OfficeExcel [-Document] <ExcelDocument> [-Path <string>] [-Open] [-Password <string>] [-SafePreflight] [-SafeRepairDefinedNames] [-ValidateOpenXml] [-DisableFastPackageWriter] [-EvaluateFormulas] [-ClearCachedFormulaResults] [-MarkFormulasDirty] [-ForceFullCalculationOnOpen] [-DateSystem <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeExcel [-Document] <ExcelDocument> [-Path <string>] [-Password <securestring>] [-SaveOptions <ExcelSaveOptions>] [-AllowLoss] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Saves an Excel workbook without disposing it.
+Omitted Password preserves loaded encryption; an explicit null removes it. SaveOptions accepts native options or a hashtable. PassThru returns the saved FileInfo. The workbook must use explicit persistence.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $workbook | Save-OfficeExcel
+Save-OfficeExcel -Document $workbook -Path ./Reviewed.xlsx -SaveOptions @{ Preflight = $true; ValidateOpenXml = $true } -PassThru
+            Close-OfficeExcel -Document $workbook
 ```
 
-Writes pending changes to disk and keeps the workbook open.
 
 ## PARAMETERS
 
-### -ClearCachedFormulaResults
-Remove cached formula results before saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DateSystem
-Workbook date system for Excel date serials.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values: 1900, 1904, NineteenHundred, NineteenFour
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DisableFastPackageWriter
-Disable OfficeIMO fast package writers for this save.
+### -AllowLoss
+Explicitly accept reported native-save reductions; overrides SaveOptions when supplied.
 
 ```yaml
 Type: SwitchParameter
@@ -77,7 +45,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to save.
+Live workbook to save.
 
 ```yaml
 Type: ExcelDocument
@@ -92,72 +60,8 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -EvaluateFormulas
-Evaluate supported formulas and write cached values before saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ForceFullCalculationOnOpen
-Request a full workbook recalculation when opened in Excel-compatible applications.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MarkFormulasDirty
-Mark formula cells dirty before saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Open
-Open the workbook after saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: Show
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -PassThru
-Emit the workbook for further processing.
+Return the saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
@@ -173,10 +77,10 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to save the workbook as an encrypted package.
+Override the output password; omission retains loaded encryption.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -189,7 +93,7 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Optional save-as path.
+Optional new destination; omission uses the associated path.
 
 ```yaml
 Type: String
@@ -204,11 +108,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SafePreflight
-Run OfficeIMO worksheet preflight cleanup before saving.
+### -SaveOptions
+Native save settings, or a hashtable using the save-option factory's names.
 
 ```yaml
-Type: SwitchParameter
+Type: ExcelSaveOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -220,24 +124,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SafeRepairDefinedNames
-Repair common defined-name issues before saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ValidateOpenXml
-Validate the saved package with OpenXmlValidator and throw on errors.
+### -Show
+Open the saved file in its registered default application.
 
 ```yaml
 Type: SwitchParameter
@@ -261,7 +149,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Excel.ExcelDocument`
+- `System.IO.FileInfo`
 
 ## RELATED LINKS
 

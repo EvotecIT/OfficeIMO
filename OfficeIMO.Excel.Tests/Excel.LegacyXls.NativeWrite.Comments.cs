@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CommentAnchor");
+                    ExcelSheet sheet = document.AddSheet("CommentAnchor");
                     sheet.CellValue(3, 2, "Anchored note");
                     sheet.SetLegacyComment(
                         3,
@@ -69,14 +69,14 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create()) {
-                    ExcelSheet first = document.AddWorksheet("First");
+                    ExcelSheet first = document.AddSheet("First");
                     first.CellValue(1, 1, "First value");
                     first.SetLegacyComment(1, 1, "First comment", "Reviewer", visible: false, anchor: null);
 
-                    ExcelSheet middle = document.AddWorksheet("Middle");
+                    ExcelSheet middle = document.AddSheet("Middle");
                     middle.CellValue(1, 1, "No comment");
 
-                    ExcelSheet third = document.AddWorksheet("Third");
+                    ExcelSheet third = document.AddSheet("Third");
                     third.CellValue(2, 2, "Third value");
                     third.SetLegacyComment(2, 2, "Third comment", "Reviewer", visible: true, anchor: null);
 
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("EdgeComment");
+                    ExcelSheet sheet = document.AddSheet("EdgeComment");
                     sheet.CellValue(65536, 256, "Edge note");
                     sheet.SetLegacyComment(
                         65536,
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CommentFonts");
+                    ExcelSheet sheet = document.AddSheet("CommentFonts");
                     sheet.CellValue(1, 1, "Comment");
                     sheet.SetCommentRichText(
                         1,
@@ -189,7 +189,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CommentEscapement");
+                    ExcelSheet sheet = document.AddSheet("CommentEscapement");
                     sheet.CellValue(1, 1, "Comment");
                     sheet.SetCommentRichText(
                         1,
@@ -232,7 +232,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CommentFontFlags");
+                    ExcelSheet sheet = document.AddSheet("CommentFontFlags");
                     sheet.CellValue(1, 1, "Comment");
                     sheet.SetCommentRichText(
                         1,
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CommentUnderline");
+                    ExcelSheet sheet = document.AddSheet("CommentUnderline");
                     sheet.CellValue(1, 1, "Comment");
                     sheet.SetCommentRichText(
                         1,

@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_table_filter_parts_defer_and_survive_wrapper_recreation(bool sheetCaching) {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
-                ExcelSheet sheet = document.AddWorksheet("Filters");
+                ExcelSheet sheet = document.AddSheet("Filters");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Number");
                 sheet.CellValue(1, 3, "Flag");
@@ -52,10 +52,10 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_hyperlink_routes_preserve_cell_and_font_formatting(bool batch) {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
-                ExcelSheet sheet = document.AddWorksheet("Links");
+                ExcelSheet sheet = document.AddSheet("Links");
                 for (int row = 1; row <= 3; row++) {
                     sheet.CellValue(row, 1, "Two\nlines");
-                    sheet.CellAt(row, 1).SetBold(true).SetItalic(true).SetFontName("Arial").SetFontSize(14).SetNumberFormat("0.0000 \"units\"");
+                    sheet.CellAt(row, 1).SetBold(true).SetItalic(true).SetFontName("Arial").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetNumberFormat("0.0000 \"units\"");
                     sheet.CellAlign(row, 1, ExcelHorizontalAlignment.Center);
                     sheet.CellVerticalAlign(row, 1, ExcelVerticalAlignment.Top);
                 }
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_gradient_named_and_conditional_styles_join_the_same_batch() {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
-                ExcelSheet sheet = document.AddWorksheet("Styles");
+                ExcelSheet sheet = document.AddSheet("Styles");
                 for (int row = 1; row <= 20; row++) sheet.CellValue(row, 1, row);
                 sheet.CellBold(1, 1);
                 WorkbookPart workbook = document.OpenXmlDocument.WorkbookPart!;
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_merge_and_filter_edits_survive_batch_failure_and_structural_snapshot(bool failCallback) {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
-                ExcelSheet sheet = document.AddWorksheet("Layout");
+                ExcelSheet sheet = document.AddSheet("Layout");
                 sheet.CellValue(1, 1, "Header");
                 for (int row = 2; row <= 21; row++) sheet.CellValue(row, 1, "Value" + row);
                 Func<int> worksheetSaves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());

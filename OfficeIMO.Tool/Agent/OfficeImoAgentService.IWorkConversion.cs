@@ -28,8 +28,8 @@ internal sealed partial class OfficeImoAgentService {
         var request = new OfficeWorkflowRequest {
             InputPath = input, OutputPath = destination, Operation = OfficeWorkflowOperation.Convert,
             ConversionRouteId = route,
-            ConflictPolicy = overwrite ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail,
-            Limits = new OfficeWorkflowLimits { MaximumInputBytes = maximumInputBytes, MaximumOutputBytes = maximumOutputBytes },
+            ConflictPolicy = overwrite ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail,
+            Limits = new OfficeOperationLimits { MaximumInputBytes = maximumInputBytes, MaximumOutputBytes = maximumOutputBytes },
             RegisteredConversionSettings = settings,
             PublicationGuard = new AgentConversionPublicationGuard(_pathPolicy, input)
         };
@@ -52,16 +52,16 @@ internal sealed partial class OfficeImoAgentService {
         };
     }
 
-    private sealed class AgentConversionPublicationGuard(AgentPathPolicy paths, string source) : IOfficeWorkflowPublicationGuard {
+    private sealed class AgentConversionPublicationGuard(AgentPathPolicy paths, string source) : IOfficePublicationGuard {
         private readonly string _sourceIdentity = OfficeImoToolPathSafety.GetPhysicalIdentityKey(source);
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             token.ThrowIfCancellationRequested();
             if (isDirectory || !string.Equals(paths.ResolveInput(source), source, StringComparison.Ordinal)
                 || OfficeImoToolPathSafety.GetPhysicalIdentityKey(source) != _sourceIdentity
-                || !string.Equals(paths.ResolveOutput(path), path, StringComparison.Ordinal)) return ValueTask.FromResult(false);
+                || !string.Equals(paths.ResolveOutput(path), path, StringComparison.Ordinal)) return Task.FromResult(false);
             ReaderToolPathSafety.EnsureDistinctFile(source, path);
             if (Directory.Exists(source)) ReaderToolPathSafety.EnsureOutsideInput(source, path);
-            return ValueTask.FromResult(true);
+            return Task.FromResult(true);
         }
     }
 }

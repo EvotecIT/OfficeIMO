@@ -36,9 +36,9 @@ public sealed class WordHighlightPaletteTests {
         source.AddParagraph("Highlight");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         Assert.Contains("background-color:#" + expectedHex, document.ToHtml(), StringComparison.OrdinalIgnoreCase);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open((document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        })).ToBytes());
         double red = int.Parse(expectedHex.Substring(0, 2), NumberStyles.HexNumber) / 255D;
         double green = int.Parse(expectedHex.Substring(2, 2), NumberStyles.HexNumber) / 255D;
         double blue = int.Parse(expectedHex.Substring(4, 2), NumberStyles.HexNumber) / 255D;
@@ -51,9 +51,9 @@ public sealed class WordHighlightPaletteTests {
     [Fact]
     public void ExactDarkMagentaImportUsesTheSharedPaletteWithoutApproximation() {
         HtmlToWordResult conversion = HtmlConversionDocument.Parse("<p><span style='background-color:#800080'>Highlight</span></p>")
-            .ToWordDocumentResult(new HtmlToWordOptions { TextBackgroundMode = HtmlTextBackgroundMode.NearestHighlight });
+            .ConvertToWordWithEvidence(new WordHtmlImportOptions { TextBackgroundMode = WordHtmlTextBackgroundMode.NearestHighlight });
         using WordDocument document = conversion.Value;
-        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "TextBackgroundColorApproximated");
+        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "text-background-color-approximated");
         WordParagraph run = document.Paragraphs.SelectMany(paragraph => paragraph.GetRuns())
             .Single(paragraph => paragraph.Text == "Highlight");
         Assert.Equal(WordHighlightColor.DarkMagenta, run.Highlight);

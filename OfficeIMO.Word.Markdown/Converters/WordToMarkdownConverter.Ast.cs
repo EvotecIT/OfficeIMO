@@ -46,7 +46,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private void BuildMarkdownDocument(WordDocument document, MarkdownDoc markdown, WordToMarkdownOptions options, CancellationToken cancellationToken) {
+        private void BuildMarkdownDocument(WordDocument document, MarkdownDocument markdown, WordMarkdownExportOptions options, CancellationToken cancellationToken) {
             _visualFallbackResourceIndex = 0;
             _exportedImageFileNames.Clear();
             var listIndices = WordDocumentTraversal.BuildListIndices(document);
@@ -56,6 +56,8 @@ namespace OfficeIMO.Word.Markdown {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (options.IncludeHeadersAndFootersAsSemanticBlocks) {
                     AppendHeaderFooterSemanticBlocks(markdown, section, options, cancellationToken, sectionIndex);
+                } else {
+                    ReportOmittedRunningContent(section, sectionIndex, options, cancellationToken);
                 }
 
                 var elements = section.Elements;
@@ -86,9 +88,9 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private void AppendHeaderFooterSemanticBlocks(
-            MarkdownDoc markdown,
+            MarkdownDocument markdown,
             WordSection section,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             CancellationToken cancellationToken,
             int sectionIndex) {
             AppendHeaderFooterSemanticBlock(markdown, section.Header.Default, options, cancellationToken, sectionIndex, "default", isHeader: true);
@@ -97,9 +99,9 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private void AppendFooterSemanticBlocks(
-            MarkdownDoc markdown,
+            MarkdownDocument markdown,
             WordSection section,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             CancellationToken cancellationToken,
             int sectionIndex) {
             AppendHeaderFooterSemanticBlock(markdown, section.Footer.Default, options, cancellationToken, sectionIndex, "default", isHeader: false);
@@ -108,9 +110,9 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private void AppendHeaderFooterSemanticBlock(
-            MarkdownDoc markdown,
+            MarkdownDocument markdown,
             WordHeaderFooter? headerFooter,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             CancellationToken cancellationToken,
             int sectionIndex,
             string slot,
@@ -152,7 +154,7 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static string RenderMarkdownFragment(IReadOnlyList<IMarkdownBlock> blocks) {
-            var fragment = MarkdownDoc.Create();
+            var fragment = MarkdownDocument.Create();
             for (int i = 0; i < blocks.Count; i++) {
                 fragment.Add(blocks[i]);
             }
@@ -165,7 +167,7 @@ namespace OfficeIMO.Word.Markdown {
             List<PendingListFrame> listStack,
             WordParagraph paragraph,
             WordDocumentTraversal.ListInfo listInfo,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             IReadOnlyDictionary<WordParagraph, (int Level, int Index)>? listIndices,
             bool hasCheckbox,
             bool checkboxChecked,
@@ -297,7 +299,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static int ValidateListLevel(int level, int maximumDepth) {
             if (maximumDepth <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(WordToMarkdownOptions.MaxListNestingDepth), "MaxListNestingDepth must be greater than zero.");
+                throw new ArgumentOutOfRangeException(nameof(WordMarkdownExportOptions.MaxListNestingDepth), "MaxListNestingDepth must be greater than zero.");
             }
             if (level < 0 || level >= maximumDepth) {
                 throw new InvalidDataException($"The Word list level exceeds the {maximumDepth}-level Markdown nesting limit.");
@@ -343,7 +345,7 @@ namespace OfficeIMO.Word.Markdown {
         private void AppendBlocksFromElements(
             IReadOnlyList<WordElement> elements,
             Action<IMarkdownBlock> addRootBlock,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             IReadOnlyDictionary<WordParagraph, (int Level, int Index)>? listIndices,
             CancellationToken cancellationToken,
             bool allowQuoteHeuristic,
@@ -446,7 +448,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private IReadOnlyList<IMarkdownBlock> BuildParagraphBlocks(
             WordParagraph paragraph,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             bool hasCheckbox,
             bool checkboxChecked,
             bool allowQuoteHeuristic,
@@ -465,6 +467,13 @@ namespace OfficeIMO.Word.Markdown {
                     hasCheckbox,
                     allowQuoteHeuristic,
                     trimBoundaryWhitespace);
+            }
+
+            // An empty paragraph whose only visible content is a bottom border is how Word (and Markdown to
+            // Word) draws a horizontal rule.
+            if (!hasCheckbox && IsHorizontalRuleParagraph(paragraph)) {
+                blocks.Add(new HorizontalRuleBlock());
+                return blocks;
             }
 
             string? styleId = paragraph.StyleId;
@@ -504,10 +513,25 @@ namespace OfficeIMO.Word.Markdown {
                 trimBoundaryWhitespace);
         }
 
+        private static bool IsHorizontalRuleParagraph(WordParagraph paragraph) {
+            var bottom = paragraph._paragraph.ParagraphProperties?.ParagraphBorders?.BottomBorder;
+            if (bottom?.Val == null || bottom.Val.Value == DocumentFormat.OpenXml.Wordprocessing.BorderValues.None
+                || bottom.Val.Value == DocumentFormat.OpenXml.Wordprocessing.BorderValues.Nil) return false;
+            var paragraphElement = paragraph._paragraph;
+            if (paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.Text>().Any(text => !string.IsNullOrWhiteSpace(text.Text))) return false;
+            return !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any()
+                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.Picture>().Any()
+                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.EmbeddedObject>().Any()
+                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.FieldChar>().Any()
+                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.SimpleField>().Any()
+                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.SdtRun>().Any()
+                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Math.OfficeMath>().Any();
+        }
+
         private IReadOnlyList<IMarkdownBlock> BuildParagraphBlocksWithOrderedEquations(
             WordParagraph paragraph,
             IReadOnlyList<WordEquationOccurrence> equations,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             bool hasCheckbox,
             bool allowQuoteHeuristic,
             bool trimBoundaryWhitespace) {
@@ -536,8 +560,8 @@ namespace OfficeIMO.Word.Markdown {
             void AppendStandaloneBlock(IMarkdownBlock block) {
                 if (allowQuoteHeuristic &&
                     paragraph.IndentationBefore.HasValue &&
-                    paragraph.IndentationBefore.Value > 0) {
-                    int depth = GetBoundedBlockquoteDepth(paragraph.IndentationBefore.Value);
+                    checked((int)(paragraph.IndentationBefore.Value.ToTwips())) > 0) {
+                    int depth = GetBoundedBlockquoteDepth(checked((int)(paragraph.IndentationBefore.Value.ToTwips())));
                     if (depth > 0) {
                         block = WrapQuotedBlock(block, depth);
                     }
@@ -603,7 +627,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static IReadOnlyList<IMarkdownBlock> BuildCodeParagraphBlocksWithPageBreaks(
             WordParagraph paragraph,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             string language) {
             var blocks = new List<IMarkdownBlock>();
             var code = new StringBuilder();
@@ -674,7 +698,7 @@ namespace OfficeIMO.Word.Markdown {
             code.Clear();
         }
 
-        private static void AddPageBreakBlock(List<IMarkdownBlock> blocks, WordToMarkdownOptions options) {
+        private static void AddPageBreakBlock(List<IMarkdownBlock> blocks, WordMarkdownExportOptions options) {
             var pageBreakBlock = CreatePageBreakBlock(options);
             if (pageBreakBlock != null) {
                 blocks.Add(pageBreakBlock);
@@ -683,7 +707,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private IReadOnlyList<IMarkdownBlock> BuildParagraphBlocksWithPageBreaks(
             WordParagraph paragraph,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             bool hasCheckbox,
             bool allowQuoteHeuristic,
             bool trimBoundaryWhitespace) {
@@ -796,7 +820,7 @@ namespace OfficeIMO.Word.Markdown {
             WordParagraph paragraph,
             ref InlineSequence segment,
             WordParagraph run,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             string? preferredCodeFont,
             string? implicitCodeFont,
             ref bool checkboxPending,
@@ -909,8 +933,8 @@ namespace OfficeIMO.Word.Markdown {
                 ? new HeadingBlock(headingLevel, inlines)
                 : new ParagraphBlock(inlines);
 
-            if (allowQuoteHeuristic && paragraph.IndentationBefore.HasValue && paragraph.IndentationBefore.Value > 0) {
-                int depth = GetBoundedBlockquoteDepth(paragraph.IndentationBefore.Value);
+            if (allowQuoteHeuristic && paragraph.IndentationBefore.HasValue && checked((int)(paragraph.IndentationBefore.Value.ToTwips())) > 0) {
+                int depth = GetBoundedBlockquoteDepth(checked((int)(paragraph.IndentationBefore.Value.ToTwips())));
                 if (depth > 0) {
                     block = WrapQuotedBlock(block, depth);
                 }
@@ -920,7 +944,7 @@ namespace OfficeIMO.Word.Markdown {
             return blocks;
         }
 
-        private InlineSequence BuildParagraphInlines(WordParagraph paragraph, WordToMarkdownOptions options, bool trimBoundaryWhitespace = false) {
+        private InlineSequence BuildParagraphInlines(WordParagraph paragraph, WordMarkdownExportOptions options, bool trimBoundaryWhitespace = false) {
             var sequence = CreateInlineSequence();
             string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
             string? implicitCodeFont = ResolveImplicitCodeFont();
@@ -981,7 +1005,7 @@ namespace OfficeIMO.Word.Markdown {
             ISet<OpenXmlElement> expandedEquationContainers,
             int childIndex,
             WordParagraph fallbackRun,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             string? preferredCodeFont,
             string? implicitCodeFont) {
             foreach (WordEquationOccurrence occurrence in equations.Where(equation => equation.StartChildIndex < childIndex)) {
@@ -1014,7 +1038,7 @@ namespace OfficeIMO.Word.Markdown {
             OpenXmlElement container,
             IReadOnlyList<WordEquationOccurrence> coveringEquations,
             WordParagraph fallbackRun,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             string? preferredCodeFont,
             string? implicitCodeFont) {
             foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(container, coveringEquations)) {
@@ -1047,7 +1071,7 @@ namespace OfficeIMO.Word.Markdown {
         private void AppendRunInlines(
             InlineSequence sequence,
             WordParagraph run,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             string? preferredCodeFont,
             string? implicitCodeFont,
             string? textOverride = null) {
@@ -1085,7 +1109,7 @@ namespace OfficeIMO.Word.Markdown {
             InlineSequence sequence,
             WordParagraph sourceRun,
             WordEquationContentSegment segment,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             string? preferredCodeFont,
             string? implicitCodeFont) {
             if (segment.ArtifactElement is Break || segment.ArtifactElement is CarriageReturn) {
@@ -1118,18 +1142,19 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private static IMarkdownBlock? CreatePageBreakBlock(WordToMarkdownOptions options) {
+        private static IMarkdownBlock? CreatePageBreakBlock(WordMarkdownExportOptions options) {
             switch (options.PageBreakMode) {
-                case MarkdownPageBreakMode.SemanticBlock:
+                case WordMarkdownPageBreakMode.SemanticBlock:
                     return new SemanticFencedBlock(
                         WordMarkdownSemanticBlocks.PageBreakSemanticKind,
                         WordMarkdownSemanticBlocks.PageBreakFenceLanguage,
                         string.Empty);
-                case MarkdownPageBreakMode.Html:
+                case WordMarkdownPageBreakMode.Html:
                     return new HtmlRawBlock("<div style=\"page-break-after: always;\"></div>");
-                case MarkdownPageBreakMode.HorizontalRule:
+                case WordMarkdownPageBreakMode.HorizontalRule:
                     return new HorizontalRuleBlock();
-                case MarkdownPageBreakMode.Omit:
+                case WordMarkdownPageBreakMode.Omit:
+                    ReportOmission(options, "A Word page break was omitted from Markdown.", "PageBreak");
                     return null;
                 default:
                     options.OnWarning?.Invoke($"Unsupported page break mode '{options.PageBreakMode}'. Emitting a semantic page-break block.");
@@ -1143,8 +1168,8 @@ namespace OfficeIMO.Word.Markdown {
         private static TocMarkerBlock BuildTableOfContentsMarkerBlock(WordTableOfContent tableOfContent) {
             var block = new TocMarkerBlock {
                 IncludeTitle = false,
-                MinLevel = NormalizeTableOfContentsLevel(tableOfContent.MinLevel, TocOptions.DefaultMinLevel),
-                MaxLevel = NormalizeTableOfContentsLevel(tableOfContent.MaxLevel, TocOptions.DefaultMaxLevel)
+                MinLevel = NormalizeTableOfContentsLevel(tableOfContent.MinLevel, MarkdownTocOptions.DefaultMinLevel),
+                MaxLevel = NormalizeTableOfContentsLevel(tableOfContent.MaxLevel, MarkdownTocOptions.DefaultMaxLevel)
             };
 
             if (block.MaxLevel < block.MinLevel) {
@@ -1208,7 +1233,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static void AddUnsupportedContentBlock(
             Action<IMarkdownBlock> addRootBlock,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             string contentKind) {
             var block = CreateUnsupportedContentBlock(options, contentKind);
             if (block != null) {
@@ -1216,7 +1241,7 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private IReadOnlyList<IMarkdownBlock> CreateUnsupportedParagraphContentBlocks(WordParagraph paragraph, WordToMarkdownOptions options) {
+        private IReadOnlyList<IMarkdownBlock> CreateUnsupportedParagraphContentBlocks(WordParagraph paragraph, WordMarkdownExportOptions options) {
             var blocks = new List<IMarkdownBlock>();
             if (!TryGetUnsupportedParagraphContentKind(paragraph, out var unsupportedParagraphKind)) {
                 return blocks;
@@ -1240,21 +1265,22 @@ namespace OfficeIMO.Word.Markdown {
             return blocks;
         }
 
-        private static IMarkdownBlock? CreateUnsupportedContentBlock(WordToMarkdownOptions options, string contentKind) {
+        private static IMarkdownBlock? CreateUnsupportedContentBlock(WordMarkdownExportOptions options, string contentKind) {
             string normalizedKind = string.IsNullOrWhiteSpace(contentKind) ? "content" : contentKind.Trim();
             string message = $"Unsupported Word {normalizedKind} has no native Markdown representation.";
+            ReportOmission(options, message, normalizedKind);
 
             switch (options.UnsupportedContentMode) {
-                case MarkdownUnsupportedContentMode.WarnOnly:
+                case WordMarkdownUnsupportedContentMode.WarnOnly:
                     options.OnWarning?.Invoke(message);
                     return null;
-                case MarkdownUnsupportedContentMode.Placeholder:
+                case WordMarkdownUnsupportedContentMode.Placeholder:
                     options.OnWarning?.Invoke(message);
                     return new ParagraphBlock(CreateInlineSequence().Text($"Unsupported Word content: {normalizedKind}"));
-                case MarkdownUnsupportedContentMode.HtmlComment:
+                case WordMarkdownUnsupportedContentMode.HtmlComment:
                     options.OnWarning?.Invoke(message);
                     return new HtmlCommentBlock($"<!-- Unsupported Word content: {EscapeHtmlCommentText(normalizedKind)} -->");
-                case MarkdownUnsupportedContentMode.Omit:
+                case WordMarkdownUnsupportedContentMode.Omit:
                     return null;
                 default:
                     options.OnWarning?.Invoke($"Unsupported content mode '{options.UnsupportedContentMode}'. Falling back to warning-only handling. {message}");
@@ -1264,20 +1290,20 @@ namespace OfficeIMO.Word.Markdown {
 
         private bool TryCreateVisualFallbackBlock(
             WordParagraph paragraph,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             out IMarkdownBlock block) {
             block = null!;
 
             switch (options.VisualFallbackMode) {
-                case MarkdownVisualFallbackMode.None:
+                case WordMarkdownVisualFallbackMode.None:
                     return false;
-                case MarkdownVisualFallbackMode.SvgDataUri:
+                case WordMarkdownVisualFallbackMode.SvgDataUri:
                     if (paragraph.Chart != null && TryCreateChartSvgFallbackBlock(paragraph.Chart, options, out block)) {
                         return true;
                     }
 
                     return false;
-                case MarkdownVisualFallbackMode.SvgFile:
+                case WordMarkdownVisualFallbackMode.SvgFile:
                     if (paragraph.Chart != null && TryCreateChartSvgFallbackBlock(paragraph.Chart, options, out block)) {
                         return true;
                     }
@@ -1289,11 +1315,10 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private string WriteVisualFallbackSvgResource(byte[] svgBytes, string displayName, WordToMarkdownOptions options) {
+        private string WriteVisualFallbackSvgResource(byte[] svgBytes, string displayName, WordMarkdownExportOptions options) {
             string directory = string.IsNullOrWhiteSpace(options.VisualFallbackDirectory)
                 ? Directory.GetCurrentDirectory()
                 : options.VisualFallbackDirectory!;
-            Directory.CreateDirectory(directory);
 
             int index = ++_visualFallbackResourceIndex;
             string slug = CreateResourceSlug(displayName);
@@ -1303,7 +1328,7 @@ namespace OfficeIMO.Word.Markdown {
 
             string fileName = index.ToString("00", System.Globalization.CultureInfo.InvariantCulture) + "-" + slug + ".svg";
             string targetPath = Path.Combine(directory, fileName);
-            OfficeFileCommit.WriteAllBytes(targetPath, svgBytes);
+            OfficeConversionAssets.WriteFile(targetPath, output => output.Write(svgBytes, 0, svgBytes.Length));
 
             string prefix = NormalizeMarkdownPath(options.VisualFallbackPathPrefix);
             return string.IsNullOrEmpty(prefix) ? fileName : prefix + "/" + fileName;
@@ -1416,7 +1441,7 @@ namespace OfficeIMO.Word.Markdown {
             InlineSequence target,
             WordParagraph run,
             string text,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             string? preferredCodeFont,
             string? implicitCodeFont) {
             if (string.IsNullOrEmpty(text)) {
@@ -1436,9 +1461,9 @@ namespace OfficeIMO.Word.Markdown {
 
             if (!string.IsNullOrEmpty(coreText)) {
                 var formatted = BuildFormattedRunInline(run, coreText, options, preferredCodeFont, implicitCodeFont);
-                if (run.IsHyperLink && run.Hyperlink?.Uri != null) {
+                string? url = run.IsHyperLink ? GetHyperlinkTarget(run.Hyperlink) : null;
+                if (url != null) {
                     var label = new InlineSequence { AutoSpacing = false }.AddRaw(formatted);
-                    string url = BuildHyperlinkUrl(run.Hyperlink.Uri);
                     formatted = new LinkInline(label, url, title: null);
                 }
 
@@ -1452,7 +1477,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static bool RunHasSemanticFormatting(
             WordParagraph run,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             string? preferredCodeFont,
             string? implicitCodeFont) {
             return run.Bold
@@ -1463,13 +1488,13 @@ namespace OfficeIMO.Word.Markdown {
                 || (options.EnableUnderline && run.Underline.HasValue && run.Underline.Value != WordUnderlineStyle.None)
                 || (options.EnableHighlight && run.Highlight.HasValue && run.Highlight.Value != WordHighlightColor.None)
                 || IsCodeRun(run, preferredCodeFont, implicitCodeFont)
-                || (run.IsHyperLink && run.Hyperlink?.Uri != null);
+                || (run.IsHyperLink && GetHyperlinkTarget(run.Hyperlink) != null);
         }
 
         private static IMarkdownInline BuildFormattedRunInline(
             WordParagraph run,
             string text,
-            WordToMarkdownOptions options,
+            WordMarkdownExportOptions options,
             string? preferredCodeFont,
             string? implicitCodeFont) {
             IMarkdownInline node = IsCodeRun(run, preferredCodeFont, implicitCodeFont)
@@ -1578,7 +1603,7 @@ namespace OfficeIMO.Word.Markdown {
                 || resolvedRunFont.IndexOf("Mono", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private ImageInline CreateImageInline(WordImage image, WordToMarkdownOptions options) {
+        private ImageInline CreateImageInline(WordImage image, WordMarkdownExportOptions options) {
             if (image == null) {
                 return new ImageInline(string.Empty, string.Empty);
             }
@@ -1589,15 +1614,14 @@ namespace OfficeIMO.Word.Markdown {
             return new ImageInline(alt, source, string.IsNullOrEmpty(title) ? null : title);
         }
 
-        private string BuildImageSource(WordImage image, WordToMarkdownOptions options) {
+        private string BuildImageSource(WordImage image, WordMarkdownExportOptions options) {
             if (TryGetExternalImageSource(image, options, out var externalSource)) {
                 return externalSource;
             }
 
-            if (options.ImageExportMode == ImageExportMode.File) {
+            if (options.ImageExportMode == WordMarkdownImageExportMode.File) {
                 string directory = options.ImageDirectory ?? Directory.GetCurrentDirectory();
-                Directory.CreateDirectory(directory);
-                string fileExtension = Path.GetExtension(image.FilePath);
+                    string fileExtension = Path.GetExtension(image.FilePath);
                 if (string.IsNullOrEmpty(fileExtension)) {
                     fileExtension = ".png";
                 }
@@ -1623,7 +1647,7 @@ namespace OfficeIMO.Word.Markdown {
             return $"data:{mime};base64,{base64}";
         }
 
-        private static bool TryGetExternalImageSource(WordImage image, WordToMarkdownOptions options, out string source) {
+        private static bool TryGetExternalImageSource(WordImage image, WordMarkdownExportOptions options, out string source) {
             source = string.Empty;
             if (!image.IsExternal) {
                 return false;
@@ -1642,7 +1666,7 @@ namespace OfficeIMO.Word.Markdown {
             return true;
         }
 
-        private TableBlock BuildTableBlock(WordTable table, WordToMarkdownOptions options) {
+        private TableBlock BuildTableBlock(WordTable table, WordMarkdownExportOptions options) {
             var markdownTable = new TableBlock();
             var structuredHeaders = new List<OmdTableCell>();
             var structuredRows = new List<IReadOnlyList<OmdTableCell>>();
@@ -1736,7 +1760,7 @@ namespace OfficeIMO.Word.Markdown {
             return false;
         }
 
-        private OmdTableCell BuildTableCell(WordTableCell cell, WordToMarkdownOptions options) {
+        private OmdTableCell BuildTableCell(WordTableCell cell, WordMarkdownExportOptions options) {
             var blocks = new List<IMarkdownBlock>();
             var elements = cell.Elements;
             AppendBlocksFromElements(elements, block => blocks.Add(block), options, null, CancellationToken.None, allowQuoteHeuristic: true, trimBoundaryWhitespace: false);
@@ -1744,21 +1768,21 @@ namespace OfficeIMO.Word.Markdown {
             return new OmdTableCell(blocks);
         }
 
-        private static ColumnAlignment GetAlignment(WordTableCell cell) {
+        private static MarkdownColumnAlignment GetAlignment(WordTableCell cell) {
             var alignment = cell.Paragraphs.FirstOrDefault()?.ParagraphAlignment;
             if (alignment == WordParagraphAlignment.Center) {
-                return ColumnAlignment.Center;
+                return MarkdownColumnAlignment.Center;
             }
 
             if (alignment == WordParagraphAlignment.Right || alignment == WordParagraphAlignment.End) {
-                return ColumnAlignment.Right;
+                return MarkdownColumnAlignment.Right;
             }
 
             if (alignment == WordParagraphAlignment.Left || alignment == WordParagraphAlignment.Start) {
-                return ColumnAlignment.Left;
+                return MarkdownColumnAlignment.Left;
             }
 
-            return ColumnAlignment.None;
+            return MarkdownColumnAlignment.None;
         }
 
         private static IMarkdownBlock WrapQuotedBlock(IMarkdownBlock block, int depth) {
@@ -1772,7 +1796,7 @@ namespace OfficeIMO.Word.Markdown {
             return current;
         }
 
-        private void AppendFootnotes(WordDocument document, MarkdownDoc markdown, WordToMarkdownOptions options) {
+        private void AppendFootnotes(WordDocument document, MarkdownDocument markdown, WordMarkdownExportOptions options) {
             foreach (var footnote in document.FootNotes.OrderBy(fn => fn.ReferenceId)) {
                 if (!footnote.ReferenceId.HasValue) {
                     continue;

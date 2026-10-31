@@ -10,6 +10,26 @@ public sealed class EpubResourceRenameContracts {
     private static readonly XNamespace Html = "http://www.w3.org/1999/xhtml";
     private static readonly byte[] Png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=");
 
+    [Fact]
+    public void LongDirectoryLinkExpansionStopsBeforeRetainingOversizedXml() {
+        string directory = "EPUB/" + new string('a', 100) + "/" + new string('b', 100) + "/"
+            + new string('c', 100) + "/";
+        var book = EpubPublication.Create("Bounded rename", "en");
+        book.AddChapter("one", directory + "one.xhtml", "First",
+            string.Concat(Enumerable.Repeat("<a href='peer.xhtml'>Peer</a>", 100)));
+        book.AddChapter("peer", directory + "peer.xhtml", "Peer", "<p>Peer</p>");
+        byte[] bytes = book.Write().Bytes;
+        var loaded = EpubPublication.Load(new MemoryStream(bytes),
+            new EpubPublicationLoadOptions { MaxEntryBytes = 8_192 });
+        byte[] before = loaded.Write().Bytes;
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            loaded.RenameResource("one", "EPUB/renamed.xhtml"));
+
+        Assert.Contains("Rewritten XML references", error.Message);
+        Assert.Equal(before, loaded.Write().Bytes);
+    }
+
     [Theory]
     [InlineData(EpubVersion.Epub2)]
     [InlineData(EpubVersion.Epub3)]

@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Builds a repository-friendly architecture decision record with context and consequences.</summary>
 internal static class MarkdownDecisionRecord {
     internal static void Create(string folder) {
-        MarkdownDoc document = MarkdownDoc.Create()
+        MarkdownDocument document = MarkdownDocument.Create()
             .H1("ADR-007: Keep report inputs with the output")
             .P("Status: Accepted | Owner: Reporting team | Date: 14 September 2026")
             .H2("Context")

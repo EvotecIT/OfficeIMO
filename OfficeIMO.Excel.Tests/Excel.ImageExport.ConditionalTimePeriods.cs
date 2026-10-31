@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportAppliesTimePeriodConditionalFillsWithReferenceDate() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Dates");
+            ExcelSheet sheet = document.AddSheet("Dates");
             sheet.CellValue(1, 1, new DateTime(2026, 6, 24));
             sheet.CellValue(2, 1, new DateTime(2026, 6, 23));
             sheet.CellValue(3, 1, new DateTime(2026, 6, 25));
@@ -17,11 +17,11 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 2, new DateTime(2026, 6, 18));
             sheet.CellValue(3, 2, new DateTime(2026, 6, 17));
             sheet.Range("A1:B3").DateTime("yyyy-mm-dd");
-            sheet.SetColumnWidth(1, 12);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetRowHeight(1, 30);
-            sheet.SetRowHeight(2, 30);
-            sheet.SetRowHeight(3, 30);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.AddConditionalTimePeriodRule("A1:A3", ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
             sheet.AddConditionalTimePeriodRule("B1:B3", ExcelConditionalTimePeriod.Last7Days, fillColor: "DBEAFE");
 
@@ -30,9 +30,9 @@ namespace OfficeIMO.Tests {
                 ConditionalFormattingDate = new DateTime(2026, 6, 24)
             };
             ExcelRange range = sheet.Range("A1:B3");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = range.ToSvg(options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.Equal("FFC6EFCE", snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style.FillColorArgb);
             Assert.Null(snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 1).Style.FillColorArgb);

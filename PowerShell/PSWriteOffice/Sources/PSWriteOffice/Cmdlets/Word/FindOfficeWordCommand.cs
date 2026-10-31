@@ -30,6 +30,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 [Cmdlet(VerbsCommon.Find, "OfficeWord", DefaultParameterSetName = ParameterSetPathText)]
 [OutputType(typeof(WordParagraph), typeof(WordSearchResult))]
 public sealed class FindOfficeWordCommand : PSCmdlet {
+    private static readonly TimeSpan RegexMatchTimeout = TimeSpan.FromSeconds(2);
     private const string ParameterSetPathText = "PathText";
     private const string ParameterSetPathRegex = "PathRegex";
     private const string ParameterSetDocumentText = "DocumentText";
@@ -91,7 +92,7 @@ public sealed class FindOfficeWordCommand : PSCmdlet {
             }
 
             var regexOptions = CaseSensitive.IsPresent ? RegexOptions.None : RegexOptions.IgnoreCase;
-            var regex = new Regex(Pattern, regexOptions);
+            var regex = new Regex(Pattern, regexOptions, RegexMatchTimeout);
             var result = document.Find(regex);
             if (AsResult.IsPresent) {
                 WriteObject(result);

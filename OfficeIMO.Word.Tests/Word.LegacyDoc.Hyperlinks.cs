@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                     bodyParagraph.AddHyperLink("placeholder", new Uri("https://officeimo.net/body-bookmark"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(bodyParagraph.Hyperlink!._hyperlink, "71", "BodyHyperlinkBookmark", "BodyMarked");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell ", removeExistingParagraphs: true);
                     cellParagraph.AddHyperLink("placeholder", new Uri("mailto:cell-bookmark@example.org"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(cellParagraph.Hyperlink!._hyperlink, "72", "CellHyperlinkBookmark", "CellMarked");
@@ -31,12 +31,12 @@ namespace OfficeIMO.Tests {
                     ReplaceHyperlinkDisplayWithBookmark(footerParagraph.Hyperlink!._hyperlink, "74", "FooterHyperlinkBookmark", "FooterMarked");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     footnoteBody.AddHyperLink("placeholder", new Uri("https://officeimo.net/footnote-bookmark"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(footnoteBody.Hyperlink!._hyperlink, "75", "FootnoteHyperlinkBookmark", "FootnoteMarked");
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     endnoteBody.AddHyperLink("placeholder", new Uri("mailto:endnote-bookmark@example.org"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(endnoteBody.Hyperlink!._hyperlink, "76", "EndnoteHyperlinkBookmark", "EndnoteMarked");

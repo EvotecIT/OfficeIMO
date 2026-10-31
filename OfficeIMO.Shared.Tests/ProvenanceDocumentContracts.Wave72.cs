@@ -240,7 +240,7 @@ public sealed partial class ProvenanceDocumentContracts {
         OfficeProvenanceRemovalOptions options) => extension switch {
             "docx" => WordDocument.RemoveProvenance(package, "document.docx", options),
             "xlsx" => ExcelDocument.RemoveProvenance(package, "workbook.xlsx", options),
-            "pptx" => PowerPointPresentation.RemoveProvenance(package, "presentation.pptx", options),
+            "pptx" => PowerPointDocument.RemoveProvenance(package, "presentation.pptx", options),
             "vsdx" => VisioDocument.RemoveProvenance(package, "drawing.vsdx", options),
             _ => throw new ArgumentOutOfRangeException(nameof(extension))
         };

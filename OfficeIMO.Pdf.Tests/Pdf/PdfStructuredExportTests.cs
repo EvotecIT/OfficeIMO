@@ -70,7 +70,7 @@ public class PdfStructuredExportTests {
 
     [Fact]
     public void FluentReader_UsesStoredCredentialsForStructuredExport() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted structured output"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "owner" };

@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using System.Linq;
 using System.Globalization;
 using System.Threading;
 
@@ -120,6 +121,7 @@ internal static partial class PdfIncrementalUpdater {
                 ref nextObjectNumber,
                 ref helveticaFontObjectNumber,
                 readOptions?.Limits.MaxDecodedStreamBytes ?? PdfReadLimits.DefaultMaxDecodedStreamBytes,
+                readOptions?.Limits.MaxDecodedTextCharacters ?? PdfReadLimits.DefaultMaxDecodedTextCharacters,
                 cancellationToken);
         }
 
@@ -292,6 +294,7 @@ internal static partial class PdfIncrementalUpdater {
         ref int nextObjectNumber,
         ref int helveticaFontObjectNumber,
         int maximumDecodedBytes,
+        int maximumVisibleTextCharacters,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         int? objectNumber = null;
@@ -338,11 +341,12 @@ internal static partial class PdfIncrementalUpdater {
                     field.Items.TryGetValue("V", out PdfObject? selectedValue);
                     PdfArray? indices = field.Items.TryGetValue("I", out PdfObject? i) ? ResolveObject(objects, i) as PdfArray : null;
                     int top = field.Get<PdfNumber>("TI") is PdfNumber number && number.Value >= 0 && number.Value <= int.MaxValue ? (int)number.Value : 0;
-                    choiceAppearance = PdfFormFiller.ReadChoiceAppearanceData(objects, fieldOptions, ResolveObject(objects, selectedValue), indices, top, fieldFlags, cancellationToken);
+                    choiceAppearance = PdfFormFiller.ReadChoiceAppearanceData(objects, fieldOptions, ResolveObject(objects, selectedValue), indices, top, fieldFlags,
+                        maximumVisibleTextCharacters, cancellationToken);
                 }
                 SetIncrementalTextWidgetAppearances(objects, field, preparedValue.AppearanceValue, fieldFlags, fieldQuadding, fieldMaxLength,
                     defaultResources, defaultAppearance, preparedValue.ForceMultilineAppearance, changedObjectNumbers, new HashSet<int>(),
-                    ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, cancellationToken);
+                    ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumVisibleTextCharacters, cancellationToken);
             }
 
             remaining.Remove(fullName);
@@ -360,7 +364,7 @@ internal static partial class PdfIncrementalUpdater {
 
             UpdateFormField(objects, kids.Items[i], kidsContainerObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength,
                 defaultResources, defaultAppearance, fieldOptions, fieldValues, remaining, changedObjectNumbers, options, visited,
-                ref nextObjectNumber, ref helveticaFontObjectNumber, maximumDecodedBytes, cancellationToken);
+                ref nextObjectNumber, ref helveticaFontObjectNumber, maximumDecodedBytes, maximumVisibleTextCharacters, cancellationToken);
         }
     }
 
@@ -381,6 +385,7 @@ internal static partial class PdfIncrementalUpdater {
         ref int helveticaFontObjectNumber,
         PdfFormFiller.ChoiceAppearanceData? choiceAppearance,
         int maximumDecodedBytes,
+        int maximumMeasurementCharacters,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
@@ -401,7 +406,7 @@ internal static partial class PdfIncrementalUpdater {
             objects[appearanceObjectNumber] = new PdfIndirectObject(
                 appearanceObjectNumber,
                 0,
-                CreateIncrementalTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, defaultAppearance, value, width, height, style, fontSize, ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, cancellationToken));
+                CreateIncrementalTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, defaultAppearance, value, width, height, style, fontSize, ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken));
 
             var appearance = new PdfDictionary();
             appearance.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
@@ -427,7 +432,7 @@ internal static partial class PdfIncrementalUpdater {
             if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
                 SetIncrementalTextWidgetAppearances(objects, kid, value, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources,
                     defaultAppearance, forceMultilineAppearance, changedObjectNumbers, visited, ref nextObjectNumber,
-                    ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, cancellationToken);
+                    ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken);
                 if (kidObjectNumber.HasValue) {
                     changedObjectNumbers.Add(kidObjectNumber.Value);
                 }
@@ -521,7 +526,8 @@ internal static partial class PdfIncrementalUpdater {
         PdfFormFieldStyle style,
         double fontSize,
         ref int nextObjectNumber,
-        ref int helveticaFontObjectNumber, PdfFormFiller.ChoiceAppearanceData? choiceAppearance, int maximumDecodedBytes, CancellationToken cancellationToken) {
+        ref int helveticaFontObjectNumber, PdfFormFiller.ChoiceAppearanceData? choiceAppearance, int maximumDecodedBytes,
+        int maximumMeasurementCharacters, CancellationToken cancellationToken) {
         string fontResourceName = IncrementalDefaultAppearanceFontName;
         PdfDictionary resources;
         if (!TryCreateIncrementalDefaultAppearanceFontResources(objects, defaultAppearance, out fontResourceName, out resources, inheritedDefaultResources, widgetAppearanceResources, widgetPageResources)) {
@@ -531,7 +537,7 @@ internal static partial class PdfIncrementalUpdater {
 
         string effectiveAppearance = "/" + fontResourceName + " " + fontSize.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " Tf";
         return PdfFormFiller.CreateUpdatedTextWidgetAppearance(objects, resources, widgetAppearanceResources, widgetPageResources, effectiveAppearance, value,
-            width, height, style, fontSize, choiceAppearance, ref nextObjectNumber, maximumDecodedBytes, cancellationToken);
+            width, height, style, fontSize, choiceAppearance, ref nextObjectNumber, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken);
     }
 
     private static PdfStream CreateIncrementalButtonAppearanceStream(double width, double height, bool selected, bool isRadioButton, PdfFormFieldStyle? style = null) {
@@ -671,17 +677,17 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         if (ResolveDictionary(objects, widget.Items.TryGetValue("MK", out PdfObject? mkObject) ? mkObject : null) is PdfDictionary mk) {
-            if (TryReadColor(objects, mk, "BG", out PdfColor backgroundColor)) {
+            if (TryReadColor(objects, mk, "BG", out global::OfficeIMO.OfficeColor backgroundColor)) {
                 style.BackgroundColor = backgroundColor;
             }
 
-            if (TryReadColor(objects, mk, "BC", out PdfColor borderColor)) {
+            if (TryReadColor(objects, mk, "BC", out global::OfficeIMO.OfficeColor borderColor)) {
                 style.BorderColor = borderColor;
             }
         }
 
         if (TryReadWidgetBorderWidth(objects, widget, out double borderWidth)) {
-            style.BorderWidth = borderWidth;
+            style.BorderWidth = global::OfficeIMO.OfficeLength.Points(borderWidth);
         }
 
         if (TryReadWidgetBorderStyle(objects, widget, out PdfFormFieldBorderStyle borderStyle)) {
@@ -689,10 +695,10 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         if (TryReadWidgetBorderDashPattern(objects, widget, out IReadOnlyList<double>? borderDashPattern)) {
-            style.BorderDashPattern = borderDashPattern;
+            style.BorderDashPattern = borderDashPattern?.Select(global::OfficeIMO.OfficeLength.Points).ToArray();
         }
 
-        if (TryReadDefaultAppearanceTextColor(objects, widget, inheritedDefaultAppearance, out PdfColor textColor)) {
+        if (TryReadDefaultAppearanceTextColor(objects, widget, inheritedDefaultAppearance, out global::OfficeIMO.OfficeColor textColor)) {
             style.TextColor = textColor;
         }
 
@@ -859,8 +865,8 @@ internal static partial class PdfIncrementalUpdater {
         }
     }
 
-    private static bool TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out PdfColor color) {
-        color = PdfColor.Black;
+    private static bool TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out global::OfficeIMO.OfficeColor color) {
+        color = global::OfficeIMO.OfficeColor.Black;
         if (!dictionary.Items.TryGetValue(key, out PdfObject? colorObject) ||
             ResolveObject(objects, colorObject) is not PdfArray colorArray ||
             colorArray.Items.Count < 3 ||
@@ -870,7 +876,7 @@ internal static partial class PdfIncrementalUpdater {
             return false;
         }
 
-        color = new PdfColor(ClampColor(red.Value), ClampColor(green.Value), ClampColor(blue.Value));
+        color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(ClampColor(red.Value), ClampColor(green.Value), ClampColor(blue.Value));
         return true;
     }
 
@@ -976,7 +982,7 @@ internal static partial class PdfIncrementalUpdater {
         return true;
     }
 
-    private static bool TryReadDefaultAppearanceTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedDefaultAppearance, out PdfColor color) {
+    private static bool TryReadDefaultAppearanceTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedDefaultAppearance, out global::OfficeIMO.OfficeColor color) {
         return PdfDefaultAppearanceParser.TryReadTextColor(TryReadText(objects, widget, "DA") ?? inheritedDefaultAppearance, out color);
     }
 

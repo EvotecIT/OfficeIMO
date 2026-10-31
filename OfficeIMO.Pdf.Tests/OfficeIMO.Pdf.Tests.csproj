@@ -126,4 +126,7 @@
     <None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticColor/b8-*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticColor/b8-*.pdf-*.srgb" Link="TestAssets/JpegArithmeticColor/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.Drawing.Tests/TestAssets/IccColorCorpus/littlecms-cmyk-lut.icc" Link="TestAssets/JpegArithmeticColor/profile.icc" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup><ProjectReference Include="../OfficeIMO.Pdf.Word/OfficeIMO.Pdf.Word.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../OfficeIMO.Pdf.Excel/OfficeIMO.Pdf.Excel.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../OfficeIMO.Pdf.PowerPoint/OfficeIMO.Pdf.PowerPoint.csproj" /></ItemGroup>
 </Project>

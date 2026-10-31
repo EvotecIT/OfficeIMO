@@ -24,7 +24,7 @@ public static class MarkdownTranscriptPreparation {
     /// and optional AST transforms.
     /// </summary>
     public static void ApplyIntelligenceXTranscriptReaderContract(
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         bool preservesGroupedDefinitionLikeParagraphs = true,
         MarkdownVisualFenceLanguageMode? visualFenceLanguageMode = null) {
         if (options == null) {
@@ -69,11 +69,11 @@ public static class MarkdownTranscriptPreparation {
     /// When supplied, plain JSON code blocks can be upgraded into semantic visual fenced blocks during document transforms.
     /// </param>
     /// <returns>Configured reader options for transcript parsing.</returns>
-    public static MarkdownReaderOptions CreateIntelligenceXTranscriptReaderOptions(
-        MarkdownReaderOptions.MarkdownDialectProfile readerProfile = MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO,
+    public static MarkdownLoadOptions CreateIntelligenceXTranscriptReaderOptions(
+        MarkdownLoadOptions.MarkdownDialectProfile readerProfile = MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO,
         bool preservesGroupedDefinitionLikeParagraphs = true,
         MarkdownVisualFenceLanguageMode? visualFenceLanguageMode = null) {
-        var options = MarkdownReaderOptions.CreateProfile(readerProfile);
+        var options = MarkdownLoadOptions.CreateProfile(readerProfile);
         ApplyIntelligenceXTranscriptReaderContract(
             options,
             preservesGroupedDefinitionLikeParagraphs,
@@ -124,7 +124,7 @@ public static class MarkdownTranscriptPreparation {
             visualFenceLanguageMode: visualFenceLanguageMode);
 
         return MarkdownBlankLines.CollapseDuplicateBlankLines(
-            document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile())).TrimEnd();
+            document.ToMarkdown(MarkdownSaveOptions.CreateOfficeIMOProfile())).TrimEnd();
     }
 
     /// <summary>
@@ -148,9 +148,9 @@ public static class MarkdownTranscriptPreparation {
     /// Optional legacy JSON visual-fence upgrade mode to apply while preparing the transcript document.
     /// </param>
     /// <returns>Prepared transcript document.</returns>
-    public static MarkdownDoc PrepareIntelligenceXTranscriptDocument(
+    public static MarkdownDocument PrepareIntelligenceXTranscriptDocument(
         string? markdown,
-        MarkdownReaderOptions.MarkdownDialectProfile readerProfile = MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO,
+        MarkdownLoadOptions.MarkdownDialectProfile readerProfile = MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO,
         MarkdownVisualFenceLanguageMode? visualFenceLanguageMode = null) {
         return PrepareIntelligenceXTranscriptDocumentForDocx(
             markdown,
@@ -186,24 +186,24 @@ public static class MarkdownTranscriptPreparation {
     /// Optional legacy JSON visual-fence upgrade mode to apply while preparing the transcript document.
     /// </param>
     /// <returns>Prepared transcript document.</returns>
-    public static MarkdownDoc PrepareIntelligenceXTranscriptDocumentForDocx(
+    public static MarkdownDocument PrepareIntelligenceXTranscriptDocumentForDocx(
         string? markdown,
         bool preservesGroupedDefinitionLikeParagraphs,
-        MarkdownReaderOptions.MarkdownDialectProfile readerProfile = MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO,
+        MarkdownLoadOptions.MarkdownDialectProfile readerProfile = MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO,
         MarkdownVisualFenceLanguageMode? visualFenceLanguageMode = null) {
         var value = markdown ?? string.Empty;
         if (value.Length == 0) {
-            return MarkdownDoc.Create();
+            return MarkdownDocument.Create();
         }
 
         var options = CreateIntelligenceXTranscriptReaderOptions(
             readerProfile,
             preservesGroupedDefinitionLikeParagraphs,
             visualFenceLanguageMode);
-        return MarkdownReader.Parse(value, options);
+        return MarkdownDocument.Parse(value, options);
     }
 
-    private static void AddDocumentTransformIfMissing<TTransform>(MarkdownReaderOptions options)
+    private static void AddDocumentTransformIfMissing<TTransform>(MarkdownLoadOptions options)
         where TTransform : IMarkdownDocumentTransform, new() {
         for (var i = 0; i < options.DocumentTransforms.Count; i++) {
             if (options.DocumentTransforms[i] is TTransform) {

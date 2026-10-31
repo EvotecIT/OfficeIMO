@@ -60,7 +60,7 @@ public class AddOfficePowerPointTextBoxCommand : PSWriteOffice.Cmdlets.OfficeMut
                 PowerPointTextRunService.ValidateRuns(Run!, allowHyperlinks: true);
             }
 
-            var textBox = slide.AddTextBoxPoints(Text ?? string.Empty, X, Y, Width, Height);
+            var textBox = slide.AddTextBox(Text ?? string.Empty, OfficeIMO.OfficeLength.Points(X), OfficeIMO.OfficeLength.Points(Y), OfficeIMO.OfficeLength.Points(Width), OfficeIMO.OfficeLength.Points(Height));
             if (ParameterSetName == ParameterSetRun) {
                 PowerPointTextRunService.ApplyRuns(textBox, Run!);
             }

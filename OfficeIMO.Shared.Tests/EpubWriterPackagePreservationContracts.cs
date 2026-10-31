@@ -12,6 +12,39 @@ public sealed class EpubWriterPackagePreservationContracts {
     private static readonly XNamespace Opf = "http://www.idpf.org/2007/opf";
     private static readonly XNamespace Container = "urn:oasis:names:tc:opendocument:xmlns:container";
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FileAssociationChangesOnlyAfterSuccessfulFileSaveAndDoesNotChangeThePackage(bool asynchronous) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-epub-path-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string sourcePath = Path.Combine(root, "Source.epub"), destination = Path.Combine(root, "Saved.epub");
+            byte[] original = EpubWritingContracts.CreateBook().Write().Bytes;
+            File.WriteAllBytes(sourcePath, original);
+            using EpubPublication book = asynchronous ? await EpubPublication.LoadAsync(sourcePath) : EpubPublication.Load(sourcePath);
+            Assert.Equal(sourcePath, book.FilePath);
+            var limits = new EpubWriteOptions { MaxOutputBytes = 1 };
+            if (asynchronous) await Assert.ThrowsAsync<InvalidDataException>(() => book.SaveAsync(destination, limits));
+            else Assert.Throws<InvalidDataException>(() => book.Save(destination, limits));
+            Assert.Equal(sourcePath, book.FilePath);
+            Assert.Equal(original, File.ReadAllBytes(sourcePath));
+            Assert.False(File.Exists(destination));
+            EpubWriteReport report = asynchronous ? await book.SaveAsync(destination) : book.Save(destination);
+            Assert.True(report.UsedOriginalPackage);
+            Assert.Equal(destination, book.FilePath);
+            Assert.Equal(original, File.ReadAllBytes(destination));
+            using var stream = new MemoryStream();
+            if (asynchronous) await book.SaveAsync(stream);
+            else book.Save(stream);
+            Assert.Equal(destination, book.FilePath);
+            Assert.Equal(original, stream.ToArray());
+            Assert.Equal(2, Directory.GetFiles(root).Length);
+        } finally {
+            Directory.Delete(root, true);
+        }
+    }
+
     [Fact]
     public async Task OriginalArchive_EnforcesPhysicalDirectoryCountBeforeSaving() {
         byte[] source = Rewrite(EpubWritingContracts.CreateBook().Write().Bytes,

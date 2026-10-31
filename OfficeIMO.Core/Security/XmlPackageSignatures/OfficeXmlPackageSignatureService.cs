@@ -13,7 +13,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Security;
 
 /// <summary>Provider-backed, bounded XML package manifests for ODF and EPUB signature carriers.</summary>
-public static class OfficeXmlPackageSignatureService {
+internal static class OfficeXmlPackageSignatureService {
     private static readonly XNamespace Ds = XmlDigitalSignatureAlgorithms.Namespace;
     private static readonly XNamespace PackageManifestNamespace = "urn:officeimo:security:package-manifest:1";
     private static readonly XNamespace OdfSignatureNamespace =

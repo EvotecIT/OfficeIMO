@@ -88,7 +88,7 @@ public sealed class XpsJpegXrTests {
             var direct = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: OfficeColor.White);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var drawing));
             var svgRaster = OfficeDrawingRasterRenderer.Render(drawing!, background: OfficeColor.White);
-            var pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdf()).Pages);
+            var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf())).Pages);
             var pdfRaster = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
             for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
                 int offset = (y * width + x) * 4;

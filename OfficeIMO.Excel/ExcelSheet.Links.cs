@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
         /// <returns>Tuple of (r1, c1, r2, c2) with normalized bounds.</returns>
         /// <exception cref="ArgumentException">Thrown when the input is not a valid A1 range.</exception>
         public (int r1, int c1, int r2, int c2) GetRangeBounds(string a1) {
-            return A1.ParseRange(a1);
+            return ExcelA1.ParseRange(a1);
         }
         /// <example>
         /// var bounds = sheet.GetRangeBounds("A2:D20");
@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
         /// <param name="a1">A1 range without a sheet prefix.</param>
         /// <param name="action">Callback receiving a 1-based row index.</param>
         public void ForEachRow(string a1, Action<int> action) {
-            var (r1, _, r2, _) = A1.ParseRange(a1);
+            var (r1, _, r2, _) = ExcelA1.ParseRange(a1);
             for (int r = r1; r <= r2; r++) action(r);
         }
         /// <example>
@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
         /// <param name="a1">A1 range without a sheet prefix.</param>
         /// <param name="action">Callback receiving a 1-based column index.</param>
         public void ForEachColumn(string a1, Action<int> action) {
-            var (_, c1, _, c2) = A1.ParseRange(a1);
+            var (_, c1, _, c2) = ExcelA1.ParseRange(a1);
             for (int c = c1; c <= c2; c++) action(c);
         }
         /// <example>
@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
         /// <param name="styled">When true, applies hyperlink styling (blue + underline).</param>
         public void LinkCellsToInternalSheets(string a1, Func<string, string> destinationSheetForCellText, string targetA1 = "A1", Func<string, string>? display = null, bool styled = true) {
             if (destinationSheetForCellText == null) throw new ArgumentNullException(nameof(destinationSheetForCellText));
-            var (r1, c1, r2, c2) = A1.ParseRange(a1);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1);
             for (int r = r1; r <= r2; r++) {
                 for (int c = c1; c <= c2; c++) {
                     if (!TryGetCellText(r, c, out var text) || string.IsNullOrWhiteSpace(text)) continue;
@@ -147,7 +147,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
             if (!TryGetColumnIndexByHeader(header, out var col)) return;
             if (rowTo <= 0) {
-                var (r1, _, r2, _) = A1.ParseRange(GetUsedRangeA1());
+                var (r1, _, r2, _) = ExcelA1.ParseRange(GetUsedRangeA1());
                 rowTo = r2;
                 if (rowFrom < r1) rowFrom = r1 + 1; // move below header
             }
@@ -177,7 +177,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(header)) return false;
             if (!TryGetColumnIndexByHeader(header, out var col)) return false;
             if (rowTo <= 0) {
-                var ok = A1.TryParseRange(GetUsedRangeA1(), out var r1, out _, out var r2, out _);
+                var ok = ExcelA1.TryParseRange(GetUsedRangeA1(), out var r1, out _, out var r2, out _);
                 if (!ok) return false;
                 rowTo = r2;
                 if (rowFrom < r1) rowFrom = r1 + 1;
@@ -215,7 +215,7 @@ namespace OfficeIMO.Excel {
             if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
             if (!TryGetColumnIndexByHeader(header, out var col)) return;
             if (rowTo <= 0) {
-                var (r1, _, r2, _) = A1.ParseRange(GetUsedRangeA1());
+                var (r1, _, r2, _) = ExcelA1.ParseRange(GetUsedRangeA1());
                 rowTo = r2;
                 if (rowFrom < r1) rowFrom = r1 + 1;
             }
@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel {
             if (urlForCellText is null) return false;
             if (!TryGetColumnIndexByHeader(header, out var col)) return false;
             if (rowTo <= 0) {
-                var ok = A1.TryParseRange(GetUsedRangeA1(), out var r1, out _, out var r2, out _);
+                var ok = ExcelA1.TryParseRange(GetUsedRangeA1(), out var r1, out _, out var r2, out _);
                 if (!ok) return false;
                 rowTo = r2;
                 if (rowFrom < r1) rowFrom = r1 + 1;
@@ -292,7 +292,7 @@ namespace OfficeIMO.Excel {
             var table = tdp.Table;
             string? refA1 = table.Reference?.Value;
             if (string.IsNullOrWhiteSpace(refA1)) throw new InvalidOperationException($"Table '{tableName}' has no Reference.");
-            var (r1, c1, r2, c2) = A1.ParseRange(refA1!);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(refA1!);
             // Determine header offset
             var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
             int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
@@ -330,7 +330,7 @@ namespace OfficeIMO.Excel {
             var tdp = _worksheetPart.TableDefinitionParts.FirstOrDefault(p => string.Equals(p.Table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
             var table = tdp?.Table; if (table == null) return false;
             string? refA1 = table.Reference?.Value; if (string.IsNullOrWhiteSpace(refA1)) return false;
-            if (!A1.TryParseRange(refA1!, out var r1, out var c1, out var r2, out var c2)) return false;
+            if (!ExcelA1.TryParseRange(refA1!, out var r1, out var c1, out var r2, out var c2)) return false;
             var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
             int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
             if (colOffset < 0) return false;
@@ -374,7 +374,7 @@ namespace OfficeIMO.Excel {
             var table = tdp.Table;
             string? refA1 = table.Reference?.Value;
             if (string.IsNullOrWhiteSpace(refA1)) throw new InvalidOperationException($"Table '{tableName}' has no Reference.");
-            var (r1, c1, r2, c2) = A1.ParseRange(refA1!);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(refA1!);
             var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
             int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
             if (colOffset < 0) throw new InvalidOperationException($"Header '{header}' not found in table '{tableName}'.");
@@ -410,7 +410,7 @@ namespace OfficeIMO.Excel {
             var tdp = _worksheetPart.TableDefinitionParts.FirstOrDefault(p => string.Equals(p.Table?.Name?.Value, tableName, StringComparison.OrdinalIgnoreCase));
             var table = tdp?.Table; if (table == null) return false;
             string? refA1 = table.Reference?.Value; if (string.IsNullOrWhiteSpace(refA1)) return false;
-            if (!A1.TryParseRange(refA1!, out var r1, out var c1, out var r2, out var c2)) return false;
+            if (!ExcelA1.TryParseRange(refA1!, out var r1, out var c1, out var r2, out var c2)) return false;
             var headers = table.TableColumns?.Elements<DocumentFormat.OpenXml.Spreadsheet.TableColumn>().Select(tc => tc.Name?.Value ?? string.Empty).ToList() ?? new System.Collections.Generic.List<string>();
             int colOffset = headers.FindIndex(h => string.Equals(h, header, StringComparison.OrdinalIgnoreCase));
             if (colOffset < 0) return false;
@@ -451,7 +451,7 @@ namespace OfficeIMO.Excel {
             bool styled = true) {
             if (string.IsNullOrWhiteSpace(rangeA1)) throw new ArgumentNullException(nameof(rangeA1));
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            var (r1, c1, r2, c2) = A1.ParseRange(rangeA1);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(rangeA1);
             // Find header column within first row of range
             int headerCol = -1;
             for (int c = c1; c <= c2; c++) {
@@ -489,7 +489,7 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(rangeA1)) throw new ArgumentNullException(nameof(rangeA1));
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
             if (urlForCellText is null) throw new ArgumentNullException(nameof(urlForCellText));
-            var (r1, c1, r2, c2) = A1.ParseRange(rangeA1);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(rangeA1);
             int headerCol = -1;
             for (int c = c1; c <= c2; c++) {
                 if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase)) { headerCol = c; break; }
@@ -518,7 +518,7 @@ namespace OfficeIMO.Excel {
             Func<string, string>? display = null,
             bool styled = true) {
             if (string.IsNullOrWhiteSpace(rangeA1) || string.IsNullOrWhiteSpace(header)) return false;
-            if (!A1.TryParseRange(rangeA1, out var r1, out var c1, out var r2, out var c2)) return false;
+            if (!ExcelA1.TryParseRange(rangeA1, out var r1, out var c1, out var r2, out var c2)) return false;
             int headerCol = -1;
             for (int c = c1; c <= c2; c++) {
                 if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase)) { headerCol = c; break; }
@@ -548,7 +548,7 @@ namespace OfficeIMO.Excel {
             bool styled = true) {
             if (string.IsNullOrWhiteSpace(rangeA1) || string.IsNullOrWhiteSpace(header)) return false;
             if (urlForCellText is null) return false;
-            if (!A1.TryParseRange(rangeA1, out var r1, out var c1, out var r2, out var c2)) return false;
+            if (!ExcelA1.TryParseRange(rangeA1, out var r1, out var c1, out var r2, out var c2)) return false;
             int headerCol = -1;
             for (int c = c1; c <= c2; c++) {
                 if (TryGetCellText(r1, c, out var text) && !string.IsNullOrWhiteSpace(text) && string.Equals(text, header, StringComparison.OrdinalIgnoreCase)) { headerCol = c; break; }

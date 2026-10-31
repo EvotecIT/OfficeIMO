@@ -19,7 +19,7 @@ public sealed class ConvertFromOfficeLatexMarkdownCommand : PSCmdlet
 
     /// <summary>Markdown document to convert.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Optional LaTeX destination path.</summary>
     [Parameter]
@@ -37,7 +37,7 @@ public sealed class ConvertFromOfficeLatexMarkdownCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var document = ParameterSetName == ParameterSetPath
-            ? MarkdownDoc.Load(SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path))
+            ? MarkdownDocument.Load(SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path))
             : Document;
         var result = document.ToLatexDocumentResult(Options);
         if (FailOnLoss.IsPresent) result.RequireNoLoss();

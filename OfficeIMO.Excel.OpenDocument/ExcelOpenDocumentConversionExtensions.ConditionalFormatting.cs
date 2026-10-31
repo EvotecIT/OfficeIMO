@@ -219,7 +219,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     DifferentialFontUnderline = plan.Underline,
                     DifferentialFontStrike = plan.Strike,
                     DifferentialFontName = plan.FontName,
-                    DifferentialFontSize = plan.FontSizePoints
+                    DifferentialFontSize = plan.FontSizePoints.HasValue ? global::OfficeIMO.OfficeLength.Points(plan.FontSizePoints.Value) : null
                 });
             }
             convertedStyles.Add(entry.Key);

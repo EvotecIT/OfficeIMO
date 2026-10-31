@@ -7,7 +7,7 @@ New-OfficeWord -Path $path {
     Add-OfficeWordParagraph -Text 'Hello from PSWriteOffice'
 }
 
-$doc = Get-OfficeWord -Path $path
+$doc = Open-OfficeWord -Path $path
 try {
     $paragraph = Add-OfficeWordParagraph -Target $doc -Text 'Page' -PassThru
     Add-OfficeWordBookmark -Paragraph $paragraph -Name 'Bookmark1'

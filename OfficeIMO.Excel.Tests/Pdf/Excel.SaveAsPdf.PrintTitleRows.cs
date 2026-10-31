@@ -12,20 +12,21 @@ public partial class Excel {
     [InlineData(ExcelPageOrder.OverThenDown)]
     public void SaveAsPdf_TitleOnlyManualPageKeepsItsSourceOrder(ExcelPageOrder pageOrder) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 8; row++) sheet.Cell(row, 1, "Row" + row.ToString("D3"));
         document.SetPrintArea(sheet, "A1:A8");
         document.SetPrintTitles(sheet, firstRow: 3, lastRow: 4, firstCol: null, lastCol: null);
         sheet.SetPageSetup(pageOrder: pageOrder);
         sheet.AddManualRowPageBreak(2); sheet.AddManualRowPageBreak(4);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new ExcelToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
-            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        }));
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(700),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
+        // Only the print-title rows repeat; row 1 is ordinary data, as in a spreadsheet printout.
         Assert.Equal("Row001Row002", pdf.GetPage(1).Text);
-        Assert.Equal("Row001Row003Row004", pdf.GetPage(2).Text);
-        Assert.Equal("Row001Row003Row004Row005Row006Row007Row008", pdf.GetPage(3).Text);
+        Assert.Equal("Row003Row004", pdf.GetPage(2).Text);
+        Assert.Equal("Row003Row004Row005Row006Row007Row008", pdf.GetPage(3).Text);
     }
 
     [Theory]
@@ -35,15 +36,15 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable, 3)]
     public void SaveAsPdf_MiddleTitleRowsRepeatOnlyAfterTheirFirstOccurrence(ExcelPdfWorksheetLayoutMode layout, int firstBreak) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 8; row++) sheet.Cell(row, 1, "Row" + row.ToString("D3"));
         document.SetPrintArea(sheet, "A1:B8");
         document.SetPrintTitles(sheet, firstRow: 3, lastRow: 4, firstCol: null, lastCol: null);
         sheet.AddManualRowPageBreak(firstBreak); sheet.AddManualRowPageBreak(6);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new ExcelToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        }));
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(700),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         Assert.DoesNotContain("Row004", pdf.GetPage(1).Text);
         if (firstBreak == 2) Assert.DoesNotContain("Row003", pdf.GetPage(1).Text);
@@ -64,18 +65,18 @@ public partial class Excel {
     [InlineData(true, 3, 3)]
     public void SaveAsPdf_CanvasRepeatsMiddleTitleRowsAcrossAutomaticPages(bool repeatTitles, int fitPages, int expectedPages) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 26; row++) {
-            sheet.Cell(row, 1, "Row" + row.ToString("D3")); sheet.SetRowHeight(row, 30D);
+            sheet.Cell(row, 1, "Row" + row.ToString("D3")); sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30D)));
         }
         document.SetPrintArea(sheet, "A1:A26");
         document.SetPrintTitles(sheet, firstRow: 3, lastRow: 4, firstCol: null, lastCol: null);
         if (fitPages > 0) sheet.SetPageSetup(fitToWidth: 0, fitToHeight: (uint)fitPages);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new ExcelToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
             UseWorksheetPrintTitleRows = repeatTitles,
-            PageSize = new PdfCore.PageSize(300, 220), Margins = PdfCore.PageMargins.Uniform(20)
-        }));
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(expectedPages, pdf.NumberOfPages);
         Assert.StartsWith("Row001", pdf.GetPage(1).Text);
         for (int page = 2; page <= expectedPages; page++) {

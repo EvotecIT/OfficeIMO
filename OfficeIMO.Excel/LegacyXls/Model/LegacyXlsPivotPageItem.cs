@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes one SXPI page-axis PivotTable item selector.
     /// </summary>
-    public sealed class LegacyXlsPivotPageItem {
+    internal sealed class LegacyXlsPivotPageItem {
         /// <summary>
         /// Creates a page-axis PivotTable item selector.
         /// </summary>

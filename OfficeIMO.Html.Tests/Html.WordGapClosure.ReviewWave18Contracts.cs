@@ -15,7 +15,7 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordTableCell cell = Assert.Single(Assert.Single(document.Tables).Rows).Cells[0];
 
         Assert.Equal("0000FF", cell.Borders.LeftColorHex);
@@ -38,7 +38,7 @@ public partial class HtmlWordGapClosure {
         run.SetCharacterStyleId("StyledHighlight");
         run.RunShadingFillColorHex = "FF0000";
 
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
 
         Assert.Contains("background-color:#ffff00", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("background-color:#ff0000", html, StringComparison.OrdinalIgnoreCase);
@@ -51,7 +51,7 @@ public partial class HtmlWordGapClosure {
             <div style="background-color:#0000ff;border-left-style:solid;border-left-width:1px;border-left-color:rgba(255,0,0,0.5)">Blended</div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph transparent = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Transparent");
         WordParagraph blended = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Blended");
 
@@ -68,12 +68,12 @@ public partial class HtmlWordGapClosure {
             <p>After</p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph spacing = Assert.Single(
             document.Paragraphs,
             paragraph => string.IsNullOrEmpty(paragraph.Text));
 
-        Assert.Equal(300, spacing.LineSpacingBefore);
-        Assert.Equal(300, spacing.LineSpacingAfter);
+        Assert.Equal(300, checked((int?)(spacing.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(300, checked((int?)(spacing.LineSpacingAfter?.ToTwips())));
     }
 }

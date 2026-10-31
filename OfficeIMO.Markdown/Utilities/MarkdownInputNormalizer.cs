@@ -7,7 +7,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Stateless markdown input normalizer intended for chat/model outputs before strict parsing.
 /// </summary>
-public static partial class MarkdownInputNormalizer {
+internal static partial class MarkdownInputNormalizer {
     private const int StrongFlattenMaxIterations = 32;
     private const int LabeledOuterStrongPrefixMaxChars = 120;
 

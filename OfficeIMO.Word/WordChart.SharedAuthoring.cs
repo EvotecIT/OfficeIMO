@@ -34,10 +34,10 @@ public partial class WordChart {
     /// <param name="chartKind">The default chart family for series without their own render kind.</param>
     /// <param name="data">Categories and series, including supported point and marker styles.</param>
     /// <returns>The current chart.</returns>
-    public WordChart SetData(OfficeChartKind chartKind, OfficeChartData data) =>
+    public WordChart SetData(OfficeChartType chartKind, OfficeChartData data) =>
         ConfigureSharedData(chartKind, data, OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind));
 
-    internal WordChart ConfigureSharedData(OfficeChartKind chartKind, OfficeChartData data, byte[] workbook) {
+    internal WordChart ConfigureSharedData(OfficeChartType chartKind, OfficeChartData data, byte[] workbook) {
         ChartPart part = _chartPart ?? throw new InvalidOperationException("The chart has no native drawing part.");
         ChartSpace source = part.ChartSpace ?? throw new InvalidOperationException("The chart has no native chart space.");
         var preserveBindings = OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
@@ -47,7 +47,9 @@ public partial class WordChart {
         if (source.GetFirstChild<Chart>() == null) {
             embedded ??= part.AddEmbeddedPackagePart(OfficeOpenXmlChartWriter.SharedWorkbookContentType);
             OfficeOpenXmlChartWriter.PopulateSharedChart(part, part.GetIdOfPart(embedded), data, chartKind);
+            OfficeOpenXmlChartThemeWriter.Apply(part, OfficeTheme.Default);
             part.ChartSpace!.GetFirstChild<RoundedCorners>()!.Val = rounded;
+            EnsureFramelessChartArea();
         } else {
             OfficeOpenXmlChartWriter.UpdateSharedChartData(part, data, chartKind);
             embedded ??= part.AddEmbeddedPackagePart(OfficeOpenXmlChartWriter.SharedWorkbookContentType);

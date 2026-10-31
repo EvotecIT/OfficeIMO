@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// Represents a parsed PDF document with access to pages, catalog and metadata.
 /// Note: MVP reader supports classic xref tables and simple stream parsing sufficient for OfficeIMO.Pdf output.
 /// </summary>
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly PdfDictionary? _catalog;
     private readonly string _trailerRaw;
@@ -62,7 +62,7 @@ public sealed partial class PdfReadDocument {
         System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (objects.Count == 0) {
-            throw new PdfParseException("NoIndirectObjects", "The PDF contains no readable indirect objects and cannot be opened.", null);
+            throw new PdfParseException("no-indirect-objects", "The PDF contains no readable indirect objects and cannot be opened.", null);
         }
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfLoadOptions();
         _decodedStreamBudget = new PdfDecodedStreamBudget(_options.Limits, decodedStreamBytes);

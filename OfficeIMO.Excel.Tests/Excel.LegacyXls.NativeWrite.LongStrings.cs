@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Long Strings");
+                    ExcelSheet sheet = document.AddSheet("Long Strings");
                     sheet.CellValue(1, 1, longAsciiText);
                     sheet.CellValue(1, 2, longAsciiText);
                     sheet.CellValue(2, 1, longUnicodeText);
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExtSST");
+                    ExcelSheet sheet = document.AddSheet("ExtSST");
                     for (int index = 0; index < 9; index++) {
                         int characterCount = index < 7 ? 1024 : index == 7 ? 1023 : 1008;
                         sheet.CellValue(index + 1, 1, new string((char)('A' + index), characterCount));
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Formula String");
+                    ExcelSheet sheet = document.AddSheet("Formula String");
                     sheet.CellValue(1, 1, "Formula text");
                     Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                         .Single(item => string.Equals(item.CellReference?.Value, "A1", StringComparison.OrdinalIgnoreCase));
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Long Rich Text");
+                    ExcelSheet sheet = document.AddSheet("Long Rich Text");
                     sheet.CellAt(1, 1).SetRichText(
                         new ExcelRichTextRun(firstRunText) { Bold = true },
                         new ExcelRichTextRun(secondRunText) { Italic = true });

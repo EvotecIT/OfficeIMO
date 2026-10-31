@@ -368,16 +368,16 @@ internal static partial class HtmlPdfRenderedConverter {
                 OfficeShape area = OfficeShape.Rectangle(drawingWidth * PointsPerCssPixel, drawingHeight * PointsPerCssPixel);
                 area.FillColor = null;
                 area.StrokeColor = null;
-                target.Shape(area, frame.X * PointsPerCssPixel, frame.Y * PointsPerCssPixel,
+                target.Shape(area, global::OfficeIMO.OfficeLength.Points(frame.X * PointsPerCssPixel), global::OfficeIMO.OfficeLength.Points(frame.Y * PointsPerCssPixel),
                     style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: link, linkContents: link == null ? null : visual.Text);
                 return;
             }
             target.Drawing(
                 drawing,
-                frame.X * PointsPerCssPixel,
-                frame.Y * PointsPerCssPixel,
-                drawingWidth * PointsPerCssPixel,
-                drawingHeight * PointsPerCssPixel,
+                global::OfficeIMO.OfficeLength.Points(frame.X * PointsPerCssPixel),
+                global::OfficeIMO.OfficeLength.Points(frame.Y * PointsPerCssPixel),
+                global::OfficeIMO.OfficeLength.Points(drawingWidth * PointsPerCssPixel),
+                global::OfficeIMO.OfficeLength.Points(drawingHeight * PointsPerCssPixel),
                 style: new PdfCore.PdfDrawingStyle { Decorative = true },
                 linkUri: link,
                 linkContents: link == null ? null : visual.Text);
@@ -387,10 +387,10 @@ internal static partial class HtmlPdfRenderedConverter {
             if (linkDestination != null) {
                 target.LinkToNamedDestination(
                     linkDestination,
-                    frame.X * PointsPerCssPixel,
-                    frame.Y * PointsPerCssPixel,
-                    drawingWidth * PointsPerCssPixel,
-                    drawingHeight * PointsPerCssPixel,
+                    global::OfficeIMO.OfficeLength.Points(frame.X * PointsPerCssPixel),
+                    global::OfficeIMO.OfficeLength.Points(frame.Y * PointsPerCssPixel),
+                    global::OfficeIMO.OfficeLength.Points(drawingWidth * PointsPerCssPixel),
+                    global::OfficeIMO.OfficeLength.Points(drawingHeight * PointsPerCssPixel),
                     visual.Text);
             }
         };

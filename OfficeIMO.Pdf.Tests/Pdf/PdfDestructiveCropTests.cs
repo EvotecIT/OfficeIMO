@@ -37,7 +37,7 @@ public class PdfDestructiveCropTests {
     public void DestructiveCrop_BlocksSelectedPagesWithFormWidgets() {
         byte[] source = PdfDocument.Create()
             .Paragraph(p => p.Text("Form crop"))
-            .TextField("Account", width: 120, height: 20)
+            .TextField("Account", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20))
             .ToBytes();
 
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfPageEditor.DestructiveCropPages(source, 0, 0, 300, 500));

@@ -27,7 +27,7 @@ public sealed class HtmlSystemUiFontTests {
         var reference = new HtmlToPdfOptions { AllowSystemFontFallback = false,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost() };
         Assert.True(reference.Fonts.TryAdd(family, File.ReadAllBytes(MacFont)));
-        Assert.Equal(source.ToPdfBytes(reference), source.ToPdfBytes(options));
+        Assert.Equal((source.ToPdf(reference)).ToBytes(), (source.ToPdf(options)).ToBytes());
         Assert.Empty(options.Fonts.Faces);
     }
 

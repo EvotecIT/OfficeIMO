@@ -97,7 +97,7 @@ public sealed partial class OfficeDrawing {
         foreach (OfficeTextTabStop stop in tabs.Stops) {
             OfficeTextTabLineLeader? leader = stop.LineLeader;
             if (leader?.Color is { } color) leader = new OfficeTextTabLineLeader(leader.Style, leader.DoubleLine,
-                leader.WidthPoints, leader.WidthFontFraction, WithTint(color, tint));
+                leader.Width, leader.WidthFontFraction, WithTint(color, tint));
             stops.Add(stop.WithLineLeader(leader).WithLeaderStyle(stop.LeaderStyle?.Tint(tint)));
         }
         return new OfficeTextTabStops(stops, tabs.DefaultInterval, tabs.Origin).WithParagraphAlignment(tabs.AlignWithParagraph);

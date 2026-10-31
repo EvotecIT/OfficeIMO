@@ -127,7 +127,7 @@ public abstract partial class OdfDocument {
             } else if (state.Opacity.HasValue && state.Opacity.Value <= 0.01D) {
                 kind = OfficeContentConcealmentKind.TransparentText;
                 evidence = "The effective OpenDocument drawing opacity is zero or nearly zero.";
-            } else if (state.FontSizePoints.HasValue && state.FontSizePoints.Value <= builder.Options.MaximumTinyFontSizePoints) {
+            } else if (state.FontSizePoints.HasValue && state.FontSizePoints.Value <= builder.Options.MaximumTinyFontSize.ToPoints()) {
                 kind = OfficeContentConcealmentKind.TinyText;
                 evidence = "The effective OpenDocument font size is " + state.FontSizePoints.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
             } else if (TryGetOdfContrast(state, out double ratio, out string colors) && ratio < builder.Options.MinimumVisibleContrastRatio) {

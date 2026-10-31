@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests;
 public class PowerPointSharedBubbleChartImportContractTests {
     [Fact]
     public void BubbleChart_RejectsInheritedSeriesOutline() {
-        using PowerPointPresentation presentation = CreatePresentation(out PowerPointChart chart);
+        using PowerPointDocument presentation = CreateDocument(out PowerPointChart chart);
         C.BubbleChartSeries series = presentation.Slides[0].SlidePart
             .ChartParts.Single().ChartSpace!
             .Descendants<C.BubbleChartSeries>().Single();
@@ -28,7 +28,7 @@ public class PowerPointSharedBubbleChartImportContractTests {
 
     [Fact]
     public void BubbleChart_PreservesMultilineChartAndAxisTitles() {
-        using PowerPointPresentation presentation = CreatePresentation(out PowerPointChart chart);
+        using PowerPointDocument presentation = CreateDocument(out PowerPointChart chart);
         chart.SetTitle("Chart title").SetScatterXAxisTitle("Axis title");
         C.Chart nativeChart = presentation.Slides[0].SlidePart.ChartParts
             .Single().ChartSpace!.GetFirstChild<C.Chart>()!;
@@ -49,7 +49,7 @@ public class PowerPointSharedBubbleChartImportContractTests {
 
     [Fact]
     public void BubbleChart_RejectsFormulaBackedSeriesNameWithoutCache() {
-        using PowerPointPresentation presentation = CreatePresentation(out PowerPointChart chart);
+        using PowerPointDocument presentation = CreateDocument(out PowerPointChart chart);
         C.SeriesText seriesText = presentation.Slides[0].SlidePart.ChartParts
             .Single().ChartSpace!.Descendants<C.BubbleChartSeries>().Single()
             .GetFirstChild<C.SeriesText>()!;
@@ -62,7 +62,7 @@ public class PowerPointSharedBubbleChartImportContractTests {
 
     [Fact]
     public void BubbleChart_UpdateRejectsMissingEmbeddedWorkbookBeforeMutation() {
-        using PowerPointPresentation presentation = CreatePresentation(out PowerPointChart chart);
+        using PowerPointDocument presentation = CreateDocument(out PowerPointChart chart);
         ChartPart chartPart = presentation.Slides[0].SlidePart.ChartParts.Single();
         EmbeddedPackagePart embedded = Assert.Single(
             chartPart.GetPartsOfType<EmbeddedPackagePart>());
@@ -75,16 +75,16 @@ public class PowerPointSharedBubbleChartImportContractTests {
 
     [Fact]
     public void BubbleChart_HidesLegendEntriesByPlottedOrder() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create(new MemoryStream());
         var data = new OfficeChartData(new[] { "1" }, new[] {
-            OfficeChartSeries.CreateBubble(
+            OfficeSeries.CreateBubble(
                 "First", new[] { 1D }, new[] { 2D }, new[] { 4D }),
-            OfficeChartSeries.CreateBubble(
+            OfficeSeries.CreateBubble(
                 "Second", new[] { 3D }, new[] { 4D }, new[] { 9D })
         });
         PowerPointChart chart = presentation.AddSlide().AddChart(
-            OfficeChartKind.Bubble, data);
+            OfficeChartType.Bubble, data);
         C.Chart nativeChart = presentation.Slides[0].SlidePart.ChartParts
             .Single().ChartSpace!.GetFirstChild<C.Chart>()!;
         C.BubbleChartSeries[] series = nativeChart
@@ -106,7 +106,7 @@ public class PowerPointSharedBubbleChartImportContractTests {
 
     [Fact]
     public void BubbleChart_RejectsInsetSeriesOutlineAlignment() {
-        using PowerPointPresentation presentation = CreatePresentation(out PowerPointChart chart);
+        using PowerPointDocument presentation = CreateDocument(out PowerPointChart chart);
         A.Outline outline = presentation.Slides[0].SlidePart.ChartParts
             .Single().ChartSpace!.Descendants<C.BubbleChartSeries>().Single()
             .GetFirstChild<C.ChartShapeProperties>()!
@@ -121,7 +121,7 @@ public class PowerPointSharedBubbleChartImportContractTests {
 
     [Fact]
     public void BubbleChart_RejectsVisibleOnlySnapshotWithHiddenWorkbookRows() {
-        using PowerPointPresentation presentation = CreatePresentation(out PowerPointChart chart);
+        using PowerPointDocument presentation = CreateDocument(out PowerPointChart chart);
         ChartPart chartPart = presentation.Slides[0].SlidePart.ChartParts.Single();
         EmbeddedPackagePart embedded = Assert.Single(
             chartPart.GetPartsOfType<EmbeddedPackagePart>());
@@ -139,7 +139,7 @@ public class PowerPointSharedBubbleChartImportContractTests {
 
     [Fact]
     public void BubbleChart_IgnoresHiddenWorkbookRowsOutsideReferencedRanges() {
-        using PowerPointPresentation presentation = CreatePresentation(out PowerPointChart chart);
+        using PowerPointDocument presentation = CreateDocument(out PowerPointChart chart);
         ChartPart chartPart = presentation.Slides[0].SlidePart.ChartParts.Single();
         EmbeddedPackagePart embedded = Assert.Single(chartPart.GetPartsOfType<EmbeddedPackagePart>());
         using (Stream stream = embedded.GetStream(FileMode.Open, FileAccess.ReadWrite))
@@ -154,7 +154,7 @@ public class PowerPointSharedBubbleChartImportContractTests {
 
     [Fact]
     public void BubbleChart_RecreatedDataLabelsPrecedeBubble3D() {
-        using PowerPointPresentation presentation = CreatePresentation(out PowerPointChart chart);
+        using PowerPointDocument presentation = CreateDocument(out PowerPointChart chart);
 
         chart.ClearDataLabels().SetDataLabels();
 
@@ -170,7 +170,7 @@ public class PowerPointSharedBubbleChartImportContractTests {
 
     [Fact]
     public void BubbleChart_UpdatedPointColorsPrecedePreservedTrendline() {
-        using PowerPointPresentation presentation = CreatePresentation(out PowerPointChart chart);
+        using PowerPointDocument presentation = CreateDocument(out PowerPointChart chart);
         chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear);
 
         chart.UpdateData(CreateData(3D, 5D, 16D,
@@ -186,11 +186,11 @@ public class PowerPointSharedBubbleChartImportContractTests {
         Assert.Empty(new OpenXmlValidator().Validate(chartPart));
     }
 
-    private static PowerPointPresentation CreatePresentation(out PowerPointChart chart) {
-        PowerPointPresentation presentation =
-            PowerPointPresentation.Create(new MemoryStream());
+    private static PowerPointDocument CreateDocument(out PowerPointChart chart) {
+        PowerPointDocument presentation =
+            PowerPointDocument.Create(new MemoryStream());
         chart = presentation.AddSlide().AddChart(
-            OfficeChartKind.Bubble, CreateData(1D, 2D, 4D));
+            OfficeChartType.Bubble, CreateData(1D, 2D, 4D));
         return presentation;
     }
 
@@ -198,7 +198,7 @@ public class PowerPointSharedBubbleChartImportContractTests {
         OfficeColor?[]? pointColors = null) =>
         new(new[] { x.ToString(System.Globalization.CultureInfo.InvariantCulture) },
             new[] {
-                OfficeChartSeries.CreateBubble(
+                OfficeSeries.CreateBubble(
                     "Portfolio", new[] { x }, new[] { y }, new[] { size },
                     pointColors: pointColors)
             });

@@ -11,7 +11,7 @@ Adds a page to a Visio document and optionally executes nested DSL content.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Add-OfficeVisioPage [-Name] <string> [[-Content] <scriptblock>] [-Document <VisioDocument>] [-Width <double>] [-Height <double>] [-Unit <VisioMeasurementUnit>] [-PassThru] [<CommonParameters>]
+Add-OfficeVisioPage [-Name] <string> [[-Content] <scriptblock>] [-Document <VisioDocument>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-DisplayUnit <VisioMeasurementUnit>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,9 +21,9 @@ Adds a page to a Visio document and optionally executes nested DSL content.
 
 ### EXAMPLE 1
 ```powershell
-PS> OfficeVisio -Path .\Workbook.vsdx {
-    VisioPage -Name 'Architecture' {
-        VisioRectangle -Key api -Text 'API' -X 2 -Y 4
+PS> New-OfficeVisio -Path .\Workbook.vsdx {
+    VisioPage -Name 'Architecture' -Width 11in -Height 8.5in {
+        VisioRectangle -Key api -Text 'API' -X 2in -Y 4in
     }
 }
 ```
@@ -48,8 +48,24 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -DisplayUnit
+Measurement unit displayed by Visio, independent of geometry input units.
+
+```yaml
+Type: VisioMeasurementUnit
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values: Inches, Centimeters, Millimeters
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Document
-Target Visio document. Optional inside OfficeVisio.
+Target Visio document. Optional inside New-OfficeVisio.
 
 ```yaml
 Type: VisioDocument
@@ -68,7 +84,7 @@ Accept wildcard characters: False
 Page height.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -112,27 +128,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Unit
-Measurement unit for width and height.
-
-```yaml
-Type: VisioMeasurementUnit
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values: Inches, Centimeters, Millimeters
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Width
 Page width.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

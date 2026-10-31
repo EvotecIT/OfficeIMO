@@ -5,11 +5,11 @@ namespace OfficeIMO.Html;
 /// <summary>Exports HTML surfaces from the same paged layout and PDF scene as PDF conversion.</summary>
 public static partial class HtmlImageExportExtensions {
     /// <summary>Renders one selected surface to the requested image format with dimensions and diagnostics.</summary>
-    public static OfficeImageExportResult ExportImage(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0) {
+    public static OfficeImageExportResult ExportImage(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
-        return HtmlRenderEngine.ExecuteWithDeadline(resolved, CancellationToken.None, operationCancellationToken => {
+        return HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
             HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(document, request, resolved, operationCancellationToken);
             OfficeImageExportResult? image = null;
             HtmlRenderResultImageExtensions.ExportImagesCore(

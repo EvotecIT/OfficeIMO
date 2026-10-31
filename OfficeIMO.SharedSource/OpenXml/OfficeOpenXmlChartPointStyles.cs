@@ -135,12 +135,20 @@ internal static class OfficeOpenXmlChartPointStyles {
 
     /// <summary>Projects qualified ribbon paint into the shared flat stroke without confusing its fill and border.</summary>
     internal static (OfficeChartPointStyle Paint, OfficeColor? Color, bool Automatic) ReadRibbonPaint(
-        OpenXmlElement series, A.ColorScheme? scheme, bool useSpreadsheetDefaultTheme = false) {
+        OpenXmlElement series, A.ColorScheme? scheme, bool useSpreadsheetDefaultTheme = false) =>
+        ReadRibbonPaint(series, scheme, new OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext(),
+            useSpreadsheetDefaultTheme);
+
+    internal static (OfficeChartPointStyle Paint, OfficeColor? Color, bool Automatic) ReadRibbonPaint(
+        OpenXmlElement series, A.ColorScheme? scheme,
+        OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext colorContext,
+        bool useSpreadsheetDefaultTheme = false) {
         var native = ReadStyle(series.GetFirstChild<C.ChartShapeProperties>(), scheme);
         var inherited = ReadSeriesStyle(series, scheme);
         bool fill = native?.NoFill != true, outline = native?.ShowOutline != false;
         OfficeColor? automatic = (fill && native?.FillColor == null || outline && native?.OutlineColor == null)
-            ? OfficeOpenXmlChartAutomaticColors.ResolveSeries(series, scheme, useSpreadsheetDefaultTheme) : null;
+            ? OfficeOpenXmlChartAutomaticColors.ResolveSeries(series, scheme, colorContext,
+                useSpreadsheetDefaultTheme) : null;
         OfficeColor? body = native?.FillColor ?? (fill ? automatic : null);
         OfficeColor? border = native?.OutlineColor ?? (outline ? automatic : null);
         bool visibleFill = fill && (!body.HasValue || body.Value.A > 0);
@@ -167,7 +175,7 @@ internal static class OfficeOpenXmlChartPointStyles {
         A.Outline? outline = properties.GetFirstChild<A.Outline>();
         OfficeColor? line = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme);
         bool? showOutline = outline == null ? null : outline.GetFirstChild<A.NoFill>() != null ? false : true;
-        double? width = outline?.Width?.Value is int emu && emu > 0 ? emu / 12700D : null;
+        OfficeLength? width = outline?.Width?.Value is int emu && emu > 0 ? OfficeLength.Emus(emu) : null;
         OfficeStrokeLineJoin? join = outline?.GetFirstChild<A.Round>() != null ? OfficeStrokeLineJoin.Round :
             outline?.GetFirstChild<A.LineJoinBevel>() != null ? OfficeStrokeLineJoin.Bevel :
             outline?.GetFirstChild<A.Miter>() != null ? OfficeStrokeLineJoin.Miter : null;
@@ -176,7 +184,7 @@ internal static class OfficeOpenXmlChartPointStyles {
         return new OfficeChartPointStyle(fill, noFill, hatch, hatchColor, line, width, showOutline, join);
     }
 
-    internal static void ApplySeries(OpenXmlCompositeElement series, OfficeChartSeries data) {
+    internal static void ApplySeries(OpenXmlCompositeElement series, OfficeSeries data) {
         if (data.SeriesStyle != null) {
             var properties = series.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
             ApplySeriesPaint(properties, data.SeriesStyle);
@@ -205,7 +213,7 @@ internal static class OfficeOpenXmlChartPointStyles {
     }
 
     internal static void ApplyPoint(OpenXmlCompositeElement series, uint index, OfficeChartPointStyle? style, OfficeColor? legacyColor = null) {
-        if (style?.OutlineWidth > 1584) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
+        if (style?.OutlineWidth > OfficeLength.Points(1584)) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
         if (!SupportsDataPoints(series))
             throw new NotSupportedException("Point styles are not supported by this native chart series.");
         C.DataPoint? point = GetBoundedPoints(series).FirstOrDefault(item => item.Index?.Val?.Value == index);
@@ -224,7 +232,7 @@ internal static class OfficeOpenXmlChartPointStyles {
 
     private static void ApplyPointCore(OpenXmlCompositeElement series, uint index,
         OfficeChartPointStyle? style, OfficeColor? legacyColor, C.DataPoint? point, OpenXmlElement? anchor) {
-        if (style?.OutlineWidth > 1584) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
+        if (style?.OutlineWidth > OfficeLength.Points(1584)) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
         if (point == null) {
             point = new C.DataPoint(new C.Index { Val = index });
             if (anchor != null) series.InsertBefore(point, anchor);
@@ -302,7 +310,7 @@ internal static class OfficeOpenXmlChartPointStyles {
         if (style?.ShowOutline == false) properties.AddChild(new A.Outline(new A.NoFill()), true);
         else if (style?.OutlineColor != null || style?.OutlineWidth != null || style?.ShowOutline == true || style?.OutlineJoin != null) {
             var outline = new A.Outline();
-            if (style.OutlineWidth.HasValue) outline.Width = (int)Math.Round(style.OutlineWidth.Value * 12700);
+            if (style.OutlineWidth.HasValue) outline.Width = checked((int)style.OutlineWidth.Value.ToEmus());
             if (style.OutlineColor is OfficeColor line) outline.Append(new A.SolidFill(CreateColor(line)));
             if (style.OutlineJoin is OfficeStrokeLineJoin join) outline.Append(join switch {
                 OfficeStrokeLineJoin.Round => new A.Round(),

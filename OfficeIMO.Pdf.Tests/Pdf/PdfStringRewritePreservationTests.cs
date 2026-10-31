@@ -13,7 +13,7 @@ public sealed class PdfStringRewritePreservationTests {
     public void SupportedRewritesRetainSemanticText(string operation) {
         const string text = "Chapter\u00A0note\u00AD";
         byte[] source = PdfDocument.Create().Meta(title: text)
-            .Canvas(canvas => canvas.Outline(text, 1, 10D))
+            .Canvas(canvas => canvas.Outline(text, 1, global::OfficeIMO.OfficeLength.Points(10D)))
             .Paragraph(paragraph => paragraph.Link("Link", "https://evotec.xyz/", contents: text))
             .ToBytes();
         AssertSemanticText(source, text);

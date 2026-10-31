@@ -56,7 +56,7 @@ public sealed class AdfFidelityClosureTests {
 
     [Fact]
     public void TaskListInsideQuoteUsesValidVisibleFallback() {
-        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(MarkdownReader.Parse("> - [ ] Pending\n> - [x] Done"));
+        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(MarkdownDocument.Parse("> - [ ] Pending\n> - [x] Done"));
         Assert.True(result.Value.Validate().IsValid);
         Assert.True(result.Value.Validate(new AdfValidationOptions { Profile = AdfValidationProfile.FullSchema }).IsValid);
         AdfNode quote = Assert.Single(result.Value.Content);

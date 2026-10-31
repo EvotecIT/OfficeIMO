@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System;
 using System.Management.Automation;
 using OfficeIMO.Drawing;
@@ -83,9 +84,9 @@ public sealed class SetOfficeExcelChartTrendlineCommand : PSWriteOffice.Cmdlets.
     protected override void ProcessRecord() {
         try {
             if (ParameterSetName == ParameterSetSeriesName) {
-                Chart.SetSeriesTrendline(SeriesName, Type, Order, Period, Forward, Backward, Intercept, DisplayEquation.IsPresent, DisplayRSquared.IsPresent, LineColor, LineWidthPoints, IgnoreCase);
+                Chart.SetSeriesTrendline(SeriesName, Type, Order, Period, Forward, Backward, Intercept, DisplayEquation.IsPresent, DisplayRSquared.IsPresent, LineColor != null ? OfficeColor.Parse(LineColor) : (OfficeColor?)null, LineWidthPoints.HasValue ? OfficeLength.Points(LineWidthPoints.Value) : (OfficeLength?)null, IgnoreCase);
             } else {
-                Chart.SetSeriesTrendline(SeriesIndex, Type, Order, Period, Forward, Backward, Intercept, DisplayEquation.IsPresent, DisplayRSquared.IsPresent, LineColor, LineWidthPoints);
+                Chart.SetSeriesTrendline(SeriesIndex, Type, Order, Period, Forward, Backward, Intercept, DisplayEquation.IsPresent, DisplayRSquared.IsPresent, LineColor != null ? OfficeColor.Parse(LineColor) : (OfficeColor?)null, LineWidthPoints.HasValue ? OfficeLength.Points(LineWidthPoints.Value) : (OfficeLength?)null);
             }
 
             WritePassThru(Chart);

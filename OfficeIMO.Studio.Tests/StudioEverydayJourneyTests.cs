@@ -20,7 +20,7 @@ public sealed class StudioEverydayJourneyTests {
             string saved = Path.Combine(services.Paths.Root, "journey-reviewed.pdf");
             PdfDocument.Create(document => {
                 foreach (string text in new[] { "Introduction", "Quarterly results", "Appendix" }) {
-                    document.Page(page => page.Size(400, 560).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))));
+                    document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(560)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))));
                 }
             }).Save(source);
             using var document = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services,
@@ -39,7 +39,9 @@ public sealed class StudioEverydayJourneyTests {
             document.ShowAnnotateModeCommand.Execute(null);
             document.SelectedEditorToolChoice = document.EditorTools.Single(choice => choice.Tool == PdfEditorTool.Note);
             document.Pages[1].CompleteEditorGesture(new PdfEditorGesture(2, 60, 60, 78, 78, [new PdfEditorVisualPoint(60, 60)]));
-            await WaitUntilAsync(() => document.CanUndo);
+            // The edit enters the undo journal before its asynchronous workspace operation has fully finished.
+            // Undo is available only after the workspace is idle; otherwise the mutation runner rejects it.
+            await WaitUntilAsync(() => document.CanUndo && !document.IsWorkspaceBusy);
             Assert.True(document.IsDirty);
 
             // Undo and redo the edit; moving between tasks keeps the place and zoom.

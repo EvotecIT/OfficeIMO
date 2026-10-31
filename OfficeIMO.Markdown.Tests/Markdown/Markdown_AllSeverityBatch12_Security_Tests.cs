@@ -12,7 +12,7 @@ public sealed class MarkdownAllSeverityBatch12SecurityTests {
             + string.Join(" ", Enumerable.Repeat("_inner", 4_000))
             + "*";
 
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
         Assert.Single(document.Blocks);
         Assert.Contains("outer", document.ToMarkdown(), StringComparison.Ordinal);
@@ -21,14 +21,14 @@ public sealed class MarkdownAllSeverityBatch12SecurityTests {
     [Fact]
     public void MarkdownReader_RejectsDetailsBeyondConfiguredNestingDepth() {
         string markdown = BuildNestedDetails(8);
-        var options = new MarkdownReaderOptions { MaxNestingDepth = 4 };
+        var options = new MarkdownLoadOptions { MaxNestingDepth = 4 };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(
-            () => MarkdownReader.Parse(markdown, options));
+            () => MarkdownDocument.Parse(markdown, options));
 
         Assert.Contains("MaxNestingDepth (4)", exception.Message,
             StringComparison.Ordinal);
-        Assert.Single(MarkdownReader.Parse(
+        Assert.Single(MarkdownDocument.Parse(
             BuildNestedDetails(2), options).Blocks);
     }
 
@@ -36,32 +36,32 @@ public sealed class MarkdownAllSeverityBatch12SecurityTests {
     public void MarkdownReader_HtmlBlockWithManyTagStartsAvoidsSuffixCopies() {
         string markdown = "<div>" + new string('<', 50_000) + "</div>";
 
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
         Assert.Single(document.Blocks);
     }
 
     [Fact]
     public void MarkdownToWord_RejectsDeepBlockAndInlineTrees() {
-        var blockDocument = MarkdownDoc.Create();
+        var blockDocument = MarkdownDocument.Create();
         blockDocument.Add(CreateNestedDetailsBlock(8));
-        var options = new MarkdownToWordOptions { MaxNestingDepth = 4 };
+        var options = new WordMarkdownImportOptions { MaxNestingDepth = 4 };
 
         InvalidDataException blockException = Assert.Throws<InvalidDataException>(
-            () => blockDocument.ToWordDocument(options));
+            () => blockDocument.ToWord(options));
         Assert.Contains("block nesting", blockException.Message,
             StringComparison.Ordinal);
 
-        var inlineDocument = MarkdownDoc.Create();
+        var inlineDocument = MarkdownDocument.Create();
         inlineDocument.Add(new ParagraphBlock(CreateNestedInlineSequence(8)));
         InvalidDataException inlineException = Assert.Throws<InvalidDataException>(
-            () => inlineDocument.ToWordDocument(options));
+            () => inlineDocument.ToWord(options));
         Assert.Contains("inline nesting", inlineException.Message,
             StringComparison.Ordinal);
 
-        var safeDocument = MarkdownDoc.Create();
+        var safeDocument = MarkdownDocument.Create();
         safeDocument.Add(new ParagraphBlock(CreateNestedInlineSequence(2)));
-        using var converted = safeDocument.ToWordDocument(options);
+        using var converted = safeDocument.ToWord(options);
         Assert.NotNull(converted);
     }
 

@@ -23,7 +23,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
             "<div class='grid'>Grid content</div>";
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
-        HtmlToWordResult wordResult = source.ToWordDocumentResult();
+        HtmlToWordResult wordResult = source.ConvertToWordWithEvidence();
         byte[] docx = SaveWord(wordResult.Value);
         using WordDocument word = WordDocument.Load(
             new MemoryStream(docx),
@@ -32,11 +32,11 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
             paragraph.Text.Contains("Editable positioned", StringComparison.Ordinal)));
         HtmlRenderMargins margins = new HtmlRenderOptions().Margins;
         Assert.Equal("DBEAFE", positionedWordBox.FillColorHex);
-        Assert.Equal((int)((32D + margins.Left) * 9525D), positionedWordBox.HorizontalPositionOffset);
-        Assert.Equal((int)((200D + margins.Top) * 9525D), positionedWordBox.VerticalPositionOffset);
-        Assert.Equal(240L * 9525L, positionedWordBox.Width);
-        Assert.Equal(72L * 9525L, positionedWordBox.Height);
-        byte[] wordPng = word.ToPng(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+        Assert.Equal((int)((32D + margins.Left) * 9525D), positionedWordBox.HorizontalPositionOffset?.ToEmus());
+        Assert.Equal((int)((200D + margins.Top) * 9525D), positionedWordBox.VerticalPositionOffset?.ToEmus());
+        Assert.Equal(240L * 9525L, positionedWordBox.Width.ToEmus());
+        Assert.Equal(72L * 9525L, positionedWordBox.Height.ToEmus());
+        byte[] wordPng = word.ToImage(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
         HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();
         byte[] rtf = Encoding.ASCII.GetBytes(rtfResult.Value.ToRtf());
@@ -48,13 +48,13 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         using ExcelDocument excel = ExcelDocument.Load(
             new MemoryStream(xlsx),
             new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-        byte[] excelPng = Assert.Single(excel.Sheets).ToPng(
-            new ExcelWorksheetImageExportOptions { Range = "A1:E16" });
+        byte[] excelPng = Assert.Single(excel.Sheets).ToImage(
+            new ExcelImageExportOptions { Range = "A1:E16" });
 
-        HtmlToPowerPointResult powerPointResult = source.ToPowerPointPresentationResult(
+        HtmlToPowerPointResult powerPointResult = source.ToPowerPointDocumentResult(
             new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         byte[] pptx = SavePowerPoint(powerPointResult.Value);
-        using PowerPointPresentation powerPoint = PowerPointPresentation.Load(
+        using PowerPointDocument powerPoint = PowerPointDocument.Load(
             new MemoryStream(pptx),
             new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         PowerPointSlide powerPointSlide = Assert.Single(powerPoint.Slides);
@@ -63,7 +63,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         PowerPointTextBox gridBox = Assert.Single(powerPointSlide.TextBoxes, box => box.Text == "Grid content");
         Assert.False(Overlaps(ordinaryFlow, gridBox));
         Assert.False(Overlaps(positionedBox, gridBox));
-        byte[] powerPointPng = powerPointSlide.ToPng();
+        byte[] powerPointPng = powerPointSlide.ToImage();
 
         WriteEvidenceWhenRequested("editable-layout.docx", docx);
         WriteEvidenceWhenRequested("editable-layout.rtf", rtf);
@@ -71,8 +71,8 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         WriteEvidenceWhenRequested("editable-layout.pptx", pptx);
         WriteEvidenceWhenRequested("editable-layout-word.png", wordPng);
         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OFFICEIMO_HTML_LAYOUT_EVIDENCE_DIR"))) {
-            WriteEvidenceWhenRequested("editable-layout-word.pdf", word.ToPdfBytes());
-            WriteEvidenceWhenRequested("editable-layout-word.svg", Encoding.UTF8.GetBytes(word.ToSvg()));
+            WriteEvidenceWhenRequested("editable-layout-word.pdf", (word.ToPdf()).ToBytes());
+            WriteEvidenceWhenRequested("editable-layout-word.svg", word.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Svg }));
         }
         WriteEvidenceWhenRequested("editable-layout-excel.png", excelPng);
         WriteEvidenceWhenRequested("editable-layout-powerpoint.png", powerPointPng);
@@ -101,7 +101,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         }
     }
 
-    private static byte[] SavePowerPoint(PowerPointPresentation presentation) {
+    private static byte[] SavePowerPoint(PowerPointDocument presentation) {
         using (presentation) {
             using var stream = new MemoryStream();
             presentation.Save(stream);
@@ -138,10 +138,10 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
     }
 
     private static bool Overlaps(PowerPointTextBox first, PowerPointTextBox second) =>
-        first.LeftPoints < second.LeftPoints + second.WidthPoints
-        && first.LeftPoints + first.WidthPoints > second.LeftPoints
-        && first.TopPoints < second.TopPoints + second.HeightPoints
-        && first.TopPoints + first.HeightPoints > second.TopPoints;
+        first.Left.ToPoints() < second.Left.ToPoints() + second.Width.ToPoints()
+        && first.Left.ToPoints() + first.Width.ToPoints() > second.Left.ToPoints()
+        && first.Top.ToPoints() < second.Top.ToPoints() + second.Height.ToPoints()
+        && first.Top.ToPoints() + first.Height.ToPoints() > second.Top.ToPoints();
 
     private static void WriteEvidenceWhenRequested(string fileName, byte[] bytes) {
         string? folder = Environment.GetEnvironmentVariable("OFFICEIMO_HTML_LAYOUT_EVIDENCE_DIR");

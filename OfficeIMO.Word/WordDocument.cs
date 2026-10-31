@@ -3,7 +3,6 @@ using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Core.Internal;
-using OfficeIMO.Word.Fluent;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -25,6 +24,8 @@ namespace OfficeIMO.Word {
     public partial class WordDocument : IDisposable, IAsyncDisposable {
         internal int? _tableOfContentIndex;
         internal WordTableOfContentsStyle? _tableOfContentStyle;
+        // The table of contents this instance created, refreshed on save; loaded TOCs keep their stored entries.
+        internal WordTableOfContent? _generatedTableOfContent;
         private MemoryStream? _ownedPackageStream;
         // On .NET Framework, validation detaches the immutable encoded baseline from the
         // writable package stream so later unsaved edits can be flushed without corrupting it.

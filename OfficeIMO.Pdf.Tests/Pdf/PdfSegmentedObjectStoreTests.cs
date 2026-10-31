@@ -57,7 +57,7 @@ public class PdfSegmentedObjectStoreTests {
     }
 
     private static byte[] Render(long objectBufferLimit) {
-        var document = PdfDocument.Create(new PdfOptions { ObjectBufferMemoryLimitBytes = objectBufferLimit });
+        var document = PdfDocument.Create(new PdfCreateOptions { ObjectBufferMemoryLimitBytes = objectBufferLimit });
         for (int i = 0; i < 40; i++) {
             document.Paragraph(p => p.Text("Segmented object store transition paragraph " + i + new string('x', 400)));
         }

@@ -324,9 +324,9 @@ internal sealed partial class PdfWorkspace : IDisposable {
             "Added text watermark",
             Enumerable.Range(1, Pages.Count).ToArray(),
             bytes => LoadDocument(bytes).Stamp.TextWatermark(text.Trim(), new PdfTextStampOptions {
-                FontSize = 42D,
+                FontSize = global::OfficeIMO.OfficeLength.Points(42D),
                 RotationDegrees = -35D,
-                Color = PdfColor.FromRgb(148, 163, 184)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184)
             }).ToBytes(),
             cancellationToken,
             progress);
@@ -342,12 +342,12 @@ internal sealed partial class PdfWorkspace : IDisposable {
             bytes => LoadDocument(bytes).Stamp.Content(
                 (canvas, context) => canvas.Text(
                     context.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " / " + context.PageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    20D,
-                    Math.Max(0D, context.Height - 28D),
-                    Math.Max(1D, context.Width - 40D),
-                    18D,
-                    fontSize: 10D,
-                    color: PdfColor.FromRgb(71, 84, 103),
+                    global::OfficeIMO.OfficeLength.Points(20D),
+                    global::OfficeIMO.OfficeLength.Points(Math.Max(0D, context.Height.ToPoints() - 28D)),
+                    global::OfficeIMO.OfficeLength.Points(Math.Max(1D, context.Width.ToPoints() - 40D)),
+                    global::OfficeIMO.OfficeLength.Points(18D),
+                    fontSize: global::OfficeIMO.OfficeLength.Points(10D),
+                    color: global::OfficeIMO.OfficeColor.FromRgb(71, 84, 103),
                     align: PdfAlign.Center),
                 new PdfCanvasStampOptions()).ToBytes(),
             cancellationToken,
@@ -357,7 +357,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         int objectNumber,
         string? contents,
         string? author,
-        PdfColor? color,
+        global::OfficeIMO.OfficeColor? color,
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) =>
         MutateAnnotationBytesAsync(
@@ -367,7 +367,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
             bytes => LoadDocument(bytes).Annotations.Update(objectNumber, new PdfAnnotationUpdateOptions {
                 Contents = contents,
                 Title = author,
-                Color = color is { } value ? new[] { value.R, value.G, value.B } : null,
+                Color = color is { } value ? new[] { value.ToNormalizedRgb().R, value.ToNormalizedRgb().G, value.ToNormalizedRgb().B } : null,
                 RegenerateAppearance = true
             }),
             cancellationToken,
@@ -377,7 +377,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         int objectNumber,
         string contents,
         string author,
-        PdfColor color,
+        global::OfficeIMO.OfficeColor color,
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) {
         if (string.IsNullOrWhiteSpace(contents)) throw new ArgumentException("Reply text is required.", nameof(contents));
@@ -387,7 +387,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
             Array.Empty<int>(),
             bytes => LoadDocument(bytes).Annotations.AddReply(objectNumber, contents.Trim(), new PdfAnnotationReplyOptions {
                 Author = author,
-                Color = new[] { color.R, color.G, color.B },
+                Color = new[] { color.ToNormalizedRgb().R, color.ToNormalizedRgb().G, color.ToNormalizedRgb().B },
                 CreatePopup = true
             }),
             cancellationToken,

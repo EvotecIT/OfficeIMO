@@ -50,7 +50,7 @@ public sealed class ConvertFromOfficeOneNoteCommand : PSCmdlet
 
     /// <summary>HTML rendering settings used for .html output.</summary>
     [Parameter]
-    public HtmlOptions? HtmlOptions { get; set; }
+    public MarkdownHtmlExportOptions? HtmlOptions { get; set; }
 
     /// <summary>Semantic layout and PDF settings used for .pdf output.</summary>
     [Parameter]

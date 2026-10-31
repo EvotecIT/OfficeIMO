@@ -6,7 +6,7 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelReportSheet
 ## SYNOPSIS
-Creates a worksheet through the OfficeIMO sheet composer and runs report-block cmdlets inside it.
+Creates a worksheet through the OfficeIMO report builder and runs report-block cmdlets inside it.
 
 ## SYNTAX
 ### __AllParameterSets
@@ -15,7 +15,7 @@ Add-OfficeExcelReportSheet [-Name] <string> [[-Content] <scriptblock>] [-Section
 ```
 
 ## DESCRIPTION
-Creates a worksheet through the OfficeIMO sheet composer and runs report-block cmdlets inside it.
+Creates a worksheet through the OfficeIMO report builder and runs report-block cmdlets inside it.
 
 ## EXAMPLES
 

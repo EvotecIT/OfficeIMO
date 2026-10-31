@@ -78,22 +78,24 @@ public sealed class AddOfficeWordTextBoxCommand : PSCmdlet
 
         if (WidthCentimeters.HasValue)
         {
-            textBox.WidthCentimeters = WidthCentimeters.Value;
+            textBox.Width = OfficeLength.Centimeters(WidthCentimeters.Value);
+            textBox.RelativeWidthPercentage = 0;
         }
 
         if (HeightCentimeters.HasValue)
         {
-            textBox.HeightCentimeters = HeightCentimeters.Value;
+            textBox.Height = OfficeLength.Centimeters(HeightCentimeters.Value);
+            textBox.RelativeHeightPercentage = 0;
         }
 
         if (HorizontalOffsetCentimeters.HasValue)
         {
-            textBox.HorizontalPositionOffsetCentimeters = HorizontalOffsetCentimeters.Value;
+            textBox.HorizontalPositionOffset = OfficeLength.Centimeters(HorizontalOffsetCentimeters.Value);
         }
 
         if (VerticalOffsetCentimeters.HasValue)
         {
-            textBox.VerticalPositionOffsetCentimeters = VerticalOffsetCentimeters.Value;
+            textBox.VerticalPositionOffset = OfficeLength.Centimeters(VerticalOffsetCentimeters.Value);
         }
 
         if (HorizontalAlignment.HasValue)

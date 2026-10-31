@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
                         new TableJustification { Val = TableRowAlignmentValues.Right },
                         new TableIndentation { Width = 720, Type = TableWidthUnitValues.Dxa },
                         new TableWidth { Width = "3750", Type = TableWidthUnitValues.Pct },
-                        new TableLayout { Type = TableLayoutValues.Fixed },
+                        new DocumentFormat.OpenXml.Wordprocessing.TableLayout { Type = TableLayoutValues.Fixed },
                         new TableCellMarginDefault(
                             new TopMargin { Width = "120", Type = TableWidthUnitValues.Dxa },
                             new TableCellLeftMargin { Width = 180, Type = TableWidthValues.Dxa },
@@ -158,11 +158,9 @@ namespace OfficeIMO.Tests {
 
                     WordTable table = document.AddTable(1, 2, WordTableStyle.TableNormal);
                     table._tableProperties!.TableStyle = new TableStyle { Val = childStyleId };
-                    table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-                    table.Rows[0].Cells[0].Width = 1440;
+                    table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                     table.Rows[0].Cells[0].AddParagraph("Inherited layout", removeExistingParagraphs: true);
-                    table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
-                    table.Rows[0].Cells[1].Width = 1440;
+                    table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                     table.Rows[0].Cells[1].AddParagraph("Merged margins", removeExistingParagraphs: true);
 
                     document.Save(docPath);
@@ -173,20 +171,20 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(WordTableAlignment.Right, reloadedTable.Alignment);
-                Assert.Equal((short)720, reloadedTable.StyleDetails!.TableIndentationWidth);
-                Assert.Equal(WordTableWidthUnit.Dxa, reloadedTable.WidthType);
-                Assert.Equal(2160, reloadedTable.Width);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(36), reloadedTable.StyleDetails!.TableIndentation);
+                Assert.Equal(WordTableWidthKind.Length, reloadedTable.Width?.Kind);
+                Assert.Equal(2160, reloadedTable.Width?.ToNativeValue());
                 Assert.Equal(WordTableLayoutMode.Fixed, reloadedTable.LayoutMode);
-                Assert.Equal((short)240, reloadedTable.StyleDetails.CellSpacing);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(12), reloadedTable.StyleDetails.CellSpacing);
 
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Inherited layout", row.Cells[0].Paragraphs[0].Text);
-                Assert.Equal((short)120, row.Cells[0].MarginTopWidth);
-                Assert.Equal((short)360, row.Cells[0].MarginLeftWidth);
-                Assert.Equal((short)160, row.Cells[0].MarginBottomWidth);
-                Assert.Equal((short)300, row.Cells[0].MarginRightWidth);
+                Assert.Equal((short)120, checked((short?)(row.Cells[0].MarginTop?.ToTwips())));
+                Assert.Equal((short)360, checked((short?)(row.Cells[0].MarginLeft?.ToTwips())));
+                Assert.Equal((short)160, checked((short?)(row.Cells[0].MarginBottom?.ToTwips())));
+                Assert.Equal((short)300, checked((short?)(row.Cells[0].MarginRight?.ToTwips())));
                 Assert.Equal("Merged margins", row.Cells[1].Paragraphs[0].Text);
-                Assert.Equal((short)360, row.Cells[1].MarginLeftWidth);
+                Assert.Equal((short)360, checked((short?)(row.Cells[1].MarginLeft?.ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -295,12 +293,12 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = Assert.Single(Assert.Single(reloadedTable.Rows).Cells[0].Paragraphs);
                 Assert.Equal("Inherited text", paragraph.Text);
                 Assert.Equal(WordParagraphAlignment.Center, paragraph.ParagraphAlignment);
-                Assert.Equal(360, paragraph.IndentationBefore);
-                Assert.Equal(240, paragraph.LineSpacingAfter);
+                Assert.Equal(360, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+                Assert.Equal(240, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
                 Assert.True(paragraph.Bold);
                 Assert.True(paragraph.Italic);
                 Assert.Equal("0000FF", paragraph.ColorHex);
-                Assert.Equal(14, paragraph.FontSize);
+                Assert.Equal(14, paragraph.FontSize?.ToPoints());
             } finally {
                 DeleteIfExists(docPath);
             }

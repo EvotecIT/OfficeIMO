@@ -31,10 +31,6 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.Net.Http" />
-  </ItemGroup>
-
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
@@ -53,5 +49,8 @@
     <Using Include="System.Threading" />
     <Using Include="System.Threading.Tasks" />
     <Using Include="OfficeIMO.Reader" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
 </Project>

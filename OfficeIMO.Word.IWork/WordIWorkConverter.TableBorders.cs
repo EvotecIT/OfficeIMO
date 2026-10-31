@@ -13,22 +13,22 @@ public static partial class WordIWorkConverter {
         if (borders.Left is { } left) {
             result.LeftStyle = left.IsVisible ? WordBorderStyle.Single : WordBorderStyle.Nil;
             result.LeftColorHex = left.IsVisible ? left.Color.ToRgbHex() : null;
-            result.LeftSize = left.IsVisible ? BorderSize(left.Width) : null;
+            result.LeftSize = left.IsVisible ? WordBorderLengths.FromSize(BorderSize(left.Width)) : null;
         }
         if (borders.Top is { } top) {
             result.TopStyle = top.IsVisible ? WordBorderStyle.Single : WordBorderStyle.Nil;
             result.TopColorHex = top.IsVisible ? top.Color.ToRgbHex() : null;
-            result.TopSize = top.IsVisible ? BorderSize(top.Width) : null;
+            result.TopSize = top.IsVisible ? WordBorderLengths.FromSize(BorderSize(top.Width)) : null;
         }
         if (borders.Right is { } right) {
             result.RightStyle = right.IsVisible ? WordBorderStyle.Single : WordBorderStyle.Nil;
             result.RightColorHex = right.IsVisible ? right.Color.ToRgbHex() : null;
-            result.RightSize = right.IsVisible ? BorderSize(right.Width) : null;
+            result.RightSize = right.IsVisible ? WordBorderLengths.FromSize(BorderSize(right.Width)) : null;
         }
         if (borders.Bottom is { } bottom) {
             result.BottomStyle = bottom.IsVisible ? WordBorderStyle.Single : WordBorderStyle.Nil;
             result.BottomColorHex = bottom.IsVisible ? bottom.Color.ToRgbHex() : null;
-            result.BottomSize = bottom.IsVisible ? BorderSize(bottom.Width) : null;
+            result.BottomSize = bottom.IsVisible ? WordBorderLengths.FromSize(BorderSize(bottom.Width)) : null;
         }
     }
 

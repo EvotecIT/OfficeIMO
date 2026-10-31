@@ -14,7 +14,7 @@ public sealed class StudioPendingChangeTests {
         try {
             string source = Path.Combine(root, "pages.pdf");
             PdfDocument.Create(document => {
-                for (int page = 0; page < 4; page++) document.Page(content => content.Size(300, 400));
+                for (int page = 0; page < 4; page++) document.Page(content => content.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
             }).Save(source);
             using var document = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
             await document.OpenDocumentAsync(source);
@@ -68,7 +68,7 @@ public sealed class StudioPendingChangeTests {
             var services = ((Avalonia.Application.Current as App)!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "discard-forms.pdf");
-            File.WriteAllBytes(source, PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)))
+            File.WriteAllBytes(source, PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))))
                 .Forms.Edit(edit => edit.Create(new() { Name = "Reference", Value = "Original", X = 30, Y = 300 })).ToBytes());
             using var document = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
             await document.OpenDocumentAsync(source);
@@ -91,7 +91,7 @@ public sealed class StudioPendingChangeTests {
         Directory.CreateDirectory(root);
         try {
             string source = Path.Combine(root, "image.pdf");
-            PdfDocument.Create(document => document.Page(content => content.Size(300, 400))).Save(source);
+            PdfDocument.Create(document => document.Page(content => content.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).Save(source);
             using var document = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
             await document.OpenDocumentAsync(source);
             document.Pages[0].SelectObject(new PdfEditorSelection(PdfEditorSelectionKind.Image, 1, new PdfEditorVisualBounds(100D, 100D, 200D, 150D)));

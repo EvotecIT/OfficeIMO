@@ -9,7 +9,7 @@ public sealed class PowerPointNotesInteractionTests {
     public void NoteRunHyperlinkCleanupPreservesTheOwningSlideBacklink() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointSlide target = presentation.AddSlide();
                 PowerPointTextRun run = slide.Notes.SetParagraphs(new[] { "Linked note" })
@@ -37,7 +37,7 @@ public sealed class PowerPointNotesInteractionTests {
                 presentation.Save();
             }
 
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(path);
+            using PowerPointDocument reopened = PowerPointDocument.Load(path);
             PowerPointSlide actual = reopened.Slides[0];
             Assert.Same(actual.SlidePart, actual.SlidePart.NotesSlidePart!.SlidePart);
             Assert.Equal("Linked note", actual.Notes.Paragraphs.Single().Text);
@@ -53,7 +53,7 @@ public sealed class PowerPointNotesInteractionTests {
         byte[] clickBytes = CreateWave(1);
         byte[] mouseOverBytes = CreateWave(2);
         try {
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextRun run = slide.Notes.SetParagraphs(new[] { "Sounded note" })
                     .Single().Runs.Single();
@@ -74,7 +74,7 @@ public sealed class PowerPointNotesInteractionTests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation reopened = PowerPointPresentation.Load(path)) {
+            using (PowerPointDocument reopened = PowerPointDocument.Load(path)) {
                 PowerPointSlide slide = reopened.Slides.Single();
                 PowerPointParagraph paragraph = slide.Notes.Paragraphs.Single();
                 PowerPointTextRun run = paragraph.Runs.Single();

@@ -28,7 +28,7 @@ public partial class Excel {
         };
         string path = CreateExactIntegerAccessWorkbook(cases.Select(value => $"<c><v>{value.Raw}</v></c>"));
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             foreach (var item in cases) {
                 Assert.True(reader.Read());
                 if (readDoubleFirst) Assert.Equal(item.Number, reader.GetDouble(0));
@@ -50,7 +50,7 @@ public partial class Excel {
     public void OpenDataReader_IntegerOverflowPreservesTheNumericValue(string raw, double expected) {
         string path = CreateExactIntegerAccessWorkbook(new[] { $"<c><v>{raw}</v></c>" });
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             Assert.True(reader.Read());
             Assert.Throws<OverflowException>(() => reader.GetInt32(0));
             Assert.Equal(expected, reader.GetDouble(0));
@@ -66,7 +66,7 @@ public partial class Excel {
         long[] expected = { int.MinValue, int.MaxValue, 2147483648L, 9007199254740992L, -9007199254740992L, 2L, 2L, -2L };
         string path = CreateExactIntegerAccessWorkbook(raw.Select(value => $"<c><v>{value}</v></c>"));
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             Assert.Equal(expected, reader.RowsAs<ExactIntegerMappingRecord>().Select(row => row.Value).ToArray());
         } finally {
             File.Delete(path);
@@ -94,7 +94,7 @@ public partial class Excel {
                 </sheetData></worksheet>
                 """;
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { UseCachedFormulaResult = useCachedFormulaResult });
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { UseCachedFormulaResult = useCachedFormulaResult });
             Assert.True(reader.Read());
             Assert.Equal(42, reader.GetInt32(0));
             Assert.True(reader.Read());
@@ -122,12 +122,12 @@ public partial class Excel {
     public void OpenDataReader_IntegerAccessHonorsDecimalAndCellConversionOptions() {
         string path = CreateExactIntegerAccessWorkbook(new[] { "<c><v>42</v></c>" });
         try {
-            using (var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { NumericAsDecimal = true })) {
+            using (var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { NumericAsDecimal = true })) {
                 Assert.True(reader.Read());
                 Assert.Equal(42, reader.GetInt32(0));
                 Assert.Equal(42m, Assert.IsType<decimal>(reader.GetValue(0)));
             }
-            using (var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+            using (var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                 CellValueConverter = context => context.RawText == "42" ? new ExcelCellValue(9.5d) : ExcelCellValue.NotHandled
             })) {
                 Assert.True(reader.Read());

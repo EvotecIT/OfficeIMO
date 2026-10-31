@@ -27,7 +27,7 @@ public partial class Excel {
     [InlineData("xlsb", 1904, true)]
     public void Reader_ColumnOptions_RetainDateConverterInputAndNumericSerialFallback(string extension, int system, bool parallel) {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "SpreadsheetDateSerialCorpus", $"serials-{system}.{extension}");
-        using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { SheetName = "Data" });
+        using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { SheetName = "Data" });
         Action<RowMapper<ColumnOptionSerialRow>> configure = map => {
             var options = new RowMappingColumnOptions {
                 Culture = CultureInfo.InvariantCulture,

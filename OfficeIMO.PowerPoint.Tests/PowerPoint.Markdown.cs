@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             string filePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox textBox = slide.AddTextBox(string.Empty);
 
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(3, paragraphs.Count);
                 Assert.True(paragraphs[0].Runs[0].Bold);
-                Assert.Equal(28, paragraphs[0].Runs[0].FontSize);
+                Assert.Equal(OfficeLength.Points(28), paragraphs[0].Runs[0].FontSize);
                 Assert.NotNull(paragraphs[1].Paragraph.ParagraphProperties?.GetFirstChild<CharacterBullet>());
                 Assert.True(paragraphs[1].Runs[0].Bold);
                 Assert.True(paragraphs[1].Runs[2].Italic);

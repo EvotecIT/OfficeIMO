@@ -13,7 +13,7 @@ public sealed partial class OfficeDocumentReader {
     /// detected changes throw IOException, but previously delivered chunks cannot be withdrawn.
     /// Dispose the enumerator on early termination.</remarks>
     public IEnumerable<ReaderChunk> EnumerateChunks(string path, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
-        var effective = DocumentReaderEngine.NormalizeOptions(options);
+        var effective = NormalizeReadOptions(options);
         return Scope(ProcessorPipeline.Count == 0
             ? DocumentReaderEngine.EnumerateChunks(path, effective, cancellationToken)
             : EnumerateProcessedChunks(() => ReadDocument(path, effective, cancellationToken), cancellationToken), effective);
@@ -25,7 +25,7 @@ public sealed partial class OfficeDocumentReader {
     /// Content-first routing, document processors, and source hashing of forward-only inputs use the materialized read contract.</remarks>
     public IEnumerable<ReaderChunk> EnumerateChunks(Stream stream, string? sourceName = null, ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        var effective = DocumentReaderEngine.NormalizeOptions(options);
+        var effective = NormalizeReadOptions(options);
         return Scope(ProcessorPipeline.Count == 0
             ? DocumentReaderEngine.EnumerateChunks(stream, sourceName, effective, cancellationToken)
             : EnumerateProcessedChunks(() => ReadDocument(stream, sourceName, effective, cancellationToken), cancellationToken), effective);
@@ -42,6 +42,7 @@ public sealed partial class OfficeDocumentReader {
     /// <summary>Pulls chunks asynchronously with backpressure; synchronous handlers execute on a worker.</summary>
     public async IAsyncEnumerable<ReaderChunk> EnumerateChunksAsync(string path, ReaderOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+        options = NormalizeReadOptions(options);
         bool incremental;
         using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             incremental = ProcessorPipeline.Count == 0 && options?.DetectionMode != ReaderDetectionMode.PreferContent && DocumentReaderEngine.HasIncrementalHandler(path, true);
@@ -61,6 +62,7 @@ public sealed partial class OfficeDocumentReader {
     /// <summary>Pulls caller-owned stream chunks asynchronously with backpressure and early-disposal cleanup.</summary>
     public async IAsyncEnumerable<ReaderChunk> EnumerateChunksAsync(Stream stream, string? sourceName = null,
         ReaderOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+        options = NormalizeReadOptions(options);
         bool incremental;
         using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             incremental = ProcessorPipeline.Count == 0 && options?.DetectionMode != ReaderDetectionMode.PreferContent &&

@@ -11,12 +11,12 @@ Finds PowerPoint shapes by text, name, kind, or slide.
 ## SYNTAX
 ### PresentationText (Default)
 ```powershell
-Find-OfficePowerPointShape [[-Text] <string>] -Presentation <PowerPointPresentation> [-CaseSensitive] [-Index <Int32>] [-ShapeIndex <int[]>] [-Name <string[]>] [-Kind <OfficePowerPointShapeKind[]>] [<CommonParameters>]
+Find-OfficePowerPointShape [[-Text] <string>] -Presentation <PowerPointDocument> [-CaseSensitive] [-Index <Int32>] [-ShapeIndex <int[]>] [-Name <string[]>] [-Kind <OfficePowerPointShapeKind[]>] [<CommonParameters>]
 ```
 
 ### PresentationRegex
 ```powershell
-Find-OfficePowerPointShape [-Pattern] <string> -Presentation <PowerPointPresentation> [-CaseSensitive] [-Index <Int32>] [-ShapeIndex <int[]>] [-Name <string[]>] [-Kind <OfficePowerPointShapeKind[]>] [<CommonParameters>]
+Find-OfficePowerPointShape [-Pattern] <string> -Presentation <PowerPointDocument> [-CaseSensitive] [-Index <Int32>] [-ShapeIndex <int[]>] [-Name <string[]>] [-Kind <OfficePowerPointShapeKind[]>] [<CommonParameters>]
 ```
 
 ### SlideText
@@ -145,7 +145,7 @@ Accept wildcard characters: False
 Open presentation whose slides should be searched.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: PresentationText, PresentationRegex
 Aliases: None
 Possible values:
@@ -210,7 +210,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 - `OfficeIMO.PowerPoint.PowerPointSlide`
 
 ## OUTPUTS

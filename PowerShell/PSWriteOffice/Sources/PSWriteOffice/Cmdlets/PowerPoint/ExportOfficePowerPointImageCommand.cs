@@ -24,7 +24,7 @@ public sealed class ExportOfficePowerPointImageCommand : PSCmdlet
 
     /// <summary>Open presentation instance.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Presentation")]
-    public PowerPointPresentation Presentation { get; set; } = null!;
+    public PowerPointDocument Presentation { get; set; } = null!;
 
     /// <summary>Destination folder.</summary>
     [Parameter(Mandatory = true, Position = 1)]
@@ -36,7 +36,7 @@ public sealed class ExportOfficePowerPointImageCommand : PSCmdlet
 
     /// <summary>Optional slide selection, size, scale, theme, and rendering settings.</summary>
     [Parameter]
-    public PowerPointPresentationImageExportOptions? Options { get; set; }
+    public PowerPointImageExportOptions? Options { get; set; }
 
     /// <summary>Emit one structured image export result per saved slide.</summary>
     [Parameter]
@@ -48,24 +48,26 @@ public sealed class ExportOfficePowerPointImageCommand : PSCmdlet
         var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath);
         if (!ShouldProcess(output, $"Export PowerPoint slides as {Format}")) return;
         Directory.CreateDirectory(output);
-        PowerPointPresentation? owned = null;
+        PowerPointDocument? owned = null;
         try
         {
             var presentation = Presentation;
             if (ParameterSetName == "Path")
             {
                 var input = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-                owned = PowerPointDocumentService.LoadPresentation(input, readOnly: true);
+                owned = PowerPointDocumentService.LoadDocument(input, readOnly: true);
                 presentation = owned;
             }
-            IReadOnlyList<OfficeImageExportResult> results = presentation.SaveAsImages(output, Format, Options);
+            PowerPointImageExportOptions effectiveOptions = Options?.Clone() ?? new PowerPointImageExportOptions();
+            effectiveOptions.Format = Format;
+            IReadOnlyList<OfficeImageExportResult> results = presentation.SaveImageResults(output, effectiveOptions);
             if (PassThru.IsPresent) WriteObject(results, enumerateCollection: true);
         }
         finally
         {
             if (owned != null)
             {
-                PowerPointDocumentService.ClosePresentation(owned, save: false, show: false);
+                PowerPointDocumentService.CloseDocument(owned, save: false, show: false);
             }
         }
     }

@@ -1,0 +1,26 @@
+#nullable enable
+OfficeIMO.Word.WordDocument.AppendDocument(OfficeIMO.Word.WordDocument! source, OfficeIMO.Word.WordDocumentMergeOptions? options) -> void
+OfficeIMO.Word.WordDocumentMergeOptions
+OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.get -> OfficeIMO.Word.WordMergeSectionMode
+OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.set -> void
+OfficeIMO.Word.WordDocumentMergeOptions.StyleMode.get -> OfficeIMO.Word.WordMergeStyleMode
+OfficeIMO.Word.WordDocumentMergeOptions.StyleMode.set -> void
+OfficeIMO.Word.WordDocumentMergeOptions.WordDocumentMergeOptions() -> void
+OfficeIMO.Word.WordFieldEvaluationBasis.LayoutPagination = 6 -> OfficeIMO.Word.WordFieldEvaluationBasis
+OfficeIMO.Word.WordFieldUpdateOptions.UpdateTablesOfContents.get -> bool
+OfficeIMO.Word.WordFieldUpdateOptions.UpdateTablesOfContents.set -> void
+OfficeIMO.Word.WordFieldUpdateOptions.UseLayoutPagination.get -> bool
+OfficeIMO.Word.WordFieldUpdateOptions.UseLayoutPagination.set -> void
+OfficeIMO.Word.WordHeaderFooter.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordMergeSectionMode
+OfficeIMO.Word.WordMergeSectionMode.KeepSourceSections = 0 -> OfficeIMO.Word.WordMergeSectionMode
+OfficeIMO.Word.WordMergeSectionMode.UseDestinationSections = 1 -> OfficeIMO.Word.WordMergeSectionMode
+OfficeIMO.Word.WordMergeStyleMode
+OfficeIMO.Word.WordMergeStyleMode.KeepDifferentStyles = 1 -> OfficeIMO.Word.WordMergeStyleMode
+OfficeIMO.Word.WordMergeStyleMode.UseDestinationStyles = 0 -> OfficeIMO.Word.WordMergeStyleMode
+OfficeIMO.Word.WordParagraph.AddTableAfter(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordParagraph.AddTableBefore(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordParagraphStyles.Subtitle = 13 -> OfficeIMO.Word.WordParagraphStyles
+OfficeIMO.Word.WordParagraphStyles.Title = 12 -> OfficeIMO.Word.WordParagraphStyles
+OfficeIMO.Word.WordSection.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordTableCell.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern, bool removePrecedingParagraph = false) -> OfficeIMO.Word.WordTable!

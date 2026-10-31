@@ -12,8 +12,9 @@ public sealed class RedactionReviewTests {
     public async Task RepeatedSearchCountsOnlyNewMarksTowardsReviewCapacity() {
         using var files = new TestFiles();
         string text = string.Join(" ", Enumerable.Repeat("x", 1001).Concat(Enumerable.Repeat("y", 999)).Append("z"));
-        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800).Content(content =>
-            content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))))).Save(files.Input);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content =>
+            content.Item(item => item.Paragraph(paragraph => paragraph.Font(PdfStandardFont.Courier).FontSize(global::OfficeIMO.OfficeLength.Points(10)).Text(text),
+                style: new PdfParagraphStyle { LineHeight = 2D }))))).Save(files.Input);
         using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
         await model.OpenDocumentAsync(files.Input);
         model.RedactionSearchMatchedTextOnly = true;
@@ -120,12 +121,12 @@ public sealed class RedactionReviewTests {
         byte[] image = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         PdfDocument document = PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(600, 800).BackgroundImage(image)
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).BackgroundImage(image)
                 .Content(content => content.Item(item => item.Paragraph(text => text.Text("Before private account after")))));
             compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Other private account")))));
         });
         byte[] source = document.ToBytes();
-        Assert.Single(PdfDocument.Load(source).Images.Placements());
+        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(source)).Images.Placements());
         await File.WriteAllBytesAsync(files.Input, source);
         using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null),
             pickSavePdf: _ => Task.FromResult<string?>(files.Output));
@@ -168,7 +169,7 @@ public sealed class RedactionReviewTests {
         Assert.False(model.HasError, model.ErrorMessage);
         await model.SaveVerifiedRedactionCopyCommand.ExecuteAsync(null);
         Assert.False(model.HasError, model.ErrorMessage);
-        PdfDocument saved = PdfDocument.Load(await File.ReadAllBytesAsync(files.Output));
+        PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(await File.ReadAllBytesAsync(files.Output)));
         string savedText = saved.Read().Text;
         Assert.DoesNotContain("private account", savedText, StringComparison.Ordinal);
         if (model.RedactionSearchMatchedTextOnly) Assert.Contains("Before", savedText, StringComparison.Ordinal);
@@ -184,7 +185,7 @@ public sealed class RedactionReviewTests {
     [InlineData(true, 270)]
     public async Task PreciseSearchReviewPreservesNeighborsAndExcludedOccurrences(bool regex, int rotation) {
         using var files = new TestFiles();
-        PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800)
+        PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800))
             .Content(content => content.Item(item => item.Paragraph(text => text.Text("Before private account 123 and private account 456 after"))))));
         if (rotation != 0) document = document.Pages.Rotate(rotation, 1);
         byte[] source = document.ToBytes();
@@ -207,7 +208,7 @@ public sealed class RedactionReviewTests {
         Assert.False(model.HasError, model.ErrorMessage);
         await model.SaveVerifiedRedactionCopyCommand.ExecuteAsync(null);
         Assert.False(model.HasError, model.ErrorMessage);
-        string text = PdfDocument.Load(await File.ReadAllBytesAsync(files.Output)).Read().Text;
+        string text = PdfDocument.Load(new System.IO.MemoryStream(await File.ReadAllBytesAsync(files.Output))).Read().Text;
         Assert.Contains("Before", text, StringComparison.Ordinal);
         Assert.Contains("and", text, StringComparison.Ordinal);
         Assert.Contains("private account 456 after", text, StringComparison.Ordinal);
@@ -250,7 +251,7 @@ public sealed class RedactionReviewTests {
         await model.ExportRedactionEvidenceCommand.ExecuteAsync(null);
         Assert.False(model.HasError, model.ErrorMessage);
         byte[] saved = await File.ReadAllBytesAsync(files.Output);
-        PdfDocumentReadResult read = PdfDocument.Load(saved).Read();
+        PdfDocumentReadResult read = PdfDocument.Load(new System.IO.MemoryStream(saved)).Read();
         Assert.DoesNotContain("private account", string.Join(" ", read.Pages[0].Elements.OfType<PdfLogicalTextBlock>().Select(block => block.Text)), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("private account", read.Text, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(source, await File.ReadAllBytesAsync(files.Input));
@@ -351,9 +352,9 @@ public sealed class RedactionReviewTests {
     }
 
     private static byte[] CreateSource() => PdfDocument.Create(compose => {
-        compose.Page(page => page.Size(600, 800).Content(content => content.Item(item =>
+        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => content.Item(item =>
             item.Paragraph(paragraph => paragraph.Text("First private account 123")))));
-        compose.Page(page => page.Size(600, 800).Content(content => content.Item(item =>
+        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => content.Item(item =>
             item.Paragraph(paragraph => paragraph.Text("Second private account 456")))));
     }).ToBytes();
 

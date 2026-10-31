@@ -22,7 +22,7 @@ public class WordTableCellBorderColors {
             borders.InsideHorizontalColorHex = borders.InsideVerticalColorHex = borders.StartColorHex = borders.EndColorHex =
             borders.TopLeftToBottomRightColorHex = borders.TopRightToBottomLeftColorHex = null;
 
-        using var artifact = document.ToStream();
+        using var artifact = new System.IO.MemoryStream(document.ToBytes());
         using var package = WordprocessingDocument.Open(artifact, false);
         Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2013).Validate(package));
         var savedBorders = Assert.Single(package.MainDocumentPart!.Document.Descendants<TableCellBorders>());

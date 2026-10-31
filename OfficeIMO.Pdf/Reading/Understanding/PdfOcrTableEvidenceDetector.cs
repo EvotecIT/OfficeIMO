@@ -89,7 +89,7 @@ internal static class PdfOcrTableEvidenceDetector {
                 tableRows,
                 confidence,
                 new[] { new PdfInferenceEvidence(
-                    "table.ocr-aligned-geometry",
+                    "table-ocr-aligned-geometry",
                     "Normalized OCR geometry forms repeated columns with compact row rhythm.",
                     0.85D) },
                 sourceLines));

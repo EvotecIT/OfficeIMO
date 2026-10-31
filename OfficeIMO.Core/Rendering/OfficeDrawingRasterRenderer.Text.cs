@@ -83,7 +83,7 @@ public static partial class OfficeDrawingRasterRenderer {
             dash = scaled;
         }
         using IDisposable? outline = text.OutlineStrokeColor is OfficeColor strokeColor
-            ? canvas.PushTextOutlineStroke(strokeColor, text.OutlineStrokeWidth * scale, text.FillSuppressed, dash, text.OutlineStrokeDashOffset * scale)
+            ? canvas.PushTextOutlineStroke(strokeColor, text.OutlineStrokeWidth * scale, text.FillSuppressed, dash, text.OutlineStrokeDashOffset * scale, text.OutlineStrokeLineCap, text.OutlineStrokeLineJoin, text.OutlineStrokeMiterLimit)
             : null;
         double sourceSize = Math.Max(.1D, text.Font.Size * scale);
         double size = sourceSize * text.BaselineScale;

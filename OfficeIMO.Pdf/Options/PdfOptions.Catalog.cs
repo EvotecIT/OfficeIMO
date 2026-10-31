@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private int? _maxGeneratedPages;
     private long? _maxGeneratedOutputBytes;
 
@@ -225,7 +225,7 @@ public sealed partial class PdfOptions {
     internal PdfStandardEncryptionOptions? EncryptionSnapshot => _encryption?.Clone();
 
     /// <summary>Sets Standard password security for generated PDFs.</summary>
-    public PdfOptions SetEncryption(string userPassword, string? ownerPassword = null, int permissions = PdfStandardEncryptionOptions.AllowAllPermissions) {
+    public PdfCreateOptions SetEncryption(string userPassword, string? ownerPassword = null, int permissions = PdfStandardEncryptionOptions.AllowAllPermissions) {
         Encryption = new PdfStandardEncryptionOptions(userPassword) {
             OwnerPassword = ownerPassword,
             Permissions = permissions
@@ -234,13 +234,13 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Sets or clears Standard password security for generated PDFs.</summary>
-    public PdfOptions SetEncryption(PdfStandardEncryptionOptions? encryption) {
+    public PdfCreateOptions SetEncryption(PdfStandardEncryptionOptions? encryption) {
         Encryption = encryption;
         return this;
     }
 
     /// <summary>Clears generated PDF password security.</summary>
-    public PdfOptions ClearEncryption() {
+    public PdfCreateOptions ClearEncryption() {
         _encryption = null;
         return this;
     }
@@ -268,14 +268,14 @@ public sealed partial class PdfOptions {
     internal PdfPortfolioOptions? PortfolioSnapshot => _portfolio?.Clone();
 
     /// <summary>Configures the generated embedded files as a document portfolio.</summary>
-    public PdfOptions SetPortfolio(PdfPortfolioOptions portfolio) {
+    public PdfCreateOptions SetPortfolio(PdfPortfolioOptions portfolio) {
         Guard.NotNull(portfolio, nameof(portfolio));
         Portfolio = portfolio;
         return this;
     }
 
     /// <summary>Clears the generated document portfolio configuration without removing embedded files.</summary>
-    public PdfOptions ClearPortfolio() {
+    public PdfCreateOptions ClearPortfolio() {
         _portfolio = null;
         return this;
     }
@@ -297,13 +297,13 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Embeds a TrueType font file for a generated standard-font slot.</summary>
-    public PdfOptions EmbedStandardFont(PdfStandardFont font, byte[] data, string? fontName = null) =>
+    public PdfCreateOptions EmbedStandardFont(PdfStandardFont font, byte[] data, string? fontName = null) =>
         EmbedStandardFontCore(font, data, fontName, cloneData: true);
 
-    internal PdfOptions EmbedStandardFontSnapshot(PdfStandardFont font, byte[] data, string? fontName = null, bool syntheticOblique = false) =>
-        EmbedStandardFontCore(font, data, fontName, cloneData: false, syntheticOblique);
+    internal PdfCreateOptions EmbedStandardFontSnapshot(PdfStandardFont font, byte[] data, string? fontName = null, bool syntheticOblique = false, bool syntheticBold = false) =>
+        EmbedStandardFontCore(font, data, fontName, cloneData: false, syntheticOblique, syntheticBold);
 
-    private PdfOptions EmbedStandardFontCore(PdfStandardFont font, byte[] data, string? fontName, bool cloneData, bool syntheticOblique = false) {
+    private PdfCreateOptions EmbedStandardFontCore(PdfStandardFont font, byte[] data, string? fontName, bool cloneData, bool syntheticOblique = false, bool syntheticBold = false) {
         Guard.StandardFont(font, nameof(font), "PDF embedded font mapping must target one of the supported standard PDF font slots.");
         Guard.NotNull(data, nameof(data));
         if (data.Length == 0) {
@@ -314,16 +314,17 @@ public sealed partial class PdfOptions {
         // Any explicit face registration claims the whole compatibility family,
         // even when its bytes and generated name already match the current face.
         _fallbackOwnedFontFamilies?.Remove(PdfStandardFontMapper.GetFontFamily(font));
+        _defaultEmbeddedFontFamilies?.Remove(PdfStandardFontMapper.GetFontFamily(font));
 
         string? normalizedFontName = string.IsNullOrWhiteSpace(fontName) ? null : fontName;
         if (_embeddedFonts != null &&
             _embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? existingFont) &&
             EmbeddedFontMatches(existingFont, data, normalizedFontName) &&
-            existingFont.SyntheticOblique == syntheticOblique) {
+            existingFont.SyntheticOblique == syntheticOblique && existingFont.SyntheticBold == syntheticBold) {
             return this;
         }
 
-        var embeddedFont = new PdfEmbeddedFont(font, data, normalizedFontName, cloneData, syntheticOblique);
+        var embeddedFont = new PdfEmbeddedFont(font, data, normalizedFontName, cloneData, syntheticOblique, syntheticBold);
         (_embeddedFonts ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>())[font] = embeddedFont;
         _embeddedFontPrograms?.Remove(font);
         _embeddedOpenTypeCffFontPrograms?.Remove(font);
@@ -353,7 +354,7 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Embeds a TrueType font file from disk for a generated standard-font slot.</summary>
-    public PdfOptions EmbedStandardFont(PdfStandardFont font, string path, string? fontName = null) {
+    public PdfCreateOptions EmbedStandardFont(PdfStandardFont font, string path, string? fontName = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return EmbedStandardFont(font, PdfFontInput.ReadFile(path), fontName);
     }
@@ -367,7 +368,7 @@ public sealed partial class PdfOptions {
     /// watermark layout paths can use the embedded font metrics without requiring callers to know
     /// those internal slots. Missing bold or italic variants fall back to the regular face.
     /// </remarks>
-    public PdfOptions UseFontFamily(
+    public PdfCreateOptions UseFontFamily(
         string familyName,
         byte[] regular,
         byte[]? bold = null,
@@ -379,7 +380,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Uses a reusable caller-supplied TrueType font family as the generated document's default font family.
     /// </summary>
-    public PdfOptions UseFontFamily(PdfEmbeddedFontFamily fontFamily) {
+    public PdfCreateOptions UseFontFamily(PdfEmbeddedFontFamily fontFamily) {
         UseDefaultTextFontFamily(fontFamily);
         HeaderFont = PdfStandardFont.Helvetica;
         HeaderFontFamily = null;
@@ -391,7 +392,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Uses caller-supplied TrueType font files as the generated document's default font family.
     /// </summary>
-    public PdfOptions UseFontFamily(
+    public PdfCreateOptions UseFontFamily(
         string familyName,
         string regularPath,
         string? boldPath = null,
@@ -401,7 +402,7 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Removes all embedded standard-font mappings.</summary>
-    public PdfOptions ClearEmbeddedStandardFonts() {
+    public PdfCreateOptions ClearEmbeddedStandardFonts() {
         _embeddedFonts?.Clear();
         _embeddedFontPrograms?.Clear();
         _embeddedOpenTypeCffFontPrograms?.Clear();
@@ -411,7 +412,7 @@ public sealed partial class PdfOptions {
         return this;
     }
 
-    internal PdfOptions UseDefaultTextFontFamily(PdfEmbeddedFontFamily fontFamily) {
+    internal PdfCreateOptions UseDefaultTextFontFamily(PdfEmbeddedFontFamily fontFamily) {
         RegisterFontFamily(PdfStandardFont.Helvetica, fontFamily);
         DefaultFont = PdfStandardFont.Helvetica;
         return this;
@@ -421,19 +422,19 @@ public sealed partial class PdfOptions {
         familyName + "-" + faceName;
 
     /// <summary>Requests a generated-PDF compliance profile for this document.</summary>
-    public PdfOptions RequireCompliance(PdfComplianceProfile profile) {
+    public PdfCreateOptions RequireCompliance(PdfComplianceProfile profile) {
         ComplianceProfile = profile;
         return this;
     }
 
     /// <summary>Sets the PDF file header version emitted for generated documents.</summary>
-    public PdfOptions SetFileVersion(PdfFileVersion version) {
+    public PdfCreateOptions SetFileVersion(PdfFileVersion version) {
         FileVersion = version;
         return this;
     }
 
     /// <summary>Sets PDF/A XMP identification metadata and enables XMP metadata emission.</summary>
-    public PdfOptions SetPdfAIdentification(PdfAIdentification? identification) {
+    public PdfCreateOptions SetPdfAIdentification(PdfAIdentification? identification) {
         PdfAIdentification = identification;
         if (identification != null) {
             IncludeXmpMetadata = true;
@@ -443,12 +444,12 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Sets PDF/A XMP identification metadata and enables XMP metadata emission.</summary>
-    public PdfOptions SetPdfAIdentification(int part, string conformance) {
+    public PdfCreateOptions SetPdfAIdentification(int part, string conformance) {
         return SetPdfAIdentification(new PdfAIdentification(part, conformance));
     }
 
     /// <summary>Sets PDF/UA XMP identification metadata and enables XMP metadata emission.</summary>
-    public PdfOptions SetPdfUaIdentification(PdfUaIdentification? identification) {
+    public PdfCreateOptions SetPdfUaIdentification(PdfUaIdentification? identification) {
         PdfUaIdentification = identification;
         if (identification != null) {
             IncludeXmpMetadata = true;
@@ -458,12 +459,12 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Sets PDF/UA XMP identification metadata and enables XMP metadata emission.</summary>
-    public PdfOptions SetPdfUaIdentification(int part = 1) {
+    public PdfCreateOptions SetPdfUaIdentification(int part = 1) {
         return SetPdfUaIdentification(new PdfUaIdentification(part));
     }
 
     /// <summary>Sets Factur-X/ZUGFeRD XMP extension metadata and enables XMP metadata emission.</summary>
-    public PdfOptions SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata? metadata) {
+    public PdfCreateOptions SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata? metadata) {
         ElectronicInvoiceMetadata = metadata;
         if (metadata != null) {
             IncludeXmpMetadata = true;
@@ -473,89 +474,89 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Sets Factur-X/ZUGFeRD XMP extension metadata and enables XMP metadata emission.</summary>
-    public PdfOptions SetElectronicInvoiceMetadata(string conformanceLevel, string version = "1.0") {
+    public PdfCreateOptions SetElectronicInvoiceMetadata(string conformanceLevel, string version = "1.0") {
         return SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX(conformanceLevel, version));
     }
 
     /// <summary>Sets a generated catalog output intent backed by an ICC profile.</summary>
-    public PdfOptions SetOutputIntent(PdfOutputIntent? outputIntent) {
+    public PdfCreateOptions SetOutputIntent(PdfOutputIntent? outputIntent) {
         OutputIntent = outputIntent;
         return this;
     }
 
     /// <summary>Sets a generated catalog output intent from ICC profile bytes using the default sRGB output condition identifier.</summary>
-    public PdfOptions SetOutputIntent(byte[] iccProfile) {
+    public PdfCreateOptions SetOutputIntent(byte[] iccProfile) {
         return SetOutputIntent(iccProfile, "sRGB IEC61966-2.1", PdfOutputIntentPolicy.Unspecified);
     }
 
     /// <summary>Sets a generated catalog output intent from ICC profile bytes.</summary>
-    public PdfOptions SetOutputIntent(byte[] iccProfile, string outputConditionIdentifier) {
+    public PdfCreateOptions SetOutputIntent(byte[] iccProfile, string outputConditionIdentifier) {
         return SetOutputIntent(iccProfile, outputConditionIdentifier, PdfOutputIntentPolicy.Unspecified);
     }
 
     /// <summary>Sets a generated catalog output intent from ICC profile bytes using the default sRGB output condition identifier.</summary>
-    public PdfOptions SetOutputIntent(byte[] iccProfile, PdfOutputIntentPolicy policy) {
+    public PdfCreateOptions SetOutputIntent(byte[] iccProfile, PdfOutputIntentPolicy policy) {
         return SetOutputIntent(iccProfile, "sRGB IEC61966-2.1", policy);
     }
 
     /// <summary>Sets a generated catalog output intent from ICC profile bytes.</summary>
-    public PdfOptions SetOutputIntent(byte[] iccProfile, string outputConditionIdentifier, PdfOutputIntentPolicy policy) {
+    public PdfCreateOptions SetOutputIntent(byte[] iccProfile, string outputConditionIdentifier, PdfOutputIntentPolicy policy) {
         OutputIntent = new PdfOutputIntent(iccProfile, outputConditionIdentifier, policy);
         return this;
     }
 
     /// <summary>Sets the generated catalog output intent to OfficeIMO's built-in sRGB IEC61966-2.1 ICC profile.</summary>
-    public PdfOptions SetSrgbOutputIntent() {
+    public PdfCreateOptions SetSrgbOutputIntent() {
         OutputIntent = PdfOutputIntent.CreateSrgbIec6196621();
         return this;
     }
 
     /// <summary>Sets the generated tagged-PDF groundwork mode.</summary>
-    public PdfOptions SetTaggedStructureMode(PdfTaggedStructureMode mode) {
+    public PdfCreateOptions SetTaggedStructureMode(PdfTaggedStructureMode mode) {
         TaggedStructureMode = mode;
         return this;
     }
 
     /// <summary>Emits catalog-level tagged-PDF markers without claiming full tagged-content generation.</summary>
-    public PdfOptions EnableTaggedPdfCatalogMarkers() {
+    public PdfCreateOptions EnableTaggedPdfCatalogMarkers() {
         TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
         return this;
     }
 
     /// <summary>Sets or clears the generated catalog document language.</summary>
-    public PdfOptions SetLanguage(string? language) {
+    public PdfCreateOptions SetLanguage(string? language) {
         Language = language;
         return this;
     }
 
     /// <summary>Sets or clears the generated catalog page mode.</summary>
-    public PdfOptions SetCatalogPageMode(PdfCatalogPageMode? pageMode) {
+    public PdfCreateOptions SetCatalogPageMode(PdfCatalogPageMode? pageMode) {
         CatalogPageMode = pageMode;
         return this;
     }
 
     /// <summary>Sets or clears the generated catalog page layout.</summary>
-    public PdfOptions SetCatalogPageLayout(PdfCatalogPageLayout? pageLayout) {
+    public PdfCreateOptions SetCatalogPageLayout(PdfCatalogPageLayout? pageLayout) {
         CatalogPageLayout = pageLayout;
         return this;
     }
 
     /// <summary>Sets generated catalog page mode and page layout viewer hints.</summary>
-    public PdfOptions SetCatalogView(PdfCatalogPageMode? pageMode = null, PdfCatalogPageLayout? pageLayout = null) {
+    public PdfCreateOptions SetCatalogView(PdfCatalogPageMode? pageMode = null, PdfCatalogPageLayout? pageLayout = null) {
         CatalogPageMode = pageMode;
         CatalogPageLayout = pageLayout;
         return this;
     }
 
     /// <summary>Clears generated catalog page mode and page layout viewer hints.</summary>
-    public PdfOptions ClearCatalogView() {
+    public PdfCreateOptions ClearCatalogView() {
         _catalogPageMode = null;
         _catalogPageLayout = null;
         return this;
     }
 
     /// <summary>Sets the generated catalog open action to a page destination.</summary>
-    public PdfOptions SetOpenAction(
+    public PdfCreateOptions SetOpenAction(
         int pageNumber = 1,
         double? destinationTop = null,
         PdfOpenActionDestinationMode destinationMode = PdfOpenActionDestinationMode.Xyz,
@@ -567,13 +568,13 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Clears the generated catalog open action.</summary>
-    public PdfOptions ClearOpenAction() {
+    public PdfCreateOptions ClearOpenAction() {
         _openAction = null;
         return this;
     }
 
     /// <summary>Enables or disables generated catalog page labels.</summary>
-    public PdfOptions SetPageLabels(bool include = true, string? prefix = null) {
+    public PdfCreateOptions SetPageLabels(bool include = true, string? prefix = null) {
         IncludePageLabels = include;
         PageLabelPrefix = prefix;
         _pageLabelRanges?.Clear();
@@ -581,7 +582,7 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Adds a generated catalog page-label rule beginning at the specified one-based document page.</summary>
-    public PdfOptions AddPageLabelRange(int startPageNumber, PdfPageNumberStyle style, int startNumber = 1, string? prefix = null) {
+    public PdfCreateOptions AddPageLabelRange(int startPageNumber, PdfPageNumberStyle style, int startNumber = 1, string? prefix = null) {
         var range = new PdfPageLabelRange(startPageNumber, style, startNumber, prefix);
         if ((_pageLabelRanges ??= new System.Collections.Generic.List<PdfPageLabelRange>()).Any(existing => existing.StartPageNumber == range.StartPageNumber)) {
             throw new ArgumentException("A PDF page-label range already starts at the specified page.", nameof(startPageNumber));
@@ -593,25 +594,25 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Clears generated catalog page-label ranges while leaving simple page-label options unchanged.</summary>
-    public PdfOptions ClearPageLabelRanges() {
+    public PdfCreateOptions ClearPageLabelRanges() {
         _pageLabelRanges?.Clear();
         return this;
     }
 
     /// <summary>Enables or disables flattening generated FreeText and Highlight annotations into page content.</summary>
-    public PdfOptions SetFlattenVisualAnnotations(bool flatten = true) {
+    public PdfCreateOptions SetFlattenVisualAnnotations(bool flatten = true) {
         FlattenVisualAnnotations = flatten;
         return this;
     }
 
     /// <summary>Sets or clears generated catalog viewer preferences.</summary>
-    public PdfOptions SetViewerPreferences(PdfViewerPreferencesOptions? preferences) {
+    public PdfCreateOptions SetViewerPreferences(PdfViewerPreferencesOptions? preferences) {
         ViewerPreferences = preferences;
         return this;
     }
 
     /// <summary>Configures generated catalog viewer preferences.</summary>
-    public PdfOptions ConfigureViewerPreferences(System.Action<PdfViewerPreferencesOptions> configure) {
+    public PdfCreateOptions ConfigureViewerPreferences(System.Action<PdfViewerPreferencesOptions> configure) {
         Guard.NotNull(configure, nameof(configure));
         var preferences = _viewerPreferences?.Clone() ?? new PdfViewerPreferencesOptions();
         configure(preferences);
@@ -620,25 +621,25 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Sets or clears the generated catalog URI base used by viewers to resolve relative URI actions.</summary>
-    public PdfOptions SetCatalogUriBase(string? uriBase) {
+    public PdfCreateOptions SetCatalogUriBase(string? uriBase) {
         CatalogUriBase = uriBase;
         return this;
     }
 
     /// <summary>Clears the generated catalog URI base.</summary>
-    public PdfOptions ClearCatalogUriBase() {
+    public PdfCreateOptions ClearCatalogUriBase() {
         _catalogUriBase = null;
         return this;
     }
 
     /// <summary>Sets or clears the generated AcroForm default text alignment emitted through /Q.</summary>
-    public PdfOptions SetAcroFormDefaultTextAlignment(PdfFormFieldTextAlignment? alignment) {
+    public PdfCreateOptions SetAcroFormDefaultTextAlignment(PdfFormFieldTextAlignment? alignment) {
         AcroFormDefaultTextAlignment = alignment;
         return this;
     }
 
     /// <summary>Clears the generated AcroForm default text alignment.</summary>
-    public PdfOptions ClearAcroFormDefaultTextAlignment() {
+    public PdfCreateOptions ClearAcroFormDefaultTextAlignment() {
         _acroFormDefaultTextAlignment = null;
         return this;
     }
@@ -646,7 +647,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Configures common PDF/UA-1 groundwork without enabling formal compliance profile generation.
     /// </summary>
-    public PdfOptions ConfigurePdfUaGroundwork(string language = "en-US") {
+    public PdfCreateOptions ConfigurePdfUaGroundwork(string language = "en-US") {
         return ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa1, language);
     }
 
@@ -654,7 +655,7 @@ public sealed partial class PdfOptions {
     /// Configures PDF/UA generation and enables strict generation and saved-artifact checks.
     /// Call ConfigurePdfUaGroundwork for metadata-only preparation without the strict gate.
     /// </summary>
-    public PdfOptions UsePdfUa(PdfComplianceProfile profile = PdfComplianceProfile.PdfUa1, string language = "en-US") {
+    public PdfCreateOptions UsePdfUa(PdfComplianceProfile profile = PdfComplianceProfile.PdfUa1, string language = "en-US") {
         ConfigurePdfUaGroundwork(profile, language);
         if (ComplianceProfile == PdfComplianceProfile.None) ComplianceProfile = profile;
         return this;
@@ -663,7 +664,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Configures common PDF/UA-1 or PDF/UA-2 groundwork without enabling formal compliance profile generation.
     /// </summary>
-    public PdfOptions ConfigurePdfUaGroundwork(PdfComplianceProfile profile, string language = "en-US") {
+    public PdfCreateOptions ConfigurePdfUaGroundwork(PdfComplianceProfile profile, string language = "en-US") {
         if (profile != PdfComplianceProfile.PdfUa1 && profile != PdfComplianceProfile.PdfUa2) {
             throw new System.ArgumentException("PDF/UA groundwork requires a PDF/UA-1 or PDF/UA-2 compliance profile.", nameof(profile));
         }
@@ -683,7 +684,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Configures common PDF/A-2, PDF/A-3, or PDF/A-4 groundwork without enabling formal compliance profile generation.
     /// </summary>
-    public PdfOptions ConfigurePdfAGroundwork(PdfComplianceProfile profile, string language = "en-US") {
+    public PdfCreateOptions ConfigurePdfAGroundwork(PdfComplianceProfile profile, string language = "en-US") {
         PdfAIdentification identification = CreatePdfAIdentification(profile);
         FileVersion = profile == PdfComplianceProfile.PdfA4 || profile == PdfComplianceProfile.PdfA4E || profile == PdfComplianceProfile.PdfA4F
             ? PdfFileVersion.Pdf20
@@ -707,7 +708,7 @@ public sealed partial class PdfOptions {
     /// Configures PDF/A generation and enables strict generation and saved-artifact checks.
     /// Call ConfigurePdfAGroundwork for metadata-only preparation without the strict gate.
     /// </summary>
-    public PdfOptions UsePdfA(PdfComplianceProfile profile = PdfComplianceProfile.PdfA3B, string language = "en-US") {
+    public PdfCreateOptions UsePdfA(PdfComplianceProfile profile = PdfComplianceProfile.PdfA3B, string language = "en-US") {
         ConfigurePdfAGroundwork(profile, language);
         ComplianceProfile = profile;
         return this;
@@ -716,7 +717,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Adds the canonical Factur-X/ZUGFeRD CrossIndustryInvoice XML payload and matching XMP extension metadata.
     /// </summary>
-    public PdfOptions AddFacturXInvoiceXml(
+    public PdfCreateOptions AddFacturXInvoiceXml(
         byte[] ciiXml,
         string? conformanceLevel = null,
         string version = "1.0",
@@ -731,7 +732,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Adds the canonical Factur-X/ZUGFeRD CrossIndustryInvoice XML file and matching XMP extension metadata.
     /// </summary>
-    public PdfOptions AddFacturXInvoiceXmlFile(
+    public PdfCreateOptions AddFacturXInvoiceXmlFile(
         string ciiXmlPath,
         string? conformanceLevel = null,
         string version = "1.0",
@@ -744,7 +745,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Configures common PDF/A-3 Factur-X/ZUGFeRD groundwork without enabling formal compliance profile generation.
     /// </summary>
-    public PdfOptions ConfigureFacturXGroundwork(
+    public PdfCreateOptions ConfigureFacturXGroundwork(
         byte[] ciiXml,
         string? conformanceLevel = null,
         string version = "1.0",
@@ -763,7 +764,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Configures common PDF/A-3 Factur-X/ZUGFeRD groundwork with explicit text fallback groups.
     /// </summary>
-    public PdfOptions ConfigureFacturXGroundwork(
+    public PdfCreateOptions ConfigureFacturXGroundwork(
         byte[] ciiXml,
         PdfTextFallbackFeatures textFallbacks,
         string? conformanceLevel = null,
@@ -790,7 +791,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Applies Factur-X/ZUGFeRD PDF/A-3 groundwork and attaches the CrossIndustryInvoice XML payload.
     /// </summary>
-    public PdfOptions UseFacturX(
+    public PdfCreateOptions UseFacturX(
         byte[] ciiXml,
         string? conformanceLevel = null,
         string version = "1.0",
@@ -803,7 +804,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Configures common PDF/A-3 Factur-X/ZUGFeRD groundwork from a CrossIndustryInvoice XML file.
     /// </summary>
-    public PdfOptions ConfigureFacturXGroundworkFile(
+    public PdfCreateOptions ConfigureFacturXGroundworkFile(
         string ciiXmlPath,
         string? conformanceLevel = null,
         string version = "1.0",
@@ -817,7 +818,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Applies Factur-X/ZUGFeRD PDF/A-3 groundwork from a CrossIndustryInvoice XML file.
     /// </summary>
-    public PdfOptions UseFacturXFile(
+    public PdfCreateOptions UseFacturXFile(
         string ciiXmlPath,
         string? conformanceLevel = null,
         string version = "1.0",
@@ -831,7 +832,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Configures common PDF/A-3 e-invoice groundwork for Factur-X or ZUGFeRD without enabling formal compliance profile generation.
     /// </summary>
-    public PdfOptions ConfigureElectronicInvoiceGroundwork(
+    public PdfCreateOptions ConfigureElectronicInvoiceGroundwork(
         PdfComplianceProfile profile,
         byte[] ciiXml,
         string? conformanceLevel = null,
@@ -846,7 +847,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Configures common PDF/A-3 e-invoice groundwork for Factur-X or ZUGFeRD from a CrossIndustryInvoice XML file.
     /// </summary>
-    public PdfOptions ConfigureElectronicInvoiceGroundworkFile(
+    public PdfCreateOptions ConfigureElectronicInvoiceGroundworkFile(
         PdfComplianceProfile profile,
         string ciiXmlPath,
         string? conformanceLevel = null,

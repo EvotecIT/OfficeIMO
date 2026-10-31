@@ -1,11 +1,11 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class TableDetector {
-    private static List<StructuredTable> DetectTablesAcrossBandGroups(
+    private static List<PdfStructuredTable> DetectTablesAcrossBandGroups(
         List<List<TextLayoutEngine.TextLine>> bands,
         Action<long>? consumeWork,
         Action? cancellationCheck) {
-        var result = new List<StructuredTable>();
+        var result = new List<PdfStructuredTable>();
         // Pre-compute splits per band
         var bandSplits = new List<(int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits)>();
         for (int i = 0; i < bands.Count; i++) {
@@ -158,9 +158,11 @@ internal static partial class TableDetector {
                 effectiveSplits,
                 "band-group",
                 lineSplitOverrides);
+            // Validated drifting cells do not share one global whitespace channel.
             if (table != null &&
                 (table.Rows.Count >= 3 || HasStrongTwoRowEvidence(table, groupLines)) &&
-                HasValidatedRows(table, groupLines)) {
+                HasValidatedRows(table, groupLines) &&
+                (requiresAlignedCellSplits || !HasCrossingColumnText(groupLines, effectiveSplits, lineSplitOverrides))) {
                 result.Add(table);
                 claimedBandIndexes.UnionWith(splitBandIndexes);
                 claimedBandIndexes.UnionWith(includedBridgeBandIndexes);
@@ -169,6 +171,62 @@ internal static partial class TableDetector {
             k = end + 1;
         }
         return result;
+    }
+
+    /// <summary>
+    /// True when text assigned to one column runs past the start of text assigned to the next column on another row.
+    /// Real columns are separated by a vertical channel; a chart title above its legend, set beside a side panel
+    /// heading, only looks like a two-column header. Rows holding a single cell (a spanning title) are ignored.
+    /// </summary>
+    private static bool HasCrossingColumnText(
+        List<TextLayoutEngine.TextLine> lines,
+        List<double> splits,
+        Dictionary<TextLayoutEngine.TextLine, List<double>>? lineSplitOverrides) {
+        if (splits.Count == 0) return false;
+        int columnCount = splits.Count + 1;
+        var lefts = new double[columnCount];
+        var rights = new double[columnCount];
+        for (int index = 0; index < columnCount; index++) {
+            lefts[index] = double.MaxValue;
+            rights[index] = double.MinValue;
+        }
+        double fontSize = 0D;
+        foreach (TextLayoutEngine.TextLine line in lines) {
+            // Attached headers and spanning bridge rows have their own assignment geometry.
+            // They must not narrow the channel between the body's columns.
+            if (lineSplitOverrides?.ContainsKey(line) == true) continue;
+            List<double> lineSplits = splits;
+            var lineLefts = new double[columnCount];
+            var lineRights = new double[columnCount];
+            var populated = new bool[columnCount];
+            foreach (PdfTextSpan span in line.Spans) {
+                if (string.IsNullOrWhiteSpace(span.Text)) continue;
+                int column = 0;
+                while (column < lineSplits.Count && span.X >= lineSplits[column]) column++;
+                double right = span.X + Math.Max(0D, span.Advance);
+                if (!populated[column]) {
+                    lineLefts[column] = span.X;
+                    lineRights[column] = right;
+                    populated[column] = true;
+                } else {
+                    lineLefts[column] = Math.Min(lineLefts[column], span.X);
+                    lineRights[column] = Math.Max(lineRights[column], right);
+                }
+                fontSize = Math.Max(fontSize, span.FontSize);
+            }
+            if (populated.Count(static value => value) < 2) continue;
+            for (int column = 0; column < columnCount; column++) {
+                if (!populated[column]) continue;
+                lefts[column] = Math.Min(lefts[column], lineLefts[column]);
+                rights[column] = Math.Max(rights[column], lineRights[column]);
+            }
+        }
+        double tolerance = Math.Max(2D, fontSize * 0.5D);
+        for (int column = 0; column + 1 < columnCount; column++) {
+            if (rights[column] == double.MinValue || lefts[column + 1] == double.MaxValue) continue;
+            if (rights[column] > lefts[column + 1] + tolerance) return true;
+        }
+        return false;
     }
 
     private enum InterveningBandDecision {
@@ -382,6 +440,13 @@ internal static partial class TableDetector {
         }
 
         List<TextLayoutEngine.TextLine> headerBand = bands[headerBandIndex];
+        if (headerBand.Count > 1) {
+            // A header row whose labels are far apart (a wide label column next to right-aligned figures) is built
+            // as several lines on one baseline. Treat them as the single row they are.
+            TextLayoutEngine.TextLine? combined = TryCombineSameBaselineLines(headerBand);
+            if (combined is null) return null;
+            headerBand = new List<TextLayoutEngine.TextLine> { combined };
+        }
         if (headerBand.Count != 1 || IsLeaderBand(headerBand)) {
             return null;
         }
@@ -403,7 +468,7 @@ internal static partial class TableDetector {
             var twoRowLines = new List<TextLayoutEngine.TextLine>(headerBand.Count + bands[bodyBandIndex].Count);
             twoRowLines.AddRange(headerBand);
             twoRowLines.AddRange(bands[bodyBandIndex]);
-            StructuredTable? twoRowTable = BuildTableFromLinesAndSplits(
+            PdfStructuredTable? twoRowTable = BuildTableFromLinesAndSplits(
                 twoRowLines,
                 bodySplits,
                 "band-group");
@@ -420,15 +485,38 @@ internal static partial class TableDetector {
             return false;
         }
 
+        int labelCells = 0;
         for (int i = 0; i < cells.Length; i++) {
             string cell = ContentStructureExtractor.NormalizeShattered(cells[i]).Trim();
-            if (cell.Length == 0 ||
-                (!PdfUnicodeScalarAnalysis.ContainsLetter(cell) && !PdfUnicodeScalarAnalysis.IsAllDecimalDigits(cell))) {
+            if (cell.Length == 0) {
+                return false;
+            }
+            if (PdfUnicodeScalarAnalysis.ContainsLetter(cell) || PdfUnicodeScalarAnalysis.IsAllDecimalDigits(cell)) {
+                labelCells++;
+                continue;
+            }
+            // Short symbol labels such as "#" or "%" head numbering and rate columns.
+            if (!(cell.Length <= 2 && cell.All(static ch => char.IsSymbol(ch) || char.IsPunctuation(ch)))) {
                 return false;
             }
         }
 
-        return true;
+        return labelCells > 0;
+    }
+
+    private static TextLayoutEngine.TextLine? TryCombineSameBaselineLines(List<TextLayoutEngine.TextLine> lines) {
+        double y = lines[0].Y;
+        if (lines.Any(line => Math.Abs(line.Y - y) > 1.5D)) return null;
+        TextLayoutEngine.TextLine[] ordered = lines.OrderBy(static line => line.XStart).ToArray();
+        var spans = ordered.SelectMany(static line => line.Spans).ToList();
+        if (spans.Count == 0) return null;
+        return new TextLayoutEngine.TextLine(
+            y,
+            ordered[0].XStart,
+            ordered.Max(static line => line.XEnd),
+            string.Join(" ", ordered.Select(static line => line.Text)),
+            spans,
+            ordered[0].ReadingDirection);
     }
 
     private static bool IsUniformlyEmphasizedBand(List<TextLayoutEngine.TextLine> band) =>

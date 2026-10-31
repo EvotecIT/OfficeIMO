@@ -42,13 +42,20 @@ export function columnName(index: number): string {
   return name;
 }
 function clipName(text: string, length: number): string { return text.slice(0, length).replace(/[\ud800-\udbff]$/, ""); }
+function trimSheetNameEdges(text: string): string {
+  let start = 0, end = text.length;
+  const removable = (character: string): boolean => character === "'" || /\s/u.test(character);
+  while (start < end && removable(text[start]!)) start++;
+  while (end > start && removable(text[end - 1]!)) end--;
+  return text.slice(start, end);
+}
 export function sheetName(requested: string, names: Set<string>, policy: InvalidCharacterPolicy, register = true): string {
   if (typeof requested !== "string") throw new TypeError("Sheet name must be a string.");
   // Validate and deduplicate the decoded literal value, before ST_Xstring attribute encoding.
   // A requested _xHHHH_ token is literal text; the serializer protects its leading underscore.
-  let base = cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_").replace(/^[\s']+|[\s']+$/g, "");
+  let base = trimSheetNameEdges(cleanXml(requested, policy).replace(/[\[\]:*?/\\]/g, "_"));
   // Clipping can expose an internal apostrophe or the reserved History name.
-  base = clipName(base, 31).replace(/[\s']+$/g, "");
+  base = trimSheetNameEdges(clipName(base, 31));
   if (!base) base = "Sheet";
   if (base.toLowerCase() === "history") base += "_";
   let name = base, suffix = 2;

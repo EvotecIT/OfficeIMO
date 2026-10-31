@@ -181,7 +181,7 @@ public class PdfMergerPolicyTests {
         byte[] xfa = BuildTwoPageXfaPdf("unsupported-insertion-packet");
         byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfDocument.Load(xfa).Pages.Insert(insertBeforePageNumber, incoming));
 
         Assert.Contains("XFA", exception.Message, StringComparison.Ordinal);
@@ -241,7 +241,7 @@ public class PdfMergerPolicyTests {
     [Fact]
     public void Merge_DefaultAttachmentPolicyReportsIncomingMetadataWithoutDecodingPayload() {
         byte[] first = PdfDocument.Create().Paragraph(p => p.Text("Primary without attachments")).ToBytes();
-        var incomingOptions = new PdfOptions().AddEmbeddedFile(
+        var incomingOptions = new PdfCreateOptions().AddEmbeddedFile(
             "oversized.bin",
             Enumerable.Repeat((byte)0x41, 128).ToArray(),
             "application/octet-stream");
@@ -350,10 +350,10 @@ public class PdfMergerPolicyTests {
 
         Assert.Collection(readback.FormFields.OrderBy(static field => field.Name, StringComparer.Ordinal),
             field => { Assert.Equal("Shared", field.Name); Assert.Equal("first", field.Value); Assert.Equal(new[] { 1 }, field.PageNumbers); },
-            field => { Assert.Equal("Shared.source2", field.Name); Assert.Equal("second", field.Value); Assert.Equal(new[] { 2 }, field.PageNumbers); });
+            field => { Assert.Equal("Shared_source2", field.Name); Assert.Equal("second", field.Value); Assert.Equal(new[] { 2 }, field.PageNumbers); });
         PdfMergeDecision forms = Assert.Single(result.Report.Decisions, static decision => decision.Structure == "Forms");
         Assert.Equal(1, forms.ImportedCount);
-        Assert.Contains("Shared -> Shared.source2", Assert.Single(forms.RenamedItems), StringComparison.Ordinal);
+        Assert.Contains("Shared -> Shared_source2", Assert.Single(forms.RenamedItems), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -369,11 +369,11 @@ public class PdfMergerPolicyTests {
 
         Assert.Equal(6, fields.Count);
         Assert.Contains(fields, static field => field.Name == "Approved" && field.Kind == PdfFormFieldKind.Button);
-        Assert.Contains(fields, static field => field.Name == "Approved.source2" && field.Kind == PdfFormFieldKind.Button);
+        Assert.Contains(fields, static field => field.Name == "Approved_source2" && field.Kind == PdfFormFieldKind.Button);
         Assert.Contains(fields, static field => field.Name == "Region" && field.Kind == PdfFormFieldKind.Choice);
-        Assert.Contains(fields, static field => field.Name == "Region.source2" && field.Kind == PdfFormFieldKind.Choice);
+        Assert.Contains(fields, static field => field.Name == "Region_source2" && field.Kind == PdfFormFieldKind.Choice);
         Assert.Contains(fields, static field => field.Name == "Plan" && field.IsRadioButton);
-        Assert.Contains(fields, static field => field.Name == "Plan.source2" && field.IsRadioButton);
+        Assert.Contains(fields, static field => field.Name == "Plan_source2" && field.IsRadioButton);
     }
 
     [Fact]
@@ -553,7 +553,7 @@ public class PdfMergerPolicyTests {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Source")).ToBytes();
         byte[] sourceSnapshot = (byte[])source.Clone();
         var options = new PdfMergeOptions {
-            ResizePages = new PdfPageResizeOptions(PageSizes.A4) { Mode = PdfPageResizeMode.Fit }
+            ResizePages = new PdfPageResizeOptions(PdfPageSizes.A4) { Mode = PdfPageResizeMode.Fit }
         };
 
         PdfMergeResult result = PdfDocument.MergeBytesResult(options, new[] { source });
@@ -565,7 +565,7 @@ public class PdfMergerPolicyTests {
     }
 
     private static byte[] BuildStructuredPdf(string title, string? author, string? subject, string heading, string attachmentPayload) {
-        var options = new PdfOptions { CreateOutlineFromHeadings = true };
+        var options = new PdfCreateOptions { CreateOutlineFromHeadings = true };
         options.AddEmbeddedFile("evidence.txt", Encoding.UTF8.GetBytes(attachmentPayload), "text/plain", PdfAssociatedFileRelationship.Data, heading);
         return PdfDocument.Create(options)
             .Meta(title: title, author: author, subject: subject)
@@ -575,7 +575,7 @@ public class PdfMergerPolicyTests {
     }
 
     private static byte[] BuildNavigationPdf(string text, PdfPageNumberStyle labelStyle, string labelPrefix) {
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.AddPageLabelRange(1, labelStyle, 1, labelPrefix);
         return PdfDocument.Create(options)
             .Paragraph(p => p.LinkToBookmark("Jump", "Shared"))

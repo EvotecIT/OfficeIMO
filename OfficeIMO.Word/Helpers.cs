@@ -19,14 +19,14 @@ namespace OfficeIMO.Word {
         /// Parses a color string that may or may not start with '#'.
         /// </summary>
         /// <param name="hex">Color value in hex without alpha or with '#'.</param>
-        internal static OfficeIMO.Drawing.OfficeColor ParseColor(string hex) {
+        internal static OfficeIMO.OfficeColor ParseColor(string hex) {
             if (string.IsNullOrEmpty(hex)) {
                 throw new ArgumentException("Value cannot be null or empty.", nameof(hex));
             }
             if (!hex.StartsWith("#", StringComparison.Ordinal)) {
                 hex = "#" + hex;
             }
-            return OfficeIMO.Drawing.OfficeColor.Parse(hex);
+            return OfficeIMO.OfficeColor.Parse(hex);
         }
 
         /// <summary>
@@ -42,12 +42,12 @@ namespace OfficeIMO.Word {
             }
 
             try {
-                var parsed = OfficeIMO.Drawing.OfficeColor.Parse(color!);
+                var parsed = OfficeIMO.OfficeColor.Parse(color!);
                 return parsed.ToRgbHex().ToUpperInvariant();
             } catch {
                 if (!color!.StartsWith("#", StringComparison.Ordinal)) {
                     try {
-                        var parsedHex = OfficeIMO.Drawing.OfficeColor.Parse("#" + color);
+                        var parsedHex = OfficeIMO.OfficeColor.Parse("#" + color);
                         return parsedHex.ToRgbHex().ToUpperInvariant();
                     } catch {
                         // ignored so that ArgumentException below is thrown

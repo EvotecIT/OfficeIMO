@@ -10,7 +10,7 @@ public sealed class PdfPositionedTextRenderingTests {
     [InlineData(180)]
     [InlineData(270)]
     public void PageRotationRetainsEverySourceGlyph(int rotation) {
-        var document = OfficeIMO.Pdf.PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)
+        var document = OfficeIMO.Pdf.PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))
             .Content(content => content.Text("Needle and needle"))));
         // At 11px, a second raster sampling changes alpha coverage without dropping glyphs.
         // Supersampling separates missing ink from that pixel-phase effect and permits a tighter bound.

@@ -91,4 +91,8 @@
     <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
   </PropertyGroup>
 
+  <ItemGroup><Using Include="OfficeIMO.Word.Pdf" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="..\OfficeIMO.Pdf.Word\OfficeIMO.Pdf.Word.csproj" /></ItemGroup>
+  <ItemGroup><Using Include="OfficeIMO.Pdf.Word" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj" /></ItemGroup>
 </Project>

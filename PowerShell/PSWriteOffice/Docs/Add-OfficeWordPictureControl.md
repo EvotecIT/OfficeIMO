@@ -45,7 +45,7 @@ Accept wildcard characters: False
 ```
 
 ### -Height
-Height in points.
+Height in pixels.
 
 ```yaml
 Type: Double
@@ -125,7 +125,7 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Width in points.
+Width in pixels.
 
 ```yaml
 Type: Double

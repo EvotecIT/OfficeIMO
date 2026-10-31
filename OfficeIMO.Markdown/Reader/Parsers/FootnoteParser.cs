@@ -1,8 +1,8 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     internal sealed class FootnoteParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             var line = lines[i];
             if (string.IsNullOrWhiteSpace(line)) return false;
             // Do not treat indented code as a footnote definition.
@@ -87,7 +87,7 @@ public static partial class MarkdownReader {
 
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseFootnoteBody(
         List<MarkdownSourceLineSlice> contentSourceLines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (contentSourceLines == null || contentSourceLines.Count == 0) {
             return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());

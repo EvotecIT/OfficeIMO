@@ -24,7 +24,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, line.Shape.FillColor);
         Assert.False(text.Font.IsUnderline);
         Assert.DoesNotContain(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated");
-        PdfReadDocument pdf = PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { ViewportWidth = 600 }));
+        PdfReadDocument pdf = PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { ViewportWidth = 600 })).ToBytes());
         Assert.Single(pdf.Pages.SelectMany(p => p.GetLinkAnnotations()));
         Assert.Contains("Geometry", string.Concat(pdf.Pages.Select(p => p.ExtractText())));
     }
@@ -72,7 +72,7 @@ public sealed partial class HtmlRenderingTests {
     public void TextDecorationPatternsExportToPdfWithoutDuplicateLinksOrText(string pattern) {
         string html = "<a href='https://example.test' style='font:32px/40px Arial;text-decoration:underline 3px "
             + pattern + " red;text-underline-offset:8px;text-decoration-skip-ink:none'>Pattern</a>";
-        PdfReadDocument pdf = PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { ViewportWidth = 600 }));
+        PdfReadDocument pdf = PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { ViewportWidth = 600 })).ToBytes());
         Assert.Single(pdf.Pages.SelectMany(p => p.GetLinkAnnotations()));
         Assert.Equal("Pattern", string.Concat(pdf.Pages.Select(p => p.ExtractText())).Trim());
     }

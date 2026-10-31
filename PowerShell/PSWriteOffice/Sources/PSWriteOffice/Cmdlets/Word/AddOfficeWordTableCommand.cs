@@ -306,7 +306,7 @@ public sealed class AddOfficeWordTableCommand : PSCmdlet
     {
         if (context.CurrentTableCell == null)
         {
-            return context.Document.AddTableFromObjects(normalizedRows, style, includeHeader, layout);
+            return context.Document.AddTable(normalizedRows, style, includeHeader, layout);
         }
 
         return AddTableToCell(context.CurrentTableCell, normalizedRows, style, includeHeader, layout);

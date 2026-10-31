@@ -16,7 +16,7 @@ internal static partial class PdfWriter {
     private readonly record struct PictureParagraphPlanKey(IPdfBlock Block, string Story, int Page,
         double X, double Width, double FirstLineX, double FirstLineWidth, double Top, double Size);
     private sealed record PictureParagraphPlan(List<List<RichSeg>> Lines, List<double> Heights,
-        TextExclusionBounds[] Exclusions, PdfOptions Fonts);
+        TextExclusionBounds[] Exclusions, PdfCreateOptions Fonts);
 
     private static bool PictureAnchorsEqual(IReadOnlyDictionary<PictureAnchorKey, PictureAnchorPlacement>? previous,
         IReadOnlyDictionary<PictureAnchorKey, PictureAnchorPlacement> actual) {
@@ -60,8 +60,8 @@ internal static partial class PdfWriter {
 
         private PictureAnchorPlacement ResolvePictureAnchor(PdfCanvasAnchoredImageItem item, double paragraphTop) {
             PdfAnchoredImagePosition position = item.Position;
-            double x = position.X + (position.MarginX ? PageAnchorOptions.MarginLeft - position.AuthoredLeftMargin : 0D);
-            double top = position.ParagraphY ? paragraphTop - position.Y : currentOpts.PageHeight - position.Y;
+            double x = position.X + (position.MarginX ? PageAnchorOptions.MarginLeft.ToPoints() - position.AuthoredLeftMargin : 0D);
+            double top = position.ParagraphY ? paragraphTop - position.Y : currentOpts.PageHeight.ToPoints() - position.Y;
             return new PictureAnchorPlacement(GetPictureAnchorKey(item), PicturePage,
                 pictureStoryOrigin ?? yStart, position.ParagraphY, x, top, item.Width, item.Height, item.Exclusion);
         }
@@ -99,7 +99,7 @@ internal static partial class PdfWriter {
                 pictureAnchors.Working[placement.Key] = placement;
                 pictureAnchors.Observed[placement.Key] = placement;
             }
-            OfficeTransform translation = OfficeTransform.Translate(placement.X, currentOpts.PageHeight - placement.Top);
+            OfficeTransform translation = OfficeTransform.Translate(placement.X, currentOpts.PageHeight.ToPoints() - placement.Top);
             if (item.Content.Items.Count == 1 && item.Content.Items[0] is PdfCanvasBehindTextItem behind) {
                 // Deferred paint must capture the translation together with the image token.
                 // Capturing only the inner image would leave its source coordinates at (0,0).
@@ -130,7 +130,7 @@ internal static partial class PdfWriter {
                     style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing,
                     textWhitespaceMode: style?.TextWhitespaceMode,
                     wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? style.JustificationMode : null,
-                    rowLayout: rowLayout));
+                    rowLayout: rowLayout, cancellationToken: cancellationToken));
         }
 
         /// <summary>Retains heading policy while composing the same picture-aware rows used by paragraph flow.</summary>
@@ -139,11 +139,13 @@ internal static partial class PdfWriter {
             double frameX, double frameWidth, double fontSize, double leading, double top) {
             if (!HasAnchoredPictures(style?.AnchoredCanvas) && !HasPictureExclusions)
                 return WrapRichHeadingRuns(runs, frameWidth, fontSize, ChooseNormal(currentOpts.DefaultFont),
-                    leading, null, DefaultParagraphTabStopWidth, currentOpts, style, heading.Align);
+                    leading, null, DefaultParagraphTabStopWidth, currentOpts, style, heading.Align,
+                    cancellationToken: cancellationToken);
             return WrapPictureText(heading, style?.AnchoredCanvas,
                 (frameX, frameWidth, frameX, frameWidth), fontSize, top,
                 rowLayout => WrapRichHeadingRuns(runs, frameWidth, fontSize, ChooseNormal(currentOpts.DefaultFont),
-                    leading, null, DefaultParagraphTabStopWidth, currentOpts, style, heading.Align, rowLayout));
+                    leading, null, DefaultParagraphTabStopWidth, currentOpts, style, heading.Align, rowLayout,
+                    cancellationToken));
         }
 
         /// <summary>Owns source exclusions and retained rows for both paragraph and heading composition.</summary>
@@ -178,7 +180,7 @@ internal static partial class PdfWriter {
         private double MeasurePictureParagraph(RichParagraphBlock paragraph, double frameX, double frameWidth,
             double fontSize, bool firstVisualOnly = false) {
             PdfParagraphStyle? style = EffectiveParagraphStyle(paragraph);
-            fontSize = style?.FontSize ?? currentOpts.DefaultFontSize;
+            fontSize = style?.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(style, fontSize);
             double before = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(style));
             var wrapped = WrapPictureParagraph(paragraph, frameX, frameWidth, fontSize, y - before);

@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     /// <summary>Catalog output intent metadata discovered from /OutputIntents.</summary>
     public IReadOnlyList<PdfOutputIntentInfo> OutputIntents => ReadLogicalContent(_outputIntents);
 

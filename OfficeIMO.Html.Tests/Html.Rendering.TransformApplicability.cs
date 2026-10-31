@@ -173,8 +173,8 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
     }
 
-    private static byte[] TransformApplicabilityPdf(string html) => HtmlConversionDocument.Parse(html)
-        .ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions()));
+    private static byte[] TransformApplicabilityPdf(string html) => (HtmlConversionDocument.Parse(html)
+        .ToPdf(new HtmlToPdfOptions(OrdinaryBaselineOptions()))).ToBytes();
 
     private static void AssertTransformLinkDelta(byte[] before, byte[] after, string uri, double x, double y) {
         PdfLinkAnnotation[] Read(byte[] bytes) => PdfReadDocument.Open(bytes).Pages

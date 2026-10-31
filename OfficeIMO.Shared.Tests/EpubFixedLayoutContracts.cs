@@ -35,6 +35,25 @@ public sealed class EpubFixedLayoutContracts {
         Assert.DoesNotContain("page-spread-", reopened.Spine.Single().Properties!);
     }
 
+    [Fact]
+    public void ImportedPrefixHeavySpineRetainsUnrelatedPropertiesDuringFixedLayoutEdit() {
+        var book = Book();
+        book.DeclareVocabularyPrefix("fx", "http://www.idpf.org/vocab/rendition/#");
+        for (int index = 0; index < 256; index++)
+            book.DeclareVocabularyPrefix("p" + index, "https://example.test/vocab/" + index + "#");
+        string unrelated = string.Join(" ", Enumerable.Range(0, 256).Select(index => "p" + index + ":value"));
+        book.Spine.Single().Properties = unrelated + " fx:layout-reflowable";
+        var imported = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
+
+        imported.SetFixedLayoutPage("page", new EpubFixedLayoutPage(800, 600));
+
+        string properties = imported.Spine.Single().Properties!;
+        Assert.DoesNotContain("fx:layout-reflowable", properties);
+        Assert.StartsWith(unrelated + " rendition:layout-pre-paginated", properties);
+        Assert.Contains("p0:value", properties);
+        Assert.Contains("p255:value", properties);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]

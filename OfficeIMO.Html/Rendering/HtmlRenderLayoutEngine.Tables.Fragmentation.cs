@@ -241,6 +241,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int LastRow, double ContentY, double ContentHeight, IReadOnlyList<double> BreakOffsets,
         IReadOnlyList<HtmlRenderAvoidBreakRange> UnsafeRanges, bool Supported);
 
+    // Rows up to a quarter of a fresh page body stay whole, as print layouts keep short rows together.
+    private const double TallTableRowPageFraction = 0.25D;
+
+    private static bool IsTallTableRow(TableRowLayout row, double freshRowCapacity) =>
+        freshRowCapacity <= 0.0001D || row.Height > freshRowCapacity * TallTableRowPageFraction;
+
     private static void AddTableRowInternalBreakOffsets(ICollection<double> breakOffsets, TableRowLayout row, double rowY) {
         var candidates = new SortedSet<double>();
         foreach (TableCellLayout cell in row.Cells) {

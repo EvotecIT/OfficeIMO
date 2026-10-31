@@ -20,13 +20,15 @@ public sealed partial class HtmlRenderingTests {
         OfficeImageExportResult permissive = document.ExportImage(format, options);
         Assert.Contains(permissive.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        var pdf = document.ToPdfDocumentResult(new HtmlToPdfOptions(options));
+        var pdf = document.ConvertToPdfWithEvidence(new HtmlToPdfOptions(options));
         Assert.Contains(pdf.Report.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(pdf.HasLoss);
         options.Policy.RequireNoLoss = true;
         using var output = new MemoryStream();
-        Assert.Throws<OfficeImageExportPolicyException>(() => document.ToImage(options).As(format).Save(output));
+        var imageOptions1 = options.Clone();
+        imageOptions1.Format = format;
+        Assert.Throws<OfficeImageExportPolicyException>(() => document.SaveAsImage(output, imageOptions1));
         Assert.Equal(0, output.Length);
         await Assert.ThrowsAsync<OfficeImageExportPolicyException>(() => document.ExportImageAsync(format, options));
         options.Policy.RequireNoLoss = false;

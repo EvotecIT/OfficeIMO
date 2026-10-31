@@ -18,8 +18,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             using Stream peerStream = fixture.OpenEncryptedStream();
             using IExcelWorkbook peer = ExcelReaderApi.Open(peerStream, leaveOpen: true, EncryptedWorkbookFixture.PeerOptions());
             using IExcelRowEnumerator rows = peer.FirstSheet.GetEnumerator();
-            using ExcelWorkbookDataReader office = ExcelDocument.OpenEncryptedDataReader(fixture.Encrypted, EncryptedWorkbookFixture.Password,
-                EncryptedWorkbookFixture.OfficeOptions());
+            using ExcelWorkbookDataReader office = ExcelDocument.OpenReader(new MemoryStream(fixture.Encrypted, writable: false),                 EncryptedWorkbookFixture.OfficeOptions());
             int count = 0;
             long sum = 0;
             while (oracle.Read()) {
@@ -75,8 +74,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         internal long Office(bool memory) {
             using Stream? stream = memory ? null : Fixture.OpenEncryptedStream();
             using ExcelWorkbookDataReader reader = memory
-                ? ExcelDocument.OpenEncryptedDataReader(Fixture.Encrypted, EncryptedWorkbookFixture.Password, EncryptedWorkbookFixture.OfficeOptions())
-                : ExcelDocument.OpenEncryptedDataReader(stream!, EncryptedWorkbookFixture.Password, EncryptedWorkbookFixture.OfficeOptions());
+                ? ExcelDocument.OpenReader(new MemoryStream(Fixture.Encrypted, writable: false), EncryptedWorkbookFixture.OfficeOptions())
+                : ExcelDocument.OpenReader(stream!, EncryptedWorkbookFixture.OfficeOptions());
             long sum = 0;
             int count = 0;
             while (reader.Read()) {
@@ -103,8 +102,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         internal async Task<long> OfficeAsync() {
             await using Stream stream = Fixture.OpenEncryptedStream();
-            await using ExcelWorkbookDataReader reader = await ExcelDocument.OpenEncryptedDataReaderAsync(stream,
-                EncryptedWorkbookFixture.Password, EncryptedWorkbookFixture.OfficeOptions());
+            await using ExcelWorkbookDataReader reader = await ExcelDocument.OpenReaderAsync(stream,
+EncryptedWorkbookFixture.OfficeOptions());
             long sum = 0;
             int count = 0;
             while (await reader.ReadAsync()) {
@@ -121,8 +120,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 EncryptedWorkbookFixture.PeerOptions());
             await using IExcelRowEnumerator rows = peer.FirstSheet.GetAsyncEnumerator();
             await using Stream officeStream = Fixture.OpenEncryptedStream();
-            await using ExcelWorkbookDataReader office = await ExcelDocument.OpenEncryptedDataReaderAsync(officeStream,
-                EncryptedWorkbookFixture.Password, EncryptedWorkbookFixture.OfficeOptions());
+            await using ExcelWorkbookDataReader office = await ExcelDocument.OpenReaderAsync(officeStream,
+EncryptedWorkbookFixture.OfficeOptions());
             using MemoryStream oracleStream = new MemoryStream(Fixture.Plain, writable: false);
             using Sylvan.Data.Excel.ExcelDataReader oracle = global::Sylvan.Data.Excel.ExcelDataReader.Create(oracleStream, ExcelWorkbookType.ExcelXml,
                 new ExcelDataReaderOptions { Schema = ExcelSchema.NoHeaders });
@@ -152,8 +151,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             using IExcelWorkbook peer = ExcelReaderApi.Open(Fixture.Encrypted.AsMemory(), EncryptedWorkbookFixture.PeerOptions());
             using IExcelRowEnumerator rows = peer.FirstSheet.GetEnumerator();
             using Stream stream = Fixture.OpenEncryptedStream();
-            using ExcelWorkbookDataReader office = ExcelDocument.OpenEncryptedDataReader(stream, EncryptedWorkbookFixture.Password,
-                EncryptedWorkbookFixture.OfficeOptions());
+            using ExcelWorkbookDataReader office = ExcelDocument.OpenReader(stream,                 EncryptedWorkbookFixture.OfficeOptions());
             int count = 0;
             while (oracle.Read()) {
                 if (!rows.MoveNext() || !office.Read() || rows.Current.ColumnCount != Fixture.Columns

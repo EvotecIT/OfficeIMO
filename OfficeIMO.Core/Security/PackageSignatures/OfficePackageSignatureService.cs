@@ -9,7 +9,7 @@ using System.Xml.Linq;
 namespace OfficeIMO.Security;
 
 /// <summary>Dependency-light structural inspection and optional-provider validation for OPC package signatures.</summary>
-public static class OfficePackageSignatureService {
+internal static class OfficePackageSignatureService {
     private const string OriginRelationshipType =
         "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin";
     private const string SignatureRelationshipType =

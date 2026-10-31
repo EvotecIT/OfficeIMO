@@ -50,14 +50,14 @@ public sealed class ExcelLegacyCalculationSaveTests {
 
     [Fact]
     public void Fresh_workbooks_and_document_level_calculation_settings_apply_to_native_saves() {
-        using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
+        using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
         sheet.CellFormula(1, 1, "1+2"); sheet.RecalculateSupportedFormulas();
-        byte[] cleared = seed.ToBytes(ExcelFileFormat.Xls, new ExcelSaveOptions { ClearCachedFormulaResultsBeforeSave = true });
+        byte[] cleared = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls,  ClearCachedFormulaResultsBeforeSave = true });
         using var blank = ExcelDocument.Load(new MemoryStream(cleared));
         Assert.Equal(string.Empty, blank.Sheets[0].GetCellText(blank.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>().Single()));
         Assert.True(blank.Sheets[0].WorksheetPart.Worksheet!.GetFirstChild<SheetCalculationProperties>()?.FullCalculationOnLoad?.Value);
         blank.Calculation.EvaluateFormulasBeforeSave = true;
-        using var calculated = ExcelDocument.Load(new MemoryStream(blank.ToBytes(ExcelFileFormat.Xls)));
+        using var calculated = ExcelDocument.Load(new MemoryStream(blank.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
         Assert.Equal(3D, calculated.Sheets[0].CellAt(1, 1).GetValue<double>());
     }
 

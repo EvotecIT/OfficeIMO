@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a parsed formatting run from a legacy XLS TxO comment.
     /// </summary>
-    public sealed class LegacyXlsCommentFormattingRun {
+    internal sealed class LegacyXlsCommentFormattingRun {
         /// <summary>
         /// Creates parsed legacy XLS comment formatting run metadata.
         /// </summary>

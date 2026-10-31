@@ -32,7 +32,7 @@ public partial class Word {
         paragraph._paragraph.Append(comment);
         Assert.Equal(new[] { "note", "comment" }, MarkerOrder(paragraph._paragraph));
 
-        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Paragraph imported = reopened._document!.Body!.Descendants<Paragraph>().First();
         Assert.Equal(new[] { "note", "comment" }, MarkerOrder(imported));
         Assert.Equal("Following comment", Assert.Single(reopened.Comments).Text);

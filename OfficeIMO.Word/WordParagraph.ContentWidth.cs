@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
         /// <summary>
-        /// Estimates the authored content width available to an inline drawing in this paragraph, in points.
+        /// Estimates the authored content width available to an inline drawing in this paragraph as a physical length.
         /// </summary>
         /// <returns>A positive width after the containing cell or section geometry and direct paragraph indents.</returns>
         /// <remarks>
@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
         /// The paragraph is detached, belongs to an unsupported text box, has ambiguous story geometry,
         /// or its margins and indents leave no positive content width.
         /// </exception>
-        public double GetContentWidthPoints() {
+        public OfficeLength GetContentWidth() {
             if (_paragraph.Parent == null) {
                 throw new InvalidOperationException("The paragraph must be attached to a document before its content width can be estimated.");
             }
@@ -62,30 +62,30 @@ namespace OfficeIMO.Word {
                 containerWidth = Math.Min(containerWidth, cellWidth.Value / 20D);
             }
 
-            double before = Math.Max(0D, IndentationBeforePoints ?? 0D);
-            double after = Math.Max(0D, IndentationAfterPoints ?? 0D);
-            double firstLine = IndentationHangingPoints > 0D ? 0D : Math.Max(0D, IndentationFirstLinePoints ?? 0D);
+            double before = Math.Max(0D, IndentationBefore?.ToPoints() ?? 0D);
+            double after = Math.Max(0D, IndentationAfter?.ToPoints() ?? 0D);
+            double firstLine = IndentationHanging?.ToPoints() > 0D ? 0D : Math.Max(0D, IndentationFirstLine?.ToPoints() ?? 0D);
             double width = containerWidth - before - after - firstLine;
             if (width <= 0D) {
                 throw new InvalidOperationException("The paragraph margins and indents leave no positive content width. Use explicit drawing dimensions.");
             }
-            return width;
+            return OfficeLength.Points(width);
         }
 
         private double GetSectionPageContentWidthPoints(WordSection section) {
-            double gutter = _document.Settings.GutterAtTop ? 0D : section.Margins.Gutter;
-            return ((section.PageSettings.Width ?? WordPageSizes.A4.WidthTwips)
-                - (double)section.Margins.Left - section.Margins.Right - gutter) / 20D;
+            double gutter = _document.Settings.GutterAtTop ? 0D : checked((uint)(section.Margins.Gutter.GetValueOrDefault().ToTwips()));
+            return ((checked((uint?)(section.PageSettings.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())))
+                - (double)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips())) - gutter) / 20D;
         }
 
         private double GetSectionColumnContentWidthPoints(WordSection section) {
             double width = GetSectionPageContentWidthPoints(section);
             IReadOnlyList<WordSectionColumn> definitions = section.ColumnDefinitions;
             if (definitions.Count > 0) {
-                return Math.Min(width, definitions.Min(column => column.WidthTwips) / 20D);
+                return Math.Min(width, definitions.Min(column => column.Width.ToPoints()));
             }
             int count = Math.Max(1, section.ColumnCount ?? 1);
-            double gap = Math.Max(0, section.ColumnsSpace ?? 720) / 20D;
+            double gap = Math.Max(0D, section.ColumnsSpace?.ToPoints() ?? 36D);
             return (width - gap * (count - 1)) / count;
         }
     }

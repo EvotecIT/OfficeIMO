@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var paragraph = document.AddParagraph("Basic paragraph");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

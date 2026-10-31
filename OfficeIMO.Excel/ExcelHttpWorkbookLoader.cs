@@ -13,13 +13,13 @@ namespace OfficeIMO.Excel {
 
         internal static async Task<byte[]> DownloadAsync(
             Uri uri,
-            ExcelHttpLoadOptions? options,
+            ExcelLoadOptions? options,
             CancellationToken cancellationToken = default,
             long? maximumBytes = null,
             bool sourceLimitIsPackageSize = false) {
             if (uri == null) throw new ArgumentNullException(nameof(uri));
 
-            var snapshot = ExcelHttpLoadOptionsSnapshot.Create(options, maximumBytes, sourceLimitIsPackageSize);
+            var snapshot = ExcelLoadOptionsSnapshot.Create(options, maximumBytes, sourceLimitIsPackageSize);
             ValidateScheme(uri, snapshot.SchemePolicy);
             ValidateHost(uri, snapshot);
             ValidateLimits(snapshot);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
         private static async Task<HttpResponseMessage> SendWithRedirectsAsync(
             HttpClient client,
             Uri initialUri,
-            ExcelHttpLoadOptionsSnapshot options,
+            ExcelLoadOptionsSnapshot options,
             CancellationToken cancellationToken) {
             Uri currentUri = initialUri;
             bool includeCustomHeaders = true;
@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
 
         private static async Task<byte[]> ReadResponseBytesAsync(
             HttpResponseMessage response,
-            ExcelHttpLoadOptionsSnapshot options,
+            ExcelLoadOptionsSnapshot options,
             long? contentLength,
             CancellationToken cancellationToken) {
             using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel {
             return buffer.ToArray();
         }
 
-        private static IOException ByteLimitExceeded(ExcelHttpLoadOptionsSnapshot options, long observedBytes, string message) =>
+        private static IOException ByteLimitExceeded(ExcelLoadOptionsSnapshot options, long observedBytes, string message) =>
             options.IsPackageSizeLimit
                 ? new OfficePackageSecurityException(OfficePackageSecurityRule.PackageSize, message, observedBytes, options.MaxBytes)
                 : new OfficeInspectionResourceLimitException("excel", options.ByteLimitName, options.MaxBytes, new IOException(message));
@@ -156,10 +156,10 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            throw new NotSupportedException("Remote Excel loads require HTTPS unless ExcelHttpLoadOptions.SchemePolicy allows HTTP.");
+            throw new NotSupportedException("Remote Excel loads require HTTPS unless ExcelLoadOptions.SchemePolicy allows HTTP.");
         }
 
-        private static void ValidateHost(Uri uri, ExcelHttpLoadOptionsSnapshot options) {
+        private static void ValidateHost(Uri uri, ExcelLoadOptionsSnapshot options) {
             if (options.AllowedHosts.Count == 0) {
                 return;
             }
@@ -169,20 +169,20 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            throw new NotSupportedException($"Remote Excel load host '{uri.Host}' is not allowed by ExcelHttpLoadOptions.AllowedHosts.");
+            throw new NotSupportedException($"Remote Excel load host '{uri.Host}' is not allowed by ExcelLoadOptions.AllowedHosts.");
         }
 
-        private static void ValidateLimits(ExcelHttpLoadOptionsSnapshot options) {
+        private static void ValidateLimits(ExcelLoadOptionsSnapshot options) {
             if (options.MaxBytes <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(ExcelHttpLoadOptions.MaxBytes), "MaxBytes must be greater than zero.");
+                throw new ArgumentOutOfRangeException(nameof(ExcelLoadOptions.MaxBytes), "MaxBytes must be greater than zero.");
             }
 
             if (options.Timeout <= TimeSpan.Zero) {
-                throw new ArgumentOutOfRangeException(nameof(ExcelHttpLoadOptions.Timeout), "Timeout must be greater than zero.");
+                throw new ArgumentOutOfRangeException(nameof(ExcelLoadOptions.Timeout), "Timeout must be greater than zero.");
             }
         }
 
-        private static void ApplyHeaders(HttpRequestMessage request, ExcelHttpLoadOptionsSnapshot options, bool includeCustomHeaders) {
+        private static void ApplyHeaders(HttpRequestMessage request, ExcelLoadOptionsSnapshot options, bool includeCustomHeaders) {
             if (includeCustomHeaders) {
                 foreach (var header in options.Headers) {
                     if (!request.Headers.TryAddWithoutValidation(header.Key, header.Value)) {
@@ -220,7 +220,7 @@ namespace OfficeIMO.Excel {
                 && left.Port == right.Port;
         }
 
-        private static void ValidateContentType(HttpResponseMessage response, ExcelHttpLoadOptionsSnapshot options) {
+        private static void ValidateContentType(HttpResponseMessage response, ExcelLoadOptionsSnapshot options) {
             if (!options.ValidateContentTypeWhenPresent) {
                 return;
             }
@@ -262,7 +262,7 @@ namespace OfficeIMO.Excel {
 
         private static string NormalizeConfiguredHost(string host) {
             if (string.IsNullOrWhiteSpace(host)) {
-                throw new ArgumentException("AllowedHosts entries must be non-empty host names.", nameof(ExcelHttpLoadOptions.AllowedHosts));
+                throw new ArgumentException("AllowedHosts entries must be non-empty host names.", nameof(ExcelLoadOptions.AllowedHosts));
             }
 
             string candidate = host.Trim();
@@ -272,7 +272,7 @@ namespace OfficeIMO.Excel {
 
             UriHostNameType hostNameType = Uri.CheckHostName(candidate);
             if (hostNameType == UriHostNameType.Unknown) {
-                throw new ArgumentException("AllowedHosts entries must be host names only; schemes, paths, and ports are not accepted.", nameof(ExcelHttpLoadOptions.AllowedHosts));
+                throw new ArgumentException("AllowedHosts entries must be host names only; schemes, paths, and ports are not accepted.", nameof(ExcelLoadOptions.AllowedHosts));
             }
 
             if (hostNameType == UriHostNameType.IPv6) {
@@ -291,8 +291,8 @@ namespace OfficeIMO.Excel {
             return host.TrimEnd('.').ToLowerInvariant();
         }
 
-        private sealed class ExcelHttpLoadOptionsSnapshot {
-            private ExcelHttpLoadOptionsSnapshot(
+        private sealed class ExcelLoadOptionsSnapshot {
+            private ExcelLoadOptionsSnapshot(
                 ExcelUriSchemePolicy schemePolicy,
                 long maxBytes,
                 string byteLimitName,
@@ -335,18 +335,18 @@ namespace OfficeIMO.Excel {
             internal IProgress<ExcelHttpLoadProgress>? Progress { get; }
             internal HttpMessageHandler? HttpMessageHandler { get; }
 
-            internal static ExcelHttpLoadOptionsSnapshot Create(ExcelHttpLoadOptions? options, long? maximumBytes, bool sourceLimitIsPackageSize) {
-                options ??= new ExcelHttpLoadOptions();
+            internal static ExcelLoadOptionsSnapshot Create(ExcelLoadOptions? options, long? maximumBytes, bool sourceLimitIsPackageSize) {
+                options ??= new ExcelLoadOptions();
                 long maxBytes = maximumBytes.HasValue
                     ? Math.Min(options.MaxBytes, maximumBytes.Value)
                     : options.MaxBytes;
                 bool sourceLimitBinds = maximumBytes.HasValue && maximumBytes.Value <= options.MaxBytes;
                 bool isPackageSizeLimit = sourceLimitBinds && sourceLimitIsPackageSize;
                 string byteLimitName = sourceLimitBinds
-                    ? isPackageSizeLimit ? nameof(OfficePackageSecurityOptions.MaxPackageBytes) : nameof(ExcelReadOptions.MaxInputBytes)
-                    : nameof(ExcelHttpLoadOptions.MaxBytes);
+                    ? isPackageSizeLimit ? nameof(OfficePackageSecurityOptions.MaxPackageBytes) : nameof(ExcelReaderOptions.MaxInputBytes)
+                    : nameof(ExcelLoadOptions.MaxBytes);
 
-                return new ExcelHttpLoadOptionsSnapshot(
+                return new ExcelLoadOptionsSnapshot(
                     options.SchemePolicy,
                     maxBytes,
                     byteLimitName,

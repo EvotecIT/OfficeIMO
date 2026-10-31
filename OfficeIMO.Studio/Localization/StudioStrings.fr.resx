@@ -2971,7 +2971,7 @@
     <value>Marques sélectionnées : {0:N0} sur {1:N0}. Examinez leur impact avant d'appliquer.</value>
   </data>
   <data name="Redaction.ReviewedSummary" xml:space="preserve">
-    <value>Examen de {0:N0} zones sur {1:N0} pages : correspondances de texte : {2:N0}, d'images : {3:N0}, d'annotations : {4:N0} et de vecteurs : {5:N0}.</value>
+    <value>Examen de {0:N0} zones sur {1:N0} pages : correspondances de texte : {2:N0}, d'images : {3:N0}, d'annotations : {4:N0}, de vecteurs : {5:N0} et de champs de formulaire : {6:N0}.</value>
   </data>
   <data name="Redaction.SearchText" xml:space="preserve">
     <value>Texte ou motif à rechercher</value>

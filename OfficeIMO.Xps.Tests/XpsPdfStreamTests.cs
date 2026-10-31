@@ -8,6 +8,24 @@ using static OfficeIMO.Xps.Tests.XpsLogicalStructureTests;
 namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsPdfStreamTests {
+    [Fact]
+    public void RepeatedPageOccurrencesShareProjectionCommandBudget() {
+        var document = XpsDocument.Create();
+        var page = document.AddPage(100, 100).AddPath("M10,10H20V20H10Z");
+        var options = new XpsToPdfOptions { MaximumPathCommands = 8 };
+        using (var single = new MemoryStream())
+            Assert.True(document.SavePdf(single, options).Succeeded);
+
+        document.Documents[0].InsertPage(1, page);
+        using var output = new MemoryStream(new byte[] { 1, 2, 3 }, true);
+        output.Position = 2;
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.SavePdf(output, options));
+        Assert.Contains("MaximumPathCommands", error.Message, StringComparison.Ordinal);
+        Assert.Equal(new byte[] { 1, 2, 3 }, output.ToArray());
+        Assert.Equal(2, output.Position);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -18,19 +36,19 @@ public sealed class XpsPdfStreamTests {
         var saved = document.SavePdf(output, new XpsToPdfOptions { PreserveLogicalStructure = semantics });
         Assert.True(saved.Succeeded); Assert.Equal(output.Length, saved.BytesWritten);
         Assert.Equal(0, output.Position); Assert.True(output.CanWrite); Assert.InRange(output.Length, 1, 1024 * 1024 - 1);
-        var read = PdfReadDocument.Open(output.ToArray());
+        var read = PdfDocument.Load(new System.IO.MemoryStream(output.ToArray()));
         Assert.Equal(semantics, read.TaggedContent != null);
-        Assert.Contains("Alpha", PdfDocument.Load(output.ToArray()).Read().Text);
-        Assert.Contains("Beta", PdfDocument.Load(output.ToArray()).Read().Text);
+        Assert.Contains("Alpha", PdfDocument.Load(new System.IO.MemoryStream(output.ToArray())).Read().Text);
+        Assert.Contains("Beta", PdfDocument.Load(new System.IO.MemoryStream(output.ToArray())).Read().Text);
     }
 
     [Fact]
     public void StreamExportAppliesTheClonedNativePdfSecuritySettings() {
-        var options = new XpsToPdfOptions { PdfOptions = new PdfOptions().SetEncryption("original") };
+        var options = new XpsToPdfOptions { PdfOptions = new PdfCreateOptions().SetEncryption("original") };
         var snapshot = options.Clone(); options.PdfOptions.SetEncryption("changed");
         using var output = new MemoryStream();
         Create(XpsFormat.Xps, new[] { "Protected" }).SavePdf(output, snapshot);
-        var loaded = PdfDocument.Load(output.ToArray(), new PdfLoadOptions { Password = "original" });
+        var loaded = PdfDocument.Load(new System.IO.MemoryStream(output.ToArray()), new PdfLoadOptions { Password = "original" });
         Assert.Contains("Protected", loaded.Read().Text);
     }
 

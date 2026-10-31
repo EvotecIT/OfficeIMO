@@ -206,7 +206,7 @@ namespace OfficeIMO.Excel {
             string reference,
             CancellationToken ct = default) {
             ct.ThrowIfCancellationRequested();
-            if (!A1.TryParseRange(reference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (!ExcelA1.TryParseRange(reference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return false;
             }
 
@@ -256,7 +256,7 @@ namespace OfficeIMO.Excel {
                         int cellColumn = 0;
                         if (hasExplicitRowIndex) {
                             cellColumn = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
-                        } else if (A1.TryParseCellReferenceFast(ReadXmlReferenceAttribute(reader).Text, out int parsedRow, out int parsedColumn)) {
+                        } else if (ExcelA1.TryParseCellReferenceFast(ReadXmlReferenceAttribute(reader).Text, out int parsedRow, out int parsedColumn)) {
                             if (parsedRow > 0) {
                                 cellRow = parsedRow;
                             }
@@ -305,7 +305,7 @@ namespace OfficeIMO.Excel {
             CancellationToken ct = default) {
             ct.ThrowIfCancellationRequested();
             reference = string.Empty;
-            if (!A1.TryParseRange(dimensionReference, out int dimensionFirstRow, out int dimensionFirstColumn, out int dimensionLastRow, out int dimensionLastColumn)) {
+            if (!ExcelA1.TryParseRange(dimensionReference, out int dimensionFirstRow, out int dimensionFirstColumn, out int dimensionLastRow, out int dimensionLastColumn)) {
                 return false;
             }
 
@@ -321,7 +321,7 @@ namespace OfficeIMO.Excel {
                         ? xmlTableReference
                         : tablePart.Table?.Reference?.Value;
                     if (string.IsNullOrWhiteSpace(tableReference)
-                        || !A1.TryParseRange(tableReference!, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                        || !ExcelA1.TryParseRange(tableReference!, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                         return false;
                     }
 
@@ -400,7 +400,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (rawReference.IndexOf(':') >= 0) {
-                if (!A1.TryParseRange(rawReference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
+                if (!ExcelA1.TryParseRange(rawReference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
                     || firstRow <= 0
                     || firstColumn <= 0
                     || lastRow < firstRow
@@ -412,7 +412,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (!A1.TryParseCellReferenceFast(rawReference, out int row, out int column)
+            if (!ExcelA1.TryParseCellReferenceFast(rawReference, out int row, out int column)
                 || row <= 0
                 || column <= 0) {
                 return false;
@@ -425,7 +425,7 @@ namespace OfficeIMO.Excel {
         /// Reads a rectangular A1 range (e.g., "A1:C10") into a dense 2D array of typed values.
         /// </summary>
         public object?[,] ReadRange(string a1Range, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) throw new ArgumentException($"Invalid range '{a1Range}'.");
 
             var height = r2 - r1 + 1;
@@ -436,7 +436,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cellCount > _opt.MaxRangeCells) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxRangeCells), _opt.MaxRangeCells,
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxRangeCells), _opt.MaxRangeCells,
                     $"Range '{a1Range}' contains {cellCount.ToString(CultureInfo.InvariantCulture)} cells, exceeding the configured limit of {_opt.MaxRangeCells.ToString(CultureInfo.InvariantCulture)}.");
             }
 

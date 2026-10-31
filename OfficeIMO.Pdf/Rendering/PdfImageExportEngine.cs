@@ -333,7 +333,7 @@ internal static class PdfImageExportEngine {
             if (report.HasLoss && !hasTypedLoss) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Error,
-                    "SourceConversionDiagnosticContractMismatch",
+                    "source-conversion-diagnostic-contract-mismatch",
                     "An upstream conversion stage reported aggregate loss without a typed fidelity diagnostic.",
                     "source-conversion-report",
                     OfficeConversionLossKind.Failure));

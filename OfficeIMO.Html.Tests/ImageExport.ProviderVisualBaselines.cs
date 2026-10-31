@@ -40,73 +40,66 @@ public sealed class ImageExportProviderVisualBaselineTests {
     private static byte[] RenderWord() {
         using var stream = new MemoryStream();
         using WordDocument document = WordDocument.Create(stream);
-        document.PageSettings.Width = 7200;
-        document.PageSettings.Height = 4320;
+        document.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(360D);
+        document.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(216D);
         document.Margins.Type = WordMargin.Narrow;
         document.AddParagraph("Quarterly delivery brief")
-            .SetFontSize(22)
+            .SetFontSize(global::OfficeIMO.OfficeLength.Points(22))
             .SetBold()
             .SetFontFamily(PortableFontFamily)
             .SetColor(OfficeColor.FromRgb(30, 64, 175));
         document.AddParagraph("Polished previews with predictable output.")
             .SetFontFamily(PortableFontFamily);
         using (var image = new MemoryStream(CreateVisualBadge())) {
-            document.AddParagraph().AddImage(
-                image,
-                "delivery-status.png",
-                120,
-                40,
-                WordImageTextWrapping.InLineWithText,
-                "Delivery status visualization");
+            document.AddParagraph().AddImage(image, "delivery-status.png", OfficeIMO.OfficeLength.Pixels(120), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, Description = "Delivery status visualization" });
         }
-        return document.ToImage()
-            .WithFont(PortableFontFamily, PortableRegularFont.Value)
-            .WithFont(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold)
-            .FitWithin(360, 360)
-            .AsPng()
-            .Export()
-            .Bytes;
+        var options = new WordImageExportOptions {
+            Format = OfficeImageExportFormat.Png,
+            MaximumOutputWidth = 360,
+            MaximumOutputHeight = 360
+        };
+        options.Fonts.Add(PortableFontFamily, PortableRegularFont.Value);
+        options.Fonts.Add(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold);
+        return document.ToImage(options);
     }
 
     private static byte[] RenderPowerPoint() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(480, 270);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(270));
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "F8FAFC";
-        PowerPointTextBox title = slide.AddTextBoxPoints("Delivery dashboard", 28, 22, 300, 34);
-        title.FontSize = 24;
+        PowerPointTextBox title = slide.AddTextBox("Delivery dashboard",global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(34));
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(24);
         title.Bold = true;
         title.FontName = PortableFontFamily;
         title.Color = "1E3A8A";
-        PowerPointTextBox status = slide.AddTextBoxPoints("On track", 30, 88, 170, 64);
-        status.FontSize = 18;
+        PowerPointTextBox status = slide.AddTextBox("On track",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(88),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(64));
+        status.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         status.Bold = true;
         status.FontName = PortableFontFamily;
         status.Color = "166534";
-        PowerPointTextBox evidence = slide.AddTextBoxPoints("Evidence ready", 260, 88, 170, 64);
-        evidence.FontSize = 18;
+        PowerPointTextBox evidence = slide.AddTextBox("Evidence ready",global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(88),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(64));
+        evidence.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         evidence.Bold = true;
         evidence.FontName = PortableFontFamily;
         evidence.Color = "155E75";
-        slide.AddShapePoints(OfficePresetShapeType.RoundRectangle, 28, 178, 174, 46)
+        slide.AddShape(OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(28), OfficeIMO.OfficeLength.Points(178), OfficeIMO.OfficeLength.Points(174), OfficeIMO.OfficeLength.Points(46))
             .Fill("DBEAFE")
-            .Stroke("2563EB", 1D);
+            .Stroke("2563EB", global::OfficeIMO.OfficeLength.Points(1D));
         using (var image = new MemoryStream(CreateVisualBadge())) {
-            slide.AddPicture(
+            slide.AddImage(
                 image,
                 OfficeImageFormat.Png,
-                PowerPointUnits.FromPoints(260),
-                PowerPointUnits.FromPoints(178),
-                PowerPointUnits.FromPoints(150),
-                PowerPointUnits.FromPoints(50));
+                global::OfficeIMO.OfficeLength.Points(260),
+                global::OfficeIMO.OfficeLength.Points(178),
+                global::OfficeIMO.OfficeLength.Points(150),
+                global::OfficeIMO.OfficeLength.Points(50));
         }
-        return slide.ToImage()
-            .WithFont(PortableFontFamily, PortableRegularFont.Value)
-            .WithFont(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold)
-            .AsPng()
-            .Export()
-            .Bytes;
+        var options = new PowerPointImageExportOptions();
+        options.Fonts.Add(PortableFontFamily, PortableRegularFont.Value);
+        options.Fonts.Add(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold);
+        return slide.ToImage(options);
     }
 
     private static byte[] CreateVisualBadge() {
@@ -156,14 +149,14 @@ public sealed class ImageExportProviderVisualBaselineTests {
         paragraph.Runs.Add(emphasized);
         outline.Children.Add(paragraph);
         page.Outlines.Add(outline);
-        return page.ToImage()
-            .ConfigureOptions(options => options.DefaultFont = new OfficeFontInfo(PortableFontFamily, 11D))
-            .WithFont(PortableFontFamily, PortableRegularFont.Value)
-            .WithFont(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold)
-            .FitWithin(360, 360)
-            .AsPng()
-            .Export()
-            .Bytes;
+        var imageOptions1 = new OneNotePageRenderingOptions();
+        imageOptions1.DefaultFont = new OfficeFontInfo(PortableFontFamily, 11D);
+        imageOptions1.Fonts.Add(PortableFontFamily, PortableRegularFont.Value);
+        imageOptions1.Fonts.Add(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold);
+        imageOptions1.MaximumOutputWidth = 360;
+        imageOptions1.MaximumOutputHeight = 360;
+        imageOptions1.Format = OfficeImageExportFormat.Png;
+        return page.ToImage(imageOptions1);
     }
 
     private static byte[] RenderEmail() {

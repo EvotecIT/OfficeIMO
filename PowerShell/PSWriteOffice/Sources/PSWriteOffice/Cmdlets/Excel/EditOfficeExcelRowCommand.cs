@@ -64,7 +64,7 @@ public sealed class EditOfficeExcelRowCommand : PSCmdlet {
         var sheet = ExcelWorkbookCommandService.ResolveSheet(this, document, ParameterSetName, Sheet, SheetIndex);
         var options = ExcelReadOutputService.CreateOptions(NumericAsDecimal.IsPresent);
         var range = string.IsNullOrWhiteSpace(Range) ? sheet.UsedRangeA1 : Range!;
-        var (firstRow, firstColumn, _, _) = A1.ParseRange(range);
+        var (firstRow, firstColumn, _, _) = ExcelA1.ParseRange(range);
         options.SheetName = sheet.Name;
         options.A1Range = range;
         options.HasHeaderRow = true;

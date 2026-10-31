@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
                 var para = document.FooterDefaultOrCreate.AddParagraph();
                 para.ParagraphAlignment = WordParagraphAlignment.Right;
                 para.AddText("Page ");
-                para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman, separator: " of ");
+                para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.UpperRoman, separator: " of ");
 
                 document.AddParagraph("First page");
                 document.AddPageBreak();

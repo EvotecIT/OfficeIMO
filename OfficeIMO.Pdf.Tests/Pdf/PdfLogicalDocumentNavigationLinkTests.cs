@@ -88,13 +88,13 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Load_ExposesLinkAnnotationsAsLogicalElements() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 360,
-                PageHeight = 240,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .H1("Linked heading", linkUri: "https://evotec.xyz/logical-link", linkContents: "Logical link metadata")
             .ToBytes();
@@ -125,13 +125,13 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Reader_ExposesLinkHelpersAndDiagnostics() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 360,
-                PageHeight = 240,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .H1("Linked heading", linkUri: "https://evotec.xyz/logical-link", linkContents: "Logical link metadata")
             .ToBytes();
@@ -187,15 +187,17 @@ public partial class PdfDocumentReadResultTests {
                     PdfAlign.Left,
                     linkContents: "Nested heading jump metadata",
                     linkDestinationName: "Details")))
-                .Spacer(18)
+                .Spacer(global::OfficeIMO.OfficeLength.Points(18))
                 .Bookmark("Details")
-                .H2("Details")), new PdfOptions {
-                PageWidth = 360,
-                PageHeight = 240,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+                .H2("Details")), new PdfCreateOptions {
+                // Built-in heading metrics keep this reading fixture independent of the document theme.
+                DefaultHeadingStyles = new PdfHeadingStyles(),
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .ToBytes();
 
@@ -294,13 +296,13 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Load_ExposesTableCellNamedDestinationLinksAsLogicalElements() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 360,
-                PageHeight = 240,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .Table(new[] {
                 new[] {

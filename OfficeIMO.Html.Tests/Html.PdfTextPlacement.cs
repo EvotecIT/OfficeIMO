@@ -10,11 +10,11 @@ public class HtmlPdfTextPlacement {
     public void LayoutDefersUncoveredEmbeddedGlyphsUntilAutomaticFallbackSelection() {
         byte[] primaryBytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "SourceSerif4-Regular.otf"));
         var options = new HtmlToPdfOptions {
-            PdfOptions = new OfficeIMO.Pdf.PdfOptions().EmbedStandardFont(
+            PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions().EmbedStandardFont(
                 OfficeIMO.Pdf.PdfStandardFont.Helvetica, primaryBytes, "Primary")
         };
         const string expected = "office\u012C continued";
-        byte[] bytes = HtmlConversionDocument.Parse("<p>" + expected + "</p>").ToPdfBytes(options);
+        byte[] bytes = (HtmlConversionDocument.Parse("<p>" + expected + "</p>").ToPdf(options)).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Contains(expected, pdf.GetPage(1).Text, StringComparison.Ordinal);
     }
@@ -45,15 +45,15 @@ public class HtmlPdfTextPlacement {
             && (!primary.TryGetGlyphId(value, out int primaryGlyph) || primaryGlyph == 0)
             && fallback.TryGetGlyphId(value, out int fallbackGlyph) && fallbackGlyph > 0);
         string text = "office" + char.ConvertFromUtf32(scalar);
-        var options = new OfficeIMO.Pdf.PdfOptions()
+        var options = new OfficeIMO.Pdf.PdfCreateOptions()
             .EmbedStandardFont(OfficeIMO.Pdf.PdfStandardFont.Helvetica, primaryBytes, "Primary")
             .RegisterEmbeddedFontFallbacks(new OfficeIMO.Pdf.PdfEmbeddedFontFallbackSet(
                 new[] { new OfficeIMO.Pdf.PdfEmbeddedFontFallbackCandidate("Fallback", fallbackBytes) },
                 new[] { OfficeIMO.Pdf.PdfStandardFont.TimesRoman }));
-        byte[] bytes = HtmlConversionDocument.Parse("<p>" + text + "</p>").ToPdfBytes(new HtmlToPdfOptions {
+        byte[] bytes = (HtmlConversionDocument.Parse("<p>" + text + "</p>").ToPdf(new HtmlToPdfOptions {
             PdfOptions = options,
             TextFallbacks = OfficeIMO.Pdf.PdfTextFallbackFeatures.None
-        });
+        })).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Contains(text, pdf.GetPage(1).Text, StringComparison.Ordinal);
     }
@@ -63,9 +63,9 @@ public class HtmlPdfTextPlacement {
     [InlineData("Times New Roman")]
     [InlineData("Courier New")]
     public void PositionedCharactersUseTheWrittenFontsAdvance(string family) {
-        byte[] bytes = HtmlConversionDocument.Parse(
+        byte[] bytes = (HtmlConversionDocument.Parse(
             $"<p style='font-family:{family};font-size:24px;font-weight:bold;letter-spacing:1px'>NORTHWIND</p>")
-            .ToPdfBytes();
+            .ToPdf()).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("NORTHWIND", string.Concat(letters.Select(letter => letter.Value)));
@@ -80,7 +80,7 @@ public class HtmlPdfTextPlacement {
     [InlineData("Confirm reference <strong>00130</strong>.", "Confirm reference 00130.")]
     [InlineData("<span>Leading</span> <em>and</em> <strong>trailing</strong> spaces.", "Leading and trailing spaces.")]
     public void InlineBoundariesPreserveSpacesAndDoNotOverlap(string body, string expected) {
-        byte[] bytes = HtmlConversionDocument.Parse($"<p style='font:14px Arial'>{body}</p>").ToPdfBytes();
+        byte[] bytes = (HtmlConversionDocument.Parse($"<p style='font:14px Arial'>{body}</p>").ToPdf()).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters.ToArray();
         Assert.Equal(expected, string.Concat(letters.Select(letter => letter.Value)));
@@ -93,7 +93,7 @@ public class HtmlPdfTextPlacement {
 
     [Fact]
     public void PositionedTextRetainsStandardFontPunctuation() {
-        byte[] bytes = HtmlConversionDocument.Parse("<p>September · Approved • € £</p>").ToPdfBytes();
+        byte[] bytes = (HtmlConversionDocument.Parse("<p>September · Approved • € £</p>").ToPdf()).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Contains("September · Approved • € £", pdf.GetPage(1).Text, StringComparison.Ordinal);
     }

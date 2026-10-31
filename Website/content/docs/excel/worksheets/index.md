@@ -14,9 +14,9 @@ using OfficeIMO.Excel;
 using var workbook = ExcelDocument.Create("worksheets.xlsx");
 
 // Add worksheets
-var sheet1 = workbook.AddWorksheet("Sales");
-var sheet2 = workbook.AddWorksheet("Inventory");
-var sheet3 = workbook.AddWorksheet("Summary");
+var sheet1 = workbook.AddSheet("Sales");
+var sheet2 = workbook.AddSheet("Inventory");
+var sheet3 = workbook.AddSheet("Summary");
 
 workbook.Save();
 ```
@@ -26,7 +26,7 @@ workbook.Save();
 By default, OfficeIMO validates sheet names against Excel's rules (no special characters like `:`, `\`, `/`, `?`, `*`, `[`, `]`; maximum 31 characters). You can control validation behavior:
 
 ```csharp
-var sheet = workbook.AddWorksheet("My Sheet!", ExcelSheetNameValidationMode.Sanitize);
+var sheet = workbook.AddSheet("My Sheet!", ExcelSheetNameValidationMode.Sanitize);
 // Name will be sanitized to remove invalid characters
 ```
 
@@ -35,7 +35,7 @@ var sheet = workbook.AddWorksheet("My Sheet!", ExcelSheetNameValidationMode.Sani
 Access cells using A1-style references:
 
 ```csharp
-var sheet = workbook.AddWorksheet("Data");
+var sheet = workbook.AddSheet("Data");
 
 // String values
 sheet.Cells["A1"].Value = "Name";
@@ -123,11 +123,12 @@ sheet.Cells["C1"].Value = "=COUNTIF(A1:A3,\">150\")";
 
 ```csharp
 // Set column width
-sheet.SetColumnWidth("A", 25);
-sheet.SetColumnWidth("B", 15);
+sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(25));
+sheet.SetColumnWidth(2, ExcelColumnWidth.Length(OfficeLength.Centimeters(3)));
+sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeLength.Points(24)));
 
 // Auto-fit columns (requires data to be populated first)
-sheet.AutoFitColumn("A");
+sheet.AutoFitColumn(1);
 ```
 
 ## Named Ranges
@@ -165,7 +166,7 @@ sheet.HeaderFooter.OddFooter = "&LPage &P of &N&R&D";
 Add images to worksheets:
 
 ```csharp
-sheet.AddImage("chart.png", "A10", width: 400, height: 300);
+sheet.AddImageFromFile(10, 1, "chart.png", width: OfficeIMO.OfficeLength.Pixels(400), height: OfficeIMO.OfficeLength.Pixels(300));
 ```
 
 ## Freezing Panes

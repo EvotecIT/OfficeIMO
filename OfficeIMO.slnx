@@ -245,8 +245,11 @@
   <Project Path="OfficeIMO.OpenDocument/OfficeIMO.OpenDocument.csproj" />
   <Project Path="OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj" />
   <Project Path="OfficeIMO.Opml/OfficeIMO.Opml.csproj" />
+  <Project Path="OfficeIMO.Pdf.Excel/OfficeIMO.Pdf.Excel.csproj" />
   <Project Path="OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj" />
+  <Project Path="OfficeIMO.Pdf.PowerPoint/OfficeIMO.Pdf.PowerPoint.csproj" />
   <Project Path="OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj" />
+  <Project Path="OfficeIMO.Pdf.Word/OfficeIMO.Pdf.Word.csproj" />
   <Project Path="OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />
   <Project Path="OfficeIMO.PowerPoint.Benchmarks/OfficeIMO.PowerPoint.Benchmarks.csproj" />
   <Project Path="OfficeIMO.PowerPoint.GoogleSlides/OfficeIMO.PowerPoint.GoogleSlides.csproj" />
@@ -313,6 +316,7 @@
   <Project Path="OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj" />
   <Project Path="OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj" />
   <Project Path="OfficeIMO.Studio/OfficeIMO.Studio.csproj" />
+  <Project Path="OfficeIMO.Tests/OfficeIMO.Tests.csproj" />
   <Project Path="OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj" />
   <Project Path="OfficeIMO.Tool/OfficeIMO.Tool.csproj" />
   <Project Path="OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj" />
@@ -335,4 +339,5 @@
   <Project Path="OfficeIMO.Xps.Pdf/OfficeIMO.Xps.Pdf.csproj" />
   <Project Path="OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj" />
   <Project Path="OfficeIMO.Xps/OfficeIMO.Xps.csproj" />
+  <Project Path="OfficeIMO/OfficeIMO.csproj" />
 </Solution>

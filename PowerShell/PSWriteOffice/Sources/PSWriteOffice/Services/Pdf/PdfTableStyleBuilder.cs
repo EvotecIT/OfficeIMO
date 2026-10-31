@@ -116,29 +116,29 @@ internal static class PdfTableStyleBuilder
         if (options.TextColor != null) style.TextColor = PdfCommandUtilities.ParseColor(options.TextColor);
         if (options.RowStripeFill != null) style.RowStripeFill = PdfCommandUtilities.ParseColor(options.RowStripeFill);
         if (options.BorderColor != null) style.BorderColor = PdfCommandUtilities.ParseColor(options.BorderColor);
-        if (options.BorderWidth.HasValue) style.BorderWidth = options.BorderWidth.Value;
-        if (options.FontSize.HasValue) style.FontSize = options.FontSize.Value;
-        if (options.HeaderFontSize.HasValue) style.HeaderFontSize = options.HeaderFontSize.Value;
+        if (options.BorderWidth.HasValue) style.BorderWidth = global::OfficeIMO.OfficeLength.Points(options.BorderWidth.Value);
+        if (options.FontSize.HasValue) style.FontSize = global::OfficeIMO.OfficeLength.Points(options.FontSize.Value);
+        if (options.HeaderFontSize.HasValue) style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(options.HeaderFontSize.Value);
         if (options.LineHeight.HasValue) style.LineHeight = options.LineHeight.Value;
-        if (options.CellPaddingX.HasValue) style.CellPaddingX = options.CellPaddingX.Value;
-        if (options.CellPaddingY.HasValue) style.CellPaddingY = options.CellPaddingY.Value;
-        if (options.CellPaddingLeft.HasValue) style.CellPaddingLeft = options.CellPaddingLeft.Value;
-        if (options.CellPaddingRight.HasValue) style.CellPaddingRight = options.CellPaddingRight.Value;
-        if (options.CellPaddingTop.HasValue) style.CellPaddingTop = options.CellPaddingTop.Value;
-        if (options.CellPaddingBottom.HasValue) style.CellPaddingBottom = options.CellPaddingBottom.Value;
-        if (options.SpacingBefore.HasValue) style.SpacingBefore = options.SpacingBefore.Value;
-        if (options.SpacingAfter.HasValue) style.SpacingAfter = options.SpacingAfter.Value;
+        if (options.CellPaddingX.HasValue) style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(options.CellPaddingX.Value);
+        if (options.CellPaddingY.HasValue) style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(options.CellPaddingY.Value);
+        if (options.CellPaddingLeft.HasValue) style.CellPaddingLeft = global::OfficeIMO.OfficeLength.Points(options.CellPaddingLeft.Value);
+        if (options.CellPaddingRight.HasValue) style.CellPaddingRight = global::OfficeIMO.OfficeLength.Points(options.CellPaddingRight.Value);
+        if (options.CellPaddingTop.HasValue) style.CellPaddingTop = global::OfficeIMO.OfficeLength.Points(options.CellPaddingTop.Value);
+        if (options.CellPaddingBottom.HasValue) style.CellPaddingBottom = global::OfficeIMO.OfficeLength.Points(options.CellPaddingBottom.Value);
+        if (options.SpacingBefore.HasValue) style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(options.SpacingBefore.Value);
+        if (options.SpacingAfter.HasValue) style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(options.SpacingAfter.Value);
         if (options.Caption != null) style.Caption = options.Caption;
         if (options.CaptionAlign.HasValue) style.CaptionAlign = options.CaptionAlign.Value;
         if (options.CaptionColor != null) style.CaptionColor = PdfCommandUtilities.ParseColor(options.CaptionColor);
-        if (options.CaptionFontSize.HasValue) style.CaptionFontSize = options.CaptionFontSize.Value;
-        if (options.CaptionSpacingAfter.HasValue) style.CaptionSpacingAfter = options.CaptionSpacingAfter.Value;
-        if (options.MaxWidth.HasValue) style.MaxWidth = options.MaxWidth.Value;
-        if (options.LeftIndent.HasValue) style.LeftIndent = options.LeftIndent.Value;
-        if (options.MinimumShrinkFontSize.HasValue) style.MinimumShrinkFontSize = options.MinimumShrinkFontSize.Value;
-        if (options.ColumnWidthPoints is { Length: > 0 }) style.ColumnWidthPoints = options.ColumnWidthPoints.Select(value => (double?)value).ToList();
-        if (options.ColumnMinWidthPoints is { Length: > 0 }) style.ColumnMinWidthPoints = options.ColumnMinWidthPoints.Select(value => (double?)value).ToList();
-        if (options.ColumnMaxWidthPoints is { Length: > 0 }) style.ColumnMaxWidthPoints = options.ColumnMaxWidthPoints.Select(value => (double?)value).ToList();
+        if (options.CaptionFontSize.HasValue) style.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(options.CaptionFontSize.Value);
+        if (options.CaptionSpacingAfter.HasValue) style.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(options.CaptionSpacingAfter.Value);
+        if (options.MaxWidth.HasValue) style.MaxWidth = global::OfficeIMO.OfficeLength.Points(options.MaxWidth.Value);
+        if (options.LeftIndent.HasValue) style.LeftIndent = global::OfficeIMO.OfficeLength.Points(options.LeftIndent.Value);
+        if (options.MinimumShrinkFontSize.HasValue) style.MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(options.MinimumShrinkFontSize.Value);
+        if (options.ColumnWidthPoints is { Length: > 0 }) style.ColumnWidths = options.ColumnWidthPoints.Select(value => (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(value)).ToList();
+        if (options.ColumnMinWidthPoints is { Length: > 0 }) style.ColumnMinWidths = options.ColumnMinWidthPoints.Select(value => (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(value)).ToList();
+        if (options.ColumnMaxWidthPoints is { Length: > 0 }) style.ColumnMaxWidths = options.ColumnMaxWidthPoints.Select(value => (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(value)).ToList();
         if (options.ColumnWidthWeights is { Length: > 0 }) style.ColumnWidthWeights = options.ColumnWidthWeights.ToList();
         if (options.ColumnAlign is { Length: > 0 }) style.Alignments = options.ColumnAlign.ToList();
         if (options.AutoFitColumns) style.AutoFitColumns = true;
@@ -149,7 +149,7 @@ internal static class PdfTableStyleBuilder
         if (options.NoBorder)
         {
             style.BorderColor = null;
-            style.BorderWidth = 0;
+            style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0);
         }
 
         if (options.NoHeaderFill) style.HeaderFill = null;
@@ -210,13 +210,13 @@ internal static class PdfTableStyleBuilder
 
         return Normalize(styleName!) switch
         {
-            "light" => TableStyles.Light(),
-            "minimal" => TableStyles.Minimal(),
-            "rightalignednumbers" => TableStyles.RightAlignedNumbers(),
-            "technicaldocument" or "technical" => TableStyles.TechnicalDocument(),
-            "compact" => TableStyles.Compact(),
-            "report" => TableStyles.Report(),
-            _ => TableStyles.FromWordTableStyle(styleName!)
+            "light" => PdfTableStyles.Light(),
+            "minimal" => PdfTableStyles.Minimal(),
+            "rightalignednumbers" => PdfTableStyles.RightAlignedNumbers(),
+            "technicaldocument" or "technical" => PdfTableStyles.TechnicalDocument(),
+            "compact" => PdfTableStyles.Compact(),
+            "report" => PdfTableStyles.Report(),
+            _ => PdfTableStyles.FromWordTableStyle(styleName!)
         };
     }
 

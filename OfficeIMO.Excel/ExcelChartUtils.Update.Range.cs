@@ -551,16 +551,16 @@ namespace OfficeIMO.Excel {
             return selected;
         }
 
-        internal static ExcelChartData ApplyChartSeriesTypes(ChartPart chartPart, ExcelChartData data, ExcelChartType defaultType) {
+        internal static ExcelChartData ApplyChartSeriesTypes(ChartPart chartPart, ExcelChartData data, OfficeChartType defaultType) {
             var chart = chartPart.ChartSpace?.GetFirstChild<Chart>();
             var plotArea = chart?.GetFirstChild<PlotArea>();
             if (plotArea == null || data.Series.Count == 0) {
                 return data;
             }
 
-            var typedSeries = new List<(OpenXmlCompositeElement Series, ExcelChartType ChartType, OfficeChartAxisGroup AxisGroup)>();
+            var typedSeries = new List<(OpenXmlCompositeElement Series, OfficeChartType ChartType, OfficeChartAxisGroup AxisGroup)>();
             foreach (OpenXmlElement chartElement in plotArea.ChildElements) {
-                if (!TryGetChartElementType(chartElement, out ExcelChartType chartType)) {
+                if (!TryGetChartElementType(chartElement, out OfficeChartType chartType)) {
                     continue;
                 }
 
@@ -572,11 +572,15 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (typedSeries.Count == 0) {
+            var literalNames = GetChartSeries(plotArea, data.Series.Count)
+                .Select((item, index) => new { index, Name = item.GetFirstChild<SeriesText>()?.GetFirstChild<NumericValue>()?.Text })
+                .Where(item => item.Name != null)
+                .ToDictionary(item => item.index, item => item.Name!);
+            if (typedSeries.Count == 0 && literalNames.Count == 0) {
                 return data;
             }
 
-            Dictionary<int, (ExcelChartType ChartType, OfficeChartAxisGroup AxisGroup)> seriesTypes = typedSeries
+            Dictionary<int, (OfficeChartType ChartType, OfficeChartAxisGroup AxisGroup)> seriesTypes = typedSeries
                 .OrderBy(item => item.Series.GetFirstChild<ChartIndex>()?.Val?.Value ?? uint.MaxValue)
                 .Select((item, index) => new { index, item.ChartType, item.AxisGroup })
                 .ToDictionary(item => item.index, item => (item.ChartType, item.AxisGroup));
@@ -584,14 +588,17 @@ namespace OfficeIMO.Excel {
             var series = new List<ExcelChartSeries>(data.Series.Count);
             for (int i = 0; i < data.Series.Count; i++) {
                 ExcelChartSeries current = data.Series[i];
-                ExcelChartType? seriesType = current.ChartType;
+                OfficeChartType? seriesType = current.ChartType;
                 OfficeChartAxisGroup axisGroup = current.AxisGroup;
+                // Literal names also belong to native chart families whose type
+                // projection is unsupported. Linked headers use current sheet data.
+                string name = literalNames.TryGetValue(i, out string? literalName) ? literalName : current.Name;
                 if (seriesTypes.TryGetValue(i, out var authoredSeries)) {
                     seriesType = authoredSeries.ChartType;
                     axisGroup = authoredSeries.AxisGroup;
                 }
 
-                series.Add(new ExcelChartSeries(current.Name, current.Values, seriesType, axisGroup).WithXValues(current.XValues));
+                series.Add(new ExcelChartSeries(name, current.Values, seriesType, axisGroup).WithXValues(current.XValues));
             }
 
             return new ExcelChartData(data.Categories, series);
@@ -839,48 +846,48 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool TryGetChartElementType(OpenXmlElement element, out ExcelChartType chartType) {
+        private static bool TryGetChartElementType(OpenXmlElement element, out OfficeChartType chartType) {
             switch (element) {
                 case BarChart bar:
                     BarDirectionValues direction = bar.GetFirstChild<BarDirection>()?.Val?.Value ?? BarDirectionValues.Column;
                     BarGroupingValues barGrouping = bar.GetFirstChild<BarGrouping>()?.Val?.Value ?? BarGroupingValues.Clustered;
                     if (direction == BarDirectionValues.Bar) {
                         chartType = barGrouping == BarGroupingValues.PercentStacked
-                            ? ExcelChartType.BarStacked100
-                            : barGrouping == BarGroupingValues.Stacked ? ExcelChartType.BarStacked : ExcelChartType.BarClustered;
+                            ? OfficeChartType.BarStacked100
+                            : barGrouping == BarGroupingValues.Stacked ? OfficeChartType.BarStacked : OfficeChartType.BarClustered;
                     } else {
                         chartType = barGrouping == BarGroupingValues.PercentStacked
-                            ? ExcelChartType.ColumnStacked100
-                            : barGrouping == BarGroupingValues.Stacked ? ExcelChartType.ColumnStacked : ExcelChartType.ColumnClustered;
+                            ? OfficeChartType.ColumnStacked100
+                            : barGrouping == BarGroupingValues.Stacked ? OfficeChartType.ColumnStacked : OfficeChartType.ColumnClustered;
                     }
 
                     return true;
                 case LineChart line:
                     GroupingValues lineGrouping = line.GetFirstChild<Grouping>()?.Val?.Value ?? GroupingValues.Standard;
                     chartType = lineGrouping == GroupingValues.PercentStacked
-                        ? ExcelChartType.LineStacked100
-                        : lineGrouping == GroupingValues.Stacked ? ExcelChartType.LineStacked : ExcelChartType.Line;
+                        ? OfficeChartType.LineStacked100
+                        : lineGrouping == GroupingValues.Stacked ? OfficeChartType.LineStacked : OfficeChartType.Line;
                     return true;
                 case AreaChart area:
                     GroupingValues areaGrouping = area.GetFirstChild<Grouping>()?.Val?.Value ?? GroupingValues.Standard;
                     chartType = areaGrouping == GroupingValues.PercentStacked
-                        ? ExcelChartType.AreaStacked100
-                        : areaGrouping == GroupingValues.Stacked ? ExcelChartType.AreaStacked : ExcelChartType.Area;
+                        ? OfficeChartType.AreaStacked100
+                        : areaGrouping == GroupingValues.Stacked ? OfficeChartType.AreaStacked : OfficeChartType.Area;
                     return true;
                 case ScatterChart:
-                    chartType = ExcelChartType.Scatter;
+                    chartType = OfficeChartType.Scatter;
                     return true;
                 case RadarChart:
-                    chartType = ExcelChartType.Radar;
+                    chartType = OfficeChartType.Radar;
                     return true;
                 case PieChart:
-                    chartType = ExcelChartType.Pie;
+                    chartType = OfficeChartType.Pie;
                     return true;
                 case Pie3DChart:
-                    chartType = ExcelChartType.Pie3D;
+                    chartType = OfficeChartType.Pie3D;
                     return true;
                 case DoughnutChart:
-                    chartType = ExcelChartType.Doughnut;
+                    chartType = OfficeChartType.Doughnut;
                     return true;
                 default:
                     chartType = default;

@@ -1,8 +1,14 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
-    /// <summary>Optional page background color rendered behind all page content.</summary>
-    public PdfColor? BackgroundColor { get; set; }
+public sealed partial class PdfCreateOptions {
+    private OfficeColor? _backgroundColor;
+    private bool _hasExplicitBackgroundColor;
+    /// <summary>Page background for new composition. An explicit null keeps the page transparent.</summary>
+    public global::OfficeIMO.OfficeColor? BackgroundColor {
+        get => _hasExplicitBackgroundColor ? _backgroundColor : _useOfficeThemeDefaults
+            ? PdfTheme.Resolve(EffectiveTheme.Palette.Background, EffectiveTheme) : (OfficeColor?)null;
+        set { _backgroundColor = value; _hasExplicitBackgroundColor = true; }
+    }
     /// <summary>Optional reusable text watermark rendered behind all page content.</summary>
     public PdfTextWatermark? TextWatermark {
         get => _textWatermark?.Clone();

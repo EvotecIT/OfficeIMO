@@ -14,15 +14,15 @@ public sealed class PdfPageImageLayoutTests {
     [InlineData(OfficeImageExportFormat.Svg)]
     public void WordPdfPageImagesUseThePdfPaginationAndPreserveEveryParagraph(OfficeImageExportFormat format) {
         using var word = WordDocument.Create();
-        word.Sections[0].PageSettings.Width = 6000;
-        word.Sections[0].PageSettings.Height = 6000;
+        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
+        word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
         word.AddParagraph("Heading").SetStyle(WordParagraphStyles.Heading1);
         var table = word.AddTable(2, 1, WordTableStyle.TableGrid);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Table first row";
         table.Rows[1].Cells[0].Paragraphs[0].Text = "Table second row";
         for (int index = 0; index < 20; index++) word.AddParagraph("Paragraph" + index + " complete sentence");
-        var conversion = word.ToPdfDocumentResult(new WordToPdfOptions {
-            Margins = PageMargins.Uniform(30), ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+        var conversion = word.ConvertToPdfWithEvidence(new WordPdfExportOptions {
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)), ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         });
         byte[] bytes = conversion.ToBytes();
         var pdf = PdfDocument.Load(bytes);
@@ -30,7 +30,8 @@ public sealed class PdfPageImageLayoutTests {
         var images = conversion.ExportImages(format, options);
         Assert.True(images.Count > 1);
         Assert.Equal(pdf.Inspect().PageCount, images.Count);
-        var direct = pdf.Render.ExportImages(format, options);
+        options.Format = format;
+        var direct = pdf.ExportImages(options);
         for (int index = 0; index < images.Count; index++)
             Assert.Equal(direct[index].Bytes, images[index].Bytes);
         if (format == OfficeImageExportFormat.Svg) {

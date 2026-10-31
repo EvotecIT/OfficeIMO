@@ -11,7 +11,7 @@ Creates literal text decoding and PDF layout settings for Export-OfficeDocumentP
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeTextPdfOptions [-EncodingName <string>] [-TabSize <int>] [-MaximumCharacters <int>] [-MaximumPages <int>] [-PdfOptions <PdfOptions>] [<CommonParameters>]
+New-OfficeTextPdfOptions [-EncodingName <string>] [-TabSize <int>] [-MaximumCharacters <int>] [-MaximumPages <int>] [-PdfOptions <PdfCreateOptions>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -80,7 +80,7 @@ Accept wildcard characters: False
 PDF fonts and page geometry; default is ten-point Courier.
 
 ```yaml
-Type: PdfOptions
+Type: PdfCreateOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -117,7 +117,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfPlainTextOptions`
+- `OfficeIMO.Pdf.PdfTextImportOptions`
 
 ## RELATED LINKS
 

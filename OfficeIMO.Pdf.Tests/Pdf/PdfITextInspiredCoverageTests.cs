@@ -62,7 +62,7 @@ public class PdfITextInspiredCoverageTests {
 
     [Fact]
     public void AssessProof_ReportsMissingExternalValidationStatus() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ComplianceProfile = PdfComplianceProfile.PdfA3B
         };
 
@@ -378,7 +378,7 @@ public class PdfITextInspiredCoverageTests {
     [Fact]
     public void FormFillers_MapCheckboxExportValuesBackToAppearanceStates() {
         byte[] pdf = PdfDocument.Create()
-            .Canvas(canvas => canvas.CheckBoxWithExportValue("Accept", false, 20D, 20D, 14D, 14D, "Yes", "accepted"))
+            .Canvas(canvas => canvas.CheckBoxWithExportValue("Accept", false, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D), "Yes", "accepted"))
             .ToBytes();
         var values = new Dictionary<string, string> { ["Accept"] = "accepted" };
 
@@ -767,7 +767,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesTransformsAnnotationsAndNormalizesProductionBoxes() {
         byte[] pdf = BuildResizableAnnotatedPagePdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
 
@@ -809,7 +809,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesTransformsDestinationsFromUnresizedPages() {
         byte[] pdf = BuildResizableTwoPageLinkPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         }, 1);
 
@@ -826,7 +826,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesConvertsRotatedFitDestinationsToConcretePoints() {
         byte[] pdf = BuildResizableRotatedFitDestinationPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
 
@@ -842,7 +842,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesConvertsRotatedPartialXyzDestinationsToConcretePoints() {
         byte[] pdf = BuildResizableRotatedPartialXyzDestinationPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
 
@@ -858,9 +858,9 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesFillClipsToMarginBoxBeforeScaling() {
         byte[] pdf = BuildResizableTallPagePdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Fill,
-            Margin = 50
+            Margin = OfficeIMO.OfficeLength.Points(50)
         });
         string raw = PdfEncoding.Latin1GetString(resized);
 
@@ -876,9 +876,9 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesFillClipsAnnotationRectanglesToMarginBox() {
         byte[] pdf = BuildResizableTallPageWithCroppedAnnotationsPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Fill,
-            Margin = 50
+            Margin = OfficeIMO.OfficeLength.Points(50)
         });
         PdfDocumentInfo info = PdfInspector.Inspect(resized);
         string raw = PdfEncoding.Latin1GetString(resized);
@@ -896,7 +896,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesTransformsSharedIndirectDestinationsOnce() {
         byte[] pdf = BuildResizableSharedDestinationPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
 
@@ -916,7 +916,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesTransformsIndirectAnnotationGeometryArrays() {
         byte[] pdf = BuildResizableIndirectAnnotationGeometryPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
         string raw = PdfEncoding.Latin1GetString(resized);
@@ -933,7 +933,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesRemapsPopupAnnotationReferencesToTransformedClones() {
         byte[] pdf = BuildResizablePopupAnnotationPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
         string raw = PdfEncoding.Latin1GetString(resized);
@@ -948,7 +948,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_ResizePagesCollectsClonedAnnotationActionDependencies() {
         byte[] pdf = BuildResizableAnnotationActionPdf();
 
-        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PageSize(600, 600)) {
+        byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
         });
         string raw = PdfEncoding.Latin1GetString(resized);
@@ -1077,14 +1077,14 @@ public class PdfITextInspiredCoverageTests {
     [Fact]
     public void PdfOptions_RejectsEncryptionWithPdfABackedGroundwork() {
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(
-                new PdfOptions()
+                new PdfCreateOptions()
                     .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4)
                     .SetEncryption("open"))
             .Paragraph(p => p.Text("PDF/A and encryption should not mix."))
             .ToBytes());
 
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(
-                new PdfOptions()
+                new PdfCreateOptions()
                     .ConfigureFacturXGroundwork(Encoding.UTF8.GetBytes("<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\" xmlns:ram=\"urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100\"><rsm:ExchangedDocumentContext><ram:GuidelineSpecifiedDocumentContextParameter><ram:ID>urn:cen.eu:en16931:2017</ram:ID></ram:GuidelineSpecifiedDocumentContextParameter></rsm:ExchangedDocumentContext></rsm:CrossIndustryInvoice>"))
                     .SetEncryption("open"))
             .Paragraph(p => p.Text("Factur-X and encryption should not mix."))

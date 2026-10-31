@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Provenance;
 
@@ -8,38 +10,41 @@ internal static partial class OfficeC2paManifestStore {
         if (Get(assertion, "actions") is not List<object?> actions) return;
         bool versionTwo = label == "c2pa.actions.v2" || label.StartsWith("c2pa.actions.v2__", System.StringComparison.Ordinal);
         var templates = IndexTemplates(versionTwo ? Get(assertion, "templates") as List<object?> : null);
+        var cache = new ActionProjectionCache(templates);
         var agents = versionTwo ? Get(assertion, "softwareAgents") as List<object?> : null;
         foreach (object? entry in actions) {
             if (entry is not Dictionary<object, object?> action) continue;
-            DescribeAction(action, null, templates, agents, versionTwo, output, 0, ref declaresGenerativeAi);
+            DescribeAction(action, null, templates, cache, agents, versionTwo, output, 0, ref declaresGenerativeAi);
         }
     }
 
     private static void DescribeAction(Dictionary<object, object?> action, Dictionary<object, object?>? parent,
-        Dictionary<string, Dictionary<object, object?>> templates, List<object?>? agents, bool versionTwo, List<OfficeC2paAction> output, int depth, ref bool declaresGenerativeAi) {
+        Dictionary<string, Dictionary<object, object?>> templates, ActionProjectionCache cache, List<object?>? agents,
+        bool versionTwo, List<OfficeC2paAction> output, int depth, ref bool declaresGenerativeAi) {
         if (depth > 16) return;
         string? name = Get(action, "action") as string ?? (parent == null ? null : Get(parent, "action") as string);
         if (string.IsNullOrEmpty(name)) return;
         var effective = new Dictionary<object, object?>();
         // Wildcards are defaults regardless of position. Each indexed template already incorporates
         // its matching entries in array order, so each action performs only two bounded overlays.
-        if (templates.TryGetValue("*", out var wildcard)) Overlay(effective, wildcard);
-        if (name != "*" && templates.TryGetValue(name!, out var matching)) Overlay(effective, matching);
+        if (cache.Wildcard != null) Overlay(effective, cache.Wildcard);
+        if (name != "*" && cache.MatchingTemplate(name!, templates) is Dictionary<object, object?> matching) Overlay(effective, matching);
         if (parent != null) Overlay(effective, parent);
         Overlay(effective, action);
-        string? agent = Agent(Get(effective, "softwareAgent"));
+        string? agent = cache.Agent(Get(effective, "softwareAgent"));
         if (agent == null && agents != null && Get(effective, "softwareAgentIndex") is long index && index >= 0 && index < agents.Count) {
-            agent = Agent(agents[(int)index]);
+            agent = cache.Agent(agents[(int)index]);
         }
         object? when = Get(effective, "when");
         if (when is OfficeCborTag tag) when = tag.Tag == 0 ? tag.Value : null;
-        var record = new OfficeC2paAction(Text(name) ?? "", agent, Text(Get(effective, "digitalSourceType")), Text(when));
+        var record = new OfficeC2paAction(cache.Text(name) ?? "", agent,
+            cache.Text(Get(effective, "digitalSourceType")), cache.Text(when));
         declaresGenerativeAi |= record.DigitalSourceKind is OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia
             or OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia;
         if (output.Count < MaximumDescribedActions) output.Add(record);
         if (versionTwo && Get(action, "related") is List<object?> related) {
             foreach (object? entry in related) {
-                if (entry is Dictionary<object, object?> child) DescribeAction(child, effective, templates, agents, true, output, depth + 1, ref declaresGenerativeAi);
+                if (entry is Dictionary<object, object?> child) DescribeAction(child, effective, templates, cache, agents, true, output, depth + 1, ref declaresGenerativeAi);
             }
         }
     }
@@ -53,6 +58,52 @@ internal static partial class OfficeC2paManifestStore {
             Overlay(effective, template);
         }
         return index;
+    }
+
+    private sealed class ActionProjectionCache {
+        private readonly Dictionary<object, string?> _texts = new(ReferenceComparer.Instance);
+        private readonly Dictionary<object, string?> _agents = new(ReferenceComparer.Instance);
+        private readonly Dictionary<object, Dictionary<object, object?>?> _matches = new(ReferenceComparer.Instance);
+
+        internal ActionProjectionCache(Dictionary<string, Dictionary<object, object?>> templates) {
+            templates.TryGetValue("*", out Dictionary<object, object?>? wildcard);
+            Wildcard = wildcard;
+        }
+
+        internal Dictionary<object, object?>? Wildcard { get; }
+
+        internal Dictionary<object, object?>? MatchingTemplate(string name,
+            Dictionary<string, Dictionary<object, object?>> templates) {
+            if (_matches.TryGetValue(name, out Dictionary<object, object?>? match)) return match;
+            templates.TryGetValue(name, out match);
+            _matches.Add(name, match);
+            return match;
+        }
+
+        internal string? Text(object? value) {
+            if (value is not string source) return null;
+            if (_texts.TryGetValue(source, out string? result)) return result;
+            result = OfficeC2paManifestStore.Text(source);
+            _texts.Add(source, result);
+            return result;
+        }
+
+        internal string? Agent(object? value) {
+            if (value is string) return Text(value);
+            if (value is not Dictionary<object, object?> source) return null;
+            if (_agents.TryGetValue(source, out string? result)) return result;
+            string? name = Text(Get(source, "name"));
+            string? version = Text(Get(source, "version"));
+            result = name == null ? null : version == null ? name : name + " " + version;
+            _agents.Add(source, result);
+            return result;
+        }
+    }
+
+    private sealed class ReferenceComparer : IEqualityComparer<object> {
+        internal static readonly ReferenceComparer Instance = new();
+        public new bool Equals(object? left, object? right) => ReferenceEquals(left, right);
+        public int GetHashCode(object value) => RuntimeHelpers.GetHashCode(value);
     }
 
     private static readonly string[] ActionFields = { "action", "softwareAgent", "softwareAgentIndex", "digitalSourceType", "when" };

@@ -32,7 +32,7 @@ Describe 'PDF cmdlets' {
         $images.Count | Should -BeGreaterThan 0
         $images[0].GetType().FullName | Should -Be 'OfficeIMO.Pdf.PdfExtractedImage'
 
-        $fromPipeline = Get-OfficePdf -Path $path | Read-OfficePdf -PageRange '1'
+        $fromPipeline = Open-OfficePdf -Path $path | Read-OfficePdf -PageRange '1'
         $fromPipeline.GetType().FullName | Should -Be 'OfficeIMO.Pdf.PdfDocumentReadResult'
         @($fromPipeline.Pages).Count | Should -Be 1
         $fromPipeline.Text | Should -Match 'Canonical paragraph marker'
@@ -132,14 +132,14 @@ Describe 'PDF cmdlets' {
         $encryptedPath = Join-Path $TestDrive 'encrypted.pdf'
         [IO.File]::WriteAllBytes($encryptedPath, [Convert]::FromBase64String('JVBERi0xLjQKJT8/Pz8KMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMjAwXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggNDYgPj4Kc3RyZWFtCi8xB1rv33VvGaaV2g01B7caayy3ttoqyqa6Fkx+aapdiBLgquqJCxhp8zWpAXQKZW5kc3RyZWFtCmVuZG9iago2IDAgb2JqCjw8IC9GaWx0ZXIgL1N0YW5kYXJkIC9WIDEgL1IgMiAvTGVuZ3RoIDQwIC9PIDw4RUVCMDk1ODE5NjYyQTc3NDQ0MkZCMDcyRTNEOUYxOUU5RDEzMEVDMDlBNEQwMDYxRTc4RkU5MjBGN0FCNjJGPiAvVSA8QjFFNzY0MTI2QzQ4RDI4RDkwNTI1NTk1MjAwREQ4MTg3NEI4NkZFMUNBNTRCQTAxODZFNThCRTJDMzU5ODhEQz4gL1AgLTQgPj4KZW5kb2JqCnhyZWYKMCA3CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwMDY0IDAwMDAwIG4gCjAwMDAwMDAxMjEgMDAwMDAgbiAKMDAwMDAwMDI0NyAwMDAwMCBuIAowMDAwMDAwMzE3IDAwMDAwIG4gCjAwMDAwMDA0MTMgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA3IC9Sb290IDEgMCBSIC9FbmNyeXB0IDYgMCBSIC9JRCBbPDEwNDVBODdDMjIxODRFQzE5MTRBQ0Y2NjMxRDI3NDAzPiA8MTA0NUE4N0MyMjE4NEVDMTkxNEFDRjY2MzFEMjc0MDM+XSA+PgpzdGFydHhyZWYKNjE5CiUlRU9GCg=='))
 
-        foreach ($name in 'Get-OfficePdf', 'Get-OfficePdfInfo', 'Get-OfficePdfPreflight', 'Get-OfficePdfDiagnostic', 'Get-OfficePdfOptimization', 'Get-OfficePdfSignature', 'Get-OfficePdfText', 'Get-OfficePdfAttachment', 'Get-OfficePdfFormField', 'Get-OfficePdfRedactionPlan', 'ConvertTo-OfficePdfMarkdown', 'ConvertTo-OfficePdfHtml', 'ConvertTo-OfficePdfRedacted') {
+        foreach ($name in 'Open-OfficePdf', 'Get-OfficePdfInfo', 'Get-OfficePdfPreflight', 'Get-OfficePdfDiagnostic', 'Get-OfficePdfOptimization', 'Get-OfficePdfSignature', 'Get-OfficePdfText', 'Get-OfficePdfAttachment', 'Get-OfficePdfFormField', 'Get-OfficePdfRedactionPlan', 'ConvertTo-OfficePdfMarkdown', 'ConvertTo-OfficePdfHtml', 'ConvertTo-OfficePdfRedacted') {
             (Get-Command $name).Parameters.Keys | Should -Contain 'Password'
         }
 
         (Get-OfficePdfPreflight -Path $encryptedPath).CanRead | Should -BeFalse
         (Get-OfficePdfPreflight -Path $encryptedPath -Password 'open').CanRead | Should -BeTrue
         Get-OfficePdfText -Path $encryptedPath -Password 'open' | Should -Match 'Secret PDF Text'
-        (Get-OfficePdf -Path $encryptedPath -Password 'open').Read().Text | Should -Match 'Secret PDF Text'
+        (Open-OfficePdf -Path $encryptedPath -Password 'open').Read().Text | Should -Match 'Secret PDF Text'
         ConvertTo-OfficePdfMarkdown -Path $encryptedPath -Password 'open' | Should -Match 'Secret PDF Text'
     }
 
@@ -161,9 +161,8 @@ Describe 'PDF cmdlets' {
         { Get-OfficePdfText -Path $newPath -Password 'wrong' } | Should -Throw
 
         $savedPath = Join-Path $TestDrive 'saved-encrypted.pdf'
-        $doc = New-OfficePdf {
-            PdfParagraph 'Saved encrypted PDF text'
-        }
+        $doc = New-OfficePdf
+        PdfParagraph -Document $doc 'Saved encrypted PDF text'
 
         $doc | Save-OfficePdf -Path $savedPath -Password 'open' -OwnerPassword 'owner' | Out-Null
 
@@ -185,13 +184,12 @@ Describe 'PDF cmdlets' {
     }
 
     It 'rejects document page composition and deferred context pass-through clearly' {
-        $document = New-OfficePdf {
-            PdfParagraph 'Existing document content'
-        }
+        $document = New-OfficePdf
+        PdfParagraph -Document $document 'Existing document content'
 
         { $document | PdfPageSetup -Margin 36 } |
             Should -Throw '*cannot update an already-built PdfDocument*'
-        { New-OfficePdf { PdfParagraph 'First' -PassThru | PdfParagraph 'Second' } } |
+        { New-OfficePdf -Path (Join-Path $TestDrive 'deferred-pass-through.pdf') { PdfParagraph 'First' -PassThru | PdfParagraph 'Second' } } |
             Should -Throw '*cannot emit a PdfDocument before New-OfficePdf finishes composition*'
     }
 
@@ -345,13 +343,13 @@ Describe 'PDF cmdlets' {
     }
 
     It 'renders rich text runs and named colors in PDF text and table cells' {
-        foreach ($name in 'PdfNew', 'TextRun', 'PdfTextRun', 'PdfTableCell') {
+        foreach ($name in 'New-OfficePdf', 'TextRun', 'PdfTextRun', 'PdfTableCell') {
             Get-Command $name | Should -Not -BeNullOrEmpty
         }
 
         $path = Join-Path $TestDrive 'rich-run-table.pdf'
 
-        PdfNew -Path $path {
+        New-OfficePdf -Path $path {
             PdfText -Run @{
                 Text  = 'Status: ', 'Ready'
                 Color = $null, 'SeaGreen'
@@ -396,7 +394,7 @@ Describe 'PDF cmdlets' {
         $path = Join-Path $TestDrive 'rich-run-table-link.pdf'
 
         {
-            PdfNew -Path $path {
+            New-OfficePdf -Path $path {
                 PdfTable -InputObject @(
                     , @(
                         PdfTableCell -Run @(
@@ -411,7 +409,7 @@ Describe 'PDF cmdlets' {
     It 'treats rich and styled PDF table cells as structured without spans' {
         $path = Join-Path $TestDrive 'rich-run-mixed-object-table.pdf'
 
-        PdfNew -Path $path {
+        New-OfficePdf -Path $path {
             PdfTable -InputObject @(
                 [pscustomobject]@{
                     Service = 'Entra'
@@ -439,7 +437,7 @@ Describe 'PDF cmdlets' {
     It 'keeps ordinary style-named columns in PDF object tables' {
         $path = Join-Path $TestDrive 'ordinary-style-named-table.pdf'
 
-        PdfNew -Path $path {
+        New-OfficePdf -Path $path {
             PdfTable -InputObject @(
                 [pscustomobject]@{
                     Text     = 'Task'
@@ -633,9 +631,8 @@ Describe 'PDF cmdlets' {
 
     It 'adds piped PDF table rows to a supplied document' {
         $path = Join-Path $TestDrive 'piped-rows-supplied-document.pdf'
-        $doc = New-OfficePdf {
-            PdfHeading 'Pipeline rows'
-        }
+        $doc = New-OfficePdf
+        PdfHeading -Document $doc 'Pipeline rows'
         $rows = @(
             [pscustomobject]@{ Name = 'Alpha'; Value = 1 }
             [pscustomobject]@{ Name = 'Beta'; Value = 2 }
@@ -653,12 +650,10 @@ Describe 'PDF cmdlets' {
     It 'adds explicit PDF table rows to each piped document' {
         $path1 = Join-Path $TestDrive 'piped-document-one.pdf'
         $path2 = Join-Path $TestDrive 'piped-document-two.pdf'
-        $doc1 = New-OfficePdf {
-            PdfHeading 'First document'
-        }
-        $doc2 = New-OfficePdf {
-            PdfHeading 'Second document'
-        }
+        $doc1 = New-OfficePdf
+        PdfHeading -Document $doc1 'First document'
+        $doc2 = New-OfficePdf
+        PdfHeading -Document $doc2 'Second document'
         $rows = @(
             [pscustomobject]@{ Name = 'Alpha'; Value = 1 }
             [pscustomobject]@{ Name = 'Beta'; Value = 2 }
@@ -735,7 +730,7 @@ Describe 'PDF cmdlets' {
 
         Set-OfficePdfPage -Path $path -Rotation 90 -OutputPath $rotated -PassThru | Should -BeOfType System.IO.FileInfo
         Copy-OfficePdfPage -Path $path -PageRange '1' -OutputPath $copy -PassThru | Should -BeOfType System.IO.FileInfo
-        Remove-OfficePdfPage -Path $path -PageRange '2' -OutputPath $removed -PassThru | Should -BeOfType System.IO.FileInfo
+        Remove-OfficePdfPage -Path $path -Page '2' -OutputPath $removed -PassThru | Should -BeOfType System.IO.FileInfo
 
         (Get-OfficePdfInfo -Path $copy).PageCount | Should -Be 1
         (Get-OfficePdfInfo -Path $removed).PageCount | Should -Be 1
@@ -1244,10 +1239,10 @@ startxref
         $report.Signatures[0].Signature.UsesDetachedCmsSubFilter | Should -BeTrue
         $report.Signatures[0].UnsignedByteCount | Should -BeGreaterThan 0
         $report.Signatures[0].ByteRangeCoverageRatio | Should -BeGreaterThan 0
-        $report.Findings.Code | Should -Contain 'CryptographicTrustNotVerified'
-        $report.Findings.Code | Should -Contain 'DocMDPDetected'
-        $report.Findings.Code | Should -Contain 'LongTermValidationEvidenceDetected'
-        $report.Findings.Code | Should -Contain 'SignatureDetachedCmsSubFilter'
+        $report.Findings.Code | Should -Contain 'cryptographic-trust-not-verified'
+        $report.Findings.Code | Should -Contain 'doc-mdp-detected'
+        $report.Findings.Code | Should -Contain 'long-term-validation-evidence-detected'
+        $report.Findings.Code | Should -Contain 'signature-detached-cms-sub-filter'
     }
 
     It 'prepares and injects external PDF signature bytes' {
@@ -1276,7 +1271,7 @@ startxref
         $signedReport = Set-OfficePdfSignature -Path $preparedPath -SignaturePath $signaturePath -OutputPath $signedPath -PassThruReport -PassThru
         $signedReport.HasSignatures | Should -BeTrue
         $signedReport.Signatures[0].Signature.ByteRangeValues -join ',' | Should -Be ($plan.ByteRangeValues -join ',')
-        $signedReport.Findings.Code | Should -Contain 'SignatureDetachedCmsSubFilter'
+        $signedReport.Findings.Code | Should -Contain 'signature-detached-cms-sub-filter'
         [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($signedPath)) | Should -Match '3082010AAA55'
     }
 
@@ -1358,13 +1353,16 @@ startxref
 
     It 'creates PDFs with document-level font options' {
         $path = Join-Path $TestDrive 'font-options.pdf'
-        New-OfficePdf -Path $path -DefaultFont Courier -DefaultFontSize 13 {
+        New-OfficePdf -Path $path -Font Courier -Size 13pt {
             PdfHeading 'Font Options'
             PdfParagraph 'Generated with document-level font settings.'
         } | Out-Null
 
         (Get-OfficePdfPreflight -Path $path).CanRead | Should -BeTrue
         Get-OfficePdfText -Path $path | Should -Match 'Font Options'
+        $body = @(Get-OfficePdfText -Path $path -AsTextBlock | Where-Object Text -Match 'Generated with document-level')
+        $body.Count | Should -BeGreaterThan 0
+        $body | ForEach-Object { $_.FontSize | Should -Be 13 }
     }
 
     It 'builds visually polished PDF documents' {

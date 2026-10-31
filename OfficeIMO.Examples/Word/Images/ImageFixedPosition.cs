@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Word {
             //
             // Note: The image MUST be constructed with a WordImageTextWrapping property that is NOT inline. Assigning
             // the WordImageTextWrapping property later was not available at the time of making this example.
-            paragraph1.AddImage(filePathImage, 100, 100, WordImageTextWrapping.Square);
+            paragraph1.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square });
             var image = Guard.NotNull(paragraph1.Image, "The first paragraph should contain the inserted image.");
 
             Console.WriteLine("PRE position edit.");
@@ -47,12 +47,12 @@ namespace OfficeIMO.Examples.Word {
             // Edit the horizontal relative from property of the image. Both
             // the RelativeFrom property and PositionOffset are required.
             image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-            image.HorizontalPositionOffset = offsetEmus;
+            image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(offsetEmus);
 
             // Edit the vertical relative from property of the image. Both
             // the RelativeFrom property and PositionOffset are required.
             image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            image.VerticalPositionOffset = offsetEmus;
+            image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(offsetEmus);
 
             Console.WriteLine("POST position edit.");
             // After editing, lets reassess the properties.
@@ -66,8 +66,8 @@ namespace OfficeIMO.Examples.Word {
             static void checkImageProps(WordImage imageToInspect) {
                 var hRelativeFrom = imageToInspect.HorizontalPositionRelativeFrom;
                 var vRelativeFrom = imageToInspect.VerticalPositionRelativeFrom;
-                var hOffset = imageToInspect.HorizontalPositionOffset;
-                var vOffset = imageToInspect.VerticalPositionOffset;
+                var hOffset = (imageToInspect.HorizontalPositionOffset?.ToEmus());
+                var vOffset = (imageToInspect.VerticalPositionOffset?.ToEmus());
                 Console.WriteLine($"Horizontal RelativeFrom type: {hRelativeFrom}");
                 Console.WriteLine($"Horizontal PositionOffset value: {hOffset}");
                 Console.WriteLine($"Vertical RelativeFrom type: {vRelativeFrom}");

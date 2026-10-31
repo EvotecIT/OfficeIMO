@@ -8,7 +8,7 @@ using OfficeIMO.Internal;
 namespace OfficeIMO.Core.Internal {
     /// <summary>Creates owner-only, non-shareable temporary files that the operating system deletes on close.</summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    internal static class OfficeTemporaryFile {
+    internal static partial class OfficeTemporaryFile {
         internal static FileStream Create(
             string prefix,
             string suffix,
@@ -28,6 +28,7 @@ namespace OfficeIMO.Core.Internal {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Temporary file path cannot be empty.", nameof(path));
             if (bufferSize < 1) throw new ArgumentOutOfRangeException(nameof(bufferSize));
 #if NET6_0_OR_GREATER
+            if (OperatingSystem.IsWindows()) return CreateWindowsOwnerOnly(path, bufferSize, options);
             var streamOptions = new FileStreamOptions {
                 Mode = FileMode.CreateNew,
                 Access = FileAccess.ReadWrite,
@@ -35,16 +36,13 @@ namespace OfficeIMO.Core.Internal {
                 BufferSize = bufferSize,
                 Options = options
             };
-            if (!OperatingSystem.IsWindows()) {
-                streamOptions.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-            }
+            streamOptions.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
             return new FileStream(path, streamOptions);
 #else
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 return CreateUnixOwnerOnly(path, bufferSize, options);
             }
-            return new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite,
-                FileShare.None, bufferSize, options);
+            return CreateWindowsOwnerOnly(path, bufferSize, options);
 #endif
         }
 

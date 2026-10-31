@@ -14,7 +14,7 @@ public class Markdown_Semantic_Fenced_Block_Tests {
 _Chart caption_
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(doc.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
@@ -32,7 +32,7 @@ _Chart caption_
 > ```
 """;
 
-        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
 
         var quote = Assert.IsType<QuoteBlock>(Assert.Single(doc.Blocks));
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(quote.ChildBlocks));
@@ -201,11 +201,14 @@ _Chart caption_
 ```
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
-        var html = document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
+        var html = document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Contains("<pre id=\"chart\" class=\"wide\" data-panel=\"main\" pinned=\"true\"><code class=\"language-ix-chart\">", html, StringComparison.Ordinal);
@@ -213,7 +216,7 @@ _Chart caption_
 
     [Fact]
     public void ParseWithSyntaxTree_Uses_Custom_Fenced_Block_Syntax_Node_For_External_Block_Extensions() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "Custom AST block",
             new[] { "ix-custom" },
@@ -249,7 +252,7 @@ hello
 
     [Fact]
     public void Custom_Fenced_Block_Can_Render_Html_With_Public_Body_Render_Context() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "Custom AST block",
             new[] { "ix-custom" },
@@ -260,9 +263,10 @@ hello
 ```
 """;
 
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
-        var html = document.ToHtmlFragment(new HtmlOptions {
-            Kind = HtmlKind.Fragment,
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
+        var html = document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Kind = MarkdownHtmlKind.Fragment,
             Title = "custom-title"
         });
 
@@ -274,9 +278,11 @@ hello
     [Fact]
     public void SemanticFencedBlock_RenderHtml_Uses_SemanticRenderer_And_RoundTrips_Markdown() {
         var block = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "ix-chart", "{\"type\":\"bar\"}", "Chart caption");
-        var doc = MarkdownDoc.Create().Add(block);
-        var html = doc.ToHtmlFragment(new HtmlOptions {
-            Kind = HtmlKind.Fragment,
+        var doc = MarkdownDocument.Create();
+        doc.Add(block);
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Kind = MarkdownHtmlKind.Fragment,
             SemanticFencedBlockHtmlRenderer = static (semanticBlock, _) =>
                 $"<div class=\"semantic-block\" data-kind=\"{semanticBlock.SemanticKind}\" data-language=\"{semanticBlock.Language}\"></div>"
         });
@@ -291,9 +297,11 @@ hello
     [Fact]
     public void SemanticFencedBlock_RenderHtml_Falls_Back_To_CodeBlockHtmlRenderer_When_Needed() {
         var block = new SemanticFencedBlock("note", "ix-note {#note .wide pinned}", "hello");
-        var doc = MarkdownDoc.Create().Add(block);
-        var html = doc.ToHtmlFragment(new HtmlOptions {
-            Kind = HtmlKind.Fragment,
+        var doc = MarkdownDocument.Create();
+        doc.Add(block);
+        var html = doc.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Kind = MarkdownHtmlKind.Fragment,
             CodeBlockHtmlRenderer = static (codeBlock, _) =>
                 $"<aside class=\"code-fallback {string.Join(" ", codeBlock.Attributes.Classes)}\" id=\"{codeBlock.Attributes.ElementId}\" data-pinned=\"{codeBlock.Attributes.GetAttribute("pinned")}\" data-language=\"{codeBlock.Language}\">{System.Net.WebUtility.HtmlEncode(codeBlock.Content)}</aside>"
         });
@@ -305,8 +313,8 @@ hello
         Assert.Contains(">hello<", html, StringComparison.Ordinal);
     }
 
-    private static MarkdownReaderOptions CreateSemanticOptions(string language, string semanticKind) {
-        var options = new MarkdownReaderOptions();
+    private static MarkdownLoadOptions CreateSemanticOptions(string language, string semanticKind) {
+        var options = new MarkdownLoadOptions();
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "Semantic AST",
             new[] { language },

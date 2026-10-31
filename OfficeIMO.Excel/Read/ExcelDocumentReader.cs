@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
         private readonly SpreadsheetDocument _doc;
         private readonly bool _owns;
         private readonly bool _canStreamWorksheetParts;
-        private readonly ExcelReadOptions _opt;
+        private readonly ExcelReaderOptions _opt;
         private readonly ExcelDateSystem _dateSystem;
         private readonly SharedStringCache _sst;
         private readonly StylesCacheProvider _styles;
@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
 
         private ExcelDocumentReader(
             SpreadsheetDocument doc,
-            ExcelReadOptions opt,
+            ExcelReaderOptions opt,
             bool owns,
             Package? ownedPackage = null,
             Stream? ownedStream = null,
@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
             _doc = doc;
             _owns = owns;
             _canStreamWorksheetParts = owns || doc.FileOpenAccess == FileAccess.Read;
-            _opt = opt ?? new ExcelReadOptions();
+            _opt = opt ?? new ExcelReaderOptions();
             _opt.CancellationToken.ThrowIfCancellationRequested();
             _ownedPackage = ownedPackage;
             _ownedStream = ownedStream;
@@ -57,13 +57,13 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Opens an Excel file for read-only access.
         /// </summary>
-        public static ExcelDocumentReader Open(string path, ExcelReadOptions? options = null) {
+        public static ExcelDocumentReader Open(string path, ExcelReaderOptions? options = null) {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (!File.Exists(path)) {
                 throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
             }
 
-            var effectiveOptions = options ?? new ExcelReadOptions();
+            var effectiveOptions = options ?? new ExcelReaderOptions();
             SharedReadOnlyFileSnapshot? snapshot = null;
             Stream? documentStream = null;
             Package? package = null;
@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
             try {
                 snapshot = SharedReadOnlyFileSnapshot.Open(path);
                 if (snapshot.Length > effectiveOptions.MaxInputBytes) {
-                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), effectiveOptions.MaxInputBytes,
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxInputBytes), effectiveOptions.MaxInputBytes,
                         $"Workbook input contains {snapshot.Length} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
                 }
 
@@ -129,11 +129,11 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Opens an Excel workbook from the provided stream for read-only access.
         /// </summary>
-        public static ExcelDocumentReader Open(Stream stream, ExcelReadOptions? options = null) {
+        public static ExcelDocumentReader Open(Stream stream, ExcelReaderOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-            var effectiveOptions = options ?? new ExcelReadOptions();
+            var effectiveOptions = options ?? new ExcelReaderOptions();
             return OpenFromBytes(
                 ExcelReadLimitFailure.ReadInput(() => OfficeStreamReader.ReadAllBytes(
                     stream,
@@ -148,13 +148,13 @@ namespace OfficeIMO.Excel {
         /// Opens an Excel workbook from an in-memory package for read-only access.
         /// The byte array is used directly; callers should not modify it while the reader is alive.
         /// </summary>
-        public static ExcelDocumentReader Open(byte[] bytes, ExcelReadOptions? options = null) {
+        public static ExcelDocumentReader Open(byte[] bytes, ExcelReaderOptions? options = null) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
 
-            var effectiveOptions = options ?? new ExcelReadOptions();
+            var effectiveOptions = options ?? new ExcelReaderOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             if (bytes.LongLength > effectiveOptions.MaxInputBytes) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), effectiveOptions.MaxInputBytes, $"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxInputBytes), effectiveOptions.MaxInputBytes, $"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
             }
 
             return OpenFromBytes(
@@ -168,9 +168,9 @@ namespace OfficeIMO.Excel {
         /// Wraps an already open SpreadsheetDocument without taking ownership.
         /// The returned reader must be disposed, but it will not close the underlying document.
         /// </summary>
-        public static ExcelDocumentReader Wrap(SpreadsheetDocument document, ExcelReadOptions? options = null) {
+        public static ExcelDocumentReader Wrap(SpreadsheetDocument document, ExcelReaderOptions? options = null) {
             if (document is null) throw new ArgumentNullException(nameof(document));
-            return new ExcelDocumentReader(document, options ?? new ExcelReadOptions(), owns: false);
+            return new ExcelDocumentReader(document, options ?? new ExcelReaderOptions(), owns: false);
         }
 
         /// <summary>
@@ -572,11 +572,11 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static ExcelDocumentReader OpenFromBytes(byte[] bytes, ExcelReadOptions? options, bool normalizeContentTypes, string contextMessage) {
-            var effectiveOptions = options ?? new ExcelReadOptions();
+        private static ExcelDocumentReader OpenFromBytes(byte[] bytes, ExcelReaderOptions? options, bool normalizeContentTypes, string contextMessage) {
+            var effectiveOptions = options ?? new ExcelReaderOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             if (bytes.LongLength > effectiveOptions.MaxInputBytes) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), effectiveOptions.MaxInputBytes, $"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxInputBytes), effectiveOptions.MaxInputBytes, $"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
             }
 
             MemoryStream? packageStream = null;

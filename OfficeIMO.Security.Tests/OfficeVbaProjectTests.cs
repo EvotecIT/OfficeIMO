@@ -1,6 +1,7 @@
 using System.IO;
 using System.Xml.Linq;
 using OfficeIMO;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -9,14 +10,58 @@ namespace OfficeIMO.Security.Tests;
 
 public sealed class OfficeVbaProjectTests {
     [Fact]
+    public void SlashDelimitedDirectoryNameCannotBypassHostModuleClassification() {
+        var project = OfficeVbaProject.Create("Inventory", 65001);
+        project.AddDocumentModule("HostXPart", "", new Guid("00020819-0000-0000-C000-000000000046"));
+        Assert.True(OfficeCompoundFileReader.TryRead(project.Write().GetBytes(), out OfficeCompoundFile? compound, out _));
+        Assert.True(OfficeVbaCompression.TryDecompress(compound!.Streams["VBA/dir"], 1_000_000, out byte[] directory, out _));
+        byte[] oldName = Encoding.Unicode.GetBytes("HostXPart");
+        byte[] record = BitConverter.GetBytes((ushort)0x0047).Concat(BitConverter.GetBytes(oldName.Length)).Concat(oldName).ToArray();
+        int recordOffset = Enumerable.Range(0, directory.Length - record.Length + 1)
+            .Single(index => directory.AsSpan(index, record.Length).SequenceEqual(record));
+        Encoding.Unicode.GetBytes("Host/Part").CopyTo(directory, recordOffset + 6);
+        string declarations = Encoding.UTF8.GetString(compound.Streams["PROJECT"])
+            .Replace("Document=HostXPart/", "Document=Host/Part/", StringComparison.Ordinal);
+        byte[] crafted = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> {
+            ["VBA/dir"] = OfficeVbaCompression.Compress(directory),
+            ["PROJECT"] = Encoding.UTF8.GetBytes(declarations)
+        });
+
+        var error = Assert.Throws<InvalidDataException>(() => OfficeVbaProject.Load(crafted));
+        Assert.Contains("module name", error.Message, StringComparison.OrdinalIgnoreCase);
+        using var presentation = PowerPointDocument.Create();
+        Assert.Throws<InvalidDataException>(() => presentation.SetVbaProject(OfficeVbaProject.Load(crafted)));
+        Assert.Null(presentation.ReadVbaProject());
+    }
+
+    [Fact]
+    public void ProjectDeclarationsClassifyModulesUsingFirstMatchAndExactNames() {
+        var kinds = new OfficeVbaProjectText.ModuleKindLookup(
+            "DocClass=SheetCode/&H00000000\r" +
+            "BaseClass=Designer\n" +
+            "Document=ThisDocument/&H00000000\r\n" +
+            "DocModule=LegacyDocument\r\n" +
+            "BaseClass=SheetCode\r\n" +
+            "Document=Incomplete\r\n",
+            new[] { "SheetCode", "Designer", "ThisDocument", "LegacyDocument", "Incomplete", "Unlisted" });
+
+        Assert.Equal(OfficeVbaModuleKind.Document, kinds.Get("sheetcode", 0x0022));
+        Assert.Equal(OfficeVbaModuleKind.Designer, kinds.Get("DESIGNER", 0x0022));
+        Assert.Equal(OfficeVbaModuleKind.Document, kinds.Get("ThisDocument", 0x0021));
+        Assert.Equal(OfficeVbaModuleKind.Document, kinds.Get("LegacyDocument", 0x0021));
+        Assert.Equal(OfficeVbaModuleKind.Standard, kinds.Get("Incomplete", 0x0021));
+        Assert.Equal(OfficeVbaModuleKind.Class, kinds.Get("Unlisted", 0x0022));
+    }
+
+    [Fact]
     public void DocumentAdaptersRejectForeignDocumentModulesBeforeAddingAProjectPart() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var wordProject = OfficeVbaProject.Load(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestData", "Vba", "Word-authored.bin")));
         using var excel = ExcelDocument.Create();
-        excel.AddWorksheet("Data");
+        excel.AddSheet("Data");
         Assert.Throws<ArgumentException>(() => excel.SetVbaProject(wordProject));
         Assert.Null(excel.ReadVbaProject());
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         Assert.Throws<ArgumentException>(() => presentation.SetVbaProject(wordProject));
         Assert.Null(presentation.ReadVbaProject());
         var excelProject = OfficeVbaProject.Create();
@@ -33,7 +78,7 @@ public sealed class OfficeVbaProjectTests {
         project.AddDocumentModule("DataCode", "", new Guid("00020820-0000-0000-C000-000000000046"));
         try {
             using (var excel = ExcelDocument.Create(path)) {
-                excel.AddWorksheet("Display Name");
+                excel.AddSheet("Display Name");
                 Assert.Throws<ArgumentException>(() => excel.SetVbaProject(project));
                 Assert.Null(excel.ReadVbaProject());
                 excel.Save();
@@ -172,7 +217,8 @@ public sealed class OfficeVbaProjectTests {
         project.AddModule("Counter", "Public Count As Long\r\n", OfficeVbaModuleKind.Class);
         project.AddDocumentModule("ThisWorkbook", "Option Explicit\r\n", new Guid("00020819-0000-0000-C000-000000000046"));
         Guid library = new("2DF8D04C-5BFA-101B-BDE5-00AA0044DE52");
-        project.AddRegisteredReference("Office", library, 2, 8);
+        OfficeVbaReference reference = project.AddRegisteredReference("Office", library, 2, 8);
+        Assert.Same(reference, Assert.Single(project.References));
         OfficeVbaWriteResult initial = project.Write();
         OfficeVbaProject loaded = OfficeVbaProject.Load(initial.GetBytes());
         Assert.Equal("Automation", loaded.Name);
@@ -184,7 +230,7 @@ public sealed class OfficeVbaProjectTests {
         loaded.RenameModule("Helpers", "Tools");
         loaded.SetModuleSource("Tools", "Public Function Value() As Long\r\nValue = 73\r\nEnd Function\r\n");
         loaded.DeleteModule("Counter");
-        loaded.AddRegisteredReference("Office", library, 2, 8);
+        Assert.Same(loaded.References[0], loaded.AddRegisteredReference("Office", library, 2, 8));
         Assert.Single(loaded.References);
         OfficeVbaProject changed = OfficeVbaProject.Load(loaded.Write().GetBytes());
         Assert.Equal(new[] { "Tools", "ThisWorkbook" }, changed.Modules.Select(module => module.Name));
@@ -265,7 +311,7 @@ public sealed class OfficeVbaProjectTests {
         try {
             switch (extension) {
                 case "xlsm":
-                    using (ExcelDocument document = ExcelDocument.Create(path)) { document.AddWorksheet("Data"); document.SetVbaProject(project); document.Save(); }
+                    using (ExcelDocument document = ExcelDocument.Create(path)) { document.AddSheet("Data"); document.SetVbaProject(project); document.Save(); }
                     using (ExcelDocument loaded = ExcelDocument.Load(path)) Assert.Contains("Value = 42", loaded.ReadVbaProject()!.GetModule("Helpers").Source);
                     break;
                 case "docm":
@@ -273,8 +319,8 @@ public sealed class OfficeVbaProjectTests {
                     using (WordDocument loaded = WordDocument.Load(path)) Assert.Contains("Value = 42", loaded.ReadVbaProject()!.GetModule("Helpers").Source);
                     break;
                 case "pptm":
-                    using (PowerPointPresentation document = PowerPointPresentation.Create(path)) { document.SetVbaProject(project); document.Save(); }
-                    using (PowerPointPresentation loaded = PowerPointPresentation.Load(path)) Assert.Contains("Value = 42", loaded.ReadVbaProject()!.GetModule("Helpers").Source);
+                    using (PowerPointDocument document = PowerPointDocument.Create(path)) { document.SetVbaProject(project); document.Save(); }
+                    using (PowerPointDocument loaded = PowerPointDocument.Load(path)) Assert.Contains("Value = 42", loaded.ReadVbaProject()!.GetModule("Helpers").Source);
                     break;
             }
         } finally {

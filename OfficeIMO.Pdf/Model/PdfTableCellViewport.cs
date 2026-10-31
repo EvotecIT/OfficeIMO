@@ -13,20 +13,20 @@ public sealed class PdfTableCellViewport {
     /// cell, and offsets locate the fragment from that cell's top-left corner.
     /// The viewport scales with the rendered cell's width and height.
     /// </summary>
-    public PdfTableCellViewport(double contentWidth, double contentHeight, double width, double height, double offsetX = 0D, double offsetY = 0D) {
-        ValidatePositive(contentWidth, nameof(contentWidth));
-        ValidatePositive(contentHeight, nameof(contentHeight));
-        ValidatePositive(width, nameof(width));
-        ValidatePositive(height, nameof(height));
-        ValidateOffset(offsetX, nameof(offsetX));
-        ValidateOffset(offsetY, nameof(offsetY));
-        if (width > contentWidth || offsetX + width > contentWidth)
+    public PdfTableCellViewport(global::OfficeIMO.OfficeLength contentWidth, global::OfficeIMO.OfficeLength contentHeight, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength offsetX = default, global::OfficeIMO.OfficeLength offsetY = default) {
+        ValidatePositive(contentWidth.ToPoints(), nameof(contentWidth));
+        ValidatePositive(contentHeight.ToPoints(), nameof(contentHeight));
+        ValidatePositive(width.ToPoints(), nameof(width));
+        ValidatePositive(height.ToPoints(), nameof(height));
+        ValidateOffset(offsetX.ToPoints(), nameof(offsetX));
+        ValidateOffset(offsetY.ToPoints(), nameof(offsetY));
+        if (width > contentWidth || offsetX > contentWidth - width)
             throw new ArgumentOutOfRangeException(nameof(width), "The horizontal viewport must fit inside the content box.");
-        if (height > contentHeight || offsetY + height > contentHeight)
+        if (height > contentHeight || offsetY > contentHeight - height)
             throw new ArgumentOutOfRangeException(nameof(height), "The vertical viewport must fit inside the content box.");
-        if (double.IsInfinity(contentWidth / width))
+        if (double.IsInfinity(contentWidth.ToPoints() / width.ToPoints()))
             throw new ArgumentOutOfRangeException(nameof(width), "Viewport scale ratios must remain finite.");
-        if (double.IsInfinity(contentHeight / height))
+        if (double.IsInfinity(contentHeight.ToPoints() / height.ToPoints()))
             throw new ArgumentOutOfRangeException(nameof(height), "Viewport scale ratios must remain finite.");
         ContentWidth = contentWidth;
         ContentHeight = contentHeight;
@@ -37,17 +37,17 @@ public sealed class PdfTableCellViewport {
     }
 
     /// <summary>Width of the full content box before clipping.</summary>
-    public double ContentWidth { get; }
+    public global::OfficeIMO.OfficeLength ContentWidth { get; }
     /// <summary>Height of the full content box before clipping.</summary>
-    public double ContentHeight { get; }
+    public global::OfficeIMO.OfficeLength ContentHeight { get; }
     /// <summary>Width of the visible fragment.</summary>
-    public double Width { get; }
+    public global::OfficeIMO.OfficeLength Width { get; }
     /// <summary>Height of the visible fragment.</summary>
-    public double Height { get; }
+    public global::OfficeIMO.OfficeLength Height { get; }
     /// <summary>Horizontal offset of the fragment within the full content box.</summary>
-    public double OffsetX { get; }
+    public global::OfficeIMO.OfficeLength OffsetX { get; }
     /// <summary>Vertical offset of the fragment within the full content box.</summary>
-    public double OffsetY { get; }
+    public global::OfficeIMO.OfficeLength OffsetY { get; }
 
     private static void ValidatePositive(double value, string name) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D)

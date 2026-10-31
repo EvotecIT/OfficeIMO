@@ -374,7 +374,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static int ApplyOdpFontSize(OdfLength? fontSize, PowerPointTextRun target) {
         if (!fontSize.HasValue) return 0;
         if (!fontSize.Value.TryToPoints(out double points)) return 1;
-        target.FontSizePoints = points;
+        target.FontSize = global::OfficeIMO.OfficeLength.Points(points);
         return 0;
     }
 

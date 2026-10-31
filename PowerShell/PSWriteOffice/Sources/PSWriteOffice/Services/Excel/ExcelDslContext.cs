@@ -4,7 +4,6 @@ using System.Linq;
 using System.Management.Automation;
 using System.Threading;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Fluent;
 
 namespace PSWriteOffice.Services.Excel;
 
@@ -87,7 +86,7 @@ internal sealed class ExcelDslContext : IDisposable
 
     public ExcelSheet? CurrentSheet => _scopes.OfType<ExcelSheet>().FirstOrDefault();
 
-    public SheetComposer? CurrentComposer => _scopes.OfType<SheetComposer>().FirstOrDefault();
+    public ExcelReportBuilder? CurrentComposer => _scopes.OfType<ExcelReportBuilder>().FirstOrDefault();
 
     public ExcelSheet RequireSheet()
     {
@@ -131,7 +130,7 @@ internal sealed class ExcelDslContext : IDisposable
             && !string.IsNullOrWhiteSpace(range);
     }
 
-    public SheetComposer RequireComposer()
+    public ExcelReportBuilder RequireComposer()
     {
         var composer = CurrentComposer;
         if (composer == null)

@@ -1547,7 +1547,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_inserted_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Before image");
-                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -1596,7 +1596,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Before drawing");
                 document._document.Body!.Append(new Paragraph(new Run(CreateNonImageDrawing())));
-                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -1660,7 +1660,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Before image");
-                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -1745,22 +1745,22 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_gap_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("A");
-                document.AddParagraph().AddImage(stableFirstImage, 40, 40);
+                document.AddParagraph().AddImage(stableFirstImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.AddParagraph("B");
-                document.AddParagraph().AddImage(deletedImage, 40, 40);
+                document.AddParagraph().AddImage(deletedImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.AddParagraph("C");
-                document.AddParagraph().AddImage(stableLastImage, 40, 40);
+                document.AddParagraph().AddImage(stableLastImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_gap_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("X");
-                document.AddParagraph().AddImage(insertedImage, 40, 40);
+                document.AddParagraph().AddImage(insertedImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.AddParagraph("A");
-                document.AddParagraph().AddImage(stableFirstImage, 40, 40);
+                document.AddParagraph().AddImage(stableFirstImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.AddParagraph("C");
-                document.AddParagraph().AddImage(stableLastImage, 40, 40);
+                document.AddParagraph().AddImage(stableLastImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -1806,14 +1806,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_changed_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Before image");
-                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_changed_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Before image");
-                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -1866,7 +1866,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_vml_image_inserted_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Before image");
-                document.AddParagraph().AddImageVml(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40), options: new OfficeIMO.Word.WordImageOptions { Vml = true });
                 document.Save();
             }
 
@@ -1908,7 +1908,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_vml_image_deleted_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Before image");
-                document.AddParagraph().AddImageVml(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40), options: new OfficeIMO.Word.WordImageOptions { Vml = true });
                 document.Save();
             }
 
@@ -1957,14 +1957,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_vml_image_changed_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Before image");
-                document.AddParagraph().AddImageVml(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40), options: new OfficeIMO.Word.WordImageOptions { Vml = true });
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_vml_image_changed_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Before image");
-                document.AddParagraph().AddImageVml(Path.Combine(_directoryWithImages, "Kulek.jpg"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40), options: new OfficeIMO.Word.WordImageOptions { Vml = true });
                 document.Save();
             }
 
@@ -2694,7 +2694,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(path)) {
                 document.AddParagraph("Before  after");
                 if (includeImage) {
-                    document.AddParagraph().AddImage(imagePath, 80, 40);
+                    document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 }
 
                 document.Save();

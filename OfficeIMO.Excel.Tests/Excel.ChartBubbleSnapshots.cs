@@ -14,7 +14,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
     [Fact]
     public void BubbleSnapshot_ReopenedWorksheetRangesPreserveEachSeriesCoordinates() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Bubble data");
+        ExcelSheet sheet = document.AddSheet("Bubble data");
         sheet.CellValues(new[] {
             (2, 1, (object)2d), (2, 2, 11d), (2, 3, 4d),
             (3, 1, 8d), (3, 2, 17d), (3, 3, 16d),
@@ -23,13 +23,13 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         sheet.AddBubbleChartFromRanges(new[] {
             new ExcelChartSeriesRange("First", "A2:A3", "B2:B3", "C2:C3"),
             new ExcelChartSeriesRange("Second", "E2:E2", "F2:F2", "G2:G2")
-        }, 8, 4, 480, 320, "Bubble snapshot");
+        }, 8, 4, OfficeLength.Pixels(480), OfficeLength.Pixels(320), "Bubble snapshot");
         using var stream = new MemoryStream(document.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(stream);
         ExcelChart chart = reopened.Sheets.Single().Charts.Single();
 
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
-        Assert.Equal(ExcelChartType.Bubble, snapshot.ChartType);
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+        Assert.Equal(OfficeChartType.Bubble, snapshot.ChartType);
         Assert.Equal("Bubble snapshot", snapshot.Title);
         Assert.Equal(2, snapshot.Data.Series.Count);
         Assert.Equal(new[] { 2d, 8d }, snapshot.Data.Series[0].XValues);
@@ -51,7 +51,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         using var stream = new MemoryStream(document.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(stream);
         ExcelChart chart = reopened.Sheets.Single().Charts.Single();
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
         Assert.Equal("Cached bubbles", series.Name);
         Assert.Equal(new[] { 2d, 8d }, series.XValues);
@@ -83,7 +83,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         second.GetFirstChild<C.BubbleSize>()!.Descendants<C.NumericPoint>().Single(p => p.Index!.Value == 0).NumericValue!.Text = "25";
         native.InsertBefore(second, first);
 
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal("Draw first", snapshot.Data.Series[0].Name);
         Assert.Equal(new[] { -7d, 8d }, snapshot.Data.Series[0].XValues);
         Assert.Equal(new[] { 25d, 16d }, snapshot.Data.Series[0].BubbleSizes);
@@ -121,10 +121,10 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
     }
 
     private static ExcelChart CreateLiteralChart(ExcelDocument document, bool cached) {
-        ExcelSheet sheet = document.AddWorksheet("Bubble data");
+        ExcelSheet sheet = document.AddSheet("Bubble data");
         ExcelChart chart = sheet.AddBubbleChartFromRanges(new[] {
             new ExcelChartSeriesRange("Unused", "A2:A3", "B2:B3", "C2:C3")
-        }, 8, 4, 480, 320, "Bubble snapshot");
+        }, 8, 4, OfficeLength.Pixels(480), OfficeLength.Pixels(320), "Bubble snapshot");
         C.BubbleChart native = GetNativeBubble(document);
         C.BubbleChartSeries series = native.Elements<C.BubbleChartSeries>().Single();
         series.RemoveAllChildren<C.SeriesText>();

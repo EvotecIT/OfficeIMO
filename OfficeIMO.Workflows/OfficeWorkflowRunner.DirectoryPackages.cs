@@ -26,7 +26,7 @@ public sealed partial class OfficeWorkflowRunner {
             var transport = await OfficeStreamFileSnapshot.CaptureAsync(source.OpenRead, Path.GetExtension(package.Name),
                 request.Limits.MaximumInputBytes, source.ExpectedSha256, token).ConfigureAwait(false);
             _packageSnapshots.Add((transport, source));
-            IOfficeWorkflowPublicationGuard host = new ProviderPackagePublicationGuard(package.SourcePublicationGuard,
+            IOfficePublicationGuard host = new ProviderPackagePublicationGuard(package.SourcePublicationGuard,
                 request.PublicationGuard, request.InputPath);
             return request with {
                 InputPath = transport.FilePath,
@@ -38,9 +38,9 @@ public sealed partial class OfficeWorkflowRunner {
     }
 
     /// <summary>Rechecks provider-owned root identity and separation on both sides of host authorization.</summary>
-    private sealed class ProviderPackagePublicationGuard(IOfficeWorkflowPublicationGuard source,
-        IOfficeWorkflowPublicationGuard? host, string location) : IOfficeWorkflowPublicationGuard {
-        public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+    private sealed class ProviderPackagePublicationGuard(IOfficePublicationGuard source,
+        IOfficePublicationGuard? host, string location) : IOfficePublicationGuard {
+        public async Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             token.ThrowIfCancellationRequested();
             if (string.Equals(OfficeStorageIdentity.Normalize(location), OfficeStorageIdentity.Normalize(path), StringComparison.Ordinal)) return false;
             if (!await source.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;

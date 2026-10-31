@@ -110,7 +110,7 @@ public sealed class ImportOfficeExcelDelimitedTextCommand : PSCmdlet {
             var rowCount = 0;
             var columnCount = 0;
             if (!string.IsNullOrWhiteSpace(result.Range)) {
-                var (firstRow, firstColumn, lastRow, lastColumn) = A1.ParseRange(result.Range);
+                var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(result.Range);
                 rowCount = Math.Max(0, lastRow - firstRow + (NoHeader.IsPresent ? 1 : 0));
                 columnCount = lastColumn - firstColumn + 1;
             }

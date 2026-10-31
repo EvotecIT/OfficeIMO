@@ -10,7 +10,7 @@ public sealed class PublisherPdfTests {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("Sample.pub"));
         var result = document.ToPdfDocumentResult();
         byte[] bytes = result.ToBytes();
-        PdfReadDocument pdf = PdfReadDocument.Open(bytes);
+        PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(bytes));
         Assert.Equal(2, pdf.Pages.Count);
         string text = pdf.ExtractText();
         Assert.Contains("This is some text", text);
@@ -37,9 +37,9 @@ public sealed class PublisherPdfTests {
     public void Unsupported_native_metafiles_do_not_abort_publication_exports(string file, int pages) {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture(file));
         var result = document.ToPdfDocumentResult();
-        PdfReadDocument pdf = PdfReadDocument.Open(result.ToBytes());
+        PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes()));
         Assert.Equal(pages, pdf.Pages.Count);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "IMAGE_SOURCE_DECODE_FALLBACK" && item.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == global::OfficeIMO.OfficeDiagnosticCodes.ImageSourceDecodeFallback && item.LossKind == OfficeConversionLossKind.Omission);
         Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_METAFILE_RASTERIZED");
     }
 
@@ -51,13 +51,13 @@ public sealed class PublisherPdfTests {
         PublisherDocument document = PublisherDocument.Load(file, new PublisherReadOptions { ImageCodec = codec });
         Assert.True(codec.Calls > 0);
         Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_METAFILE_RASTERIZED" && item.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "IMAGE_SOURCE_DECODE_FALLBACK");
+        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == global::OfficeIMO.OfficeDiagnosticCodes.ImageSourceDecodeFallback);
         Assert.Equal(baseline.Images.Select(image => image.GetBytes()), document.Images.Select(image => image.GetBytes()), ByteArrayComparer.Instance);
         OfficeDrawingImage projected = PublisherNativeTests.Elements(document.Pages[0].Drawing).OfType<OfficeDrawingImage>().First();
         Assert.Equal("image/png", projected.ContentType);
         Assert.True(OfficeRasterImageDecoder.TryDecode(projected.Bytes, out OfficeRasterImage? raster));
         Assert.Equal(OfficeColor.FromRgb(20, 160, 40), raster!.GetPixel(0, 0));
-        Assert.Equal(2, PdfReadDocument.Open(document.ToPdfBytes()).Pages.Count);
+        Assert.Equal(2, PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfBytes())).Pages.Count);
     }
 
     [Fact]

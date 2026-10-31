@@ -9,7 +9,7 @@ namespace OfficeIMO.Studio.Features.Workspace;
 internal sealed partial class PdfWorkspace {
     internal async Task<OfficeWorkflowResult> ExtractAsync(IReadOnlyList<int> pageNumbers, string outputPath,
         CancellationToken token, IProgress<PdfWorkspaceProgress>? progress = null,
-        OfficeWorkflowStreamOutput? outputStream = null, IOfficeWorkflowPublicationGuard? publicationGuard = null) {
+        OfficeWorkflowStreamOutput? outputStream = null, IOfficePublicationGuard? publicationGuard = null) {
         ThrowIfDisposed();
         if (!CanExtractPages) throw new InvalidOperationException("This document cannot safely extract pages.");
         string destination = OfficeStorageIdentity.Normalize(outputPath);
@@ -27,7 +27,7 @@ internal sealed partial class PdfWorkspace {
             InputStream = new("workspace.pdf", _ => Task.FromResult<Stream>(new MemoryStream(snapshot, writable: false))),
             PageNumbers = pageNumbers.ToArray(), PdfPassword = _readOptions.Password,
             OutputPath = destination, OutputStream = outputStream,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+            ConflictPolicy = OfficePublicationPolicy.Replace,
             PublicationGuard = new WorkspaceOutputPublicationGuard(this, source, revision, publicationGuard)
         };
         return await RunNonDetachableCpuWorkAsync(() => new OfficeWorkflowRunner()
@@ -56,9 +56,9 @@ internal sealed partial class PdfWorkspace {
             PdfDocument extracted = LoadDocument(snapshot).Pages.Extract(pages, StudioDocumentStorage.MaximumDocumentBytes);
             token.ThrowIfCancellationRequested();
             using var output = new OfficeBoundedMemoryStream(StudioDocumentStorage.MaximumDocumentBytes);
-            extracted.SaveAsync(output, token).GetAwaiter().GetResult();
+            extracted.SaveAsync(output, cancellationToken:token).GetAwaiter().GetResult();
             byte[] saved = output.ToArray();
-            if (PdfDocument.Load(saved).Inspect().PageCount != pages.Length)
+            if (PdfDocument.Load(new System.IO.MemoryStream(saved)).Inspect().PageCount != pages.Length)
                 throw new InvalidDataException("The saved extraction does not contain the requested number of pages.");
             return saved;
         }, token).ConfigureAwait(false);

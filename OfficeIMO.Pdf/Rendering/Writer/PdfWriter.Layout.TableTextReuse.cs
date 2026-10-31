@@ -9,17 +9,19 @@ internal static partial class PdfWriter {
     private sealed class TableTextLayoutReuse {
         private const int MaximumEntries = 64;
         private const int MaximumTextLength = 256;
-        private readonly PdfOptions options;
+        private readonly PdfCreateOptions options;
+        private readonly System.Threading.CancellationToken cancellationToken;
         private readonly Dictionary<(string Text, double Width, bool NoWrap, PdfStandardFont Font, double Size, double Leading, bool WrapOversizedNoWrap), LinkedListNode<Entry>> entries = new();
         private readonly LinkedList<Entry> recent = new();
 
-        public TableTextLayoutReuse(PdfOptions options) {
+        public TableTextLayoutReuse(PdfCreateOptions options, System.Threading.CancellationToken cancellationToken) {
             this.options = options;
+            this.cancellationToken = cancellationToken;
         }
 
         public TableCellTextLayout Create(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, double runFontSizeScale, double minimumShrinkFontSize, bool wrapOversizedNoWrap = false) {
             if (!CanReuse(cell, runFontSizeScale)) {
-                return CreateTableCellTextLayout(cell, innerWidth, baseFont, fontSize, leading, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
+                return CreateTableCellTextLayout(cell, innerWidth, baseFont, fontSize, leading, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap, cancellationToken: cancellationToken);
             }
 
             var key = (cell.Runs[0].Text, innerWidth, cell.NoWrap, baseFont, fontSize, leading, wrapOversizedNoWrap);
@@ -29,7 +31,7 @@ internal static partial class PdfWriter {
                 return node.Value.Layout;
             }
 
-            TableCellTextLayout layout = CreateTableCellTextLayout(cell, innerWidth, baseFont, fontSize, leading, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
+            TableCellTextLayout layout = CreateTableCellTextLayout(cell, innerWidth, baseFont, fontSize, leading, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap, cancellationToken: cancellationToken);
             node = recent.AddFirst(new Entry(key, layout));
             entries.Add(key, node);
             if (entries.Count > MaximumEntries) {
@@ -49,9 +51,9 @@ internal static partial class PdfWriter {
 
             PdfTextRun run = cell.Runs[0];
             if (run.Bold || run.Italic || run.Underline || run.Strike || run.Color.HasValue ||
-                run.BackgroundColor.HasValue || run.DecorationColor.HasValue || run.FontSize.HasValue || run.Font.HasValue ||
+                run.BackgroundColor.HasValue || run.DecorationColor.HasValue || (run.FontSize?.ToPoints()).HasValue || run.Font.HasValue ||
                 run.FontFamily != null || run.LinkUri != null || run.LinkDestinationName != null || run.LinkContents != null ||
-                run.Baseline != PdfTextBaseline.Normal || run.HorizontalTextScaling != 100D || run.CharacterSpacing != 0D ||
+                run.Baseline != PdfTextBaseline.Normal || run.HorizontalTextScaling != 100D || (run.CharacterSpacing.ToPoints()) != 0D ||
                 run.TabLeader != PdfTabLeaderStyle.None ||
                 run.TabAlignment != PdfTabAlignment.Left || run.InlineElement != null || run.FormField != null || run.FootnoteReference != null || run.HorizontalOffset != 0D ||
                 !run.FeatureSettings.IsDefault || run.TextDirection != OfficeTextDirection.Auto ||

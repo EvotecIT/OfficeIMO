@@ -103,7 +103,7 @@ namespace OfficeIMO.Excel {
                     position += relative + 4;
                     if (position < document.Length
                         && document[position] is (byte)'>' or (byte)'/' or (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n') {
-                        if (++count > A1.MaxRows) return 0;
+                        if (++count > ExcelA1.MaxRows) return 0;
                     }
                 }
                 return count;

@@ -29,11 +29,14 @@ public sealed partial class PdfPageCanvas {
     }
 
     /// <summary>Adds an interactive text field at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas TextField(string name, string? value, double x, double y, double width, double height, double fontSize = 10D, PdfFormFieldStyle? style = null) {
-        ValidateFormFieldBox(name, x, y, width, height);
-        Guard.Positive(fontSize, nameof(fontSize));
+    public PdfPageCanvas TextField(string name, string? value, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, OfficeLength? fontSize = null, PdfFormFieldStyle? style = null) {
+        double xPoints = x.ToPoints(), yPoints = y.ToPoints();
+        double widthPoints = width.ToPoints(), heightPoints = height.ToPoints();
+        double fontSizePoints = (fontSize ?? OfficeLength.Points(10)).ToPoints();
+        ValidateFormFieldBox(name, xPoints, yPoints, widthPoints, heightPoints);
+        Guard.Positive(fontSizePoints, nameof(fontSize));
         string resolvedValue = value ?? string.Empty;
-        _items.Add(PdfCanvasFormFieldItem.Text(name, resolvedValue, resolvedValue, x, y, width, height, fontSize, style, style));
+        _items.Add(PdfCanvasFormFieldItem.Text(name, resolvedValue, resolvedValue, xPoints, yPoints, widthPoints, heightPoints, fontSizePoints, style, style));
         return this;
     }
 
@@ -77,28 +80,28 @@ public sealed partial class PdfPageCanvas {
     }
 
     /// <summary>Adds an interactive check box at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas CheckBox(string name, bool isChecked, double x, double y, double width, double height, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) {
-        ValidateFormFieldBox(name, x, y, width, height);
+    public PdfPageCanvas CheckBox(string name, bool isChecked, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) {
+        ValidateFormFieldBox(name, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints());
         ValidateCheckBoxAppearanceStateName(checkedValueName, nameof(checkedValueName));
-        _items.Add(PdfCanvasFormFieldItem.CheckBox(name, isChecked, checkedValueName, checkedValueName, x, y, width, height, style));
+        _items.Add(PdfCanvasFormFieldItem.CheckBox(name, isChecked, checkedValueName, checkedValueName, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), style));
         return this;
     }
 
     /// <summary>Adds an interactive check box with separate PDF appearance-state and exported values.</summary>
-    public PdfPageCanvas CheckBoxWithExportValue(string name, bool isChecked, double x, double y, double width, double height, string checkedValueName, string exportValue, PdfFormFieldStyle? style = null) {
-        ValidateFormFieldBox(name, x, y, width, height);
+    public PdfPageCanvas CheckBoxWithExportValue(string name, bool isChecked, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string checkedValueName, string exportValue, PdfFormFieldStyle? style = null) {
+        ValidateFormFieldBox(name, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints());
         ValidateCheckBoxAppearanceStateName(checkedValueName, nameof(checkedValueName));
         Guard.NotNullOrWhiteSpace(exportValue, nameof(exportValue));
-        _items.Add(PdfCanvasFormFieldItem.CheckBox(name, isChecked, checkedValueName, exportValue, x, y, width, height, style));
+        _items.Add(PdfCanvasFormFieldItem.CheckBox(name, isChecked, checkedValueName, exportValue, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), style));
         return this;
     }
 
     /// <summary>Adds an interactive choice field at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas ChoiceField(string name, IEnumerable<string> options, IEnumerable<string>? values, double x, double y, double width, double height, double fontSize = 10D, bool isComboBox = true, bool allowsMultipleSelection = false, PdfFormFieldStyle? style = null) {
-        ValidateFormFieldBox(name, x, y, width, height);
+    public PdfPageCanvas ChoiceField(string name, IEnumerable<string> options, IEnumerable<string>? values, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength? fontSize = null, bool isComboBox = true, bool allowsMultipleSelection = false, PdfFormFieldStyle? style = null) {
+        ValidateFormFieldBox(name, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints());
         ValidateChoiceFieldMode(isComboBox, allowsMultipleSelection);
         Guard.NotNull(options, nameof(options));
-        Guard.Positive(fontSize, nameof(fontSize));
+        Guard.Positive((fontSize ?? global::OfficeIMO.OfficeLength.Points(10D)).ToPoints(), nameof(fontSize));
         var optionSnapshot = options.ToList();
         if (optionSnapshot.Count == 0 || optionSnapshot.Any(string.IsNullOrWhiteSpace)) {
             throw new ArgumentException("Canvas choice fields require at least one non-empty option.", nameof(options));
@@ -114,16 +117,16 @@ public sealed partial class PdfPageCanvas {
         if (!allowsCustomScalarValue && valueSnapshot.Any(value => !optionSnapshot.Contains(value, StringComparer.Ordinal))) {
             throw new ArgumentException("Canvas choice field values must match provided options.", nameof(values));
         }
-        _items.Add(PdfCanvasFormFieldItem.Choice(name, optionSnapshot, valueSnapshot, x, y, width, height, fontSize, isComboBox, allowsMultipleSelection, style));
+        _items.Add(PdfCanvasFormFieldItem.Choice(name, optionSnapshot, valueSnapshot, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), (fontSize ?? global::OfficeIMO.OfficeLength.Points(10D)).ToPoints(), isComboBox, allowsMultipleSelection, style));
         return this;
     }
 
     /// <summary>Adds an interactive choice field whose export values differ from its displayed labels.</summary>
-    public PdfPageCanvas ChoiceField(string name, IEnumerable<PdfFormFieldOption> options, IEnumerable<string>? values, double x, double y, double width, double height, double fontSize = 10D, bool isComboBox = true, bool allowsMultipleSelection = false, PdfFormFieldStyle? style = null) {
-        ValidateFormFieldBox(name, x, y, width, height);
+    public PdfPageCanvas ChoiceField(string name, IEnumerable<PdfFormFieldOption> options, IEnumerable<string>? values, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength? fontSize = null, bool isComboBox = true, bool allowsMultipleSelection = false, PdfFormFieldStyle? style = null) {
+        ValidateFormFieldBox(name, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints());
         ValidateChoiceFieldMode(isComboBox, allowsMultipleSelection);
         Guard.NotNull(options, nameof(options));
-        Guard.Positive(fontSize, nameof(fontSize));
+        Guard.Positive((fontSize ?? global::OfficeIMO.OfficeLength.Points(10D)).ToPoints(), nameof(fontSize));
         var optionSnapshot = options.ToList();
         if (optionSnapshot.Count == 0 || optionSnapshot.Any(option => option == null || string.IsNullOrWhiteSpace(option.DisplayText))) {
             throw new ArgumentException("Canvas choice fields require at least one option with non-empty display text.", nameof(options));
@@ -139,13 +142,13 @@ public sealed partial class PdfPageCanvas {
         if (!allowsCustomScalarValue && valueSnapshot.Any(value => !optionSnapshot.Any(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal)))) {
             throw new ArgumentException("Canvas choice field values must match provided export values.", nameof(values));
         }
-        _items.Add(PdfCanvasFormFieldItem.Choice(name, optionSnapshot, valueSnapshot, x, y, width, height, fontSize, isComboBox, allowsMultipleSelection, style));
+        _items.Add(PdfCanvasFormFieldItem.Choice(name, optionSnapshot, valueSnapshot, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), (fontSize ?? global::OfficeIMO.OfficeLength.Points(10D)).ToPoints(), isComboBox, allowsMultipleSelection, style));
         return this;
     }
 
     /// <summary>Adds one interactive radio-button widget. Widgets with the same field name are emitted as one radio group on the page.</summary>
-    public PdfPageCanvas RadioButton(string name, string option, bool isSelected, double x, double y, double width, double height, PdfFormFieldStyle? style = null) {
-        return RadioButtonWithExportValue(name, option, option, isSelected, x, y, width, height, style);
+    public PdfPageCanvas RadioButton(string name, string option, bool isSelected, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfFormFieldStyle? style = null) {
+        return RadioButtonWithExportValue(name, option, option, isSelected, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), style);
     }
 
     /// <summary>Adds one interactive radio-button widget with separate PDF appearance-state and exported values.</summary>

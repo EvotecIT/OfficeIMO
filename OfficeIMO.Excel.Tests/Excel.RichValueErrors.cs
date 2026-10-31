@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
         [InlineData("Blocked", "I1", "#SPILL!")]
         public void RichValueErrors_NativeCachesAgreeAcrossObjectModelAndReaders(string sheetName, string anchor, string expected) {
             string path = Path.Combine(_directoryDocuments, "ExcelFormulaCorpus", "dynamic-spills.xlsx");
-            var (row, column) = A1.ParseCellRef(anchor);
+            var (row, column) = ExcelA1.ParseCellRef(anchor);
             using (var document = ExcelDocument.Load(path, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document[sheetName];
                 Assert.Equal(expected, sheet.CellAt(row, column).GetValue().Value);
@@ -28,19 +28,19 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(expected, text);
                 Assert.True(sheet.TryGetCachedFormulaValue(row, column, out string? cached));
                 Assert.Equal(expected, cached);
-                using var dataReader = document.CreateDataReader(new ExcelReadOptions { SheetName = sheetName, A1Range = anchor + ":" + anchor, HasHeaderRow = false });
+                using var dataReader = document.CreateDataReader(new ExcelReaderOptions { SheetName = sheetName, A1Range = anchor + ":" + anchor, HasHeaderRow = false });
                 Assert.True(dataReader.Read());
                 Assert.Equal(expected, dataReader.GetValue(0));
             }
             using (var reader = ExcelDocumentReader.Open(path)) {
                 Assert.Equal(expected, reader.GetSheet(sheetName).ReadRange(anchor + ":" + anchor)[0, 0]);
             }
-            var options = new ExcelReadOptions { SheetName = sheetName, A1Range = anchor + ":" + anchor, HasHeaderRow = false };
-            using (var reader = ExcelDocument.OpenDataReader(path, options)) {
+            var options = new ExcelReaderOptions { SheetName = sheetName, A1Range = anchor + ":" + anchor, HasHeaderRow = false };
+            using (var reader = ExcelDocument.OpenReader(path, options)) {
                 Assert.True(reader.Read());
                 Assert.Equal(expected, reader.GetValue(0));
             }
-            using (var reader = ExcelDocument.OpenDataReader(File.ReadAllBytes(path), options)) {
+            using (var reader = ExcelDocument.OpenReader(File.ReadAllBytes(path), options)) {
                 Assert.True(reader.Read());
                 Assert.Equal(expected, reader.GetValue(0));
             }
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         public void RichValueErrors_EmptyArraysSaveReopenAndPreserveImages(string formula, bool includeImage) {
             string path = Path.Combine(_directoryWithFiles, "ModernErrors.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 1d); sheet.CellValue(2, 1, 1d);
                 sheet.CellValue(1, 2, 0d); sheet.CellValue(2, 2, 0d);
                 if (includeImage) sheet.SetInCellImage(1, 4, TinyPng, altText: "Retained image");
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
         [InlineData("SUM(Table1[SEQUENCE(0)])", "SUM(Table1[SEQUENCE(0)])")]
         public void ArrayFormulaAuthoring_QualifiesFunctionsAndPreservesReferenceText(string formula, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.SetArrayFormula("G1:G1", formula);
             Assert.Equal(expected, sheet.GetFormulaText(1, 7));
         }
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
         public void RichValueErrors_CacheClearingDoesNotResurrectErrors(string mode) {
             string path = Path.Combine(_directoryWithFiles, "ClearedErrors.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.SetInCellImage(1, 4, TinyPng, altText: "Retained image");
                 sheet.SetArrayFormula("G1:G1", "SEQUENCE(0)");
                 Assert.Equal(1, document.Calculate());
@@ -132,15 +132,15 @@ namespace OfficeIMO.Tests {
         public void RichValueErrors_MissingSerializedPayloadDoesNotCreateACache() {
             string path = Path.Combine(_directoryWithFiles, "MissingPayload.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.SetArrayFormula("G1:G1", "SEQUENCE(0)");
                 Assert.Equal(1, document.Calculate());
                 sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single().CellValue = null;
                 Assert.False(sheet.TryGetCachedFormulaValue(1, 7, out _));
                 document.Save();
             }
-            using var reader = ExcelDocument.OpenDataReader(path,
-                new ExcelReadOptions { SheetName = "Data", A1Range = "G1:G1", HasHeaderRow = false });
+            using var reader = ExcelDocument.OpenReader(path,
+                new ExcelReaderOptions { SheetName = "Data", A1Range = "G1:G1", HasHeaderRow = false });
             Assert.True(reader.Read());
             Assert.Equal("_xlfn.SEQUENCE(0)", reader.GetValue(0));
         }
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void RichValueErrors_DependencyGuardInvalidatesRichCache() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.SetArrayFormula("G1:G1", "SEQUENCE(0)");
             Assert.Equal(1, document.Calculate());
             Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single();

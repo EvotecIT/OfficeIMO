@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static double ResolveRichRunLineAlignmentRise(RichSeg segment, PdfOptions? options, PdfLineSpacing? spacing) {
+    private static double ResolveRichRunLineAlignmentRise(RichSeg segment, PdfCreateOptions? options, PdfLineSpacing? spacing) {
         if (spacing == null || spacing.FontAlignment == PdfFontLineAlignment.Baseline ||
             segment.InlineElement != null && !UsesInlineRunTextMetrics(segment.InlineElement)) return 0D;
         return ResolveFontLineAlignmentRise(segment.Font, segment.NamedFont,
@@ -9,7 +9,7 @@ internal static partial class PdfWriter {
     }
 
     private static double ResolveFontLineAlignmentRise(PdfStandardFont font, PdfNamedFontFace? namedFont,
-        double size, PdfOptions? options, PdfLineSpacing? spacing) {
+        double size, PdfCreateOptions? options, PdfLineSpacing? spacing) {
         if (spacing == null || spacing.FontAlignment == PdfFontLineAlignment.Baseline) return 0D;
         double unit = spacing.FontAlignmentPointsPerPixel;
         double ascent;

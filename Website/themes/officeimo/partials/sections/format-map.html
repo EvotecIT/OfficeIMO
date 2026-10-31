@@ -5,6 +5,11 @@
 {{~ start_surface = fmap_surface ~}}{{~ if !start_surface ~}}{{~ start_surface = "all" ~}}{{~ end ~}}
 {{~ has_powershell = false ~}}{{~ for route in map.routes ~}}{{~ if array.contains route.surfaces "powershell" ~}}{{~ has_powershell = true ~}}{{~ end ~}}{{~ end ~}}
 {{~ family_names = { documents: "Documents", spreadsheets: "Spreadsheets", presentations: "Presentations", fixed: "Fixed layout", images: "Images", books: "Notes and books", email: "Email", bibliography: "Bibliography", markup: "Markup and text", web: "Web and wiki", other: "Other" } ~}}
+{{~ formats_by_family = {} ~}}
+{{~ for format in map.formats ~}}
+{{~ members = formats_by_family[format.family] ~}}{{~ if !members ~}}{{~ members = [] ~}}{{~ end ~}}
+{{~ formats_by_family[format.family] = array.add members format ~}}
+{{~ end ~}}
 <section class="imo-fmap imo-fmap--{{ view }} imo-container" id="format-map" aria-labelledby="fmap-title" data-format-map data-view="{{ view }}" data-surface="{{ start_surface }}">
   <div class="imo-fmap__head">
     <p class="imo-section__eyebrow">Format map</p>
@@ -43,9 +48,8 @@
     {{~ end ~}}
     <div class="imo-fmap__formats">
       {{~ for family in map.families ~}}
-      {{~ members = [] ~}}
-      {{~ for format in map.formats ~}}{{~ if format.family == family ~}}{{~ members = array.add members format ~}}{{~ end ~}}{{~ end ~}}
-      {{~ if members.size > 0 ~}}
+      {{~ members = formats_by_family[family] ~}}
+      {{~ if members && members.size > 0 ~}}
       <div class="imo-fmap__family">
         <h3><i class="imo-fmap__dot imo-fam--{{ family }}" aria-hidden="true"></i>{{ family_names[family] }}</h3>
         <div class="imo-fmap__chips">

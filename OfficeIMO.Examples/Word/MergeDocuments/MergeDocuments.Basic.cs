@@ -1,3 +1,4 @@
+using OfficeIMO.Word.Pdf;
 using System;
 using System.IO;
 using OfficeIMO.Word;
@@ -47,9 +48,8 @@ namespace OfficeIMO.Examples.Word {
                     StyleMode = WordMergeStyleMode.KeepDifferentStyles
                 });
                 destination.UpdateFields(new WordFieldUpdateOptions {
-                    UpdateTablesOfContents = true,
-                    UseLayoutPagination = true
-                });
+                    UpdateTablesOfContents = true
+                }.WithPdfLayoutPagination());
                 destination.SaveCopy(mergedPath);
                 if (openWord) destination.OpenInApplication(mergedPath);
             }

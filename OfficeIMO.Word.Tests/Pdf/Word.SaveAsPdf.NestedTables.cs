@@ -21,7 +21,7 @@ public partial class Word {
         nested.Rows[0].Cells[0].Paragraphs[0].Text = "Nested table evidence";
         outerCell.AddParagraph("After nested table");
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence();
         byte[] bytes = result.ToBytes();
 
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
@@ -34,7 +34,7 @@ public partial class Word {
         Assert.True(afterIndex > nestedIndex, "Expected the following paragraph after the nested table text.");
         Assert.DoesNotContain(
             result.Warnings,
-            static warning => warning.Code == "NativeNestedTableLayoutApproximated");
+            static warning => warning.Code == "native-nested-table-layout-approximated");
     }
 
     [Fact]
@@ -45,11 +45,11 @@ public partial class Word {
         WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableGrid);
         WordParagraph paragraph = nested.Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "Nested mixed content";
-        paragraph.AddPictureControl(imagePath, 48, 48, "Nested Logo", "NestedLogo");
+        paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48), "Nested Logo", "NestedLogo");
         paragraph.AddCheckBox(true, "Nested Approval", "NestedApproval");
         paragraph.AddDropDownList(new[] { "One", "Two" }, "Nested Choice", "NestedChoice");
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence();
         byte[] bytes = result.ToBytes();
 
         string pdfContent = PdfOperatorSearchText.From(bytes);
@@ -59,10 +59,10 @@ public partial class Word {
         Assert.Contains(info.FormFields, static field => field.Name == "NestedChoice" && field.IsChoiceField && field.Value == "One");
         Assert.Contains(
             result.Warnings,
-            static warning => warning.Code == "NativeNestedTableLayoutApproximated");
+            static warning => warning.Code == "native-nested-table-layout-approximated");
         Assert.DoesNotContain(
             result.Warnings,
-            static warning => warning.Code == "NativeBodyContentControlUnsupported");
+            static warning => warning.Code == "native-body-content-control-unsupported");
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public partial class Word {
             trailingParagraph);
         outerCell.AddParagraph("After wrapped table");
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult();
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence();
         byte[] bytes = result.ToBytes();
 
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
@@ -100,8 +100,8 @@ public partial class Word {
         Assert.True(beforeIndex >= 0, "Expected text before the content-control-wrapped table.");
         Assert.True(nestedIndex > beforeIndex, "Expected wrapped nested-table text after the preceding paragraph.");
         Assert.True(afterIndex > nestedIndex, "Expected the following paragraph after wrapped nested-table text.");
-        Assert.Contains(result.Warnings, static warning => warning.Code == "NativeNestedTableLayoutApproximated");
-        Assert.Contains(result.Warnings, static warning => warning.Code == "NativeBodyEmbeddedDocumentUnsupported");
+        Assert.Contains(result.Warnings, static warning => warning.Code == "native-nested-table-layout-approximated");
+        Assert.Contains(result.Warnings, static warning => warning.Code == "native-body-embedded-document-unsupported");
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public partial class Word {
                 new SdtContentBlock(nested._table)),
             trailingParagraph);
 
-        var configured = new PdfOptions();
+        var configured = new PdfCreateOptions();
         configured
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
                 targetFamily,
@@ -150,7 +150,7 @@ public partial class Word {
                 targetFamily,
                 PdfFontFamilySubstitutionImpact.Compatible);
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
             FontFamily = "Helvetica",
             PdfOptions = configured,
@@ -162,7 +162,7 @@ public partial class Word {
         Assert.Contains("17 Tf", raw, StringComparison.Ordinal);
         Assert.Contains("0.133 0.333 0.667 rg", raw, StringComparison.Ordinal);
         PdfConversionWarning diagnostic = Assert.Single(result.Warnings, warning =>
-            warning.Code == "NativeFontFamilySubstituted" &&
+            warning.Code == "font-family-substitution" &&
             warning.Details.TryGetValue("fontFamily", out string? family) &&
             family == sourceFamily);
         Assert.Equal(targetFamily, diagnostic.Details["resolvedFontFamily"]);
@@ -186,7 +186,7 @@ public partial class Word {
         nested.Rows[0].Cells[0].HorizontalMerge = WordCellMerge.Restart;
         WordParagraph hiddenHorizontal = nested.Rows[0].Cells[1].Paragraphs[0];
         hiddenHorizontal.Text = "HIDDEN-HORIZONTAL-CONTINUATION";
-        hiddenHorizontal.AddPictureControl(imagePath, 24, 24, "Hidden continuation logo", "HiddenContinuationLogo");
+        hiddenHorizontal.AddPictureControl(imagePath, OfficeLength.Pixels(24), OfficeLength.Pixels(24), "Hidden continuation logo", "HiddenContinuationLogo");
         nested.Rows[0].Cells[1].HorizontalMerge = WordCellMerge.Continue;
         nested.Rows[0].Cells[2].Paragraphs[0].Text = "Horizontal tail";
 
@@ -199,7 +199,7 @@ public partial class Word {
         nested.Rows[2].Cells[0].VerticalMerge = WordCellMerge.Continue;
         nested.Rows[2].Cells[1].Paragraphs[0].Text = "Lower peer";
 
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         string text = string.Join(" ", pdf.GetPages().SelectMany(static page => page.GetWords()).Select(static word => word.Text));
@@ -226,7 +226,7 @@ public partial class Word {
         WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 2, WordTableStyle.TableGrid);
         WordParagraph nestedParagraph = nested.Rows[0].Cells[0].Paragraphs[0];
         nestedParagraph.Text = "Header nested evidence";
-        nestedParagraph.AddPictureControl(imagePath, 32, 32, "Header Nested Logo", "HeaderNestedLogo");
+        nestedParagraph.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Header Nested Logo", "HeaderNestedLogo");
         nested.Rows[0].Cells[0].HorizontalMerge = WordCellMerge.Restart;
         nested.Rows[0].Cells[1].Paragraphs[0].Text = "HIDDEN-HEADER-CONTINUATION";
         nested.Rows[0].Cells[1].HorizontalMerge = WordCellMerge.Continue;
@@ -240,7 +240,7 @@ public partial class Word {
             trailingParagraph);
         document.AddParagraph("Body evidence");
 
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false
         });
         byte[] bytes = result.ToBytes();
@@ -251,6 +251,6 @@ public partial class Word {
         Assert.Contains("/Subtype /Image", PdfOperatorSearchText.From(bytes), StringComparison.Ordinal);
         Assert.Contains(
             result.Warnings,
-            static warning => warning.Code == "NativeNestedTableLayoutApproximated");
+            static warning => warning.Code == "native-nested-table-layout-approximated");
     }
 }

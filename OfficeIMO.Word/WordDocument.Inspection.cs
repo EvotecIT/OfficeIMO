@@ -43,12 +43,12 @@ namespace OfficeIMO.Word {
         /// <summary>Creates an independent snapshot of document metadata, sections, stories, paragraphs, tables, notes, and images.</summary>
         /// <returns>A snapshot suitable for inspection or serialization without retaining live Open XML elements.</returns>
         /// <exception cref="InvalidDataException">Generated list markers exceed the supported marker length or document character budget.</exception>
-        public WordDocumentSnapshot CreateInspectionSnapshot() => CreateInspectionSnapshot(includeImageBytes: true, CancellationToken.None);
+        public WordDocumentInfo Inspect() => Inspect(includeImageBytes: true, CancellationToken.None);
 
         /// <summary>Creates the native semantic snapshot, optionally retaining image descriptors without copying their payload bytes.</summary>
         /// <param name="includeImageBytes">When false, image payloads are not read or copied; image metadata remains available.</param>
         /// <param name="cancellationToken">Cancellation checked between source sections, paragraphs, table cells and notes.</param>
-        public WordDocumentSnapshot CreateInspectionSnapshot(bool includeImageBytes, CancellationToken cancellationToken = default) {
+        public WordDocumentInfo Inspect(bool includeImageBytes, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             using var storyScope = WordHeaderFooterResolutionSnapshot.Begin(this, cancellationToken);
             using var visibilityScope = WordComplexFieldRunVisibility.BeginConversionScope();
@@ -56,7 +56,7 @@ namespace OfficeIMO.Word {
                 WordDocumentTraversal.BuildResolvedListMarkers(this)) {
                 IncludeImageBytes = includeImageBytes, CancellationToken = cancellationToken
             };
-            var snapshot = new WordDocumentSnapshot {
+            var snapshot = new WordDocumentInfo {
                 FilePath = string.IsNullOrWhiteSpace(FilePath) ? null : FilePath,
                 Title = BuiltinDocumentProperties?.Title,
                 Author = BuiltinDocumentProperties?.Creator,
@@ -67,20 +67,20 @@ namespace OfficeIMO.Word {
             for (int sectionIndex = 0; sectionIndex < Sections.Count; sectionIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var section = Sections[sectionIndex];
-                var sectionSnapshot = new WordSectionSnapshot {
+                var sectionSnapshot = new WordSectionInfo {
                     Index = sectionIndex,
                     SectionBreakType = ResolveSectionBreakType(section, sectionIndex),
                     Orientation = NormalizeOpenXmlEnumValue(section._sectionProperties?.GetFirstChild<PageSize>()?.Orient) ?? section.PageOrientation.ToString(),
-                    PageWidthPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageSize>()?.Width?.Value),
-                    PageHeightPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageSize>()?.Height?.Value),
-                    MarginTopPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Top?.Value),
-                    MarginBottomPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Bottom?.Value),
-                    MarginLeftPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Left?.Value),
-                    MarginRightPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Right?.Value),
-                    HeaderMarginPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Header?.Value),
-                    FooterMarginPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Footer?.Value),
+                    PageWidth = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageSize>()?.Width?.Value),
+                    PageHeight = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageSize>()?.Height?.Value),
+                    MarginTop = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Top?.Value),
+                    MarginBottom = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Bottom?.Value),
+                    MarginLeft = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Left?.Value),
+                    MarginRight = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Right?.Value),
+                    HeaderMargin = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Header?.Value),
+                    FooterMargin = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Footer?.Value),
                     ColumnCount = section.ColumnCount,
-                    ColumnSpacingPoints = ConvertTwipsToPoints(section.ColumnsSpace),
+                    ColumnSpacing = section.ColumnsSpace,
                     HasColumnSeparator = section._sectionProperties?.GetFirstChild<Columns>()?.Separator?.Value ?? false,
                     PageNumberStart = section._sectionProperties?.GetFirstChild<PageNumberType>()?.Start?.Value,
                     HeaderCount = CountHeaderParts(section.Header),
@@ -169,7 +169,7 @@ namespace OfficeIMO.Word {
             return string.IsNullOrWhiteSpace(normalizedType) ? "NextPage" : normalizedType;
         }
 
-        private WordHeaderFooterSnapshot? BuildHeaderFooterSnapshot(
+        private WordHeaderFooterInfo? BuildHeaderFooterSnapshot(
             WordHeaderFooter? headerFooter,
             string kind,
             string variant,
@@ -178,7 +178,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            var snapshot = new WordHeaderFooterSnapshot {
+            var snapshot = new WordHeaderFooterInfo {
                 Kind = kind,
                 Variant = variant,
                 TableCount = headerFooter.Tables.Count,
@@ -203,12 +203,12 @@ namespace OfficeIMO.Word {
             return snapshot;
         }
 
-        private WordParagraphSnapshot BuildParagraphSnapshot(WordParagraph paragraph, InspectionExpansionContext expansionContext) {
+        private WordParagraphInfo BuildParagraphSnapshot(WordParagraph paragraph, InspectionExpansionContext expansionContext) {
             expansionContext.CancellationToken.ThrowIfCancellationRequested();
             var bookmark = paragraph.Bookmark;
             var bookmarkStart = paragraph._paragraph.ChildElements.OfType<BookmarkStart>().FirstOrDefault();
             bool hasListMarker = expansionContext.ListMarkers.TryGetValue(paragraph, out WordDocumentTraversal.ResolvedListMarker listMarker);
-            var snapshot = new WordParagraphSnapshot {
+            var snapshot = new WordParagraphInfo {
                 Text = string.Concat(paragraph.GetRuns().Select(run => run.Text)),
                 StyleId = paragraph.StyleId,
                 StyleName = ResolveParagraphStyleName(paragraph, expansionContext.ParagraphStyleNames),
@@ -219,13 +219,15 @@ namespace OfficeIMO.Word {
                 ListIndex = hasListMarker && listMarker.Info.Ordered ? listMarker.Index : null,
                 ListStyleName = paragraph.ListStyle?.ToString(),
                 Alignment = NormalizeOpenXmlEnumValue(paragraph._paragraphProperties?.Justification?.Val),
-                IndentStartPoints = paragraph.IndentationBeforePoints,
-                IndentEndPoints = paragraph.IndentationAfterPoints,
-                IndentFirstLinePoints = ResolveIndentFirstLinePoints(paragraph),
-                SpaceAbovePoints = paragraph.LineSpacingBeforePoints,
-                SpaceBelowPoints = paragraph.LineSpacingAfterPoints,
-                LineSpacingValue = paragraph.LineSpacing,
-                LineSpacingRule = NormalizeOpenXmlEnumValue(paragraph.LineSpacingRule),
+                IndentStart = paragraph.IndentationBefore,
+                IndentEnd = paragraph.IndentationAfter,
+                IndentFirstLine = ResolveIndentFirstLine(paragraph),
+                SpaceAbove = paragraph.LineSpacingBefore,
+                SpaceBelow = paragraph.LineSpacingAfter,
+                LineSpacing = paragraph.LineSpacing,
+                LineSpacingValue = paragraph.NativeLineSpacingValue,
+                LineSpacingRule = paragraph.NativeLineSpacingRule?.ToString()
+                    ?? paragraph._paragraph.ParagraphProperties?.SpacingBetweenLines?.LineRule?.InnerText,
                 ShadingFillColorHex = NormalizeColorHex(paragraph.ShadingFillColorHex),
                 ShadingPattern = paragraph.ShadingPattern,
                 LeftBorder = BuildParagraphBorderSnapshot(
@@ -294,7 +296,7 @@ namespace OfficeIMO.Word {
                 run._hyperlink = item.Ancestors<Hyperlink>().FirstOrDefault();
                 var hyperlink = run.Hyperlink;
 
-                snapshot.AddRun(new WordRunSnapshot {
+                snapshot.AddRun(new WordRunInfo {
                     Text = runText,
                     NonTextBreaks = nonTextBreaks,
                     Bold = run.Bold,
@@ -304,7 +306,6 @@ namespace OfficeIMO.Word {
                     Strike = run.Strike || run.DoubleStrike,
                     DoubleStrike = run.DoubleStrike,
                     FontSize = run.FontSize,
-                    FontSizePoints = run.FontSizePoints,
                     FontFamily = run.FontFamily,
                     ColorHex = NormalizeColorHex(run.ColorHex),
                     HighlightColor = NormalizeOpenXmlEnumValue(run.Highlight),
@@ -330,7 +331,7 @@ namespace OfficeIMO.Word {
             void AddInlineField(SimpleField field, int index, bool nestedInHyperlink, Hyperlink? containingLink = null) {
                 WordHyperLink? link = containingLink == null ? null
                     : new WordHyperLink(paragraph._document, paragraph._paragraph, containingLink);
-                snapshot.AddInlineField(new WordInlineFieldSnapshot {
+                snapshot.AddInlineField(new WordInlineFieldInfo {
                     RunIndex = index,
                     Instruction = field.Instruction?.Value ?? string.Empty,
                     ResultText = WordParagraph.ReadVisibleText(field),
@@ -351,10 +352,10 @@ namespace OfficeIMO.Word {
             }
 
             foreach (var tabStop in paragraph.TabStops) {
-                snapshot.AddTabStop(new WordTabStopSnapshot {
+                snapshot.AddTabStop(new WordTabStopInfo {
                     Alignment = NormalizeOpenXmlEnumValue(tabStop.Alignment),
                     Leader = NormalizeOpenXmlEnumValue(tabStop.Leader),
-                    PositionPoints = Helpers.ConvertTwipsToPoints(tabStop.Position),
+                    Position = tabStop.Position,
                 });
             }
 
@@ -380,7 +381,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static WordInlineImageSnapshot BuildInlineImageSnapshot(WordImage image, bool includeImageBytes) => new WordInlineImageSnapshot {
+        private static WordInlineImageInfo BuildInlineImageSnapshot(WordImage image, bool includeImageBytes) => new WordInlineImageInfo {
             FilePath = string.IsNullOrWhiteSpace(image.FilePath) ? null : image.FilePath,
             FileName = image.FileName,
             ContentType = ResolveImageContentType(image),
@@ -420,9 +421,9 @@ namespace OfficeIMO.Word {
                 : style?.ToString();
         }
 
-        private WordTableSnapshot BuildTableSnapshot(WordTable table, InspectionExpansionContext expansionContext) {
+        private WordTableInfo BuildTableSnapshot(WordTable table, InspectionExpansionContext expansionContext) {
             expansionContext.CancellationToken.ThrowIfCancellationRequested();
-            var snapshot = new WordTableSnapshot {
+            var snapshot = new WordTableInfo {
                 RowCount = table.Rows.Count,
                 ColumnCount = table.Rows.Count == 0 ? 0 : table.Rows.Max(row => row.CellsCount),
                 StyleName = table.Style?.ToString(),
@@ -434,23 +435,25 @@ namespace OfficeIMO.Word {
             var gridColumnWidths = table.GridColumnWidth;
             if (gridColumnWidths.Count > 0) {
                 foreach (var width in gridColumnWidths) {
-                    snapshot.AddColumnWidth(Helpers.ConvertTwipsToPoints(width));
+                    snapshot.AddColumnWidth(width);
                 }
-            } else {
-                foreach (var width in table.ColumnWidth) {
-                    snapshot.AddColumnWidth(Helpers.ConvertTwipsToPoints(width));
+            } else if (table.Rows.Count > 0) {
+                foreach (var cell in table.Rows[0].Cells) {
+                    // Snapshot columns are physical lengths. Zero marks an unresolved preference
+                    // for destination adapters; percentages are never interpreted as twips.
+                    snapshot.AddColumnWidth(OfficeLength.Points(WordTableWidthNative.AbsoluteCellPoints(cell) ?? 0D));
                 }
             }
 
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                 var row = table.Rows[rowIndex];
-                var rowSnapshot = new WordTableRowSnapshot {
+                var rowSnapshot = new WordTableRowInfo {
                     RowIndex = rowIndex,
                 };
 
                 for (int columnIndex = 0; columnIndex < row.Cells.Count; columnIndex++) {
                     var cell = row.Cells[columnIndex];
-                    var cellSnapshot = new WordTableCellSnapshot {
+                    var cellSnapshot = new WordTableCellInfo {
                         ColumnIndex = columnIndex,
                         ColumnSpan = cell.ColumnSpan,
                         RowSpan = cell.RowSpan,
@@ -491,7 +494,7 @@ namespace OfficeIMO.Word {
             return snapshot;
         }
 
-        private WordFootnoteSnapshot? BuildFootnoteSnapshot(WordFootNote? footNote, InspectionExpansionContext expansionContext) {
+        private WordFootnoteInfo? BuildFootnoteSnapshot(WordFootNote? footNote, InspectionExpansionContext expansionContext) {
             expansionContext.CancellationToken.ThrowIfCancellationRequested();
             if (footNote == null) {
                 return null;
@@ -509,7 +512,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                var snapshot = new WordFootnoteSnapshot {
+                var snapshot = new WordFootnoteInfo {
                     ReferenceId = footNote.ReferenceId,
                 };
 
@@ -524,7 +527,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private WordEndnoteSnapshot? BuildEndnoteSnapshot(WordEndNote? endnote, InspectionExpansionContext expansionContext) {
+        private WordEndnoteInfo? BuildEndnoteSnapshot(WordEndNote? endnote, InspectionExpansionContext expansionContext) {
             expansionContext.CancellationToken.ThrowIfCancellationRequested();
             if (endnote == null) {
                 return null;
@@ -542,7 +545,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                var snapshot = new WordEndnoteSnapshot {
+                var snapshot = new WordEndnoteInfo {
                     ReferenceId = endnote.ReferenceId,
                 };
 
@@ -557,13 +560,13 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static double? ResolveIndentFirstLinePoints(WordParagraph paragraph) {
-            if (paragraph.IndentationFirstLinePoints.HasValue) {
-                return paragraph.IndentationFirstLinePoints.Value;
+        private static OfficeLength? ResolveIndentFirstLine(WordParagraph paragraph) {
+            if (paragraph.IndentationFirstLine.HasValue) {
+                return paragraph.IndentationFirstLine.Value;
             }
 
-            if (paragraph.IndentationHangingPoints.HasValue) {
-                return -paragraph.IndentationHangingPoints.Value;
+            if (paragraph.IndentationHanging.HasValue) {
+                return OfficeLength.Zero - paragraph.IndentationHanging.Value;
             }
 
             return null;
@@ -604,31 +607,31 @@ namespace OfficeIMO.Word {
             return string.IsNullOrWhiteSpace(value) ? null : value;
         }
 
-        private static WordTableCellBorderSnapshot? BuildBorderSnapshot(
+        private static WordTableCellBorderInfo? BuildBorderSnapshot(
             string? style,
             string? colorHex,
-            uint? size) {
+            OfficeLength? size) {
             if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(colorHex) && !size.HasValue) {
                 return null;
             }
 
-            return new WordTableCellBorderSnapshot {
+            return new WordTableCellBorderInfo {
                 Style = style,
                 ColorHex = colorHex,
                 Size = size,
             };
         }
 
-        private static WordParagraphBorderSnapshot? BuildParagraphBorderSnapshot(
+        private static WordParagraphBorderInfo? BuildParagraphBorderSnapshot(
             string? style,
             string? colorHex,
-            uint? size,
-            uint? space) {
+            OfficeLength? size,
+            OfficeLength? space) {
             if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(colorHex) && !size.HasValue && !space.HasValue) {
                 return null;
             }
 
-            return new WordParagraphBorderSnapshot {
+            return new WordParagraphBorderInfo {
                 Style = style,
                 ColorHex = colorHex,
                 Size = size,
@@ -688,20 +691,20 @@ namespace OfficeIMO.Word {
             return char.ToUpperInvariant(text[0]) + text.Substring(1);
         }
 
-        private static double? ConvertTwipsToPoints(uint? twips) {
+        private static OfficeLength? ReadTwipLength(uint? twips) {
             if (!twips.HasValue) {
                 return null;
             }
 
-            return Helpers.ConvertTwipsToPoints((int)twips.Value);
+            return OfficeLength.Points(twips.Value / 20D);
         }
 
-        private static double? ConvertTwipsToPoints(int? twips) {
+        private static OfficeLength? ReadTwipLength(int? twips) {
             if (!twips.HasValue) {
                 return null;
             }
 
-            return Helpers.ConvertTwipsToPoints(twips.Value);
+            return OfficeLength.Points(twips.Value / 20D);
         }
     }
 }

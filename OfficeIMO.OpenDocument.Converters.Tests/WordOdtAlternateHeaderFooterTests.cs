@@ -233,7 +233,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         }
         using WordDocument source = WordDocument.Load(new MemoryStream(stream.ToArray()));
         Assert.False(source.Sections[0].DifferentOddAndEvenPages);
-        Assert.True(source.CreateInspectionSnapshot().Sections[0].DocumentOddEvenSettingEnabled);
+        Assert.True(source.Inspect().Sections[0].DocumentOddEvenSettingEnabled);
         OdtDocument odt = source.ToOpenDocument();
         Assert.Equal("Odd header", Assert.Single(odt.PageLayout.Header.Paragraphs).Text);
         Assert.Equal("Odd footer", Assert.Single(odt.PageLayout.Footer.Paragraphs).Text);
@@ -511,13 +511,13 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         }
 
         using WordDocument source = WordDocument.Load(new MemoryStream(stream.ToArray()));
-        var inherited = source.CreateInspectionSnapshot().Sections[1];
+        var inherited = source.Inspect().Sections[1];
         Assert.NotNull(inherited.EvenHeader);
         Assert.False(inherited.HasExplicitEvenHeader);
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         Assert.DoesNotContain(conversion.Report.ForFeature("alternate-headers-footers"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        var first = source.CreateInspectionSnapshot().Sections[0];
+        var first = source.Inspect().Sections[0];
         int firstStoryBlocks = new[] { first.DefaultHeader, first.DefaultFooter, first.FirstHeader,
                 first.FirstFooter, first.EvenHeader, first.EvenFooter }
             .Where(part => part != null).Sum(part => part!.Elements.Count);

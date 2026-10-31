@@ -4,11 +4,11 @@ namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static RangeExportData ReadRangeWithPrintTitleColumns(
             ExcelSheetReader reader, ExcelSheet? metadataSheet, ExcelSheet? styleSheet,
-            string range, ExcelToPdfOptions options, PdfCore.PdfStandardFont defaultFont, bool boundedRead) {
+            string range, ExcelPdfExportOptions options, PdfCore.PdfStandardFont defaultFont, bool boundedRead) {
             RangeExportData body = ReadRangeExportData(reader, metadataSheet, styleSheet, range, options, defaultFont, boundedRead);
             ExcelPrintTitles? titles = metadataSheet?.GetPrintTitles();
             if (!options.UseWorksheetPrintTitleColumns || titles?.HasColumns != true ||
-                !A1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out _)
+                !ExcelA1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out _)
                 || titles.FirstColumn!.Value >= firstColumn) return body;
 
             string titleRange = ToA1Range(firstRow, titles.FirstColumn!.Value, lastRow,
@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel.Pdf {
             return result;
         }
 
-        private static IReadOnlyList<int> GetPrintTitleColumnIndexes(ExcelSheet? sheet, string?[,]? references, ExcelToPdfOptions options) {
+        private static IReadOnlyList<int> GetPrintTitleColumnIndexes(ExcelSheet? sheet, string?[,]? references, ExcelPdfExportOptions options) {
             ExcelPrintTitles? titles = sheet?.GetPrintTitles();
             if (!options.UseWorksheetPrintTitleColumns || titles?.HasColumns != true || references == null) return Array.Empty<int>();
             var indexes = new List<int>();

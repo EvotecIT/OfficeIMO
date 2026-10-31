@@ -53,191 +53,147 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Get or set the left margin in Twips
+        /// Get or set the left margin as a physical length
         /// </summary>
-        public uint Left {
+        public global::OfficeIMO.OfficeLength? Left {
             get {
                 var left = _section._sectionProperties.GetFirstChild<PageMargin>()?.Left ?? WordMargins.Normal.Left;
-                return (left ?? new UInt32Value()).Value;
+                return global::OfficeIMO.OfficeLength.Points(((left ?? new UInt32Value()).Value) / 20D);
             }
             set {
+                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
+                var wordNativeValue = checked((uint?)(value?.ToTwips()));
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 if (pageMargin == null) {
                     _section._sectionProperties.Append(WordMargins.Normal);
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin!.Left = value;
+                pageMargin!.Left = wordNativeValue;
             }
         }
 
         /// <summary>
-        /// Get or set the right margin in Twips
+        /// Get or set the right margin as a physical length
         /// </summary>
-        public uint Right {
+        public global::OfficeIMO.OfficeLength? Right {
             get {
                 var right = _section._sectionProperties.GetFirstChild<PageMargin>()?.Right ?? WordMargins.Normal.Right;
-                return (right ?? new UInt32Value()).Value;
+                return global::OfficeIMO.OfficeLength.Points(((right ?? new UInt32Value()).Value) / 20D);
             }
             set {
+                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
+                var wordNativeValue = checked((uint?)(value?.ToTwips()));
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 if (pageMargin == null) {
                     _section._sectionProperties.Append(WordMargins.Normal);
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin!.Right = value;
+                pageMargin!.Right = wordNativeValue;
             }
         }
 
         /// <summary>
-        /// Get or set the top margin in Twips
+        /// Get or set the top margin as a physical length
         /// </summary>
-        public int? Top {
+        public global::OfficeIMO.OfficeLength? Top {
             get {
-                return _section._sectionProperties.GetFirstChild<PageMargin>()?.Top?.Value
-                       ?? WordMargins.Normal.Top?.Value;
+                return ((_section._sectionProperties.GetFirstChild<PageMargin>()?.Top?.Value
+                       ?? WordMargins.Normal.Top?.Value) is { } wordLength3339 ? global::OfficeIMO.OfficeLength.Points((wordLength3339) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
             set {
+                var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 if (pageMargin == null) {
                     _section._sectionProperties.Append(WordMargins.Normal);
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin!.Top = value;
+                pageMargin!.Top = wordNativeValue;
             }
         }
 
         /// <summary>
-        /// Get or set the left margin in Twips
+        /// Get or set the bottom margin as a physical length
         /// </summary>
-        public int? Bottom {
+        public global::OfficeIMO.OfficeLength? Bottom {
             get {
-                return _section._sectionProperties.GetFirstChild<PageMargin>()?.Bottom?.Value
-                       ?? WordMargins.Normal.Bottom?.Value;
+                return ((_section._sectionProperties.GetFirstChild<PageMargin>()?.Bottom?.Value
+                       ?? WordMargins.Normal.Bottom?.Value) is { } wordLength4042 ? global::OfficeIMO.OfficeLength.Points((wordLength4042) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
             set {
+                var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 if (pageMargin == null) {
                     _section._sectionProperties.Append(WordMargins.Normal);
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin!.Bottom = value;
+                pageMargin!.Bottom = wordNativeValue;
             }
         }
 
         /// <summary>
-        /// Get or set the top margin in centimeters
+        /// Get or set the header distance as a physical length
         /// </summary>
-        public double? TopCentimeters {
-            get {
-                var top = Top;
-                return top.HasValue ? Helpers.ConvertTwipsToCentimeters(top.Value) : (double?)null;
-            }
-            set {
-                Top = value.HasValue ? Helpers.ConvertCentimetersToTwips(value.Value) : (int?)null;
-            }
-        }
-
-        /// <summary>
-        /// Get or set the bottom margin in centimeters
-        /// </summary>
-        public double? BottomCentimeters {
-            get {
-                var bottom = Bottom;
-                return bottom.HasValue ? Helpers.ConvertTwipsToCentimeters(bottom.Value) : (double?)null;
-            }
-            set {
-                Bottom = value.HasValue ? Helpers.ConvertCentimetersToTwips(value.Value) : (int?)null;
-            }
-        }
-
-        /// <summary>
-        /// Get or set the left margin in centimeters
-        /// </summary>
-        public double? LeftCentimeters {
-            get {
-                var left = Left;
-                return Helpers.ConvertTwipsToCentimeters(left);
-            }
-            set {
-                if (value.HasValue) {
-                    Left = Helpers.ConvertCentimetersToTwipsUInt32(value.Value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Get or set the right margin in centimeters
-        /// </summary>
-        public double? RightCentimeters {
-            get {
-                var right = Right;
-                return Helpers.ConvertTwipsToCentimeters(right);
-            }
-            set {
-                if (value.HasValue) {
-                    Right = Helpers.ConvertCentimetersToTwipsUInt32(value.Value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Get or set the header distance in Twips
-        /// </summary>
-        public uint HeaderDistance {
+        public global::OfficeIMO.OfficeLength? HeaderDistance {
             get {
                 var header = _section._sectionProperties.GetFirstChild<PageMargin>()?.Header ?? WordMargins.Normal.Header;
-                return (header ?? new UInt32Value()).Value;
+                return global::OfficeIMO.OfficeLength.Points(((header ?? new UInt32Value()).Value) / 20D);
             }
             set {
+                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
+                var wordNativeValue = checked((uint?)(value?.ToTwips()));
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 if (pageMargin == null) {
                     _section._sectionProperties.Append(WordMargins.Normal);
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin!.Header = value;
+                pageMargin!.Header = wordNativeValue;
             }
         }
 
         /// <summary>
-        /// Get or set the footer distance in Twips
+        /// Get or set the footer distance as a physical length
         /// </summary>
-        public uint FooterDistance {
+        public global::OfficeIMO.OfficeLength? FooterDistance {
             get {
                 var footer = _section._sectionProperties.GetFirstChild<PageMargin>()?.Footer ?? WordMargins.Normal.Footer;
-                return (footer ?? new UInt32Value()).Value;
+                return global::OfficeIMO.OfficeLength.Points(((footer ?? new UInt32Value()).Value) / 20D);
             }
             set {
+                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
+                var wordNativeValue = checked((uint?)(value?.ToTwips()));
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 if (pageMargin == null) {
                     _section._sectionProperties.Append(WordMargins.Normal);
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin!.Footer = value;
+                pageMargin!.Footer = wordNativeValue;
             }
         }
 
         /// <summary>
-        /// Gets or sets the gutter size in Twips.
+        /// Gets or sets the gutter size as a physical length.
         /// </summary>
-        public uint Gutter {
+        public global::OfficeIMO.OfficeLength? Gutter {
             get {
                 var gutter = _section._sectionProperties.GetFirstChild<PageMargin>()?.Gutter ?? WordMargins.Normal.Gutter;
-                return (gutter ?? new UInt32Value()).Value;
+                return global::OfficeIMO.OfficeLength.Points(((gutter ?? new UInt32Value()).Value) / 20D);
             }
             set {
+                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
+                var wordNativeValue = checked((uint?)(value?.ToTwips()));
                 var pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 if (pageMargin == null) {
                     _section._sectionProperties.Append(WordMargins.Normal);
                     pageMargin = _section._sectionProperties.GetFirstChild<PageMargin>();
                 }
 
-                pageMargin!.Gutter = value;
+                pageMargin!.Gutter = wordNativeValue;
             }
         }
 

@@ -23,12 +23,17 @@ namespace OfficeIMO.PowerPoint {
         private static string ResolveTextBoxFallbackFont(PowerPointTextBox textBox, string? defaultFontFamily) =>
             defaultFontFamily ?? PowerPointTextDefaults.ResolveBodyLatinFont(textBox.OwnerSlide) ?? "Calibri";
 
-        private static void ReportCharacterSpacing(PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics) {
-            if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run is { } run
-                && !string.IsNullOrEmpty(run.Text)
-                && PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, textBox).GetValueOrDefault() != 0))) return;
+        private static void ReportCharacterSpacing(PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics,
+            CancellationToken cancellationToken) {
+            var inheritedSpacingByLevel = new Dictionary<int, int?>();
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return node.Run is { } run && !string.IsNullOrEmpty(run.Text)
+                    && PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, textBox,
+                        inheritedSpacingByLevel).GetValueOrDefault() != 0;
+            }))) return;
             diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
-                "POWERPOINT_CHARACTER_SPACING_APPROXIMATED",
+                "powerpoint-character-spacing-approximated",
                 "Shared text rendering uses default character spacing; authored spacing is retained in the presentation.",
                 DescribeShape(textBox), OfficeConversionLossKind.Approximation));
         }
@@ -55,11 +60,11 @@ namespace OfficeIMO.PowerPoint {
                 var underline = MapUnderlineStyle(style.UnderlineStyle);
                 if (link != null && underline == OfficeTextDecorationStyle.None) underline = OfficeTextDecorationStyle.Single;
                 yield return new OfficeRichTextRun(value,
-                    mapping.MapFontSize(style.FontSizePoints ?? textBox.FontSize ?? PowerPointTextDefaults.DefaultFontSizePoints),
+                    mapping.MapFontSize(style.FontSizePoints ?? textBox.FontSize?.ToPoints() ?? PowerPointTextDefaults.DefaultFontSizePoints),
                     color, style.Bold ?? textBox.Bold, style.Italic ?? textBox.Italic,
                     underline != OfficeTextDecorationStyle.None, style.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
                     style.StrikeStyle is { } strike && strike != PowerPointStrikeStyle.None,
-                    ResolveTextRunBackgroundColor(run, textBox, colors), underline, MapStrikeStyle(style.StrikeStyle),
+                    ResolveTextRunBackgroundColor(run, textBox, colors, paragraph), underline, MapStrikeStyle(style.StrikeStyle),
                     MapBaseline(style.BaselinePercent)) { LinkUri = link, LinkDestinationName = destination };
             }
         }

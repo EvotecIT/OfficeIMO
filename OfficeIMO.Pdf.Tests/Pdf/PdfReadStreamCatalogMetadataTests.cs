@@ -146,7 +146,7 @@ public partial class PdfReadStreamTests {
     [InlineData(500, false)]
     [InlineData(500, true)]
     public void SplitPages_PreservesPageLabelsAcrossDocumentSizesAndRanges(int pageCount, bool perPageRange) {
-        var options = new PdfOptions { IncludePageLabels = !perPageRange };
+        var options = new PdfCreateOptions { IncludePageLabels = !perPageRange };
         if (perPageRange) {
             for (int page = 1; page <= pageCount; page++) {
                 options.AddPageLabelRange(page, PdfPageNumberStyle.Arabic, startNumber: page);

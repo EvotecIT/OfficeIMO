@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using OfficeIMO.Invoicing;
 using OfficeIMO.Invoicing.Pdf;
 using OfficeIMO.Pdf;
@@ -24,18 +25,18 @@ public enum OfficeInvoiceWorkflowOperation {
 public sealed class OfficeInvoiceWorkflowRequest {
     private readonly byte[] _xml;
     private readonly InvoicePdfLayoutOptions _layout;
-    private readonly PdfOptions? _pdfOptions;
+    private readonly PdfCreateOptions? _pdfOptions;
 
     /// <summary>Captures bounded XML and independent rendering settings. Conversion and rendering require an explicit target; standards validation requires an explicit release.</summary>
     public OfficeInvoiceWorkflowRequest(byte[] xml, OfficeInvoiceWorkflowOperation operation = OfficeInvoiceWorkflowOperation.Inspect,
         InvoiceXmlOptions? target = null, InvoiceSpecificationRelease? validationRelease = null,
-        InvoicePdfLayoutOptions? layout = null, PdfOptions? pdfOptions = null, string? inputName = null)
+        InvoicePdfLayoutOptions? layout = null, PdfCreateOptions? pdfOptions = null, string? inputName = null)
         : this(xml, operation, target, validationRelease, layout, pdfOptions, inputName, null) { }
 
     private OfficeInvoiceWorkflowRequest(byte[] xml, OfficeInvoiceWorkflowOperation operation,
         InvoiceXmlOptions? target, InvoiceSpecificationRelease? validationRelease,
-        InvoicePdfLayoutOptions? layout, PdfOptions? pdfOptions, string? inputName, InvoiceSourceEdits? sourceEdits) {
-        ArgumentNullException.ThrowIfNull(xml);
+        InvoicePdfLayoutOptions? layout, PdfCreateOptions? pdfOptions, string? inputName, InvoiceSourceEdits? sourceEdits) {
+        if (xml == null) throw new ArgumentNullException(nameof(xml));
         if (xml.Length == 0 || xml.Length > InvoiceProfileDeclaration.MaximumXmlBytes)
             throw new ArgumentException("Invoice XML must contain between one byte and 16 MiB.", nameof(xml));
         ValidateContract(operation, target, validationRelease, sourceEdits);
@@ -48,19 +49,19 @@ public sealed class OfficeInvoiceWorkflowRequest {
     /// <summary>Captures preservation-aware header replacements. Completion does not establish model validity; requested standards checks validate exact edited XML and must pass before output is returned.</summary>
     public static OfficeInvoiceWorkflowRequest ForSourceEdit(byte[] xml, InvoiceSourceEdits edits,
         InvoiceSpecificationRelease? validationRelease = null, string? inputName = null) {
-        ArgumentNullException.ThrowIfNull(edits);
+        if (edits == null) throw new ArgumentNullException(nameof(edits));
         return new(xml, OfficeInvoiceWorkflowOperation.EditSource, null, validationRelease, null, null, inputName, edits);
     }
 
     internal static void ValidateContract(OfficeInvoiceWorkflowOperation operation, InvoiceXmlOptions? target, InvoiceSpecificationRelease? validationRelease, InvoiceSourceEdits? sourceEdits = null) {
-        if (!Enum.IsDefined(operation)) throw new ArgumentOutOfRangeException(nameof(operation));
+        if (!OfficeRuntimeCompatibility.IsDefined(operation)) throw new ArgumentOutOfRangeException(nameof(operation));
         if (operation == OfficeInvoiceWorkflowOperation.EditSource && (sourceEdits == null || target != null))
             throw new ArgumentException("Source editing requires captured edits and retains its original syntax/profile. Use ForSourceEdit.", nameof(sourceEdits));
         if (operation is OfficeInvoiceWorkflowOperation.Convert or OfficeInvoiceWorkflowOperation.RenderPresentationPdf or OfficeInvoiceWorkflowOperation.RenderHybridPdf && target == null)
             throw new ArgumentException("Writing invoice output requires an explicit target contract.", nameof(target));
         if (operation is OfficeInvoiceWorkflowOperation.RenderPresentationPdf or OfficeInvoiceWorkflowOperation.RenderHybridPdf && target!.Syntax != InvoiceSyntax.Cii)
             throw new ArgumentException("Invoice PDF rendering requires a CII target contract.", nameof(target));
-        if (validationRelease.HasValue && !Enum.IsDefined(validationRelease.Value)) throw new ArgumentOutOfRangeException(nameof(validationRelease));
+        if (validationRelease.HasValue && !OfficeRuntimeCompatibility.IsDefined(validationRelease.Value)) throw new ArgumentOutOfRangeException(nameof(validationRelease));
         if (operation is OfficeInvoiceWorkflowOperation.Convert or OfficeInvoiceWorkflowOperation.RenderPresentationPdf or OfficeInvoiceWorkflowOperation.RenderHybridPdf &&
             validationRelease.HasValue && validationRelease != target!.Release)
             throw new ArgumentException("Output standards validation must use the selected target release.", nameof(validationRelease));
@@ -81,7 +82,7 @@ public sealed class OfficeInvoiceWorkflowRequest {
     public byte[] ToInputBytes() => (byte[])_xml.Clone();
     internal byte[] Xml => _xml;
     internal InvoicePdfLayoutOptions Layout => _layout;
-    internal PdfOptions? PdfOptions => _pdfOptions;
+    internal PdfCreateOptions? PdfOptions => _pdfOptions;
 }
 
 /// <summary>Bounds the retained input and output of sequential invoice batch processing.</summary>

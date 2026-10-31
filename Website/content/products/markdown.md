@@ -40,7 +40,7 @@ OfficeIMO.Markdown is a purpose-built Markdown engine for .NET. It gives you a s
 ```csharp
 using OfficeIMO.Markdown;
 
-var doc = MarkdownDoc.Create()
+var doc = MarkdownDocument.Create()
     .FrontMatter(new { title = "Release Notes", tags = new[] { "docs", "release" } })
     .H1("Release Notes")
     .P("Version 3.0 introduces several improvements.")
@@ -62,7 +62,7 @@ string html = doc.ToHtmlFragment();
 
 var parsed = MarkdownReader.Parse(
     markdown,
-    MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+    MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
 
 // Inspect the AST
 foreach (var block in parsed.DescendantsAndSelf())

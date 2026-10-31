@@ -14,8 +14,8 @@ public class Markdown_Compatibility_Corpus_Tests {
         string markdown = LoadCompatibilityFixture("portable-profile-boundary.md");
         var htmlOptions = CreatePlainHtmlOptions();
 
-        string officeHtml = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateOfficeIMOProfile()).ToHtmlFragment(htmlOptions);
-        string portableHtml = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
+        string officeHtml = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreateOfficeIMOProfile()).ToHtml(htmlOptions);
+        string portableHtml = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreatePortableProfile()).ToHtml(htmlOptions);
 
         Assert.Contains("class=\"callout", officeHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("contains-task-list", officeHtml, StringComparison.Ordinal);
@@ -70,9 +70,9 @@ public class Markdown_Compatibility_Corpus_Tests {
     public void Compatibility_Fixture_Html_Ingestion_Preserves_Rich_Ast_Before_Serialization() {
         string html = LoadCompatibilityFixture("html-rich-ast.html");
 
-        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
-        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(HtmlToMarkdownOptions.CreatePortableProfile());
-        string renderedHtml = document.ToHtmlFragment(CreatePlainHtmlOptions());
+        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
+        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(MarkdownHtmlImportOptions.CreatePortableProfile()).ToMarkdown();
+        string renderedHtml = document.ToHtml(CreatePlainHtmlOptions());
 
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Level == 1 && heading.Text == "HTML Corpus");
 
@@ -100,10 +100,10 @@ public class Markdown_Compatibility_Corpus_Tests {
     public void Compatibility_Fixture_SharedVisualHosts_Html_Ingestion_Preserves_Generic_Semantic_Block_Recovery() {
         string html = LoadHtmlFixture("shared-visual-hosts.html");
 
-        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://example.com/visuals/archive.html")
         });
-        string markdown = document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile());
+        string markdown = document.ToMarkdown(MarkdownSaveOptions.CreateOfficeIMOProfile());
 
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Level == 1 && heading.Text == "Shared Visual Archive");
 
@@ -135,7 +135,7 @@ public class Markdown_Compatibility_Corpus_Tests {
         ix.Mermaid.Enabled = true;
 
         string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
-        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:30: 13)");
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:36: 24)");
@@ -158,7 +158,7 @@ public class Markdown_Compatibility_Corpus_Tests {
         ix.Mermaid.Enabled = true;
 
         string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
-        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:36: 24)");
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:37: 49)");
@@ -194,10 +194,10 @@ public class Markdown_Compatibility_Corpus_Tests {
         Assert.Contains("\"label\": \"Count\"", portableExport, StringComparison.Ordinal);
     }
 
-    private static HtmlOptions CreatePlainHtmlOptions() {
-        return new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+    private static MarkdownHtmlExportOptions CreatePlainHtmlOptions() {
+        return new MarkdownHtmlExportOptions {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null
         };
     }

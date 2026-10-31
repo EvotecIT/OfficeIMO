@@ -54,7 +54,9 @@ public sealed class ExportOfficeVisioImageCommand : PSCmdlet
 
         Directory.CreateDirectory(output);
         var document = VisioCommandUtilities.ResolveDocument(this, Document, ParameterSetName == "Path" ? Path : null);
-        IReadOnlyList<OfficeImageExportResult> results = document.SaveAsImages(output, Format, Options);
+        VisioImageExportOptions effectiveOptions = Options?.Clone() ?? new VisioImageExportOptions();
+        effectiveOptions.Format = Format;
+        IReadOnlyList<OfficeImageExportResult> results = document.SaveImageResults(output, effectiveOptions);
         if (PassThru.IsPresent) WriteObject(results, enumerateCollection: true);
     }
 }

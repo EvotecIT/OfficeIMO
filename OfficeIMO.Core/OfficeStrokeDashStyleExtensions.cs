@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared helpers for mapping Office stroke dash styles to renderer dash patterns.
 /// </summary>
-public static class OfficeStrokeDashStyleExtensions {
+internal static class OfficeStrokeDashStyleExtensions {
     /// <summary>
     /// Returns a dash/gap pattern in rendered units for the supplied stroke width.
     /// </summary>

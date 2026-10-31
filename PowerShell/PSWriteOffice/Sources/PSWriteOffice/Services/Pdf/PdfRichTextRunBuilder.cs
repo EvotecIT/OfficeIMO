@@ -16,8 +16,8 @@ internal static class PdfRichTextRunBuilder
         bool underline,
         bool strike,
         PdfTextBaseline baseline,
-        PdfColor? color,
-        PdfColor? backgroundColor,
+        global::OfficeIMO.OfficeColor? color,
+        global::OfficeIMO.OfficeColor? backgroundColor,
         double? fontSize,
         PdfStandardFont? font,
         string? linkUri,
@@ -124,7 +124,7 @@ internal static class PdfRichTextRunBuilder
             color: PdfCommandUtilities.ParseColor(run.Color),
             italic: run.Italic,
             strike: run.Strike,
-            fontSize: run.FontSize,
+            fontSize: ((double?)(run.FontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
             baseline: baseline,
             font: GetNullableEnum<PdfStandardFont>(run.FontName),
             tabLeader: GetEnum(run.TabLeader, PdfTabLeaderStyle.None),
@@ -132,7 +132,7 @@ internal static class PdfRichTextRunBuilder
             backgroundColor: ParseOptionalBackgroundColor(run.BackgroundColor));
     }
 
-    private static void AddText(PdfParagraphBuilder builder, string text, string? linkUri, string? linkDestinationName, string? linkContents, PdfColor? color, bool underline)
+    private static void AddText(PdfParagraphBuilder builder, string text, string? linkUri, string? linkDestinationName, string? linkContents, global::OfficeIMO.OfficeColor? color, bool underline)
     {
         if (!string.IsNullOrWhiteSpace(linkUri))
         {
@@ -156,8 +156,8 @@ internal static class PdfRichTextRunBuilder
         bool underline,
         bool strike,
         PdfTextBaseline baseline,
-        PdfColor? color,
-        PdfColor? backgroundColor,
+        global::OfficeIMO.OfficeColor? color,
+        global::OfficeIMO.OfficeColor? backgroundColor,
         double? fontSize,
         PdfStandardFont? font)
     {
@@ -187,7 +187,7 @@ internal static class PdfRichTextRunBuilder
 
         if (fontSize.HasValue)
         {
-            builder.FontSize(fontSize.Value);
+            builder.FontSize(global::OfficeIMO.OfficeLength.Points(fontSize.Value));
         }
         else
         {
@@ -224,6 +224,6 @@ internal static class PdfRichTextRunBuilder
         return (TEnum)Enum.Parse(typeof(TEnum), value!, ignoreCase: true);
     }
 
-    private static PdfColor? ParseOptionalBackgroundColor(string? color)
+    private static global::OfficeIMO.OfficeColor? ParseOptionalBackgroundColor(string? color)
         => OfficeColorUtilities.IsNone(color) ? null : PdfCommandUtilities.ParseColor(color);
 }

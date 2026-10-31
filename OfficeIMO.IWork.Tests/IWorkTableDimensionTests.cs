@@ -94,20 +94,20 @@ public sealed partial class IWorkBoundaryTests {
             saved.Position = 0;
             using WordDocument reopened = WordDocument.Load(saved);
             WordTable output = Assert.Single(reopened.Tables);
-            Assert.Equal(new[] { 405, 200, 600 }, output.RowHeight);
-            Assert.Equal(new[] { 810, 400 }, output.ColumnWidth);
+            Assert.Equal(new[] { 405, 200, 600 }, output.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))));
+            Assert.Equal(new[] { 810, 400 }.Select(value => (WordTableWidth?)WordTableWidth.Length(OfficeLength.Emus((long)value * 635))), output.ColumnWidth);
         } else {
-            using var result = source.ToPowerPointPresentationResult();
+            using var result = source.ToPowerPointDocumentResult();
             Assert.False(result.IsVisualFallback);
             result.Value.Save(saved);
             saved.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+            using PowerPointDocument reopened = PowerPointDocument.Load(saved);
             PowerPointTable output = Assert.Single(Assert.Single(reopened.Slides).Tables);
-            Assert.Equal(20.25d, output.GetRowHeightPoints(0), 5);
-            Assert.Equal(10d, output.GetRowHeightPoints(1), 5);
-            Assert.Equal(30d, output.GetRowHeightPoints(2), 5);
-            Assert.Equal(40.5d, output.GetColumnWidthPoints(0), 5);
-            Assert.Equal(20d, output.GetColumnWidthPoints(1), 5);
+            Assert.Equal(20.25d, (output.GetRowHeight(0)).ToPoints(), 5);
+            Assert.Equal(10d, (output.GetRowHeight(1)).ToPoints(), 5);
+            Assert.Equal(30d, (output.GetRowHeight(2)).ToPoints(), 5);
+            Assert.Equal(40.5d, (output.GetColumnWidth(0)).ToPoints(), 5);
+            Assert.Equal(20d, (output.GetColumnWidth(1)).ToPoints(), 5);
         }
     }
 
@@ -117,10 +117,10 @@ public sealed partial class IWorkBoundaryTests {
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
         PowerPointTable table = Assert.Single(Assert.Single(result.Value.Slides).Tables);
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(121d, table.WidthPoints, 5);
-        Assert.Equal(120.5d, table.HeightPoints, 5);
-        Assert.Equal(81d, table.GetColumnWidthPoints(0), 5);
-        Assert.Equal(40.5d, table.GetRowHeightPoints(0), 5);
+        Assert.Equal(121d, table.Width.ToPoints(), 5);
+        Assert.Equal(120.5d, table.Height.ToPoints(), 5);
+        Assert.Equal(81d, (table.GetColumnWidth(0)).ToPoints(), 5);
+        Assert.Equal(40.5d, (table.GetRowHeight(0)).ToPoints(), 5);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_TABLE_SIZING_SCALED"
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }

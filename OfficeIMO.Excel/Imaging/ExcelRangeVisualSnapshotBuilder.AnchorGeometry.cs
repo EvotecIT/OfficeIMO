@@ -7,9 +7,9 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions options,
             int firstRow,
             int firstColumn,
-            IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions,
+            IReadOnlyDictionary<int, ExcelRowInfo> rowDefinitions,
             bool defaultRowsHidden,
-            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions,
+            IReadOnlyList<ExcelColumnInfo> columnDefinitions,
             IReadOnlyDictionary<int, ExcelVisualColumn> columnsByIndex,
             IReadOnlyDictionary<int, ExcelVisualRow> rowsByIndex,
             int columnIndex,
@@ -105,7 +105,7 @@ namespace OfficeIMO.Excel {
             int firstColumn,
             int anchorColumn,
             int offsetPixels,
-            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions,
+            IReadOnlyList<ExcelColumnInfo> columnDefinitions,
             ExcelImageExportOptions options) {
             double x = 0D;
             if (anchorColumn >= firstColumn) {
@@ -124,7 +124,7 @@ namespace OfficeIMO.Excel {
         private static double ResolveImageWidth(ExcelWorksheetGeometryIndex geometry,
             ExcelImageExportOptions options,
             int firstColumn,
-            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions,
+            IReadOnlyList<ExcelColumnInfo> columnDefinitions,
             int anchorColumn,
             int offsetPixels,
             int widthPixels,
@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
             int firstRow,
             int anchorRow,
             int offsetPixels,
-            IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions,
+            IReadOnlyDictionary<int, ExcelRowInfo> rowDefinitions,
             bool defaultRowsHidden,
             ExcelImageExportOptions options) {
             double y = 0D;
@@ -165,7 +165,7 @@ namespace OfficeIMO.Excel {
         private static double ResolveImageHeight(
             ExcelImageExportOptions options,
             int firstRow,
-            IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions,
+            IReadOnlyDictionary<int, ExcelRowInfo> rowDefinitions,
             bool defaultRowsHidden,
             int anchorRow,
             int offsetPixels,
@@ -183,8 +183,8 @@ namespace OfficeIMO.Excel {
             return Math.Max(1D, heightPixels);
         }
 
-        private static double ResolveVisibleColumnWidth(ExcelWorksheetGeometryIndex geometry, int column, IReadOnlyList<ExcelColumnSnapshot> columnDefinitions, ExcelImageExportOptions options) {
-            ExcelColumnSnapshot? definition = columnDefinitions.FirstOrDefault(item => column >= item.StartIndex && column <= item.EndIndex);
+        private static double ResolveVisibleColumnWidth(ExcelWorksheetGeometryIndex geometry, int column, IReadOnlyList<ExcelColumnInfo> columnDefinitions, ExcelImageExportOptions options) {
+            ExcelColumnInfo? definition = columnDefinitions.FirstOrDefault(item => column >= item.StartIndex && column <= item.EndIndex);
             if (definition?.Hidden == true && !options.IncludeHidden) {
                 return 0D;
             }
@@ -192,8 +192,8 @@ namespace OfficeIMO.Excel {
             return ResolveColumnWidth(geometry, definition, options);
         }
 
-        private static double ResolveVisibleRowHeight(int row, IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions, bool defaultRowsHidden, ExcelImageExportOptions options) {
-            rowDefinitions.TryGetValue(row, out ExcelRowSnapshot? definition);
+        private static double ResolveVisibleRowHeight(int row, IReadOnlyDictionary<int, ExcelRowInfo> rowDefinitions, bool defaultRowsHidden, ExcelImageExportOptions options) {
+            rowDefinitions.TryGetValue(row, out ExcelRowInfo? definition);
             if (IsHiddenRow(row, rowDefinitions, defaultRowsHidden) && !options.IncludeHidden) {
                 return 0D;
             }
@@ -214,9 +214,9 @@ namespace OfficeIMO.Excel {
             int firstColumn,
             int lastRow,
             int lastColumn,
-            IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions,
+            IReadOnlyDictionary<int, ExcelRowInfo> rowDefinitions,
             bool defaultRowsHidden,
-            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions,
+            IReadOnlyList<ExcelColumnInfo> columnDefinitions,
             List<OfficeImageExportDiagnostic> diagnostics) {
             int hiddenRows = 0;
             for (int row = firstRow; row <= lastRow; row++) {
@@ -244,9 +244,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static int CountHiddenColumns(int firstColumn, int lastColumn, IReadOnlyList<ExcelColumnSnapshot> columnDefinitions) {
+        private static int CountHiddenColumns(int firstColumn, int lastColumn, IReadOnlyList<ExcelColumnInfo> columnDefinitions) {
             var hiddenColumns = new HashSet<int>();
-            foreach (ExcelColumnSnapshot definition in columnDefinitions) {
+            foreach (ExcelColumnInfo definition in columnDefinitions) {
                 if (!definition.Hidden) {
                     continue;
                 }
@@ -268,9 +268,9 @@ namespace OfficeIMO.Excel {
             int firstColumn,
             int lastRow,
             int lastColumn,
-            IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions,
+            IReadOnlyDictionary<int, ExcelRowInfo> rowDefinitions,
             bool defaultRowsHidden,
-            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions) {
+            IReadOnlyList<ExcelColumnInfo> columnDefinitions) {
             return rowIndex >= firstRow &&
                 rowIndex <= lastRow &&
                 columnIndex >= firstColumn &&
@@ -278,15 +278,15 @@ namespace OfficeIMO.Excel {
                 (IsHiddenRow(rowIndex, rowDefinitions, defaultRowsHidden) || IsHiddenColumn(columnIndex, columnDefinitions));
         }
 
-        private static bool IsHiddenRow(int rowIndex, IReadOnlyDictionary<int, ExcelRowSnapshot> rowDefinitions, bool defaultRowsHidden) {
-            if (rowDefinitions.TryGetValue(rowIndex, out ExcelRowSnapshot? definition)) {
+        private static bool IsHiddenRow(int rowIndex, IReadOnlyDictionary<int, ExcelRowInfo> rowDefinitions, bool defaultRowsHidden) {
+            if (rowDefinitions.TryGetValue(rowIndex, out ExcelRowInfo? definition)) {
                 return definition.Hidden;
             }
 
             return defaultRowsHidden;
         }
 
-        private static bool IsHiddenColumn(int columnIndex, IReadOnlyList<ExcelColumnSnapshot> columnDefinitions) {
+        private static bool IsHiddenColumn(int columnIndex, IReadOnlyList<ExcelColumnInfo> columnDefinitions) {
             return columnDefinitions.Any(definition =>
                 definition.Hidden &&
                 columnIndex >= definition.StartIndex &&
@@ -296,16 +296,16 @@ namespace OfficeIMO.Excel {
         private static bool Intersects(int r1, int c1, int r2, int c2, int otherR1, int otherC1, int otherR2, int otherC2) =>
             r1 <= otherR2 && r2 >= otherR1 && c1 <= otherC2 && c2 >= otherC1;
 
-        private static double ResolveColumnWidth(ExcelWorksheetGeometryIndex geometry, ExcelColumnSnapshot? definition, ExcelImageExportOptions options) {
-            return geometry.GetExportColumnWidthPixels(definition?.StartIndex ?? 0, options.DefaultColumnWidthPixels);
+        private static double ResolveColumnWidth(ExcelWorksheetGeometryIndex geometry, ExcelColumnInfo? definition, ExcelImageExportOptions options) {
+            return geometry.GetExportColumnWidthPixels(definition?.StartIndex ?? 0, options.DefaultColumnWidth.ToPixels());
         }
 
-        private static double ResolveRowHeight(ExcelRowSnapshot? definition, ExcelImageExportOptions options) {
-            if (definition?.Height == null) {
-                return options.DefaultRowHeightPixels;
+        private static double ResolveRowHeight(ExcelRowInfo? definition, ExcelImageExportOptions options) {
+            if (definition?.StoredHeight== null) {
+                return options.DefaultRowHeight.ToPixels();
             }
 
-            return Math.Max(1D, Math.Round(definition.Height.Value * 96D / 72D, 2));
+            return Math.Max(1D, Math.Round(definition.StoredHeight.Value * 96D / 72D, 2));
         }
 
     }

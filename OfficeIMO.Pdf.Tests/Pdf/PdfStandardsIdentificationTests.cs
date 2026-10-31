@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfStandardsIdentificationTests {
     [Fact]
     public void CombinedArchivalAccessibilityReadbackRejectsMissingExtensionProperty() {
-        PdfOptions options = FontOptions().UsePdfA(PdfComplianceProfile.PdfA2B).UsePdfUa();
+        PdfCreateOptions options = FontOptions().UsePdfA(PdfComplianceProfile.PdfA2B).UsePdfUa();
         byte[] pdf = Document(options).ToBytes();
         Assert.Equal(PdfComplianceRequirementStatus.Satisfied, PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfA2B, pdf).Requirements
             .Single(r => r.Id == "readback-pdfua-extension-schema").Status);
@@ -25,11 +25,11 @@ public class PdfStandardsIdentificationTests {
 
     [Fact]
     public void UseHelpersEnableStrictGateAndValidateBothClaims() {
-        PdfOptions options = FontOptions().UsePdfA(PdfComplianceProfile.PdfA2B).UsePdfUa();
+        PdfCreateOptions options = FontOptions().UsePdfA(PdfComplianceProfile.PdfA2B).UsePdfUa();
         Assert.Equal(PdfComplianceProfile.PdfA2B, options.ComplianceProfile);
         Assert.Throws<InvalidOperationException>(() => PdfDocument.Create(options).Paragraph(p => p.Text("No UA title")).ToBytes());
         Assert.NotEmpty(Document(options).ToBytes());
-        PdfOptions groundwork = FontOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA2B).ConfigurePdfUaGroundwork();
+        PdfCreateOptions groundwork = FontOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA2B).ConfigurePdfUaGroundwork();
         Assert.Equal(PdfComplianceProfile.None, groundwork.ComplianceProfile);
     }
 
@@ -45,12 +45,12 @@ public class PdfStandardsIdentificationTests {
 
     [Fact]
     public void ConflictingPdfVersionsInCombinedClaimsFailClosed() {
-        PdfOptions options = FontOptions().UsePdfA(PdfComplianceProfile.PdfA4).UsePdfUa(PdfComplianceProfile.PdfUa1);
+        PdfCreateOptions options = FontOptions().UsePdfA(PdfComplianceProfile.PdfA4).UsePdfUa(PdfComplianceProfile.PdfUa1);
         Assert.Throws<InvalidOperationException>(() => Document(options).ToBytes());
     }
 
-    private static PdfOptions FontOptions() => new PdfOptions().UseFontFamily("Carlito", PdfComplianceTestFonts.FindBundledTrueTypeFont()!);
-    private static PdfDocument Document(PdfOptions options) => PdfDocument.Create(options)
+    private static PdfCreateOptions FontOptions() => new PdfCreateOptions().UseFontFamily("Carlito", PdfComplianceTestFonts.FindBundledTrueTypeFont()!);
+    private static PdfDocument Document(PdfCreateOptions options) => PdfDocument.Create(options)
         .Meta(title: "Standards sample", author: "OfficeIMO")
         .Paragraph(p => p.Text("Accessible archival text: café, Zażółć."));
     private static int Find(byte[] data, byte[] marker) {

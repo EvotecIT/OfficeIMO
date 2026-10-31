@@ -32,7 +32,7 @@ Markdown generation is an in-memory conversion and is synchronous. Use the Markd
 
 ### Convert to Markdown AST
 
-Get a typed `MarkdownDoc` AST for further processing:
+Get a typed `MarkdownDocument` AST for further processing:
 
 ```csharp
 using OfficeIMO.Word;
@@ -40,7 +40,7 @@ using OfficeIMO.Word.Markdown;
 using OfficeIMO.Markdown;
 
 using var document = WordDocument.Load("report.docx");
-MarkdownDoc markdownDoc = document.ToMarkdownDocument();
+MarkdownDocument markdownDoc = document.ToMarkdownDocument();
 
 // Inspect the structure
 foreach (var heading in markdownDoc.DescendantHeadings()) {
@@ -75,7 +75,7 @@ using OfficeIMO.Word.Markdown;
 
 using var document = WordDocument.Load("report.docx");
 
-var options = new WordToMarkdownOptions {
+var options = new WordMarkdownExportOptions {
     EnableUnderline = true,
     EnableHighlight = true
 };
@@ -113,7 +113,7 @@ document.Save("from-markdown.docx");
 ### Create from a Markdown File
 
 ```csharp
-MarkdownDoc markdown = MarkdownDoc.Load("README.md");
+MarkdownDocument markdown = MarkdownDocument.Load("README.md");
 using var document = markdown.ToWordDocument();
 document.Save("readme.docx");
 ```
@@ -122,7 +122,7 @@ document.Save("readme.docx");
 
 ```csharp
 using var stream = File.OpenRead("document.md");
-MarkdownDoc markdown = MarkdownDoc.Load(stream);
+MarkdownDocument markdown = MarkdownDocument.Load(stream);
 using var document = markdown.ToWordDocument();
 document.Save("output.docx");
 ```
@@ -130,19 +130,19 @@ document.Save("output.docx");
 ### Async Markdown to Word
 
 ```csharp
-MarkdownDoc markdown = await MarkdownDoc.LoadAsync("README.md");
+MarkdownDocument markdown = await MarkdownDocument.LoadAsync("README.md");
 using var document = markdown.ToWordDocument();
 document.Save("readme.docx");
 ```
 
-### Create from a MarkdownDoc AST
+### Create from a MarkdownDocument AST
 
-If you have already parsed or built a `MarkdownDoc`, convert it directly:
+If you have already parsed or built a `MarkdownDocument`, convert it directly:
 
 ```csharp
 using OfficeIMO.Markdown;
 
-var md = MarkdownDoc.Create()
+var md = MarkdownDocument.Create()
     .H1("Generated Report")
     .P("Created programmatically.")
     .Table(t => t
@@ -158,7 +158,7 @@ document.Save("generated.docx");
 ### Markdown to Word Options
 
 ```csharp
-var options = new MarkdownToWordOptions {
+var options = new WordMarkdownImportOptions {
     // Configure default styles, fonts, etc.
 };
 

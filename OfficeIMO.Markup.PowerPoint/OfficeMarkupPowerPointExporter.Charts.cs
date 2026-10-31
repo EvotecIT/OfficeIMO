@@ -15,16 +15,16 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         var right = Math.Min(metrics.Width - metrics.Horizontal(0.25), box.Left + box.Width + metrics.Horizontal(padding));
         var bottom = Math.Min(metrics.Height - metrics.Vertical(0.25), box.Top + box.Height + metrics.Vertical(padding));
 
-        var panel = slide.AddShapeInches(
+        var panel = slide.AddShape(
             OfficePresetShapeType.Rectangle,
-            left,
-            top,
-            Math.Max(0.5, right - left),
-            Math.Max(0.5, bottom - top),
+            OfficeIMO.OfficeLength.Inches(left),
+            OfficeIMO.OfficeLength.Inches(top),
+            OfficeIMO.OfficeLength.Inches(Math.Max(0.5, right - left)),
+            OfficeIMO.OfficeLength.Inches(Math.Max(0.5, bottom - top)),
             "OfficeIMO Markup Chart Panel");
         panel.FillColor = "F8FAFC";
         panel.OutlineColor = "D9E2EF";
-        panel.OutlineWidthPoints = 0.75;
+        panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.75);
     }
 
     private static void ApplyChartStyle(PowerPointChart chart, OfficeMarkupChartBlock source, OfficeChartData data) {
@@ -35,20 +35,20 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         var seriesColors = ResolveChartPalette(source);
         var normalizedType = Normalize(source.ChartType);
 
-        chart.SetTitleTextStyle(fontSizePoints: 14, bold: true, color: textColor, fontName: font);
+        chart.SetTitleTextStyle(fontSize: OfficeLength.Points(14), bold: true, color: textColor, fontName: font);
         chart.SetLegend(OfficeChartLegendPosition.Bottom, overlay: false);
-        chart.SetLegendTextStyle(fontSizePoints: 9, color: "4B5563", fontName: font);
-        chart.SetChartAreaStyle(fillColor: "FFFFFF", lineColor: borderColor, lineWidthPoints: 0.5);
-        chart.SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "EEF2F7", lineWidthPoints: 0.5);
+        chart.SetLegendTextStyle(fontSize: OfficeLength.Points(9), color: "4B5563", fontName: font);
+        chart.SetChartAreaStyle(fillColor: "FFFFFF", lineColor: borderColor, lineWidth: OfficeLength.Points(0.5));
+        chart.SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "EEF2F7", lineWidth: OfficeLength.Points(0.5));
 
         for (var index = 0; index < data.Series.Count; index++) {
             var color = seriesColors[index % seriesColors.Count];
             if (normalizedType == "line") {
-                chart.SetSeriesLineColor(index, color, widthPoints: 2.25);
+                chart.SetSeriesLineColor(index, color, width: OfficeLength.Points(2.25));
                 chart.SetSeriesMarker(index, OfficeChartMarkerShape.Circle, fillColor: color, lineColor: color);
             } else {
                 chart.SetSeriesFillColor(index, color);
-                chart.SetSeriesLineColor(index, color, widthPoints: 0.5);
+                chart.SetSeriesLineColor(index, color, width: OfficeLength.Points(0.5));
                 if (normalizedType == "scatter")
                     chart.SetSeriesMarker(index, OfficeChartMarkerShape.Circle, fillColor: color, lineColor: color);
             }
@@ -56,21 +56,21 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         if (normalizedType == "pie" || normalizedType == "donut" || normalizedType == "doughnut") {
             chart.SetDataLabels(showValue: true, showCategoryName: false);
-            chart.SetDataLabelTextStyle(fontSizePoints: 9, bold: false, italic: false, color: textColor, fontName: font);
+            chart.SetDataLabelTextStyle(fontSize: OfficeLength.Points(9), bold: false, italic: false, color: textColor, fontName: font);
             ApplyChartSemanticOptions(chart, source, normalizedType, font, textColor, gridColor);
             return;
         }
 
         if (normalizedType == "scatter") {
-            chart.SetScatterXAxisLabelTextStyle(fontSizePoints: 9, color: "4B5563", fontName: font);
-            chart.SetScatterYAxisLabelTextStyle(fontSizePoints: 9, color: "4B5563", fontName: font);
+            chart.SetScatterXAxisLabelTextStyle(fontSize: OfficeLength.Points(9), color: "4B5563", fontName: font);
+            chart.SetScatterYAxisLabelTextStyle(fontSize: OfficeLength.Points(9), color: "4B5563", fontName: font);
             chart.SetScatterYAxisGridlines(showMajor: true, showMinor: false,
-                lineColor: gridColor, lineWidthPoints: 0.5);
+                lineColor: gridColor, lineWidth: OfficeLength.Points(0.5));
             chart.ClearScatterXAxisGridlines();
         } else {
-            chart.SetCategoryAxisLabelTextStyle(fontSizePoints: 9, color: "4B5563", fontName: font);
-            chart.SetValueAxisLabelTextStyle(fontSizePoints: 9, color: "4B5563", fontName: font);
-            chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: gridColor, lineWidthPoints: 0.5);
+            chart.SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(9), color: "4B5563", fontName: font);
+            chart.SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(9), color: "4B5563", fontName: font);
+            chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: gridColor, lineWidth: OfficeLength.Points(0.5));
             chart.ClearCategoryAxisGridlines();
         }
         ApplyChartSemanticOptions(chart, source, normalizedType, font, textColor, gridColor);
@@ -80,20 +80,20 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         if (GetAttribute(source.Attributes, "category-title", "categoryTitle", "x-title", "xTitle", "x-axis-title", "xAxisTitle") is { Length: > 0 } categoryTitle) {
             if (normalizedType == "scatter") {
                 chart.SetScatterXAxisTitle(categoryTitle);
-                chart.SetScatterXAxisTitleTextStyle(fontSizePoints: 10, bold: true, color: textColor, fontName: font);
+                chart.SetScatterXAxisTitleTextStyle(fontSize: OfficeLength.Points(10), bold: true, color: textColor, fontName: font);
             } else {
                 chart.SetCategoryAxisTitle(categoryTitle);
-                chart.SetCategoryAxisTitleTextStyle(fontSizePoints: 10, bold: true, color: textColor, fontName: font);
+                chart.SetCategoryAxisTitleTextStyle(fontSize: OfficeLength.Points(10), bold: true, color: textColor, fontName: font);
             }
         }
 
         if (GetAttribute(source.Attributes, "value-title", "valueTitle", "y-title", "yTitle", "y-axis-title", "yAxisTitle") is { Length: > 0 } valueTitle) {
             if (normalizedType == "scatter") {
                 chart.SetScatterYAxisTitle(valueTitle);
-                chart.SetScatterYAxisTitleTextStyle(fontSizePoints: 10, bold: true, color: textColor, fontName: font);
+                chart.SetScatterYAxisTitleTextStyle(fontSize: OfficeLength.Points(10), bold: true, color: textColor, fontName: font);
             } else {
                 chart.SetValueAxisTitle(valueTitle);
-                chart.SetValueAxisTitleTextStyle(fontSizePoints: 10, bold: true, color: textColor, fontName: font);
+                chart.SetValueAxisTitleTextStyle(fontSize: OfficeLength.Points(10), bold: true, color: textColor, fontName: font);
             }
         }
 
@@ -154,7 +154,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             chart.SetDataLabelNumberFormat(labelFormat!);
         }
 
-        chart.SetDataLabelTextStyle(fontSizePoints: 9, color: textColor, fontName: font);
+        chart.SetDataLabelTextStyle(fontSize: OfficeLength.Points(9), color: textColor, fontName: font);
     }
 
     private static void ApplyGridlineOptions(PowerPointChart chart, OfficeMarkupChartBlock source, string normalizedType, string gridColor) {
@@ -170,9 +170,9 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             if (IsTruthy(valueGridlines!)) {
                 if (normalizedType == "scatter") {
                     chart.SetScatterYAxisGridlines(showMajor: true, showMinor: false,
-                        lineColor: gridColor, lineWidthPoints: 0.5);
+                        lineColor: gridColor, lineWidth: OfficeLength.Points(0.5));
                 } else {
-                    chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: gridColor, lineWidthPoints: 0.5);
+                    chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: gridColor, lineWidth: OfficeLength.Points(0.5));
                 }
             } else {
                 if (normalizedType == "scatter") chart.ClearScatterYAxisGridlines();
@@ -184,9 +184,9 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             if (IsTruthy(categoryGridlines!)) {
                 if (normalizedType == "scatter") {
                     chart.SetScatterXAxisGridlines(showMajor: true, showMinor: false,
-                        lineColor: gridColor, lineWidthPoints: 0.5);
+                        lineColor: gridColor, lineWidth: OfficeLength.Points(0.5));
                 } else {
-                    chart.SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: gridColor, lineWidthPoints: 0.5);
+                    chart.SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: gridColor, lineWidth: OfficeLength.Points(0.5));
                 }
             } else {
                 if (normalizedType == "scatter") chart.ClearScatterXAxisGridlines();
@@ -349,11 +349,11 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         string chartType,
         OfficeChartData data,
         LayoutCursor box) {
-        OfficeChartKind kind = OfficeMarkupChartKindResolver.Resolve(chartType);
-        OfficeChartData resolved = kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut
+        OfficeChartType kind = OfficeMarkupChartKindResolver.Resolve(chartType);
+        OfficeChartData resolved = kind == OfficeChartType.Pie || kind == OfficeChartType.Doughnut
             ? FirstSeriesOnly(data)
             : data;
-        return slide.AddChartInches(kind, resolved, box.Left, box.Top, box.Width, box.Height);
+        return slide.AddChart(kind, resolved, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Inches(box.Left), Top = global::OfficeIMO.OfficeLength.Inches(box.Top), Width = global::OfficeIMO.OfficeLength.Inches(box.Width), Height = global::OfficeIMO.OfficeLength.Inches(box.Height) });
     }
 
     private static bool TryCreateChartData(OfficeMarkupChartBlock chart, out OfficeChartData data) {
@@ -390,10 +390,10 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             return false;
         }
 
-        var series = new List<OfficeChartSeries>();
+        var series = new List<OfficeSeries>();
         for (int index = 0; index < seriesValues.Count; index++) {
             var name = string.IsNullOrWhiteSpace(headers[index + 1]) ? $"Series {index + 1}" : headers[index + 1];
-            series.Add(new OfficeChartSeries(name, seriesValues[index]));
+            series.Add(new OfficeSeries(name, seriesValues[index]));
         }
 
         data = new OfficeChartData(categories, series);

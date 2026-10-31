@@ -13,25 +13,25 @@ public partial class Excel {
     [InlineData(true, true)]
     public void WorksheetPrintCentering_MovesPdfAndPngContentInsideMargins(bool horizontal, bool vertical) {
         string path = Path.Combine(_directoryWithFiles, $"CenteredLayout-{horizontal}-{vertical}.xlsx");
-        using var workbook = ExcelDocument.Create(path, "Centered");
+        using var workbook = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Centered" });
         ExcelSheet sheet = workbook.Sheets[0];
         sheet.CellValue(1, 1, "Marker");
         sheet.CellValue(2, 2, "Tail");
-        sheet.SetColumnWidth(1, 12);
-        sheet.SetColumnWidth(2, 12);
-        sheet.SetRowHeight(1, 30);
-        sheet.SetRowHeight(2, 30);
-        sheet.SetMargins(0.5, 1, 0.75, 1.25);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+        sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+        sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+        sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+        sheet.SetMargins(OfficeLength.Inches(0.5), OfficeLength.Inches(1), OfficeLength.Inches(0.75), OfficeLength.Inches(1.25));
         sheet.SetPageSetup(paperSize: ExcelPaperSize.Letter, scale: 50);
         sheet.Range("A1:B2").SetFillColor("FFCC33");
         sheet.SetPrintOptions(horizontalCentered: false, verticalCentered: false);
-        byte[] originalPdf = workbook.ToPdfBytes();
+        byte[] originalPdf = workbook.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var original = PdfPigDocument.Open(originalPdf);
-        var pngOriginal = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
+        var pngOriginal = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
         sheet.SetPrintOptions(horizontalCentered: horizontal, verticalCentered: vertical);
-        byte[] centeredPdf = workbook.ToPdfBytes();
+        byte[] centeredPdf = workbook.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var centered = PdfPigDocument.Open(centeredPdf);
-        var pngCentered = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
+        var pngCentered = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
         var before = original.GetPage(1);
         var after = centered.GetPage(1);
         // Measure the uncentered cell fills independently of the centering code.

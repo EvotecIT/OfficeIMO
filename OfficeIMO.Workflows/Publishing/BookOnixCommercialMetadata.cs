@@ -1,3 +1,6 @@
+#if !NET8_0_OR_GREATER
+using DateOnly = System.DateTime;
+#endif
 namespace OfficeIMO.Workflows;
 
 /// <summary>Explicit ONIX publishing status (list 64), independent of each supplier's availability.</summary>

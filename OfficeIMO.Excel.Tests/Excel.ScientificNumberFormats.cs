@@ -30,7 +30,7 @@ public partial class ExcelImageExportTests {
     [InlineData(true)]
     public void Saved_scientific_formats_reach_numeric_cells_and_formula_caches(bool merged) {
         using var workbook = ExcelDocument.Create();
-        ExcelSheet sheet = workbook.AddWorksheet("Scientific");
+        ExcelSheet sheet = workbook.AddSheet("Scientific");
         sheet.CellAt(1, 1).SetValue(-1250d).SetNumberFormat("0.00E+00;[Red](0.###E+00)");
         sheet.CellAt(2, 1).SetValue(1.5d);
         sheet.CellFormula(2, 1, "=1.5");
@@ -43,11 +43,11 @@ public partial class ExcelImageExportTests {
         Assert.Equal("(1.25E+03)", negative.Text);
         Assert.Equal("FF0000", negative.Style.FontColorHex);
         ExcelRange range = reopened.Sheets[0].Range("A2:A3");
-        ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+        ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
         Assert.Equal("1.5E00", Assert.Single(snapshot.Cells, cell => cell.Row == 2).Text);
         ExcelVisualCell text = Assert.Single(snapshot.Cells, cell => cell.Row == 3);
         Assert.Equal("-1250", text.Text);
         Assert.Equal("0000FF", text.Style.FontColorHex);
-        Assert.Contains(">1.5E00</text>", range.ToSvg(), StringComparison.Ordinal);
+        Assert.Contains(">1.5E00</text>", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg).Bytes), StringComparison.Ordinal);
     }
 }

@@ -61,7 +61,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         internal static IReadOnlyList<LegacyPptOrdinaryLayoutProjection>
-            Create(PowerPointPresentation presentation,
+            Create(PowerPointDocument presentation,
                 IReadOnlyList<LegacyPptMasterProjection> titleMasters) {
             var titlePartUris = new HashSet<string>(titleMasters.Select(
                 master => master.MasterPartUri), StringComparer.Ordinal);

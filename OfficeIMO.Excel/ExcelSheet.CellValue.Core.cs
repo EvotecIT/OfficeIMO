@@ -315,7 +315,7 @@ namespace OfficeIMO.Excel {
             }
             _excelDocument.MarkFormulaAuthored(
                 _worksheetPart,
-                A1.CellReference(row, column),
+                ExcelA1.CellReference(row, column),
                 retainedCachedValue: retainsCachedValue);
             ClearHeaderCacheForCellMutation(row, column);
         }

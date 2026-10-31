@@ -5,7 +5,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// Represents the classic OfficeArt text-frame properties attached to a
     /// text-bearing shape.
     /// </summary>
-    public sealed class LegacyPptTextFrameProperties {
+    internal sealed class LegacyPptTextFrameProperties {
         private LegacyPptTextFrameProperties(
             IReadOnlyList<OfficeArtProperty> properties) {
             LeftInsetEmus = GetCoordinate(properties, 0x0081);

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private async Task LoadConfiguredStylesheetsAsync(IDocument document, HtmlToWordOptions options, CancellationToken cancellationToken) {
+        private async Task LoadConfiguredStylesheetsAsync(IDocument document, WordHtmlImportOptions options, CancellationToken cancellationToken) {
             foreach (var path in options.StylesheetPaths) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (string.IsNullOrEmpty(path)) {
@@ -100,12 +100,12 @@ namespace OfficeIMO.Word.Html {
             var href = (element as IHtmlLinkElement)?.Href ?? hrefAttr;
             if (!_options.AllowDocumentStylesheetLinks) {
                 var source = !string.IsNullOrEmpty(hrefAttr) ? hrefAttr : href;
-                AddDiagnostic(_options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", string.IsNullOrEmpty(source) ? "link" : source);
+                AddDiagnostic(_options, "html-stylesheet-link-skipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", string.IsNullOrEmpty(source) ? "link" : source);
                 return;
             }
 
             if (string.IsNullOrEmpty(href)) {
-                AddDiagnostic(_options, "HtmlStylesheetLinkMissingHref", "HTML stylesheet link was skipped because it does not have an href attribute.", "link");
+                AddDiagnostic(_options, "html-stylesheet-link-missing-href", "HTML stylesheet link was skipped because it does not have an href attribute.", "link");
                 return;
             }
 

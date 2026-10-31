@@ -11,12 +11,12 @@ Exports workbook sheets as PNG or SVG images with one result per sheet.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Export-OfficeExcelImage [-Path] <string> [-OutputPath] <string> [-Format <OfficeImageExportFormat>] [-Options <ExcelWorkbookImageExportOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeExcelImage [-Path] <string> [-OutputPath] <string> [-Format <OfficeImageExportFormat>] [-Options <ExcelImageExportOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Export-OfficeExcelImage [-OutputPath] <string> -Document <ExcelDocument> [-Format <OfficeImageExportFormat>] [-Options <ExcelWorkbookImageExportOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeExcelImage [-OutputPath] <string> -Document <ExcelDocument> [-Format <OfficeImageExportFormat>] [-Options <ExcelImageExportOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -69,7 +69,7 @@ Accept wildcard characters: False
 Optional sheet selection, range, size, and rendering settings.
 
 ```yaml
-Type: ExcelWorkbookImageExportOptions
+Type: ExcelImageExportOptions
 Parameter Sets: Path, Document
 Aliases: None
 Possible values:

@@ -428,7 +428,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private static void TryDecodeCellLocation(byte[] payload, int offset, int operandByteCount, string kind, out string? operandKind, out string? operandText) {
             operandKind = operandByteCount >= 4 ? kind : null;
             operandText = operandByteCount >= 4
-                ? A1.ColumnIndexToLetters(BiffRecordReader.ReadUInt16(payload, offset + 2) + 1) + (BiffRecordReader.ReadUInt16(payload, offset) + 1).ToString(CultureInfo.InvariantCulture)
+                ? ExcelA1.ColumnIndexToLetters(BiffRecordReader.ReadUInt16(payload, offset + 2) + 1) + (BiffRecordReader.ReadUInt16(payload, offset) + 1).ToString(CultureInfo.InvariantCulture)
                 : null;
         }
 

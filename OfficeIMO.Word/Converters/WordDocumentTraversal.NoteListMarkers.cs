@@ -2,7 +2,7 @@ using System.Threading;
 
 namespace OfficeIMO.Word;
 
-public static partial class WordDocumentTraversal {
+internal static partial class WordDocumentTraversal {
     /// <summary>
     /// Resolves a note's directly numbered paragraphs through the ordinary story-local
     /// counter owner without changing body or running-story numbering.

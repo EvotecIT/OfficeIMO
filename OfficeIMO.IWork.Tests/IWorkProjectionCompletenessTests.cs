@@ -213,14 +213,14 @@ public sealed partial class IWorkBoundaryTests {
         using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         WordSection section = result.Value.Sections[0];
-        double contentWidth = ((long)(section.PageSettings.Width ?? WordPageSizes.Letter.WidthTwips)
-            - section.Margins.Left - section.Margins.Right) / 20d;
-        double contentHeight = ((long)(section.PageSettings.Height ?? WordPageSizes.Letter.HeightTwips)
-            - section.Margins.Top.GetValueOrDefault() - section.Margins.Bottom.GetValueOrDefault()) / 20d;
+        double contentWidth = ((long)(checked((uint?)(section.PageSettings.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.Letter.Width.ToTwips())))
+            - checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()))) / 20d;
+        double contentHeight = ((long)(checked((uint?)(section.PageSettings.Height?.ToTwips())) ?? checked((uint)(WordPageSizes.Letter.Height.ToTwips())))
+            - checked((int?)(section.Margins.Top?.ToTwips())).GetValueOrDefault() - checked((int?)(section.Margins.Bottom?.ToTwips())).GetValueOrDefault()) / 20d;
         WordImage image = Assert.Single(result.Value.Images);
 
-        Assert.InRange(image.Width.GetValueOrDefault(), 1d, contentWidth);
-        Assert.InRange(image.Height.GetValueOrDefault(), 1d, contentHeight);
+        Assert.InRange((image.Width?.ToPixels()).GetValueOrDefault(), 1d, contentWidth);
+        Assert.InRange((image.Height?.ToPixels()).GetValueOrDefault(), 1d, contentHeight);
     }
 
     [Fact]

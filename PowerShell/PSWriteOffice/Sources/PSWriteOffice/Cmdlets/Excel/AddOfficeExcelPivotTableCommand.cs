@@ -9,7 +9,6 @@ using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
-
 /// <summary>Adds a pivot table to a worksheet.</summary>
 /// <example>
 ///   <summary>Create a pivot table from a report data sheet.</summary>
@@ -391,53 +390,38 @@ public sealed class AddOfficeExcelPivotTableCommand : PSCmdlet
         return result.Count == 0 ? null : result;
     }
 
-    private void InvokeAddPivotTable(
-        ExcelSheet sheet,
-        IEnumerable<ExcelPivotDataField>? dataFields,
-        ExcelPivotLayout layout,
-        bool? dataOnRows,
-        bool? showHeaders,
-        bool? showEmptyRows,
-        bool? showEmptyColumns,
-        bool? showDrill,
-        bool? showDataDropDown,
-        bool? showDropZones,
-        bool? showDataTips,
-        bool? showMemberPropertyTips,
-        bool? fieldListSortAscending,
-        bool? customListSort,
-        ExcelPivotTableOptions? pivotOptions)
+    private void InvokeAddPivotTable(ExcelSheet sheet, IEnumerable<ExcelPivotDataField>? dataFields, ExcelPivotLayout layout, bool? dataOnRows, bool? showHeaders, bool? showEmptyRows, bool? showEmptyColumns, bool? showDrill, bool? showDataDropDown, bool? showDropZones, bool? showDataTips, bool? showMemberPropertyTips, bool? fieldListSortAscending, bool? customListSort, ExcelPivotTableOptions? pivotOptions)
     {
-        sheet.AddPivotTable(
-            SourceRange,
-            DestinationCell,
-            Name,
-            RowField,
-            ColumnField,
-            PageField,
-            dataFields,
-            showRowGrandTotals: !NoRowGrandTotals.IsPresent,
-            showColumnGrandTotals: !NoColumnGrandTotals.IsPresent,
-            pivotStyleName: PivotStyle,
-            layout: layout,
-            dataOnRows: dataOnRows,
-            showHeaders: showHeaders,
-            showEmptyRows: showEmptyRows,
-            showEmptyColumns: showEmptyColumns,
-            showDrill: showDrill,
-            fieldOptions: BuildFieldOptions(),
-            rowHeaderCaption: RowHeaderCaption,
-            columnHeaderCaption: ColumnHeaderCaption,
-            grandTotalCaption: GrandTotalCaption,
-            missingCaption: MissingCaption,
-            errorCaption: ErrorCaption,
-            showDataDropDown: showDataDropDown,
-            showDropZones: showDropZones,
-            showDataTips: showDataTips,
-            showMemberPropertyTips: showMemberPropertyTips,
-            fieldListSortAscending: fieldListSortAscending,
-            customListSort: customListSort,
-            options: pivotOptions);
+        {
+            var authoredOptions = pivotOptions ?? new ExcelPivotTableOptions();
+            authoredOptions.Name = Name;
+            authoredOptions.RowFields = (RowField)is { } authoredRowFields1 ? System.Linq.Enumerable.ToList(authoredRowFields1) : System.Array.Empty<string>();
+            authoredOptions.ColumnFields = (ColumnField)is { } authoredColumnFields2 ? System.Linq.Enumerable.ToList(authoredColumnFields2) : System.Array.Empty<string>();
+            authoredOptions.PageFields = (PageField)is { } authoredPageFields3 ? System.Linq.Enumerable.ToList(authoredPageFields3) : System.Array.Empty<string>();
+            authoredOptions.DataFields = (dataFields)is { } authoredDataFields4 ? System.Linq.Enumerable.ToList(authoredDataFields4) : System.Array.Empty<ExcelPivotDataField>();
+            authoredOptions.ShowRowGrandTotals = !NoRowGrandTotals.IsPresent;
+            authoredOptions.ShowColumnGrandTotals = !NoColumnGrandTotals.IsPresent;
+            authoredOptions.PivotStyleName = PivotStyle;
+            authoredOptions.Layout = layout;
+            authoredOptions.DataOnRows = dataOnRows;
+            authoredOptions.ShowHeaders = showHeaders;
+            authoredOptions.ShowEmptyRows = showEmptyRows;
+            authoredOptions.ShowEmptyColumns = showEmptyColumns;
+            authoredOptions.ShowDrill = showDrill;
+            authoredOptions.FieldOptions = (BuildFieldOptions())is { } authoredFieldOptions5 ? System.Linq.Enumerable.ToList(authoredFieldOptions5) : System.Array.Empty<ExcelPivotFieldOptions>();
+            authoredOptions.RowHeaderCaption = RowHeaderCaption;
+            authoredOptions.ColumnHeaderCaption = ColumnHeaderCaption;
+            authoredOptions.GrandTotalCaption = GrandTotalCaption;
+            authoredOptions.MissingCaption = MissingCaption;
+            authoredOptions.ErrorCaption = ErrorCaption;
+            authoredOptions.ShowDataDropDown = showDataDropDown;
+            authoredOptions.ShowDropZones = showDropZones;
+            authoredOptions.ShowDataTips = showDataTips;
+            authoredOptions.ShowMemberPropertyTips = showMemberPropertyTips;
+            authoredOptions.FieldListSortAscending = fieldListSortAscending;
+            authoredOptions.CustomListSort = customListSort;
+            sheet.AddPivotTable(SourceRange, DestinationCell, options: authoredOptions);
+        }
     }
 
     private static bool HasAnyOption(ExcelPivotTableOptions options)

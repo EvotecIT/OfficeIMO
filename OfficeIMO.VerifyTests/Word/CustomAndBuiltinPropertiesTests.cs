@@ -5,7 +5,7 @@ using System;
 using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.VerifyTests.Word;
 

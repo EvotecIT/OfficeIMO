@@ -44,14 +44,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image_position_preceding_xml.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Intro");
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_position_preceding_xml.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Intro");
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -206,7 +206,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_drawing_image_hlink.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_drawing_image_hlink.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -355,13 +355,13 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image_layout_only.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_layout_only.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.AddParagraph().AddImage(imagePath, 120, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(120), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -535,7 +535,7 @@ namespace OfficeIMO.Tests {
 
         private static void CreateDocumentWithDrawingEditIds(string path, string imagePath, string editId, string anchorId) {
             using (WordDocument doc = WordDocument.Create(path)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 

@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private static double MeasureImportedTableTextWidth(TableCellLayout cell,
-        PdfStandardFont font, double size, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D,
+        PdfStandardFont font, double size, PdfCreateOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D,
         bool wholeLine = false, bool objectsOnly = false) {
         // Resolve actual run fonts and sizes, then measure break opportunities
         // explicitly: a wide layout never needs to discover internal breaks.
@@ -13,6 +13,8 @@ internal static partial class PdfWriter {
         int paragraphIndex = 0;
         for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
             var line = layout.Lines[lineIndex];
+            // An empty paragraph paints nothing, so a spacer column keeps its source width despite the paragraph's indent.
+            if (MeasureRichLineWidth(line, options) <= 0D) continue;
             double indents = layout.LineWidths != null
                 ? Math.Max(0D, TableCellNoWrapWidth - layout.LineWidths[lineIndex]) : 0D;
             double firstLineIndents = indents;
@@ -26,7 +28,7 @@ internal static partial class PdfWriter {
                 PdfTableCellParagraph paragraph = ranges[paragraphIndex].Paragraph;
                 // A hanging first line has extra room, but any word may need
                 // the narrower continuation frame at the full body indent.
-                indents = Math.Max(indents, Math.Max(0D, paragraph.LeftIndent + paragraph.RightIndent));
+                indents = Math.Max(indents, Math.Max(0D, paragraph.LeftIndent.ToPoints() + paragraph.RightIndent.ToPoints()));
             }
             if (objectsOnly) {
                 // A constrained source grid can wrap text below its word
@@ -64,7 +66,7 @@ internal static partial class PdfWriter {
     }
 
     private static double MeasureImportedTableWordMinimumWithIndents(System.Collections.Generic.IReadOnlyList<RichSeg> segments,
-        PdfOptions? options, double continuationIndents, double firstLineIndents) {
+        PdfCreateOptions? options, double continuationIndents, double firstLineIndents) {
         if (segments.Count == 0) return continuationIndents;
         string text = string.Concat(segments.Select(segment => segment.Text));
         if (text.Length == 0) return segments.Sum(GetRichSegmentWidth) +
@@ -73,6 +75,7 @@ internal static partial class PdfWriter {
         // whole when finding a table minimum. Generic technical-token wrapping
         // remains independent of this imported-grid policy.
         int[] hyphens = GetValidHyphenationBreakpoints(text, options);
+        var hyphenPoints = new System.Collections.Generic.HashSet<int>(hyphens);
         int[] points = GetValidSoftLineBreakpoints(text, options)
             .Concat(hyphens)
             .Concat(OfficeIMO.Drawing.OfficeTextLineBreaks.GetBreakPositions(text)
@@ -80,12 +83,24 @@ internal static partial class PdfWriter {
             .Distinct().OrderBy(point => point).Concat(new[] { text.Length }).ToArray();
         double minimum = 0D;
         int start = 0;
+        int firstSegment = 0;
+        int firstSegmentStart = 0;
         foreach (int end in points) {
-            int segmentStart = 0;
+            // Retain the first segment that can overlap this chunk. Advancing it
+            // across chunks keeps many breakpoints and many runs linear.
+            while (firstSegment < segments.Count) {
+                RichSeg skipped = segments[firstSegment];
+                int skippedEnd = firstSegmentStart + skipped.Text.Length;
+                if (skippedEnd > start || skipped.Text.Length == 0 && firstSegmentStart >= start) break;
+                firstSegmentStart = skippedEnd;
+                firstSegment++;
+            }
+            int segmentStart = firstSegmentStart;
             double width = 0D;
             bool hasTextSpacer = false;
             RichSeg? lastSegment = null;
-            foreach (RichSeg segment in segments) {
+            for (int segmentIndex = firstSegment; segmentIndex < segments.Count && segmentStart < end; segmentIndex++) {
+                RichSeg segment = segments[segmentIndex];
                 int left = Math.Max(start, segmentStart);
                 int right = Math.Min(end, segmentStart + segment.Text.Length);
                 if (right > left) {
@@ -100,7 +115,7 @@ internal static partial class PdfWriter {
                 }
                 segmentStart += segment.Text.Length;
             }
-            if (end < text.Length && Array.IndexOf(hyphens, end) >= 0 && lastSegment != null)
+            if (end < text.Length && hyphenPoints.Contains(end) && lastSegment != null)
                 width += MeasureRichText("-", lastSegment.Font, lastSegment.NamedFont,
                     lastSegment.FontSize, lastSegment.Baseline, options, lastSegment.FeatureSettings, lastSegment.HorizontalTextScaling, lastSegment.CharacterSpacing);
             // Only the chunk containing the marker spacer occupies the hanging
@@ -112,7 +127,7 @@ internal static partial class PdfWriter {
     }
 
     private static double ResolveImportedTableCellWrapWidth(TableCellLayout cell, double innerWidth,
-        PdfStandardFont font, double size, PdfOptions? options, double runFontSizeScale,
+        PdfStandardFont font, double size, PdfCreateOptions? options, double runFontSizeScale,
         double minimumShrinkFontSize, bool wrapOversizedNoWrap) {
         bool noWrap = cell.NoWrap;
         // Word can enlarge an automatic grid for a no-wrap cell, but falls

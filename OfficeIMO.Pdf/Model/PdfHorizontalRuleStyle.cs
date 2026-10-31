@@ -4,36 +4,36 @@ namespace OfficeIMO.Pdf;
 /// Reusable horizontal rule appearance and rhythm style.
 /// </summary>
 public sealed class PdfHorizontalRuleStyle {
-    private double _thickness = 0.5;
-    private double _spacingBefore = 6;
-    private double _spacingAfter = 6;
+    private global::OfficeIMO.OfficeLength _thickness = global::OfficeIMO.OfficeLength.Points(0.5);
+    private global::OfficeIMO.OfficeLength _spacingBefore = global::OfficeIMO.OfficeLength.Points(6);
+    private global::OfficeIMO.OfficeLength _spacingAfter = global::OfficeIMO.OfficeLength.Points(6);
 
     /// <summary>Rule thickness in points.</summary>
-    public double Thickness {
+    public global::OfficeIMO.OfficeLength Thickness {
         get => _thickness;
         set {
-            ValidatePositiveFiniteValue(value, nameof(Thickness), "Horizontal rule thickness must be a positive finite value.");
+            ValidatePositiveFiniteValue(value.ToPoints(), nameof(Thickness), "Horizontal rule thickness must be a positive finite value.");
             _thickness = value;
         }
     }
 
     /// <summary>Rule stroke color.</summary>
-    public PdfColor Color { get; set; } = PdfColor.Gray;
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
     /// <summary>Vertical space before the rule in the surrounding document flow, in points.</summary>
-    public double SpacingBefore {
+    public global::OfficeIMO.OfficeLength SpacingBefore {
         get => _spacingBefore;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingBefore), "Horizontal rule spacing before must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingBefore), "Horizontal rule spacing before must be a non-negative finite value.");
             _spacingBefore = value;
         }
     }
 
     /// <summary>Vertical space after the rule in the surrounding document flow, in points.</summary>
-    public double SpacingAfter {
+    public global::OfficeIMO.OfficeLength SpacingAfter {
         get => _spacingAfter;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingAfter), "Horizontal rule spacing after must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingAfter), "Horizontal rule spacing after must be a non-negative finite value.");
             _spacingAfter = value;
         }
     }

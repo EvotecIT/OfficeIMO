@@ -35,7 +35,7 @@ foreach (var (name, hash) in fixtures) {
         result.RequireCompleteEditableReconstruction();
         Require(!result.IsVisualFallback, "Keynote unexpectedly used visual fallback.");
         result.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Require(reopened.Slides.Count == 2 && reopened.Slides[0].TextBoxes.Any(),
             "Saved PPTX lost editable slides or text.");
         Require(reopened.Slides[0].TextBoxes.Any(t => t.Text.Contains("hello keynote", StringComparison.Ordinal))

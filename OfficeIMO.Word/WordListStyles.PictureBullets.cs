@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word;
 
 // Defines built-in list styles.
-public static partial class WordListStyles {
+internal static partial class WordListStyles {
     internal static AbstractNum CreatePictureBulletStyle(int pictureBulletId) {
         AbstractNum abstractNum1 = CreateNewAbstractNum();
         abstractNum1.SetAttribute(new OpenXmlAttribute("w15", "restartNumberingAfterBreak", "http://schemas.microsoft.com/office/word/2012/wordml", "0"));

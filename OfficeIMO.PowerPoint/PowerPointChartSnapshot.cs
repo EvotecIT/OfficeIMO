@@ -63,7 +63,7 @@ namespace OfficeIMO.PowerPoint {
     internal sealed class PowerPointChartSnapshot {
         internal PowerPointChartSnapshot(string name, string? title,
             PowerPointChartSnapshotKind chartKind, PowerPointChartData data,
-            double widthPoints, double heightPoints,
+            OfficeLength width, OfficeLength height,
             OfficeIMO.Drawing.OfficeChartBubbleSizeMode bubbleSizeMode =
                 OfficeIMO.Drawing.OfficeChartBubbleSizeMode.Area,
             double bubbleScalePercent = 100D,
@@ -78,8 +78,8 @@ namespace OfficeIMO.PowerPoint {
             Title = title;
             ChartKind = chartKind;
             Data = data;
-            WidthPoints = widthPoints;
-            HeightPoints = heightPoints;
+            Width = width;
+            Height = height;
             BubbleSizeMode = bubbleSizeMode;
             BubbleScalePercent = bubbleScalePercent;
             Layout = layout ?? OfficeIMO.Drawing.OfficeChartLayout.Default;
@@ -99,11 +99,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Cached chart data.</summary>
         public PowerPointChartData Data { get; }
 
-        /// <summary>Chart width in points.</summary>
-        public double WidthPoints { get; }
+        /// <summary>Physical chart width.</summary>
+        public OfficeLength Width { get; }
 
-        /// <summary>Chart height in points.</summary>
-        public double HeightPoints { get; }
+        /// <summary>Physical chart height.</summary>
+        public OfficeLength Height { get; }
 
         /// <summary>Whether bubble values represent area or width.</summary>
         public OfficeIMO.Drawing.OfficeChartBubbleSizeMode BubbleSizeMode { get; }

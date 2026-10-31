@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word;
 
@@ -13,7 +13,7 @@ internal static partial class Paragraphs {
         var custom = new WordParagraphStyleDefinition("MyStyle") {
             FontName = "Courier New",
             ColorHex = Color.Red.ToRgbHex(),
-            FontSizePoints = 14
+            FontSize = global::OfficeIMO.OfficeLength.Points(14)
         };
 
         WordParagraphStyle.RegisterCustomStyle("MyStyle", custom);
@@ -37,7 +37,7 @@ internal static partial class Paragraphs {
         WordParagraphStyle.RegisterCustomStyle("CenteredRed", centeredRed);
 
         var greenIndented = new WordParagraphStyleDefinition("GreenIndented") {
-            LeftIndentTwips = 720,
+            LeftIndent = global::OfficeIMO.OfficeLength.Emus(720L * 635),
             ColorHex = "00AA00",
             Italic = true
         };

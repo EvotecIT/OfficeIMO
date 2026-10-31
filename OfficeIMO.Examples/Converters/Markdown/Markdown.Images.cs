@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Markdown {
                                "![Remote description](https://via.placeholder.com/120 =120x80)\n" +
                                $"![Native size]({localImage})";
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
             string filePath = Path.Combine(folderPath, "MarkdownImages.docx");
             doc.Save(filePath);
 

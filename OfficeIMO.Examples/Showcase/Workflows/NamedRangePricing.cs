@@ -8,13 +8,13 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class NamedRangePricing {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-        ExcelSheet sheet = document.AddWorksheet("Quote");
-        sheet.SetColumnWidth(1, 32);
-        sheet.SetColumnWidth(2, 23);
-        sheet.SetColumnWidth(3, 42);
+        ExcelSheet sheet = document.AddSheet("Quote");
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(32));
+        sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(23));
+        sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(42));
         sheet.MergeRange("A1:C1");
         sheet.Cell(1, 1, "A quote with readable formulas");
-        sheet.CellFontSize(1, 1, 20);
+        sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20));
         sheet.CellBold(1, 1, true);
         sheet.CellFontColor(1, 1, "17365D");
 

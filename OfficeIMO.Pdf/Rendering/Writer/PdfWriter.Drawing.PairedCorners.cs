@@ -15,8 +15,8 @@ internal static partial class PdfWriter {
             double r = Math.Max(0D, Math.Min(radius, Math.Min(w, h) / 2D) - inset);
             double c = r * 0.5522847498307936D;
             AppendArtifactBegin(sb, artifact);
-            var content = new ContentStreamBuilder(sb).SaveState().StrokeColor(border.Color!.Value).LineWidth(border.Width);
-            ApplyStrokeDashStyle(content, border.DashStyle, border.Width, hasExplicitLineCap: false);
+            var content = new ContentStreamBuilder(sb).SaveState().StrokeColor(border.Color!.Value).LineWidth(border.Width.ToPoints());
+            ApplyStrokeDashStyle(content, border.DashStyle, border.Width.ToPoints(), hasExplicitLineCap: false);
             switch (side) {
                 case RoundedRectSide.Top: {
                     double top = y + h - inset;

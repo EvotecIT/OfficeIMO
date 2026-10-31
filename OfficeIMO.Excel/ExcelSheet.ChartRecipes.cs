@@ -6,40 +6,50 @@ namespace OfficeIMO.Excel {
         /// Adds a line chart with dashboard-friendly defaults for time-series revenue or volume trends.
         /// </summary>
         public ExcelChart AddRevenueTrendChart(string dataRangeA1, int row, int column, string title = "Revenue Trend",
-            int widthPixels = 720, int heightPixels = 320, bool hasHeaders = true, bool includeCachedData = true) {
-            return AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.Line, hasHeaders, title, includeCachedData);
+            OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
+            width ??= OfficeLength.Pixels(720);
+            height ??= OfficeLength.Pixels(320);
+            return AddChart(OfficeChartType.Line, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
         }
 
         /// <summary>
         /// Adds a doughnut chart with dashboard-friendly defaults for status, category, or allocation breakdowns.
         /// </summary>
         public ExcelChart AddStatusBreakdownChart(string dataRangeA1, int row, int column, string title = "Status Breakdown",
-            int widthPixels = 520, int heightPixels = 320, bool hasHeaders = true, bool includeCachedData = true) {
-            return AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.Doughnut, hasHeaders, title, includeCachedData);
+            OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
+            width ??= OfficeLength.Pixels(520);
+            height ??= OfficeLength.Pixels(320);
+            return AddChart(OfficeChartType.Doughnut, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
         }
 
         /// <summary>
         /// Adds a horizontal bar chart with dashboard-friendly defaults for top-N rankings.
         /// </summary>
         public ExcelChart AddTopNBarChart(string dataRangeA1, int row, int column, string title = "Top Items",
-            int widthPixels = 640, int heightPixels = 360, bool hasHeaders = true, bool includeCachedData = true) {
-            return AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.BarClustered, hasHeaders, title, includeCachedData);
+            OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
+            width ??= OfficeLength.Pixels(640);
+            height ??= OfficeLength.Pixels(360);
+            return AddChart(OfficeChartType.BarClustered, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
         }
 
         /// <summary>
         /// Adds a clustered column chart with dashboard-friendly defaults for variance comparisons.
         /// </summary>
         public ExcelChart AddVarianceColumnChart(string dataRangeA1, int row, int column, string title = "Variance",
-            int widthPixels = 640, int heightPixels = 360, bool hasHeaders = true, bool includeCachedData = true) {
-            return AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.ColumnClustered, hasHeaders, title, includeCachedData);
+            OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
+            width ??= OfficeLength.Pixels(640);
+            height ??= OfficeLength.Pixels(360);
+            return AddChart(OfficeChartType.ColumnClustered, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
         }
 
         /// <summary>
         /// Adds a compact column chart with value callouts and dashboard-friendly defaults for KPI scorecards.
         /// </summary>
         public ExcelChart AddKpiScorecardChart(string dataRangeA1, int row, int column, string title = "KPI Scorecard",
-            int widthPixels = 520, int heightPixels = 300, bool hasHeaders = true, bool includeCachedData = true) {
-            ExcelChart chart = AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.ColumnClustered, hasHeaders, title, includeCachedData);
+            OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
+            width ??= OfficeLength.Pixels(520);
+            height ??= OfficeLength.Pixels(300);
+            ExcelChart chart = AddChart(OfficeChartType.ColumnClustered, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
             return ApplyKpiScorecardDefaults(chart);
         }
 
@@ -47,8 +57,10 @@ namespace OfficeIMO.Excel {
         /// Adds a doughnut chart with category/percent labels for contribution and mix analysis.
         /// </summary>
         public ExcelChart AddContributionChart(string dataRangeA1, int row, int column, string title = "Contribution",
-            int widthPixels = 520, int heightPixels = 320, bool hasHeaders = true, bool includeCachedData = true) {
-            ExcelChart chart = AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.Doughnut, hasHeaders, title, includeCachedData);
+            OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
+            width ??= OfficeLength.Pixels(520);
+            height ??= OfficeLength.Pixels(320);
+            ExcelChart chart = AddChart(OfficeChartType.Doughnut, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
             return ApplyContributionChartDefaults(chart);
         }
 
@@ -56,34 +68,36 @@ namespace OfficeIMO.Excel {
         /// Adds a waterfall-style stacked column chart for variance bridges prepared with helper series.
         /// </summary>
         public ExcelChart AddVarianceWaterfallChart(string dataRangeA1, int row, int column, string title = "Variance Bridge",
-            int widthPixels = 720, int heightPixels = 360, bool hasHeaders = true, bool includeCachedData = true) {
-            ExcelChart chart = AddChartFromRange(dataRangeA1, row, column, widthPixels, heightPixels, ExcelChartType.ColumnStacked, hasHeaders, title, includeCachedData);
+            OfficeLength? width = null, OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) {
+            width ??= OfficeLength.Pixels(720);
+            height ??= OfficeLength.Pixels(360);
+            ExcelChart chart = AddChart(OfficeChartType.ColumnStacked, dataRangeA1, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = width.Value, Height = height.Value, HasHeaders = hasHeaders, Title = title, IncludeCachedData = includeCachedData });
             return ApplyVarianceWaterfallDefaults(chart);
         }
 
         internal static ExcelChart ApplyKpiScorecardDefaults(ExcelChart chart) {
             return chart.HideLegend()
-                .SetTitleTextStyle(fontSizePoints: 12, bold: true, color: "1F2937")
+                .SetTitleTextStyle(fontSize: OfficeLength.Points(12), bold: true, color: OfficeColor.Parse("1F2937"))
                 .SetSeriesDataLabels(0, showValue: true, position: OfficeChartDataLabelPosition.OutsideEnd, numberFormat: "#,##0")
-                .SetSeriesDataLabelTextStyle(0, fontSizePoints: 10, bold: true, color: "1F2937")
-                .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5)
+                .SetSeriesDataLabelTextStyle(0, fontSize: OfficeLength.Points(10), bold: true, color: OfficeColor.Parse("1F2937"))
+                .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("E5E7EB"), lineWidth: OfficeLength.Points(0.5))
                 .SetValueAxisNumberFormat("#,##0", sourceLinked: false);
         }
 
         internal static ExcelChart ApplyContributionChartDefaults(ExcelChart chart) {
-            return chart.SetTitleTextStyle(fontSizePoints: 12, bold: true, color: "1F2937")
+            return chart.SetTitleTextStyle(fontSize: OfficeLength.Points(12), bold: true, color: OfficeColor.Parse("1F2937"))
                 .SetLegend(OfficeChartLegendPosition.Right)
                 .SetSeriesDataLabels(0, showValue: false, showCategoryName: true, showPercent: true, position: OfficeChartDataLabelPosition.BestFit, numberFormat: "0%")
                 .SetSeriesDataLabelSeparator(0, "\n")
-                .SetSeriesDataLabelTextStyle(0, fontSizePoints: 9, color: "374151");
+                .SetSeriesDataLabelTextStyle(0, fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("374151"));
         }
 
         internal static ExcelChart ApplyVarianceWaterfallDefaults(ExcelChart chart) {
-            return chart.SetTitleTextStyle(fontSizePoints: 12, bold: true, color: "1F2937")
+            return chart.SetTitleTextStyle(fontSize: OfficeLength.Points(12), bold: true, color: OfficeColor.Parse("1F2937"))
                 .SetLegend(OfficeChartLegendPosition.Bottom)
                 .SetSeriesDataLabels(0, showValue: true, position: OfficeChartDataLabelPosition.OutsideEnd, numberFormat: "#,##0")
-                .SetSeriesDataLabelTextStyle(0, fontSizePoints: 9, color: "374151")
-                .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5)
+                .SetSeriesDataLabelTextStyle(0, fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("374151"))
+                .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("E5E7EB"), lineWidth: OfficeLength.Points(0.5))
                 .SetValueAxisNumberFormat("#,##0", sourceLinked: false);
         }
     }

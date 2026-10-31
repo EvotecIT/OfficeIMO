@@ -1,3 +1,4 @@
+using static OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader;
 using System;
 using System.Linq;
 using DocumentFormat.OpenXml;

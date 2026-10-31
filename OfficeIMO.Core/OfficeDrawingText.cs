@@ -319,6 +319,9 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         target.OutlineStrokeDashPattern = OutlineStrokeDashPattern == null
             ? null : new List<double>(OutlineStrokeDashPattern).AsReadOnly();
         target.OutlineStrokeDashOffset = OutlineStrokeDashOffset;
+        target.OutlineStrokeLineCap = OutlineStrokeLineCap;
+        target.OutlineStrokeLineJoin = OutlineStrokeLineJoin;
+        target.OutlineStrokeMiterLimit = OutlineStrokeMiterLimit;
         target.FillSuppressed = FillSuppressed;
     }
 
@@ -338,6 +341,9 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     internal double OutlineStrokeWidth { get; set; }
     internal IReadOnlyList<double>? OutlineStrokeDashPattern { get; set; }
     internal double OutlineStrokeDashOffset { get; set; }
+    internal OfficeStrokeLineCap OutlineStrokeLineCap { get; set; } = OfficeStrokeLineCap.Butt;
+    internal OfficeStrokeLineJoin OutlineStrokeLineJoin { get; set; } = OfficeStrokeLineJoin.Miter;
+    internal double OutlineStrokeMiterLimit { get; set; } = 10D;
 
     /// <summary>True when only the outline stroke paints (PDF modes 1 and 5); <see cref="Color"/> then names the stroke.</summary>
     internal bool FillSuppressed { get; set; }

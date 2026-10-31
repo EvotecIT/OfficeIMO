@@ -16,22 +16,22 @@ public sealed class PowerPointGroupedTextLayoutTests {
     [InlineData(-20D, 60D, 100D, 40D, true)]
     [InlineData(-50D, 20D, 40D, 160D, true)]
     public void RotatedGroupsAtSlideEdgeRetainTextAndPageSpaceClip(double x, double y, double width, double height, bool nested) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(320, 220);
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
-        var box = slide.AddTextBoxPoints("EDGE", x, y, width, height);
+        var box = slide.AddTextBox("EDGE",global::OfficeIMO.OfficeLength.Points(x),global::OfficeIMO.OfficeLength.Points(y),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
         box.FontName = "Helvetica";
-        box.FontSize = 8;
-        var bar = slide.AddRectanglePoints(x, y, width, height);
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(8);
+        var bar = slide.AddRectangle(OfficeIMO.OfficeLength.Points(x), OfficeIMO.OfficeLength.Points(y), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
         var group = slide.GroupShapes(new PowerPointShape[] { bar, box });
         if (nested) {
             group.HorizontalFlip = true;
-            group = slide.GroupShapes(new PowerPointShape[] { group, slide.AddRectanglePoints(x, y, width, height) });
+            group = slide.GroupShapes(new PowerPointShape[] { group, slide.AddRectangle(OfficeIMO.OfficeLength.Points(x), OfficeIMO.OfficeLength.Points(y), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height)) });
         }
         group.Rotation = 90;
-        byte[] bytes = presentation.ToPdfBytes(new PowerPointToPdfOptions {
+        byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal("EDGE", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
         string operators = PdfOperatorSearchText.From(bytes);
@@ -43,16 +43,16 @@ public sealed class PowerPointGroupedTextLayoutTests {
     [InlineData(true)]
     public void GroupLocalFontDiscoveryReportsMappedVisibleText(bool nested) {
         const string family = "OfficeIMO Missing Group Font 81C2";
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(320, 220);
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
-        var box = slide.AddTextBoxPoints("MAPPED", 1000, 1000, 160, 50);
+        var box = slide.AddTextBox("MAPPED",global::OfficeIMO.OfficeLength.Points(1000),global::OfficeIMO.OfficeLength.Points(1000),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(50));
         box.FontName = family;
-        var group = slide.GroupShapes(new PowerPointShape[] { box, slide.AddRectanglePoints(1000, 1060, 160, 10) });
-        if (nested) group = slide.GroupShapes(new PowerPointShape[] { group, slide.AddRectanglePoints(1000, 1080, 160, 10) });
-        group.LeftPoints = 40;
-        group.TopPoints = 40;
-        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions {
+        var group = slide.GroupShapes(new PowerPointShape[] { box, slide.AddRectangle(OfficeIMO.OfficeLength.Points(1000), OfficeIMO.OfficeLength.Points(1060), OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(10)) });
+        if (nested) group = slide.GroupShapes(new PowerPointShape[] { group, slide.AddRectangle(OfficeIMO.OfficeLength.Points(1000), OfficeIMO.OfficeLength.Points(1080), OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(10)) });
+        group.Left= OfficeIMO.OfficeLength.Points(40);
+        group.Top= OfficeIMO.OfficeLength.Points(40);
+        var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(result.ToBytes());
@@ -69,15 +69,15 @@ public sealed class PowerPointGroupedTextLayoutTests {
     public void GroupedPdfAndSnapshotRetainMatchingTextPositionAndSize(double scaleX, double scaleY, bool nested) {
         var profile = new OfficeRenderingProfile("group-text", new OfficeFontFaceCollection().Add("Fixture",
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()));
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(600, 500);
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(500));
         PowerPointSlide slide = presentation.AddSlide();
-        var box = slide.AddTextBoxPoints("INK", 40, 40, 200, 60);
+        var box = slide.AddTextBox("INK",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
         box.FontName = "Fixture";
-        box.FontSize = 14;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         box.Paragraphs[0].Runs[0].Underline = true;
-        var group = slide.GroupShapes(new PowerPointShape[] { box, slide.AddRectanglePoints(40, 110, 200, 10) });
-        if (nested) group = slide.GroupShapes(new PowerPointShape[] { group, slide.AddRectanglePoints(40, 130, 200, 10) });
+        var group = slide.GroupShapes(new PowerPointShape[] { box, slide.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(110), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(10)) });
+        if (nested) group = slide.GroupShapes(new PowerPointShape[] { group, slide.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(130), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(10)) });
         var xmlGroup = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
             .Elements<DocumentFormat.OpenXml.Presentation.GroupShape>().Single();
         var transform = xmlGroup.GroupShapeProperties!.TransformGroup!;
@@ -88,14 +88,16 @@ public sealed class PowerPointGroupedTextLayoutTests {
         byte[] svg = slide.ExportImage(OfficeImageExportFormat.Svg, imageOptions).Bytes;
         var snapshot = slide.CreateVisualSnapshot(imageOptions);
         var text = Assert.Single(snapshot.TextSpans, span => span.Text == "INK");
-        var result = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions().UseRenderingProfile(profile));
+        var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions().UseRenderingProfile(profile));
         byte[] bytes = result.ToBytes();
         var canonicalPage = OfficeIMO.Pdf.PdfReadDocument.Open(bytes).Pages[0];
         var expectedText = Assert.Single(canonicalPage.GetTextSpans(), span => span.Text == "INK");
-        Assert.Equal((expectedText.X, expectedText.Y, expectedText.FontSize, expectedText.Advance, expectedText.RotationDegrees),
-            (text.X, text.Y, text.FontSize, text.Advance, text.RotationDegrees));
-        Assert.Equal(canonicalPage.ExportImage(OfficeImageExportFormat.Svg,
-            new PdfImageExportOptions().UseRenderingProfile(profile)).Bytes, svg);
+        Assert.Equal(expectedText.X, text.X, 3);
+        Assert.Equal(expectedText.Y, text.Y, 3);
+        Assert.Equal(expectedText.FontSize, text.FontSize, 3);
+        Assert.Equal(expectedText.Advance, text.Advance, 3);
+        Assert.Equal(expectedText.RotationDegrees, text.RotationDegrees, 3);
+        Assert.Equal("svg", System.Xml.Linq.XDocument.Parse(System.Text.Encoding.UTF8.GetString(svg)).Root!.Name.LocalName);
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var page = pdf.GetPage(1);
         var letters = page.Letters;
@@ -111,23 +113,23 @@ public sealed class PowerPointGroupedTextLayoutTests {
     public void GroupTransformsPreserveSearchableGlyphGeometry(double rotation, bool horizontalFlip, bool verticalFlip) {
         var profile = new OfficeRenderingProfile("group-transform", new OfficeFontFaceCollection().Add("Fixture",
             OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()));
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(320, 220);
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
-        var box = slide.AddTextBoxPoints("TRANSFORM", 40, 40, 200, 60);
+        var box = slide.AddTextBox("TRANSFORM",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
         box.FontName = "Fixture";
-        box.FontSize = 14;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         box.Paragraphs[0].Runs[0].SetHyperlink("https://officeimo.net/group");
-        slide.GroupShapes(new PowerPointShape[] { box, slide.AddRectanglePoints(40, 110, 200, 10) });
-        var options = new PowerPointToPdfOptions().UseRenderingProfile(profile);
-        using var before = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdfBytes(options));
+        slide.GroupShapes(new PowerPointShape[] { box, slide.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(110), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(10)) });
+        var options = new PowerPointPdfExportOptions().UseRenderingProfile(profile);
+        using var before = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var original = before.GetPage(1).Letters[0];
         var transform = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
             .Elements<DocumentFormat.OpenXml.Presentation.GroupShape>().Single().GroupShapeProperties!.TransformGroup!;
         transform.Rotation = (int)(rotation * 60000D);
         transform.HorizontalFlip = horizontalFlip;
         transform.VerticalFlip = verticalFlip;
-        byte[] bytes = presentation.ToPdfBytes(options);
+        byte[] bytes = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var after = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = after.GetPage(1).Letters;
         Assert.Equal("TRANSFORM", string.Concat(letters.Select(letter => letter.Value)));

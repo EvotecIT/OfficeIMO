@@ -31,14 +31,14 @@ public sealed class WorkflowCommandTests {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.docx"), output = Path.Combine(scope.Path, "output.docx"), pdf = Path.Combine(scope.Path, "output.pdf");
         using (var word = OfficeIMO.Word.WordDocument.Create()) {
-            var image = new OfficeIMO.Drawing.OfficeRasterImage(200, 100, OfficeIMO.Drawing.OfficeColor.Red);
+            var image = new OfficeIMO.Drawing.OfficeRasterImage(200, 100, OfficeIMO.OfficeColor.Red);
             // A flat JPEG can already be smaller than its downsampled candidate.
             // Use reproducible image detail so this workflow exercises actual byte savings.
             var random = new Random(3105);
             for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++)
-                image.SetPixel(x, y, new OfficeIMO.Drawing.OfficeColor((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256)));
+                image.SetPixel(x, y, new OfficeIMO.OfficeColor((byte)random.Next(256), (byte)random.Next(256), (byte)random.Next(256)));
             using var stream = new MemoryStream(OfficeIMO.Drawing.OfficeJpegCodec.Encode(image));
-            word.AddParagraph("Retained text").InsertImage(stream, "picture.jpg", 96, 48);
+            word.AddParagraph("Retained text").AddImage(stream, "picture.jpg", OfficeIMO.OfficeLength.Pixels(96), OfficeIMO.OfficeLength.Pixels(48));
             word.Save(input);
         }
         byte[] before = File.ReadAllBytes(input);
@@ -132,7 +132,7 @@ public sealed class WorkflowCommandTests {
             "--margin", "12", "--margin-left", "20", "--margin-top", "30", "--margin-right", "40", "--margin-bottom", "50", "--color", "grayscale"
         ], output, error, CancellationToken.None, printPlanner: (request, token) => {
             captured = request;
-            PdfDocument document = PdfDocument.Create(c => { for (int i = 0; i < 9; i++) c.Page(p => p.Size(100, 120).Margin(0)); });
+            PdfDocument document = PdfDocument.Create(c => { for (int i = 0; i < 9; i++) c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(120)).Margin(global::OfficeIMO.OfficeLength.Points(0))); });
             return Task.FromResult(PdfPrintPlanner.Create(document, request, token));
         });
         Assert.Equal((int)OfficeImoToolExitCode.Success, exit);
@@ -218,7 +218,7 @@ public sealed class WorkflowCommandTests {
             for (int page = 1; page <= pageCount; page++) {
                 int pageNumber = page;
                 document.Page(current => current
-                    .Size(400 + pageNumber * 10, 600)
+                    .Size(global::OfficeIMO.OfficeLength.Points(400 + pageNumber * 10), global::OfficeIMO.OfficeLength.Points(600))
                     .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Page " + pageNumber)))));
             }
         }).Save(path);

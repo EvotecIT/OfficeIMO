@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
         public async Task Test_QueryBackedTable_RequiresExplicitHostPolicyAndRefreshesTransactionally() {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.QueryBackedTable.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                     ConnectionName = "SalesQuery",
                     CommandText = "trusted-command",
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryBackedTable_CancellationStopsLazyMaterializationBeforeMutation() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "LazyQuery",
                 WorksheetName = sheet.Name,
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryBackedTable_SnapshotsPolicyAndParticipatesInStructuralEdits() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "SafeQuery",
                 WorksheetName = sheet.Name,
@@ -192,8 +192,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryBackedTable_RejectsOccupiedExpansionAndRefreshesSharedConnectionsByTable() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet firstSheet = document.AddWorksheet("First");
-            ExcelSheet secondSheet = document.AddWorksheet("Second");
+            ExcelSheet firstSheet = document.AddSheet("First");
+            ExcelSheet secondSheet = document.AddSheet("Second");
             ExcelQueryBackedTableInfo first = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "SharedQuery",
                 WorksheetName = firstSheet.Name,
@@ -243,7 +243,7 @@ namespace OfficeIMO.Tests {
             QueryTablePart worksheetConsumer = firstSheet.WorksheetPart.AddNewPart<QueryTablePart>();
             worksheetConsumer.QueryTable = (QueryTable)firstQueryPart.QueryTable!.CloneNode(true);
             worksheetConsumer.QueryTable.Save();
-            ExcelSheet mappedSheet = document.AddWorksheet("Mapped");
+            ExcelSheet mappedSheet = document.AddSheet("Mapped");
             mappedSheet.CellValue(1, 1, "Value");
             mappedSheet.CellValue(2, 1, "kept");
             mappedSheet.AddTable("A1:A2", true, "MappedResults", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);

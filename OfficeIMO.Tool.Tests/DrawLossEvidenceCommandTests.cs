@@ -13,7 +13,7 @@ public sealed class DrawLossEvidenceCommandTests {
             drawing.Metadata.Title = "Unprojected source metadata";
             drawing.AddPage("First").Shapes.AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 5), string.Empty)
                 .AddParagraph("native capitalization").TextTransform = OdfTextTransform.Capitalize;
-            drawing.AddPage("Second").Shapes.AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 5), "مرحبا");
+            drawing.AddPage("Second").Shapes.AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 5), char.ConvertFromUtf32(0x10FFFF));
             drawing.SaveFlatXml(input);
             byte[] originalSource = File.ReadAllBytes(input), original = { 1, 2, 3 };
             File.WriteAllBytes(destination, original);
@@ -23,7 +23,11 @@ public sealed class DrawLossEvidenceCommandTests {
             Assert.NotEqual((int)OfficeImoToolExitCode.Success, result);
             Assert.Contains("page:1:First", error.ToString(), StringComparison.Ordinal);
             Assert.Contains("page:2:Second", error.ToString(), StringComparison.Ordinal);
-            Assert.True(error.ToString().Contains("unsupported-text-glyph", StringComparison.Ordinal), error.ToString());
+            string diagnostics = error.ToString();
+            // Standard fonts and embedded fonts use distinct native missing-glyph diagnostics.
+            Assert.True(diagnostics.Contains("unsupported-text-glyph", StringComparison.Ordinal) ||
+                diagnostics.Contains("missing-embedded-font-glyph", StringComparison.Ordinal), diagnostics);
+            Assert.Contains("U+10FFFF", diagnostics, StringComparison.Ordinal);
             Assert.Empty(output.ToArray());
             Assert.Equal(original, File.ReadAllBytes(destination));
             Assert.Equal(originalSource, File.ReadAllBytes(input));

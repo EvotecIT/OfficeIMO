@@ -35,9 +35,6 @@
     <ProjectReference Include="..\OfficeIMO.GoogleWorkspace.Drive\OfficeIMO.GoogleWorkspace.Drive.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.Net.Http" />
-  </ItemGroup>
   <ItemGroup>
     <Using Include="System" />
     <Using Include="System.Collections.Generic" />
@@ -49,5 +46,8 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Tests" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
 </Project>

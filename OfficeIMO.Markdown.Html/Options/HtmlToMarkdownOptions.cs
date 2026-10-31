@@ -6,17 +6,22 @@ using OfficeIMO.Html;
 /// <summary>
 /// Options controlling HTML to Markdown conversion.
 /// </summary>
-public sealed class HtmlToMarkdownOptions {
+public sealed class MarkdownHtmlImportOptions {
+    /// <summary>Rejects converted content when its report contains fidelity loss.</summary>
+    public bool FailOnLoss { get; set; }
+    /// <summary>Text encoding used by Markdown file and stream exports.</summary>
+    public System.Text.Encoding Encoding { get; set; } = new System.Text.UTF8Encoding(false);
+
     private int _maxTableExpandedColumns = TableBlock.MaxEffectiveColumnCount;
     private int _maxDefinitionListEntryExpansions = 10_000;
     private readonly HashSet<string> _appliedPluginIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _appliedFeaturePackIds = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Creates the default OfficeIMO-flavored conversion profile.</summary>
-    public static HtmlToMarkdownOptions CreateOfficeIMOProfile() => new HtmlToMarkdownOptions();
+    public static MarkdownHtmlImportOptions CreateOfficeIMOProfile() => new MarkdownHtmlImportOptions();
 
     /// <summary>Creates conversion options for the requested Markdown output profile.</summary>
-    public static HtmlToMarkdownOptions CreateProfile(MarkdownOutputProfile profile) =>
+    public static MarkdownHtmlImportOptions CreateProfile(MarkdownOutputProfile profile) =>
         profile switch {
             MarkdownOutputProfile.OfficeIMO => CreateOfficeIMOProfile(),
             MarkdownOutputProfile.CommonMark => CreateCommonMarkProfile(),
@@ -29,24 +34,24 @@ public sealed class HtmlToMarkdownOptions {
     /// Creates a CommonMark-oriented conversion profile. The intermediate OfficeIMO document model is preserved,
     /// while markdown serialization avoids GitHub-only output where practical.
     /// </summary>
-    public static HtmlToMarkdownOptions CreateCommonMarkProfile() => new HtmlToMarkdownOptions {
+    public static MarkdownHtmlImportOptions CreateCommonMarkProfile() => new MarkdownHtmlImportOptions {
         EscapeMarkdownLineStarts = true,
-        MarkdownWriteOptions = MarkdownWriteOptions.CreateCommonMarkProfile()
+        MarkdownWriteOptions = MarkdownSaveOptions.CreateCommonMarkProfile()
     };
 
     /// <summary>
     /// Creates a GitHub Flavored Markdown-oriented conversion profile for README and GitHub documentation output.
     /// </summary>
-    public static HtmlToMarkdownOptions CreateGitHubFlavoredMarkdownProfile() => new HtmlToMarkdownOptions {
+    public static MarkdownHtmlImportOptions CreateGitHubFlavoredMarkdownProfile() => new MarkdownHtmlImportOptions {
         SmartHref = true,
-        MarkdownWriteOptions = MarkdownWriteOptions.CreateGitHubFlavoredMarkdownProfile()
+        MarkdownWriteOptions = MarkdownSaveOptions.CreateGitHubFlavoredMarkdownProfile()
     };
 
     /// <summary>
     /// Creates a portable conversion profile that serializes the converted document with portable markdown fallbacks.
     /// </summary>
-    public static HtmlToMarkdownOptions CreatePortableProfile() => new HtmlToMarkdownOptions {
-        MarkdownWriteOptions = MarkdownWriteOptions.CreatePortableProfile()
+    public static MarkdownHtmlImportOptions CreatePortableProfile() => new MarkdownHtmlImportOptions {
+        MarkdownWriteOptions = MarkdownSaveOptions.CreatePortableProfile()
     };
 
     /// <summary>
@@ -82,12 +87,12 @@ public sealed class HtmlToMarkdownOptions {
     /// <summary>
     /// Controls how unsupported block-level elements are converted.
     /// </summary>
-    public HtmlUnknownTagHandling UnknownBlockHandling { get; set; } = HtmlUnknownTagHandling.Preserve;
+    public MarkdownHtmlUnknownTagHandling UnknownBlockHandling { get; set; } = MarkdownHtmlUnknownTagHandling.Preserve;
 
     /// <summary>
     /// Controls how unsupported inline elements are converted.
     /// </summary>
-    public HtmlUnknownTagHandling UnknownInlineHandling { get; set; } = HtmlUnknownTagHandling.Preserve;
+    public MarkdownHtmlUnknownTagHandling UnknownInlineHandling { get; set; } = MarkdownHtmlUnknownTagHandling.Preserve;
 
     /// <summary>
     /// When true, plain text imported from HTML is escaped when it could be interpreted as a Markdown block marker.
@@ -108,10 +113,10 @@ public sealed class HtmlToMarkdownOptions {
     /// <summary>
     /// Controls how base64 data-URI images are represented in the converted image model.
     /// </summary>
-    public HtmlBase64ImageHandling Base64Images { get; set; } = HtmlBase64ImageHandling.Include;
+    public MarkdownHtmlBase64ImageHandling Base64Images { get; set; } = MarkdownHtmlBase64ImageHandling.Include;
 
     /// <summary>
-    /// Output directory used when <see cref="Base64Images"/> is <see cref="HtmlBase64ImageHandling.SaveToFile"/>.
+    /// Output directory used when <see cref="Base64Images"/> is <see cref="MarkdownHtmlBase64ImageHandling.SaveToFile"/>.
     /// </summary>
     public string? Base64ImageOutputDirectory { get; set; }
 
@@ -123,13 +128,13 @@ public sealed class HtmlToMarkdownOptions {
     /// <summary>
     /// Controls whether low-value metadata inside repeated listing cards should be preserved or suppressed.
     /// </summary>
-    public HtmlListingCardMetadataMode ListingCardMetadataMode { get; set; } = HtmlListingCardMetadataMode.Preserve;
+    public MarkdownHtmlListingCardMetadataMode ListingCardMetadataMode { get; set; } = MarkdownHtmlListingCardMetadataMode.Preserve;
 
     /// <summary>
     /// Optional markdown writer options used when the converter serializes the intermediate
-    /// <see cref="MarkdownDoc"/> back to markdown text.
+    /// <see cref="MarkdownDocument"/> back to markdown text.
     /// </summary>
-    public MarkdownWriteOptions? MarkdownWriteOptions { get; set; }
+    public MarkdownSaveOptions? MarkdownWriteOptions { get; set; }
 
     /// <summary>
     /// Optional maximum input length, in characters, accepted by HTML-to-markdown conversion.
@@ -168,15 +173,15 @@ public sealed class HtmlToMarkdownOptions {
     }
 
     /// <summary>
-    /// Optional ordered post-conversion document transforms applied to the intermediate <see cref="MarkdownDoc"/>.
+    /// Optional ordered post-conversion document transforms applied to the intermediate <see cref="MarkdownDocument"/>.
     /// </summary>
     /// <example>
     /// <code>
-    /// var options = HtmlToMarkdownOptions.CreatePortableProfile();
+    /// var options = MarkdownHtmlImportOptions.CreatePortableProfile();
     /// options.DocumentTransforms.Add(
     ///     new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
     ///
-    /// var document = HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
+    /// var document = HtmlConversionDocument.Parse(html).ToMarkdown(options);
     /// </code>
     /// </example>
     public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new();
@@ -185,13 +190,13 @@ public sealed class HtmlToMarkdownOptions {
     /// Optional ordered custom HTML element block converters used before the base converter falls
     /// back to generic block handling.
     /// </summary>
-    public List<HtmlElementBlockConverter> ElementBlockConverters { get; } = new();
+    public List<MarkdownHtmlBlockConverter> ElementBlockConverters { get; } = new();
 
     /// <summary>
     /// Optional ordered custom HTML inline element converters used before the base converter falls
     /// back to generic inline handling.
     /// </summary>
-    public List<HtmlInlineElementConverter> InlineElementConverters { get; } = new();
+    public List<MarkdownHtmlInlineConverter> InlineElementConverters { get; } = new();
 
     /// <summary>
     /// Optional ordered visual-host round-trip hints used when shared <c>data-omd-*</c> elements
@@ -222,7 +227,7 @@ public sealed class HtmlToMarkdownOptions {
     /// <summary>
     /// Marks a renderer plugin's HTML-ingestion contract as applied to these options.
     /// </summary>
-    public bool TryMarkPluginApplied(string pluginId) {
+    internal bool TryMarkPluginApplied(string pluginId) {
         if (string.IsNullOrWhiteSpace(pluginId)) {
             throw new ArgumentException("Plugin id is required.", nameof(pluginId));
         }
@@ -234,7 +239,7 @@ public sealed class HtmlToMarkdownOptions {
     /// Returns <see langword="true"/> when the supplied renderer plugin id has already been
     /// applied as an HTML-ingestion contract to these options.
     /// </summary>
-    public bool HasPluginId(string pluginId) {
+    internal bool HasPluginId(string pluginId) {
         if (string.IsNullOrWhiteSpace(pluginId)) {
             throw new ArgumentException("Plugin id is required.", nameof(pluginId));
         }
@@ -245,7 +250,7 @@ public sealed class HtmlToMarkdownOptions {
     /// <summary>
     /// Marks a renderer feature pack's HTML-ingestion contract as applied to these options.
     /// </summary>
-    public bool TryMarkFeaturePackApplied(string featurePackId) {
+    internal bool TryMarkFeaturePackApplied(string featurePackId) {
         if (string.IsNullOrWhiteSpace(featurePackId)) {
             throw new ArgumentException("Feature pack id is required.", nameof(featurePackId));
         }
@@ -257,7 +262,7 @@ public sealed class HtmlToMarkdownOptions {
     /// Returns <see langword="true"/> when the supplied renderer feature-pack id has already been
     /// applied as an HTML-ingestion contract to these options.
     /// </summary>
-    public bool HasFeaturePackId(string featurePackId) {
+    internal bool HasFeaturePackId(string featurePackId) {
         if (string.IsNullOrWhiteSpace(featurePackId)) {
             throw new ArgumentException("Feature pack id is required.", nameof(featurePackId));
         }
@@ -268,9 +273,11 @@ public sealed class HtmlToMarkdownOptions {
     /// <summary>
     /// Creates a copy of the current options instance so callers can reuse option templates safely.
     /// </summary>
-    /// <returns>A new <see cref="HtmlToMarkdownOptions"/> with the same option values.</returns>
-    public HtmlToMarkdownOptions Clone() {
-        var clone = new HtmlToMarkdownOptions {
+    /// <returns>A new <see cref="MarkdownHtmlImportOptions"/> with the same option values.</returns>
+    public MarkdownHtmlImportOptions Clone() {
+        var clone = new MarkdownHtmlImportOptions {
+            FailOnLoss = FailOnLoss,
+            Encoding = Encoding,
             BaseUri = BaseUri,
             UseBodyContentsOnly = UseBodyContentsOnly,
             RemoveScriptsAndStyles = RemoveScriptsAndStyles,

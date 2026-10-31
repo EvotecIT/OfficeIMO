@@ -2971,7 +2971,7 @@
     <value>Selezionati {0:N0} contrassegni su {1:N0}. Verifica il loro impatto prima di applicare.</value>
   </data>
   <data name="Redaction.ReviewedSummary" xml:space="preserve">
-    <value>Verificate {0:N0} aree su {1:N0} pagine: {2:N0} corrispondenze di testo, {3:N0} immagini, {4:N0} annotazioni e {5:N0} elementi vettoriali.</value>
+    <value>Verificate {0:N0} aree su {1:N0} pagine: {2:N0} corrispondenze di testo, {3:N0} immagini, {4:N0} annotazioni, {5:N0} elementi vettoriali e {6:N0} campi modulo.</value>
   </data>
   <data name="Redaction.SearchText" xml:space="preserve">
     <value>Testo o modello da cercare</value>

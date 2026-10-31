@@ -16,7 +16,7 @@ ConvertTo-OfficePowerPointHtml [-Path] <string> [-Password <string>] [-OutputPat
 
 ### Presentation
 ```powershell
-ConvertTo-OfficePowerPointHtml -Presentation <PowerPointPresentation> [-OutputPath <string>] [-Profile <OfficePowerPointHtmlProfile>] [-Theme <OfficeVisualThemeKind>] [-Title <string>] [-IncludeHiddenSlides] [-NoNotes] [-NoTables] [-IncludeHiddenShapes] [-NoExtractionProof] [-NoMasterInventory] [-NoHeading] [-NoSlideHeadings] [-NoRenderDiagnostics] [-NoDefaultStyles] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePowerPointHtml -Presentation <PowerPointDocument> [-OutputPath <string>] [-Profile <OfficePowerPointHtmlProfile>] [-Theme <OfficeVisualThemeKind>] [-Title <string>] [-IncludeHiddenSlides] [-NoNotes] [-NoTables] [-IncludeHiddenShapes] [-NoExtractionProof] [-NoMasterInventory] [-NoHeading] [-NoSlideHeadings] [-NoRenderDiagnostics] [-NoDefaultStyles] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -275,7 +275,7 @@ Accept wildcard characters: False
 Presentation instance to convert.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: Presentation
 Aliases: None
 Possible values:
@@ -341,7 +341,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `System.String`
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

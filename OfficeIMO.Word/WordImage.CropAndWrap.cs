@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the top source crop in thousandths of a percent; 100000 represents the full source height.
         /// </summary>
         /// <remarks>Negative values extend the source window. Assigning this raw DrawingML value leaves the displayed image frame unchanged.</remarks>
-        public int? CropTop {
+        internal int? CropTopPercentage {
             get {
                 var picture = GetPicture();
                 return picture?.BlipFill?.SourceRectangle?.Top?.Value;
@@ -56,7 +56,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the bottom source crop in thousandths of a percent; 100000 represents the full source height.
         /// </summary>
         /// <remarks>Negative values extend the source window. Assigning this raw DrawingML value leaves the displayed image frame unchanged.</remarks>
-        public int? CropBottom {
+        internal int? CropBottomPercentage {
             get {
                 var picture = GetPicture();
                 return picture?.BlipFill?.SourceRectangle?.Bottom?.Value;
@@ -91,7 +91,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the left source crop in thousandths of a percent; 100000 represents the full source width.
         /// </summary>
         /// <remarks>Negative values extend the source window. Assigning this raw DrawingML value leaves the displayed image frame unchanged.</remarks>
-        public int? CropLeft {
+        internal int? CropLeftPercentage {
             get {
                 var picture = GetPicture();
                 return picture?.BlipFill?.SourceRectangle?.Left?.Value;
@@ -126,7 +126,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the right source crop in thousandths of a percent; 100000 represents the full source width.
         /// </summary>
         /// <remarks>Negative values extend the source window. Assigning this raw DrawingML value leaves the displayed image frame unchanged.</remarks>
-        public int? CropRight {
+        internal int? CropRightPercentage {
             get {
                 var picture = GetPicture();
                 return picture?.BlipFill?.SourceRectangle?.Right?.Value;

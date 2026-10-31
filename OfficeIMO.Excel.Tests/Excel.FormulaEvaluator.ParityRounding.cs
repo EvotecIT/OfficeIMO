@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         [InlineData("ODD", -9007199254740991d, -9007199254740991d)]
         public void Parity_rounding_preserves_exact_results_at_floating_point_boundaries(string function, double input, double expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Rounding");
+            var sheet = document.AddSheet("Rounding");
             sheet.CellValue(1, 1, input);
             sheet.CellValue(1, 2, 42d);
             sheet.CellFormula(1, 2, function + "(A1)");
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(ODD(A1),99)")]
         public void Unrepresentable_odd_results_preserve_caches_including_nested_and_error_fallback_paths(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Limits");
+            var sheet = document.AddSheet("Limits");
             sheet.CellValue(1, 1, 9007199254740992d);
             sheet.CellValue(1, 2, 42d); sheet.CellFormula(1, 2, formula);
             Assert.Equal(0, document.Calculate());

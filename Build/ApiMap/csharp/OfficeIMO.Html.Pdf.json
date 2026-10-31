@@ -1,0 +1,78 @@
+{
+  "package": "OfficeIMO.Html.Pdf",
+  "status": "Adapter changes required by M2 Phase A.",
+  "changes": [],
+  "extraChanges": [
+    {
+      "change": "The PDF-to-HTML adapter emits finite diagnostic codes through the M1 catalog; raw HTML engine emissions remain owned by the adapter.",
+      "reason": "PDF reconstruction loss tests showed source security and page-label findings retained old literal names.",
+      "status": "applied"
+    },
+    {
+      "applied": "applied",
+      "note": "HTML to PDF now exposes ToPdf/out-report, ToPdfAsync and shared-report SaveAsPdf forms; private rendering evidence is retained for adapters and fidelity tests. HtmlToPdfOptions.FailOnLoss is copied by ClonePdf."
+    },
+    {
+      "applied": "applied",
+      "note": "PDF to HTML now exposes string ToHtml/out-report, OfficeConversionResult<string> ToHtmlAsync and shared-report saves. PdfToHtmlOptions.FailOnLoss rejects before publication and is captured in conversion options."
+    },
+    {
+      "applied": "applied",
+      "note": "The M1 inventory omitted 36 finite PDF-to-HTML warning codes. Added them to diagnostic-code-map.json and generated OfficeDiagnosticCodes, applied constants at emission sites and migrated contract assertions. No severity, location or loss-kind changes."
+    },
+    {
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "note": "Async conversion entry points capture options before deferred work or resource awaits. The same snapshot supplies resource/size limits and final FailOnLoss acceptance; caller-owned template documents and callbacks retain their ownership."
+    },
+    {
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "note": "Strict adapter PDF saves use the existing staged writer with shared report acceptance before publication. Source-stage and writer-time losses throw OfficeConversionException carrying OfficeConversionReport; native advanced result policies keep their existing behavior. The same writer and file/stream publication owners are reused. Front-door HTML/TXT saves dispose the generated model."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Public ToPdf and SaveAsPdf families keep serialization and publication inside the same render deadline as resource resolution and layout. The existing HtmlRenderEngine deadline owner and PdfConversionEvidence writers remain authoritative."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Canonical SaveAs output failures retain the completed conversion report through the shared internal output helper; cancellation continues to propagate unchanged."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "HTML PDF saves validate destination arguments before rendering. Both synchronous and asynchronous final writes retain completed reports through the shared PDF evidence owner."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "HTML row/cell traversal and serialized shadow-root traversal enumerate AngleSharp collections rather than binding their target-specific indexer member. This fixes MissingMethodException when a netstandard2.0 adapter is loaded with the runtime-selected modern AngleSharp asset, preserves traversal order and keeps linear traversal."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "InternalsVisibleTo grants the existing browser engine and its tests access to detailed conversion and serialization evidence. This preserves browser diagnostics while keeping conversion kernels outside the public API."
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on macOS, including standard-library and modern-framework runtime proof. Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions.",
+  "questionResolutions": {
+    "conversionForms": "Source.ToTarget, source.SaveAsTarget and OfficeConversionReport; async ToTarget returns OfficeConversionResult<T>. ToHtml returns string. No static From factories.",
+    "frameworks": "No framework is dropped in 3.6. Original library TFMs and Windows net472 conditions remain; the front door and both Workflows projects support the full set. Modern-only engines stay conditional.",
+    "packageDirection": "Word.Pdf and PowerPoint.Pdf export native documents. Reverse reconstruction is Pdf.Word and Pdf.PowerPoint; Excel reconstruction is Pdf.Excel. Word page images live in Word.Pdf.",
+    "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
+  },
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Html.Pdf",
+      "to": "OfficeIMO.Pdf.Html",
+      "scope": "whole package (PDF to HTML conversion)",
+      "reason": "Adapter packages are named {Source}.{Target}; this package converts PDF to HTML, while HTML to PDF lives in OfficeIMO.Html. Newcomers install the wrong package for HTML to PDF.",
+      "status": "pending"
+    }
+  ]
+}

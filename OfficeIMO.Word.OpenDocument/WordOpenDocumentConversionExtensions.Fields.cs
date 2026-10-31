@@ -4,7 +4,7 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Word.OpenDocument;
 
 public static partial class WordOpenDocumentConversionExtensions {
-    private static bool TryMapWordField(WordInlineFieldSnapshot field, out OdtFieldKind kind) {
+    private static bool TryMapWordField(WordInlineFieldInfo field, out OdtFieldKind kind) {
         kind = default;
         if (field.HasUnsupportedResultContent || field.HasUnsupportedContainer) return false;
         string[] tokens = field.Instruction.Split(new[] { ' ', '\t', '\r', '\n' },

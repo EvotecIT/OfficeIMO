@@ -5,7 +5,7 @@ using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioArchitectureDiagramBuilderTests {

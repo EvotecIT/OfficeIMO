@@ -18,7 +18,7 @@ public sealed class StudioWorkspaceOutputOwnershipTests {
             string destination = operation == "split" ? Path.Combine(services.Paths.Root, "Split PDFs", "part-001.pdf")
                 : Path.Combine(services.Paths.Root, "owned.pdf");
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             File.Copy(source, destination);
             byte[] original = File.ReadAllBytes(destination);
             StudioDocumentTabHost? host = null;

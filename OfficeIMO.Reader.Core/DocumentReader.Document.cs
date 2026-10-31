@@ -263,6 +263,7 @@ internal static partial class DocumentReaderEngine {
                 ? chunk.Id
                 : "chunk-" + i.ToString("D4", CultureInfo.InvariantCulture);
             yield return new OfficeDocumentBlock {
+                ChunkProjection = chunk,
                 Id = blockId,
                 Kind = string.IsNullOrWhiteSpace(chunk.Location.SourceBlockKind) ? "chunk" : chunk.Location.SourceBlockKind!,
                 Text = chunk.Text ?? string.Empty,

@@ -24,8 +24,8 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
                 ["Żółw 🐢\r\n", true, 126.5, -3.5, 7.5, 1234567890123.5, 1.0000000596046448, -0d, 12.125, new DateTime(2026, 1, 2, 3, 4, 5), "second", false, -1.5, 1.2345678901234567],
                 ["漢字", false, 127.5, -2.5, 8.5, -1234567890123.5, -2.25, 42.5, -0.125, new DateTime(2026, 2, 3, 4, 5, 6), "third", true, 2.5, -42.125]
             ], dateSystem);
-        using var oracle = ExcelDocument.OpenDataReader(workbook);
-        using var reader = ExcelDocument.OpenDataReader(workbook);
+        using var oracle = ExcelDocument.OpenReader(workbook);
+        using var reader = ExcelDocument.OpenReader(workbook);
         if (valueModel) {
             foreach (FullValueRow row in reader.RowsAs<FullValueRow>()) AssertNativeRow(oracle, row);
         } else {
@@ -52,9 +52,9 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
                 [42.5, -2.25, 7.5, false, new DateTime(2026, 1, 2), 2.5, "following", 3.5]
             ], ExcelDateSystem.NineteenFour, styledSerialColumn: 6);
         CultureInfo culture = CultureInfo.GetCultureInfo("pl-PL");
-        ExcelReadOptions Options() => new() { NumericAsDecimal = numericAsDecimal, Culture = culture, InferSchema = inferSchema, SchemaSampleRows = 1 };
-        using var oracle = ExcelDocument.OpenDataReader(workbook, Options());
-        using var reader = ExcelDocument.OpenDataReader(workbook, Options());
+        ExcelReaderOptions Options() => new() { NumericAsDecimal = numericAsDecimal, Culture = culture, InferSchema = inferSchema, SchemaSampleRows = 1 };
+        using var oracle = ExcelDocument.OpenReader(workbook, Options());
+        using var reader = ExcelDocument.OpenReader(workbook, Options());
         FallbackRow[] rows = reader.RowsAs<FallbackRow>().ToArray();
         Assert.Equal(2, rows.Length);
         for (int index = 0; index < rows.Length; index++) {
@@ -84,7 +84,7 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
         byte[] workbook = CreateWorkbook(format, ["Id", "Serial"], [[7.5, 1.25]],
             ExcelDateSystem.NineteenFour, styledSerialColumn: 2);
         int calls = 0;
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             Culture = CultureInfo.GetCultureInfo("pl-PL"),
             CellValueConverter = cellConverter
                 ? context => context.RawText == "7.5" ? new ExcelCellValue(9d) : ExcelCellValue.NotHandled
@@ -101,7 +101,7 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
                 return (false, null);
             }
         };
-        using var reader = ExcelDocument.OpenDataReader(workbook, options);
+        using var reader = ExcelDocument.OpenReader(workbook, options);
         ConverterRow row = Assert.Single(reader.RowsAs<ConverterRow>());
         Assert.Equal(42, row.Id);
         Assert.Equal(1.25, row.Serial);
@@ -117,8 +117,8 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
     [InlineData(ExcelFileFormat.Xlsb, null)]
     public void NumericOverflowAndBlankFieldsKeepModelConstructionPropertyErrorsAndRedaction(ExcelFileFormat format, double? value) {
         byte[] workbook = CreateWorkbook(format, ["Id", "Name"], [[value, "present"]]);
-        using var reader = ExcelDocument.OpenDataReader(workbook,
-            new ExcelReadOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact });
+        using var reader = ExcelDocument.OpenReader(workbook,
+            new ExcelReaderOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact });
         ConstructorRow.Calls = 0;
         DataMappingException error = Assert.Throws<DataMappingException>(() => reader.RowsAs<ConstructorRow>().ToArray());
         Assert.Contains("ConstructorRow.Id", error.Message);
@@ -132,7 +132,7 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
     [InlineData(ExcelFileFormat.Xlsb)]
     public void NativeMappingDoesNotRetryOrWrapAPropertySetterFailure(ExcelFileFormat format) {
         byte[] workbook = CreateWorkbook(format, ["Id"], [[42]]);
-        using var reader = ExcelDocument.OpenDataReader(workbook);
+        using var reader = ExcelDocument.OpenReader(workbook);
         ThrowingSetterRow.Calls = 0;
         Assert.Same(ThrowingSetterRow.Failure,
             Assert.Throws<FormatException>(() => reader.RowsAs<ThrowingSetterRow>().ToArray()));
@@ -145,14 +145,14 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
     [InlineData(ExcelFileFormat.Xlsb)]
     public void ErrorCellsRetainTheirTextDuringAutomaticMapping(ExcelFileFormat format) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Name");
         sheet.CellValue(2, 1, "error");
         Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single(item => item.CellReference == "A2");
         cell.DataType = CellValues.Error;
         cell.CellValue = new CellValue("#VALUE!");
-        byte[] workbook = document.ToBytes(format);
-        using var reader = ExcelDocument.OpenDataReader(workbook);
+        byte[] workbook = document.ToBytes(new OfficeIMO.Excel.ExcelSaveOptions{Format=format});
+        using var reader = ExcelDocument.OpenReader(workbook);
         Assert.Equal("#VALUE!", Assert.Single(reader.RowsAs<TextRow>()).Name);
     }
 
@@ -161,7 +161,7 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
     [InlineData(ExcelFileFormat.Xlsb)]
     public void InvalidDateSerialKeepsGenericConstructionAndFormatSpecificFailure(ExcelFileFormat format) {
         byte[] workbook = CreateWorkbook(format, ["Date"], [[3000000d]], styledSerialColumn: 1);
-        using var reader = ExcelDocument.OpenDataReader(workbook);
+        using var reader = ExcelDocument.OpenReader(workbook);
         DateConstructorRow.Calls = 0;
         if (format == ExcelFileFormat.Xlsb) {
             Assert.Throws<InvalidCastException>(() => reader.RowsAs<DateConstructorRow>().ToArray());
@@ -179,7 +179,7 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
     public void ElapsedTimeStyleKeepsItsOaEpochInA1904Workbook(ExcelFileFormat format) {
         byte[] workbook = CreateWorkbook(format, ["Date", "Serial"], [[1.25, 1.25]],
             ExcelDateSystem.NineteenFour, styledSerialColumn: 1, serialFormat: "[h]:mm:ss");
-        using var reader = ExcelDocument.OpenDataReader(workbook);
+        using var reader = ExcelDocument.OpenReader(workbook);
         DateAndSerialRow row = Assert.Single(reader.RowsAs<DateAndSerialRow>());
         Assert.Equal(DateTime.FromOADate(1.25), row.Date);
         Assert.Equal(DateTimeKind.Unspecified, row.Date.Kind);
@@ -191,7 +191,7 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
         string serialFormat = "yyyy-mm-dd hh:mm:ss") {
         using ExcelDocument document = ExcelDocument.Create();
         document.DateSystem = dateSystem;
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         for (int column = 0; column < headers.Length; column++) sheet.CellValue(1, column + 1, headers[column]);
         for (int row = 0; row < rows.Length; row++) {
             for (int column = 0; column < rows[row].Length; column++) {
@@ -199,7 +199,7 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
             }
             if (styledSerialColumn > 0) sheet.CellAt(row + 2, styledSerialColumn).SetNumberFormat(serialFormat);
         }
-        return document.ToBytes(format);
+        return document.ToBytes(new OfficeIMO.Excel.ExcelSaveOptions{Format=format});
     }
 
     private static void AssertNativeRow(ExcelWorkbookDataReader oracle, IFullRow row) {

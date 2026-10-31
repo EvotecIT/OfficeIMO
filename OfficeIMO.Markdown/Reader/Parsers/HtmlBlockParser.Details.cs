@@ -2,9 +2,9 @@ using System.Collections.Generic;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     internal sealed partial class HtmlBlockParser {
-        private static bool TryParseDetails(string htmlContent, int startLineIndex, MarkdownReaderOptions options, MarkdownReaderState state, out DetailsBlock? block) {
+        private static bool TryParseDetails(string htmlContent, int startLineIndex, MarkdownLoadOptions options, MarkdownReaderState state, out DetailsBlock? block) {
             block = null;
             if (string.IsNullOrWhiteSpace(htmlContent)) return false;
 

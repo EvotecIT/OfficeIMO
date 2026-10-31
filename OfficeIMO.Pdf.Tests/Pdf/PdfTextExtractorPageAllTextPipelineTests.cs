@@ -45,9 +45,9 @@ public partial class PdfTextExtractorPageTests {
 
             string columnOutputPath = Path.Combine(directory, "text", "columns.txt");
             PdfTextExtractor.ExtractAllText(inputPath, columnOutputPath, new PdfTextLayoutOptions {
-                MarginLeft = 36,
-                MarginRight = 36,
-                MinGutterWidth = 24
+                MarginLeft = OfficeIMO.OfficeLength.Points(36),
+                MarginRight = OfficeIMO.OfficeLength.Points(36),
+                MinGutterWidth = OfficeIMO.OfficeLength.Points(24)
             });
 
             string columnText = Normalize(File.ReadAllText(columnOutputPath, Encoding.UTF8));
@@ -67,9 +67,9 @@ public partial class PdfTextExtractorPageTests {
 
             string byteColumnOutput = Path.Combine(directory, "text", "byte-columns.txt");
             PdfTextExtractor.ExtractAllText(BuildTwoColumnPdf(), byteColumnOutput, new PdfTextLayoutOptions {
-                MarginLeft = 36,
-                MarginRight = 36,
-                MinGutterWidth = 24
+                MarginLeft = OfficeIMO.OfficeLength.Points(36),
+                MarginRight = OfficeIMO.OfficeLength.Points(36),
+                MinGutterWidth = OfficeIMO.OfficeLength.Points(24)
             });
             AssertColumnAwareTextOrder(File.ReadAllText(byteColumnOutput, Encoding.UTF8));
         } finally {
@@ -117,9 +117,9 @@ public partial class PdfTextExtractorPageTests {
     [Fact]
     public void ExtractAllTextByPageRanges_WithLayoutOptionsUsesColumnAwareReadingOrder() {
         var options = new PdfTextLayoutOptions {
-            MarginLeft = 36,
-            MarginRight = 36,
-            MinGutterWidth = 24
+            MarginLeft = OfficeIMO.OfficeLength.Points(36),
+            MarginRight = OfficeIMO.OfficeLength.Points(36),
+            MinGutterWidth = OfficeIMO.OfficeLength.Points(24)
         };
 
         string text = PdfTextExtractor.ExtractAllTextByPageRanges(

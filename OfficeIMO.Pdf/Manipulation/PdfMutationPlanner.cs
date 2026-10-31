@@ -754,6 +754,11 @@ internal static class PdfMutationPlanner {
                 }
             }
 
+            if (security.HasDocMDPPermissions) Add(blockers, "FullRewrite.DocMdpPreservation");
+            if (security.HasUsageRights) Add(blockers, "FullRewrite.UsageRightsPreservation");
+            if ((operation == PdfMutationOperation.ImportPages || operation == PdfMutationOperation.OrganizePages ||
+                operation == PdfMutationOperation.ExtractPages || operation == PdfMutationOperation.NormalizePageRotation) &&
+                preflight.UncheckedDocumentInfo?.AcroFormXfa is not null) Add(blockers, "FullRewrite.XfaPageOwnership");
             if (security.HasXrefStreams) {
                 Add(blockers, "FullRewrite.XrefStreamPreservation");
             }
@@ -880,9 +885,14 @@ internal static class PdfMutationPlanner {
                 Add(diagnostics, "Mutation blocker: " + blockers[i] + ".");
             }
 
+            if (blockers.Contains("FullRewrite.XfaPageOwnership"))
+                Add(diagnostics, "Page rewrites cannot preserve XFA page ownership. Flatten or remove XFA before changing pages.");
             if (!fullRewriteCapability) {
                 for (int i = 0; i < preflight.Diagnostics.Count; i++) {
-                    Add(diagnostics, preflight.Diagnostics[i]);
+                    string diagnostic = preflight.Diagnostics[i];
+                    if (preflight.RewriteBlockers.Any(blocker => blocker.Message == diagnostic &&
+                        !IsFullRewriteBlockerForOperation(blocker.Kind, operation))) continue;
+                    Add(diagnostics, diagnostic);
                 }
             }
 
@@ -938,7 +948,7 @@ internal static class PdfMutationPlanner {
         if (operation != PdfMutationOperation.ExtractPages || !CanReadForPageTransfer(preflight)) {
             return false;
         }
-        if (preflight.RewriteBlockers.Any(blocker => blocker.Kind == PdfRewriteBlockerKind.TaggedContent))
+        if (preflight.RewriteBlockers.Any(blocker => blocker.Kind == PdfRewriteBlockerKind.TaggedContent || blocker.Kind == PdfRewriteBlockerKind.Forms))
             return CanFullRewrite(preflight, PdfMutationOperation.OrganizePages) &&
                 PdfPermissionAuthorization.CanMutate(preflight.Probe.Security, preflight.PermissionPolicy, operation);
 
@@ -1060,7 +1070,8 @@ internal static class PdfMutationPlanner {
         return (!security.HasEncryption || PdfPermissionAuthorization.CanMutate(security, preflight.PermissionPolicy, operation)) &&
         (!security.HasSignatures || operation == PdfMutationOperation.NormalizePageRotation && HasOnlyUnsignedSignatureFields(security)) &&
         !security.HasDocMDPPermissions &&
-        !security.HasUsageRights;
+        !security.HasUsageRights &&
+        preflight.UncheckedDocumentInfo?.AcroFormXfa is null;
     }
 
     private static bool CanUseAuthenticatedEncryptedRewrite(PdfDocumentPreflight preflight, PdfMutationOperation operation) {
@@ -1146,6 +1157,7 @@ internal static class PdfMutationPlanner {
             return blocker == PdfRewriteBlockerKind.Signatures || blocker == PdfRewriteBlockerKind.Encryption ||
                 blocker == PdfRewriteBlockerKind.InvalidObjectReferences || blocker == PdfRewriteBlockerKind.IncompleteObjectGraph;
         }
+        if (operation == PdfMutationOperation.ExtractPages && blocker == PdfRewriteBlockerKind.Forms) return false;
         if (operation == PdfMutationOperation.SynchronizeMetadata) {
             return blocker != PdfRewriteBlockerKind.XmpMetadata;
         }

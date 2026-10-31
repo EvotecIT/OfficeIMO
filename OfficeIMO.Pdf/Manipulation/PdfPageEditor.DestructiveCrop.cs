@@ -26,7 +26,7 @@ internal static partial class PdfPageEditor {
 
         byte[] translated = CropAndTranslatePages(pdf, left, bottom, right, top, readOptions, cancellationToken, selected);
         PdfLoadOptions translatedReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, translated);
-        var renderOptions = new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = effective.Dpi, Background = effective.Background, MaxPages = selected.Length, MaxPixelsPerPage = effective.MaxPixelsPerPage, ContinueOnError = false };
+        var renderOptions = new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = effective.Dpi, Background = effective.Background, MaxPages = selected.Length, MaxPixelsPerPage = effective.MaxPixelsPerPage, ContinueOnError = false };
         IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(translated, PdfPageSelection.From(selected), renderOptions, translatedReadOptions, cancellationToken);
         ValidateDestructiveCropRenders(renders, effective);
         PdfReadDocument translatedDocument = PdfReadDocument.Open(translated, translatedReadOptions, cancellationToken);

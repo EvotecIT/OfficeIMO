@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Identifies how an interactive action is triggered.</summary>
-    public enum LegacyPptInteractionTrigger : ushort {
+    internal enum LegacyPptInteractionTrigger : ushort {
         /// <summary>The action runs when the object or text is clicked.</summary>
         MouseClick = 0,
 
@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Identifies the operation stored in an InteractiveInfoAtom.</summary>
-    public enum LegacyPptInteractionAction : byte {
+    internal enum LegacyPptInteractionAction : byte {
         /// <summary>No action.</summary>
         None = 0,
         /// <summary>Run a macro.</summary>
@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Identifies a built-in slide-show jump.</summary>
-    public enum LegacyPptInteractionJump : byte {
+    internal enum LegacyPptInteractionJump : byte {
         /// <summary>No built-in jump.</summary>
         None = 0,
         /// <summary>Next slide.</summary>
@@ -47,7 +47,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Identifies the legacy hyperlink target category.</summary>
-    public enum LegacyPptHyperlinkType : byte {
+    internal enum LegacyPptHyperlinkType : byte {
         /// <summary>Next slide.</summary>
         NextSlide = 0,
         /// <summary>Previous slide.</summary>
@@ -71,7 +71,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents one document-level external or internal-slide hyperlink target.</summary>
-    public sealed class LegacyPptHyperlink {
+    internal sealed class LegacyPptHyperlink {
         internal LegacyPptHyperlink(uint id, string? friendlyName, string? target,
             string? location) {
             Id = id;
@@ -173,7 +173,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents a decoded click or mouse-over action.</summary>
-    public sealed class LegacyPptInteraction {
+    internal sealed class LegacyPptInteraction {
         internal LegacyPptInteraction(LegacyPptInteractionTrigger trigger,
             LegacyPptInteractionAction action, LegacyPptInteractionJump jump,
             LegacyPptHyperlinkType hyperlinkType, uint soundIdReference,
@@ -239,7 +239,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Anchors an interaction to a half-open range of shape text.</summary>
-    public sealed class LegacyPptTextInteraction {
+    internal sealed class LegacyPptTextInteraction {
         internal LegacyPptTextInteraction(int start, int length,
             LegacyPptInteraction interaction) {
             Start = start;

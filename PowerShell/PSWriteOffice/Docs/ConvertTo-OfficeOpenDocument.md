@@ -26,7 +26,7 @@ ConvertTo-OfficeOpenDocument [-OutputPath] <string> -ExcelDocument <ExcelDocumen
 
 ### PowerPoint
 ```powershell
-ConvertTo-OfficeOpenDocument [-OutputPath] <string> -PowerPointPresentation <PowerPointPresentation> [-WordOptions <WordOpenDocumentConversionOptions>] [-ExcelOptions <ExcelOpenDocumentConversionOptions>] [-PowerPointOptions <PowerPointOpenDocumentConversionOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeOpenDocument [-OutputPath] <string> -PowerPointDocument <PowerPointDocument> [-WordOptions <WordOpenDocumentConversionOptions>] [-ExcelOptions <ExcelOpenDocumentConversionOptions>] [-PowerPointOptions <PowerPointOpenDocumentConversionOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -123,6 +123,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -PowerPointDocument
+Open PowerPoint presentation.
+
+```yaml
+Type: PowerPointDocument
+Parameter Sets: PowerPoint
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -PowerPointOptions
 Optional PowerPoint-to-ODP conversion settings.
 
@@ -136,22 +152,6 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PowerPointPresentation
-Open PowerPoint presentation.
-
-```yaml
-Type: PowerPointPresentation
-Parameter Sets: PowerPoint
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -194,7 +194,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 - `OfficeIMO.Word.WordDocument`
 - `OfficeIMO.Excel.ExcelDocument`
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

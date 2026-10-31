@@ -16,13 +16,13 @@ internal static partial class PdfWriter {
     /// </remarks>
     internal static bool TryResolveImportedLineBoxFloor(
         IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont,
-        PdfOptions options, out double layoutFontSize, out double naturalMultiplier) {
+        PdfCreateOptions options, out double layoutFontSize, out double naturalMultiplier) {
         layoutFontSize = double.PositiveInfinity;
         naturalMultiplier = double.PositiveInfinity;
         foreach (PdfTextRun run in NormalizeFallbackRuns(runs, baseFont, options)) {
             if (!run.ContributesLineBoxDescent || run.InlineElement != null || IsLayoutControlRun(run) ||
                 string.IsNullOrEmpty(run.Text) && !run.IsLineBoxStrut) continue;
-            if (run.FontSize is not double nominalSize || nominalSize <= 0D ||
+            if ((run.FontSize?.ToPoints()) is not double nominalSize || nominalSize <= 0D ||
                 double.IsNaN(nominalSize) || double.IsInfinity(nominalSize)) return false;
             PdfStandardFont font = ResolveFontForRun(run, baseFont);
             PdfNamedFontFace? named = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic,

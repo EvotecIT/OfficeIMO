@@ -6,30 +6,71 @@ schema: 2.0.0
 ---
 # New-OfficeDocumentReader
 ## SYNOPSIS
-Creates an immutable fully configured OfficeIMO document reader.
+Creates an immutable document reader with common policies, format options and optional OCR.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeDocumentReader [-UseTesseract] [-TesseractExecutablePath <string>] [-OcrLanguage <TesseractOcrLanguage[]>] [-TesseractLanguage <string>] [-TesseractDataPath <string>] [-TesseractDpi <Int32>] [-TesseractTimeoutSeconds <Int32>] [-MaxStoreItems <Int32>] [-AllStoreItems] [-MaxConcurrentReads <Int32>] [-ProcessorFailureBehavior <OfficeDocumentProcessorFailureBehavior>] [<CommonParameters>]
+New-OfficeDocumentReader [-Options <Object[]>] [-Processor <IOfficeDocumentProcessor[]>] [-ProcessorFailureBehavior <OfficeDocumentProcessorFailureBehavior>] [-Ocr] [-OcrOptions <OfficeOcrOptions>] [-MaximumStoreItems <int>] [-MaximumConcurrentReads <int>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates an immutable fully configured OfficeIMO document reader.
+Creates an immutable document reader with common policies, format options and optional OCR.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $reader = New-OfficeDocumentReader -OcrLanguage English, Polish -MaxStoreItems 5000 -ProcessorFailureBehavior ContinueWithDiagnostic
+$options = New-OfficeDocumentReaderOptions -Projection TextAndMetadata
+$reader = New-OfficeDocumentReader -Options $options -MaximumConcurrentReads 4
+Read-OfficeDocument ./Reports -Recurse -Reader $reader -As Text
 ```
 
-The returned reader can be supplied to every PSWriteOffice Reader command.
+
+### EXAMPLE 2
+```powershell
+$ocr = New-OfficeOcrOptions -Language English,Polish -NoLanguageDownload
+$reader = New-OfficeDocumentReader -OcrOptions $ocr
+Read-OfficeDocument ./Scans -Reader $reader
+```
+
 
 ## PARAMETERS
 
-### -AllStoreItems
-Project every matching item from each email store.
+### -MaximumConcurrentReads
+Maximum concurrent native document reads.
+
+```yaml
+Type: Int32
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaximumStoreItems
+Maximum items projected from each mail store; zero means all.
+
+```yaml
+Type: Int32
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Ocr
+Enable the default local OCR provider.
 
 ```yaml
 Type: SwitchParameter
@@ -44,11 +85,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxConcurrentReads
-Maximum asynchronous reads allowed in flight.
+### -OcrOptions
+Optional OCR provider and execution settings. Implies Ocr.
 
 ```yaml
-Type: Int32
+Type: OfficeOcrOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -60,11 +101,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxStoreItems
-Maximum PST, OST, OLM, or EMLX items projected from each store. The default is 1,000.
+### -Options
+Typed common and format options, or common/format-keyed hashtables.
 
 ```yaml
-Type: Int32
+Type: Object[]
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -76,14 +117,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -OcrLanguage
-Friendly OCR languages used by the built-in Tesseract adapter.
+### -Processor
+Ordered processors applied after native extraction.
 
 ```yaml
-Type: TesseractOcrLanguage[]
+Type: IOfficeDocumentProcessor[]
 Parameter Sets: __AllParameterSets
 Aliases: None
-Possible values: English, Polish, Arabic, ChineseSimplified, ChineseTraditional, Czech, Danish, Dutch, Finnish, French, German, Greek, Hebrew, Hindi, Hungarian, Italian, Japanese, Korean, Norwegian, Portuguese, Romanian, Russian, Slovak, Spanish, Swedish, Turkish, Ukrainian, Vietnamese
+Possible values:
 
 Required: False
 Position: named
@@ -93,109 +134,13 @@ Accept wildcard characters: False
 ```
 
 ### -ProcessorFailureBehavior
-Behavior when a processor fails.
+How ordinary processor failures affect the operation. Safety limits remain terminal.
 
 ```yaml
 Type: OfficeDocumentProcessorFailureBehavior
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values: Throw, ContinueWithDiagnostic, StopWithDiagnostic
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TesseractDataPath
-Optional Tesseract tessdata directory.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TesseractDpi
-Optional input DPI passed to Tesseract.
-
-```yaml
-Type: Int32
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TesseractExecutablePath
-Tesseract executable path or command name.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TesseractLanguage
-Advanced raw Tesseract expression for caller-installed custom trained-data models.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TesseractTimeoutSeconds
-Maximum Tesseract process duration in seconds. The default is 120.
-
-```yaml
-Type: Int32
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -UseTesseract
-Enable the built-in Tesseract command-line OCR adapter with default settings.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
 
 Required: False
 Position: named

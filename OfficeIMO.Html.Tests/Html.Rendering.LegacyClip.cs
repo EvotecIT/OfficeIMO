@@ -21,7 +21,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions options = LegacyClipOptions();
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = document.ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (document.ToPdf(new HtmlToPdfOptions(options))).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.NotNull(document.Document.QuerySelector("#skip"));
@@ -100,7 +100,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions options = LegacyClipOptions();
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(uri));
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(25, 25));
@@ -118,7 +118,7 @@ public sealed partial class HtmlRenderingTests {
         const string uri = "https://example.test/background-anchor";
         const string html = "<style>body{margin:0}</style><a href='" + uri
             + "' style='display:block;width:40px;height:30px;background:red;clip-path:inset(0)'></a>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(LegacyClipOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(uri));
 
         Assert.InRange(link.X1, 0D, .01D);
@@ -136,7 +136,7 @@ public sealed partial class HtmlRenderingTests {
             + "' style='position:absolute;left:0;top:0;display:block;width:100px;height:100px;background:red;"
             + clipping + "'></a><a href='" + uri
             + "' style='display:block;width:80px;height:30px;background:green'>Visible</a>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(LegacyClipOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
         IReadOnlyList<PdfCore.PdfLogicalLinkAnnotation> links = PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(uri);
 
         Assert.Equal(annotations, links.Count);
@@ -153,7 +153,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, LegacyClipOptions());
         HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics,
             item => item.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(LegacyClipOptions()));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
 
         Assert.Equal("input#child", diagnostic.Source);
         Assert.StartsWith("ancestor-clip=", diagnostic.Detail);

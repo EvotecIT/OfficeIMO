@@ -5,6 +5,20 @@ using OfficeIMO.Publisher.Internal;
 namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherPropertyOverrideTests {
+    [Fact]
+    public void ShapePropertyIndexPreservesLastEntryAndComplexOverrides() {
+        var shape = new PublisherEscherShape(1, 1, 0, new[] {
+            new OfficeArtProperty(0, 0x0384, 100),
+            new OfficeArtProperty(1, 0x0384, 200),
+            new OfficeArtProperty(2, 0x8385, 5)
+        });
+
+        Assert.Equal(200U, shape.Property(0x384));
+        Assert.Null(shape.Property(0x385));
+        Assert.True(shape.HasProperty(0x385));
+        Assert.False(shape.HasProperty(0x386));
+    }
+
     [Theory]
     [InlineData(false, 0U, false, true)]
     [InlineData(true, 0U, false, true)]

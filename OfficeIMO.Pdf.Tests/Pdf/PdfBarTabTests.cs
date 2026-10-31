@@ -17,12 +17,12 @@ public sealed class PdfBarTabTests {
     public void BarRulesKeepTextStopsAndGlyphFlowIndependentOfParagraphAlignment(PdfAlign align) {
         byte[] Render(bool bar) {
             PdfParagraphStyle style = ParagraphStyle();
-            style.LeftIndent = 36;
-            style.FirstLineIndent = -18;
-            style.SpacingBefore = 6;
-            style.SpacingAfter = 8;
-            style.AddTabStop(90);
-            if (bar) style.AddTabStop(36, PdfTabAlignment.Bar);
+            style.LeftIndent = global::OfficeIMO.OfficeLength.Points(36);
+            style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(-18);
+            style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(6);
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(8);
+            style.AddTabStop(global::OfficeIMO.OfficeLength.Points(90));
+            if (bar) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(36), PdfTabAlignment.Bar);
             return PdfDocument.Create(builder => builder.Content(content => content
                 .Paragraph(paragraph => paragraph.Text("ANCHOR"), style: ParagraphStyle())
                 .Paragraph(paragraph => paragraph.Text("A\tFIELD\nNEXT"), align, style: style)
@@ -44,18 +44,18 @@ public sealed class PdfBarTabTests {
     [Fact]
     public void BarAppearanceAndEmptyParagraphAreCapturedWithoutInventingText() {
         PdfParagraphStyle style = ParagraphStyle();
-        style.LineSpacing = PdfLineSpacing.Exactly(20);
-        style.SpacingBefore = 6; // Ordinary top-of-page flow suppresses this spacing.
-        style.SpacingAfter = 7;
-        PdfTabStop stop = style.AddTabStop(42, PdfTabAlignment.Bar);
-        stop.BarWidth = .14D;
-        stop.BarColor = PdfColor.FromRgb(0, 0, 255);
+        style.LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20));
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(6); // Ordinary top-of-page flow suppresses this spacing.
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(7);
+        PdfTabStop stop = style.AddTabStop(global::OfficeIMO.OfficeLength.Inches(7D / 12D), PdfTabAlignment.Bar);
+        stop.BarWidth = global::OfficeIMO.OfficeLength.Emus(1778);
+        stop.BarColor = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255);
         var document = PdfDocument.Create(builder => builder.Content(content => content
             .Paragraph(_ => { }, style: style)
             .Paragraph(paragraph => paragraph.Text("TAIL"), style: ParagraphStyle())), Options());
-        stop.Position = 99;
-        stop.BarWidth = 3;
-        stop.BarColor = PdfColor.Black;
+        stop.Position = global::OfficeIMO.OfficeLength.Points(99);
+        stop.BarWidth = global::OfficeIMO.OfficeLength.Points(3);
+        stop.BarColor = global::OfficeIMO.OfficeColor.Black;
         style.ClearTabStops();
         byte[] bytes = document.ToBytes();
 
@@ -80,23 +80,23 @@ public sealed class PdfBarTabTests {
         byte[] Render(bool bar) {
             var runs = new[] { new PdfTextRun("A\nB", linkUri: "https://example.com/inline") };
             var next = new[] { PdfTextRun.Normal("C") };
-            var stops = bar ? new[] { new PdfTabStop(36, PdfTabAlignment.Bar) } : Array.Empty<PdfTabStop>();
+            var stops = bar ? new[] { new PdfTabStop(global::OfficeIMO.OfficeLength.Points(36), PdfTabAlignment.Bar) } : Array.Empty<PdfTabStop>();
             var paragraphs = new[] {
-                new PdfTableCellParagraph(runs, spacingAfter: 8, leftIndent: 12, firstLineIndent: -6,
-                    fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(18), tabStops: stops),
-                new PdfTableCellParagraph(next, spacingBefore: 6, leftIndent: 12, fontSize: 12,
-                    lineSpacing: PdfLineSpacing.Exactly(18), tabStops: stops)
+                new PdfTableCellParagraph(runs, spacingAfter: global::OfficeIMO.OfficeLength.Points(8), leftIndent: global::OfficeIMO.OfficeLength.Points(12), firstLineIndent: global::OfficeIMO.OfficeLength.Points(-6),
+                    fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18)), tabStops: stops),
+                new PdfTableCellParagraph(next, spacingBefore: global::OfficeIMO.OfficeLength.Points(6), leftIndent: global::OfficeIMO.OfficeLength.Points(12), fontSize: global::OfficeIMO.OfficeLength.Points(12),
+                    lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18)), tabStops: stops)
             };
             var cell = new PdfTableCell(runs.Concat(next), paragraphs, linkUri: "https://example.com/cell");
             var table = new PdfTableStyle {
-                HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, BorderWidth = 0,
-                FontSize = 12, SpacingBefore = 0, SpacingAfter = 0
+                HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
+                FontSize = global::OfficeIMO.OfficeLength.Points(12), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             };
             PdfTableCell[][] rows = { new[] { cell } };
             return PdfDocument.Create(builder => builder.Content(content => {
                 if (route == "flow") content.Table(rows, style: table);
                 else if (route == "column") content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: table)));
-                else content.Canvas(canvas => canvas.Table(rows, 30, 30, 300, 120, table));
+                else content.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(120), table));
             }), Options()).ToBytes();
         }
 
@@ -118,17 +118,17 @@ public sealed class PdfBarTabTests {
     [InlineData("canvas")]
     public void FixedCellRulesTrimAfterSpacingAtTheActualCellBoundary(string route) {
         var runs = new[] { PdfTextRun.Normal("A") };
-        var paragraph = new PdfTableCellParagraph(runs, spacingAfter: 10, fontSize: 10,
-            lineSpacing: PdfLineSpacing.Exactly(12), tabStops: new[] { new PdfTabStop(36, PdfTabAlignment.Bar) });
+        var paragraph = new PdfTableCellParagraph(runs, spacingAfter: global::OfficeIMO.OfficeLength.Points(10), fontSize: global::OfficeIMO.OfficeLength.Points(10),
+            lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12)), tabStops: new[] { new PdfTabStop(global::OfficeIMO.OfficeLength.Points(36), PdfTabAlignment.Bar) });
         PdfTableCell[][] rows = { new[] { new PdfTableCell(runs, new[] { paragraph }) }, new[] { new PdfTableCell("B") } };
         var table = new PdfTableStyle {
-            HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, BorderWidth = 0,
-            FontSize = 10, SpacingBefore = 0, SpacingAfter = 0,
-            FixedRowHeights = new System.Collections.Generic.List<double?> { 16, 16 }
+            HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
+            FontSize = global::OfficeIMO.OfficeLength.Points(10), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
+            FixedRowHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(16) }
         };
         byte[] bytes = PdfDocument.Create(builder => builder.Content(content => {
             if (route == "flow") content.Table(rows, style: table);
-            else content.Canvas(canvas => canvas.Table(rows, 30, 30, 300, 32, table));
+            else content.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(32), table));
         }), Options()).ToBytes();
         using var actual = PdfPigDocument.Open(bytes);
         PdfPigPage page = Assert.Single(actual.GetPages());
@@ -141,14 +141,14 @@ public sealed class PdfBarTabTests {
 
     [Fact]
     public void PageFragmentsPaintOnlyTheirOwnedLinesAndTerminalAfterSpacing() {
-        PdfOptions options = Options();
-        options.PageHeight = 120;
-        options.MarginTop = options.MarginBottom = 20;
+        PdfCreateOptions options = Options();
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(120);
+        options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(20);
         byte[] Render(bool bar) {
             PdfParagraphStyle style = ParagraphStyle();
-            style.SpacingBefore = 6;
-            style.SpacingAfter = 8;
-            if (bar) style.AddTabStop(36, PdfTabAlignment.Bar);
+            style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(6);
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(8);
+            if (bar) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(36), PdfTabAlignment.Bar);
             return PdfDocument.Create(builder => builder.Content(content => content
                 .Paragraph(paragraph => paragraph.Text("ANCHOR"), style: ParagraphStyle())
                 .Paragraph(paragraph => paragraph.Text("A\nB\nC\nD\nE\nF"), style: style)), options).ToBytes();
@@ -175,10 +175,10 @@ public sealed class PdfBarTabTests {
             PdfParagraphStyle style = ParagraphStyle();
             style.LineSpacing = null;
             style.LineHeight = 1.2D;
-            style.SpacingAfter = 7;
-            if (bar) style.AddTabStop(36, PdfTabAlignment.Bar);
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(7);
+            if (bar) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(36), PdfTabAlignment.Bar);
             return PdfDocument.Create(builder => builder.Content(content => content
-                .Paragraph(paragraph => paragraph.FontSize(24).Text("A").FontSize(12).Text("\nB"), style: style)
+                .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(24)).Text("A").FontSize(global::OfficeIMO.OfficeLength.Points(12)).Text("\nB"), style: style)
                 .Paragraph(paragraph => paragraph.Text("TAIL"), style: ParagraphStyle())), Options()).ToBytes();
         }
 
@@ -195,20 +195,20 @@ public sealed class PdfBarTabTests {
     [Fact]
     public void WidowCarriedFloatSideRulesReturnToTheDestinationParagraphAnchor() {
         byte[] Render(bool bar) {
-            PdfOptions options = Options();
-            options.PageWidth = 400;
-            options.PageHeight = 240;
-            options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = 40;
+            PdfCreateOptions options = Options();
+            options.PageWidth = global::OfficeIMO.OfficeLength.Points(400);
+            options.PageHeight = global::OfficeIMO.OfficeLength.Points(240);
+            options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(40);
             PdfParagraphStyle style = ParagraphStyle();
-            style.LineSpacing = PdfLineSpacing.Exactly(14.4D);
+            style.LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14.4D));
             style.WidowControl = true;
-            style.SpacingAfter = 8;
-            if (bar) style.AddTabStop(72, PdfTabAlignment.Bar);
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(8);
+            if (bar) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(72), PdfTabAlignment.Bar);
             return PdfDocument.Create(builder => builder.Content(content => content
                 .Table(new[] { new[] { "T" } }, style: new PdfTableStyle {
-                    HeaderRowCount = 0, FontSize = 2, CellPaddingX = 0, CellPaddingY = 0,
-                    ColumnWidthPoints = new System.Collections.Generic.List<double?> { 100 },
-                    MinRowHeight = 145, BorderColor = null, Position = new PdfTablePosition()
+                    HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(2), CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
+                    ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) },
+                    MinRowHeight = global::OfficeIMO.OfficeLength.Points(145), BorderColor = null, Position = new PdfTablePosition()
                 })
                 .Paragraph(paragraph => paragraph.Text(string.Join("\n", Enumerable.Range(0, 12)
                     .Select(index => "Line" + index.ToString("D2")))), style: style)), options).ToBytes();
@@ -231,11 +231,11 @@ public sealed class PdfBarTabTests {
     public void HeadingRulesUseTheSharedPainterAcrossFlowAndColumnPaths(bool column) {
         byte[] Render(bool bar) {
             var style = new PdfHeadingStyle {
-                FontSize = 12, Bold = false, KeepWithNext = false,
-                LineSpacing = PdfLineSpacing.Exactly(18), SpacingBefore = 6, SpacingAfter = 7,
+                FontSize = global::OfficeIMO.OfficeLength.Points(12), Bold = false, KeepWithNext = false,
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(6), SpacingAfter = global::OfficeIMO.OfficeLength.Points(7),
                 ApplySpacingBeforeAtTop = true
             };
-            if (bar) style.AddTabStop(36, PdfTabAlignment.Bar);
+            if (bar) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(36), PdfTabAlignment.Bar);
             var document = PdfDocument.Create(builder => builder.Content(content => {
                 if (column) content.Row(row => row.PercentColumn(100, frame => frame.Heading(2, "A\nB", style: style)));
                 else content.Heading(2, "A\nB", style: style);
@@ -257,17 +257,17 @@ public sealed class PdfBarTabTests {
 
     [Fact]
     public void NoteContinuationRetainsBarAnchorsAndOnlyTheLastAfterExtent() {
-        PdfOptions options = Options();
-        options.PageHeight = 160;
-        options.MarginTop = options.MarginBottom = 20;
+        PdfCreateOptions options = Options();
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(160);
+        options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(20);
         byte[] Render(bool bar) {
             PdfParagraphStyle style = ParagraphStyle();
-            style.LineSpacing = PdfLineSpacing.Exactly(14);
-            style.LeftIndent = 12;
-            style.FirstLineIndent = -6;
-            style.SpacingBefore = 6;
-            style.SpacingAfter = 5;
-            if (bar) style.AddTabStop(30, PdfTabAlignment.Bar);
+            style.LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14));
+            style.LeftIndent = global::OfficeIMO.OfficeLength.Points(12);
+            style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(-6);
+            style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(6);
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(5);
+            if (bar) style.AddTabStop(global::OfficeIMO.OfficeLength.Points(30), PdfTabAlignment.Bar);
             return PdfDocument.Create(builder => builder.Content(content => {
                 PdfFootnoteDefinition note = content.DefineFootnote(body => body.Paragraph(paragraph => paragraph.Text(
                     string.Join("\n", Enumerable.Range(0, 13).Select(index => "Note" + index.ToString("D2")))), style: style));
@@ -291,23 +291,21 @@ public sealed class PdfBarTabTests {
     public void BarAlignmentIsParagraphOnlyAndAppearanceIsCloned() {
         Assert.Throws<ArgumentException>(() => PdfTextRun.Tab(alignment: PdfTabAlignment.Bar));
         Assert.Throws<ArgumentException>(() => new PdfTextRun("\t", tabAlignment: PdfTabAlignment.Bar));
-        var stop = new PdfTabStop(-12, PdfTabAlignment.Bar) { BarWidth = 2, BarColor = PdfColor.FromRgb(12, 34, 56) };
+        var stop = new PdfTabStop(global::OfficeIMO.OfficeLength.Points(-12), PdfTabAlignment.Bar) { BarWidth = global::OfficeIMO.OfficeLength.Points(2), BarColor = global::OfficeIMO.OfficeColor.FromRgb(12, 34, 56) };
         PdfTabStop clone = stop.Clone();
-        stop.BarWidth = 3;
-        Assert.Equal(-12D, clone.Position);
+        stop.BarWidth = global::OfficeIMO.OfficeLength.Points(3);
+        Assert.Equal(-12D, clone.Position.ToPoints());
         Assert.Equal(PdfTabAlignment.Bar, clone.Alignment);
-        Assert.Equal(2D, clone.BarWidth);
-        Assert.Equal(PdfColor.FromRgb(12, 34, 56), clone.BarColor);
+        Assert.Equal(2D, clone.BarWidth.ToPoints());
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(12, 34, 56), clone.BarColor);
     }
 
     [Theory]
     [InlineData(0D)]
     [InlineData(-1D)]
-    [InlineData(double.NaN)]
-    [InlineData(double.PositiveInfinity)]
-    public void BarWidthRejectsNonpositiveOrNonfiniteStrokeDimensions(double width) {
-        var stop = new PdfTabStop(36, PdfTabAlignment.Bar);
-        Assert.Throws<ArgumentOutOfRangeException>(() => stop.BarWidth = width);
+    public void BarWidthRejectsNonpositiveStrokeDimensions(double width) {
+        var stop = new PdfTabStop(global::OfficeIMO.OfficeLength.Points(36), PdfTabAlignment.Bar);
+        Assert.Throws<ArgumentOutOfRangeException>(() => stop.BarWidth = global::OfficeIMO.OfficeLength.Points(width));
     }
 
     [Theory]
@@ -315,16 +313,16 @@ public sealed class PdfBarTabTests {
     [InlineData("canvas-viewport")]
     [InlineData("flow-partial")]
     public void EmptyCellGlyphOmissionRetainsItsIndependentParagraphRule(string route) {
-        var mark = new PdfTextRun(string.Empty, fontSize: 12) { IsLineBoxStrut = true };
-        var paragraph = new PdfTableCellParagraph(new[] { mark }, fontSize: 12,
-            lineSpacing: PdfLineSpacing.Exactly(18), tabStops: new[] { new PdfTabStop(36, PdfTabAlignment.Bar) });
+        var mark = new PdfTextRun(string.Empty, fontSize: global::OfficeIMO.OfficeLength.Points(12)) { IsLineBoxStrut = true };
+        var paragraph = new PdfTableCellParagraph(new[] { mark }, fontSize: global::OfficeIMO.OfficeLength.Points(12),
+            lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18)), tabStops: new[] { new PdfTabStop(global::OfficeIMO.OfficeLength.Points(36), PdfTabAlignment.Bar) });
         var cell = new PdfTableCell(new[] { mark }, new[] { paragraph });
-        if (route != "flow-partial") cell = cell.WithViewport(new PdfTableCellViewport(100, 36, 100, 36));
+        if (route != "flow-partial") cell = cell.WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(36), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(36)));
         var table = BarOnlyCellStyle(100, 36);
         table.PreservePartialCellLines = route == "flow-partial";
         byte[] bytes = PdfDocument.Create(builder => builder.Content(content => {
             PdfTableCell[][] rows = { new[] { cell } };
-            if (route == "canvas-viewport") content.Canvas(canvas => canvas.Table(rows, 30, 30, 100, 36, table));
+            if (route == "canvas-viewport") content.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(36), table));
             else content.Table(rows, style: table);
         }), Options()).ToBytes();
 
@@ -342,16 +340,16 @@ public sealed class PdfBarTabTests {
     [InlineData("canvas")]
     public void HorizontalViewportCanOmitEveryGlyphWhileKeepingAnInFrameBar(string route) {
         var runs = new[] { PdfTextRun.Normal("A") };
-        var paragraph = new PdfTableCellParagraph(runs, fontSize: 12,
-            lineSpacing: PdfLineSpacing.Exactly(18), tabStops: new[] { new PdfTabStop(36, PdfTabAlignment.Bar) });
+        var paragraph = new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(12),
+            lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18)), tabStops: new[] { new PdfTabStop(global::OfficeIMO.OfficeLength.Points(36), PdfTabAlignment.Bar) });
         var cell = new PdfTableCell(runs, new[] { paragraph })
-            .WithViewport(new PdfTableCellViewport(100, 36, 60, 36, offsetX: 24));
+            .WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(36), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(36), offsetX: global::OfficeIMO.OfficeLength.Points(24)));
         var table = BarOnlyCellStyle(60, 36);
         byte[] bytes = PdfDocument.Create(builder => builder.Content(content => {
             PdfTableCell[][] rows = { new[] { cell } };
-            if (route == "canvas") content.Canvas(canvas => canvas.Table(rows, 30, 30, 60, 36, table));
+            if (route == "canvas") content.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(36), table));
             else content.Table(rows, style: table);
-        }), Options()).ToBytes();
+        }), Options()).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         using var actual = PdfPigDocument.Open(bytes);
         PdfPigPage page = Assert.Single(actual.GetPages());
@@ -368,9 +366,9 @@ public sealed class PdfBarTabTests {
     [InlineData(90, 30D, 146D)]
     [InlineData(-90, 48D, 174D)]
     public void RotatedEmptyCellKeepsTheRuleAfterItsZeroWidthGlyphLineIsOmitted(int rotation, double left, double y) {
-        var mark = new PdfTextRun(string.Empty, fontSize: 12) { IsLineBoxStrut = true };
-        var paragraph = new PdfTableCellParagraph(new[] { mark }, fontSize: 12,
-            lineSpacing: PdfLineSpacing.Exactly(18), tabStops: new[] { new PdfTabStop(36, PdfTabAlignment.Bar) });
+        var mark = new PdfTextRun(string.Empty, fontSize: global::OfficeIMO.OfficeLength.Points(12)) { IsLineBoxStrut = true };
+        var paragraph = new PdfTableCellParagraph(new[] { mark }, fontSize: global::OfficeIMO.OfficeLength.Points(12),
+            lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18)), tabStops: new[] { new PdfTabStop(global::OfficeIMO.OfficeLength.Points(36), PdfTabAlignment.Bar) });
         var cell = new PdfTableCell(new[] { mark }, new[] { paragraph }, textRotation: rotation);
         byte[] bytes = PdfDocument.Create(builder => builder.Content(content => content.Table(
             new[] { new[] { cell } }, style: BarOnlyCellStyle(36, 100))), Options()).ToBytes();
@@ -386,20 +384,20 @@ public sealed class PdfBarTabTests {
     }
 
     private static PdfTableStyle BarOnlyCellStyle(double width, double height) => new() {
-        HeaderRowCount = 0, FontSize = 12, CellPaddingX = 0, CellPaddingY = 0,
-        BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0, MaxWidth = width, PreserveWidth = true,
-        ColumnWidthPoints = new System.Collections.Generic.List<double?> { width },
-        FixedRowHeights = new System.Collections.Generic.List<double?> { height }
+        HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(12), CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), MaxWidth = global::OfficeIMO.OfficeLength.Points(width), PreserveWidth = true,
+        ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(width) },
+        FixedRowHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(height) }
     };
 
-    private static PdfOptions Options() => new() {
-        PageWidth = 360, PageHeight = 240, MarginLeft = 30, MarginRight = 30,
-        MarginTop = 30, MarginBottom = 30, DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = 12, CompressContentStreams = false
+    private static PdfCreateOptions Options() => new() {
+        PageWidth = global::OfficeIMO.OfficeLength.Points(360), PageHeight = global::OfficeIMO.OfficeLength.Points(240), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFont = PdfStandardFont.Helvetica,
+        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
     };
 
     private static PdfParagraphStyle ParagraphStyle() => new() {
-        FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(18), SpacingBefore = 0, SpacingAfter = 0,
+        FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
         WidowControl = false, KeepTogether = false, KeepWithNext = false
     };
 

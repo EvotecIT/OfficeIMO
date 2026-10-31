@@ -25,7 +25,7 @@ public sealed class IWorkConvertCommandTests {
         Assert.Equal("0", facts.GetProperty("unassessedSourceUnitCount").GetString());
         Assert.Contains(evidence.GetProperty("fidelityDiagnostics").EnumerateArray(),
             diagnostic => diagnostic.GetProperty("lossKind").GetString() == "Unassessed");
-        Assert.Contains(json.RootElement.GetProperty("diagnostics").EnumerateArray(), diagnostic => diagnostic.GetProperty("code").GetString() == "OutputReopened");
+        Assert.Contains(json.RootElement.GetProperty("diagnostics").EnumerateArray(), diagnostic => diagnostic.GetProperty("code").GetString() == "conversion-output-reopened");
         if (target == "docx") {
             using var document = OfficeIMO.Word.WordDocument.Load(destination);
             Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "hello pages");
@@ -57,7 +57,7 @@ public sealed class IWorkConvertCommandTests {
             diagnostic.GetProperty("code").GetString() == "IWORK_NUMBERS_CELL_PADDING_OMITTED"
             && diagnostic.GetProperty("lossKind").GetString() == "Omission");
         Assert.Contains(json.RootElement.GetProperty("diagnostics").EnumerateArray(), diagnostic =>
-            diagnostic.GetProperty("code").GetString() == "OutputReopened");
+            diagnostic.GetProperty("code").GetString() == "conversion-output-reopened");
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(destination);
         var sheet = Assert.Single(reopened.Sheets);
         Assert.Equal("a", sheet.CellAt(1, 1).GetValue<string>());
@@ -80,7 +80,7 @@ public sealed class IWorkConvertCommandTests {
         Assert.True(json.RootElement.GetProperty("succeeded").GetBoolean());
         Assert.Equal(destination, json.RootElement.GetProperty("outputPath").GetString());
         Assert.Contains(json.RootElement.GetProperty("diagnostics").EnumerateArray(),
-            diagnostic => diagnostic.GetProperty("code").GetString() == "OutputReopened");
+            diagnostic => diagnostic.GetProperty("code").GetString() == "conversion-output-reopened");
         JsonElement evidence = json.RootElement.GetProperty("conversionEvidence");
         Assert.Equal("True", evidence.GetProperty("facts").GetProperty("partialEditableReconstruction").GetString());
         Assert.Contains(evidence.GetProperty("fidelityDiagnostics").EnumerateArray(), diagnostic =>

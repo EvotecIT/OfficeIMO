@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void WriterFontSelection_UsesRequestedFontFamilyForGeneratedPdfResources() {
-            var pdf = PdfDocument.Create(new PdfOptions {
+            var pdf = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.TimesItalic,
                     FooterFont = PdfStandardFont.TimesRoman
                 })

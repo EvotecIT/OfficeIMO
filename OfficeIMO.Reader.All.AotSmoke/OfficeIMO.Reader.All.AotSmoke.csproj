@@ -2,6 +2,9 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- Native outputs carry their runtime; service it independently of the installed SDK. -->
+    <RuntimeFrameworkVersion Condition="'$(TargetFramework)' == 'net8.0'">8.0.33</RuntimeFrameworkVersion>
+    <RuntimeFrameworkVersion Condition="'$(TargetFramework)' == 'net10.0'">10.0.14</RuntimeFrameworkVersion>
     <PublishAot>true</PublishAot>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>

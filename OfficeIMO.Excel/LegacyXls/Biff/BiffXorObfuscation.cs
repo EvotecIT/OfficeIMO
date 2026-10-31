@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (!TryReadDescriptor(filePassRecord.Payload, out XorDescriptor descriptor, out string? error)) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-BIFF-FILEPASS-INVALID",
+                    "xls-biff-filepass-invalid",
                     "The workbook contains an XOR FilePass record, but its obfuscation descriptor could not be parsed. " + error,
                     recordOffset: filePassRecord.Offset,
                     recordType: filePassRecord.Type,
@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (passwordBytes.Length == 0 || passwordBytes.Length > MaxPasswordLength) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-BIFF-FILEPASS-PASSWORD-INVALID",
+                    "xls-biff-filepass-password-invalid",
                     "The supplied legacy XLS password cannot be used with XOR obfuscation because Excel XOR passwords must contain 1 through 15 single-byte characters.",
                     recordOffset: filePassRecord.Offset,
                     recordType: filePassRecord.Type,
@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || CreatePasswordVerifier(passwordBytes) != descriptor.VerificationBytes) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-BIFF-FILEPASS-PASSWORD-INVALID",
+                    "xls-biff-filepass-password-invalid",
                     "The supplied legacy XLS password did not match the workbook XOR FilePass verifier.",
                     recordOffset: filePassRecord.Offset,
                     recordType: filePassRecord.Type,

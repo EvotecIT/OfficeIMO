@@ -33,8 +33,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedHeight, TableGeometryShape(rendered, "div#case").Height, 6);
         Assert.Equal(24D + expectedHeight, texts[2].LayoutY, 6);
 
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(
-            new HtmlToPdfOptions(ForcedBreakOptions())));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(
+            new HtmlToPdfOptions(ForcedBreakOptions()))).ToBytes());
         var page = pdf.GetPage(1);
         Assert.Equal("BEFOREAFTERFOLLOW", string.Concat(page.Letters.Select(letter => letter.Value)));
         Assert.Equal(67D, (page.Height - page.Letters.First().StartBaseLine.Y) / 0.75D, 3);
@@ -86,8 +86,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Lime, image!.GetPixel(edgeX + 5, 40));
         Assert.Equal(decorationBreak == "clone" ? OfficeColor.Lime : OfficeColor.FromRgb(238, 238, 238),
             image.GetPixel(edgeX + 15, 40));
-        byte[] pdf = document.ToPdfBytes(new HtmlToPdfOptions(ForcedBreakOptions()));
-        Assert.Equal(2, OfficeIMO.Pdf.PdfDocument.Load(pdf).Render.Drawing(1).Shapes.Count(shape =>
+        byte[] pdf = (document.ToPdf(new HtmlToPdfOptions(ForcedBreakOptions()))).ToBytes();
+        Assert.Equal(2, OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Render.Drawing(1).Shapes.Count(shape =>
             shape.Shape.FillColor == OfficeColor.Lime));
     }
 

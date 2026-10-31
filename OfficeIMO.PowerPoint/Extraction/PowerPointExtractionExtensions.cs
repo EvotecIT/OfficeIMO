@@ -40,7 +40,7 @@ public static class PowerPointExtractionExtensions {
     /// Extracts a presentation into slide-aligned chunks (one chunk per slide by default).
     /// </summary>
     public static IEnumerable<PowerPointExtractChunk> ExtractMarkdownChunks(
-        this PowerPointPresentation presentation,
+        this PowerPointDocument presentation,
         PowerPointExtractOptions? extract = null,
         PowerPointExtractChunkingOptions? chunking = null,
         string? sourcePath = null,
@@ -55,7 +55,7 @@ public static class PowerPointExtractionExtensions {
         return ExtractChunksCore(presentation, snapshot, Math.Max(256, chunking?.MaxChars ?? 8000), sourcePath, cancellationToken);
     }
 
-    private static IEnumerable<PowerPointExtractChunk> ExtractChunksCore(PowerPointPresentation presentation,
+    private static IEnumerable<PowerPointExtractChunk> ExtractChunksCore(PowerPointDocument presentation,
         PowerPointExtractOptions extract, int maxChars, string? sourcePath, CancellationToken cancellationToken) {
 
         for (int i = 0; i < presentation.Slides.Count; i++) {

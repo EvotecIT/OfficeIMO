@@ -12,14 +12,17 @@ internal sealed class EmlxBinaryPlistReader {
     private readonly int _root;
     private readonly HashSet<int> _active = new HashSet<int>();
     private readonly Dictionary<int, object?> _scalars = new Dictionary<int, object?>();
+    private readonly long _maxDecodedBytes;
+    private long _decodedBytes;
     private int _propertyCount;
 
     internal EmlxBinaryPlistReader(byte[] data, int start, EmailStoreReaderOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, long maxDecodedBytes) {
         _data = data;
         _start = start;
         _options = options;
         _cancellationToken = cancellationToken;
+        _maxDecodedBytes = maxDecodedBytes;
         if (data.Length - start < 40) throw Invalid("The binary plist is shorter than its header and trailer.");
         int trailer = data.Length - 32;
         int offsetWidth = data[trailer + 6];
@@ -52,6 +55,8 @@ internal sealed class EmlxBinaryPlistReader {
 
     internal IReadOnlyDictionary<string, object?> Read() =>
         Parse(_root, 0) as Dictionary<string, object?> ?? throw Invalid("The binary plist root is not a dictionary.");
+
+    internal long DecodedBytes => _decodedBytes;
 
     private object? Parse(int reference, int depth) {
         _cancellationToken.ThrowIfCancellationRequested();
@@ -87,10 +92,12 @@ internal sealed class EmlxBinaryPlistReader {
                 long bytes = type == 6 ? 2L * length : length;
                 Require(position, bytes, _objectEnd);
                 if (type == 4) {
+                    ChargeDecodedBytes(length);
                     var content = new byte[length];
                     Buffer.BlockCopy(_data, position, content, 0, length);
                     value = content;
                 } else {
+                    ChargeDecodedBytes(2L * length);
                     try {
                         value = (type == 6 ? new UnicodeEncoding(true, false, true) :
                             Encoding.GetEncoding("us-ascii", EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback))
@@ -106,6 +113,7 @@ internal sealed class EmlxBinaryPlistReader {
                 }
                 _propertyCount += length;
                 if (type == 10) {
+                    ChargeDecodedBytes((long)length * IntPtr.Size);
                     var array = new object?[length];
                     for (int index = 0; index < length; index++) array[index] = Parse(Reference(position + index * _referenceWidth), depth + 1);
                     return array;
@@ -130,6 +138,15 @@ internal sealed class EmlxBinaryPlistReader {
         ulong value = Unsigned(position, _referenceWidth, _objectEnd);
         if (value >= (ulong)_offsets.Length) throw Invalid("A binary plist reference is outside the object table.");
         return (int)value;
+    }
+
+    private void ChargeDecodedBytes(long bytes) {
+        if (bytes > _maxDecodedBytes - _decodedBytes) {
+            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem),
+                _decodedBytes > long.MaxValue - bytes ? long.MaxValue : _decodedBytes + bytes,
+                _maxDecodedBytes);
+        }
+        _decodedBytes += bytes;
     }
 
     private int Length(int info, ref int position) {

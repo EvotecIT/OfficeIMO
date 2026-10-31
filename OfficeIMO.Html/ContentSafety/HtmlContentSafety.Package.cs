@@ -329,7 +329,7 @@ public static partial class HtmlContentSafety {
         HtmlRenderStylesheetApplier.Apply(document, resources, renderOptions, limits, cssBudget, diagnostics);
         HtmlDiagnostic? unsafeDiagnostic = diagnostics.FirstOrDefault(item =>
             item.Severity == HtmlDiagnosticSeverity.Error
-            || item.Code == "StylesheetResourceRejectedByPolicy"
+            || item.Code == global::OfficeIMO.OfficeDiagnosticCodes.StylesheetResourceRejectedByPolicy
             || item.Code == HtmlRenderDiagnosticCodes.StylesheetEncodingUnsupported
             || item.Code == HtmlRenderDiagnosticCodes.StylesheetImportCycle
             || item.Code == HtmlRenderDiagnosticCodes.StylesheetImportDepthExceeded);

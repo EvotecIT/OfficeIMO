@@ -9,12 +9,12 @@ namespace OfficeIMO.Word.Html {
             WordDocument document,
             IDocument htmlDoc,
             IElement head,
-            WordToHtmlOptions options,
+            WordHtmlExportOptions options,
             CancellationToken cancellationToken) {
             if (!options.EmitDocumentShell) {
                 if (options.IncludeDefaultCss) {
                     var fragmentStyle = CreateOutputElement(htmlDoc, "style");
-                    SetMetadataText(htmlDoc, fragmentStyle, WordHtmlResources.GetDefaultCss(options.Theme, options.UseSharedDocumentShell), "DocumentMetadata:default-css");
+                    SetMetadataText(htmlDoc, fragmentStyle, WordHtmlResources.GetDefaultCss(options.Theme, options.UseSharedDocumentShell) + GetDocumentFontCss(document, options), "DocumentMetadata:default-css");
                     head.AppendChild(fragmentStyle);
                 }
                 return;
@@ -26,7 +26,8 @@ namespace OfficeIMO.Word.Html {
             SetOutputAttribute(htmlDoc, charset, "charset", "UTF-8", "DocumentMetadata:charset");
             head.AppendChild(charset);
 
-            if (options.IncludeDefaultCss && options.UseSharedDocumentShell) {
+            if (options.IncludeDefaultCss && !options.AdditionalMetaTags.Any(tag =>
+                string.Equals(tag.Name, "viewport", StringComparison.OrdinalIgnoreCase))) {
                 var viewport = CreateOutputElement(htmlDoc, "meta");
                 SetOutputAttribute(htmlDoc, viewport, "name", "viewport", "DocumentMetadata:viewport-name");
                 SetOutputAttribute(htmlDoc, viewport, "content", "width=device-width, initial-scale=1", "DocumentMetadata:viewport-content");
@@ -37,7 +38,8 @@ namespace OfficeIMO.Word.Html {
             var title = CreateOutputElement(htmlDoc, "title");
             var titleText = !string.IsNullOrWhiteSpace(options.Title)
                 ? options.Title!
-                : string.IsNullOrEmpty(props?.Title) ? "Document" : props!.Title!;
+                : !string.IsNullOrEmpty(props?.Title) ? props!.Title!
+                : GetFirstHeadingText(document) ?? "Document";
             SetMetadataText(htmlDoc, title, titleText, "DocumentMetadata:title");
             head.AppendChild(title);
 
@@ -79,12 +81,12 @@ namespace OfficeIMO.Word.Html {
 
             if (options.IncludeDefaultCss) {
                 var style = CreateOutputElement(htmlDoc, "style");
-                SetMetadataText(htmlDoc, style, WordHtmlResources.GetDefaultCss(options.Theme, options.UseSharedDocumentShell), "DocumentMetadata:default-css");
+                SetMetadataText(htmlDoc, style, WordHtmlResources.GetDefaultCss(options.Theme, options.UseSharedDocumentShell) + GetDocumentFontCss(document, options), "DocumentMetadata:default-css");
                 head.AppendChild(style);
             }
         }
 
-        private static void ApplyDocumentShellMetadata(WordDocument document, IDocument htmlDoc, WordToHtmlOptions options) {
+        private static void ApplyDocumentShellMetadata(WordDocument document, IDocument htmlDoc, WordHtmlExportOptions options) {
             var language = options.Language ?? document.Settings.Language;
             if (!string.IsNullOrWhiteSpace(language)) {
                 SetOutputAttribute(

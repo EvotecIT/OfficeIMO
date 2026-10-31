@@ -3,8 +3,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.AsciiDoc.Markdown;
 
 /// <summary>Markdown document plus explicit conversion diagnostics.</summary>
-public sealed class AsciiDocToMarkdownResult : OfficeConversionResult<MarkdownDoc, AsciiDocToMarkdownReport> {
-    internal AsciiDocToMarkdownResult(MarkdownDoc value, IReadOnlyList<AsciiDocMarkdownConversionDiagnostic> diagnostics)
+public sealed class AsciiDocToMarkdownResult : OfficeConversionResult<MarkdownDocument, AsciiDocToMarkdownReport> {
+    internal AsciiDocToMarkdownResult(MarkdownDocument value, IReadOnlyList<AsciiDocMarkdownConversionDiagnostic> diagnostics)
         : base(value, new AsciiDocToMarkdownReport(diagnostics)) { }
 }
 

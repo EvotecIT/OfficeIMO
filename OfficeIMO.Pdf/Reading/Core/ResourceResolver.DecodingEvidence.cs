@@ -16,16 +16,14 @@ internal static partial class ResourceResolver {
             source = PdfTextDecodingSource.Unmappable;
         } else if (font.HasBuiltinEncoding) {
             source = PdfTextDecodingSource.FontEncoding;
-            string?[]? names = null;
+            string?[]? values = null;
             foreach (byte code in bytes) {
                 cancellationCheck?.Invoke();
                 if (font.Differences?.TryGetValue(code, out string? difference) == true) {
                     continue;
                 }
-                names ??= font.BuiltinEncoding;
-                if (names == null || names[code] is not string name || !TryDecodeGlyphName(name, out _)) {
-                    source = PdfTextDecodingSource.WinAnsiFallback;
-                }
+                values ??= GetBuiltinEncodingValues(font);
+                if (values[code] == null) source = PdfTextDecodingSource.WinAnsiFallback;
             }
         } else if (font.Encoding is "StandardEncoding" or "MacRomanEncoding" ||
             font.HasDeclaredEncoding && font.Encoding == "WinAnsiEncoding") {

@@ -6,78 +6,126 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Stacks shapes within their selection bounds using a fixed spacing.
         /// </summary>
-        public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus) {
-            StackShapes(shapes, direction, GetSelectionBounds(shapes), spacingEmus,
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, OfficeLength spacing) {
+            StackShapes(shapes, direction, GetSelectionBounds(shapes), spacing,
                 GetDefaultStackAlignment(direction), PowerPointShapeStackJustify.Start);
         }
 
         /// <summary>
         ///     Stacks shapes within their selection bounds using a fixed spacing and alignment.
         /// </summary>
-        public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus,
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, OfficeLength spacing,
             PowerPointShapeAlignment alignment) {
-            StackShapes(shapes, direction, GetSelectionBounds(shapes), spacingEmus, alignment, PowerPointShapeStackJustify.Start);
+            StackShapes(shapes, direction, GetSelectionBounds(shapes), spacing, alignment, PowerPointShapeStackJustify.Start);
         }
 
         /// <summary>
         ///     Stacks shapes within their selection bounds using a fixed spacing and justification.
         /// </summary>
-        public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus,
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="justify">Position of the stack along its main axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, OfficeLength spacing,
             PowerPointShapeStackJustify justify) {
-            StackShapes(shapes, direction, GetSelectionBounds(shapes), spacingEmus,
+            StackShapes(shapes, direction, GetSelectionBounds(shapes), spacing,
                 GetDefaultStackAlignment(direction), justify);
         }
 
         /// <summary>
         ///     Stacks shapes within their selection bounds using a fixed spacing, alignment, and justification.
         /// </summary>
-        public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus,
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <param name="justify">Position of the stack along its main axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, OfficeLength spacing,
             PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify) {
-            StackShapes(shapes, direction, GetSelectionBounds(shapes), spacingEmus, alignment, justify);
+            StackShapes(shapes, direction, GetSelectionBounds(shapes), spacing, alignment, justify);
         }
 
         /// <summary>
         ///     Stacks shapes within a custom bounding box using a fixed spacing.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="bounds">Target region; positions may be signed and dimensions must be nonnegative.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, PowerPointLayoutBox bounds,
-            long spacingEmus) {
-            StackShapes(shapes, direction, bounds, spacingEmus, GetDefaultStackAlignment(direction),
+            OfficeLength spacing) {
+            StackShapes(shapes, direction, bounds, spacing, GetDefaultStackAlignment(direction),
                 PowerPointShapeStackJustify.Start);
         }
 
         /// <summary>
         ///     Stacks shapes within a custom bounding box using a fixed spacing and alignment.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="bounds">Target region; positions may be signed and dimensions must be nonnegative.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, PowerPointLayoutBox bounds,
-            long spacingEmus, PowerPointShapeAlignment alignment) {
-            StackShapes(shapes, direction, bounds, spacingEmus, alignment, PowerPointShapeStackJustify.Start);
+            OfficeLength spacing, PowerPointShapeAlignment alignment) {
+            StackShapes(shapes, direction, bounds, spacing, alignment, PowerPointShapeStackJustify.Start);
         }
 
         /// <summary>
         ///     Stacks shapes within a custom bounding box using a fixed spacing and justification.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="bounds">Target region; positions may be signed and dimensions must be nonnegative.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="justify">Position of the stack along its main axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, PowerPointLayoutBox bounds,
-            long spacingEmus, PowerPointShapeStackJustify justify) {
-            StackShapes(shapes, direction, bounds, spacingEmus, GetDefaultStackAlignment(direction), justify);
+            OfficeLength spacing, PowerPointShapeStackJustify justify) {
+            StackShapes(shapes, direction, bounds, spacing, GetDefaultStackAlignment(direction), justify);
         }
 
         /// <summary>
         ///     Stacks shapes within a custom bounding box using a fixed spacing, alignment, and justification.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="bounds">Target region; positions may be signed and dimensions must be nonnegative.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <param name="justify">Position of the stack along its main axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, PowerPointLayoutBox bounds,
-            long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify) {
-            StackShapesInternal(shapes, direction, bounds, spacingEmus, alignment, justify,
+            OfficeLength spacing, PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify) {
+            StackShapesInternal(shapes, direction, bounds, spacing.ToEmus(), alignment, justify,
                 clampSpacingToBounds: false, scaleToFitBounds: false, preserveAspect: false);
         }
 
         /// <summary>
         ///     Stacks shapes within a custom bounding box using options.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="bounds">Target region; positions may be signed and dimensions must be nonnegative.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
         public void StackShapes(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, PowerPointLayoutBox bounds,
-            PowerPointShapeStackOptions options) {
+            PowerPointShapeStackOptions? options) {
             PowerPointShapeStackOptions resolvedOptions = options ?? new PowerPointShapeStackOptions();
             PowerPointShapeAlignment alignment = resolvedOptions.Alignment ?? GetDefaultStackAlignment(direction);
-            StackShapesInternal(shapes, direction, bounds, resolvedOptions.SpacingEmus, alignment,
+            StackShapesInternal(shapes, direction, bounds, resolvedOptions.Spacing.ToEmus(), alignment,
                 resolvedOptions.Justify, resolvedOptions.ClampSpacingToBounds,
                 resolvedOptions.ScaleToFitBounds, resolvedOptions.PreserveAspect);
         }
@@ -85,171 +133,136 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Stacks shapes within the slide bounds using a fixed spacing.
         /// </summary>
-        public void StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus) {
-            StackShapes(shapes, direction, GetSlideBounds(), spacingEmus,
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, OfficeLength spacing) {
+            StackShapes(shapes, direction, GetSlideBounds(), spacing,
                 GetDefaultStackAlignment(direction), PowerPointShapeStackJustify.Start);
         }
 
         /// <summary>
         ///     Stacks shapes within the slide bounds using a fixed spacing and alignment.
         /// </summary>
-        public void StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus,
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, OfficeLength spacing,
             PowerPointShapeAlignment alignment) {
-            StackShapes(shapes, direction, GetSlideBounds(), spacingEmus, alignment, PowerPointShapeStackJustify.Start);
+            StackShapes(shapes, direction, GetSlideBounds(), spacing, alignment, PowerPointShapeStackJustify.Start);
         }
 
         /// <summary>
         ///     Stacks shapes within the slide bounds using a fixed spacing and justification.
         /// </summary>
-        public void StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus,
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="justify">Position of the stack along its main axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, OfficeLength spacing,
             PowerPointShapeStackJustify justify) {
-            StackShapes(shapes, direction, GetSlideBounds(), spacingEmus, GetDefaultStackAlignment(direction), justify);
+            StackShapes(shapes, direction, GetSlideBounds(), spacing, GetDefaultStackAlignment(direction), justify);
         }
 
         /// <summary>
         ///     Stacks shapes within the slide bounds using a fixed spacing, alignment, and justification.
         /// </summary>
-        public void StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, long spacingEmus,
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <param name="justify">Position of the stack along its main axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction, OfficeLength spacing,
             PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify) {
-            StackShapes(shapes, direction, GetSlideBounds(), spacingEmus, alignment, justify);
+            StackShapes(shapes, direction, GetSlideBounds(), spacing, alignment, justify);
         }
 
         /// <summary>
         ///     Stacks shapes within the slide bounds using options.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
         public void StackShapesToSlide(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            PowerPointShapeStackOptions options) {
+            PowerPointShapeStackOptions? options) {
             StackShapes(shapes, direction, GetSlideBounds(), options);
         }
 
         /// <summary>
-        ///     Stacks shapes within the slide content bounds using a margin (EMUs).
+        ///     Stacks shapes within the slide content bounds using a margin.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void StackShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            long spacingEmus, long marginEmus) {
-            StackShapes(shapes, direction, GetSlideContentBounds(marginEmus), spacingEmus,
+            OfficeLength spacing, OfficeLength margin) {
+            StackShapes(shapes, direction, GetSlideContentBounds(margin), spacing,
                 GetDefaultStackAlignment(direction), PowerPointShapeStackJustify.Start);
         }
 
         /// <summary>
-        ///     Stacks shapes within the slide content bounds using a margin (EMUs) and alignment.
+        ///     Stacks shapes within the slide content bounds using a margin and alignment.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void StackShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            long spacingEmus, long marginEmus, PowerPointShapeAlignment alignment) {
-            StackShapes(shapes, direction, GetSlideContentBounds(marginEmus), spacingEmus, alignment,
+            OfficeLength spacing, OfficeLength margin, PowerPointShapeAlignment alignment) {
+            StackShapes(shapes, direction, GetSlideContentBounds(margin), spacing, alignment,
                 PowerPointShapeStackJustify.Start);
         }
 
         /// <summary>
-        ///     Stacks shapes within the slide content bounds using a margin (EMUs) and justification.
+        ///     Stacks shapes within the slide content bounds using a margin and justification.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <param name="justify">Position of the stack along its main axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void StackShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            long spacingEmus, long marginEmus, PowerPointShapeStackJustify justify) {
-            StackShapes(shapes, direction, GetSlideContentBounds(marginEmus), spacingEmus,
+            OfficeLength spacing, OfficeLength margin, PowerPointShapeStackJustify justify) {
+            StackShapes(shapes, direction, GetSlideContentBounds(margin), spacing,
                 GetDefaultStackAlignment(direction), justify);
         }
 
         /// <summary>
-        ///     Stacks shapes within the slide content bounds using a margin (EMUs), alignment, and justification.
+        ///     Stacks shapes within the slide content bounds using a margin, alignment, and justification.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <param name="alignment">Alignment within the bounds on the applicable axis.</param>
+        /// <param name="justify">Position of the stack along its main axis.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void StackShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            long spacingEmus, long marginEmus, PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify) {
-            StackShapes(shapes, direction, GetSlideContentBounds(marginEmus), spacingEmus, alignment, justify);
+            OfficeLength spacing, OfficeLength margin, PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify) {
+            StackShapes(shapes, direction, GetSlideContentBounds(margin), spacing, alignment, justify);
         }
 
         /// <summary>
-        ///     Stacks shapes within the slide content bounds using a margin (EMUs) and options.
+        ///     Stacks shapes within the slide content bounds using a margin and options.
         /// </summary>
+        /// <param name="shapes">Shapes to arrange; null entries are ignored.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="margin">Nonnegative inset on every side of the slide.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void StackShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            long marginEmus, PowerPointShapeStackOptions options) {
-            StackShapes(shapes, direction, GetSlideContentBounds(marginEmus), options);
-        }
-
-        /// <summary>
-        ///     Stacks shapes using centimeters.
-        /// </summary>
-        public void StackShapesCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            double spacingCm) {
-            StackShapes(shapes, direction, PowerPointUnits.FromCentimeters(spacingCm));
-        }
-
-        /// <summary>
-        ///     Stacks shapes using inches.
-        /// </summary>
-        public void StackShapesInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            double spacingInches) {
-            StackShapes(shapes, direction, PowerPointUnits.FromInches(spacingInches));
-        }
-
-        /// <summary>
-        ///     Stacks shapes using points.
-        /// </summary>
-        public void StackShapesPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            double spacingPoints) {
-            StackShapes(shapes, direction, PowerPointUnits.FromPoints(spacingPoints));
-        }
-
-        /// <summary>
-        ///     Stacks shapes within the slide content bounds using centimeters.
-        /// </summary>
-        public void StackShapesToSlideContentCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            double spacingCm, double marginCm) {
-            StackShapesToSlideContent(shapes, direction,
-                PowerPointUnits.FromCentimeters(spacingCm),
-                PowerPointUnits.FromCentimeters(marginCm));
-        }
-
-        /// <summary>
-        ///     Stacks shapes within the slide content bounds using inches.
-        /// </summary>
-        public void StackShapesToSlideContentInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            double spacingInches, double marginInches) {
-            StackShapesToSlideContent(shapes, direction,
-                PowerPointUnits.FromInches(spacingInches),
-                PowerPointUnits.FromInches(marginInches));
-        }
-
-        /// <summary>
-        ///     Stacks shapes within the slide content bounds using points.
-        /// </summary>
-        public void StackShapesToSlideContentPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            double spacingPoints, double marginPoints) {
-            StackShapesToSlideContent(shapes, direction,
-                PowerPointUnits.FromPoints(spacingPoints),
-                PowerPointUnits.FromPoints(marginPoints));
-        }
-
-        /// <summary>
-        ///     Stacks shapes within the slide content bounds using centimeters and justification.
-        /// </summary>
-        public void StackShapesToSlideContentCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            double spacingCm, double marginCm, PowerPointShapeStackJustify justify) {
-            StackShapesToSlideContent(shapes, direction,
-                PowerPointUnits.FromCentimeters(spacingCm),
-                PowerPointUnits.FromCentimeters(marginCm),
-                justify);
-        }
-
-        /// <summary>
-        ///     Stacks shapes within the slide content bounds using inches and justification.
-        /// </summary>
-        public void StackShapesToSlideContentInches(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            double spacingInches, double marginInches, PowerPointShapeStackJustify justify) {
-            StackShapesToSlideContent(shapes, direction,
-                PowerPointUnits.FromInches(spacingInches),
-                PowerPointUnits.FromInches(marginInches),
-                justify);
-        }
-
-        /// <summary>
-        ///     Stacks shapes within the slide content bounds using points and justification.
-        /// </summary>
-        public void StackShapesToSlideContentPoints(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
-            double spacingPoints, double marginPoints, PowerPointShapeStackJustify justify) {
-            StackShapesToSlideContent(shapes, direction,
-                PowerPointUnits.FromPoints(spacingPoints),
-                PowerPointUnits.FromPoints(marginPoints),
-                justify);
+            OfficeLength margin, PowerPointShapeStackOptions? options) {
+            StackShapes(shapes, direction, GetSlideContentBounds(margin), options);
         }
 
         private static PowerPointShapeAlignment GetDefaultStackAlignment(PowerPointShapeStackDirection direction) {
@@ -265,7 +278,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentNullException(nameof(shapes));
             }
             if (spacingEmus < 0) {
-                throw new ArgumentOutOfRangeException(nameof(spacingEmus));
+                throw new ArgumentOutOfRangeException("spacing");
             }
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
@@ -273,6 +286,16 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            ValidateLayoutBounds(bounds);
+            if (direction != PowerPointShapeStackDirection.Horizontal && direction != PowerPointShapeStackDirection.Vertical) {
+                throw new ArgumentOutOfRangeException(nameof(direction));
+            }
+            if (!IsLayoutAlignment(alignment, direction == PowerPointShapeStackDirection.Vertical)) {
+                throw new ArgumentOutOfRangeException(nameof(alignment));
+            }
+            if (justify != PowerPointShapeStackJustify.Start && justify != PowerPointShapeStackJustify.Center && justify != PowerPointShapeStackJustify.End) {
+                throw new ArgumentOutOfRangeException(nameof(justify));
+            }
             long effectiveSpacing = ResolveSpacingForBounds(list, direction, bounds, spacingEmus, clampSpacingToBounds);
             if (scaleToFitBounds) {
                 ApplyScaleToFitBounds(list, direction, bounds, effectiveSpacing, preserveAspect);
@@ -299,11 +322,11 @@ namespace OfficeIMO.PowerPoint {
             long totalSize = 0;
             for (int i = 0; i < shapes.Count; i++) {
                 totalSize += direction == PowerPointShapeStackDirection.Horizontal
-                    ? shapes[i].Width
-                    : shapes[i].Height;
+                    ? shapes[i].Width.ToEmus()
+                    : shapes[i].Height.ToEmus();
             }
 
-            long available = (direction == PowerPointShapeStackDirection.Horizontal ? bounds.Width : bounds.Height)
+            long available = (direction == PowerPointShapeStackDirection.Horizontal ? bounds.Width.ToEmus() : bounds.Height.ToEmus())
                 - spacingEmus * Math.Max(0, shapes.Count - 1);
             if (totalSize <= 0 || available >= totalSize) {
                 return;
@@ -322,11 +345,11 @@ namespace OfficeIMO.PowerPoint {
             long totalSize = 0;
             for (int i = 0; i < shapes.Count; i++) {
                 totalSize += direction == PowerPointShapeStackDirection.Horizontal
-                    ? shapes[i].Width
-                    : shapes[i].Height;
+                    ? shapes[i].Width.ToEmus()
+                    : shapes[i].Height.ToEmus();
             }
 
-            long available = (direction == PowerPointShapeStackDirection.Horizontal ? bounds.Width : bounds.Height) - totalSize;
+            long available = (direction == PowerPointShapeStackDirection.Horizontal ? bounds.Width.ToEmus() : bounds.Height.ToEmus()) - totalSize;
             if (available <= 0) {
                 return 0;
             }
@@ -343,25 +366,25 @@ namespace OfficeIMO.PowerPoint {
             long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify) {
             long totalWidth = 0;
             for (int i = 0; i < shapes.Count; i++) {
-                totalWidth += shapes[i].Width;
+                totalWidth += shapes[i].Width.ToEmus();
             }
             long totalSpacing = spacingEmus * Math.Max(0, shapes.Count - 1);
             double blockWidth = totalWidth + totalSpacing;
-            double current = bounds.Left;
+            double current = bounds.Left.ToEmus();
 
-            if (blockWidth <= bounds.Width) {
+            if (blockWidth <= bounds.Width.ToEmus()) {
                 current = justify switch {
-                    PowerPointShapeStackJustify.Start => bounds.Left,
-                    PowerPointShapeStackJustify.Center => bounds.Left + (bounds.Width - blockWidth) / 2d,
-                    PowerPointShapeStackJustify.End => bounds.Right - blockWidth,
-                    _ => bounds.Left
+                    PowerPointShapeStackJustify.Start => bounds.Left.ToEmus(),
+                    PowerPointShapeStackJustify.Center => bounds.Left.ToEmus() + (bounds.Width.ToEmus() - blockWidth) / 2d,
+                    PowerPointShapeStackJustify.End => bounds.Right.ToEmus() - blockWidth,
+                    _ => bounds.Left.ToEmus()
                 };
             }
 
             foreach (PowerPointShape shape in shapes) {
-                shape.Left = (long)Math.Round(current);
-                shape.Top = ResolveTop(bounds, shape, alignment);
-                current += shape.Width + spacingEmus;
+                shape.Left= OfficeIMO.OfficeLength.Emus((long)Math.Round(current));
+                shape.Top= OfficeIMO.OfficeLength.Emus(ResolveTop(bounds, shape, alignment));
+                current += shape.Width.ToEmus() + spacingEmus;
             }
         }
 
@@ -369,33 +392,33 @@ namespace OfficeIMO.PowerPoint {
             long spacingEmus, PowerPointShapeAlignment alignment, PowerPointShapeStackJustify justify) {
             long totalHeight = 0;
             for (int i = 0; i < shapes.Count; i++) {
-                totalHeight += shapes[i].Height;
+                totalHeight += shapes[i].Height.ToEmus();
             }
             long totalSpacing = spacingEmus * Math.Max(0, shapes.Count - 1);
             double blockHeight = totalHeight + totalSpacing;
-            double current = bounds.Top;
+            double current = bounds.Top.ToEmus();
 
-            if (blockHeight <= bounds.Height) {
+            if (blockHeight <= bounds.Height.ToEmus()) {
                 current = justify switch {
-                    PowerPointShapeStackJustify.Start => bounds.Top,
-                    PowerPointShapeStackJustify.Center => bounds.Top + (bounds.Height - blockHeight) / 2d,
-                    PowerPointShapeStackJustify.End => bounds.Bottom - blockHeight,
-                    _ => bounds.Top
+                    PowerPointShapeStackJustify.Start => bounds.Top.ToEmus(),
+                    PowerPointShapeStackJustify.Center => bounds.Top.ToEmus() + (bounds.Height.ToEmus() - blockHeight) / 2d,
+                    PowerPointShapeStackJustify.End => bounds.Bottom.ToEmus() - blockHeight,
+                    _ => bounds.Top.ToEmus()
                 };
             }
 
             foreach (PowerPointShape shape in shapes) {
-                shape.Top = (long)Math.Round(current);
-                shape.Left = ResolveLeft(bounds, shape, alignment);
-                current += shape.Height + spacingEmus;
+                shape.Top= OfficeIMO.OfficeLength.Emus((long)Math.Round(current));
+                shape.Left= OfficeIMO.OfficeLength.Emus(ResolveLeft(bounds, shape, alignment));
+                current += shape.Height.ToEmus() + spacingEmus;
             }
         }
 
         private static long ResolveTop(PowerPointLayoutBox bounds, PowerPointShape shape, PowerPointShapeAlignment alignment) {
             return alignment switch {
-                PowerPointShapeAlignment.Top => bounds.Top,
-                PowerPointShapeAlignment.Middle => bounds.Top + (long)Math.Round((bounds.Height - shape.Height) / 2d),
-                PowerPointShapeAlignment.Bottom => bounds.Bottom - shape.Height,
+                PowerPointShapeAlignment.Top => bounds.Top.ToEmus(),
+                PowerPointShapeAlignment.Middle => bounds.Top.ToEmus() + (long)Math.Round((bounds.Height.ToEmus() - shape.Height.ToEmus()) / 2d),
+                PowerPointShapeAlignment.Bottom => bounds.Bottom.ToEmus() - shape.Height.ToEmus(),
                 _ => throw new ArgumentOutOfRangeException(nameof(alignment),
                     "Horizontal stacking supports Top, Middle, or Bottom alignment.")
             };
@@ -403,9 +426,9 @@ namespace OfficeIMO.PowerPoint {
 
         private static long ResolveLeft(PowerPointLayoutBox bounds, PowerPointShape shape, PowerPointShapeAlignment alignment) {
             return alignment switch {
-                PowerPointShapeAlignment.Left => bounds.Left,
-                PowerPointShapeAlignment.Center => bounds.Left + (long)Math.Round((bounds.Width - shape.Width) / 2d),
-                PowerPointShapeAlignment.Right => bounds.Right - shape.Width,
+                PowerPointShapeAlignment.Left => bounds.Left.ToEmus(),
+                PowerPointShapeAlignment.Center => bounds.Left.ToEmus() + (long)Math.Round((bounds.Width.ToEmus() - shape.Width.ToEmus()) / 2d),
+                PowerPointShapeAlignment.Right => bounds.Right.ToEmus() - shape.Width.ToEmus(),
                 _ => throw new ArgumentOutOfRangeException(nameof(alignment),
                     "Vertical stacking supports Left, Center, or Right alignment.")
             };
@@ -420,14 +443,14 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < shapes.Count; i++) {
                 PowerPointShape shape = shapes[i];
                 if (horizontal) {
-                    shape.Width = (long)Math.Round(shape.Width * scale);
+                    shape.Width= OfficeIMO.OfficeLength.Emus((long)Math.Round(shape.Width.ToEmus() * scale));
                     if (preserveAspect) {
-                        shape.Height = (long)Math.Round(shape.Height * scale);
+                        shape.Height= OfficeIMO.OfficeLength.Emus((long)Math.Round(shape.Height.ToEmus() * scale));
                     }
                 } else {
-                    shape.Height = (long)Math.Round(shape.Height * scale);
+                    shape.Height= OfficeIMO.OfficeLength.Emus((long)Math.Round(shape.Height.ToEmus() * scale));
                     if (preserveAspect) {
-                        shape.Width = (long)Math.Round(shape.Width * scale);
+                        shape.Width= OfficeIMO.OfficeLength.Emus((long)Math.Round(shape.Width.ToEmus() * scale));
                     }
                 }
             }

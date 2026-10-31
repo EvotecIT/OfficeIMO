@@ -12,9 +12,9 @@ namespace OfficeIMO.Excel.Tests {
         public void DataReader_XmlRowOwnershipIgnoresExtensionCells(string surface) {
             string path = CreateXmlRowOwnershipWorkbook(multipleSheets: surface == "sdk");
             try {
-                var options = new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = 11 };
+                var options = new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = 11 };
                 using var owner = surface == "sheet" ? ExcelDocumentReader.Open(path, options) : null;
-                using DbDataReader reader = owner == null ? ExcelDocument.OpenDataReader(path, options)
+                using DbDataReader reader = owner == null ? ExcelDocument.OpenReader(path, options)
                     : (DbDataReader)owner.GetSheet("Data").ReadRangeAsDataReader("A1:B4097", schemaSampleRows: 0);
                 Assert.Equal(2, reader.FieldCount);
                 Assert.Equal("Number", reader.GetName(0));
@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel.Tests {
         public void Sheet_XmlRowOwnershipIgnoresExtensionCellsInPublicProjections(bool useSdkControl) {
             string path = CreateXmlRowOwnershipWorkbook();
             try {
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     Culture = useSdkControl ? CultureInfo.GetCultureInfo("fr-FR") : CultureInfo.InvariantCulture,
                     InferDataTableColumnTypes = false
                 };
@@ -74,8 +74,8 @@ namespace OfficeIMO.Excel.Tests {
         public void Reader_XmlRowOwnershipPreservesActualBoundsAndImplicitCoordinates(string spreadsheetNamespace) {
             string path = CreateXmlRowOwnershipWorkbook(implicitCoordinates: true, spreadsheetNamespace: spreadsheetNamespace);
             try {
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = 11 })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = 11 })) {
                     Assert.Equal(2, reader.FieldCount);
                     Assert.True(reader.Read());
                     Assert.Equal(1, reader.GetInt32(0));
@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel.Tests {
                     Assert.Equal(4, reader.GetInt32(1));
                 }
 
-                using var owner = ExcelDocumentReader.Open(path, new ExcelReadOptions { InferDataTableColumnTypes = false });
+                using var owner = ExcelDocumentReader.Open(path, new ExcelReaderOptions { InferDataTableColumnTypes = false });
                 var sheet = owner.GetSheet("Data");
                 Assert.Equal("A1:B4097", sheet.GetUsedRangeA1());
                 foreach (var mode in new[] { ExcelExecutionMode.Sequential, ExcelExecutionMode.Parallel }) {

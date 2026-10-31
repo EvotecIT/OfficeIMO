@@ -133,7 +133,7 @@ internal static partial class PdfWriter {
         public bool PageContentSpilled => _contentStore.IsSpilled;
         public long PeakRetainedPageContentBytes => _contentStore.PeakRetainedMemoryBytes;
         public sealed class Page {
-            public PdfOptions Options { get; set; } = null!;
+            public PdfCreateOptions Options { get; set; } = null!;
             public int PageGroupId { get; set; }
             public int? RunningContentSectionId { get; set; }
             public HashSet<int>? RunningContentSections { get; set; }
@@ -204,7 +204,7 @@ internal static partial class PdfWriter {
         public double Y2 { get; set; }
         public string Contents { get; set; } = string.Empty;
         public PdfTextAnnotationIcon Icon { get; set; }
-        public PdfColor? Color { get; set; }
+        public global::OfficeIMO.OfficeColor? Color { get; set; }
         public bool Open { get; set; }
         public int ObjectId { get; set; }
     }
@@ -216,10 +216,10 @@ internal static partial class PdfWriter {
         public double Y2 { get; set; }
         public string Contents { get; set; } = string.Empty;
         public double FontSize { get; set; }
-        public PdfColor TextColor { get; set; }
-        public PdfColor? BorderColor { get; set; }
+        public global::OfficeIMO.OfficeColor TextColor { get; set; }
+        public global::OfficeIMO.OfficeColor? BorderColor { get; set; }
         public double BorderWidth { get; set; }
-        public PdfColor? FillColor { get; set; }
+        public global::OfficeIMO.OfficeColor? FillColor { get; set; }
         public PdfAlign TextAlign { get; set; }
         public double Padding { get; set; }
         public double? LineHeight { get; set; }
@@ -232,7 +232,7 @@ internal static partial class PdfWriter {
         public double X2 { get; set; }
         public double Y2 { get; set; }
         public string Contents { get; set; } = string.Empty;
-        public PdfColor Color { get; set; }
+        public global::OfficeIMO.OfficeColor Color { get; set; }
         public int ObjectId { get; set; }
     }
 

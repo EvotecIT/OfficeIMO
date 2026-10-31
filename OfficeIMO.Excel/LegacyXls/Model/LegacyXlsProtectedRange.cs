@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a BIFF8 protected range entry from a worksheet shared-feature record.
     /// </summary>
-    public sealed class LegacyXlsProtectedRange {
+    internal sealed class LegacyXlsProtectedRange {
         /// <summary>
         /// Creates protected range metadata.
         /// </summary>

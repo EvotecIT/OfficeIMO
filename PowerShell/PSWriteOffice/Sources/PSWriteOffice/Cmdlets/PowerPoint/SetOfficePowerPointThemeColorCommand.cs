@@ -24,7 +24,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficePowerPointThemeColor", DefaultParameterSetName = ParameterSetSingle)]
 [Alias("PptThemeColor")]
-[OutputType(typeof(PowerPointPresentation))]
+[OutputType(typeof(PowerPointDocument))]
 public sealed class SetOfficePowerPointThemeColorCommand : PSCmdlet
 {
     private const string ParameterSetSingle = "Single";
@@ -32,7 +32,7 @@ public sealed class SetOfficePowerPointThemeColorCommand : PSCmdlet
 
     /// <summary>Presentation to update (optional inside New-OfficePowerPoint).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Theme color to update.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetSingle)]
@@ -66,7 +66,7 @@ public sealed class SetOfficePowerPointThemeColorCommand : PSCmdlet
     {
         try
         {
-            var presentation = Presentation ?? PowerPointDslContext.Require(this).Presentation;
+            var presentation = Presentation ?? PowerPointDslContext.Require(this).Document;
 
             if (ParameterSetName == ParameterSetSingle)
             {

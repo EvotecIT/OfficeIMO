@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfAesProviderPropagationTests {
     [Fact]
     public void ValidatedMutationReadbackIsReusedForEncryptedReads() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
             OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128
         })).Paragraph(paragraph => paragraph.Text("Cached mutation readback")).ToBytes();
         var provider = new CountingAesProvider();
@@ -26,7 +26,7 @@ public sealed class PdfAesProviderPropagationTests {
     [Fact]
     public async Task OpenedDocumentNavigationReusesDecryptionAcrossDisplayAndEveryRenderSelection() {
         var provider = new CountingAesProvider();
-        byte[] bytes = PdfDocument.Create(new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
             OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128, AesCryptographyProvider = provider
         })).Paragraph(paragraph => paragraph.Text("First cached page")).PageBreak()
             .Paragraph(paragraph => paragraph.Text("Second cached page")).ToBytes();
@@ -64,7 +64,7 @@ public sealed class PdfAesProviderPropagationTests {
             Algorithm = PdfStandardEncryptionAlgorithm.Aes256,
             AesCryptographyProvider = provider
         };
-        PdfDocument document = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .Paragraph(paragraph => paragraph.Text("Managed provider readback."));
 
         _ = document.ToBytes();
@@ -89,7 +89,7 @@ public sealed class PdfAesProviderPropagationTests {
             Algorithm = PdfStandardEncryptionAlgorithm.Aes256,
             AesCryptographyProvider = sourceProvider
         };
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption(sourceEncryption))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(sourceEncryption))
             .Paragraph(paragraph => paragraph.Text("Provider replacement proof."))
             .ToBytes();
         var outputEncryption = new PdfStandardEncryptionOptions("output-open") {

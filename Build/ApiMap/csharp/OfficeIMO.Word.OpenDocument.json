@@ -1,0 +1,21 @@
+{
+  "package": "OfficeIMO.Word.OpenDocument",
+  "summary": "Word snapshot geometry consumers retain physical measurements at the OpenDocument boundary.",
+  "changes": [],
+  "extraChanges": [
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Word-to-ODT inline image export treats snapshot pixels as points; ODT-to-Word import wraps source points as pixels.",
+      "new": "Convert physical image lengths to explicit points only at the ODF boundary and retain point dimensions when importing to Word.",
+      "reason": "The snapshot geometry migration exposed reciprocal unit interpretation errors. Preserve actual image frames in either conversion direction, including independently authored input.",
+      "note": "The existing ODT image-order workflow now checks centimeter-sized image frames after native Word save/load and ODT save/load, so reciprocal scale errors cannot cancel unnoticed.",
+      "files": [
+        "OfficeIMO.Word.OpenDocument/WordOpenDocumentConversionExtensions.cs",
+        "OfficeIMO.Word.OpenDocument/WordOpenDocumentConversionExtensions.WordParagraphs.cs",
+        "OfficeIMO.OpenDocument.Converters.Tests/OpenDocumentConversionContracts.cs"
+      ]
+    }
+  ]
+}

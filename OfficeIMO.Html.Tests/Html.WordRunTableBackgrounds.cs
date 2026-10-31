@@ -24,7 +24,7 @@ public sealed class HtmlWordRunTableBackgroundTests {
     public void TableRunBackgroundOverridesDocumentDefaultsInHtmlAfterReopen(string source, bool highlight) {
         using WordDocument document = CreateTableBackground(source, highlight);
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        string html = loaded.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        string html = loaded.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
         IElement text = HtmlDocumentParser.ParseDocument(html).QuerySelectorAll("td *, th *")
             .Single(element => element.TextContent == "BACKGROUND" && element.Children.Length == 0);
 
@@ -55,7 +55,7 @@ public sealed class HtmlWordRunTableBackgroundTests {
         }
 
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        var html = HtmlDocumentParser.ParseDocument(loaded.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true }));
+        var html = HtmlDocumentParser.ParseDocument(loaded.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true }));
         IElement output = html.QuerySelectorAll("td *, th *")
             .Single(element => element.ChildNodes.Any(node => node.NodeType == NodeType.Text && node.TextContent == "BACKGROUND"));
         Assert.Equal(reset ? (wrapper.StartsWith("marked", StringComparison.Ordinal) ? "transparent" : null) : "#0000ff", ReadInlineBackground(output));

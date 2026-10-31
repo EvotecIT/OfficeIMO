@@ -82,7 +82,7 @@ public sealed partial class AgentIWorkConversionTests {
         Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))), result.SourceSha256, ignoreCase: true);
         Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(result.OutputPath))), result.Sha256, ignoreCase: true);
         Assert.Equal("EditableReconstruction", result.Workflow.ConversionEvidence!.Facts["projectionKind"]);
-        Assert.Contains(result.Workflow.Diagnostics, item => item.Code == "OutputReopened");
+        Assert.Contains(result.Workflow.Diagnostics, item => item.Code == "conversion-output-reopened");
         Assert.Contains("sourceSha256", AgentJson.Serialize(result));
         var tools = new OfficeImoMcpTools(service);
         var response = await tools.ConvertAsync(files.Input, files.Output("pdf"), "pdf", overwrite: true,

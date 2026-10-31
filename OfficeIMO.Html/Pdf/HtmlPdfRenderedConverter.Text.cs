@@ -121,10 +121,10 @@ internal static partial class HtmlPdfRenderedConverter {
                     faceRun.Text,
                     bold: faceRun.Bold,
                     underline: visual.Font.IsUnderline,
-                    color: PdfCore.PdfColor.FromOfficeColorOrNull(visual.Color),
+                    color: (visual.Color.A == 0 ? (global::OfficeIMO.OfficeColor?)null : visual.Color),
                     italic: faceRun.Italic,
                     strike: visual.Font.IsStrikethrough,
-                    fontSize: visual.Font.Size * PointsPerCssPixel,
+                    fontSize: global::OfficeIMO.OfficeLength.Points(visual.Font.Size * PointsPerCssPixel),
                     font: MapFont(family, faceRun.Text, requestedStyle, webFonts),
                     linkUri: link,
                     linkContents: link == null ? null : pdfText,
@@ -133,7 +133,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     baseline: MapTextBaseline(visual.Baseline),
                     underlineStyle: visual.UnderlineStyle,
                     strikeStyle: visual.StrikethroughStyle,
-                    decorationColor: PdfCore.PdfColor.FromOfficeColorOrNull(visual.DecorationColor))
+                    decorationColor: (visual.DecorationColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : visual.DecorationColor))
                     .WithFeatureSettings(visual.FeatureSettings)
                     .WithPaintedGlyphPreservation(visual.PreservesPaintedGlyphs));
             }).ToArray();
@@ -144,7 +144,7 @@ internal static partial class HtmlPdfRenderedConverter {
             visual.Y * PointsPerCssPixel,
             frameWidth * PointsPerCssPixel,
             visual.Height * PointsPerCssPixel,
-            PdfCore.PdfColor.FromOfficeColorOrNull(visual.Color),
+            (visual.Color.A == 0 ? (global::OfficeIMO.OfficeColor?)null : visual.Color),
             MapAlignment(visual.Alignment),
             baselineFontSize.Value * PointsPerCssPixel,
             visual.PaintLineHeight * PointsPerCssPixel,

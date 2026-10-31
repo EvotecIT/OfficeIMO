@@ -7,27 +7,27 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void FacturXReadinessRequiresCiiLineItemEssentials() {
-        var missingLineOptions = new PdfOptions()
+        var missingLineOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeLineItem: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingProductOptions = new PdfOptions()
+        var missingProductOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeLineItemProductName: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingTotalOptions = new PdfOptions()
+        var missingTotalOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeLineTotalAmount: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingUnitCodeOptions = new PdfOptions()
+        var missingUnitCodeOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeLineBilledQuantityUnitCode: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var secondLineMissingProductOptions = new PdfOptions()
+        var secondLineMissingProductOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -68,22 +68,22 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresCiiLinePricingEssentials() {
-        var missingAgreementOptions = new PdfOptions()
+        var missingAgreementOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeLineTradeAgreement: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingPriceOptions = new PdfOptions()
+        var missingPriceOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeLinePriceChargeAmount: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var grossOnlyPriceOptions = new PdfOptions()
+        var grossOnlyPriceOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateGrossLinePriceCiiXml(), "application/xml", PdfAssociatedFileRelationship.Data);
-        var secondLineMissingPriceOptions = new PdfOptions()
+        var secondLineMissingPriceOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -115,12 +115,12 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresCiiUnitCodeListValue() {
-        var invalidUnitCodeOptions = new PdfOptions()
+        var invalidUnitCodeOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(lineBilledQuantityUnitCodeValue: "QQQ"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var packagingUnitCodeOptions = new PdfOptions()
+        var packagingUnitCodeOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -142,22 +142,22 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresCiiLineAmountConsistency() {
-        var mismatchedLineAmountOptions = new PdfOptions()
+        var mismatchedLineAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(linePriceChargeAmountValue: "90.00"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var normalizedLineAmountOptions = new PdfOptions()
+        var normalizedLineAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(linePriceChargeAmountValue: "50.00", lineBilledQuantityValue: "2.00"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var basisQuantityLineAmountOptions = new PdfOptions()
+        var basisQuantityLineAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(lineTotalAmount: "5.00", linePriceChargeAmountValue: "250.00", linePriceBasisQuantityValue: "100", lineBilledQuantityValue: "2.00"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var allowanceLineAmountOptions = new PdfOptions()
+        var allowanceLineAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -189,22 +189,22 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresCiiLineTaxEssentials() {
-        var missingLineTaxOptions = new PdfOptions()
+        var missingLineTaxOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeLineTradeTax: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingLineTaxCategoryOptions = new PdfOptions()
+        var missingLineTaxCategoryOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeLineTradeTaxCategoryCode: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var missingLineTaxRateOptions = new PdfOptions()
+        var missingLineTaxRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeLineTradeTaxRate: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var secondLineMissingLineTaxOptions = new PdfOptions()
+        var secondLineMissingLineTaxOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -235,12 +235,12 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresCiiLineTaxTypeCodeToBeVat() {
-        var invalidLineTaxTypeOptions = new PdfOptions()
+        var invalidLineTaxTypeOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(lineTradeTaxTypeCodeValue: "GST"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var validLineTaxTypeOptions = new PdfOptions()
+        var validLineTaxTypeOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -263,17 +263,17 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessForbidsCiiLineTaxRateForNotSubjectCategory() {
-        var notSubjectWithRateOptions = new PdfOptions()
+        var notSubjectWithRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(lineTradeTaxCategoryCodeValue: "O", lineTradeTaxRateValue: "23"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var notSubjectWithoutRateOptions = new PdfOptions()
+        var notSubjectWithoutRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(lineTradeTaxCategoryCodeValue: "O", includeLineTradeTaxRate: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var standardWithoutRateOptions = new PdfOptions()
+        var standardWithoutRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))

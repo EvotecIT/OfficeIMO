@@ -3,8 +3,9 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Rewraps unpainted cell text while keeping paragraph formatting and the row's consumed-line cursor.</summary>
     private static TableCellTextLayout ContinueTableCellTextLayout(TableCellLayout cell, TableCellTextLayout previous,
-        int consumedLines, double innerWidth, PdfStandardFont font, double size, double leading, PdfOptions options,
-        double additionalFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false) {
+        int consumedLines, double innerWidth, PdfStandardFont font, double size, double leading, PdfCreateOptions options,
+        double additionalFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false,
+        System.Threading.CancellationToken cancellationToken = default) {
         TableCellTextLayout remainder;
         if (consumedLines >= previous.Lines.Count) {
             remainder = new TableCellTextLayout(new(), new());
@@ -18,19 +19,21 @@ internal static partial class PdfWriter {
                 int start = Math.Max(consumedLines, range.StartLine);
                 var runs = continued ? BuildTextRunsFromWrappedLines(previous.Lines, start, end - start) : paragraph.Runs;
                 paragraphs.Add(new PdfTableCellParagraph(runs, paragraph.SpacingAfter, paragraph.Align,
-                    continued ? 0D : paragraph.SpacingBefore, paragraph.LeftIndent, paragraph.RightIndent,
-                    continued ? 0D : paragraph.FirstLineIndent, paragraph.LineHeight, paragraph.DefaultTabStopWidth,
+                    global::OfficeIMO.OfficeLength.Points(continued ? 0D : paragraph.SpacingBefore.ToPoints()), paragraph.LeftIndent, paragraph.RightIndent,
+                    global::OfficeIMO.OfficeLength.Points(continued ? 0D : paragraph.FirstLineIndent.ToPoints()), paragraph.LineHeight, paragraph.DefaultTabStopWidth,
                     paragraph.TabStops, paragraph.FontSize, paragraph.LineSpacing,
                     paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext,
                     paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing));
             }
             remainder = CreateTableCellTextLayout(CreateContinuationCell(cell,
                 paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray(), paragraphs),
-                innerWidth, font, size, leading, options, additionalFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
+                innerWidth, font, size, leading, options, additionalFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap,
+                cancellationToken: cancellationToken);
         } else {
             var remainingRuns = BuildTextRunsFromWrappedLines(previous.Lines, consumedLines, previous.Lines.Count - consumedLines);
             remainder = CreateTableCellTextLayout(CreateContinuationCell(cell, remainingRuns, Array.Empty<PdfTableCellParagraph>()),
-                innerWidth, font, size, leading, options, additionalFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
+                innerWidth, font, size, leading, options, additionalFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap,
+                cancellationToken: cancellationToken);
         }
 
         // Keep the consumed prefix as zero-height placeholders. Drawing and object-placement

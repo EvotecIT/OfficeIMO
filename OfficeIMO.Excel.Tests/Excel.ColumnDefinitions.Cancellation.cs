@@ -13,9 +13,9 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using var document = ExcelDocument.Create(source);
             document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             using DataTable table = Dates();
-            sheet.InsertDataTableAsTable(table);
+            sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1);
             if (autoFit) sheet.AutoFitColumns();
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
@@ -32,9 +32,9 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using var document = ExcelDocument.Create(source);
             document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             using DataTable table = Dates();
-            sheet.InsertDataTableAsTable(table);
+            sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1);
             using var cancellation = new CancellationTokenSource();
             int convertedDates = 0;
             document.DateTimeOffsetWriteStrategy = value => {
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             using var reopened = ExcelDocument.Load(output);
             Assert.Single(reopened.GetTables());
             ExcelSheet sheet = reopened.Sheets[0];
-            if (autoFit) Assert.True(Assert.Single(sheet.GetColumnDefinitions()).Width > 0D);
+            if (autoFit) Assert.True(Assert.Single(sheet.GetColumnDefinitions()).Width?.CharacterCount > 0D);
             else Assert.Empty(sheet.GetColumnDefinitions());
             for (int day = 0; day < 3; day++) {
                 Assert.Equal(Date(day).UtcDateTime.ToOADate(), sheet.CellAt(day + 2, 1).GetValue<double>());

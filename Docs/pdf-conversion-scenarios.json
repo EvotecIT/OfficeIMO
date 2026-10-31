@@ -261,8 +261,8 @@
       "sourceFormats": [ "eml", "msg", "oft", "tnef" ],
       "status": "direct-loss-aware-adapter",
       "stages": [ "OfficeIMO.Reader.Email", "OfficeIMO.Reader.Core", "OfficeIMO.Reader.Pdf" ],
-      "implementationProject": "OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj",
-      "evidenceTest": "OfficeIMO.Reader.Tests/Reader.DirectPdfAdapters.cs#EmailFacade_ProducesSearchablePdfWithEmailPolicyEvidence",
+      "implementationProject": "OfficeIMO/OfficeIMO.csproj",
+      "evidenceTest": "OfficeIMO.Tests/OfficeConverter.ReaderTests.cs#EmailConversion_ProducesSearchablePdfWithEmailPolicyEvidence",
       "diagnosticContract": "The direct façade applies the Reader email body, inline-resource, and attachment policies, then preserves their evidence through the shared searchable PDF projection."
     },
     {
@@ -270,8 +270,8 @@
       "sourceFormats": [ "epub" ],
       "status": "direct-loss-aware-adapter",
       "stages": [ "OfficeIMO.Reader.Epub", "OfficeIMO.Reader.Core", "OfficeIMO.Reader.Pdf" ],
-      "implementationProject": "OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj",
-      "evidenceTest": "OfficeIMO.Reader.Tests/Reader.DirectPdfAdapters.cs#EpubFacade_PreservesChapterOrderAndReportsEpubPolicy",
+      "implementationProject": "OfficeIMO/OfficeIMO.csproj",
+      "evidenceTest": "OfficeIMO.Tests/OfficeConverter.ReaderTests.cs#EpubConversion_PreservesChapterOrderAndReportsEpubPolicy",
       "diagnosticContract": "The direct façade preserves spine chapter order and applies explicit resource, navigation, and pagination policies through the shared searchable PDF projection."
     },
     {
@@ -1497,7 +1497,7 @@
         ],
         "visualPages": 1,
         "validatorEvidence": [
-          "PowerPointPresentation.SaveAsPdf",
+          "PowerPointDocument.SaveAsPdf",
           "PdfReadDocument",
           "raw PDF geometry checks"
         ]

@@ -6,7 +6,7 @@ using System.Xml.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using Xunit;
 
 namespace OfficeIMO.Tests {

@@ -7,12 +7,13 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private static (byte[], OfficeWorkflowConversionEvidence) ConvertVisio(ValidatedRequest request, byte[] input,
-        OfficeWorkflowConversionOptions settings, CancellationToken token) {
+        OfficeWorkflowRenderingOptions settings, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         using var stream = new MemoryStream(input, writable: false);
         var loadOptions = new VisioLoadOptions {
             MaxInputBytes = request.Limits.MaximumInputBytes,
             MaxLegacyXmlCharacters = request.Limits.MaximumXmlCharactersInPart,
+            MaxPackageXmlCharacters = request.Limits.MaximumXmlCharactersInPart,
             PackageSecurity = CreateOpenXmlPackageSecurity(request.Limits)
         };
         string extension = Path.GetExtension(request.InputPath).ToLowerInvariant();

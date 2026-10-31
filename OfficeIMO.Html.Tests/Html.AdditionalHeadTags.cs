@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Content");
 
-            var options = new WordToHtmlOptions();
+            var options = new WordHtmlExportOptions();
             options.AdditionalMetaTags.Add(("viewport", "width=device-width, initial-scale=1"));
 
             string html = doc.ToHtml(options);
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Content");
 
-            var options = new WordToHtmlOptions();
+            var options = new WordHtmlExportOptions();
             options.AdditionalLinkTags.Add(("stylesheet", "styles.css"));
 
             string html = doc.ToHtml(options);

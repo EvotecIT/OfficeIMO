@@ -1,11 +1,56 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfImageDocumentTests {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task ImageConversionSavesReportCompletedPagesAndKeepCallerStreamsOpen(bool fileSources, bool asynchronous) {
+        string directory = Directory.CreateDirectory(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeimo-image-conversion-" + Guid.NewGuid().ToString("N"))).FullName;
+        try {
+            string input = System.IO.Path.Combine(directory, "image.png");
+            byte[] png = PdfPngTestImages.CreateRgbPng(24, 12);
+            File.WriteAllBytes(input, png);
+            using var destination = new MemoryStream();
+            var options = new PdfImageImportOptions { FailOnLoss = true };
+            OfficeConversionReport report;
+            if (fileSources) {
+                string[] paths = { input };
+                report = asynchronous ? await paths.SaveAsPdfAsync(destination, options) : paths.SaveAsPdf(destination, options);
+            } else {
+                PdfImageDocumentSource[] images = { new(png, "image.png") };
+                report = asynchronous ? await images.SaveAsPdfAsync(destination, options) : images.SaveAsPdf(destination, options);
+            }
+            Assert.Equal("Pdf", report.Target);
+            Assert.Equal(1, report.ItemsWritten);
+            Assert.False(report.HasLoss);
+            Assert.True(destination.CanWrite);
+            using var reopened = PdfDocument.Load(new MemoryStream(destination.ToArray()));
+            Assert.Single(reopened.Pages);
+            Assert.Equal(png, Assert.Single(reopened.ExtractImages()).Bytes);
+        } finally { Directory.Delete(directory, recursive: true); }
+    }
+
+    [Theory]
+    [InlineData(-1D, 14400D, "Margin")]
+    [InlineData(0D, 0D, "MaximumPageDimension")]
+    [InlineData(0D, -1D, "MaximumPageDimension")]
+    public void ImageImportRejectsInvalidPhysicalGeometryBeforeDecoding(double margin, double maximum, string parameter) {
+        IEnumerable<PdfImageDocumentSource> images = new[] { new PdfImageDocumentSource(new byte[] { 1 }) };
+        var options = new PdfImageImportOptions {
+            Margin = OfficeIMO.OfficeLength.Points(margin), MaximumPageDimension = OfficeIMO.OfficeLength.Points(maximum)
+        };
+        var failure = Assert.Throws<ArgumentOutOfRangeException>(() => images.ToPdf(options));
+        Assert.Equal(parameter, failure.ParamName);
+    }
+
     [Fact]
     public void OrientedTiffIsCheckedAgainstSourcePixelLimitBeforeNormalization() {
         byte[] tiff = OfficeRasterImageEncoder.Encode(
@@ -50,10 +95,10 @@ public sealed class PdfImageDocumentTests {
         byte[] first = PdfPngTestImages.CreateRgbPng(96, 48);
         byte[] second = PdfPngTestImages.CreateRgbPng(48, 96);
 
-        PdfDocument document = PdfDocument.CreateFromImages([
+        PdfDocument document = ((System.Collections.Generic.IEnumerable<PdfImageDocumentSource>)[
             new PdfImageDocumentSource(first, "wide.png"),
             new PdfImageDocumentSource(second, "tall.png")
-        ]);
+        ]).ToPdf();
 
         PdfDocumentInfo info = document.Inspect();
         Assert.Equal(2, info.PageCount);
@@ -71,9 +116,9 @@ public sealed class PdfImageDocumentTests {
             DpiY = 144D
         });
 
-        PdfDocument document = PdfDocument.CreateFromImages([
+        PdfDocument document = ((System.Collections.Generic.IEnumerable<PdfImageDocumentSource>)[
             new PdfImageDocumentSource(image, "non-square-dpi.png")
-        ]);
+        ]).ToPdf();
 
         PdfPageInfo page = Assert.Single(document.Inspect().Pages);
         PdfImagePlacement placement = Assert.Single(document.Images.Placements());
@@ -88,19 +133,18 @@ public sealed class PdfImageDocumentTests {
     public void CreateFromImagesCanFitToAutoOrientedFixedPaper() {
         byte[] image = PdfPngTestImages.CreateRgbPng(96, 48);
 
-        PdfDocument document = PdfDocument.CreateFromImages(
-            [new PdfImageDocumentSource(image, "landscape.png")],
-            new PdfImageDocumentOptions {
-                FixedPageSize = PageSizes.A4,
+        PdfDocument document = ((System.Collections.Generic.IEnumerable<PdfImageDocumentSource>)[new PdfImageDocumentSource(image, "landscape.png")]).ToPdf(
+            new PdfImageImportOptions {
+                FixedPageSize = PdfPageSizes.A4,
                 AutoOrientPage = true,
-                Margin = 24D,
+                Margin = OfficeIMO.OfficeLength.Points(24D),
                 Fit = OfficeImageFit.Contain
             });
 
         PdfDocumentInfo info = document.Inspect();
         Assert.Single(info.Pages);
-        Assert.Equal(PageSizes.A4.Height, info.Pages[0].Width, 2);
-        Assert.Equal(PageSizes.A4.Width, info.Pages[0].Height, 2);
+        Assert.Equal(PdfPageSizes.A4.Height.ToPoints(), info.Pages[0].Width, 2);
+        Assert.Equal(PdfPageSizes.A4.Width.ToPoints(), info.Pages[0].Height, 2);
     }
 
     [Fact]
@@ -111,30 +155,30 @@ public sealed class PdfImageDocumentTests {
             DpiY = 144D
         });
 
-        PdfDocument document = PdfDocument.CreateFromImages(
-            [new PdfImageDocumentSource(image, "non-square-dpi.png")],
-            new PdfImageDocumentOptions {
-                FixedPageSize = PageSizes.A4,
+        PdfDocument document = ((System.Collections.Generic.IEnumerable<PdfImageDocumentSource>)[new PdfImageDocumentSource(image, "non-square-dpi.png")]).ToPdf(
+            new PdfImageImportOptions {
+                FixedPageSize = PdfPageSizes.A4,
                 AutoOrientPage = true,
                 Fit = OfficeImageFit.Contain
             });
 
         PdfPageInfo page = Assert.Single(document.Inspect().Pages);
-        Assert.Equal(PageSizes.A4.Height, page.Width, 2);
-        Assert.Equal(PageSizes.A4.Width, page.Height, 2);
+        Assert.Equal(PdfPageSizes.A4.Height.ToPoints(), page.Width, 2);
+        Assert.Equal(PdfPageSizes.A4.Width.ToPoints(), page.Height, 2);
     }
 
-    [Fact]
-    public void CreateFromImagesAllowsDynamicPageMarginsLargerThanUnusedFallbackPaper() {
+    [Theory]
+    [InlineData(300D)]
+    [InlineData(0.125D)]
+    public void CreateFromImagesPreservesPhysicalMarginsIncludingLargeAndFractionalValues(double margin) {
         byte[] image = PdfPngTestImages.CreateRgbPng(96, 48);
 
-        PdfDocument document = PdfDocument.CreateFromImages(
-            [new PdfImageDocumentSource(image, "large-margin.png")],
-            new PdfImageDocumentOptions { Margin = 300D });
+        PdfDocument document = ((System.Collections.Generic.IEnumerable<PdfImageDocumentSource>)[new PdfImageDocumentSource(image, "large-margin.png")]).ToPdf(
+            new PdfImageImportOptions { Margin = OfficeIMO.OfficeLength.Points(margin) });
 
         PdfPageInfo page = Assert.Single(document.Inspect().Pages);
-        Assert.Equal(672D, page.Width, 2);
-        Assert.Equal(636D, page.Height, 2);
+        Assert.Equal(72D + margin * 2D, page.Width, 2);
+        Assert.Equal(36D + margin * 2D, page.Height, 2);
     }
 
     [Fact]
@@ -148,18 +192,17 @@ public sealed class PdfImageDocumentTests {
             Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(6))
         });
 
-        PdfDocument document = PdfDocument.CreateFromImages(
-            [new PdfImageDocumentSource(image, "phone-photo.jpg")],
-            new PdfImageDocumentOptions {
-                FixedPageSize = PageSizes.A4,
+        PdfDocument document = ((System.Collections.Generic.IEnumerable<PdfImageDocumentSource>)[new PdfImageDocumentSource(image, "phone-photo.jpg")]).ToPdf(
+            new PdfImageImportOptions {
+                FixedPageSize = PdfPageSizes.A4,
                 AutoOrientPage = true,
                 Fit = OfficeImageFit.Contain
             });
 
         PdfDocumentInfo info = document.Inspect();
         Assert.Single(info.Pages);
-        Assert.Equal(PageSizes.A4.Width, info.Pages[0].Width, 2);
-        Assert.Equal(PageSizes.A4.Height, info.Pages[0].Height, 2);
+        Assert.Equal(PdfPageSizes.A4.Width.ToPoints(), info.Pages[0].Width, 2);
+        Assert.Equal(PdfPageSizes.A4.Height.ToPoints(), info.Pages[0].Height, 2);
         PdfExtractedImage extracted = Assert.Single(PdfImageExtractor.ExtractImages(document.ToBytes()));
         Assert.Equal(2, extracted.Width);
         Assert.Equal(1, extracted.Height);
@@ -173,10 +216,10 @@ public sealed class PdfImageDocumentTests {
     [Fact]
     public void CreateFromImagesRejectsUnsupportedPayloadWithoutPublishingPartialDocument() {
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.CreateFromImages([
+            ((System.Collections.Generic.IEnumerable<PdfImageDocumentSource>)[
                 new PdfImageDocumentSource(PdfPngTestImages.CreateRgbPng(10, 20, 30), "valid.png"),
                 new PdfImageDocumentSource([1, 2, 3, 4], "invalid.bin")
-            ]));
+            ]).ToPdf());
 
         Assert.Contains("image", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -186,7 +229,7 @@ public sealed class PdfImageDocumentTests {
         using var cancellation = new CancellationTokenSource();
 
         Assert.Throws<OperationCanceledException>(() =>
-            PdfDocument.CreateFromImages(EnumerateSources(cancellation), options: null, cancellation.Token));
+            (EnumerateSources(cancellation)).ToPdf(options: null,cancellation.Token));
 
         static IEnumerable<PdfImageDocumentSource> EnumerateSources(CancellationTokenSource cancellation) {
             yield return new PdfImageDocumentSource(PdfPngTestImages.CreateRgbPng(10, 20, 30), "first.png");
@@ -201,24 +244,22 @@ public sealed class PdfImageDocumentTests {
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() =>
-            PdfDocument.CreateFromImages(
-                new[] { "missing-image.png" },
-                options: null,
-                cancellation.Token));
+            (new[] { "missing-image.png" }).ToPdf(
+                options: null,                cancellation.Token));
     }
 
     [Fact]
     public void ImageFileSourceAndImageDocumentRejectEncodedInputOverTheConfiguredBudget() {
         byte[] image = PdfPngTestImages.CreateRgbPng(25, 50, 75);
         string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-image-limit-" + Guid.NewGuid().ToString("N") + ".png");
-        var options = new PdfImageDocumentOptions { MaximumEncodedImageBytes = image.Length - 1L };
+        var options = new PdfImageImportOptions { MaximumEncodedImageBytes = image.Length - 1L };
 
         try {
             File.WriteAllBytes(path, image);
             Assert.Throws<InvalidDataException>(() => PdfImageDocumentSource.FromFile(path, options.MaximumEncodedImageBytes));
-            Assert.Throws<InvalidDataException>(() => PdfDocument.CreateFromImages(new[] { path }, options));
-            Assert.Throws<InvalidDataException>(() => PdfDocument.CreateFromImages(
-                new[] { new PdfImageDocumentSource(image, "in-memory.png") }, options));
+            Assert.Throws<InvalidDataException>(() => (new[] { path }).ToPdf(options));
+            Assert.Throws<InvalidDataException>(() => (new[] { new PdfImageDocumentSource(image, "in-memory.png") }).ToPdf(
+options));
         } finally {
             File.Delete(path);
         }
@@ -243,13 +284,11 @@ public sealed class PdfImageDocumentTests {
             File.WriteAllBytes(path, image);
             PdfImageDocumentSource source = PdfImageDocumentSource.FromFile(path, image.Length);
 
-            Assert.Throws<InvalidDataException>(() => PdfDocument.CreateFromImages(
-                new[] { source },
-                new PdfImageDocumentOptions { MaximumEncodedImageBytes = image.Length - 1L }));
+            Assert.Throws<InvalidDataException>(() => (new[] { source }).ToPdf(
+                new PdfImageImportOptions { MaximumEncodedImageBytes = image.Length - 1L }));
 
-            PdfDocument document = PdfDocument.CreateFromImages(
-                new[] { source },
-                new PdfImageDocumentOptions { MaximumEncodedImageBytes = image.Length });
+            PdfDocument document = (new[] { source }).ToPdf(
+                new PdfImageImportOptions { MaximumEncodedImageBytes = image.Length });
             Assert.Single(document.Inspect().Pages);
         } finally {
             File.Delete(path);

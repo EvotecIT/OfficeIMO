@@ -14,37 +14,37 @@ Tables in Excel provide structured references, automatic filtering, and styling.
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("tables.xlsx");
-var sheet = workbook.AddWorksheet("Sales");
+var sheet = workbook.AddSheet("Sales");
 
 // Populate data
-sheet.Cells["A1"].Value = "Product";
-sheet.Cells["B1"].Value = "Q1";
-sheet.Cells["C1"].Value = "Q2";
-sheet.Cells["A2"].Value = "Widget A";
-sheet.Cells["B2"].Value = 15000;
-sheet.Cells["C2"].Value = 18000;
-sheet.Cells["A3"].Value = "Widget B";
-sheet.Cells["B3"].Value = 22000;
-sheet.Cells["C3"].Value = 25000;
+sheet.CellAt("A1").SetValue("Product");
+sheet.CellAt("B1").SetValue("Q1");
+sheet.CellAt("C1").SetValue("Q2");
+sheet.CellAt("A2").SetValue("Widget A");
+sheet.CellAt("B2").SetValue(15000);
+sheet.CellAt("C2").SetValue(18000);
+sheet.CellAt("A3").SetValue("Widget B");
+sheet.CellAt("B3").SetValue(22000);
+sheet.CellAt("C3").SetValue(25000);
 
 // Create a table over the data range
-sheet.AddTable("SalesTable", "A1:C3", TableStyle.Medium2);
+sheet.AddTable("A1:C3", name: "SalesTable", style: ExcelTableStyle.TableStyleMedium2);
 
 workbook.Save();
 ```
 
 ## Table Styles
 
-OfficeIMO provides access to all of Excel's built-in table styles through the `TableStyle` enum:
+OfficeIMO provides access to all of Excel's built-in table styles through the `ExcelTableStyle` enum:
 
 | Category | Examples |
 |----------|---------|
-| Light | `TableStyle.Light1` through `TableStyle.Light21` |
-| Medium | `TableStyle.Medium1` through `TableStyle.Medium28` |
-| Dark | `TableStyle.Dark1` through `TableStyle.Dark11` |
+| Light | `ExcelTableStyle.TableStyleLight1` through `ExcelTableStyle.TableStyleLight21` |
+| Medium | `ExcelTableStyle.TableStyleMedium1` through `ExcelTableStyle.TableStyleMedium28` |
+| Dark | `ExcelTableStyle.TableStyleDark1` through `ExcelTableStyle.TableStyleDark11` |
 
 ```csharp
-sheet.AddTable("MyTable", "A1:D10", TableStyle.Dark3);
+sheet.AddTable("MyTable", "A1:D10", ExcelTableStyle.TableStyleDark3);
 ```
 
 ## Table Name Validation
@@ -59,7 +59,7 @@ workbook.TableNameComparer = StringComparer.OrdinalIgnoreCase;
 You can control validation behavior:
 
 ```csharp
-sheet.AddTable("MyTable", "A1:C5", TableStyle.Medium2,
+sheet.AddTable("MyTable", "A1:C5", ExcelTableStyle.TableStyleMedium2,
     validationMode: TableNameValidationMode.ThrowOnInvalid);
 ```
 
@@ -73,21 +73,18 @@ For standalone AutoFilter without a formal table:
 sheet.SetAutoFilter("A1:C10");
 ```
 
-## Fluent Table Builder
-
-The fluent API provides a declarative way to define tables:
+## Add a typed table
 
 ```csharp
-using var workbook = ExcelFluentWorkbook.Create("fluent-table.xlsx")
-    .Sheet("Data", s => s
-        .Row(r => r.Cell("Name").Cell("Score").Cell("Grade"))
-        .Row(r => r.Cell("Alice").Cell(95).Cell("A"))
-        .Row(r => r.Cell("Bob").Cell(82).Cell("B"))
-        .Row(r => r.Cell("Carol").Cell(91).Cell("A"))
-        .Table("Grades", style: TableStyle.Medium9)
-    )
-    .Build();
+using OfficeIMO.Excel;
 
+using var workbook = ExcelDocument.Create("grades.xlsx");
+var sheet = workbook.AddSheet("Data");
+var table = sheet.AddTable(new[] {
+    new { Name = "Alice", Score = 95, Grade = "A" },
+    new { Name = "Bob", Score = 82, Grade = "B" },
+    new { Name = "Carol", Score = 91, Grade = "A" }
+}, new ExcelTableOptions { Name = "Grades", Style = ExcelTableStyle.TableStyleMedium9 });
 workbook.Save();
 ```
 

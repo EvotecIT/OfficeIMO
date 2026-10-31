@@ -6,6 +6,9 @@ namespace OfficeIMO.Html;
 /// Shared layout and safety options used by HTML image and PDF rendering.
 /// </summary>
 public partial class HtmlRenderOptions : OfficeImageExportOptions {
+    /// <summary>Zero-based page used by single-image conversion and saving operations.</summary>
+    public int PageIndex { get; set; }
+
     private readonly List<string> _additionalStylesheets = new List<string>();
 
     /// <summary>CSS reference pixel density used for physical page conversion.</summary>
@@ -258,10 +261,10 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         (Mode == HtmlRenderMode.Paged ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen);
 
     /// <summary>Gets the paged surface width in CSS pixels.</summary>
-    public double PageWidth => PageSize.WidthInches * CssPixelsPerInch;
+    public double PageWidth => PageSize.Width.ToInches() * CssPixelsPerInch;
 
     /// <summary>Gets the paged surface height in CSS pixels.</summary>
-    public double PageHeight => PageSize.HeightInches * CssPixelsPerInch;
+    public double PageHeight => PageSize.Height.ToInches() * CssPixelsPerInch;
 
     /// <summary>Creates an independent options snapshot.</summary>
     public virtual HtmlRenderOptions Clone() => CopyTo(new HtmlRenderOptions());
@@ -305,6 +308,7 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxSurfaceWidth = MaxSurfaceWidth;
         target.MaxSurfaceHeight = MaxSurfaceHeight;
         target.MaxPageCount = MaxPageCount;
+        target.PageIndex = PageIndex;
         target.MaxProjectedVisuals = MaxProjectedVisuals;
         target.MaxLayoutDepth = MaxLayoutDepth;
         target.MaxInputCharacters = MaxInputCharacters;

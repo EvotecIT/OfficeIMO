@@ -62,9 +62,9 @@ public sealed class OfficeMarkupPowerPointConversionReport : IOfficeConversionRe
 }
 
 /// <summary>An editable PowerPoint presentation with mapping diagnostics and native preflight evidence.</summary>
-public sealed class OfficeMarkupPowerPointConversionResult : OfficeConversionResult<PowerPointPresentation, OfficeMarkupPowerPointConversionReport> {
+public sealed class OfficeMarkupPowerPointConversionResult : OfficeConversionResult<PowerPointDocument, OfficeMarkupPowerPointConversionReport> {
     internal OfficeMarkupPowerPointConversionResult(
-        PowerPointPresentation value,
+        PowerPointDocument value,
         IEnumerable<OfficeMarkupDiagnostic> diagnostics,
         PowerPointDeckPreflightReport preflightReport)
         : base(value, new OfficeMarkupPowerPointConversionReport(diagnostics, preflightReport)) { }
@@ -73,7 +73,7 @@ public sealed class OfficeMarkupPowerPointConversionResult : OfficeConversionRes
     public override bool Succeeded => Report.Succeeded;
 
     /// <summary>Returns the presentation or throws the markup-specific exception when conversion failed.</summary>
-    public override PowerPointPresentation RequireValue() {
+    public override PowerPointDocument RequireValue() {
         Report.RequireSuccess();
         return Value;
     }

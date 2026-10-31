@@ -15,19 +15,157 @@
     <Target>T:OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <!-- Exact baseline-only changes for source-owned conversions, export option names,
+       and PDF-to-PowerPoint ownership in OfficeIMO.Pdf.PowerPoint. See MIGRATION.md. -->
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions</Target>
+    <Target>T:OfficeIMO.PowerPoint.Pdf.PdfPowerPointConversionReport</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.PowerPoint.Pdf.PdfPowerPointConversionResult</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.PowerPoint.Pdf.PdfPowerPointEditablePageEntry</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportMode</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.PowerPoint.Pdf.PdfPowerPointTableImportEntry</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.PowerPoint.Pdf.PdfPowerPointVisualPageEntry</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdf(OfficeIMO.PowerPoint.PowerPointPresentation,System.IO.Stream,OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdf(OfficeIMO.PowerPoint.PowerPointPresentation,System.String,OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfAsync(OfficeIMO.PowerPoint.PowerPointPresentation,System.IO.Stream,OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions,System.Threading.CancellationToken)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPdfAsync(OfficeIMO.PowerPoint.PowerPointPresentation,System.String,OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions,System.Threading.CancellationToken)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPowerPoint(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPowerPoint(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPowerPoint(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPowerPoint(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPowerPointAsync(OfficeIMO.Pdf.PdfDocument,System.IO.Stream,OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportOptions,System.Threading.CancellationToken)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPowerPointAsync(OfficeIMO.Pdf.PdfDocument,System.String,OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportOptions,System.Threading.CancellationToken)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPowerPointAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.IO.Stream,OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportOptions,System.Threading.CancellationToken)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.SaveAsPowerPointAsync(OfficeIMO.Pdf.PdfDocumentReadResult,System.String,OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportOptions,System.Threading.CancellationToken)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdf(OfficeIMO.PowerPoint.PowerPointPresentation,OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfDocument(OfficeIMO.PowerPoint.PowerPointPresentation,OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfDocumentResult(OfficeIMO.PowerPoint.PowerPointPresentation,OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPowerPointPresentation(OfficeIMO.Pdf.PdfDocument,OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPowerPointPresentation(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPowerPointPresentationResult(OfficeIMO.Pdf.PdfDocument,OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPowerPointPresentationResult(OfficeIMO.Pdf.PdfDocumentReadResult,OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.TrySaveAsPdf(OfficeIMO.PowerPoint.PowerPointPresentation,System.IO.Stream,OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.TrySaveAsPdf(OfficeIMO.PowerPoint.PowerPointPresentation,System.String,OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.TrySaveAsPdfAsync(OfficeIMO.PowerPoint.PowerPointPresentation,System.IO.Stream,OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions,System.Threading.CancellationToken)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.TrySaveAsPdfAsync(OfficeIMO.PowerPoint.PowerPointPresentation,System.String,OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions,System.Threading.CancellationToken)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <!-- 3.6 public conversion diagnostics use OfficeDiagnostic; the native warning carrier is internal. -->
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportWarning</Target>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0001</DiagnosticId>
-    <Target>T:OfficeIMO.PowerPoint.Pdf.PowerPointPdfPageLayout</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
 </Suppressions>

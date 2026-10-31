@@ -23,10 +23,10 @@ public partial class Word {
             : kind == "first" ? first.Header.First! : kind == "even" ? first.Header.Even! : first.Header.Default!;
         foreach (var child in story.ChildElements.ToArray()) child.Remove();
         WordTable table = CreateRunningStoryTable(story, "MARK", 48, WordTextDirection.LeftToRightTopToBottom);
-        table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 32, 32);
+        table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        byte[] bytes = document.ToPdfBytes(EmptyRunningOptions());
+        byte[] bytes = document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(3, pdf.NumberOfPages);
         int expectedPaints = kind == "default" ? 3 : kind == "first" ? 2 : 1;

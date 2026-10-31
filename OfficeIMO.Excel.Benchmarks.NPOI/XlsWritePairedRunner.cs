@@ -87,7 +87,7 @@ internal static class XlsWritePairedRunner {
     }
 
     internal static void Validate(byte[] workbookBytes, IReadOnlyList<SalesRecord> records, string source) {
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbookBytes);
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbookBytes);
         string[] expectedHeaders = ["Id", "Region", "Owner", "Amount", "Active"];
         if (reader.FieldCount != expectedHeaders.Length) {
             throw new InvalidDataException($"{source} exposed {reader.FieldCount} fields instead of {expectedHeaders.Length}.");
@@ -194,9 +194,9 @@ internal static class XlsWriteBenchmarkScenario {
         using ExcelDocument document = ExcelDocument.Create();
         document.Execution.OnTiming = onTiming;
         document.Execution.OnInfo = onInfo;
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         WriteOfficeImoRows(sheet, records);
-        return document.ToBytes(ExcelFileFormat.Xls);
+        return document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
     }
 
     internal static byte[] WriteNpoi(IReadOnlyList<SalesRecord> records) {

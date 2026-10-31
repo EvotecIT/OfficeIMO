@@ -1,47 +1,40 @@
 using System;
+using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.PowerPoint;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
-/// <summary>Gets theme information for a PowerPoint presentation master.</summary>
-/// <example>
-///   <summary>Inspect the default master theme.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$ppt = New-OfficePowerPoint -Path .\Examples\Documents\PowerPointThemeRead.pptx -NoSave
-/// Set-OfficePowerPointThemeName -Presentation $ppt -Name 'Service Brief'
-/// Set-OfficePowerPointThemeFonts -Presentation $ppt -MajorLatin 'Aptos Display' -MinorLatin 'Aptos'
-/// Get-OfficePowerPointTheme -Presentation $ppt | Select-Object Name, Master
-/// $ppt | Close-OfficePowerPoint</code>
-///   <para>Returns theme information after updating the deck theme metadata.</para>
-/// </example>
+/// <summary>Reads the selected slide master's theme, colors and fonts.</summary>
+/// <example><summary>Inspect the first master's theme.</summary>
+/// <code>$deck = Open-OfficePowerPoint -Path ./Review.pptx
+/// Get-OfficePowerPointTheme -Document $deck -Master 1
+/// Close-OfficePowerPoint -Document $deck</code></example>
+/// <example><summary>Inspect the theme while composing a deck.</summary>
+/// <code>New-OfficePowerPoint -Path ./Review.pptx -Theme Modern {
+///     $theme = Get-OfficePowerPointTheme
+///     PowerPointSlide -Title 'Service review'
+/// }</code></example>
 [Cmdlet(VerbsCommon.Get, "OfficePowerPointTheme")]
-[Alias("PptTheme")]
 [OutputType(typeof(PowerPointThemeInfo))]
-public sealed class GetOfficePowerPointThemeCommand : PSCmdlet {
-    /// <summary>Presentation to inspect (optional inside New-OfficePowerPoint).</summary>
-    [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
-
-    /// <summary>Slide master index to inspect.</summary>
-    [Parameter]
-    [ValidateRange(0, int.MaxValue)]
-    public int Master { get; set; }
-
+public sealed class GetOfficePowerPointThemeCommand : OfficeCmdlet {
+    /// <summary>Gets or sets the live document; omission uses its enclosing content block.</summary>
+    [Parameter(Position = 0, ValueFromPipeline = true)]
+    public PowerPointDocument? Document { get; set; }
+    /// <summary>Gets or sets a one-based master position; defaults to the first.</summary>
+    [Parameter, ValidateRange(1, int.MaxValue)]
+    public int Master { get; set; } = 1;
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        var document = ResolveDocument(Document);
         try {
-            var presentation = Presentation ?? PowerPointDslContext.Require(this).Presentation;
-            var info = new PowerPointThemeInfo(
-                Master,
-                presentation.ThemeName,
-                presentation.GetThemeColors(Master),
-                presentation.GetThemeFonts(Master));
-
-            WriteObject(info);
-        } catch (Exception ex) {
-            WriteError(new ErrorRecord(ex, "PowerPointGetThemeFailed", ErrorCategory.InvalidOperation, Presentation));
-        }
+            int index = Master - 1;
+            var colors = document.GetThemeColors(index);
+            var fonts = document.GetThemeFonts(index);
+            string name = PowerPointTemplate.Inspect(document).Masters.Single(master => master.MasterIndex == index).ThemeName;
+            WriteObject(new PowerPointThemeInfo(index, name, colors, fonts));
+        } catch (ArgumentException error) { InvalidArgument(error, document); }
     }
 }

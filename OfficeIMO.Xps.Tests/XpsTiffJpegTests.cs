@@ -87,7 +87,7 @@ public sealed class XpsTiffJpegTests {
             foreach (var background in (folder == "TiffJpegArithmeticMultiscan" || folder == "TiffJpegArithmeticExtra" || folder == "TiffJpegArithmeticLosslessChroma" || folder == "TiffJpegArithmeticLosslessColor" || folder == "TiffJpegArithmetic12" || folder == "TiffJpegArithmeticLowAlpha" || folder == "TiffJpegLowAlpha" || folder == "TiffExtraSamples" || folder == "TiffJpegLossless" || (folder == "TiffJpegLossless16" || folder == "TiffJpegLossless12")) ? new[] { OfficeColor.White, OfficeColor.Black } : new[] { OfficeColor.White }) {
                 var native = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: background);
                 var svgImage = OfficeDrawingRasterRenderer.Render(drawing!, background: background);
-                var pdfImage = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(document.ToPdf()).Pages[0].ToDrawing(),
+                var pdfImage = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf())).Pages[0].ToDrawing(),
                     scale: 4D / 3D, background: background);
                 for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
                     var expected = native.GetPixel(x * 3 + 1, y * 3 + 1);

@@ -10,6 +10,8 @@ public sealed class PdfListItem {
     public System.Collections.Generic.IReadOnlyList<PdfTextRun> Runs { get; }
     /// <summary>Optional named destination anchored to this list item.</summary>
     public string? BookmarkName { get; }
+    /// <summary>Additional imported names anchored to the same item and structure element.</summary>
+    internal IReadOnlyList<string> BookmarkAliases { get; init; } = Array.Empty<string>();
     /// <summary>Optional explicit marker rendered instead of the list block default marker.</summary>
     public string? Marker { get; }
 

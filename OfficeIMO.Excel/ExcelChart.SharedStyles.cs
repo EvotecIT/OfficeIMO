@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
                             int currentPoint = pointIndex;
                             string currentColor = color!;
                             changed |= ApplySeriesByChartIndex(seriesIndex,
-                                series => ApplyPointFill(series, currentPoint, NormalizeHexColor(currentColor)));
+                                series => ApplyPointFill(series, currentPoint, OfficeColor.ParseHex(NormalizeHexColor(currentColor))));
                         }
                     }
                 }
@@ -30,9 +30,9 @@ namespace OfficeIMO.Excel {
                 changed |= ApplySeriesMarkerByChartIndex(seriesIndex, marker => ApplyMarker(
                     marker,
                     style.ShowMarkers ? MapMarkerStyle(style.MarkerShape).ToOfficeEnum() : OfficeChartMarkerShape.None,
-                    style.MarkerSize.HasValue ? OfficeChartStyleBounds.ClampNativeMarkerSize(style.MarkerSize.Value) : (int?)null,
-                    style.ShowMarkers ? style.SeriesColorArgb : null,
-                    style.ShowMarkers ? style.MarkerOutlineColorArgb : null,
+                    style.MarkerSize.HasValue ? OfficeChartStyleBounds.ClampNativeMarkerSize(style.MarkerSize.Value) : (OfficeLength?)null,
+                    style.ShowMarkers && style.SeriesColorArgb != null ? OfficeColor.Parse(NormalizeHexColor(style.SeriesColorArgb)) : (OfficeColor?)null,
+                    style.ShowMarkers && style.MarkerOutlineColorArgb != null ? OfficeColor.Parse(NormalizeHexColor(style.MarkerOutlineColorArgb)) : (OfficeColor?)null,
                     style.ShowMarkers ? style.MarkerOutlineWidth : null));
             }
 
@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
             }
             var trailing = legend.ChildElements.Where(child => child is not C.LegendPosition).ToArray();
             foreach (OpenXmlElement child in trailing) child.Remove();
-            bool radial = ChartType == ExcelChartType.Pie || ChartType == ExcelChartType.Doughnut;
+            bool radial = ChartType == OfficeChartType.Pie || ChartType == OfficeChartType.Doughnut;
             int entryCount = radial ? (seriesStyles.Count == 0 ? 0 : seriesStyles[0].Values.Count) : seriesLegendVisibility.Count;
             for (int index = 0; index < entryCount; index++) {
                 if (radial ? !hasHiddenSeries : seriesLegendVisibility[index]) continue;
@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel {
             C.ChartShapeProperties properties = EnsureChartShapeProperties(series);
             if (reenableLine) properties.GetFirstChild<A.Outline>()!.RemoveAllChildren<A.NoFill>();
             if (!string.IsNullOrWhiteSpace(style.SeriesColorArgb)) {
-                string color = NormalizeHexColor(style.SeriesColorArgb!);
+                OfficeColor color = OfficeColor.Parse(NormalizeHexColor(style.SeriesColorArgb!));
                 ApplySolidFill(properties, color);
                 ApplyOptionalLine(properties, color, style.SeriesLineWidth);
             } else if (style.SeriesLineWidth.HasValue) {

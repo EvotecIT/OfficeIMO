@@ -1,11 +1,11 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
-    private static bool IsCustomContainerOpeningLine(string? line, MarkdownReaderOptions options) =>
+internal static partial class MarkdownReader {
+    private static bool IsCustomContainerOpeningLine(string? line, MarkdownLoadOptions options) =>
         options.CustomContainers && CustomContainerParser.IsOpeningLine(line);
 
     internal sealed class CustomContainerParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.CustomContainers || lines == null || i < 0 || i >= lines.Length) {
                 return false;
             }

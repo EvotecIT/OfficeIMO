@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a BIFF8 worksheet scenario parsed from a SCENARIO record.
     /// </summary>
-    public sealed class LegacyXlsScenario {
+    internal sealed class LegacyXlsScenario {
         /// <summary>
         /// Creates worksheet scenario metadata.
         /// </summary>

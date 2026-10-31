@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Footer page numbering.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>WordFooter { Add-OfficeWordPageNumber -IncludeTotalPages }</code>
+///   <code>WordFooter { Add-OfficeWordPageNumber -IncludeTotal }</code>
 ///   <para>Outputs “Page # of #” in the footer.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordPageNumber")]
@@ -19,12 +19,14 @@ namespace PSWriteOffice.Cmdlets.Word;
 public sealed class AddOfficeWordPageNumberCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Include “of N” when true.</summary>
     [Parameter]
-    public SwitchParameter IncludeTotalPages { get; set; }
+    public SwitchParameter IncludeTotal { get; set; }
 
     /// <summary>Optional number format.</summary>
+    [Parameter]
     public WordFieldFormat? Format { get; set; }
 
     /// <summary>Separator when totals are included.</summary>
+    [Parameter]
     public string Separator { get; set; } = " of ";
 
     /// <inheritdoc />
@@ -35,7 +37,7 @@ public sealed class AddOfficeWordPageNumberCommand : PSWriteOffice.Cmdlets.Offic
             throw new InvalidOperationException("WordPageNumber must be called within WordHeader or WordFooter.");
         }
 
-        target.AddPageNumber(IncludeTotalPages.IsPresent, Format, Separator);
+        target.AddPageNumber(IncludeTotal.IsPresent, Format, Separator);
         WritePassThru(target);
     }
 }

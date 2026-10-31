@@ -152,7 +152,7 @@ public sealed class ContentSafetyReviewContracts {
 
         OfficeContentCleanupResult cleaned = PdfDocument.RemoveSelectedContent(pdf, new OfficeContentCleanupSelection(new[] { unicode.Id }));
 
-        string text = string.Concat(PdfReadDocument.Open(cleaned.Output).Pages.SelectMany(page => page.GetTextSpans()).Select(span => span.Text));
+        string text = string.Concat(PdfDocument.Load(new System.IO.MemoryStream(cleaned.Output)).Pages.SelectMany(page => page.GetTextSpans()).Select(span => span.Text));
         Assert.Contains("payload", text, StringComparison.Ordinal);
         Assert.Contains(cleaned.After.Findings, item => item.Kind == OfficeContentConcealmentKind.LowContrastText);
     }
@@ -186,8 +186,8 @@ public sealed class ContentSafetyReviewContracts {
     private static byte[] CreateDrawingWorkbook() {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create()) {
-            document.AddWorksheet("Drawing");
-            bytes = document.ToBytes(ExcelFileFormat.Xlsx);
+            document.AddSheet("Drawing");
+            bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx });
         }
         using var stream = new MemoryStream();
         stream.Write(bytes, 0, bytes.Length);

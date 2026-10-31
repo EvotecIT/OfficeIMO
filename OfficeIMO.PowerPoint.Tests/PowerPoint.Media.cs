@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             string filePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     using MemoryStream videoStream = new(new byte[] { 0, 0, 0, 24, 102, 116, 121, 112, 109, 112, 52, 50 });
 
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                     Assert.NotNull(slidePart.Slide.Timing?.Descendants<Video>().SingleOrDefault());
                 }
 
-                using (PowerPointPresentation reloaded = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument reloaded = PowerPointDocument.Load(filePath)) {
                     PowerPointMedia media = Assert.IsType<PowerPointMedia>(reloaded.Slides[0].Shapes.Single());
                     Assert.Equal(PowerPointMediaKind.Video, media.Kind);
                     Assert.Equal("video/mp4", media.MediaContentType);
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             string filePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     using MemoryStream audioStream = new(new byte[] { 73, 68, 51, 4, 0, 0, 0, 0, 0, 0 });
 
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
                     Assert.NotNull(slidePart.Slide.Timing?.Descendants<Audio>().SingleOrDefault());
                 }
 
-                using (PowerPointPresentation reloaded = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument reloaded = PowerPointDocument.Load(filePath)) {
                     PowerPointMedia media = Assert.IsType<PowerPointMedia>(reloaded.Slides[0].Shapes.Single());
                     Assert.Equal(PowerPointMediaKind.Audio, media.Kind);
                     Assert.Equal("audio/mpeg", media.MediaContentType);

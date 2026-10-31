@@ -83,6 +83,13 @@ test("empty workbook, one cell, unique names and stored fallback", async () => {
   } finally { globalThis.CompressionStream = original; }
 });
 
+test("worksheet names with long interior apostrophe runs sanitize without changing their public name", async () => {
+  const book = new Workbook({ compression: "store" });
+  const sheet = book.addWorksheet("x" + "'".repeat(20000) + "x");
+  assert.equal(sheet.name, "x");
+  assert.match((await readZip(await book.toBlob())).get("xl/workbook.xml").content, /<sheet name="x"/);
+});
+
 test("OOXML attributes preserve literal escapes and validate the decoded worksheet names", async () => {
   const book = new Workbook({ compression: "store" });
   const clipped = "x".repeat(30);

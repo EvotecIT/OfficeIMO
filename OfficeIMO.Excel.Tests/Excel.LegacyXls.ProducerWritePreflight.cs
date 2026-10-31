@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.LegacyXls;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -12,7 +13,8 @@ public sealed class ExcelLegacyVbaProducerPreservationTests {
         Assert.True(OfficeCompoundFileReader.TryRead(source, out OfficeCompoundFile? original, out string? sourceError), sourceError);
         var originalVba = original!.Streams.Where(item => item.Key.StartsWith("_VBA_PROJECT_CUR/", StringComparison.OrdinalIgnoreCase)).ToDictionary(item => item.Key, item => item.Value);
         Assert.NotEmpty(originalVba);
-        using var document = ExcelDocument.Load(new MemoryStream(source));
+        using var document = ExcelDocument.LoadLegacyXls(new MemoryStream(source),
+            new LegacyXlsImportOptions { PreserveExternalWorkbookLinks = true });
         document.Sheets[0].CellValue(1, 1, "Cell edit with original VBA retained");
         Assert.NotEmpty(document.LegacyXlsChartSheets);
         using var destination = new MemoryStream();

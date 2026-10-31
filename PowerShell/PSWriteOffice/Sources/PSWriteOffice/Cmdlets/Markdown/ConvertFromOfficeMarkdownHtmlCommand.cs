@@ -26,7 +26,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// </example>
 [Cmdlet(VerbsData.ConvertFrom, "OfficeMarkdownHtml", DefaultParameterSetName = ParameterSetHtml, SupportsShouldProcess = true)]
 [Alias("ConvertFrom-MarkdownHtml")]
-[OutputType(typeof(string), typeof(FileInfo), typeof(MarkdownDoc))]
+[OutputType(typeof(string), typeof(FileInfo), typeof(MarkdownDocument))]
 public sealed class ConvertFromOfficeMarkdownHtmlCommand : PSCmdlet
     , IMarkdownWriteOptionSource {
     private const string ParameterSetHtml = "Html";
@@ -56,7 +56,7 @@ public sealed class ConvertFromOfficeMarkdownHtmlCommand : PSCmdlet
 
     /// <summary>Optional conversion options.</summary>
     [Parameter]
-    public HtmlToMarkdownOptions? Options { get; set; }
+    public MarkdownHtmlImportOptions? Options { get; set; }
 
     /// <summary>Use portable Markdown output when <see cref="Options"/> is not supplied.</summary>
     [Parameter]
@@ -88,7 +88,7 @@ public sealed class ConvertFromOfficeMarkdownHtmlCommand : PSCmdlet
 
     /// <summary>Controls how base64 data URI images are converted.</summary>
     [Parameter]
-    public HtmlBase64ImageHandling? Base64ImageHandling { get; set; }
+    public MarkdownHtmlBase64ImageHandling? Base64ImageHandling { get; set; }
 
     /// <summary>Output directory for decoded base64 images when saving them to files.</summary>
     [Parameter]
@@ -96,7 +96,7 @@ public sealed class ConvertFromOfficeMarkdownHtmlCommand : PSCmdlet
 
     /// <summary>Controls whether repeated listing-card metadata is preserved or suppressed.</summary>
     [Parameter]
-    public HtmlListingCardMetadataMode? ListingCardMetadataMode { get; set; }
+    public MarkdownHtmlListingCardMetadataMode? ListingCardMetadataMode { get; set; }
 
     /// <summary>Maximum logical columns produced by expanding HTML table spans.</summary>
     [Parameter]
@@ -104,7 +104,7 @@ public sealed class ConvertFromOfficeMarkdownHtmlCommand : PSCmdlet
 
     /// <summary>Optional Markdown writer options for generated Markdown text.</summary>
     [Parameter]
-    public MarkdownWriteOptions? WriteOptions { get; set; }
+    public MarkdownSaveOptions? WriteOptions { get; set; }
 
     /// <summary>Friendly Markdown writer profile for generated Markdown text.</summary>
     [Parameter]
@@ -163,7 +163,7 @@ public sealed class ConvertFromOfficeMarkdownHtmlCommand : PSCmdlet
             }
 
             if (AsDocument.IsPresent) {
-                WriteObject(HtmlConversionDocument.Parse(html).ToMarkdownDocument(options));
+                WriteObject(HtmlConversionDocument.Parse(html).ToMarkdown(options));
                 return;
             }
 
@@ -173,7 +173,7 @@ public sealed class ConvertFromOfficeMarkdownHtmlCommand : PSCmdlet
                     return;
                 }
 
-                var markdown = HtmlConversionDocument.Parse(html).ToMarkdown(options);
+                var markdown = HtmlConversionDocument.Parse(html).ToMarkdown(options).ToMarkdown(options.MarkdownWriteOptions);
                 var directory = System.IO.Path.GetDirectoryName(resolvedOutput);
                 if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) {
                     Directory.CreateDirectory(directory);
@@ -184,7 +184,7 @@ public sealed class ConvertFromOfficeMarkdownHtmlCommand : PSCmdlet
                     WriteObject(new FileInfo(resolvedOutput));
                 }
             } else {
-                var markdown = HtmlConversionDocument.Parse(html).ToMarkdown(options);
+                var markdown = HtmlConversionDocument.Parse(html).ToMarkdown(options).ToMarkdown(options.MarkdownWriteOptions);
                 WriteObject(markdown);
             }
         } catch (Exception ex) {
@@ -193,11 +193,11 @@ public sealed class ConvertFromOfficeMarkdownHtmlCommand : PSCmdlet
         }
     }
 
-    private HtmlToMarkdownOptions BuildOptions(string? htmlFileDirectory) {
+    private MarkdownHtmlImportOptions BuildOptions(string? htmlFileDirectory) {
         var options = Options?.Clone()
             ?? (Portable.IsPresent
-                ? HtmlToMarkdownOptions.CreatePortableProfile()
-                : HtmlToMarkdownOptions.CreateOfficeIMOProfile());
+                ? MarkdownHtmlImportOptions.CreatePortableProfile()
+                : MarkdownHtmlImportOptions.CreateOfficeIMOProfile());
 
         options.UseBodyContentsOnly = !IncludeDocumentChrome.IsPresent;
         options.RemoveScriptsAndStyles = !PreserveScriptsAndStyles.IsPresent;
@@ -238,7 +238,7 @@ public sealed class ConvertFromOfficeMarkdownHtmlCommand : PSCmdlet
         return options;
     }
 
-    private static bool RequiresImageExtraction(HtmlToMarkdownOptions options)
-        => options.Base64Images == HtmlBase64ImageHandling.SaveToFile &&
+    private static bool RequiresImageExtraction(MarkdownHtmlImportOptions options)
+        => options.Base64Images == MarkdownHtmlBase64ImageHandling.SaveToFile &&
            !string.IsNullOrWhiteSpace(options.Base64ImageOutputDirectory);
 }

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Excel.LegacyXls {
     /// <summary>Provides the compact, user-facing outcome of a legacy XLS import.</summary>
-    public sealed class LegacyXlsImportSummary : IOfficeConversionReport {
+    internal sealed class LegacyXlsImportSummary : IOfficeConversionReport {
         internal LegacyXlsImportSummary(LegacyXlsLoadResult result) {
             WorksheetCount = result.Workbook.Worksheets.Count;
             ChartSheetCount = result.ChartSheets.Count;

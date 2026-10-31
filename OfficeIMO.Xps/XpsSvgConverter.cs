@@ -39,7 +39,7 @@ internal sealed partial class XpsSvgConverter {
         }
         RenderChildren(page, root, new Dictionary<string, Resource>(), _page.PartName, 0, new BrushRegion(0, 0, _page.Width, _page.Height));
         if (_diagnostics.Count != 0 && !allowPartial) throw new NotSupportedException("XPS conversion would lose features: " + string.Join("; ", _diagnostics.Take(12)));
-        return new XpsSvgResult(root.ToString(SaveOptions.DisableFormatting), _diagnostics, _textSpans, _targets);
+        return new XpsSvgResult(root.ToString(SaveOptions.DisableFormatting), _diagnostics, _textSpans, _targets, _pathCommands);
     }
     private static string N(double value) {
         if (double.IsNaN(value) || double.IsInfinity(value)) throw new InvalidDataException("Non-finite XPS projection coordinate.");

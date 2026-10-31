@@ -14,7 +14,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private readonly Func<CancellationToken, Task<string?>> _pickPackage;
     private readonly IOfficeWorkflowRunner _runner;
     private readonly IStudioLocalizer _localizer;
-    private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly IOfficePublicationGuard? _publicationGuard;
     private readonly StudioJobHistory? _jobHistory;
     private readonly StudioStorageAccess? _storage;
     private readonly Func<string, CancellationToken, Task>? _openOutput;
@@ -30,7 +30,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         Func<CancellationToken, Task<string?>> pickOutputFolder,
         IOfficeWorkflowRunner? runner,
         IStudioLocalizer? localizer = null,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        IOfficePublicationGuard? publicationGuard = null,
         StudioJobHistory? jobHistory = null,
         StudioStorageAccess? storage = null,
         Func<string, CancellationToken, Task>? openOutput = null,
@@ -43,7 +43,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         _publicationGuard = publicationGuard;
         _localizer = localizer ?? StudioLocalization.Current;
         Jobs.CollectionChanged += (_, _) => { if (_lossJobs.Count > 0) RefreshLossNotice(); };
-        BatchExport = new PdfBatchExportViewModel(pickOutputFolder, publicationGuard, () => IsBusy, _localizer, _runner, jobHistory,
+        BatchExport = new PdfBatchExportViewModel(pickOutputFolder, publicationGuard, () => IsBusy, _localizer, jobHistory,
             fileDialogs);
         BatchExport.PropertyChanged += (_, change) => {
             if (change.PropertyName == nameof(PdfBatchExportViewModel.Status)) Status = BatchExport.Status;
@@ -56,15 +56,15 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         _openOutput = openOutput;
         Routes = _runner.ConversionRoutes.Select(route => new ConversionRouteChoice(route, _localizer)).ToArray();
         Profiles = [
-            new(OfficeWorkflowOutputProfile.Faithful, T("Profile.Faithful.Label", "Faithful"), T("Profile.Faithful.Description", "Preserve authored content and visual features where the format owner supports them.")),
-            new(OfficeWorkflowOutputProfile.Lightweight, T("Profile.Lightweight.Label", "Lightweight"), T("Profile.Lightweight.Description", "Prefer smaller, simpler output while retaining useful structure.")),
-            new(OfficeWorkflowOutputProfile.PrintReady, T("Profile.PrintReady.Label", "Print ready"), T("Profile.PrintReady.Description", "Prefer pagination and document setup intended for printing.")),
-            new(OfficeWorkflowOutputProfile.TextOnly, T("Profile.TextOnly.Label", "Text focused"), T("Profile.TextOnly.Description", "Prefer text and tables over decorative visual content."))
+            new(OfficeConversionProfile.Faithful, T("Profile.Faithful.Label", "Faithful"), T("Profile.Faithful.Description", "Preserve authored content and visual features where the format owner supports them.")),
+            new(OfficeConversionProfile.Lightweight, T("Profile.Lightweight.Label", "Lightweight"), T("Profile.Lightweight.Description", "Prefer smaller, simpler output while retaining useful structure.")),
+            new(OfficeConversionProfile.PrintReady, T("Profile.PrintReady.Label", "Print ready"), T("Profile.PrintReady.Description", "Prefer pagination and document setup intended for printing.")),
+            new(OfficeConversionProfile.TextOnly, T("Profile.TextOnly.Label", "Text focused"), T("Profile.TextOnly.Description", "Prefer text and tables over decorative visual content."))
         ];
         ConflictPolicies = [
-            new(OfficeWorkflowConflictPolicy.Rename, T("Conflict.Rename.Label", "Create numbered copy"), T("Conflict.Rename.Description", "Keep the existing file and add a numbered suffix.")),
-            new(OfficeWorkflowConflictPolicy.Fail, T("Conflict.Fail.Label", "Stop that job"), T("Conflict.Fail.Description", "Report the collision without changing the existing file.")),
-            new(OfficeWorkflowConflictPolicy.Replace, T("Conflict.Replace.Label", "Replace after validation"), T("Conflict.Replace.Description", "Replace only after the new artifact passes reopen validation."))
+            new(OfficePublicationPolicy.Rename, T("Conflict.Rename.Label", "Create numbered copy"), T("Conflict.Rename.Description", "Keep the existing file and add a numbered suffix.")),
+            new(OfficePublicationPolicy.Fail, T("Conflict.Fail.Label", "Stop that job"), T("Conflict.Fail.Description", "Report the collision without changing the existing file.")),
+            new(OfficePublicationPolicy.Replace, T("Conflict.Replace.Label", "Replace after validation"), T("Conflict.Replace.Description", "Replace only after the new artifact passes reopen validation."))
         ];
         SelectedRoute = Routes.Single(route => route.Route.Id == "docx-pdf");
         SelectedProfile = Profiles[0];
@@ -318,7 +318,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         ProgressFraction = 0D;
         var conversionOptions = candidates.ToDictionary(job => job.Id, job => job.CreateConversionOptions());
         var registeredSettings = candidates.ToDictionary(job => job.Id, job => job.CreateRegisteredConversionSettings());
-        OfficeWorkflowConflictPolicy conflictPolicy = SelectedConflict.Value;
+        OfficePublicationPolicy conflictPolicy = SelectedConflict.Value;
         foreach (ConversionJobViewModel job in candidates) job.PrepareAttempt();
         ForgetLoss(candidates);
         var history = new Dictionary<string, StudioJobRecord>(StringComparer.Ordinal);
@@ -410,7 +410,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         ClearOutputPreview();
     }
 
-    private OfficeWorkflowRequest CreateRequest(ConversionJobViewModel job, OfficeWorkflowConversionOptions options, IOfficeWorkflowConversionSettings? registeredSettings, OfficeWorkflowConflictPolicy conflictPolicy, string folder, StudioStorageAccess.DirectoryInputSession? directoryInputs, CancellationToken token) {
+    private OfficeWorkflowRequest CreateRequest(ConversionJobViewModel job, OfficeConversionOptions options, IOfficeConversionSettings? registeredSettings, OfficePublicationPolicy conflictPolicy, string folder, StudioStorageAccess.DirectoryInputSession? directoryInputs, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(folder) && _storage?.UsesProviderPublication(job.InputPath) == true) {
             throw new InvalidOperationException(T("Output.ProviderFolderRequired", "Choose an output folder before converting provider documents."));

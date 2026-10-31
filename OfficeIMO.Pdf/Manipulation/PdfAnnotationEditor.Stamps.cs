@@ -212,7 +212,7 @@ internal static partial class PdfAnnotationEditor {
             options.Y + options.Height);
         annotation.Items["Name"] = new PdfName(options.StampName);
         annotation.Items["F"] = new PdfNumber(options.Flags);
-        annotation.Items["C"] = BuildNumberArray(options.StrokeColor.R, options.StrokeColor.G, options.StrokeColor.B);
+        annotation.Items["C"] = BuildNumberArray(options.StrokeColor.ToNormalizedRgb().R, options.StrokeColor.ToNormalizedRgb().G, options.StrokeColor.ToNormalizedRgb().B);
         annotation.Items["P"] = new PdfReference(pageObject.ObjectNumber, pageObject.Generation);
         annotation.Items["AP"] = normalAppearance;
         AddOptionalText(annotation, "Contents", options.Contents);

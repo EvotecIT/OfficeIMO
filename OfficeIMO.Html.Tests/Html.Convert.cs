@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void WordToHtml_UsesDocumentConversionSurface() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Test");
-            string html = doc.ToHtml(new WordToHtmlOptions());
+            string html = doc.ToHtml(new WordHtmlExportOptions());
             Assert.Contains("Test", html, StringComparison.Ordinal);
         }
 
@@ -17,8 +17,8 @@ namespace OfficeIMO.Tests {
         public async Task HtmlToWordConverter_Convert_EqualsAsync() {
             string html = "<p>Test</p>";
             OfficeIMO.Html.HtmlConversionDocument source = OfficeIMO.Html.HtmlConversionDocument.Parse(html);
-            using var syncDoc = source.ToWordDocument(new HtmlToWordOptions());
-            using var asyncDoc = await source.ToWordDocumentAsync(new HtmlToWordOptions());
+            using var syncDoc = source.ToWord(new WordHtmlImportOptions());
+            using var asyncDoc = (await source.ToWordAsync(new WordHtmlImportOptions())).Value;
             Assert.Equal(syncDoc.Paragraphs.Count, asyncDoc.Paragraphs.Count);
             Assert.Equal(syncDoc.Paragraphs[0].Text, asyncDoc.Paragraphs[0].Text);
         }

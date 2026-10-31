@@ -31,19 +31,19 @@ public sealed class ProjectReportWorkflowTests {
         var start = project.Settings.StartDate!.Value.Date;
         var view = project.CreateView(schedule, new ProjectViewOptions {
             Kind = ProjectViewKind.TaskUsage, Timescale = ProjectViewTimescale.Day,
-            Start = start, Finish = start.AddDays(A1.MaxColumns - 1),
-            MaxBuckets = A1.MaxColumns, MaxCells = A1.MaxColumns
+            Start = start, Finish = start.AddDays(ExcelA1.MaxColumns - 1),
+            MaxBuckets = ExcelA1.MaxColumns, MaxCells = ExcelA1.MaxColumns
         });
-        Assert.Equal(A1.MaxColumns - 1, view.Buckets.Count);
+        Assert.Equal(ExcelA1.MaxColumns - 1, view.Buckets.Count);
         Assert.Throws<InvalidOperationException>(() => ProjectReportWorkflow.CreateExcel(view));
     }
 
     [Fact]
     public void MappedTableExportRejectsRowsBeyondTheExcelWorksheetLimit() {
         var error = Assert.Throws<InvalidOperationException>(() =>
-            ProjectDataWorkflow.ValidateExcelGrid(A1.MaxRows, 1, "Tasks"));
+            ProjectDataWorkflow.ValidateExcelGrid(ExcelA1.MaxRows, 1, "Tasks"));
         Assert.Contains("row worksheet limit", error.Message, StringComparison.Ordinal);
-        ProjectDataWorkflow.ValidateExcelGrid(A1.MaxRows - 1, A1.MaxColumns, "Tasks");
+        ProjectDataWorkflow.ValidateExcelGrid(ExcelA1.MaxRows - 1, ExcelA1.MaxColumns, "Tasks");
     }
 
     [Fact]
@@ -54,19 +54,19 @@ public sealed class ProjectReportWorkflowTests {
             Kind = ProjectViewKind.Table, Columns = new[] { ProjectViewColumn.Uid, ProjectViewColumn.Name }, PageHeight = 400
         });
         using var report = ProjectReportWorkflow.CreatePowerPoint(view);
-        using var copy = PowerPointPresentation.Load(new MemoryStream(report.ToBytes()));
+        using var copy = PowerPointDocument.Load(new MemoryStream(report.ToBytes()));
         var tables = copy.Slides.SelectMany(s => s.Shapes.OfType<PowerPointTable>()).ToArray();
         Assert.True(tables.Length > 3);
         var names = tables.SelectMany(t => t.RowItems.Skip(1)).Select(r => r.Cells[1].Text).ToArray();
         // Main report rows and supplemental status rows both retain every full name.
         foreach (var task in project.Tasks) Assert.Equal(2, names.Count(n => n == task.Name));
-        Assert.All(tables, table => Assert.True(table.TopPoints + table.HeightPoints <= view.PageHeight - view.PageMargin));
+        Assert.All(tables, table => Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= view.PageHeight - view.PageMargin));
         Assert.Empty(copy.ValidateDocument());
     }
 
     [Fact]
     public void ExcelIntegralDecimalScaleIsNormalizedBeforeIdentityImport() {
-        using var workbook = ExcelDocument.Create(); var sheet = workbook.AddWorksheet("Tasks");
+        using var workbook = ExcelDocument.Create(); var sheet = workbook.AddSheet("Tasks");
         sheet.CellValue(1, 1, "Uid"); sheet.CellValue(1, 2, "Name");
         sheet.CellValue(2, 1, 1.0m); sheet.CellValue(2, 2, "Task");
         Assert.True(sheet.TryGetCellValueSnapshot(2, 1, out var raw)); Assert.Equal("1.0", raw!.RawValue);
@@ -82,7 +82,7 @@ public sealed class ProjectReportWorkflowTests {
     [InlineData(1e-28, "0.0000000000000000000000000001")]
     public void NativeExcelNumbersNormalizeWithoutLosingPrecision(double number, string expected) {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Tasks");
+        var sheet = workbook.AddSheet("Tasks");
         sheet.CellValue(1, 1, "Uid"); sheet.CellValue(1, 2, "Name");
         sheet.CellValue(2, 1, number); sheet.CellValue(2, 2, "Task");
         var table = ProjectDataWorkflow.ReadExcel(sheet, 1, 2);
@@ -96,7 +96,7 @@ public sealed class ProjectReportWorkflowTests {
     [InlineData(1e-29)]
     [InlineData(-1e-29)]
     public void NativeExcelNumbersRejectDecimalUnderflow(double number) {
-        using var workbook = ExcelDocument.Create(); var sheet = workbook.AddWorksheet("Data");
+        using var workbook = ExcelDocument.Create(); var sheet = workbook.AddSheet("Data");
         sheet.CellValue(1, 1, "Cost"); sheet.CellValue(2, 1, number);
         Assert.Throws<InvalidDataException>(() => ProjectDataWorkflow.ReadExcel(sheet, 1, 1));
     }
@@ -117,7 +117,7 @@ public sealed class ProjectReportWorkflowTests {
         Assert.Contains(wordCopy.Tables.SelectMany(t => t.Rows).SelectMany(r => r.Cells).SelectMany(c => c.Paragraphs), p => p.Text.Contains("Task 0"));
         using var presentation = ProjectReportWorkflow.CreatePowerPoint(view);
         Assert.Empty(presentation.ValidateDocument());
-        using var presentationCopy = PowerPointPresentation.Load(new MemoryStream(presentation.ToBytes()));
+        using var presentationCopy = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
         Assert.True(presentationCopy.Slides.Count > 1);
         Assert.All(presentationCopy.Slides, slide => Assert.Single(slide.Shapes, shape => shape is PowerPointTable || shape is PowerPointPicture));
         using var workbook = ProjectReportWorkflow.CreateExcel(view);

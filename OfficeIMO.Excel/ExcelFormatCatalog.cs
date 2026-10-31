@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml;
 namespace OfficeIMO.Excel;
 
 /// <summary>Machine-readable catalog of Excel formats supported or classified by OfficeIMO.</summary>
-public static class ExcelFormatCatalog {
+internal static class ExcelFormatCatalog {
     private static readonly IReadOnlyList<OfficeFormatDescriptor> Formats = Array.AsReadOnly(new[] {
         new OfficeFormatDescriptor("Excel.Xls", ".xls", OfficeDocumentFamily.Excel, OfficeDocumentKind.Document,
             OfficeFormatGeneration.Legacy, OfficeFormatEncoding.CompoundBinary, macroEnabled: true),

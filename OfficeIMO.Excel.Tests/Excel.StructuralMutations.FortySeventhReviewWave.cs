@@ -8,19 +8,21 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public async Task Test_RemoveQueryBackedTable_RevalidatesConnectionInsideTransaction() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             ExcelQueryBackedTableInfo original = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "OriginalQuery",
                 WorksheetName = data.Name,
                 TableName = "Results",
                 ColumnNames = new[] { "Value" }
             });
-            ExcelSheet anchor = document.AddWorksheet("Anchor");
+            ExcelSheet anchor = document.AddSheet("Anchor");
             document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "AnchorQuery",
                 WorksheetName = anchor.Name,
@@ -72,7 +74,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AddQueryBackedTable_RejectsOrdinaryConnectionNameConflict() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ConnectionsPart connectionsPart = document.WorkbookPartRoot.AddNewPart<ConnectionsPart>();
             connectionsPart.Connections = new Connections(new Connection {
                 Id = 42U,
@@ -94,45 +96,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_AddPivotTimeline_RevalidatesPivotInsideTransaction() {
+        public async Task Test_AddPivotTimeline_RevalidatesPivotInsideTransaction()
+        {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             data.CellValue(1, 1, "OrderDate");
             data.CellValue(1, 2, "Sales");
             data.CellValue(2, 1, new DateTime(2026, 1, 2));
             data.CellValue(2, 2, 10d);
-            data.AddPivotTable(
-                "A1:B2",
-                "D2",
-                "SalesPivot",
-                rowFields: new[] { "OrderDate" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+            data.AddPivotTable("A1:B2", "D2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "OrderDate" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             _ = document.Sheets;
-
             ReaderWriterLockSlim workbookLock = document.EnsureLock();
             workbookLock.EnterReadLock();
             Task<ExcelPivotInteractionInfo>? creation = null;
             using var started = new ManualResetEventSlim(false);
-            try {
-                creation = Task.Factory.StartNew(
-                    () => {
-                        started.Set();
-                        return document.AddPivotTimeline("SalesPivot", "OrderDate", data.Name);
-                    },
-                    CancellationToken.None,
-                    TaskCreationOptions.LongRunning,
-                    TaskScheduler.Default);
+            try
+            {
+                creation = Task.Factory.StartNew(() =>
+                {
+                    started.Set();
+                    return document.AddPivotTimeline("SalesPivot", "OrderDate", data.Name);
+                }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
                 Assert.True(started.Wait(TimeSpan.FromSeconds(10)));
-                Assert.True(
-                    SpinWait.SpinUntil(
-                        () => workbookLock.WaitingWriteCount > 0 || creation.IsCompleted,
-                        TimeSpan.FromSeconds(10)),
-                    $"Timeline creation did not reach the transaction boundary (status: {creation.Status}).");
+                Assert.True(SpinWait.SpinUntil(() => workbookLock.WaitingWriteCount > 0 || creation.IsCompleted, TimeSpan.FromSeconds(10)), $"Timeline creation did not reach the transaction boundary (status: {creation.Status}).");
                 Assert.False(creation.IsCompleted);
-                using (data.BeginNoLock()) {
+                using (data.BeginNoLock())
+                {
                     data.WorksheetPart.DeletePart(Assert.Single(data.WorksheetPart.PivotTableParts));
                 }
-            } finally {
+            }
+            finally
+            {
                 workbookLock.ExitReadLock();
             }
 
@@ -145,7 +139,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RenameTable_SynchronizesAttachedQueryTableName() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "RenameQuery",
                 WorksheetName = sheet.Name,
@@ -167,7 +161,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernChart_RenameRejectsDuplicateWorksheetDrawingName() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             var data = new ExcelChartData(
                 new[] { "A" },
                 new[] { new ExcelChartSeries("Value", new[] { 1d }) });

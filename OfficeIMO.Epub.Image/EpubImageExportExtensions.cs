@@ -143,12 +143,6 @@ public static partial class EpubImageExportExtensions {
             effective.Mode == HtmlRenderMode.Continuous ? chapters.Count : (int?)null).ConfigureAwait(false);
     }
 
-    /// <summary>Starts fluent image export for selected EPUB chapters.</summary>
-    public static EpubImageExportBuilder ToImages(
-        this EpubDocument source,
-        EpubImageExportOptions? options = null) =>
-        new EpubImageExportBuilder(source, options);
-
     private static IReadOnlyList<EpubChapter> SelectChapters(
         EpubDocument source,
         EpubImageExportOptions options) {

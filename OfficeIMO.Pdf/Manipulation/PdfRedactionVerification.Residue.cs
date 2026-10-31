@@ -7,6 +7,26 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfRedactionVerification {
     private const int MaxDecodedRedactionVerificationStreamBytes = 16 * 1024 * 1024;
 
+    /// <summary>Checks literal and hex string tokens in otherwise unclassified data, reusing the verifier's escape-aware readers.</summary>
+    internal static bool ContainsSearchedPdfString(byte[] data, PdfRedactionSearchCriteria[] criteria, CancellationToken cancellationToken) {
+        string? raw = null;
+        for (int index = 0; index < data.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (data[index] == (byte)'(' && TryReadLiteralStringBytes(data, index, cancellationToken, out byte[] literal, out int literalEnd)) {
+                if (criteria.Any(criterion => criterion.Matches(PdfTextString.Decode(literal, cancellationToken)))) return true;
+                index = literalEnd;
+            } else if (data[index] == (byte)'<' && (index + 1 >= data.Length || data[index + 1] != (byte)'<')) {
+                int end = FindHexStringEnd(data, index + 1, cancellationToken);
+                if (end < 0) continue;
+                raw ??= PdfEncoding.Latin1GetString(data);
+                string decoded = PdfTextString.Decode(PdfTextString.DecodeHexBytes(raw, index + 1, end - index - 1, cancellationToken), cancellationToken);
+                if (criteria.Any(criterion => criterion.Matches(decoded))) return true;
+                index = end;
+            }
+        }
+        return false;
+    }
+
     private static bool ContainsEncodedPdfMarker(byte[] pdf, string marker, bool matchCase, CancellationToken cancellationToken) {
         if (string.IsNullOrEmpty(marker)) {
             return false;

@@ -41,17 +41,14 @@ public sealed partial class OfficeAiEngine {
             OfficeAiImage[] attachments = items.Where(item => item.Image is not null).Select(item => item.Image!).ToArray();
             if (attachments.Sum(image => (long)image.ByteLength) > Math.Min(profile.MaxImageBytes, request.Limits.MaxImageBytes)
                 || attachments.Sum(image => (long)image.Width * image.Height) > request.Limits.MaxImagePixels) return null;
-            string input = JsonSerializer.Serialize(new {
-                schema = "officeimo.ai.request.v1", sourceHash = document.SourceHash, snapshotHash = document.SnapshotHash, pageProvenance = document.PageProvenance,
-                operation = request.Operation.ToString(), instruction = request.Instruction,
-                conversationContext = request.ConversationContext,
-                resultLimits = new { maxResultItems = request.Limits.MaxResultItems, maxTableCells = request.Limits.MaxTableCells,
-                    maxTableColumns = request.Limits.MaxTableColumns },
-                fields = request.Fields.Select((field, index) => new { key = FieldKey(index), name = field.Name, type = field.Type.ToString(), dateFormat = field.DateFormat }),
-                evidence = observations.Select(item => new { id = item.Id, kind = item.Kind, text = item.Text, page = item.Page,
-                    recognition = item.Recognition, sourceBlockId = item.SourceBlockId, sourceAnchor = item.SourceAnchor, sourceLocation = item.SourceLocation }),
-                images = attachments.Select(item => new { id = item.Id, page = item.Page, width = item.Width, height = item.Height })
-            });
+            string input = JsonSerializer.Serialize(new OfficeAiPlanningPayload("officeimo.ai.request.v1", document.SourceHash,
+                document.SnapshotHash, document.PageProvenance, request.Operation.ToString(), request.Instruction, request.ConversationContext,
+                new(request.Limits.MaxResultItems, request.Limits.MaxTableCells, request.Limits.MaxTableColumns),
+                request.Fields.Select((field, index) => new OfficeAiPlanningField(FieldKey(index), field.Name, field.Type.ToString(), field.DateFormat)),
+                observations.Select(item => new OfficeAiPlanningEvidence(item.Id, item.Kind, item.Text, item.Page, item.Recognition,
+                    item.SourceBlockId, item.SourceAnchor, item.SourceLocation)),
+                attachments.Select(item => new OfficeAiPlanningImage(item.Id, item.Page, item.Width, item.Height))),
+                OfficeAiJsonContext.Default.OfficeAiPlanningPayload);
             return new(requestId + "-" + (batches.Count + 1), Instructions, input, outputSchema,
                 Array.AsReadOnly(attachments), request.Limits.MaxResponseCharacters);
         }

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_QueryInspection_BoundsUnloadedNativeConnectionMetadata() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             ConnectionsPart connectionsPart = document.WorkbookPartRoot.AddNewPart<ConnectionsPart>();
             byte[] payload = Encoding.UTF8.GetBytes(
                 "<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void Test_RangeTransfer_RenumbersSourceInCellImageBeforeSnapshot(bool move) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Discarded destination");
             sheet.SetInCellImage(1, 2, TinyPng, altText: "Transferred source");
 
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableAndQuerySchema_RejectInvalidXmlHeadersBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Original");
             sheet.CellValue(2, 1, "Keep");
             sheet.AddTable("A1:A2", true, "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);

@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -37,6 +38,7 @@ namespace OfficeIMO.Excel {
             ct.ThrowIfCancellationRequested();
             if (measurementPlan.Columns.Count == 0) return;
             AutoFitColumnsInternal(measurementPlan, mode, ct);
+            RefreshTablePrintDefaults();
         }
 
         /// <summary>
@@ -353,6 +355,34 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+            // Table and AutoFilter header cells are painted bold by the table style and
+            // carry a filter button, neither of which their cell format records.
+            void ApplyHeaderMeasurements() {
+                var headerStyleCache = new Dictionary<uint, ExcelTextMeasurer.Style>();
+                var textContext = CreateAutoFitTextContext();
+                foreach (AutoFitHeaderCell header in GetAutoFitHeaderCells(plan.Columns)) {
+                    ct.ThrowIfCancellationRequested();
+                    Cell? cell = TryGetExistingCell(header.Row, header.Column);
+                    if (cell == null) continue;
+                    string text = GetCellAutoFitText(cell, textContext);
+                    if (string.IsNullOrWhiteSpace(text)) continue;
+                    uint styleIndex = cell.StyleIndex?.Value ?? 0U;
+                    var baseStyle = ResolveStyleInfo(styleIndex, headerStyleCache);
+                    var boldStyle = header.Bold && !baseStyle.FontInfo.IsBold
+                        ? textMeasurer.CreateStyle(baseStyle.FontInfo.WithStyle(baseStyle.FontInfo.Style | OfficeFontStyle.Bold))
+                        : baseStyle;
+                    float textWidthPx = 0F;
+                    foreach (string line in text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None)) {
+                        if (line.Length > 0) textWidthPx = Math.Max(textWidthPx, textMeasurer.MeasureWidthOrDefault(line, boldStyle, 0));
+                    }
+
+                    double buttonPx = header.FilterButton ? AutoFitFilterButtonPixels * boldStyle.Dpi / 96D : 0D;
+                    double cellWidthPx = (textWidthPx * AutoFitTextWidthSafetyFactor) + (2 * pixelPadding) + 1 + buttonPx;
+                    double columnWidth = Math.Truncate(cellWidthPx / defaultMdw * 256.0) / 256.0;
+                    if (columnWidth > widths[header.TargetIndex]) widths[header.TargetIndex] = columnWidth;
+                }
+            }
+
             if (!parallel || plan.Measurements.Count < 2) {
                 var styleCache = new Dictionary<uint, ExcelTextMeasurer.Style>();
                 var textWidthCache = new Dictionary<(uint styleIndex, string text), float>();
@@ -363,6 +393,7 @@ namespace OfficeIMO.Excel {
                     ApplyMeasurement(plan.Measurements[i], widths, styleCache, textWidthCache, charWidthCache);
                 }
 
+                ApplyHeaderMeasurements();
                 return widths;
             }
 
@@ -392,9 +423,57 @@ namespace OfficeIMO.Excel {
                     }
                 });
 
+            ApplyHeaderMeasurements();
             return widths;
         }
 
+
+        /// <summary>Width Excel reserves for the AutoFilter drop-down button, in 96 DPI pixels.</summary>
+        private const double AutoFitFilterButtonPixels = 17D;
+
+        private readonly struct AutoFitHeaderCell {
+            internal AutoFitHeaderCell(int row, int column, int targetIndex, bool bold, bool filterButton) {
+                Row = row;
+                Column = column;
+                TargetIndex = targetIndex;
+                Bold = bold;
+                FilterButton = filterButton;
+            }
+
+            internal int Row { get; }
+            internal int Column { get; }
+            internal int TargetIndex { get; }
+            internal bool Bold { get; }
+            internal bool FilterButton { get; }
+        }
+
+        private List<AutoFitHeaderCell> GetAutoFitHeaderCells(IReadOnlyList<int> columns) {
+            var targets = new Dictionary<int, int>(columns.Count);
+            for (int index = 0; index < columns.Count; index++) targets[columns[index]] = index;
+            var headers = new Dictionary<(int Row, int Column), AutoFitHeaderCell>();
+            void Add(string? reference, bool bold, bool filterButton) {
+                if (!ExcelA1.TryParseRange(reference ?? string.Empty, out int firstRow, out int firstColumn, out _, out int lastColumn)) return;
+                for (int column = firstColumn; column <= lastColumn; column++) {
+                    if (!targets.TryGetValue(column, out int target)) continue;
+                    if (headers.TryGetValue((firstRow, column), out AutoFitHeaderCell existing)) {
+                        bold |= existing.Bold;
+                        filterButton |= existing.FilterButton;
+                    }
+
+                    headers[(firstRow, column)] = new AutoFitHeaderCell(firstRow, column, target, bold, filterButton);
+                }
+            }
+
+            foreach (TableDefinitionPart part in _worksheetPart.TableDefinitionParts) {
+                Table? table = part.Table;
+                if (table == null || (table.HeaderRowCount?.Value ?? 1U) == 0U) continue;
+                Add(table.Reference?.Value, bold: true, filterButton: table.GetFirstChild<AutoFilter>() != null);
+            }
+
+            AutoFilter? sheetFilter = WorksheetRoot.GetFirstChild<AutoFilter>();
+            if (sheetFilter != null) Add(sheetFilter.Reference?.Value, bold: false, filterButton: true);
+            return headers.Values.ToList();
+        }
 
         internal void ApplyAutoFitColumnWidthsForDeferredMaterialization(double[] widths) {
             if (widths == null || widths.Length == 0) {

@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
     /// <summary>Inspects legacy, agile, and V3 VBA signature profiles in a saved XLSM/XLTM/XLAM package.</summary>
-    public static OfficeVbaSignatureInfo InspectVbaSignatures(
+    internal static OfficeVbaSignatureInfo InspectVbaSignatures(
         string filePath,
         OfficeVbaSignatureInspectionOptions? options = null) =>
         OfficeVbaSignatureService.Inspect(filePath, options);

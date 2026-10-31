@@ -5,12 +5,13 @@ using System.Collections.Generic;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Fluent;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeColor = OfficeIMO.OfficeColor;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public class ExcelFluentWorkbookTests {
+namespace OfficeIMO.Tests
+{
+    public class ExcelFluentWorkbookTests
+    {
         private static string GetCellValue(SpreadsheetDocument document, WorksheetPart worksheetPart, string cellReference) {
             var cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference != null && c.CellReference.Value == cellReference);
             var value = cell.CellValue?.Text ?? string.Empty;
@@ -24,22 +25,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void CanBuildWorkbookFluently() {
+        public void CanBuildWorkbookFluently()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AsFluent()
-                    .Sheet("Data", s => s
-                        .HeaderRow("Name", "Score")
-                        .Row(r => r.Values("Alice", 93))
-                        .Row(r => r.Values("Bob", 88))
-                        .Table(t => t.Add("A1:B3", true, "Scores"))
-                        .Columns(c => c.Col(1, col => col.AutoFit()).Col(2, col => col.AutoFit())))
-                    .End()
-                    .Save();
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet1 = document.AddSheet("Data");
+                    int nextRow2 = 1;
+                    sheet1.Cell(nextRow2, 1, "Name");
+                    sheet1.Cell(nextRow2, 2, "Score");
+                    nextRow2++;
+                    sheet1.Cell(nextRow2, 1, "Alice");
+                    sheet1.Cell(nextRow2, 2, 93);
+                    nextRow2++;
+                    sheet1.Cell(nextRow2, 1, "Bob");
+                    sheet1.Cell(nextRow2, 2, 88);
+                    nextRow2++;
+                    sheet1.AddTable("A1:B3", true, "Scores");
+                    sheet1.AutoFitColumn(1);
+                    sheet1.AutoFitColumn(2);
+                    document.Save();
+                }
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath))
+            {
                 Assert.Single(document.Sheets);
                 Assert.NotNull(document._spreadSheetDocument);
                 var workbookPart = document._spreadSheetDocument.WorkbookPart;
@@ -54,21 +65,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void CanSetCellsWithVariousBuilders() {
+        public void CanSetCellsWithVariousBuilders()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet3 = document.AddSheet("Data");
+                    int nextRow4 = 1;
+                    {
+                        var cell1 = sheet3.CellAt("B2");
+                        sheet3.Cell(cell1.Row, cell1.Column, "Sheet");
+                    }
 
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AsFluent()
-                    .Sheet("Data", s => s
-                        .Cell("B2", "Sheet")
-                        .Row(r => r.Cell("C", "Row"))
-                        .Columns(c => c.Col(4, col => col.Cell(2, "Column")))
-                        .Range("A1:D4", r => r.Cell(4, 4, "Range")))
-                    .End()
-                    .Save();
+                    {
+                        var cell2 = sheet3.CellAt("C" + nextRow4);
+                        sheet3.Cell(cell2.Row, cell2.Column, "Row");
+                    }
+
+                    nextRow4++;
+                    sheet3.Cell(2, 4, "Column");
+                    var range5 = sheet3.Range("A1:D4");
+                    sheet3.Cell(range5.CellAt(4, 4).Row, range5.CellAt(4, 4).Column, "Range");
+                    document.Save();
+                }
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath))
+            {
                 Assert.NotNull(document._spreadSheetDocument);
                 var workbookPart = document._spreadSheetDocument.WorkbookPart;
                 Assert.NotNull(workbookPart);
@@ -83,42 +107,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentRangeRejectsAQualifierThatWouldRetargetAnotherSheet() {
+        public void FluentRangeRejectsAQualifierThatWouldRetargetAnotherSheet()
+        {
             using ExcelDocument document = ExcelDocument.Create();
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            {
+                var sheet6 = document.AddSheet("Data");
 
-            ArgumentException exception = Assert.Throws<ArgumentException>(() => document.AsFluent()
-                .Sheet("Data", sheet => sheet.Range("'Other'!A1:B2", _ => { })));
-
+                var range8 = sheet6.Range("'Other'!A1:B2");
+            });
             Assert.Contains("must not qualify", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]
-        public void FluentCellRejectsAQualifierThatWouldRetargetAnotherSheet() {
+        public void FluentCellRejectsAQualifierThatWouldRetargetAnotherSheet()
+        {
             using ExcelDocument document = ExcelDocument.Create();
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            {
+                var sheet9 = document.AddSheet("Data");
 
-            ArgumentException exception = Assert.Throws<ArgumentException>(() => document.AsFluent()
-                .Sheet("Data", sheet => sheet.Cell("'Other'!A1", "Wrong sheet")));
-
+                {
+                    var cell3 = sheet9.CellAt("'Other'!A1");
+                    sheet9.Cell(cell3.Row, cell3.Column, "Wrong sheet");
+                }
+            });
             Assert.Contains("current worksheet", exception.Message, StringComparison.Ordinal);
-            Assert.Empty(document.CreateInspectionSnapshot().Worksheets.Single().Cells);
+            Assert.Empty(document.Inspect().Worksheets.Single().Cells);
         }
 
         [Fact]
-        public void CanChangeColumnWidthAndHiddenState() {
+        public void CanChangeColumnWidthAndHiddenState()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AsFluent()
-                    .Sheet("Data", s => s
-                        .HeaderRow("Name", "Score")
-                        .Columns(c => c
-                            .Col(1, col => col.Width(25).Hidden(true))
-                            .Col(2, col => col.Width(30))))
-                    .End()
-                    .Save();
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet11 = document.AddSheet("Data");
+                    int nextRow12 = 1;
+                    sheet11.Cell(nextRow12, 1, "Name");
+                    sheet11.Cell(nextRow12, 2, "Score");
+                    nextRow12++;
+                    sheet11.SetColumnWidth(1, ExcelColumnWidth.Characters(25));
+                    sheet11.SetColumnHidden(1, true);
+                    sheet11.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
+                    document.Save();
+                }
             }
 
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 var workbookPart = spreadsheet.WorkbookPart;
                 Assert.NotNull(workbookPart);
                 WorksheetPart wsPart = workbookPart.WorksheetParts.First();
@@ -139,47 +177,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void CanApplyAdvancedFeaturesFluently() {
+        public void CanApplyAdvancedFeaturesFluently()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-
-            var criteria = new Dictionary<uint, IEnumerable<string>> {
-                { 0, new[] { "Alice" } }
+            var criteria = new Dictionary<uint, IEnumerable<string>>
+            {
+                {
+                    0,
+                    new[]
+                    {
+                        "Alice"
+                    }
+                }
             };
-
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AsFluent()
-                    .Sheet("Data", s => s
-                        .HeaderRow("Name", "Score")
-                        .Row(r => r.Values("Alice", 1))
-                        .Row(r => r.Values("Bob", 2))
-                        .AutoFilter("A1:B3", criteria)
-                        .ConditionalColorScale("B2:B3", OfficeColor.Red, OfficeColor.Lime)
-                        .ConditionalDataBar("B2:B3", OfficeColor.Blue)
-                        .AutoFit(columns: true, rows: true))
-                    .End()
-                    .Save();
+            using (ExcelDocument document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet13 = document.AddSheet("Data");
+                    int nextRow14 = 1;
+                    sheet13.Cell(nextRow14, 1, "Name");
+                    sheet13.Cell(nextRow14, 2, "Score");
+                    nextRow14++;
+                    sheet13.Cell(nextRow14, 1, "Alice");
+                    sheet13.Cell(nextRow14, 2, 1);
+                    nextRow14++;
+                    sheet13.Cell(nextRow14, 1, "Bob");
+                    sheet13.Cell(nextRow14, 2, 2);
+                    nextRow14++;
+                    sheet13.AddAutoFilter("A1:B3", criteria);
+                    sheet13.AddConditionalColorScale("B2:B3", OfficeColor.Red, OfficeColor.Lime);
+                    sheet13.AddConditionalDataBar("B2:B3", OfficeColor.Blue);
+                    sheet13.AutoFitColumns();
+                    sheet13.AutoFitRows();
+                    document.Save();
+                }
             }
 
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 AutoFilter? autoFilter = wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
                 Assert.NotNull(autoFilter);
                 Assert.NotNull(autoFilter!.Reference);
                 Assert.Equal("A1:B3", autoFilter.Reference!.Value);
-
-                  var rules = wsPart.Worksheet.Elements<ConditionalFormatting>()
-                      .SelectMany(cf => cf.Elements<ConditionalFormattingRule>())
-                      .ToList();
-                  Assert.Contains(rules, r => r.Type?.Value == ConditionalFormatValues.ColorScale);
-                  Assert.Contains(rules, r => r.Type?.Value == ConditionalFormatValues.DataBar);
-
-                  var column = wsPart.Worksheet.GetFirstChild<Columns>()?.Elements<Column>().FirstOrDefault();
-                  Assert.True(column?.BestFit?.Value ?? false);
-
-                  var row = wsPart.Worksheet.Descendants<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == 1);
-                  Assert.True(row?.CustomHeight?.Value ?? false);
-                  Assert.True(row?.Height?.Value > 0);
-              }
+                var rules = wsPart.Worksheet.Elements<ConditionalFormatting>().SelectMany(cf => cf.Elements<ConditionalFormattingRule>()).ToList();
+                Assert.Contains(rules, r => r.Type?.Value == ConditionalFormatValues.ColorScale);
+                Assert.Contains(rules, r => r.Type?.Value == ConditionalFormatValues.DataBar);
+                var column = wsPart.Worksheet.GetFirstChild<Columns>()?.Elements<Column>().FirstOrDefault();
+                Assert.True(column?.BestFit?.Value ?? false);
+                var row = wsPart.Worksheet.Descendants<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == 1);
+                Assert.True(row?.CustomHeight?.Value ?? false);
+                Assert.True(row?.Height?.Value > 0);
+            }
 
             File.Delete(filePath);
         }

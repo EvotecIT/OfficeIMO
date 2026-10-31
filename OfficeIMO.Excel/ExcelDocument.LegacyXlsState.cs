@@ -134,6 +134,7 @@ namespace OfficeIMO.Excel {
             SourceFormat = ExcelFileFormat.Xls;
             _legacyXlsSourcePath = sourcePath;
             _legacyXlsImportDiagnostics = workbook.Diagnostics.ToArray();
+            CaptureLegacyLoadDiagnostics(workbook);
             _legacyXlsUnsupportedFeatures = workbook.UnsupportedFeatures.ToArray();
             _legacyXlsPreservedFeatures = workbook.PreservedFeatureRecords.ToArray();
             _legacyXlsUnsupportedSheets = workbook.UnsupportedSheets.ToArray();
@@ -163,6 +164,7 @@ namespace OfficeIMO.Excel {
             _xlsbAdvancedWorkbook = workbook;
             _xlsbPreservationGuard = OfficeIMO.Excel.Xlsb.Write.XlsbProjectionPreservationGuard.Capture(this);
             _xlsbImportDiagnostics = workbook.Diagnostics.ToArray();
+            CaptureBinaryLoadDiagnostics(workbook);
             _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
             _packageDirty = false;
             _packagePropertiesDirty = false;
@@ -471,7 +473,7 @@ namespace OfficeIMO.Excel {
                 || sheet.AutoFitColumns
                 || sheet.Metadata?.IsEmpty == false
                 || sheet.ColumnNumberFormats != null
-                || !A1.TryParseRange(sheet.Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
+                || !ExcelA1.TryParseRange(sheet.Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
                 || firstRow != 1
                 || firstColumn != 1
                 || lastRow != sheet.Table.RowCount + (sheet.IncludeHeaders ? 1 : 0)

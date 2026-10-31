@@ -419,13 +419,13 @@ public sealed partial class HtmlRenderingTests {
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, imageOptions);
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, imageOptions).Bytes);
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes())).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
         Assert.Contains("Generated", SvgPaintedText.Read(svg), StringComparison.Ordinal);
         Assert.Contains("BackendMarker", SvgPaintedText.Read(svg), StringComparison.Ordinal);
         Assert.Contains("GeneratedBackendMarker", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -466,8 +466,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        string pdfText = string.Concat(PdfCore.PdfReadDocument
-            .Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions()))
+        string pdfText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes()))
             .ExtractText()
             .Where(character => !char.IsWhiteSpace(character)));
 

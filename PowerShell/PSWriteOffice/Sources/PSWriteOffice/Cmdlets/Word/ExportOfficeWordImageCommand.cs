@@ -78,6 +78,7 @@ public sealed class ExportOfficeWordImageCommand : PSCmdlet
             }
 
             WordImageExportOptions effectiveOptions = Options?.Clone() ?? new WordImageExportOptions();
+            effectiveOptions.Format = Format;
             if (AllPages.IsPresent)
             {
                 effectiveOptions.PageIndex = 0;
@@ -86,7 +87,7 @@ public sealed class ExportOfficeWordImageCommand : PSCmdlet
 
             if (batch)
             {
-                IReadOnlyList<OfficeImageExportResult> results = document.SaveAsImages(output, Format, effectiveOptions);
+                IReadOnlyList<OfficeImageExportResult> results = document.SaveImageResults(output, effectiveOptions);
                 if (PassThru.IsPresent) WriteObject(results, enumerateCollection: true);
             }
             else

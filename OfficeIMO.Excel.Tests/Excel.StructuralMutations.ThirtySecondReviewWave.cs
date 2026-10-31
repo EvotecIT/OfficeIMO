@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TransactionRollback_RestoresExclusiveInCellImageGraph() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Rollback image");
             AssertRichImageGraphCounts(document, expected: 1);
             using var cancellation = new CancellationTokenSource();
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_RewritesUnqualifiedStructuredReferencesOnlyInsideOwnerTable() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Amount");
             sheet.CellValue(1, 2, "Tax");
             sheet.CellFormula(2, 1, "=[@Amount]*2");
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FeatureReport_RegistersInCellImagesWithoutReadingPayloads() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(2, 2, TinyPng, altText: "Native image");
 
             ExcelFeatureReport report = document.InspectFeatures();

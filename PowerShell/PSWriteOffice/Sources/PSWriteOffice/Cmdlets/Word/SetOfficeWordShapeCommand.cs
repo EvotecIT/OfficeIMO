@@ -7,7 +7,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Restyle callout shapes in an opened report.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $doc |
 ///     Get-OfficeWordShape |
 ///     Set-OfficeWordShape -FillColor '#fff7e6' -StrokeColor '#fa8c16' -StrokeWidth 1.25 -Description 'Highlighted callout'
@@ -79,14 +79,14 @@ public sealed class SetOfficeWordShapeCommand : PSCmdlet
             return;
         }
 
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Width)) && Width.HasValue) Shape.Width = Width.Value;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Height)) && Height.HasValue) Shape.Height = Height.Value;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Left))) Shape.Left = Left;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Top))) Shape.Top = Top;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Width)) && Width.HasValue) Shape.Width = OfficeIMO.OfficeLength.Points(Width.Value);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Height)) && Height.HasValue) Shape.Height = OfficeIMO.OfficeLength.Points(Height.Value);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Left))) Shape.Left = Left.HasValue ? OfficeIMO.OfficeLength.Points(Left.Value) : (OfficeIMO.OfficeLength?)null;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Top))) Shape.Top = Top.HasValue ? OfficeIMO.OfficeLength.Points(Top.Value) : (OfficeIMO.OfficeLength?)null;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Rotation))) Shape.Rotation = Rotation;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(FillColor))) Shape.FillColorHex = FillColor ?? string.Empty;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(StrokeColor))) Shape.StrokeColorHex = StrokeColor ?? string.Empty;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(StrokeWidth))) Shape.StrokeWeight = StrokeWidth;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(StrokeWidth))) Shape.StrokeWeight = StrokeWidth.HasValue ? OfficeIMO.OfficeLength.Points(StrokeWidth.Value) : (OfficeIMO.OfficeLength?)null;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Stroked))) Shape.Stroked = Stroked;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(ZIndex))) Shape.ZIndex = ZIndex;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Title))) Shape.Title = Title;

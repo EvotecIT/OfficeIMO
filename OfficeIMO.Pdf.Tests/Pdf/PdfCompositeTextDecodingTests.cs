@@ -168,7 +168,7 @@ public sealed class PdfCompositeTextDecodingTests {
             : PdfDocument.Load(source).Redactions.Plan(areas);
 
         Assert.False(plan.IsReviewable);
-        Assert.Contains(plan.Findings, static finding => finding.Code == "RedactionSourceTextMappingUnsupported");
+        Assert.Contains(plan.Findings, static finding => finding.Code == "redaction-source-text-mapping-unsupported");
     }
 
     [Theory]

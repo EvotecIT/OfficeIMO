@@ -8,7 +8,7 @@ public sealed class MarkdownVisualThemePreset {
         OfficeVisualThemeKind kind,
         string name,
         string description,
-        HtmlStyle htmlStyle,
+        MarkdownHtmlStyle htmlStyle,
         params string[] aliases) {
         Kind = kind;
         Name = name ?? throw new ArgumentNullException(nameof(name));
@@ -27,7 +27,7 @@ public sealed class MarkdownVisualThemePreset {
     public string Description { get; }
 
     /// <summary>Preferred HTML style used when rendering the preset to HTML.</summary>
-    public HtmlStyle HtmlStyle { get; }
+    public MarkdownHtmlStyle HtmlStyle { get; }
 
     /// <summary>Additional accepted names for lookup and front matter.</summary>
     public IReadOnlyList<string> Aliases { get; }

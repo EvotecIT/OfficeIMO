@@ -25,8 +25,8 @@ public sealed class PdfNumberingTabCompatibilityTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 720;
-        level.IndentationHanging = 360;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(36D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new Tabs(
             new TabStop { Val = TabStopValues.Number, Position = 3000 }), 0);
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
@@ -34,13 +34,13 @@ public sealed class PdfNumberingTabCompatibilityTests {
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY\nNEXT");
         paragraph.Text = "BODY\nNEXT";
         paragraph.FontFamily = "Courier New";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (inline) paragraph.CharacterScale = 95;
         if (table) paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Courier"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         Assert.Equal("1.BODYNEXT", string.Concat(letters.Select(letter => letter.Value)));
         Assert.InRange(Math.Abs(letters[2].StartBaseLine.X - letters[0].StartBaseLine.X - bodyOffset), 0D, 0.03D);

@@ -76,7 +76,7 @@ internal static class HtmlRenderingRepresentativeCorpus {
             LoadHtml("email-render"),
             new[] { "Action Required", "Review the attached status update", "2 checks need attention", "Blocked status image" },
             linkUri: "https://example.test/action",
-            diagnosticCodes: new[] { "ImageResourceRejectedByPolicy", "HyperlinkRejectedByPolicy" },
+            diagnosticCodes: new[] { global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy, "HyperlinkRejectedByPolicy" },
             minimumVisualCount: 20),
         new HtmlRenderingCorpusCase(
             "dashboard-print",
@@ -233,7 +233,7 @@ internal sealed class HtmlRenderingCorpusCase {
             AllowSystemFontFallback = false,
             Mode = Mode,
             ViewportWidth = 640D,
-            PageSize = new OfficePageSize(8.27D, 11.69D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(8.27D), global::OfficeIMO.OfficeLength.Inches(11.69D)),
             Margins = HtmlRenderMargins.All(40D),
             Scale = 0.5D,
             BackgroundColor = OfficeColor.White,

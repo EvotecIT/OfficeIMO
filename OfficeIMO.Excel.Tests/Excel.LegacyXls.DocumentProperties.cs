@@ -48,15 +48,15 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.HasImportErrors);
             LegacyXlsUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures, unsupported => unsupported.Kind == LegacyXlsUnsupportedFeatureKind.DocumentProperty);
-            Assert.Equal("XLS-OLE-CUSTOM-DOCUMENT-PROPERTY-UNSUPPORTED", feature.Code);
+            Assert.Equal("xls-ole-custom-document-property-unsupported", feature.Code);
             Assert.Equal("DocumentProperty:Custom:PropertyId:0x0002:Type:0x0048", feature.DetailCode);
             Assert.Contains("UnsupportedBlob", feature.Description);
             Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Severity == LegacyXlsDiagnosticSeverity.Info
-                && diagnostic.Code == "XLS-OLE-CUSTOM-DOCUMENT-PROPERTY-UNSUPPORTED"
+                && diagnostic.Code == "xls-ole-custom-document-property-unsupported"
                 && diagnostic.DetailCode == "DocumentProperty:Custom:PropertyId:0x0002:Type:0x0048");
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DocumentProperty]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-OLE-CUSTOM-DOCUMENT-PROPERTY-UNSUPPORTED"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["xls-ole-custom-document-property-unsupported"]);
             Assert.Equal(1, result.ImportReport.UnsupportedProjectionGapCount);
             Assert.Equal(1, result.ImportReport.UnsupportedProjectionGapsByKind[LegacyXlsUnsupportedFeatureKind.DocumentProperty]);
         }

@@ -22,9 +22,9 @@ public sealed class ReaderExcelNativeReadAdmissionTests {
     [InlineData("MaxInputBytes", 64)]
     public void NativeDataReaderPreservesConfiguredAdmission(string name, long maximum) {
         byte[] bytes = Workbook();
-        ExcelReadOptions options = Configure(name, maximum);
+        ExcelReaderOptions options = Configure(name, maximum);
         OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => {
-            using DbDataReader reader = ExcelDocument.OpenDataReader(bytes, options);
+            using DbDataReader reader = ExcelDocument.OpenReader(new MemoryStream(bytes, writable: false), options);
             do { while (reader.Read()) _ = reader.GetValue(0); } while (reader.NextResult());
         });
         Assert.Equal("excel", error.Owner); Assert.Equal(name, error.LimitName); Assert.Equal(maximum, error.Maximum);
@@ -90,11 +90,11 @@ public sealed class ReaderExcelNativeReadAdmissionTests {
     public async Task NativeInputBudgetRestoresCallerStream(bool asynchronous) {
         using var stream = new MemoryStream(Workbook(), writable: false);
         stream.Position = 7;
-        var options = new ExcelReadOptions { MaxInputBytes = 64 };
+        var options = new ExcelReaderOptions { MaxInputBytes = 64 };
         OfficeInspectionResourceLimitException error = asynchronous
-            ? await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenDataReaderAsync(stream, options))
-            : Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenDataReader(stream, options));
-        Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxInputBytes), error.LimitName); Assert.Equal(64, error.Maximum);
+            ? await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(async () => { using var reader = await ExcelDocument.OpenReaderAsync(stream, options); _ = reader.FieldCount; })
+            : Assert.Throws<OfficeInspectionResourceLimitException>(() => { using var reader = ExcelDocument.OpenReader(stream, options); _ = reader.FieldCount; });
+        Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReaderOptions.MaxInputBytes), error.LimitName); Assert.Equal(64, error.Maximum);
         Assert.Equal(7, stream.Position); Assert.True(stream.CanRead);
     }
 
@@ -105,10 +105,8 @@ public sealed class ReaderExcelNativeReadAdmissionTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsm");
         try {
             File.WriteAllBytes(path, Workbook());
-            OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenDataReader(path, Configure(name, maximum)));
+            OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => { using var reader = ExcelDocument.OpenReader(path, Configure(name, maximum)); _ = reader.FieldCount; });
             Assert.Equal("excel", error.Owner); Assert.Equal(name, error.LimitName); Assert.Equal(maximum, error.Maximum);
-            error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.GetSheetNames(path, Configure(name, maximum)));
-            Assert.Equal(name, error.LimitName); Assert.Equal(maximum, error.Maximum);
         } finally { File.Delete(path); }
     }
 
@@ -116,19 +114,19 @@ public sealed class ReaderExcelNativeReadAdmissionTests {
     [InlineData(true)]
     [InlineData(false)]
     public void NativeDataReaderConfiguredAllocationBoundsRemainTyped(bool columns) {
-        var options = new ExcelReadOptions { HasHeaderRow = false, A1Range = "A1:B2", MaxDataReaderChunkRows = 1 };
+        var options = new ExcelReaderOptions { HasHeaderRow = false, A1Range = "A1:B2", MaxDataReaderChunkRows = 1 };
         if (columns) options.MaxDataReaderColumns = 1;
         else options.MaxDataReaderBufferedCells = 1;
-        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenDataReader(Workbook(), options));
+        OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => { using var reader = ExcelDocument.OpenReader(new MemoryStream(Workbook(), writable: false), options); _ = reader.FieldCount; });
         Assert.Equal("excel", error.Owner);
-        Assert.Equal(columns ? nameof(ExcelReadOptions.MaxDataReaderColumns) : nameof(ExcelReadOptions.MaxDataReaderBufferedCells), error.LimitName);
+        Assert.Equal(columns ? nameof(ExcelReaderOptions.MaxDataReaderColumns) : nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), error.LimitName);
         Assert.Equal(1, error.Maximum);
     }
 
     [Fact]
     public void LoadedProjectionDoesNotRetroactivelyAdmitPackageInput() {
         using ExcelDocument document = ExcelDocument.Load(new MemoryStream(Workbook()));
-        var format = new ReaderExcelOptions { HeadersInFirstRow = false, ReadOptions = new ExcelReadOptions { MaxInputBytes = 1, MaxMetadataPartBytes = 1, MaxWorksheets = 1 } };
+        var format = new ReaderExcelOptions { HeadersInFirstRow = false, ReadOptions = new ExcelReaderOptions { MaxInputBytes = 1, MaxMetadataPartBytes = 1, MaxWorksheets = 1 } };
         OfficeDocumentReadResult result = document.ReadDocument("source.xlsx", new ReaderOptions { Projection = ReaderProjection.TextAndMetadata }, format);
         Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("first", StringComparison.Ordinal));
         Assert.Equal(2, document.Sheets.Count);
@@ -139,14 +137,14 @@ public sealed class ReaderExcelNativeReadAdmissionTests {
         using ExcelDocument document = ExcelDocument.Load(new MemoryStream(Workbook()));
         Assert.Throws<ReaderResourceLimitException>(() => document.ReadDocument("source.xlsx",
             new ReaderOptions { Projection = ReaderProjection.TextAndMetadata },
-            new ReaderExcelOptions { HeadersInFirstRow = false, ReadOptions = Configure(nameof(ExcelReadOptions.MaxSharedStringItems), 1) }));
+            new ReaderExcelOptions { HeadersInFirstRow = false, ReadOptions = Configure(nameof(ExcelReaderOptions.MaxSharedStringItems), 1) }));
         Assert.Equal(2, document.Sheets.Count); Assert.NotNull(document.OpenXmlDocument.WorkbookPart);
         OfficeDocumentReadResult recovered = document.ReadDocument("source.xlsx", formatOptions: new ReaderExcelOptions { HeadersInFirstRow = false });
         Assert.Contains(recovered.Chunks, chunk => chunk.Text.Contains("second", StringComparison.Ordinal));
     }
 
-    private static ExcelReadOptions Configure(string name, long maximum) {
-        var options = new ExcelReadOptions { HasHeaderRow = false };
+    private static ExcelReaderOptions Configure(string name, long maximum) {
+        var options = new ExcelReaderOptions { HasHeaderRow = false };
         switch (name) {
             case "MaxSharedStringItems": options.MaxSharedStringItems = (int)maximum; break;
             case "MaxSharedStringItemCharacters": options.MaxSharedStringItemCharacters = (int)maximum; break;
@@ -160,7 +158,7 @@ public sealed class ReaderExcelNativeReadAdmissionTests {
 
     private static byte[] Workbook() {
         using ExcelDocument document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Evidence"); sheet.CellValue(1, 1, "first"); sheet.CellValue(2, 1, "second"); document.AddWorksheet("Second");
+        var sheet = document.AddSheet("Evidence"); sheet.CellValue(1, 1, "first"); sheet.CellValue(2, 1, "second"); document.AddSheet("Second");
         WorkbookPart workbook = document.OpenXmlDocument.WorkbookPart!;
         SharedStringTablePart strings = workbook.SharedStringTablePart ?? workbook.AddNewPart<SharedStringTablePart>();
         strings.SharedStringTable = new SharedStringTable(new SharedStringItem(new Text("first")), new SharedStringItem(new Text("second"))) { Count = 2, UniqueCount = 2 };

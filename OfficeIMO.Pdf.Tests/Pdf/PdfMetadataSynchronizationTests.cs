@@ -22,7 +22,7 @@ public class PdfMetadataSynchronizationTests {
 
     [Fact]
     public void SynchronizeMetadata_UpdatesInfoAndXmpWhilePreservingCustomSchema() {
-        var options = new PdfOptions { IncludeXmpMetadata = true }
+        var options = new PdfCreateOptions { IncludeXmpMetadata = true }
             .SetElectronicInvoiceMetadata(new PdfElectronicInvoiceMetadata("ORDER", "invoice.xml", "1.0", "EN 16931"));
         byte[] source = PdfDocument.Create(options)
             .Meta(
@@ -100,7 +100,7 @@ public class PdfMetadataSynchronizationTests {
 
     [Fact]
     public void IncrementalSynchronizeMetadata_PreservesPrefixAndCustomXmpSchemas() {
-        var options = new PdfOptions { IncludeXmpMetadata = true }
+        var options = new PdfCreateOptions { IncludeXmpMetadata = true }
             .SetElectronicInvoiceMetadata(new PdfElectronicInvoiceMetadata("ORDER", "invoice.xml", "1.0", "EN 16931"));
         byte[] source = PdfDocument.Create(options)
             .Meta(title: "Original", author: "Existing author")

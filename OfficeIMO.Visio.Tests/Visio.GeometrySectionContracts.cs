@@ -104,7 +104,7 @@ public sealed class VisioGeometrySectionContractTests {
         VisioDocument control = LoadXml(ConnectorXml("control"));
         VisioConnector controlConnector = Assert.Single(control.Pages[0].Connectors);
         controlConnector.PlaceLabel(.5, width: .4, height: .2);
-        var expected = Assert.Single(control.CreateInspectionSnapshot().Pages[0].Connectors);
+        var expected = Assert.Single(control.Inspect().Pages[0].Connectors);
         Assert.True(Math.Abs(expected.LabelResolvedPinY!.Value - 1) > .1);
 
         VisioDocument source = LoadXml(ConnectorXml(flag));
@@ -113,7 +113,7 @@ public sealed class VisioGeometrySectionContractTests {
             VisioConnector connector = Assert.Single(document.Pages[0].Connectors);
             connector.PlaceLabel(.5, width: .4, height: .2);
             connector.EndArrow = EndArrow.Triangle;
-            var snapshot = Assert.Single(document.CreateInspectionSnapshot().Pages[0].Connectors);
+            var snapshot = Assert.Single(document.Inspect().Pages[0].Connectors);
             Assert.Equal(expected.LabelResolvedPinX!.Value, snapshot.LabelResolvedPinX!.Value, 8);
             Assert.Equal(expected.LabelResolvedPinY!.Value, snapshot.LabelResolvedPinY!.Value, 8);
             byte[] before = document.ToLegacyXmlResult().Value;
@@ -121,7 +121,7 @@ public sealed class VisioGeometrySectionContractTests {
             Assert.Equal(before, document.ToLegacyXmlResult().Value);
             document.DuplicatePage(document.Pages[0], "Copy");
             AssertHiddenConnectorRendering(document.Pages[1]);
-            var copied = Assert.Single(document.CreateInspectionSnapshot().Pages[1].Connectors);
+            var copied = Assert.Single(document.Inspect().Pages[1].Connectors);
             Assert.Equal(snapshot.LabelResolvedPinY!.Value, copied.LabelResolvedPinY!.Value, 8);
         }
     }
@@ -169,7 +169,7 @@ public sealed class VisioGeometrySectionContractTests {
         VisioDocument control = LoadXml(ConnectorXml("control"));
         control.Pages[0].Connectors[0].PlaceLabel(.5, width: .4, height: .2);
         control.Pages[0].Connectors[0].EndArrow = EndArrow.Triangle;
-        double expectedY = control.CreateInspectionSnapshot().Pages[0].Connectors[0].LabelResolvedPinY!.Value;
+        double expectedY = control.Inspect().Pages[0].Connectors[0].LabelResolvedPinY!.Value;
         VisioSvgSaveOptions svgOptions = new() { PixelsPerInch = 48, RenderStencilArtwork = false, ResolveConnectorLabelOverlaps = false };
         VisioPngSaveOptions pngOptions = new() { PixelsPerInch = 48, Supersampling = 1, RenderStencilArtwork = false, ResolveConnectorLabelOverlaps = false };
         string[] expectedPaths = SvgPaths(control.Pages[0]);
@@ -184,7 +184,7 @@ public sealed class VisioGeometrySectionContractTests {
             document.Pages[0].Connectors[0].EndArrow = EndArrow.Triangle;
             document.DuplicatePage(document.Pages[0], "Copy");
             byte[] before = document.ToLegacyXmlResult().Value;
-            foreach (var page in document.CreateInspectionSnapshot().Pages)
+            foreach (var page in document.Inspect().Pages)
                 Assert.Equal(expectedY, Assert.Single(page.Connectors).LabelResolvedPinY!.Value, 8);
             foreach (VisioPage page in document.Pages) {
                 Assert.Equal(expectedPaths, SvgPaths(page));

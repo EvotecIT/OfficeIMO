@@ -20,11 +20,11 @@ public sealed class AddOfficeWordPictureControlCommand : PSCmdlet
     [Parameter(Mandatory = true, Position = 0)]
     public string Path { get; set; } = string.Empty;
 
-    /// <summary>Width in points.</summary>
+    /// <summary>Width in pixels.</summary>
     [Parameter]
     public double? Width { get; set; }
 
-    /// <summary>Height in points.</summary>
+    /// <summary>Height in pixels.</summary>
     [Parameter]
     public double? Height { get; set; }
 
@@ -49,7 +49,7 @@ public sealed class AddOfficeWordPictureControlCommand : PSCmdlet
     {
         var paragraph = ResolveParagraph();
         var resolvedPath = ResolvePath();
-        var control = paragraph.AddPictureControl(resolvedPath, Width, Height, Alias, Tag);
+        var control = paragraph.AddPictureControl(resolvedPath, Width.HasValue ? global::OfficeIMO.OfficeLength.Pixels(Width.Value) : null, Height.HasValue ? global::OfficeIMO.OfficeLength.Pixels(Height.Value) : null, Alias, Tag);
 
         if (PassThru.IsPresent)
         {

@@ -14,7 +14,7 @@ public partial class Excel {
     public async Task AsyncOpeningDefaultCultureRetainsBorrowedTextAndTypedValues(bool seekable) {
         byte[] workbook = CreateAsyncCultureWorkbook(AsyncCultureRows);
         using var source = new AsyncOpeningReadStream(workbook, seekable);
-        using (ExcelWorkbookDataReader reader = await ExcelDocument.OpenDataReaderAsync(source)) {
+        using (ExcelWorkbookDataReader reader = await ExcelDocument.OpenReaderAsync(source)) {
             Assert.Equal(new[] { "Name", "Id", "Date", "Value" }, Enumerable.Range(0, reader.FieldCount).Select(reader.GetName));
             Assert.True(await reader.ReadAsync());
             AssertAsyncCultureRow(reader, "Alpha", 42, 45292.25, 1.25);
@@ -31,13 +31,13 @@ public partial class Excel {
     public async Task AsyncOpeningSnapshotsCustomInvariantNamedCultureBeforeAwaitingSource() {
         var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
         culture.NumberFormat.NumberDecimalSeparator = "|";
-        var options = new ExcelReadOptions { Culture = culture };
+        var options = new ExcelReaderOptions { Culture = culture };
         var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var source = new AsyncOpeningReadStream(
             CreateAsyncCultureWorkbook(AsyncCultureRows.Replace("Alpha", "12|5")), seekable: true) {
             ReadGate = gate.Task
         };
-        Task<ExcelWorkbookDataReader> opening = ExcelDocument.OpenDataReaderAsync(source, options);
+        Task<ExcelWorkbookDataReader> opening = ExcelDocument.OpenReaderAsync(source, options);
         Assert.False(opening.IsCompleted);
         culture.NumberFormat.NumberDecimalSeparator = ":";
         gate.SetResult(true);
@@ -63,9 +63,15 @@ public partial class Excel {
         byte[] workbook = CreateAsyncCultureWorkbook(rows, invalidStyle ? string.Empty : "<trailing>");
         using var source = new AsyncOpeningReadStream(workbook, seekable);
         if (invalidStyle) {
-            await Assert.ThrowsAsync<InvalidDataException>(() => ExcelDocument.OpenDataReaderAsync(source));
+            await Assert.ThrowsAsync<InvalidDataException>(async () => {
+                using var reader = await ExcelDocument.OpenReaderAsync(source);
+                _ = reader.FieldCount;
+            });
         } else {
-            await Assert.ThrowsAnyAsync<XmlException>(() => ExcelDocument.OpenDataReaderAsync(source));
+            await Assert.ThrowsAnyAsync<XmlException>(async () => {
+                using var reader = await ExcelDocument.OpenReaderAsync(source);
+                _ = reader.FieldCount;
+            });
         }
         Assert.True(source.CanRead);
         if (seekable) Assert.Equal(0, source.Position);
@@ -87,7 +93,7 @@ public partial class Excel {
 
     private static byte[] CreateAsyncCultureWorkbook(string rows, string trailingXml = "") {
         using ExcelDocument document = ExcelDocument.Create();
-        document.AddWorksheet("Data").CellValue(1, 1, "Name");
+        document.AddSheet("Data").CellValue(1, 1, "Name");
         byte[] original = document.ToBytes();
         using var buffer = new MemoryStream();
         buffer.Write(original, 0, original.Length);

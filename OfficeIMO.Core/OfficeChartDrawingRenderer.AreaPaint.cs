@@ -22,7 +22,7 @@ public static partial class OfficeChartDrawingRenderer {
         if (clipped)
             areaPoints = ClipValuePolygon(areaPoints, range, bounds);
         OfficeColor? outline = paint?.ShowOutline == false || !showStroke ? null : paint?.OutlineColor ?? color;
-        double width = paint?.OutlineWidth ?? strokeWidth;
+        double width = paint?.OutlineWidth?.ToPoints() ?? strokeWidth;
         if (areaPoints.Count >= 3) {
             // Paint only the original boundary below: clipping an area must not invent an outline on the clip edge.
             var fillPaint = new OfficeChartPointStyle(paint?.FillColor, paint?.NoFill ?? false,
@@ -35,12 +35,12 @@ public static partial class OfficeChartDrawingRenderer {
                     closed: true, plotBounds: clipped ? bounds : null, valueRange: clipped ? range : null);
             } else if (clipped) {
                 AddClippedValueLine(drawing, topPoints, outline.Value, width, dashStyle, range, bounds);
-                AddClippedValueLine(drawing, bottomPoints, outline.Value, paint?.OutlineWidth ?? 0.5D, OfficeStrokeDashStyle.Solid,
+                AddClippedValueLine(drawing, bottomPoints, outline.Value, paint?.OutlineWidth?.ToPoints() ?? 0.5D, OfficeStrokeDashStyle.Solid,
                     range, bounds);
-                AddClippedValueLine(drawing, new[] { bottomPoints[0], topPoints[0] }, outline.Value, paint?.OutlineWidth ?? 0.5D,
+                AddClippedValueLine(drawing, new[] { bottomPoints[0], topPoints[0] }, outline.Value, paint?.OutlineWidth?.ToPoints() ?? 0.5D,
                     OfficeStrokeDashStyle.Solid, range, bounds);
                 AddClippedValueLine(drawing, new[] { topPoints[topPoints.Count - 1], bottomPoints[bottomPoints.Count - 1] },
-                    outline.Value, paint?.OutlineWidth ?? 0.5D, OfficeStrokeDashStyle.Solid, range, bounds);
+                    outline.Value, paint?.OutlineWidth?.ToPoints() ?? 0.5D, OfficeStrokeDashStyle.Solid, range, bounds);
             } else {
                 if (paint != null) AddPolygonShape(drawing, areaPoints, null, outline, width, dashStyle: dashStyle,
                     strokeLineJoin: paint.OutlineJoin);

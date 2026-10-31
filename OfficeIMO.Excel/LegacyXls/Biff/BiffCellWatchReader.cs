@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             int row = firstRow + 1;
             int column = firstColumn + 1;
-            cellWatch = new LegacyXlsCellWatch(A1.CellReference(row, column), row, column);
+            cellWatch = new LegacyXlsCellWatch(ExcelA1.CellReference(row, column), row, column);
             return true;
         }
     }

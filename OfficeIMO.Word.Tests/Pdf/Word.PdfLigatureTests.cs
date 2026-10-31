@@ -121,10 +121,10 @@ public sealed class WordPdfLigatureTests {
             paragraph = runningStory.AddParagraph("fi");
         } else {
             paragraph = document.AddParagraph(story == "link" ? string.Empty : "fi");
-            if (story == "link") paragraph = paragraph.AddHyperLink("fi", new Uri("https://example.com/"));
+            if (story == "link") paragraph = paragraph.AddHyperLink("fi", new Uri("https://example.com/")).Paragraph;
         }
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        paragraph.FontSize = 10;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         if (direct != null) paragraph._paragraph.Descendants<W.Run>().Last(run => run.InnerText == "fi").RunProperties!.Append(Ligatures(direct));
         if (malformedRoute != null) {
             var element = new OpenXmlUnknownElement("w14", "ligatures", "http://schemas.microsoft.com/office/word/2010/wordml");
@@ -139,13 +139,13 @@ public sealed class WordPdfLigatureTests {
                 defaults.Append(element);
             }
         }
-        var options = new PdfOptions { DefaultFontSize = 10D };
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', featureTag: feature, scriptTag: "latn")));
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx)));
-        return loaded.ToPdfBytes(new WordToPdfOptions {
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
+        return loaded.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     private static W14.Ligatures Ligatures(string value) => new() {

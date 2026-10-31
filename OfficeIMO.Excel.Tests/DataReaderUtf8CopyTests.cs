@@ -45,6 +45,43 @@ public sealed class DataReaderUtf8CopyTests {
     }
 
     [Fact]
+    public void Utf8Copy_FallbackSupportsSequentialAndBackwardByteOffsets() {
+        string text = new string('a', 4095) + "🐢" + new string('終', 3000)
+            + "\uD800Z\uDC00" + new string('b', 4096);
+        byte[] expected = Encoding.UTF8.GetBytes(text);
+        using DataTableReader reader = CreateStringReader(text);
+        byte[] result = new byte[expected.Length];
+        byte[] chunk = new byte[37];
+        for (int offset = 0; offset < result.Length; offset += chunk.Length) {
+            int copied = (int)reader.GetUtf8Bytes(0, offset, chunk, 0, chunk.Length);
+            Array.Copy(chunk, 0, result, offset, copied);
+        }
+        Assert.Equal(expected, result);
+        foreach (int offset in new[] { 4094, 4096, 4097, 8191, expected.Length - 1, 0 }) {
+            int copied = (int)reader.GetUtf8Bytes(0, offset, chunk, 0, chunk.Length);
+            Assert.Equal(expected.Skip(offset).Take(copied), chunk.Take(copied));
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Performance")]
+    public void Utf8Copy_LargeFallbackFieldRetainsExactChunkedOutput() {
+        string text = new string('a', 2 * 1024 * 1024) + "🐢" + new string('終', 4096);
+        byte[] expected = Encoding.UTF8.GetBytes(text);
+        using DataTableReader reader = CreateStringReader(text);
+        byte[] actual = new byte[expected.Length];
+        byte[] chunk = new byte[4096];
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        for (int offset = 0; offset < actual.Length; offset += chunk.Length) {
+            int copied = (int)reader.GetUtf8Bytes(0, offset, chunk, 0, chunk.Length);
+            Array.Copy(chunk, 0, actual, offset, copied);
+        }
+        timer.Stop();
+        Assert.Equal(expected, actual);
+        Console.WriteLine($"Fallback UTF-8 copy: {expected.Length} bytes, 4096-byte chunks, {timer.Elapsed.TotalMilliseconds:F2} ms.");
+    }
+
+    [Fact]
     public void Utf8Copy_ValidatesDestinationRangesWithoutOverflow() {
         using DataTableReader reader = CreateStringReader("text");
         byte[] destination = { 0xA1, 0xA2, 0xA3 };

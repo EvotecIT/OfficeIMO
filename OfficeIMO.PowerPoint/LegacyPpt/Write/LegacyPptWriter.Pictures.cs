@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort OfficeArtBStoreContainer = 0xF001;
 
         internal static bool TryReadPictureCatalog(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             LegacyPptWriterFontCatalog tableFonts,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             bool convertUnsupportedTables,

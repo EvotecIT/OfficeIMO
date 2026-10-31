@@ -7,7 +7,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.OpenDocument;
 using OfficeIMO.OpenDocument;
 
-using PowerPointPresentation presentation = PowerPointPresentation.Load("deck.pptx");
+using PowerPointDocument presentation = PowerPointDocument.Load("deck.pptx");
 OdfConversionResult<OdpPresentation> conversion = presentation.ToOpenDocumentResult();
 conversion.Value.Save("deck.odp");
 

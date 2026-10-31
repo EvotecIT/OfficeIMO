@@ -14,9 +14,9 @@ namespace OfficeIMO.Word.Html {
     /// Converts <see cref="WordDocument"/> instances into HTML markup.
     /// </summary>
     internal partial class WordToHtmlConverter {
-        public string Convert(WordDocument document, WordToHtmlOptions options) {
+        public string Convert(WordDocument document, WordHtmlExportOptions options) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            options ??= new WordToHtmlOptions();
+            options ??= new WordHtmlExportOptions();
             lock (document) {
                 ExportInspection exportInspection = InspectExport(document, options);
                 ReportKnownExportLimitations(document, options, exportInspection);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private string ConvertPrepared(WordDocument document, WordToHtmlOptions options,
+        private string ConvertPrepared(WordDocument document, WordHtmlExportOptions options,
             IReadOnlyList<WordRevisionInfo>? reviewInfo, IReadOnlyList<WordFieldInfo>? fieldInfo, ExportInspection exportInspection) {
             var htmlDoc = new HtmlParser().ParseDocument("<!DOCTYPE html><html><head></head><body></body></html>");
             CancellationToken cancellationToken = CancellationToken.None;
@@ -47,7 +47,8 @@ namespace OfficeIMO.Word.Html {
             long MeasureCurrentHtmlCharacters() {
                 using var countingWriter = new CountingHtmlWriter();
                 htmlDoc.DocumentElement.ToHtml(countingWriter, HtmlMarkupFormatter.Instance);
-                return countingWriter.CharacterCount;
+                return SaturatingAdd(countingWriter.CharacterCount,
+                    options.EmitDocumentShell ? "<!doctype html>".Length + options.NewLine.Length : 0L);
             }
 
             long MeasureSerializedHtmlCharacters(INode node) {
@@ -82,10 +83,10 @@ namespace OfficeIMO.Word.Html {
                 using Stream input = image.OpenRead();
                 long reservedImageOutputCharacters = 0;
                 if (input.CanSeek && input.Length > options.MaxEmbeddedImageBytes) {
-                    ThrowExportLimitExceeded(options, "WordImageSizeLimitExceeded", "A Word image exceeds the configured per-image HTML export limit.", source, input.Length, options.MaxEmbeddedImageBytes);
+                    ThrowExportLimitExceeded(options, "word-image-size-limit-exceeded", "A Word image exceeds the configured per-image HTML export limit.", source, input.Length, options.MaxEmbeddedImageBytes);
                 }
                 if (input.CanSeek && input.Length > options.MaxTotalEmbeddedImageBytes - embeddedImageBytes) {
-                    ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, input.Length), options.MaxTotalEmbeddedImageBytes);
+                    ThrowExportLimitExceeded(options, "word-image-total-size-limit-exceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, input.Length), options.MaxTotalEmbeddedImageBytes);
                 }
                 if (base64Mime != null && input.CanSeek) {
                     ReserveImageOutputCharacters(
@@ -110,10 +111,10 @@ namespace OfficeIMO.Word.Html {
                 while ((read = input.Read(buffer, 0, buffer.Length)) > 0) {
                     long nextImageBytes = imageBytes + read;
                     if (nextImageBytes > options.MaxEmbeddedImageBytes) {
-                        ThrowExportLimitExceeded(options, "WordImageSizeLimitExceeded", "A Word image exceeds the configured per-image HTML export limit.", source, nextImageBytes, options.MaxEmbeddedImageBytes);
+                        ThrowExportLimitExceeded(options, "word-image-size-limit-exceeded", "A Word image exceeds the configured per-image HTML export limit.", source, nextImageBytes, options.MaxEmbeddedImageBytes);
                     }
                     if (nextImageBytes > options.MaxTotalEmbeddedImageBytes - embeddedImageBytes) {
-                        ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, nextImageBytes), options.MaxTotalEmbeddedImageBytes);
+                        ThrowExportLimitExceeded(options, "word-image-total-size-limit-exceeded", "Embedded Word images exceed the configured aggregate HTML export limit.", source, SaturatingAdd(embeddedImageBytes, nextImageBytes), options.MaxTotalEmbeddedImageBytes);
                     }
                     if (base64Mime != null) {
                         ReserveImageOutputCharacters(
@@ -264,14 +265,14 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     if (HasExtendedChart(artifactElement ?? (includeAll ? run._run : null))) {
-                        AddExportDiagnostic(options, "WordChartOmitted", "An extended Office chart has no supported HTML image projection.",
+                        AddExportDiagnostic(options, "word-chart-omitted", "An extended Office chart has no supported HTML image projection.",
                             OfficeConversionLossKind.Omission);
                         return true;
                     }
                     if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing) &&
                         (artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing chartDrawing &&
                             WordParagraph.DrawingOwnsChart(chartDrawing)
-                            ? new WordChart(run._document, run, chartDrawing) : includeAll ? run.Chart : null) is WordChart chart) {
+                            ? new WordChart(run._document,run,chartDrawing) : includeAll ? run.Chart : null) is WordChart chart) {
                         IElement? chartImage = CreateChartImage(htmlDoc, chart, options, ref embeddedImageBytes);
                         if (chartImage != null) target.Add(chartImage);
                         return true;
@@ -318,11 +319,11 @@ namespace OfficeIMO.Word.Html {
                                     srcSvg = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
                                 }
                                 SetOutputAttribute(htmlDoc, imgSvg, "src", srcSvg, "Image:src");
-                                if (imgObj.Width.HasValue) {
-                                    SetOutputAttribute(imgSvg, "width", ((int)Math.Round(imgObj.Width.Value)).ToString(CultureInfo.InvariantCulture), "Image:width");
+                                if (imgObj.Width is { } displayWidth) {
+                                    SetOutputAttribute(imgSvg, "width", ((int)Math.Round(displayWidth.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:width");
                                 }
-                                if (imgObj.Height.HasValue) {
-                                    SetOutputAttribute(imgSvg, "height", ((int)Math.Round(imgObj.Height.Value)).ToString(CultureInfo.InvariantCulture), "Image:height");
+                                if (imgObj.Height is { } displayHeight) {
+                                    SetOutputAttribute(imgSvg, "height", ((int)Math.Round(displayHeight.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:height");
                                 }
                                 if (!string.IsNullOrEmpty(imgObj.Description)) {
                                     SetOutputAttribute(imgSvg, "alt", imgObj.Description!, "Image:alt");
@@ -352,11 +353,11 @@ namespace OfficeIMO.Word.Html {
                             } else {
                                 SetOutputAttributeAfterValueReservation(htmlDoc, img, "src", src, "Image:src");
                             }
-                            if (imgObj.Width.HasValue) {
-                                SetOutputAttribute(img, "width", ((int)Math.Round(imgObj.Width.Value)).ToString(CultureInfo.InvariantCulture), "Image:width");
+                            if (imgObj.Width is { } displayWidth) {
+                                SetOutputAttribute(img, "width", ((int)Math.Round(displayWidth.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:width");
                             }
-                            if (imgObj.Height.HasValue) {
-                                SetOutputAttribute(img, "height", ((int)Math.Round(imgObj.Height.Value)).ToString(CultureInfo.InvariantCulture), "Image:height");
+                            if (imgObj.Height is { } displayHeight) {
+                                SetOutputAttribute(img, "height", ((int)Math.Round(displayHeight.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:height");
                             }
                             if (!string.IsNullOrEmpty(imgObj.Description)) {
                                 SetOutputAttribute(img, "alt", imgObj.Description!, "Image:alt");
@@ -595,6 +596,12 @@ namespace OfficeIMO.Word.Html {
 
                     // Ensure null-safe text handling
                     INode node = htmlDoc.CreateTextNode(run.Text ?? string.Empty);
+                    if (IsInlineCodeRun(run, para._document.Settings.FontFamily)
+                        && !string.Equals(run.CharacterStyleId, "HtmlCode", StringComparison.OrdinalIgnoreCase)) {
+                        var inlineCode = CreateOutputElement(htmlDoc, "code");
+                        inlineCode.AppendChild(node);
+                        node = inlineCode;
+                    }
 
                     if (run.Bold) {
                         var strong = CreateOutputElement(htmlDoc, "strong");
@@ -662,7 +669,7 @@ namespace OfficeIMO.Word.Html {
                                 htmlDoc,
                                 span,
                                 "style",
-                                $"font-family:{QuoteCssString(font!)}",
+                                $"font-family:{FontFamilyCss(font!)}",
                                 "RunFontStyle");
                             span.AppendChild(node);
                             node = span;
@@ -776,7 +783,94 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            bool IsCodeParagraph(WordParagraph para) {
+            var tableOfContentsLinks = new List<(IElement Anchor, Paragraph Heading)>();
+            // Headings get ids only when a table of contents needs link targets, so other output is unchanged.
+            bool documentHasTableOfContents = document.TableOfContent != null;
+            var renderedHeadingIds = new Dictionary<Paragraph, string>();
+            var usedHeadingIds = new HashSet<string>(StringComparer.Ordinal);
+
+            void RecordHeadingId(IElement element, Paragraph heading) {
+                string? id = element.GetAttribute("id");
+                if (string.IsNullOrEmpty(id)) {
+                    int counter = renderedHeadingIds.Count + 1;
+                    do {
+                        id = "heading-" + counter.ToString(CultureInfo.InvariantCulture);
+                        counter++;
+                    } while (!usedHeadingIds.Add(id) || htmlDoc.GetElementById(id) != null);
+                    SetOutputAttribute(element, "id", id, "Heading:id");
+                } else {
+                    usedHeadingIds.Add(id!);
+                }
+
+                renderedHeadingIds[heading] = id!;
+            }
+
+            // A Word TOC is a field whose stored result may be stale or empty. HTML cannot update fields, so the
+            // table of contents is regenerated from the document headings, the same way the PDF export builds it.
+            void AppendTableOfContents(IElement parent, WordTableOfContent tableOfContent) {
+                int minLevel = Math.Max(1, tableOfContent.MinLevel);
+                int maxLevel = Math.Max(minLevel, tableOfContent.MaxLevel);
+                var nav = CreateOutputElement(htmlDoc, "nav");
+                SetOutputAttribute(nav, "class", "toc", "TableOfContents:class");
+                string title = tableOfContent.Text;
+                if (!string.IsNullOrWhiteSpace(title)) {
+                    var heading = CreateOutputElement(htmlDoc, "p");
+                    SetOutputAttribute(heading, "class", "toc-title", "TableOfContents:class");
+                    heading.TextContent = title;
+                    nav.AppendChild(heading);
+                    SetOutputAttribute(nav, "aria-label", title, "TableOfContents:label");
+                }
+
+                var root = CreateOutputElement(htmlDoc, "ul");
+                nav.AppendChild(root);
+                var stack = new List<(int Level, IElement List, IElement? LastItem)> { (minLevel, root, null) };
+                int entries = 0;
+                foreach (WordParagraph headingParagraph in document.Paragraphs) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!headingParagraph.Style.HasValue) continue;
+                    int level = WordHeadingStyleMapper.GetLevelForHeadingStyle(headingParagraph.Style.Value);
+                    if (level < minLevel || level > maxLevel) continue;
+                    Paragraph headingElement = headingParagraph._paragraph;
+                    if (tableOfContentsLinks.Any(link => ReferenceEquals(link.Heading, headingElement))) continue;
+                    string text = string.Concat(headingElement.Descendants<Text>().Select(item => item.Text)).Trim();
+                    if (text.Length == 0) continue;
+
+                    while (stack.Count > 1 && stack[stack.Count - 1].Level > level) stack.RemoveAt(stack.Count - 1);
+                    while (stack[stack.Count - 1].Level < level && stack[stack.Count - 1].LastItem != null) {
+                        var nested = CreateOutputElement(htmlDoc, "ul");
+                        stack[stack.Count - 1].LastItem!.AppendChild(nested);
+                        stack.Add((stack[stack.Count - 1].Level + 1, nested, null));
+                    }
+
+                    var item = CreateOutputElement(htmlDoc, "li");
+                    var anchor = CreateOutputElement(htmlDoc, "a");
+                    anchor.TextContent = text;
+                    item.AppendChild(anchor);
+                    stack[stack.Count - 1].List.AppendChild(item);
+                    stack[stack.Count - 1] = (stack[stack.Count - 1].Level, stack[stack.Count - 1].List, item);
+                    tableOfContentsLinks.Add((anchor, headingElement));
+                    entries++;
+                }
+
+                if (entries == 0) {
+                    root.Remove();
+                }
+
+                parent.AppendChild(nav);
+                AddExportDiagnostic(options, "toc-regenerated-from-headings",
+                    "The table of contents field was rebuilt from the document headings because HTML cannot update Word fields; page numbers are not shown.",
+                    OfficeConversionLossKind.Approximation);
+            }
+
+            void ResolveTableOfContentsLinks() {
+                foreach (var (anchor, heading) in tableOfContentsLinks) {
+                    if (renderedHeadingIds.TryGetValue(heading, out var id)) {
+                        SetOutputAttribute(anchor, "href", "#" + id, "TableOfContents:href");
+                    }
+                }
+            }
+
+            bool IsCodeParagraph(WordParagraph para, bool inTableCell = false) {
                 // A text-only code block cannot carry rendered inline artifacts.
                 if (para.GetRuns().Any(run => run.IsChart || HasExtendedChart(run._run) || run.IsImage ||
                     run.IsStructuredDocumentTag || run.IsEquation ||
@@ -784,11 +878,37 @@ namespace OfficeIMO.Word.Html {
                     (options.ExportEndnotes && run.EndNote != null) ||
                     (options.ExportComments && run._run?.Elements<CommentReference>().Any() == true))) return false;
                 if (string.Equals(para.StyleId, "Code", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(para.StyleId, "HTMLPreformatted", StringComparison.OrdinalIgnoreCase)) {
+                    string.Equals(para.StyleId, "HTMLPreformatted", StringComparison.OrdinalIgnoreCase) ||
+                    (para.StyleId?.StartsWith("CodeLang_", StringComparison.Ordinal) ?? false)) {
                     return true;
                 }
                 var runs = para.GetFormattedRuns().ToList();
-                return runs.Count > 0 && runs.All(r => r.Code);
+                if (runs.Count == 0) return false;
+                string? documentFont = para._document.Settings.FontFamily;
+                bool allMonospace = runs.All(r => r.Code) ||
+                    para.GetRuns().Where(run => !string.IsNullOrEmpty(run.Text)).All(run => IsInlineCodeRun(run, documentFont));
+                if (!allMonospace) return false;
+                inTableCell |= para._paragraph.Ancestors<TableCell>().Any();
+                // Inside a table cell a single monospace line is inline code (a setting name, a value), not a
+                // code block; only multi-line monospace content becomes <pre>.
+                return !inTableCell || (para.Text?.IndexOf('\n') ?? -1) >= 0;
+            }
+
+            bool IsCodeParagraphInCell(WordParagraph para) => IsCodeParagraph(para, inTableCell: true);
+
+            // The whole paragraph, not only its first run; line breaks inside the paragraph stay line breaks.
+            static string GetCodeParagraphText(WordParagraph para) {
+                var text = new StringBuilder();
+                foreach (Run run in para._paragraph.Descendants<Run>()) {
+                    if (run.Ancestors<DocumentFormat.OpenXml.Wordprocessing.DeletedRun>().Any()) continue;
+                    foreach (var child in run.ChildElements) {
+                        if (child is Text value) text.Append(value.Text);
+                        else if (child is TabChar) text.Append('\t');
+                        else if (child is Break lineBreak && (lineBreak.Type == null || lineBreak.Type.Value == BreakValues.TextWrapping)) text.Append('\n');
+                        else if (child is CarriageReturn) text.Append('\n');
+                    }
+                }
+                return text.ToString();
             }
 
             bool TryAppendPlainParagraph(IElement parent, WordParagraph para) {
@@ -871,21 +991,27 @@ namespace OfficeIMO.Word.Html {
                 if (IsCodeParagraph(para)) {
                     var pre = CreateOutputElement(htmlDoc, "pre");
                     ApplyBookmarkId(pre, para);
+                    if (para.IndentationBefore is OfficeLength codeIndent && codeIndent > OfficeLength.Zero) {
+                        // Code inside a list item keeps the item's indent.
+                        SetOutputAttribute(pre, "style", $"margin-left:{FormatTwips(checked((int)codeIndent.ToTwips()))}", "CodeBlock:indent");
+                    }
                     var code = CreateOutputElement(htmlDoc, "code");
-                    code.TextContent = para.Text ?? string.Empty;
+                    code.TextContent = GetCodeParagraphText(para);
                     pre.AppendChild(code);
                     parent.AppendChild(pre);
                     return;
                 }
 
                 int level = para.Style.HasValue ? WordHeadingStyleMapper.GetLevelForHeadingStyle(para.Style.Value) : 0;
-                bool isBlockQuote = (!string.IsNullOrEmpty(para.StyleId) && (string.Equals(para.StyleId, "Quote", StringComparison.OrdinalIgnoreCase) || string.Equals(para.StyleId, "IntenseQuote", StringComparison.OrdinalIgnoreCase)))
-                    || (para.IndentationBefore.HasValue && para.IndentationBefore.Value > 0);
+                bool isBlockQuote = IsBlockQuoteParagraph(para, level);
                 var element = CreateOutputElement(htmlDoc, isBlockQuote ? "blockquote" : (level > 0 ? $"h{level}" : "p"));
                 if (isBlockQuote && TryGetBlockquoteCiteAttribute(para, out var blockquoteCite)) {
                     SetOutputAttribute(element, "cite", blockquoteCite, "Paragraph:cite");
                 }
                 ApplyBookmarkId(element, para);
+                if (level > 0 && !isBlockQuote && documentHasTableOfContents) {
+                    RecordHeadingId(element, para._paragraph);
+                }
                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(para.StyleId)) {
                     SetOutputAttribute(element, "class", GetSafeStyleClassName(para.StyleId), "Paragraph:class");
                     paragraphStyles.Add(para.StyleId!);
@@ -908,35 +1034,36 @@ namespace OfficeIMO.Word.Html {
                 if (pBorderCss.Count > 0) {
                     pStyles.AddRange(pBorderCss);
                 }
+                // An indent is a margin, not a quotation. It stays visible even when the
+                // caller did not ask for the remaining indentation styles.
+                if (!isBlockQuote || options.IncludeParagraphIndentationStyles) {
+                    if (para.IndentationBefore.HasValue && para.IndentationBefore.Value != OfficeLength.Zero) {
+                        pStyles.Add($"margin-left:{FormatTwips(checked((int)para.IndentationBefore.Value.ToTwips()))}");
+                    }
+                    if (para.IndentationAfter.HasValue && checked((int)(para.IndentationAfter.Value.ToTwips())) != 0) {
+                        pStyles.Add($"margin-right:{FormatTwips(checked((int)(para.IndentationAfter.Value.ToTwips())))}");
+                    }
+                }
                 if (options.IncludeParagraphIndentationStyles) {
-                    if (para.IndentationBefore.HasValue && para.IndentationBefore.Value != 0) {
-                        pStyles.Add($"margin-left:{FormatTwips(para.IndentationBefore.Value)}");
-                    }
-                    if (para.IndentationAfter.HasValue && para.IndentationAfter.Value != 0) {
-                        pStyles.Add($"margin-right:{FormatTwips(para.IndentationAfter.Value)}");
-                    }
-                    if (para.IndentationFirstLine.HasValue && para.IndentationFirstLine.Value != 0) {
-                        pStyles.Add($"text-indent:{FormatTwips(para.IndentationFirstLine.Value)}");
-                    } else if (para.IndentationHanging.HasValue && para.IndentationHanging.Value != 0) {
-                        pStyles.Add($"text-indent:{FormatTwips(-para.IndentationHanging.Value)}");
+                    if (para.IndentationFirstLine.HasValue && para.IndentationFirstLine.Value != OfficeLength.Zero) {
+                        pStyles.Add($"text-indent:{FormatTwips(checked((int)para.IndentationFirstLine.Value.ToTwips()))}");
+                    } else if (para.IndentationHanging.HasValue && para.IndentationHanging.Value != OfficeLength.Zero) {
+                        pStyles.Add($"text-indent:{FormatTwips(-checked((int)para.IndentationHanging.Value.ToTwips()))}");
                     }
                 }
                 if (options.IncludeParagraphSpacingStyles) {
-                    if (para.LineSpacingBefore.HasValue && para.LineSpacingBefore.Value != 0) {
-                        pStyles.Add($"margin-top:{FormatTwips(para.LineSpacingBefore.Value)}");
+                    if (para.LineSpacingBefore.HasValue && checked((int)(para.LineSpacingBefore.Value.ToTwips())) != 0) {
+                        pStyles.Add($"margin-top:{FormatTwips(checked((int)(para.LineSpacingBefore.Value.ToTwips())))}");
                     }
-                    if (para.LineSpacingAfter.HasValue && para.LineSpacingAfter.Value != 0) {
-                        pStyles.Add($"margin-bottom:{FormatTwips(para.LineSpacingAfter.Value)}");
+                    if (para.LineSpacingAfter.HasValue && checked((int)(para.LineSpacingAfter.Value.ToTwips())) != 0) {
+                        pStyles.Add($"margin-bottom:{FormatTwips(checked((int)(para.LineSpacingAfter.Value.ToTwips())))}");
                     }
-                    if (para.LineSpacing.HasValue && para.LineSpacing.Value != 0) {
-                        var rule = para.LineSpacingRule;
-                        if (rule == null || rule == WordLineSpacingRule.Auto) {
-                            var multiple = para.LineSpacing.Value / 240.0;
-                            if (multiple > 0) {
-                                pStyles.Add($"line-height:{FormatNumber(multiple)}");
-                            }
-                        } else {
-                            pStyles.Add($"line-height:{FormatTwips(para.LineSpacing.Value)}");
+                    if (para.LineSpacing is WordLineSpacing lineSpacing) {
+                        if (lineSpacing.MultipleValue is double multiple && multiple > 0) {
+                            pStyles.Add($"line-height:{FormatNumber(multiple)}");
+                        } else if (lineSpacing.Height is global::OfficeIMO.OfficeLength height && height != global::OfficeIMO.OfficeLength.Zero) {
+                            // CSS has no minimum line-height mode; retain the existing approximation.
+                            pStyles.Add($"line-height:{FormatTwips(checked((int)height.ToTwips()))}");
                         }
                     }
                 }
@@ -1004,9 +1131,17 @@ namespace OfficeIMO.Word.Html {
                     SetOutputAttribute(tableEl, "aria-description", table.Description!, "Table:accessible-description");
                 }
                 var tableStyles = new List<string>();
-                var tableWidth = GetWidthCss(table.WidthType?.ToOpenXml(), table.Width);
+                var tableWidth = nestingDepth == 0
+                    ? GetTopLevelTableWidthCss(table)
+                    : GetWidthCss(table.Width);
                 if (!string.IsNullOrEmpty(tableWidth)) {
                     tableStyles.Add($"width:{tableWidth}");
+                }
+                var tableIndent = table._tableProperties?.TableIndentation;
+                if (tableIndent?.Width?.Value is int indentTwips && indentTwips != 0 &&
+                    (tableIndent.Type == null || tableIndent.Type.Value == TableWidthUnitValues.Dxa)) {
+                    // tblInd lines the table up with indented paragraphs around it.
+                    tableStyles.Add($"margin-left:{FormatTwips(indentTwips)}");
                 }
                 var tableCellSpacing = GetTableCellSpacingCss(table);
                 if (!string.IsNullOrEmpty(tableCellSpacing)) {
@@ -1029,10 +1164,17 @@ namespace OfficeIMO.Word.Html {
                 while (headerRowCount < table.Rows.Count && table.Rows[headerRowCount].RepeatHeaderRowAtTheTopOfEachPage) {
                     headerRowCount++;
                 }
+                // A table style's first-row formatting makes the first row a header even when it is
+                // not marked to repeat; without this the header reads as data.
+                TableFirstRowAppearance? firstRowAppearance = ResolveTableFirstRowAppearance(table);
+                if (headerRowCount == 0 && firstRowAppearance != null) {
+                    headerRowCount = 1;
+                }
                 bool hasFooterRow = table.ConditionalFormattingLastRow == true && table.Rows.Count > headerRowCount;
                 IElement? thead = null;
                 IElement? tbody = null;
                 IElement? tfoot = null;
+                bool[] numericColumns = options.UseSharedDocumentShell ? Array.Empty<bool>() : ResolveNumericColumns(table, headerRowCount);
 
                 for (int r = 0; r < table.Rows.Count; r++) {
                     var row = table.Rows[r];
@@ -1048,36 +1190,30 @@ namespace OfficeIMO.Word.Html {
                         if (isHeaderRow) {
                             SetOutputAttribute(cellElement, "scope", "col", "TableCell:scope");
                         }
-                        int colSpan = 1;
-                        int rowSpan = 1;
-                        if (cell.HorizontalMerge == WordCellMerge.Restart) {
-                            int cc = c + 1;
-                            while (cc < row.Cells.Count && row.Cells[cc].HorizontalMerge == WordCellMerge.Continue) {
-                                colSpan++;
-                                cc++;
-                            }
-                            if (colSpan > 1) {
-                                SetOutputAttribute(cellElement, "colspan", colSpan.ToString(CultureInfo.InvariantCulture), "TableCell:colspan");
-                            }
+                        int colSpan = cell.ColumnSpan;
+                        int rowSpan = cell.RowSpan;
+                        if (colSpan > 1) {
+                            SetOutputAttribute(cellElement, "colspan", colSpan.ToString(CultureInfo.InvariantCulture), "TableCell:colspan");
                         }
-                        if (cell.VerticalMerge == WordCellMerge.Restart) {
-                            int rr = r + 1;
-                            while (rr < table.Rows.Count && table.Rows[rr].Cells[c].VerticalMerge == WordCellMerge.Continue) {
-                                rowSpan++;
-                                rr++;
-                            }
-                            if (rowSpan > 1) {
-                                SetOutputAttribute(cellElement, "rowspan", rowSpan.ToString(CultureInfo.InvariantCulture), "TableCell:rowspan");
-                            }
+                        if (rowSpan > 1) {
+                            SetOutputAttribute(cellElement, "rowspan", rowSpan.ToString(CultureInfo.InvariantCulture), "TableCell:rowspan");
                         }
 
                         var cellStyles = new List<string>();
-                        var width = GetWidthCss(cell.WidthType?.ToOpenXml(), cell.Width);
+                        var width = GetWidthCss(cell.Width);
                         if (!string.IsNullOrEmpty(width)) {
                             cellStyles.Add($"width:{width}");
                         }
                         var cellAlignment = GetCellAlignment(cell);
                         var align = GetTextAlignCss(cellAlignment);
+                        if (string.IsNullOrEmpty(align) && c < numericColumns.Length && numericColumns[c] && colSpan == 1) {
+                            // Columns of numbers read right-aligned; only cells without an authored alignment change.
+                            align = "right";
+                        }
+                        if (string.IsNullOrEmpty(align) && isHeaderRow) {
+                            // Browsers centre th; Word header cells start at the left like the data under them.
+                            align = "left";
+                        }
                         if (!string.IsNullOrEmpty(align)) {
                             cellStyles.Add($"text-align:{align}");
                         }
@@ -1099,6 +1235,12 @@ namespace OfficeIMO.Word.Html {
                         var borderCss = GetBorderCss(cell);
                         if (borderCss.Count > 0) {
                             cellStyles.AddRange(borderCss);
+                        }
+                        if (r == 0 && firstRowAppearance != null) {
+                            cellStyles.AddRange(firstRowAppearance.ToCss(
+                                normalizedCellBackground != null,
+                                borderCss.Any(css => css.StartsWith("border:", StringComparison.Ordinal) || css.StartsWith("border-top:", StringComparison.Ordinal)),
+                                borderCss.Any(css => css.StartsWith("border:", StringComparison.Ordinal) || css.StartsWith("border-bottom:", StringComparison.Ordinal))));
                         }
                         if (cellStyles.Count > 0) {
                             SetOutputAttribute(cellElement, "style", string.Join(";", cellStyles), "TableCell:style");
@@ -1160,15 +1302,20 @@ namespace OfficeIMO.Word.Html {
                             if (cellListInfo != null) {
                                 cellDefinitionList = null;
                                 AppendListParagraph(cellElement, p, cellListInfo.Value, cellListStack, cellItemStack, cellListNumberStack);
-                            } else if (IsCodeParagraph(p)) {
+                            } else if (IsCodeParagraphInCell(p)) {
                                 ClearListStacks(cellListStack, cellItemStack, cellListNumberStack);
                                 cellDefinitionList = null;
                                 List<string> lines = new();
-                                lines.Add(p.Text);
+                                lines.Add(GetCodeParagraphText(p));
+                                WordParagraph lastCodeParagraph = p;
                                 while (elementIndex + 1 < cellElements.Count &&
                                        cellElements[elementIndex + 1] is WordParagraph nextCodeParagraph &&
-                                       IsCodeParagraph(nextCodeParagraph)) {
-                                    lines.Add(nextCodeParagraph.Text);
+                                       IsCodeParagraphInCell(nextCodeParagraph)) {
+                                    // Several run wrappers share one Word paragraph; its text is already in the block.
+                                    if (!SameParagraphElement(nextCodeParagraph, lastCodeParagraph)) {
+                                        lines.Add(GetCodeParagraphText(nextCodeParagraph));
+                                        lastCodeParagraph = nextCodeParagraph;
+                                    }
                                     elementIndex++;
                                 }
                                 var pre = CreateOutputElement(htmlDoc, "pre");
@@ -1251,11 +1398,11 @@ namespace OfficeIMO.Word.Html {
                     return marker switch {
                         "o" or "◦" => "circle",
                         "■" or "§" => "square",
-                        "-" => "'-'",
-                        "\u2013" => "'\\2013'",
-                        "\u2014" => "'\\2014'",
-                        "*" => "'*'",
-                        "+" => "'+'",
+                        "-" => QuoteCssListMarker("-"),
+                        "\u2013" => "'\\2013\\a0\\a0 '",
+                        "\u2014" => "'\\2014\\a0\\a0 '",
+                        "*" => QuoteCssListMarker("*"),
+                        "+" => QuoteCssListMarker("+"),
                         "•" or "·" or "●" or "∙" or "" or null or "" => "disc",
                         _ => QuoteCssListMarker(marker),
                     };
@@ -1273,7 +1420,8 @@ namespace OfficeIMO.Word.Html {
                     .Replace("\r", "\\d ")
                     .Replace("\n", "\\a ")
                     .Replace("\t", "\\9 ");
-                return $"'{escaped}'";
+                // A string marker has no gap of its own; two no-break spaces keep it off the text.
+                return $"'{escaped}\\a0\\a0 '";
             }
 
             string? GetListType(WordDocumentTraversal.ListInfo info, string marker) {
@@ -1512,9 +1660,15 @@ namespace OfficeIMO.Word.Html {
                             } else if (IsCodeParagraph(paragraph)) {
                                 activeDefinitionList = null;
                                 List<string> lines = new();
-                                lines.Add(paragraph.Text);
+                                lines.Add(GetCodeParagraphText(paragraph));
+                                WordParagraph lastCodeParagraph = paragraph;
                                 while (idx + 1 < elements.Count && elements[idx + 1] is WordParagraph nextPara && GetCachedListInfo(nextPara) == null && IsCodeParagraph(nextPara)) {
-                                    lines.Add(nextPara.Text);
+                                    // Several run wrappers share one Word paragraph; its text is already in the block.
+                                    if (!SameParagraphElement(nextPara, lastCodeParagraph)) {
+                                        lines.Add(GetCodeParagraphText(nextPara));
+                                        lastCodeParagraph = nextPara;
+                                    }
+                                    processedParagraphs.Add(nextPara);
                                     idx++;
                                 }
                                 var pre = CreateOutputElement(htmlDoc, "pre");
@@ -1528,6 +1682,10 @@ namespace OfficeIMO.Word.Html {
                                 AppendParagraph(sectionParent, paragraph);
                             }
                         }
+                    } else if (element is WordTableOfContent tableOfContent) {
+                        CloseLists();
+                        activeDefinitionList = null;
+                        AppendTableOfContents(sectionParent, tableOfContent);
                     } else if (element is WordTable table) {
                         CloseLists();
                         activeDefinitionList = null;
@@ -1565,6 +1723,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             CloseLists();
+            ResolveTableOfContentsLinks();
 
             DiscoverTransitiveNotes(footnotes, footnoteMap, endnotes, endnoteMap, options, cancellationToken);
             AppendFootnotes(htmlDoc, body, footnotes, options, cancellationToken, (parent, paragraph) => AppendParagraph(parent, paragraph), CloseLists);
@@ -1576,14 +1735,10 @@ namespace OfficeIMO.Word.Html {
 
             using var outputWriter = new BoundedHtmlWriter(
                 options.MaxOutputCharacters,
-                actual => ThrowExportLimitExceeded(options, "WordHtmlOutputLimitExceeded", "Generated HTML exceeds the configured output-character limit.", "MaxOutputCharacters", actual, options.MaxOutputCharacters));
+                actual => ThrowExportLimitExceeded(options, "word-html-output-limit-exceeded", "Generated HTML exceeds the configured output-character limit.", "MaxOutputCharacters", actual, options.MaxOutputCharacters));
             if (options.EmitDocumentShell) {
-                // Preserve legacy default serialization byte-for-byte. Named shared-shell
-                // profiles opt into the explicit HTML5 document marker.
-                if (options.UseSharedDocumentShell) {
-                    outputWriter.Write("<!doctype html>");
-                    outputWriter.Write(options.NewLine);
-                }
+                outputWriter.Write("<!doctype html>");
+                outputWriter.Write(options.NewLine);
                 htmlDoc.DocumentElement.ToHtml(outputWriter, HtmlMarkupFormatter.Instance);
             } else {
                 bool wroteNode = false;

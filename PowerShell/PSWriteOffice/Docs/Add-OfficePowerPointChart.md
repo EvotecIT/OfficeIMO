@@ -16,7 +16,7 @@ Add-OfficePowerPointChart [-Slide <PowerPointSlide>] [-Type <PowerPointChartType
 
 ### Categorical
 ```powershell
-Add-OfficePowerPointChart -InputObject <Object[]> -CategoryProperty <string> -SeriesProperty <string[]> [-Slide <PowerPointSlide>] [-Type <PowerPointChartType>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-Title <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointChart -InputObject <Object[]> -Category <string> -Value <string[]> [-Slide <PowerPointSlide>] [-Type <PowerPointChartType>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-Title <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Scatter
@@ -36,8 +36,8 @@ PS> $rows = @(
     [pscustomobject]@{ Month = 'Feb'; Sales = 55; Profit = 13 }
 )
 New-OfficePowerPoint -Path .\Examples\Documents\PowerPointChart.pptx {
-    $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-    Add-OfficePowerPointChart -Slide $slide -InputObject $rows -CategoryProperty Month -SeriesProperty Sales,Profit -Title 'Monthly performance'
+    $slide = Add-OfficePowerPointSlide -PassThru
+    Add-OfficePowerPointChart -Slide $slide -InputObject $rows -Category Month -Value Sales,Profit -Title 'Monthly performance'
 }
 ```
 
@@ -50,7 +50,7 @@ PS> $rows = @(
     [pscustomobject]@{ Quarter = 2; Revenue = 34 }
 )
 New-OfficePowerPoint -Path .\Examples\Documents\PowerPointScatter.pptx {
-    $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
+    $slide = Add-OfficePowerPointSlide -PassThru
     Add-OfficePowerPointChart -Slide $slide -Type Scatter -InputObject $rows -XProperty Quarter -YProperty Revenue -Title 'Revenue trend'
 }
 ```
@@ -59,7 +59,7 @@ Creates a scatter chart using Quarter on the X axis and Revenue on the Y axis.
 
 ## PARAMETERS
 
-### -CategoryProperty
+### -Category
 Property name used for category labels on standard charts.
 
 ```yaml
@@ -123,22 +123,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SeriesProperty
-Property names used as numeric series on standard charts.
-
-```yaml
-Type: String[]
-Parameter Sets: Categorical
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Slide
 Target slide that will receive the chart (optional inside DSL).
 
@@ -181,6 +165,22 @@ Aliases: None
 Possible values: ClusteredColumn, Line, Pie, Doughnut, Scatter
 
 Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Value
+Property names used as numeric series on standard charts.
+
+```yaml
+Type: String[]
+Parameter Sets: Categorical
+Aliases: None
+Possible values:
+
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False

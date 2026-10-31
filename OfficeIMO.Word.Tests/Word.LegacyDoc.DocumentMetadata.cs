@@ -12,7 +12,7 @@ public partial class Word {
     [InlineData(true)]
     public void LegacyDoc_DocumentOptionsHaveTheDeclaredFormatsCompleteSize(bool nested) {
         using WordDocument source = CreateLegacyMetadataDocument(nested);
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         byte[] fib = ReadCompoundStream(bytes, "WordDocument");
         byte[] table = ReadCompoundStream(bytes, "1Table");
         int offset = BitConverter.ToInt32(fib, 0x192);
@@ -33,14 +33,14 @@ public partial class Word {
     public void LegacyDoc_CustomDefaultTabStopSurvivesNativeRoundTrips(bool nested) {
         using WordDocument source = CreateLegacyMetadataDocument(nested);
         source.Settings.DefaultTabStop = 960;
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         for (int cycle = 0; cycle < 2; cycle++) {
             using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
             Assert.Equal(960, restored.Settings.DefaultTabStop);
             byte[] fib = ReadCompoundStream(bytes, "WordDocument");
             byte[] table = ReadCompoundStream(bytes, "1Table");
             Assert.Equal(960, BitConverter.ToUInt16(table, BitConverter.ToInt32(fib, 0x192) + 10));
-            bytes = restored.ToBytes(WordFileFormat.Doc);
+            bytes = restored.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         }
     }
 
@@ -48,7 +48,7 @@ public partial class Word {
     public void LegacyDoc_RequiredAssociatedStringsDoNotReplaceSummaryProperties() {
         using WordDocument source = CreateLegacyMetadataDocument(false);
         source.BuiltinDocumentProperties.Title = "Document metadata";
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         byte[] fib = ReadCompoundStream(bytes, "WordDocument");
         byte[] table = ReadCompoundStream(bytes, "1Table");
         int offset = BitConverter.ToInt32(fib, 0x19A);
@@ -72,7 +72,7 @@ public partial class Word {
             WordNoteNumberRestart.EachPage, startNumber: 3);
         source.Sections[0].AddEndnoteProperties(WordNumberFormat.LowerLetter, WordEndnotePosition.DocumentEnd,
             WordNoteNumberRestart.EachSection, startNumber: 9);
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         byte[] fib = ReadCompoundStream(bytes, "WordDocument");
         byte[] table = ReadCompoundStream(bytes, "1Table");
         int offset = BitConverter.ToInt32(fib, 0x192);
@@ -88,7 +88,7 @@ public partial class Word {
     [InlineData(true)]
     public void LegacyDoc_ImportsDocumentNoteSettingsWithoutSectionSprms(bool nested) {
         using WordDocument source = CreateLegacyMetadataDocument(nested);
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         byte[] fib = ReadCompoundStream(bytes, "WordDocument");
         byte[] table = ReadCompoundStream(bytes, "1Table");
         int offset = BitConverter.ToInt32(fib, 0x192);
@@ -122,7 +122,7 @@ public partial class Word {
         second.AddParagraph("SECOND SECTION");
         if (endnotes) second.AddEndnoteProperties(numberingFormat: WordNumberFormat.UpperLetter);
         else second.AddFootnoteProperties(numberingFormat: WordNumberFormat.UpperLetter);
-        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         Assert.Contains("whole document", error.Message);
     }
 
@@ -133,7 +133,7 @@ public partial class Word {
         second.AddParagraph("SECOND SECTION");
         second.AddEndnoteProperties(position: WordEndnotePosition.SectionEnd);
         Assert.All(source.Sections, section => Assert.Equal(WordEndnotePosition.SectionEnd, section.EndnoteSettings.Position));
-        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.All(restored.Sections, section => Assert.Equal(WordEndnotePosition.SectionEnd, section.EndnoteSettings.Position));
         Assert.Empty(restored.ValidateDocument());
     }
@@ -148,7 +148,7 @@ public partial class Word {
             WordNoteNumberRestart.EachPage, startNumber: 3);
         source.Sections[0].AddEndnoteProperties(WordNumberFormat.LowerLetter, WordEndnotePosition.DocumentEnd,
             WordNoteNumberRestart.EachSection, startNumber: 9);
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         byte[] fib = ReadCompoundStream(bytes, "WordDocument");
         byte[] table = ReadCompoundStream(bytes, "1Table");
         int offset = BitConverter.ToInt32(fib, 0x192);
@@ -180,7 +180,7 @@ public partial class Word {
     [Fact]
     public void LegacyDoc_DeclaredFibExtensionMustFitInsideItsStream() {
         using WordDocument source = CreateLegacyMetadataDocument(false);
-        byte[] fib = ReadCompoundStream(source.ToBytes(WordFileFormat.Doc), "WordDocument");
+        byte[] fib = ReadCompoundStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }), "WordDocument");
         int extensionOffset = 0x9A + BitConverter.ToUInt16(fib, 0x98) * 8;
         BitConverter.GetBytes((ushort)5).CopyTo(fib, extensionOffset);
         Array.Resize(ref fib, extensionOffset + 4);

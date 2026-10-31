@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesPendingFormulaFromAnotherSheet() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.CellFormula(1, 1, "Data!A5");
             Assert.True(document.HasPendingDirectCellValues);
             ExcelSheet data = AddWorksheetWithoutMaterializingPending(document, "Data");
@@ -29,11 +29,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanPreflightsPendingFormulaFromAnotherSheet() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             for (int column = 1; column <= 128; column++) {
                 summary.CellValue(1, column, column);
             }
-            summary.CellFormula(1, 129, $"Data!A{A1.MaxRows}");
+            summary.CellFormula(1, 129, $"Data!A{ExcelA1.MaxRows}");
             Assert.True(document.HasPendingDirectCellValues);
             ExcelSheet data = AddWorksheetWithoutMaterializingPending(document, "Data");
 
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesNamedSheetViewFilters() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             AddNamedSheetViewFilter(sheet, "A5:C10");
 
             ExcelRowMutationPlan plan = sheet.PlanInsertRows(5);
@@ -61,8 +61,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesCrossSheetDataConsolidation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.WorksheetPart.Worksheet.Append(
                 new DataConsolidate(
                     new DataReferences(
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanUsesAnchoredTableFormulaSemantics() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Value");
             sheet.CellAt(1, 2).SetValue("Result");
             sheet.CellAt(2, 1).SetValue(10);
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesEmptyRowRecords() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             sheetData.Append(new Row {
                 RowIndex = 5U,

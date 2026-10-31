@@ -41,7 +41,7 @@ public partial class Excel {
                 byte[] bytes = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(xml)).ToArray();
                 ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", bytes);
             }
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                 HasHeaderRow = false, MaxDataReaderBufferedCells = 2, MaxDataReaderChunkRows = 1,
                 Culture = CultureInfo.GetCultureInfo("fr-FR"),
             });
@@ -81,7 +81,7 @@ public partial class Excel {
         string path = CreateWindowedIndexWorkbook(WindowedIndexWorksheet(rows, "A1:G2"));
         var culture = CultureInfo.GetCultureInfo("fr-FR");
         try {
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                 HasHeaderRow = false, MaxDataReaderBufferedCells = 7, MaxDataReaderChunkRows = 1,
                 Culture = culture, UseCachedFormulaResult = useCachedFormula,
             });

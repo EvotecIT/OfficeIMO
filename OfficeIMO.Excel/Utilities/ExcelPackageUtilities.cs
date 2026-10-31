@@ -236,6 +236,8 @@ namespace OfficeIMO.Excel.Utilities {
                     || !corePropsOverrideIsCorrect;
             } catch (InvalidDataException) {
                 throw;
+            } catch (XmlException exception) {
+                throw new InvalidDataException("Package root relationships are invalid or exceed XML limits.", exception);
             } catch {
                 return true;
             }

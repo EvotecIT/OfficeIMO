@@ -46,7 +46,7 @@ public sealed class ConvertToOfficePowerPointHtmlCommand : PSCmdlet
 
     /// <summary>Presentation instance to convert.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetPresentation)]
-    public PowerPointPresentation Presentation { get; set; } = null!;
+    public PowerPointDocument Presentation { get; set; } = null!;
 
     /// <summary>Password used to open an encrypted presentation package.</summary>
     [Parameter(ParameterSetName = ParameterSetPath)]
@@ -116,7 +116,7 @@ public sealed class ConvertToOfficePowerPointHtmlCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        PowerPointPresentation? presentation = null;
+        PowerPointDocument? presentation = null;
         var dispose = false;
         try
         {
@@ -133,12 +133,12 @@ public sealed class ConvertToOfficePowerPointHtmlCommand : PSCmdlet
         {
             if (dispose && presentation != null)
             {
-                PowerPointDocumentService.ClosePresentation(presentation, save: false, show: false);
+                PowerPointDocumentService.CloseDocument(presentation, save: false, show: false);
             }
         }
     }
 
-    private PowerPointPresentation ResolvePresentation(out bool dispose)
+    private PowerPointDocument ResolvePresentation(out bool dispose)
     {
         dispose = false;
         if (ParameterSetName == ParameterSetPresentation)
@@ -147,7 +147,7 @@ public sealed class ConvertToOfficePowerPointHtmlCommand : PSCmdlet
         }
 
         dispose = true;
-        return PowerPointDocumentService.LoadPresentation(PdfCommandUtilities.ResolvePath(this, Path), Password, readOnly: true);
+        return PowerPointDocumentService.LoadDocument(PdfCommandUtilities.ResolvePath(this, Path), Password, readOnly: true);
     }
 
     private PowerPointHtmlSaveOptions CreateOptions()

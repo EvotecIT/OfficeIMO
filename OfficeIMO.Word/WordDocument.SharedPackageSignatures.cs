@@ -5,7 +5,7 @@ namespace OfficeIMO.Word;
 
 public partial class WordDocument {
     /// <summary>Inspects a saved DOCX/DOCM package through the shared dependency-light OPC signature engine.</summary>
-    public static OfficeIMO.Security.OfficePackageSignatureInfo InspectPackageSignatures(
+    internal static OfficeIMO.Security.OfficePackageSignatureInfo InspectPackageSignatures(
         string filePath,
         OfficePackageSignatureInspectionOptions? options = null) =>
         OfficePackageSignatureService.Inspect(filePath, options);

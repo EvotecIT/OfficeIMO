@@ -6,12 +6,12 @@ namespace OfficeIMO.PowerPoint.OpenDocument;
 
 public static partial class PowerPointOpenDocumentConversionExtensions {
     private static readonly Lazy<IReadOnlyDictionary<string, string>> DefaultPowerPointExtendedMetadata = new(() => {
-        using PowerPointPresentation baseline = PowerPointPresentation.Create(new MemoryStream(),
+        using PowerPointDocument baseline = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         return ReadExtendedMetadata(baseline);
     });
 
-    private static IReadOnlyDictionary<string, string> ReadExtendedMetadata(PowerPointPresentation presentation) =>
+    private static IReadOnlyDictionary<string, string> ReadExtendedMetadata(PowerPointDocument presentation) =>
         presentation.OpenXmlDocument.ExtendedFilePropertiesPart?.Properties?.ChildElements
             .Where(element => element.LocalName is not (
                 "Company" or "Manager" or "Slides" or "Notes" or "HiddenSlides" or
@@ -20,7 +20,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             .ToDictionary(element => element.LocalName, element => element.InnerText, StringComparer.Ordinal)
         ?? new Dictionary<string, string>(StringComparer.Ordinal);
 
-    private static void CopyPowerPointMetadata(PowerPointPresentation source,
+    private static void CopyPowerPointMetadata(PowerPointDocument source,
         OdpPresentation target, OdfConversionReport report) {
         PowerPointBuiltinDocumentProperties properties = source.BuiltinDocumentProperties;
         target.Metadata.Title = properties.Title;
@@ -55,7 +55,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     }
 
     private static void CopyOdpMetadata(OdpPresentation source,
-        PowerPointPresentation target, OdfConversionReport report) {
+        PowerPointDocument target, OdfConversionReport report) {
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
         target.BuiltinDocumentProperties.Subject = source.Metadata.Subject;
         target.BuiltinDocumentProperties.Description = source.Metadata.Description;

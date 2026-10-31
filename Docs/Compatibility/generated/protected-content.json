@@ -58,7 +58,7 @@
       "validate":"NotApplicable",
       "mutate":"Supported",
       "remove":"Supported",
-      "api":"PowerPointPresentation.Load / Save",
+      "api":"PowerPointDocument.Load / Save",
       "limitation":"Legacy PPT RC4 password protection is format-owned.",
       "unsupportedOperations":[]
     },

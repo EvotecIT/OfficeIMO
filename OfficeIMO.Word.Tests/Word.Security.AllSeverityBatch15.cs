@@ -60,7 +60,7 @@ public sealed class WordAllSeverityBatch15SecurityTests {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(2, 256);
         for (int column = 0; column < 256; column++) {
-            table.Rows[0].Cells[column].Width = 100;
+            table.Rows[0].Cells[column].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(100) * 635)));
         }
 
         Exception? exception = Record.Exception(table.NormalizeForOnline);

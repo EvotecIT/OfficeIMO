@@ -39,7 +39,7 @@ public sealed class GetOfficePowerPointLayoutBoxCommand : PSCmdlet
 
     /// <summary>Presentation to inspect (optional inside DSL).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Number of columns to generate.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetColumns)]
@@ -73,25 +73,25 @@ public sealed class GetOfficePowerPointLayoutBoxCommand : PSCmdlet
                 throw new ArgumentOutOfRangeException(nameof(GutterCm), "GutterCm cannot be negative.");
             }
 
-            var presentation = Presentation ?? PowerPointDslContext.Current?.Presentation
+            var presentation = Presentation ?? PowerPointDslContext.Current?.Document
                 ?? throw new InvalidOperationException("Presentation was not provided. Use -Presentation or run inside New-OfficePowerPoint.");
 
             switch (ParameterSetName)
             {
                 case ParameterSetColumns:
-                    foreach (var box in presentation.SlideSize.GetColumnsCm(ColumnCount, MarginCm, GutterCm))
+                    foreach (var box in presentation.SlideSize.GetColumns(ColumnCount, OfficeIMO.OfficeLength.Centimeters(MarginCm), OfficeIMO.OfficeLength.Centimeters(GutterCm)))
                     {
                         WriteObject(box);
                     }
                     break;
                 case ParameterSetRows:
-                    foreach (var box in presentation.SlideSize.GetRowsCm(RowCount, MarginCm, GutterCm))
+                    foreach (var box in presentation.SlideSize.GetRows(RowCount, OfficeIMO.OfficeLength.Centimeters(MarginCm), OfficeIMO.OfficeLength.Centimeters(GutterCm)))
                     {
                         WriteObject(box);
                     }
                     break;
                 default:
-                    WriteObject(presentation.SlideSize.GetContentBoxCm(MarginCm));
+                    WriteObject(presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(MarginCm)));
                     break;
             }
         }

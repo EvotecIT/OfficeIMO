@@ -1,63 +1,54 @@
-using System;
 using System.IO;
-using System.Linq;
 using System.Management.Automation;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Epub;
 using PSWriteOffice.Services;
-using OfficeIMO.Core.Internal;
+
 namespace PSWriteOffice.Cmdlets.Epub;
 
-/// <summary>Writes a validated EPUB package with explicit conflict and loss policies.</summary>
-/// <example>
-///   <summary>Writes a validated EPUB package with explicit conflict and loss policies.</summary>
-///   <code>$book | Save-OfficeEpub -Path ./operations.epub</code>
-/// </example>
+/// <summary>Saves a native EPUB publication, rejecting loss unless explicitly allowed.</summary>
+/// <para>Save replaces its destination after validation. PassThru returns the native write report.</para>
+/// <example><summary>Save a live publication to its associated path and inspect the report.</summary>
+/// <code>$report = $book | Save-OfficeEpub -PassThru</code></example>
 [Cmdlet(VerbsData.Save, "OfficeEpub", SupportsShouldProcess = true)]
-[OutputType(typeof(EpubPublication))]
+[OutputType(typeof(EpubWriteReport))]
 public sealed class SaveOfficeEpubCommand : PSCmdlet {
     /// <summary>Live editable publication.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true)]
-    public EpubPublication Publication { get; set; } = null!;
+    public EpubPublication Document { get; set; } = null!;
 
-    /// <summary>Destination EPUB path.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Replace an existing destination.</summary>
-    [Parameter]
-    public SwitchParameter Force { get; set; }
+    /// <summary>Destination path; omission uses the native publication's associated path.</summary>
+    [Parameter(Position = 0), ValidateNotNullOrEmpty]
+    public string? Path { get; set; }
 
     /// <summary>Permit reductions reported by the package writer.</summary>
     [Parameter]
     public SwitchParameter AllowLoss { get; set; }
 
-    /// <summary>Explicitly remove signatures invalidated by package edits. Requires AllowLoss if reported as loss.</summary>
+    /// <summary>Explicitly remove signatures invalidated by edits. Reported loss still requires AllowLoss.</summary>
     [Parameter]
     public SwitchParameter RemoveInvalidatedSignatures { get; set; }
 
     /// <summary>Maximum compressed output size.</summary>
-    [Parameter]
-    [ValidateRange(1L, int.MaxValue)]
+    [Parameter, ValidateRange(1L, int.MaxValue)]
     public long MaxOutputBytes { get; set; } = 134217728;
 
-    /// <summary>Variable receiving the writer preservation report.</summary>
-    [Parameter]
-    public string? ReportVariable { get; set; }
-
-    /// <summary>Return the created or changed object.</summary>
+    /// <summary>Return the native write report.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var path = OfficeFileCommandUtilities.ResolvePath(this, Path);
+        string destination = Path ?? Document.FilePath ?? throw new PSArgumentException("Supply Path when the publication has no associated save path.", nameof(Path));
+        string path = OfficeFileCommandUtilities.ResolvePath(this, destination);
         if (!ShouldProcess(path, "Save EPUB publication")) return;
-        var result = Publication.Write(new EpubWriteOptions {
-            RemoveInvalidatedSignatures = RemoveInvalidatedSignatures.IsPresent, MaxOutputBytes = MaxOutputBytes
+        EpubWriteResult result = Document.Write(new EpubWriteOptions {
+            RemoveInvalidatedSignatures = RemoveInvalidatedSignatures.IsPresent,
+            MaxOutputBytes = MaxOutputBytes
         });
-        if (!AllowLoss.IsPresent) result.Report.RequireNoLoss();
-        OfficeFileOutput.Write(path, result.Bytes, Force.IsPresent);
-        if (!string.IsNullOrWhiteSpace(ReportVariable)) SessionState.PSVariable.Set(ReportVariable, result.Report);
-        if (PassThru.IsPresent) WriteObject(Publication);
+        if (!AllowLoss) result.Report.RequireNoLoss();
+        OfficeFileOutput.Write(path, result.Bytes, true);
+        Document.FilePath = path;
+        if (PassThru) WriteObject(result.Report);
     }
 }

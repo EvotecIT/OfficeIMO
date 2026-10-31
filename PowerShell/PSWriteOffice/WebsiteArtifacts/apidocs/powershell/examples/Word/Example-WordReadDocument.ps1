@@ -6,7 +6,7 @@ if (-not (Test-Path $docPath)) {
     return
 }
 
-$document = Get-OfficeWord -Path $docPath -ReadOnly
+$document = Open-OfficeWord -Path $docPath -ReadOnly
 try {
     $sections = $document | Get-OfficeWordSection
     Write-Host "Sections:" $sections.Count

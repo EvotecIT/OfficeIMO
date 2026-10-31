@@ -21,7 +21,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
             "<row r=\"4\"><c r=\"A4\"><v>77</v></c><c r=\"C4\" s=\"1\"><v>45294</v></c><c r=\"D4\"><v>5</v></c></row>",
             new[] { "value", "Name", "Date", "Order Id" }, 4);
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             int count = 0;
             if (valueModel) {
                 foreach (NativeValue row in reader.RowsAs<NativeValue>())
@@ -44,7 +44,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
             "<row r=\"3\"><c r=\"A3\" t=\"inlineStr\"><is><t>2024-01-02T03:04:05.1234567Z</t></is></c></row>",
             new[] { "Date" }, 3);
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             DateRow[] rows = explicitMapping
                 ? reader.RowsAs<DateRow>(map => map.FromColumn<DateTime>("Date", (row, value) => { row.Date = value; return row; })).ToArray()
                 : reader.RowsAs<DateRow>().ToArray();
@@ -65,7 +65,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
             "<c r=\"C3\" t=\"inlineStr\"><is><t>literal</t></is></c></row>",
             new[] { "Id", "Flag", "Formula" }, 3);
         try {
-            using (var reader = ExcelDocument.OpenDataReader(path)) {
+            using (var reader = ExcelDocument.OpenReader(path)) {
                 TextConversionRow[] rows = reader.RowsAs<TextConversionRow>().ToArray();
                 Assert.Equal(2, rows.Length);
                 Assert.Equal(1, rows[0].Id);
@@ -75,7 +75,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
                 Assert.False(rows[1].Flag);
                 Assert.Equal("literal", rows[1].Formula);
             }
-            using (var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { UseCachedFormulaResult = false })) {
+            using (var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { UseCachedFormulaResult = false })) {
                 TextConversionRow[] rows = reader.RowsAs<TextConversionRow>().ToArray();
                 Assert.Equal("2+3", rows[0].Formula);
             }
@@ -88,7 +88,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
     public void InvalidTypedGetterValuesKeepPropertyErrorsAndRedaction(string value) {
         string path = CreateWorkbook($"<row r=\"2\"><c r=\"A2\"><v>{value}</v></c></row>", new[] { "Id" }, 2);
         try {
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact });
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact });
             ConstructorProbeRow.Calls = 0;
             DataMappingException error = Assert.Throws<DataMappingException>(() => reader.RowsAs<ConstructorProbeRow>().ToArray());
             Assert.Contains("ConstructorProbeRow.Id", error.Message);
@@ -106,7 +106,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
             "<c r=\"B3\"><v>4</v></c><c r=\"C3\" s=\"1\"><v>45292</v></c><c r=\"D3\"><v>1.25</v></c></row>",
             new[] { "Name", "Id", "Date", "Value" }, 3);
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             NullableRow[] rows = reader.RowsAs<NullableRow>().ToArray();
             Assert.Equal(2, rows.Length);
             Assert.Null(rows[0].Name);
@@ -128,7 +128,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
             "<row r=\"2\"><c r=\"A2\" t=\"inlineStr\"><is><t>2024-01-02T03:04:05Z</t></is></c></row>",
             new[] { "Date" }, 2, utf16: !inferSchema);
         try {
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { InferSchema = inferSchema, SchemaSampleRows = 1 });
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { InferSchema = inferSchema, SchemaSampleRows = 1 });
             DateRow row = Assert.Single(reader.RowsAs<DateRow>());
             Assert.Equal(DateTime.Parse("2024-01-02T03:04:05Z", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), row.Date);
             Assert.Equal(DateTimeKind.Utc, row.Date.Kind);
@@ -141,13 +141,13 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
             "<row r=\"2\"><c r=\"A2\"><v>123456789012345.125</v></c>" +
             "<c r=\"B2\" t=\"inlineStr\"><is><t>1,25</t></is></c></row>", new[] { "Amount", "Value" }, 2);
         try {
-            var projection = new ExcelReadOptions { NumericAsDecimal = true, Culture = CultureInfo.GetCultureInfo("pl-PL") };
+            var projection = new ExcelReaderOptions { NumericAsDecimal = true, Culture = CultureInfo.GetCultureInfo("pl-PL") };
             decimal expected;
-            using (var oracle = ExcelDocument.OpenDataReader(path, projection)) {
+            using (var oracle = ExcelDocument.OpenReader(path, projection)) {
                 Assert.True(oracle.Read());
                 expected = Assert.IsType<decimal>(oracle.GetValue(0));
             }
-            using (var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+            using (var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                 NumericAsDecimal = true, Culture = CultureInfo.GetCultureInfo("pl-PL")
             })) {
                 DecimalRow row = Assert.Single(reader.RowsAs<DecimalRow>());
@@ -155,7 +155,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
                 Assert.Equal(1.25, row.Value);
             }
             int typeCalls = 0;
-            var converted = new ExcelReadOptions {
+            var converted = new ExcelReaderOptions {
                 TypeConverter = (raw, type, _) => {
                     typeCalls++;
                     Assert.Equal(7d, Assert.IsType<double>(raw));
@@ -165,11 +165,11 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
                 CellValueConverter = context => context.RawText == "123456789012345.125"
                     ? new ExcelCellValue(7d) : ExcelCellValue.NotHandled
             };
-            using (var reader = ExcelDocument.OpenDataReader(path, converted)) {
+            using (var reader = ExcelDocument.OpenReader(path, converted)) {
                 ConverterRow row = Assert.Single(reader.RowsAs<ConverterRow>());
                 Assert.Equal(42, row.Id);
             }
-            using (var reader = ExcelDocument.OpenDataReader(path, converted)) {
+            using (var reader = ExcelDocument.OpenReader(path, converted)) {
                 IdRow row = Assert.Single(reader.RowsAs<IdRow>(map => map.FromColumn<int>("Amount", (record, value) => { record.Id = value; return record; })));
                 Assert.Equal(42, row.Id);
             }
@@ -181,7 +181,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
     public void DateStyledNumericProjectionStillUsesWorkbookSerials() {
         string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\" s=\"1\"><v>45292.25</v></c></row>", new[] { "Value" }, 2);
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             Assert.Equal(45292.25, Assert.Single(reader.RowsAs<NumberRow>()).Value);
         } finally { File.Delete(path); }
     }
@@ -195,15 +195,15 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         try {
             double expectedDouble;
             float expectedSingle;
-            using (var oracle = ExcelDocument.OpenDataReader(path)) {
+            using (var oracle = ExcelDocument.OpenReader(path)) {
                 Assert.True(oracle.Read());
                 expectedDouble = Convert.ToDouble(oracle.GetValue(0), CultureInfo.InvariantCulture);
                 expectedSingle = Convert.ToSingle(oracle.GetValue(1), CultureInfo.InvariantCulture);
             }
-            using (var reader = ExcelDocument.OpenDataReader(path)) {
+            using (var reader = ExcelDocument.OpenReader(path)) {
                 ValidateBits(Assert.Single(reader.RowsAs<PrimitiveBitsRow>()));
             }
-            using (var reader = ExcelDocument.OpenDataReader(path)) {
+            using (var reader = ExcelDocument.OpenReader(path)) {
                 ValidateBits(Assert.Single(reader.RowsAs<PrimitiveBitsRow>(map => map
                     .FromColumn<double>("Double", (row, value) => { row.Double = value; return row; })
                     .FromColumn<float>("Single", (row, value) => { row.Single = value; return row; }))));
@@ -226,7 +226,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         try {
             DateTime[] expected = source.Select(text => DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)).ToArray();
             foreach (int degree in new[] { 1, 2 }) {
-                using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { InferSchema = true, SchemaSampleRows = 1 });
+                using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { InferSchema = true, SchemaSampleRows = 1 });
                 DateRow[] rows = reader.RowsAsParallel<DateRow>(new ParallelRowMappingOptions { MaxDegreeOfParallelism = degree, BatchSize = 1 }).ToArray();
                 Assert.Equal(2, rows.Length);
                 for (int index = 0; index < rows.Length; index++) {
@@ -249,9 +249,9 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
             "<c r=\"C3\"><v>-1.9876543210987654</v></c></row>", new[] { "Date", "Serial", "NumberText", "Name" }, 3);
         try {
             ParallelCaptureRow[] expected;
-            using (var oracle = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { InferSchema = inferSchema, SchemaSampleRows = 1 }))
+            using (var oracle = ExcelDocument.OpenReader(path, new ExcelReaderOptions { InferSchema = inferSchema, SchemaSampleRows = 1 }))
                 expected = oracle.RowsAs<ParallelCaptureRow>().ToArray();
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { InferSchema = inferSchema, SchemaSampleRows = 1 });
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { InferSchema = inferSchema, SchemaSampleRows = 1 });
             ParallelCaptureRow[] rows = reader.RowsAsParallel<ParallelCaptureRow>(new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = 1 }).ToArray();
             Assert.Equal(2, rows.Length);
             for (int index = 0; index < rows.Length; index++) {
@@ -272,19 +272,19 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.ParallelCapture.{Guid.NewGuid():N}{extension}");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "NumberText");
                 sheet.CellValue(2, 1, 1.2345678901234567);
                 sheet.CellValue(3, 1, -1.9876543210987654);
                 document.Save();
             }
             string[] expected;
-            using (var oracle = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { InferSchema = true, SchemaSampleRows = 1 })) {
+            using (var oracle = ExcelDocument.OpenReader(path, new ExcelReaderOptions { InferSchema = true, SchemaSampleRows = 1 })) {
                 var values = new List<string>();
                 while (oracle.Read()) values.Add(Convert.ToString(oracle.GetValue(0), CultureInfo.InvariantCulture)!);
                 expected = values.ToArray();
             }
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { InferSchema = true, SchemaSampleRows = 1 });
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { InferSchema = true, SchemaSampleRows = 1 });
             ParallelCaptureRow[] rows = reader.RowsAsParallel<ParallelCaptureRow>(new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = 1 }).ToArray();
             Assert.Equal(expected, rows.Select(row => row.NumberText).ToArray());
             Assert.False(reader.IsClosed);
@@ -295,7 +295,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
     public void InvalidDateSerialKeepsGenericConstructionAndFailureOrder() {
         string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\" s=\"1\"><v>3000000</v></c></row>", new[] { "Date" }, 2);
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             DateConstructorProbeRow.Calls = 0;
             Assert.Throws<ArgumentException>(() => reader.RowsAs<DateConstructorProbeRow>().ToArray());
             Assert.Equal(1, DateConstructorProbeRow.Calls);
@@ -311,11 +311,11 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
             new[] { "Date" }, 2, dateSystem: dateSystem);
         try {
             DateTime expected;
-            using (var oracle = ExcelDocument.OpenDataReader(path)) {
+            using (var oracle = ExcelDocument.OpenReader(path)) {
                 Assert.True(oracle.Read());
                 expected = oracle.GetDateTime(0);
             }
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             using IEnumerator<DateRow> rows = reader.RowsAs<DateRow>().GetEnumerator();
             Assert.True(rows.MoveNext());
             Assert.Equal(expected, rows.Current.Date);
@@ -332,7 +332,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\" s=\"1\"><v>2024-01-02T03:04:05Z</v></c></row>",
             new[] { "Date" }, 2);
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             DateTime date = Assert.Single(reader.RowsAs<DateRow>()).Date;
             Assert.Equal(DateTime.Parse("2024-01-02T03:04:05Z", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), date);
             Assert.Equal(DateTimeKind.Utc, date.Kind);
@@ -343,7 +343,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
     public void NativeMappingDoesNotRetryOrWrapAPropertySetterFailure() {
         string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\"><v>42</v></c></row>", new[] { "Value" }, 2);
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             ThrowingSetterRow.Calls = 0;
             Exception original = ThrowingSetterRow.Failure;
             Assert.Same(original, Assert.Throws<FormatException>(() => reader.RowsAs<ThrowingSetterRow>().ToArray()));
@@ -357,7 +357,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\"><v>1</v></c></row><row r=\"3\"><c r=\"A3\"><v>2</v></c></row>", new[] { "Id" }, 3);
         try {
             using var cancellation = new CancellationTokenSource();
-            using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { CancellationToken = cancellation.Token });
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { CancellationToken = cancellation.Token });
             using IEnumerator<IdRow> rows = reader.RowsAs<IdRow>().GetEnumerator();
             Assert.True(rows.MoveNext());
             Assert.Equal(1, rows.Current.Id);
@@ -375,7 +375,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
             "<row r=\"2\"><c r=\"A2\" s=\"1\"><v>45292.25</v></c></row>" +
             "<row r=\"3\"><c r=\"A3\" t=\"inlineStr\"><is><t>2024-01-02T03:04:05Z</t></is></c></row>", new[] { "Date" }, 3);
         try {
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             var dates = new List<DateTime>();
             await foreach (DateRow row in reader.RowsAsAsync<DateRow>()) dates.Add(row.Date);
             Assert.Equal(2, dates.Count);
@@ -398,7 +398,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.TypedMapping.{Guid.NewGuid():N}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             document.DateSystem = dateSystem;
-            document.AddWorksheet("Data").CellValue(1, 1, "Value");
+            document.AddSheet("Data").CellValue(1, 1, "Value");
             document.Save();
         }
         string headerCells = string.Concat(headers.Select((header, index) =>

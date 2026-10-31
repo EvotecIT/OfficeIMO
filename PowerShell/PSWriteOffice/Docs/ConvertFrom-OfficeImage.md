@@ -11,7 +11,7 @@ Exports a recognized image as editable Excel, Word, text, Markdown, HTML, JSON, 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-ConvertFrom-OfficeImage [-InputObject] <PdfSearchableOcrReview> [-OutputPath] <string> [-FirstRowIsHeader] [-ExcelOptions <PdfTablesToExcelOptions>] [-WordOptions <PdfToWordOptions>] [-HtmlOptions <PdfToHtmlOptions>] [-CsvOptions <CsvSaveOptions>] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertFrom-OfficeImage [-InputObject] <PdfSearchableOcrReview> [-OutputPath] <string> [-FirstRowIsHeader] [-ExcelOptions <ExcelPdfImportOptions>] [-WordOptions <WordPdfImportOptions>] [-HtmlOptions <PdfToHtmlOptions>] [-CsvOptions <CsvSaveOptions>] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -61,7 +61,7 @@ Accept wildcard characters: False
 Advanced Excel typing, culture, row limit and table formatting settings.
 
 ```yaml
-Type: PdfTablesToExcelOptions
+Type: ExcelPdfImportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -173,7 +173,7 @@ Accept wildcard characters: False
 Advanced Word projection settings.
 
 ```yaml
-Type: PdfToWordOptions
+Type: WordPdfImportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

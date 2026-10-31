@@ -4,17 +4,17 @@ namespace OfficeIMO.Markdown;
 /// Ambient render context so nested blocks (quotes/details/lists) can obey HTML rendering policies.
 /// </summary>
 internal static class HtmlRenderContext {
-    private static readonly System.Threading.AsyncLocal<HtmlOptions?> s_Options = new();
+    private static readonly System.Threading.AsyncLocal<MarkdownHtmlExportOptions?> s_Options = new();
     private static readonly System.Threading.AsyncLocal<HtmlFootnoteRenderState?> s_Footnotes = new();
     private static readonly System.Threading.AsyncLocal<MarkdownBodyRenderContext?> s_BodyContext = new();
     private static readonly System.Threading.AsyncLocal<int> s_RenderListItemAttributesDepth = new();
 
-    internal static HtmlOptions? Options => s_Options.Value;
+    internal static MarkdownHtmlExportOptions? Options => s_Options.Value;
     internal static HtmlFootnoteRenderState? Footnotes => s_Footnotes.Value;
     internal static MarkdownBodyRenderContext? BodyContext => s_BodyContext.Value;
     internal static bool RenderListItemAttributes => s_RenderListItemAttributesDepth.Value > 0;
 
-    internal static IDisposable Push(HtmlOptions options, HtmlFootnoteRenderState? footnotes = null) {
+    internal static IDisposable Push(MarkdownHtmlExportOptions options, HtmlFootnoteRenderState? footnotes = null) {
         var prior = s_Options.Value;
         var priorFootnotes = s_Footnotes.Value;
         s_Options.Value = options;
@@ -34,10 +34,10 @@ internal static class HtmlRenderContext {
     }
 
     private readonly struct Popper : IDisposable {
-        private readonly HtmlOptions? _prior;
+        private readonly MarkdownHtmlExportOptions? _prior;
         private readonly HtmlFootnoteRenderState? _priorFootnotes;
 
-        public Popper(HtmlOptions? prior, HtmlFootnoteRenderState? priorFootnotes) {
+        public Popper(MarkdownHtmlExportOptions? prior, HtmlFootnoteRenderState? priorFootnotes) {
             _prior = prior;
             _priorFootnotes = priorFootnotes;
         }

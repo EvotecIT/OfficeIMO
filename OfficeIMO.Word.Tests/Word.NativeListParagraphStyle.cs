@@ -27,7 +27,7 @@ public partial class Word {
         style.StyleParagraphProperties.SpacingBetweenLines = new SpacingBetweenLines { After = "280" };
         string before = styles.OuterXml;
 
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph paragraph = (headerOnly ? reopened.Header.Default.Paragraphs : reopened.Paragraphs)
             .First(item => item.Text == "First item");
         Style actual = reopened._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!

@@ -39,7 +39,8 @@ namespace OfficeIMO.Excel {
                 if (!string.IsNullOrWhiteSpace(definition.DifferentialFontColorArgb)) NormalizeHexColor(definition.DifferentialFontColorArgb!);
                 if (!string.IsNullOrWhiteSpace(definition.DifferentialFontName)) XmlConvert.VerifyXmlChars(definition.DifferentialFontName!);
                 ValidateConditionalFormattingBorder(definition.DifferentialBorder);
-                if (definition.DifferentialFontSize is < 1D or > 409D || double.IsNaN(definition.DifferentialFontSize ?? 1D) || double.IsInfinity(definition.DifferentialFontSize ?? 1D)) {
+                if (definition.DifferentialFontSize is OfficeLength fontSize &&
+                    (fontSize < OfficeLength.Points(1) || fontSize > OfficeLength.Points(409))) {
                     throw new ArgumentOutOfRangeException(nameof(definition), "Conditional-formatting font size must be finite and between 1 and 409 points.");
                 }
             }
@@ -216,7 +217,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ValidateConditionalFormattingBorder(ExcelCellBorderSnapshot? border) {
+        private static void ValidateConditionalFormattingBorder(ExcelCellBorderInfo? border) {
             if (border == null) return;
             ValidateConditionalFormattingBorderSide(border.Left);
             ValidateConditionalFormattingBorderSide(border.Right);
@@ -225,7 +226,7 @@ namespace OfficeIMO.Excel {
             ValidateConditionalFormattingBorderSide(border.Diagonal);
         }
 
-        private static void ValidateConditionalFormattingBorderSide(ExcelBorderSideSnapshot? side) {
+        private static void ValidateConditionalFormattingBorderSide(ExcelBorderSideInfo? side) {
             if (side == null) return;
             if (NormalizeConditionalFormattingBorderStyle(side.Style) == null) {
                 throw new ArgumentException($"Conditional-formatting border style '{side.Style}' is not supported.");
@@ -309,11 +310,11 @@ namespace OfficeIMO.Excel {
                 info.DifferentialFontStrike?.ToString() ?? string.Empty,
                 info.DifferentialFontUnderline?.ToString() ?? string.Empty,
                 info.DifferentialFontName ?? string.Empty,
-                info.DifferentialFontSize?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                info.DifferentialFontSize?.ToPoints().ToString(CultureInfo.InvariantCulture) ?? string.Empty,
                 CreateConditionalFormattingBorderSignature(info.DifferentialBorder)
             });
 
-        private static string CreateConditionalFormattingBorderSignature(ExcelCellBorderSnapshot? border) {
+        private static string CreateConditionalFormattingBorderSignature(ExcelCellBorderInfo? border) {
             if (border == null) return string.Empty;
             return string.Join("\u001e", new[] {
                 CreateConditionalFormattingBorderSideSignature(border.Left),
@@ -326,7 +327,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private static string CreateConditionalFormattingBorderSideSignature(ExcelBorderSideSnapshot? side) =>
+        private static string CreateConditionalFormattingBorderSideSignature(ExcelBorderSideInfo? side) =>
             side == null ? string.Empty : (side.Style ?? string.Empty) + "\u001d" + (side.ColorArgb ?? string.Empty);
 
         private static bool IsKnownConditionalFormattingType(string type) =>

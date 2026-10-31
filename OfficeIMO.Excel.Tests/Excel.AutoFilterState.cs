@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFilterState_ReadsValuesCustomBlankAndTopCriteria() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(1, 3, "Rank");

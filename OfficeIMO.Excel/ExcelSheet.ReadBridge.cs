@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Data;
 using System.Threading;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Data;
 
 namespace OfficeIMO.Excel {
@@ -16,8 +18,8 @@ namespace OfficeIMO.Excel {
         /// Creates a forward-only data reader over this worksheet in the current open workbook,
         /// including unsaved edits.
         /// </summary>
-        public ExcelWorkbookDataReader CreateDataReader(ExcelReadOptions? options = null) {
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+        public ExcelWorkbookDataReader CreateDataReader(ExcelReaderOptions? options = null) {
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             return _excelDocument.CreateDataReader(effectiveOptions.ForSheet(Name, effectiveOptions.A1Range, effectiveOptions.CancellationToken));
         }
 
@@ -27,9 +29,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="options">Optional read options.</param>
         /// <param name="cancellationToken">Cancellation token observed during enumeration.</param>
-        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-            ExcelReadOptions? options = null,
-            CancellationToken cancellationToken = default) where T : new() {
+        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
+            ExcelReaderOptions? options = null,
+            CancellationToken cancellationToken = default) {
             return RowsAsUsedRangeIterator<T>(options, cancellationToken);
         }
 
@@ -42,7 +44,7 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token observed during enumeration.</param>
         public IEnumerable<T> RowsAs<T>(
             Action<RowMapper<T>> configure,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) where T : new() {
             if (configure is null) throw new ArgumentNullException(nameof(configure));
             return RowsAsUsedRangeIterator(configure, options, cancellationToken);
@@ -58,7 +60,7 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token observed during enumeration.</param>
         public IEnumerable<T> RowsAs<T>(
             Func<IDataRecord, T> factory,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (factory is null) throw new ArgumentNullException(nameof(factory));
             return RowsAsUsedRangeIterator(factory, options, cancellationToken);
@@ -68,10 +70,10 @@ namespace OfficeIMO.Excel {
         /// Streams the specified A1 range as instances of T using header-to-property mapping.
         /// Enumerate the returned sequence while the owning <see cref="ExcelDocument"/> remains open.
         /// </summary>
-        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
             string a1Range,
-            ExcelReadOptions? options = null,
-            CancellationToken cancellationToken = default) where T : new() {
+            ExcelReaderOptions? options = null,
+            CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             return RowsAsRangeIterator<T>(a1Range, options, cancellationToken);
         }
@@ -87,7 +89,7 @@ namespace OfficeIMO.Excel {
         public IEnumerable<T> RowsAs<T>(
             string a1Range,
             Action<RowMapper<T>> configure,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) where T : new() {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (configure is null) throw new ArgumentNullException(nameof(configure));
@@ -106,7 +108,7 @@ namespace OfficeIMO.Excel {
         public IEnumerable<T> RowsAs<T>(
             string a1Range,
             Func<IDataRecord, T> factory,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (factory is null) throw new ArgumentNullException(nameof(factory));
@@ -120,7 +122,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Optional read options.</param>
         /// <param name="cancellationToken">Cancellation token observed during enumeration.</param>
         public IEnumerable<ExcelCellValueInfo> EnumerateCells(
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
             return EnumerateCellsIterator(options, cancellationToken);
         }
@@ -134,22 +136,49 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancellation token observed during enumeration.</param>
         public IEnumerable<ExcelCellValueInfo> EnumerateRange(
             string a1Range,
-            ExcelReadOptions? options = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             return EnumerateRangeIterator(a1Range, options, cancellationToken);
         }
 
-        private IEnumerable<T> RowsAsUsedRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-            ExcelReadOptions? options,
-            CancellationToken ct) where T : new() {
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+        /// <summary>
+        /// Typed rows are data rows. When the read range ends on a table's totals row,
+        /// that row is left out so a SUBTOTAL label or blank date does not become an object.
+        /// </summary>
+        private string? ExcludeTableTotalsRows(string? a1Range) {
+            if (_worksheetPart.TableDefinitionParts.FirstOrDefault() == null) return a1Range;
+            string range = a1Range ?? GetUsedRangeA1();
+            if (!ExcelA1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) return a1Range;
+            int trimmedLastRow = lastRow;
+            foreach (TableDefinitionPart part in _worksheetPart.TableDefinitionParts) {
+                Table? table = part.Table;
+                int totalsRows = (int)(table?.TotalsRowCount?.Value ?? 0U);
+                if (table == null || totalsRows <= 0 ||
+                    !ExcelA1.TryParseRange(table.Reference?.Value ?? string.Empty, out int tableFirstRow, out int tableFirstColumn, out int tableLastRow, out int tableLastColumn) ||
+                    tableLastRow != trimmedLastRow || tableFirstColumn > lastColumn || tableLastColumn < firstColumn) {
+                    continue;
+                }
+
+                int firstTotalsRow = tableLastRow - totalsRows + 1;
+                if (firstTotalsRow > firstRow && firstTotalsRow > tableFirstRow) trimmedLastRow = firstTotalsRow - 1;
+            }
+
+            return trimmedLastRow == lastRow
+                ? a1Range
+                : ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(trimmedLastRow, lastColumn);
+        }
+
+        private IEnumerable<T> RowsAsUsedRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
+            ExcelReaderOptions? options,
+            CancellationToken ct) {
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 ct,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
             using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
-                effectiveOptions.ForSheet(Name, a1Range: null, cancellationToken: token));
+                effectiveOptions.ForSheet(Name, a1Range: ExcludeTableTotalsRows(null), cancellationToken: token));
             foreach (T row in reader.RowsAs<T>()) {
                 token.ThrowIfCancellationRequested();
                 yield return row;
@@ -158,15 +187,15 @@ namespace OfficeIMO.Excel {
 
         private IEnumerable<T> RowsAsUsedRangeIterator<T>(
             Action<RowMapper<T>> configure,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken cancellationToken) where T : new() {
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
             using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
-                effectiveOptions.ForSheet(Name, a1Range: null, cancellationToken: token));
+                effectiveOptions.ForSheet(Name, a1Range: ExcludeTableTotalsRows(null), cancellationToken: token));
             foreach (T row in reader.RowsAs(configure)) {
                 token.ThrowIfCancellationRequested();
                 yield return row;
@@ -175,32 +204,32 @@ namespace OfficeIMO.Excel {
 
         private IEnumerable<T> RowsAsUsedRangeIterator<T>(
             Func<IDataRecord, T> factory,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken cancellationToken) {
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
             using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
-                effectiveOptions.ForSheet(Name, a1Range: null, cancellationToken: token));
+                effectiveOptions.ForSheet(Name, a1Range: ExcludeTableTotalsRows(null), cancellationToken: token));
             foreach (T row in reader.RowsAs(factory)) {
                 token.ThrowIfCancellationRequested();
                 yield return row;
             }
         }
 
-        private IEnumerable<T> RowsAsRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        private IEnumerable<T> RowsAsRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
             string a1Range,
-            ExcelReadOptions? options,
-            CancellationToken ct) where T : new() {
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions? options,
+            CancellationToken ct) {
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 ct,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
             using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
-                effectiveOptions.ForSheet(Name, a1Range, token));
+                effectiveOptions.ForSheet(Name, ExcludeTableTotalsRows(a1Range), token));
             foreach (T row in reader.RowsAs<T>()) {
                 token.ThrowIfCancellationRequested();
                 yield return row;
@@ -210,15 +239,15 @@ namespace OfficeIMO.Excel {
         private IEnumerable<T> RowsAsRangeIterator<T>(
             string a1Range,
             Action<RowMapper<T>> configure,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken cancellationToken) where T : new() {
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
             using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
-                effectiveOptions.ForSheet(Name, a1Range, token));
+                effectiveOptions.ForSheet(Name, ExcludeTableTotalsRows(a1Range), token));
             foreach (T row in reader.RowsAs(configure)) {
                 token.ThrowIfCancellationRequested();
                 yield return row;
@@ -228,15 +257,15 @@ namespace OfficeIMO.Excel {
         private IEnumerable<T> RowsAsRangeIterator<T>(
             string a1Range,
             Func<IDataRecord, T> factory,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken cancellationToken) {
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
             using ExcelWorkbookDataReader reader = _excelDocument.CreateDataReader(
-                effectiveOptions.ForSheet(Name, a1Range, token));
+                effectiveOptions.ForSheet(Name, ExcludeTableTotalsRows(a1Range), token));
             foreach (T row in reader.RowsAs(factory)) {
                 token.ThrowIfCancellationRequested();
                 yield return row;
@@ -244,9 +273,9 @@ namespace OfficeIMO.Excel {
         }
 
         private IEnumerable<ExcelCellValueInfo> EnumerateCellsIterator(
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken ct) {
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 ct,
                 effectiveOptions.CancellationToken);
@@ -260,9 +289,9 @@ namespace OfficeIMO.Excel {
 
         private IEnumerable<ExcelCellValueInfo> EnumerateRangeIterator(
             string a1Range,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             CancellationToken ct) {
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 ct,
                 effectiveOptions.CancellationToken);

@@ -32,28 +32,37 @@ public static class XpsPdfExtensions {
         if (!output.CanWrite) throw new ArgumentException("PDF output must be writable.", nameof(output));
         cancellationToken.ThrowIfCancellationRequested();
         var snapshot = (options ?? new XpsToPdfOptions()).Clone();
-        return CreatePdf(document, snapshot, cancellationToken).Save(output, cancellationToken);
+        if (snapshot.MaximumSvgCharacters < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumSvgCharacters must be positive.");
+        if (snapshot.MaximumPathCommands < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumPathCommands must be positive.");
+        return CreatePdf(document, snapshot, cancellationToken).SaveWithEvidence(output, cancellationToken);
     }
 
     private static PdfDocument CreatePdf(XpsDocument document, XpsToPdfOptions options, CancellationToken cancellationToken) {
         if (document.Pages.Count == 0) throw new InvalidOperationException("PDF export requires at least one page.");
         var navigation = new XpsPdfNavigation(document, cancellationToken);
         var structure = options.PreserveLogicalStructure ? new XpsPdfLogicalStructure(document, cancellationToken) : null;
-        var pdf = PdfDocument.Create(options.PdfOptions);
+        var pdf = PdfDocument.CreateForImportedLayout(options.PdfOptions);
         if (structure?.HasNativeStructure == true) pdf.TaggedStructure(PdfTaggedStructureMode.CatalogMarkers);
+        long projectedSvgCharacters = 0, projectedPathCommands = 0;
         pdf.Compose(builder => {
             for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
                 var page = document.Pages[pageIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 var projection = new XpsSvgConverter(page, cancellationToken, explicitPageLinks: true, nativeDrawing: true).Convert(false);
+                if (projection.Svg.Length > options.MaximumSvgCharacters - projectedSvgCharacters)
+                    throw new InvalidDataException("XPS PDF projection exceeds MaximumSvgCharacters.");
+                if (projection.PathCommands > options.MaximumPathCommands - projectedPathCommands)
+                    throw new InvalidDataException("XPS PDF projection exceeds MaximumPathCommands.");
+                projectedSvgCharacters += projection.Svg.Length;
+                projectedPathCommands += projection.PathCommands;
                 var drawing = XpsPage.ImportDrawing(navigation.MapLinks(projection.Svg, pageIndex, cancellationToken), cancellationToken, structure?.HasNativeStructure == true);
                 double width = page.Width * 72D / 96D, height = page.Height * 72D / 96D;
-                builder.Page(p => p.Size(width, height).Margin(new PageMargins(0, 0, 0, 0))
+                builder.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)).Margin(new PdfPageMargins(OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0)))
                     .Canvas(c => {
                         navigation.AddDestinations(c, projection, pageIndex, width, height, cancellationToken);
                         if (drawing.Elements.Count > 0) {
                             if (structure?.HasNativeStructure == true) c.SourceStructuredDrawing(drawing, width, height, structure.Paint(pageIndex));
-                            else c.Drawing(drawing, 0, 0, width, height);
+                            else c.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height));
                         }
                         if (structure?.HasNativeStructure == true) structure.AddText(c, projection.TextSpans, pageIndex);
                         else foreach (var span in projection.TextSpans) {

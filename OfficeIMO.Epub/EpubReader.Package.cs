@@ -494,9 +494,10 @@ internal static partial class EpubReader {
                 refinement.Value.Length == 0) continue;
             EpubReference reference = EpubReference.Resolve(opfPath, refinement.Refines);
             if (reference.Fragment == null || !identified.TryGetValue(reference.Fragment, out EpubMetadataEntry? target)) continue;
-            string property = EpubVocabulary.Expand(metadata.Document!.Root!, refinement.Property);
-            if (property == "http://idpf.org/epub/vocab/package/#file-as") target.FileAs ??= refinement.Value;
-            else if (property == "http://idpf.org/epub/vocab/package/#role" && target.Kind == EpubMetadataKind.DublinCore &&
+            if (EpubVocabulary.Matches(package.VocabularyPrefixes, refinement.Property,
+                    "http://idpf.org/epub/vocab/package/#", "file-as")) target.FileAs ??= refinement.Value;
+            else if (EpubVocabulary.Matches(package.VocabularyPrefixes, refinement.Property,
+                    "http://idpf.org/epub/vocab/package/#", "role") && target.Kind == EpubMetadataKind.DublinCore &&
                 (target.Name == "creator" || target.Name == "contributor" || target.Name == "publisher")) target.Role ??= refinement.Value;
         }
     }

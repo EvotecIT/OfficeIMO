@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded BopPopCustom secondary bar/pie membership bits.
     /// </summary>
-    public sealed class LegacyXlsChartBopPopCustomSplit {
+    internal sealed class LegacyXlsChartBopPopCustomSplit {
         internal LegacyXlsChartBopPopCustomSplit(ushort bitCount, int bitmapBytesAvailable, IReadOnlyList<int> secondaryDataPointIndexes, bool noSecondaryDataPointsMarker) {
             BitCount = bitCount;
             BitmapBytesAvailable = bitmapBytesAvailable;

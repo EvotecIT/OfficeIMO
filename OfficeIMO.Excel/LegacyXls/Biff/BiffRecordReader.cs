@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (offset + 4 > bytes.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Error,
-                        "XLS-BIFF-TRUNCATED-HEADER",
+                        "xls-biff-truncated-header",
                         "The BIFF stream ended inside a record header.",
                         recordOffset: offset));
                     break;
@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 if (payloadOffset + length > bytes.Length) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Error,
-                        "XLS-BIFF-TRUNCATED-PAYLOAD",
+                        "xls-biff-truncated-payload",
                         $"BIFF record 0x{type:X4} declares {length} payload bytes, but the stream ends early.",
                         recordOffset: offset,
                         recordType: type));

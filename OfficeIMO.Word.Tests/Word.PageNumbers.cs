@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
                 document.AddHeadersAndFooters();
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 var para = footer.AddParagraph();
-                para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman);
+                para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.UpperRoman);
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -185,7 +185,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(formatA);
                 Assert.Equal(NumberFormatValues.UpperRoman, formatA.Value);
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
-                Assert.Contains(footer.Fields, f => f.FieldType == WordFieldType.Page && f.FieldFormat.Contains(WordFieldFormat.Roman));
+                Assert.Contains(footer.Fields, f => f.FieldType == WordFieldType.Page && f.FieldFormat.Contains(WordFieldFormat.UpperRoman));
                 var errors = document.ValidateDocument();
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
                 Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));

@@ -16,8 +16,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal int LastColumn { get; }
 
         internal string ToA1Reference() {
-            string first = A1.CellReference(FirstRow, FirstColumn);
-            string last = A1.CellReference(LastRow, LastColumn);
+            string first = ExcelA1.CellReference(FirstRow, FirstColumn);
+            string last = ExcelA1.CellReference(LastRow, LastColumn);
             return first == last ? first : first + ":" + last;
         }
     }

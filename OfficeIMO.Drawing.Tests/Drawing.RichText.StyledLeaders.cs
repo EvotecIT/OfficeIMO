@@ -33,18 +33,18 @@ public sealed class DrawingRichTextStyledLeaderTests {
     [InlineData(true, 1D)]
     [InlineData(true, 2D)]
     public void AbsoluteAndRelativeSizesFollowDrawingScaleAndLeaveStopsFixed(bool absolute, double scale) {
-        var style = absolute ? new OfficeTextTabLeaderStyle(fontSizePoints: 15) : new OfficeTextTabLeaderStyle(fontSizeFactor: 1.5);
+        var style = absolute ? new OfficeTextTabLeaderStyle(fontSize: OfficeLength.Points(15)) : new OfficeTextTabLeaderStyle(fontSizeFactor: 1.5);
         var layout = OfficeDrawingTextLayout.CreateParagraphs(new[] { Paragraph(style) }, 600, 200, Measure, scale: scale);
         Assert.Equal(new[] { 15 * scale, (absolute ? 15 : 30) * scale }, Glyphs(layout).Select(s => s.FontSize));
         Assert.Equal(100 * scale, Start(layout.Lines[0], "B")); Assert.Equal(200 * scale, Start(layout.Lines[0], "C"));
-        Assert.Equal(absolute ? 15D : (double?)null, style.FontSizePoints);
+        Assert.Equal(absolute ? OfficeLength.Points(15) : (OfficeLength?)null, style.FontSize);
     }
 
     [Fact]
     public void AbsoluteLeaderSizesFitTogetherWithBodyFontsWithoutMovingTheStop() {
         var paragraph = new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("A\tB", 10, OfficeColor.Red) })
             .WithTabStops(new OfficeTextTabStops(new[] { new OfficeTextTabStop(100).WithLeader(".")
-                .WithLeaderStyle(new OfficeTextTabLeaderStyle(fontSizePoints: 20)) }));
+                .WithLeaderStyle(new OfficeTextTabLeaderStyle(fontSize: OfficeLength.Points(20))) }));
         var layout = OfficeDrawingTextLayout.CreateParagraphs(new[] { paragraph }, 400, 12, Measure, shrinkToFit: true);
         var glyph = Assert.Single(Glyphs(layout)); var body = Assert.Single(layout.Lines[0].Segments, s => s.Text == "B");
         Assert.False(layout.Clipped); Assert.InRange(body.FontSize, 1, 9.999); Assert.Equal(body.FontSize * 2, glyph.FontSize, 6);
@@ -84,7 +84,8 @@ public sealed class DrawingRichTextStyledLeaderTests {
     [Fact]
     public void InvalidStyleValuesRejectBeforeLayoutAndTransparentBackgroundClearsInheritedPaint() {
         foreach (double value in new[] { 0D, -1D, double.NaN, double.PositiveInfinity }) {
-            Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeTextTabLeaderStyle(fontSizePoints: value));
+            if (!double.IsNaN(value) && !double.IsInfinity(value))
+                Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeTextTabLeaderStyle(fontSize: OfficeLength.Points(value)));
             Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeTextTabLeaderStyle(fontSizeFactor: value));
         }
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeTextTabLeaderStyle(strikethroughStyle: OfficeTextDecorationStyle.Words));

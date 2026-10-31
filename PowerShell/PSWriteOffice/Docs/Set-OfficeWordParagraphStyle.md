@@ -307,7 +307,7 @@ Paragraph style to apply.
 Type: WordParagraphStyles
 Parameter Sets: __AllParameterSets
 Aliases: None
-Possible values: Normal, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Heading7, Heading8, Heading9, ListParagraph, Custom
+Possible values: Normal, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Heading7, Heading8, Heading9, ListParagraph, Custom, Title, Subtitle
 
 Required: False
 Position: named

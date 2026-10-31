@@ -11,7 +11,7 @@ Extracts detected PDF tables into an editable Excel workbook.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-ConvertTo-OfficePdfExcel [-Path] <string> [-OutputPath] <string> [-Password <string>] [-IgnorePermissionRestrictions] [-Options <PdfTablesToExcelOptions>] [-Force] [-Open] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePdfExcel [-Path] <string> [-OutputPath] <string> [-Password <string>] [-IgnorePermissionRestrictions] [-Options <ExcelPdfImportOptions>] [-Force] [-Open] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -80,7 +80,7 @@ Accept wildcard characters: False
 Advanced OfficeIMO PDF-table-to-Excel options.
 
 ```yaml
-Type: PdfTablesToExcelOptions
+Type: ExcelPdfImportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -166,7 +166,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## OUTPUTS
 
 - `System.IO.FileInfo`
-- `OfficeIMO.Excel.Pdf.PdfExcelTableImportReport`
+- `OfficeIMO.Pdf.Excel.PdfExcelTableImportReport`
 
 ## RELATED LINKS
 

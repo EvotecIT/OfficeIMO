@@ -9,8 +9,8 @@ public static partial class OfficeChartDrawingRenderer {
         double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout,
         ValueRange? sharedValueAxisRange = null, OfficeChartAxisGroup? axisGroup = null) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
-        IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
-        List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> lineSeries = GetRenderableLineSeries(snapshot);
+        IReadOnlyList<OfficeSeries> series = snapshot.Data.Series;
+        List<(OfficeSeries Series, int SourceIndex, OfficeChartType Kind)> lineSeries = GetRenderableLineSeries(snapshot);
         if (axisGroup.HasValue) lineSeries = lineSeries.Where(item =>
             item.Series.AxisGroup == axisGroup.Value).ToList();
         if (categories.Count == 0 || lineSeries.Count == 0) {
@@ -25,8 +25,8 @@ public static partial class OfficeChartDrawingRenderer {
         if (layout.ShowHighLowLines) {
             AddHighLowLines(geometry, snapshot, lineSeries, plotLeft, plotTop, plotWidth, plotHeight, range, style, layout);
         }
-        var positiveCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
-        var negativeCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
+        var positiveCumulativeByKind = new Dictionary<OfficeChartType, double[]>();
+        var negativeCumulativeByKind = new Dictionary<OfficeChartType, double[]>();
         var stackedSeriesByKind = lineSeries
             .Where(item => IsStackedLineChart(item.Kind) || IsPercentStackedLineChart(item.Kind))
             .GroupBy(item => item.Kind)
@@ -34,13 +34,14 @@ public static partial class OfficeChartDrawingRenderer {
         var percentStackedTotalsByKind = stackedSeriesByKind
             .Where(group => IsPercentStackedLineChart(group.Key))
             .ToDictionary(group => group.Key, group => BuildPercentStackedTotals(group.Value, categories.Count));
-        foreach ((OfficeChartSeries currentSeries, int sourceSeriesIndex, OfficeChartKind kind) in lineSeries) {
+        foreach ((OfficeSeries currentSeries, int sourceSeriesIndex, OfficeChartType kind) in lineSeries) {
             bool currentStacked = IsStackedLineChart(kind) || IsPercentStackedLineChart(kind);
             bool currentPercentStacked = IsPercentStackedLineChart(kind);
             double[] positiveCumulative = currentStacked ? GetCumulative(positiveCumulativeByKind, kind, categories.Count) : Array.Empty<double>();
             double[] negativeCumulative = currentStacked ? GetCumulative(negativeCumulativeByKind, kind, categories.Count) : Array.Empty<double>();
             OfficeColor color = GetSeriesColor(style, series, sourceSeriesIndex);
-            double strokeWidth = GetSeriesStrokeWidth(currentSeries, 1.75D);
+            bool showMarkers = layout.ShowMarkers && currentSeries.ResolveMarkerVisibility(kind, OfficeTheme.Default);
+            double strokeWidth = GetSeriesStrokeWidth(currentSeries, OfficeTheme.Default.ChartStyle.LineWidth.ToPoints());
             OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(currentSeries);
             var points = new OfficePoint[categories.Count];
             var plotted = new bool[categories.Count];
@@ -81,7 +82,7 @@ public static partial class OfficeChartDrawingRenderer {
                         if (x1 == x2 && y1 == y2) continue;
                         double minX = Math.Min(x1, x2);
                         double minY = Math.Min(y1, y2);
-                        AddShape(geometry, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, currentSeries.SeriesStyle?.OutlineColor ?? color, currentSeries.SeriesStyle?.OutlineWidth ?? strokeWidth, dashStyle);
+                        AddShape(geometry, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, currentSeries.SeriesStyle?.OutlineColor ?? color, currentSeries.SeriesStyle?.OutlineWidth?.ToPoints() ?? strokeWidth, dashStyle);
                     }
                 }
             }
@@ -96,7 +97,7 @@ public static partial class OfficeChartDrawingRenderer {
                     ? new OfficePoint(points[i].X, ToPlotY(points[i].Y, range.Min, range.Max, plotTop, plotHeight))
                     : points[i];
 
-                if (layout.ShowMarkers && currentSeries.ShowMarkers) {
+                if (showMarkers) {
                     OfficeColor pointColor = GetPointColor(currentSeries.PointColors, i, color);
                     AddMarker(geometry, currentSeries, renderPoint, 4D, pointColor, 1D, GetPointStyle(currentSeries.PointStyles, i));
                 }

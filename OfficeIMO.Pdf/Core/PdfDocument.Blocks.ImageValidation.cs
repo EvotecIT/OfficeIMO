@@ -314,6 +314,7 @@ public sealed partial class PdfDocument {
                 Background = OfficeColor.Transparent,
                 MaximumRasterPixels = OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels,
                 ThrowOnImageDecodeFailure = true,
+                LimitRasterPaintWork = true,
                 CancellationToken = cancellationToken
             });
         } else if (!OfficeImagePngConverter.TryConvertToPng(data,

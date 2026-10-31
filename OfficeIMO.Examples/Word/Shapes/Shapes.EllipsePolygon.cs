@@ -1,6 +1,6 @@
 using System;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Shapes {
@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Paragraph with shapes");
-                WordShape.AddEllipse(paragraph, 80, 40, Color.Red);
+                WordShape.AddEllipse(paragraph, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40), Color.Red);
                 WordShape.AddPolygon(paragraph, "0,0 40,0 40,40 0,40", Color.Lime, Color.Blue);
                 document.Save();
                 if (openWord) document.OpenInApplication();

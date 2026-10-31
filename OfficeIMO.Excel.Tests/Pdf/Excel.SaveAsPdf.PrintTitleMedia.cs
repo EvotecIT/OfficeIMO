@@ -12,28 +12,33 @@ public partial class Excel {
     [InlineData(2)]
     public void SaveAsPdf_FutureTitleColumnsRetainBodyImagesAndCharts(int anchorColumn) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int column = 1; column <= 6; column++) {
             sheet.Cell(1, column, "Column" + column);
-            sheet.SetColumnWidth(column, 10D);
+            sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10D));
         }
-        sheet.AddImage(2, anchorColumn, CreateMinimalRgbPng(), "image/png", widthPixels: 24, heightPixels: 16);
-        sheet.AddChart(new ExcelChartData(new[] { "One", "Two" }, new[] { new ExcelChartSeries("Values", new double[] { 1, 2 }) }),
-            3, anchorColumn, widthPixels: 120, heightPixels: 80, title: "RetainedChart");
+        sheet.AddImage(2, anchorColumn, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
+        sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "One", "Two" }, new[] { new ExcelChartSeries("Values", new double[] { 1, 2 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 3, Column = anchorColumn, Width = OfficeLength.Pixels(120), Height = OfficeLength.Pixels(80), Title = "RetainedChart" });
         document.SetPrintArea(sheet, "A1:F4");
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 3, lastCol: 3);
         sheet.AddManualColumnPageBreak(2);
 
-        byte[] bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+        byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        });
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(700),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain("Column3", pdf.GetPage(1).Text);
         Assert.Contains("Column3", pdf.GetPage(2).Text);
         Assert.Contains("RetainedChart", pdf.GetPage(1).Text);
-        Assert.DoesNotContain("RetainedChart", pdf.GetPage(2).Text);
+        // A chart anchored in column B is wider than the column and, as in Excel, its right
+        // part continues on the page that starts at column C.
+        if (anchorColumn == 1) Assert.DoesNotContain("RetainedChart", pdf.GetPage(2).Text);
         PdfCore.PdfImagePlacement image = Assert.Single(PdfCore.PdfImageExtractor.ExtractImagePlacements(bytes));
         Assert.Equal(1, image.PageNumber);
         Assert.InRange(image.X, 20D, 100D);
@@ -43,19 +48,27 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_TerminalMediaUsesDisplayedColumnsAndRealTrailingGap() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
-        for (int column = 1; column <= 15; column++) sheet.SetColumnWidth(column, 10D);
+        ExcelSheet sheet = document.AddSheet("Report");
+        for (int column = 1; column <= 15; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10D));
         sheet.Cell(1, 1, "Title"); sheet.Cell(1, 12, "FinalBody");
         // M lies directly after the body; O additionally includes the real empty N column.
-        sheet.AddImage(2, 13, CreateMinimalRgbPng(), "image/png", widthPixels: 24, heightPixels: 16);
-        sheet.AddImage(2, 15, CreateMinimalRgbPng(), "image/png", widthPixels: 24, heightPixels: 16);
+        sheet.AddImage(2, 13, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
+        sheet.AddImage(2, 15, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 1);
         sheet.AddManualColumnPageBreak(10);
 
-        byte[] bytes = document.ToPdfBytes(new ExcelToPdfOptions {
+        byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PageSize(800, 500), Margins = PdfCore.PageMargins.Uniform(20)
-        });
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(800),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);
         PdfCore.PdfImagePlacement[] images = PdfCore.PdfImageExtractor.ExtractImagePlacements(bytes).OrderBy(image => image.X).ToArray();

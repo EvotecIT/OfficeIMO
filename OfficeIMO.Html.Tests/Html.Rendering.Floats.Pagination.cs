@@ -152,7 +152,7 @@ public sealed partial class HtmlRenderingTests {
                 "<div class='float'>" + Table("A", leftCount) + "</div>"
                 + "<div style='float:right;width:100px'>" + Table("B", rightCount) + "</div>");
         HtmlRenderOptions options = FloatTablePaginationOptions();
-        options.PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, pageHeight / HtmlRenderOptions.CssPixelsPerInch);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(pageHeight / HtmlRenderOptions.CssPixelsPerInch));
         options.ViewportHeight = pageHeight;
         HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.DisplayList, options)).Document;
@@ -227,7 +227,7 @@ public sealed partial class HtmlRenderingTests {
     private static HtmlRenderOptions FloatTablePaginationOptions() {
         HtmlRenderOptions options = TableIntrinsicOptions();
         options.AllowSystemFontFallback = false;
-        options.PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, 230D / HtmlRenderOptions.CssPixelsPerInch);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(230D / HtmlRenderOptions.CssPixelsPerInch));
         options.ViewportWidth = 320D;
         options.ViewportHeight = 230D;
         options.Margins = HtmlRenderMargins.All(48D);

@@ -45,12 +45,12 @@ public sealed class WordPdfRunSpacingReviewTests {
         document.AddParagraph("Main");
         foreach (string literal in new[] { "{page}", "{pages}", "{documentpages}" }) {
             WordParagraph paragraph = document.HeaderDefaultOrCreate.AddParagraph(literal);
-            if (spaced) paragraph.Spacing = 20;
+            if (spaced) paragraph.Spacing = OfficeLength.Emus((long)(20) * 635);
         }
         WordParagraph mixed = document.HeaderDefaultOrCreate.AddParagraph("{page}");
-        mixed.Spacing = 20;
+        mixed.Spacing = OfficeLength.Emus((long)(20) * 635);
         mixed._paragraph.Append(new SimpleField(new Run(new Text("888"))) { Instruction = " PAGE " });
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = pdf.GetPage(1).Text;
         Assert.Contains("{page}", text, StringComparison.Ordinal);
         Assert.Contains("{pages}", text, StringComparison.Ordinal);
@@ -63,10 +63,10 @@ public sealed class WordPdfRunSpacingReviewTests {
     public void NaturalDocumentPageFieldKeepsItsValueInAStyledHeaderZone() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Main");
-        document.HeaderDefaultOrCreate.AddParagraph("Styled label").Spacing = 20;
+        document.HeaderDefaultOrCreate.AddParagraph("Styled label").Spacing = OfficeLength.Emus((long)(20) * 635);
         WordParagraph count = document.HeaderDefaultOrCreate.AddParagraph();
         count._paragraph.Append(new SimpleField(new Run(new Text("888"))) { Instruction = " NUMPAGES " });
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.DoesNotContain("{documentpages}", pdf.GetPage(1).Text, StringComparison.Ordinal);
         Assert.Equal(1, pdf.GetPage(1).Letters.Count(letter => letter.Value == "1"));
         Assert.Empty(document.ValidateDocument());
@@ -118,8 +118,8 @@ public sealed class WordPdfRunSpacingReviewTests {
         level.LevelText = "%1.";
         level.LevelJustification = WordListLevelAlignment.Right;
         level.LevelSuffix = WordListLevelSuffix.Tab;
-        level.IndentationLeft = 1080;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(54D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         if (markerScale.HasValue) {
             var properties = new NumberingSymbolRunProperties(new Spacing { Val = markerSpacing }, new CharacterScale { Val = markerScale.Value });
             if (fullOverride) {
@@ -133,7 +133,7 @@ public sealed class WordPdfRunSpacingReviewTests {
         }
         WordParagraph item = list.AddItem("BODY");
         WordParagraph paragraph = item;
-        if (route == "cell") paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        if (route == "cell") paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
         else if (route == "header") paragraph = document.HeaderDefaultOrCreate.AddParagraph();
         else if (route == "footer") paragraph = document.FooterDefaultOrCreate.AddParagraph();
         else if (route == "header-box") paragraph = document.HeaderDefaultOrCreate.AddParagraph().AddTextBox("Placeholder", WordImageTextWrapping.Square).Paragraphs.Single();
@@ -152,7 +152,7 @@ public sealed class WordPdfRunSpacingReviewTests {
         paragraph._paragraph.ParagraphProperties!.ParagraphStyleId = new ParagraphStyleId { Val = "MarkerSpacing" };
         if (route == "inline") paragraph.PageBreakBefore = true;
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return pdf.GetPages().SelectMany(page => page.Letters).ToArray();
     }
 
@@ -169,14 +169,14 @@ public sealed class WordPdfRunSpacingReviewTests {
         else paragraph._paragraph.Append(new SimpleField(result) { Instruction = " " + instruction + " " });
         paragraph._paragraph.Append(new Run(new RunProperties(new RunFonts { Ascii = "Arial", HighAnsi = "Arial" },
             new FontSize { Val = "24" }), new Text("X")));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(Options()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal(1, letters.Count(letter => letter.Value == "1"));
         Assert.DoesNotContain(letters, letter => letter.Value == "8");
         return letters.Single(letter => letter.Value == "X").StartBaseLine.X;
     }
 
-    private static WordToPdfOptions Options() => new() {
+    private static WordPdfExportOptions Options() => new() {
         IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
     };
 }

@@ -54,11 +54,11 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         AssertInternalLinks(reopened);
     }
 
-    private static void AssertInternalLinks(PowerPointPresentation presentation) {
+    private static void AssertInternalLinks(PowerPointDocument presentation) {
         PowerPointSlide first = presentation.Slides[0];
         PowerPointTextBox textBox = Assert.Single(first.TextBoxes);
         Assert.Equal("#slide-2", textBox.Hyperlink!.OriginalString);

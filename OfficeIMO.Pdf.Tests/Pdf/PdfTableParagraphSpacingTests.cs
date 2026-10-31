@@ -15,7 +15,7 @@ public sealed class PdfTableParagraphSpacingTests {
     public void Fixed_rows_keep_a_fitting_text_line_when_trailing_paragraph_spacing_does_not_fit(string mode) {
         var first = new[] { PdfTextRun.Normal("Visible") };
         var cells = new[] {
-            new[] { new PdfTableCell(first, new[] { new PdfTableCellParagraph(first, spacingAfter: 10) }) },
+            new[] { new PdfTableCell(first, new[] { new PdfTableCellParagraph(first, spacingAfter: global::OfficeIMO.OfficeLength.Points(10)) }) },
             new[] { new PdfTableCell("Following") }
         };
         using var pdf = PdfPigDocument.Open(Render(mode, cells));
@@ -34,8 +34,8 @@ public sealed class PdfTableParagraphSpacingTests {
         var first = new[] { PdfTextRun.Normal("Visible") };
         var second = new[] { PdfTextRun.Normal("Outside") };
         var paragraphs = new[] {
-            new PdfTableCellParagraph(first, spacingAfter: 8),
-            new PdfTableCellParagraph(second, spacingBefore: 6)
+            new PdfTableCellParagraph(first, spacingAfter: global::OfficeIMO.OfficeLength.Points(8)),
+            new PdfTableCellParagraph(second, spacingBefore: global::OfficeIMO.OfficeLength.Points(6))
         };
         var cells = new[] {
             new[] { new PdfTableCell(first.Concat(second), paragraphs) },
@@ -48,21 +48,21 @@ public sealed class PdfTableParagraphSpacingTests {
     }
 
     private static byte[] Render(string mode, PdfTableCell[][] cells) {
-        var options = new PdfOptions { PageWidth = 240, PageHeight = 180,
-            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
-            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10 };
-        var style = TableStyles.Minimal();
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.FontSize = 10;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         style.LineHeight = 1.2;
-        style.FixedRowHeights = new List<double?> { 16, 16 };
-        style.CellPaddingX = 0; style.CellPaddingY = 0;
-        style.CellSpacing = 0; style.SpacingBefore = 0; style.SpacingAfter = 0;
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(16) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0); style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         return mode switch {
-            "flow" => PdfDocument.Create(options).Table(cells, style: style).ToBytes(),
+            "flow" => PdfDocument.Create(options).Table(cells, style: style).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "column" => PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)))))).ToBytes(),
-            "canvas" => PdfDocument.Create(options).Canvas(canvas => canvas.Table(cells, 24, 24, 192, 32, style)).ToBytes(),
+                content.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)))))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+            "canvas" => PdfDocument.Create(options).Canvas(canvas => canvas.Table(cells, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(192), global::OfficeIMO.OfficeLength.Points(32), style)).ToBytes(),
             _ => throw new ArgumentOutOfRangeException(nameof(mode))
         };
     }

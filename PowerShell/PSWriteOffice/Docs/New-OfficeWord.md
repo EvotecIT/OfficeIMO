@@ -6,63 +6,41 @@ schema: 2.0.0
 ---
 # New-OfficeWord
 ## SYNOPSIS
-Creates a Word document using the DSL.
+Creates a themed Word document, returning a live document or saving a completed content block.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeWord [-Path] <string> [[-Content] <scriptblock>] [-TemplatePath <string>] [-PassThru] [-Open] [-NoSave] [-Password <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficeWord [[-Path] <string>] [[-Content] <scriptblock>] [-Theme <OfficeThemeInput>] [-Template <string>] [-Force] [-Password <securestring>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Handles file creation or template cloning, scriptblock execution, explicit save or live-document composition, and emits the document path when -PassThru is used.
+Without a block no file is written, including on disposal. A block saves atomically; an existing destination requires Force. Template copies content, while Theme reads only the source theme.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficeWord -Path .\Report.docx { WordSection { WordParagraph 'Hello DSL' } } -Open
+New-OfficeWord -Path ./Report.docx -Theme Modern -PassThru {
+    WordHeading 'Service review'
+    WordParagraph 'All services are available.'
+}
 ```
 
-Builds a document, adds one paragraph, saves it to disk, and opens it.
 
 ### EXAMPLE 2
 ```powershell
-PS> New-OfficeWord -TemplatePath .\Template.docx -Path .\Report.docx { WordParagraph -Text 'Generated content' -StyleId 'ReportBody' }
+$document = New-OfficeWord -Theme Boardroom
+$document | Add-OfficeWordParagraph -Text 'Reviewed and approved'
+Save-OfficeWord -Document $document -Path ./Review.docx
+Close-OfficeWord -Document $document
 ```
 
-Copies the template to the output path, runs the DSL against the copied document, and saves it.
-
-### EXAMPLE 3
-```powershell
-PS> $document = New-OfficeWord -Path .\Report.docx -NoSave
-$document | Add-OfficeWordParagraph -Text 'Status report' -Style Heading1
-$document | Save-OfficeWord
-$document | Close-OfficeWord
-```
-
-Associates the output path with a live document, adds content through the pipeline, then saves and closes it once.
 
 ## PARAMETERS
 
-### -Content
-DSL scriptblock describing document content.
-
-```yaml
-Type: ScriptBlock
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: 1
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NoSave
-Skip saving after executing the DSL.
+### -AllowLoss
+Gets or sets whether native-save loss is explicitly accepted.
 
 ```yaml
 Type: SwitchParameter
@@ -77,8 +55,24 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Open
-Open the document after saving.
+### -Content
+Gets or sets a content block; omission returns the live document.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: 1
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Force
+Allow a completed content block to replace an existing destination.
 
 ```yaml
 Type: SwitchParameter
@@ -94,7 +88,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit a FileInfo for chaining.
+Gets or sets whether a completed content block returns the saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
@@ -110,7 +104,55 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to save the document as an encrypted package.
+Password for a completed content block's saved file; use Save-OfficeWord for a live document.
+
+```yaml
+Type: SecureString
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Path
+Optional associated destination; required with a content block.
+
+```yaml
+Type: String
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Show
+Gets or sets whether the saved file opens in the system default application.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Template
+Existing Word package copied as starting content. Its styling is preserved unless Theme is supplied.
 
 ```yaml
 Type: String
@@ -125,27 +167,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Path
-Destination path for the document.
+### -Theme
+Built-in theme, theme object or a document/template whose visual theme is read.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath, OutputPath
-Possible values:
-
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TemplatePath
-Existing .docx file to clone before running the DSL.
-
-```yaml
-Type: String
+Type: OfficeThemeInput
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -166,7 +192,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.Word.WordDocument`
+- `System.IO.FileInfo`
 
 ## RELATED LINKS
 

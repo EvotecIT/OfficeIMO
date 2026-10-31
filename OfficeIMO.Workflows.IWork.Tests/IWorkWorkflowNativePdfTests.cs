@@ -75,7 +75,7 @@ public sealed partial class IWorkWorkflowTests {
             item => item.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure);
         Assert.Contains(evidence.FidelityDiagnostics, item => item.Code == "IWORK_RECORD_FIDELITY_UNASSESSED");
         Assert.Contains(evidence.FidelityDiagnostics, item => item.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Contains(result.Diagnostics, item => item.Code == "OutputReopened");
+        Assert.Contains(result.Diagnostics, item => item.Code == "conversion-output-reopened");
         Assert.Equal(sourceHash, Assert.Single(result.Diagnostics, item => item.Code == "SourceSnapshot").Details["sha256"], ignoreCase: true);
         Assert.Equal(sourceHash, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))));
         Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
@@ -85,7 +85,7 @@ public sealed partial class IWorkWorkflowTests {
             Directory.CreateDirectory(visual);
             File.WriteAllBytes(Path.Combine(visual, fixture + ".pdf"), output);
         }
-        PdfReadDocument pdf = PdfReadDocument.Open(output, new PdfLoadOptions {
+        PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(output), new PdfLoadOptions {
             IncludeArtifactText = fixture.StartsWith("pages-created-headers", StringComparison.Ordinal)
         });
         Assert.Equal(expectedPages, pdf.Pages.Count);
@@ -179,7 +179,7 @@ public sealed partial class IWorkWorkflowTests {
         }
     }
 
-    private static void AssertKeynoteImages(PdfReadDocument pdf, bool edited, bool paragraphEdits = false) {
+    private static void AssertKeynoteImages(PdfDocument pdf, bool edited, bool paragraphEdits = false) {
         string[] titles = paragraphEdits
             ? ["Edited PNG — image behind text", "Edited alpha PNG", edited ? "Native checked JPEG" : "Edited JPEG"]
             : ["Native PNG — image behind text", "Native alpha PNG", "Native JPEG"];
@@ -216,7 +216,7 @@ public sealed partial class IWorkWorkflowTests {
         string sourceHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input)));
         File.WriteAllText(files.Output, "keep existing");
         var request = files.Request("numbers-pdf");
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
         request.RegisteredConversionSettings = NativePdfSettings();
 
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
@@ -224,7 +224,7 @@ public sealed partial class IWorkWorkflowTests {
         Assert.False(result.Succeeded);
         Assert.Equal("keep existing", File.ReadAllText(files.Output));
         Assert.Contains("padding", result.Summary, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
         Assert.Equal(sourceHash, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))));
         Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
     }
@@ -252,7 +252,7 @@ public sealed partial class IWorkWorkflowTests {
         return settings;
     }
 
-    private static void AssertCreatedPagesRichList(PdfReadDocument pdf, bool edited) {
+    private static void AssertCreatedPagesRichList(PdfDocument pdf, bool edited) {
         var page = Assert.Single(pdf.Pages);
         string text = System.Text.RegularExpressions.Regex.Replace(page.ExtractText(), @"\s+", string.Empty);
         int previous = -1;
@@ -286,7 +286,7 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Contains("Paragraph 80:", pages[^1]);
     }
 
-    private static void AssertNativePagesPageText(PdfReadDocument pdf, bool edited) {
+    private static void AssertNativePagesPageText(PdfDocument pdf, bool edited) {
         string header = "OfficeIMO — " + (edited ? "Native" : "Pages") + " header";
         string footer = "Zażółć café — " + (edited ? "native " : "") + "footer";
         foreach (var page in pdf.Pages) {

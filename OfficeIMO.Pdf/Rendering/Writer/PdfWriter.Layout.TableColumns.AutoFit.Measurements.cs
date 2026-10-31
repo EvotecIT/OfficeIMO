@@ -15,6 +15,25 @@ internal static partial class PdfWriter {
         public bool ContainsUppercaseDelimitedCodeText { get; }
     }
 
+    // Longest inline code token, in ems of the row font, that sets a column minimum on its own.
+    private const double AutoFitMaximumCodeTokenEms = 20D;
+    private const int AutoFitWholeCodeRunCharacters = 16;
+    private static readonly char[] AutoFitCodeRunSplitChars = { ' ', '\n', '\t' };
+
+    // A short code value stays on one line; longer code wraps only at its spaces.
+    private static IEnumerable<string> GetAutoFitCodeRunTokens(string text) {
+        string trimmed = (text ?? string.Empty).Trim();
+        if (trimmed.Length == 0) yield break;
+        if (trimmed.Length <= AutoFitWholeCodeRunCharacters && trimmed.IndexOf('\n') < 0) {
+            yield return trimmed;
+            yield break;
+        }
+
+        foreach (string token in trimmed.Split(AutoFitCodeRunSplitChars, StringSplitOptions.RemoveEmptyEntries)) {
+            yield return token;
+        }
+    }
+
     private sealed class AutoFitTableMeasurements {
         internal AutoFitTableMeasurements(
             AutoFitColumnProfile[] profiles,
@@ -107,7 +126,7 @@ internal static partial class PdfWriter {
         return new OfficeIMO.Drawing.OfficeFontInfo(family, size, style);
     }
 
-    private static AutoFitTableMeasurements MeasureAutoFitTableColumns(TableBlock table, PdfOptions options, PdfTableStyle style, double fontSize, int headerRowCount, int footerStartRowIndex) {
+    private static AutoFitTableMeasurements MeasureAutoFitTableColumns(TableBlock table, PdfCreateOptions options, PdfTableStyle style, double fontSize, int headerRowCount, int footerStartRowIndex) {
         int cols = GetTableColumnCount(table);
         var containsStructuredKeyValuePathText = new bool[cols];
         var containsQualifiedIdentifierText = new bool[cols];
@@ -177,7 +196,7 @@ internal static partial class PdfWriter {
         var importedSpanMinimums = new System.Collections.Generic.List<(int Column, int Span, double Width, double PreferredWidth, bool HasAbsolutePreference)>();
         if (style.AutoFitWidthUsesContentMinimum) {
             for (int column = 0; column < cols; column++)
-                minimumWidths[column] = GetOptionalColumnWidth(style.ColumnMinWidthPoints, column,
+                minimumWidths[column] = GetOptionalColumnWidth(style.ColumnMinWidths?.ConvertAll(static length => length?.ToPoints()), column,
                     "Table minimum column widths must be positive finite values.") ?? 0D;
         }
         if (physicalMinimumWidths != null)
@@ -225,7 +244,7 @@ internal static partial class PdfWriter {
                     measuredTextWidth,
                     MeasureTableCellObjectWidth(cell));
                 double horizontalPadding = GetTableCellPaddingLeft(style, rowIndex, cell.Column) + GetTableCellPaddingRight(style, rowIndex, cell.Column);
-                if (style.AutoFitWidthUsesContentMinimum && style.ImportedColumnWidthFractions != null && style.CellSpacing == 0D &&
+                if (style.AutoFitWidthUsesContentMinimum && style.ImportedColumnWidthFractions != null && style.CellSpacing.ToPoints() == 0D &&
                     style.CellBorders != null && style.CellBorders.TryGetValue((rowIndex, cell.Column), out PdfCellBorder? border) &&
                     border.PaintInsideFrame) {
                     // Imported zero-spacing borders shift the text origin by
@@ -305,6 +324,29 @@ internal static partial class PdfWriter {
                     }
                 }
 
+                // Runs in their own face, such as inline code in a monospace font, are wider than the
+                // row font suggests; their words set the column minimum so they do not break mid-word.
+                // Code identifiers such as "search.maxResults" and short code values such as "Lumen site"
+                // stay whole: they are kept apart from the generic token cap below.
+                double codeTokenWidth = 0D;
+                for (int runIndex = 0; runIndex < cell.Runs.Count; runIndex++) {
+                    PdfTextRun run = cell.Runs[runIndex];
+                    if (!run.Font.HasValue && !run.FontSize.HasValue) continue;
+                    PdfStandardFont runFont = run.Font ?? rowStandardFont;
+                    if (run.Bold) runFont = ChooseBold(runFont);
+                    double runSize = run.FontSize?.ToPoints() ?? rowSize;
+                    if (PdfStandardFontMapper.GetFontFamily(runFont) == PdfStandardFont.Courier) {
+                        foreach (string codeToken in GetAutoFitCodeRunTokens(run.Text)) {
+                            codeTokenWidth = Math.Max(codeTokenWidth, EstimateSimpleTextWidthForOptions(codeToken, runFont, runSize, options));
+                        }
+                        continue;
+                    }
+                    foreach (string runToken in GetAutoFitMinimumWidthTokens(run.Text, splitCamelCase: splitMinimumCamelCase)) {
+                        tokenWidth = Math.Max(tokenWidth, EstimateSimpleTextWidthForOptions(runToken, runFont, runSize, options));
+                    }
+                }
+                codeTokenWidth = Math.Min(codeTokenWidth, rowSize * AutoFitMaximumCodeTokenEms);
+
                 bool qualifiedIdentifierText = textProfile.IsQualifiedIdentifier;
                 bool singleLetterNumericDelimitedCode = textProfile.IsSingleLetterNumericDelimitedCode;
                 bool singleLetterNumericDelimitedCodeList = textProfile.IsSingleLetterNumericDelimitedCodeList;
@@ -370,7 +412,7 @@ internal static partial class PdfWriter {
                         maximumTokenWidth = Math.Max(maximumTokenWidth, shortCamelCaseText ? tokenWidth : rowSize * 6.5D);
                     }
                 }
-                requestedWidth = Math.Max(1D, System.Math.Max(Math.Min(tokenWidth, maximumTokenWidth), MeasureTableCellObjectWidth(cell)) + horizontalPadding);
+                requestedWidth = Math.Max(1D, System.Math.Max(Math.Max(Math.Min(tokenWidth, maximumTokenWidth), codeTokenWidth), MeasureTableCellObjectWidth(cell)) + horizontalPadding);
                 requestedPerColumn = requestedWidth / cell.ColumnSpan;
                 for (int columnIndex = cell.Column; columnIndex < cell.Column + cell.ColumnSpan && columnIndex < cols; columnIndex++) {
                     if (requestedPerColumn > minimumWidths[columnIndex]) {
@@ -407,19 +449,19 @@ internal static partial class PdfWriter {
             int endColumn = Math.Min(cols, span.Column + span.Span);
             if (automaticImportedPreferences) {
                 ApplyImportedAutomaticSpanMinimum(minimumWidths, preferredWidths, span.Column, endColumn,
-                    span.Width - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
+                    span.Width - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing.ToPoints());
                 // A merged cell's own absolute preference permits wrapping,
                 // including an explicit zero. Automatic cells still contribute
                 // their unwrapped preference despite absolute cells in other rows.
                 if (!span.HasAbsolutePreference)
                     ApplyImportedAutomaticSpanPreference(preferredWidths, span.Column, endColumn,
-                        span.PreferredWidth - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
+                        span.PreferredWidth - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing.ToPoints());
                 continue;
             }
             double available = 0D;
             for (int column = span.Column; column < endColumn; column++)
                 available += minimumWidths[column];
-            double deficit = span.Width - available - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing;
+            double deficit = span.Width - available - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing.ToPoints();
             if (deficit <= 0D) continue;
             for (int column = span.Column; column < endColumn; column++)
                 minimumWidths[column] += available > 0D
@@ -433,13 +475,13 @@ internal static partial class PdfWriter {
             foreach (var span in physicalSpanMinimums!) {
                 int endColumn = Math.Min(cols, span.Column + span.Span);
                 ApplyImportedAutomaticSpanMinimum(physicalMinimumWidths, sourcePreferredWidths, span.Column, endColumn,
-                    span.Width - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
+                    span.Width - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing.ToPoints());
             }
             foreach (var span in importedSpanMinimums) {
                 if (!span.HasAbsolutePreference) {
                     int endColumn = Math.Min(cols, span.Column + span.Span);
                     ApplyImportedAutomaticSpanPreference(sourcePreferredWidths, span.Column, endColumn,
-                        span.PreferredWidth - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
+                        span.PreferredWidth - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing.ToPoints());
                 }
             }
             for (int column = 0; column < cols; column++)

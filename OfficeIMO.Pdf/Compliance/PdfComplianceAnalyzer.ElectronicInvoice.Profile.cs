@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfComplianceAnalyzer {
-    private static PdfComplianceRequirement BuildElectronicInvoiceProfileConsistencyRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceProfileConsistencyRequirement(PdfCreateOptions options) {
         string? diagnostic = PdfElectronicInvoiceProfile.GetDiagnostic(options.ElectronicInvoiceMetadata, options.EmbeddedFiles);
         return new PdfComplianceRequirement(
             "einvoice-profile-consistency",

@@ -695,6 +695,12 @@ namespace OfficeIMO.PowerPoint {
         ///     Metric label or caption.
         /// </summary>
         public string Label { get; }
+
+        /// <summary>Optional change indicator such as "+12%" (Kpi and CaseStudy layouts).</summary>
+        public string? Change { get; set; }
+
+        /// <summary>Optional indicator colour: a hex value or a role name (Success, Warning, Danger).</summary>
+        public string? Color { get; set; }
     }
 
     /// <summary>
@@ -724,6 +730,12 @@ namespace OfficeIMO.PowerPoint {
         ///     Optional accent color override.
         /// </summary>
         public string? AccentColor { get; }
+
+        /// <summary>Optional body text shown above the items.</summary>
+        public string? Text { get; set; }
+
+        /// <summary>Optional image (logo) path; a card with only an image is drawn as a logo tile.</summary>
+        public string? ImagePath { get; set; }
     }
 
     /// <summary>

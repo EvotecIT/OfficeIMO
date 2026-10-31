@@ -10,7 +10,7 @@ internal static partial class PdfWriter {
             if (!isSvg) return false;
             OfficeDrawing vector = ReadSvgImageForPdf(image.EncodedBytes);
             if (!CanDrawSvgSceneAsVector(vector)) {
-                currentOpts.AddLayoutDiagnostic("SvgImageRasterFallback", "Drawing image",
+                currentOpts.AddLayoutDiagnostic("svg-image-raster-fallback", "Drawing image",
                     "SVG image paint not supported by the PDF vector writer was rasterized.", PdfLayoutDiagnosticKind.SimplifiedContent);
                 byte[] png = RasterizeSvgImageForPdf(vector, image.Projection);
                 DrawDrawingImageAt(OfficeDrawingImage.CreateWithInterpolation(png, "image/png", image.Projection, image.Interpolate,
@@ -58,7 +58,7 @@ internal static partial class PdfWriter {
             return OfficeDrawingRasterRenderer.ToPng(vector, new OfficeDrawingRasterRenderOptions {
                 Scale = plan.Limit.Scale, Background = OfficeColor.Transparent,
                 CancellationToken = cancellationToken, MaximumRasterPixels = 16_000_000L,
-                ThrowOnImageDecodeFailure = true
+                ThrowOnImageDecodeFailure = true, LimitRasterPaintWork = true
             });
         }
 

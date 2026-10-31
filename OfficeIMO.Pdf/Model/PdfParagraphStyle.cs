@@ -8,21 +8,21 @@ public class PdfParagraphStyle {
     internal PdfCanvasBlock? AnchoredCanvas { get; set; }
     private readonly System.Collections.Generic.List<PdfTabStop> _tabStops = new();
     private double? _lineHeight;
-    private double? _fontSize;
-    private double _leftIndent;
-    private double _rightIndent;
-    private double _firstLineIndent;
-    private double _spacingBefore;
-    private double? _spacingAfter;
-    private double? _defaultTabStopWidth;
+    private global::OfficeIMO.OfficeLength? _fontSize;
+    private global::OfficeIMO.OfficeLength _leftIndent;
+    private global::OfficeIMO.OfficeLength _rightIndent;
+    private global::OfficeIMO.OfficeLength _firstLineIndent;
+    private global::OfficeIMO.OfficeLength _spacingBefore;
+    private global::OfficeIMO.OfficeLength? _spacingAfter;
+    private global::OfficeIMO.OfficeLength? _defaultTabStopWidth;
     private int _minimumOrphanLines;
     private int _minimumWidowLines;
 
-    /// <summary>Fallback font size and empty-line font size in points. When null the writer uses the current default font size.</summary>
-    public double? FontSize {
+    /// <summary>Physical fallback font size and empty-line font size. When null the writer uses the current default font size.</summary>
+    public global::OfficeIMO.OfficeLength? FontSize {
         get => _fontSize;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(FontSize), "Paragraph font size must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(FontSize), "Paragraph font size must be a positive finite value.");
             _fontSize = value;
         }
     }
@@ -38,55 +38,52 @@ public class PdfParagraphStyle {
             _lineHeight = value;
         }
     }
-    /// <summary>Horizontal offset from the left edge of the paragraph frame, in points. Negative values extend text into the left margin.</summary>
-    public double LeftIndent {
+    /// <summary>Physical offset from the left edge of the paragraph frame. Negative values extend text into the left margin.</summary>
+    public global::OfficeIMO.OfficeLength LeftIndent {
         get => _leftIndent;
         set {
-            ValidateFiniteValue(value, nameof(LeftIndent), "Paragraph left indent must be a finite value.");
             _leftIndent = value;
         }
     }
-    /// <summary>Horizontal offset from the right edge of the paragraph frame, in points. Negative values extend text into the right margin.</summary>
-    public double RightIndent {
+    /// <summary>Physical offset from the right edge of the paragraph frame. Negative values extend text into the right margin.</summary>
+    public global::OfficeIMO.OfficeLength RightIndent {
         get => _rightIndent;
         set {
-            ValidateFiniteValue(value, nameof(RightIndent), "Paragraph right indent must be a finite value.");
             _rightIndent = value;
         }
     }
-    /// <summary>Additional indent for the first line, in points. Negative values create a hanging indent relative to <see cref="LeftIndent"/>.</summary>
-    public double FirstLineIndent {
+    /// <summary>Physical additional indent for the first line. Negative values create a hanging indent relative to <see cref="LeftIndent"/>.</summary>
+    public global::OfficeIMO.OfficeLength FirstLineIndent {
         get => _firstLineIndent;
         set {
-            ValidateFiniteValue(value, nameof(FirstLineIndent), "Paragraph first line indent must be a finite value.");
             _firstLineIndent = value;
         }
     }
-    /// <summary>Vertical space before the paragraph, in points.</summary>
-    public double SpacingBefore {
+    /// <summary>Physical space before the paragraph.</summary>
+    public global::OfficeIMO.OfficeLength SpacingBefore {
         get => _spacingBefore;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingBefore), "Paragraph spacing before must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingBefore), "Paragraph spacing before must be a non-negative finite value.");
             _spacingBefore = value;
         }
     }
-    /// <summary>Vertical space after the paragraph, in points. When null the writer uses the default paragraph spacing.</summary>
-    public double? SpacingAfter {
+    /// <summary>Physical space after the paragraph. When null the writer uses the default paragraph spacing.</summary>
+    public global::OfficeIMO.OfficeLength? SpacingAfter {
         get => _spacingAfter;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(SpacingAfter), "Paragraph spacing after must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue(value?.ToPoints(), nameof(SpacingAfter), "Paragraph spacing after must be a non-negative finite value.");
             _spacingAfter = value;
         }
     }
-    /// <summary>Default paragraph tab-stop width, in points. When null the writer uses the Word-compatible half-inch default.</summary>
-    public double? DefaultTabStopWidth {
+    /// <summary>Physical default paragraph tab-stop width. When null the writer uses the Word-compatible half-inch default.</summary>
+    public global::OfficeIMO.OfficeLength? DefaultTabStopWidth {
         get => _defaultTabStopWidth;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(DefaultTabStopWidth), "Paragraph default tab stop width must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(DefaultTabStopWidth), "Paragraph default tab stop width must be a positive finite value.");
             _defaultTabStopWidth = value;
         }
     }
-    /// <summary>Explicit paragraph tab stops, in points, relative to the paragraph text frame.</summary>
+    /// <summary>Explicit physical paragraph tab stops relative to the paragraph text frame.</summary>
     public System.Collections.Generic.IList<PdfTabStop> TabStops => _tabStops;
 
     /// <summary>Overrides document whitespace handling for this paragraph. Null uses the document setting.</summary>
@@ -188,10 +185,10 @@ public class PdfParagraphStyle {
     }
 
     /// <summary>Adds an explicit paragraph tab stop.</summary>
-    /// <param name="position">Tab stop position in points relative to the paragraph text frame.</param>
+    /// <param name="position">Physical tab stop position relative to the paragraph text frame.</param>
     /// <param name="alignment">Text alignment anchored at this tab stop.</param>
     /// <param name="leader">Leader fill rendered before the following text.</param>
-    public PdfTabStop AddTabStop(double position, PdfTabAlignment alignment = PdfTabAlignment.Left, PdfTabLeaderStyle leader = PdfTabLeaderStyle.None) {
+    public PdfTabStop AddTabStop(global::OfficeIMO.OfficeLength position, PdfTabAlignment alignment = PdfTabAlignment.Left, PdfTabLeaderStyle leader = PdfTabLeaderStyle.None) {
         PdfTabStop tabStop = new PdfTabStop(position, alignment, leader);
         _tabStops.Add(tabStop);
         return tabStop;
@@ -204,12 +201,6 @@ public class PdfParagraphStyle {
 
     private static void ValidateNonNegativeFiniteValue(double value, string paramName, string message) {
         if (value < 0 || double.IsNaN(value) || double.IsInfinity(value)) {
-            throw new System.ArgumentException(message, paramName);
-        }
-    }
-
-    private static void ValidateFiniteValue(double value, string paramName, string message) {
-        if (double.IsNaN(value) || double.IsInfinity(value)) {
             throw new System.ArgumentException(message, paramName);
         }
     }

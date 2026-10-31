@@ -26,7 +26,7 @@ public sealed class OfficeVbaIdentityBoundaryTests {
                 : OfficeVbaProject.Create();
             string collision = kind == OfficeVbaModuleKind.Designer ? "FrmNested" : "HostCode";
             if (kind != OfficeVbaModuleKind.Designer) candidate.AddModule(collision, "'replacement", kind);
-            using (var excel = ExcelDocument.Create(path)) { excel.AddWorksheet("Data"); excel.AddWorksheet("Collision"); excel.SetVbaProject(original); excel.Save(); }
+            using (var excel = ExcelDocument.Create(path)) { excel.AddSheet("Data"); excel.AddSheet("Collision"); excel.SetVbaProject(original); excel.Save(); }
             string workbookXml;
             string sheetXml;
             using (var package = SpreadsheetDocument.Open(path, true)) {
@@ -133,7 +133,8 @@ public sealed class OfficeVbaIdentityBoundaryTests {
         byte[] bytes = project.Write().GetBytes();
         project = OfficeVbaProject.Load(bytes);
         Assert.Equal(new[] { "First", "Second" }, project.References.Select(reference => reference.Name));
-        project.AddRegisteredReference("AlreadyPresent", first, path: "C:\\another.tlb");
+        OfficeVbaReference original = project.References[0];
+        Assert.Same(original, project.AddRegisteredReference("AlreadyPresent", first, path: "C:\\another.tlb"));
         Assert.False(project.HasChanges);
         Assert.Equal(bytes, project.Write().GetBytes());
     }

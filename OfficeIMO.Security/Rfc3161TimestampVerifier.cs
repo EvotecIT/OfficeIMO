@@ -99,7 +99,7 @@ public static class Rfc3161TimestampVerifier {
         } catch (Exception exception) when (IsValidationException(exception)) {
             findings.Add(new SecurityFinding(
                 SecurityFindingSeverity.Error,
-                "TimestampMalformed",
+                global::OfficeIMO.OfficeDiagnosticCodes.TimestampMalformed,
                 "The RFC 3161 timestamp token could not be decoded: " + exception.Message));
             return new Rfc3161TimestampVerificationResult(
                 SecurityValidationStatus.Invalid,

@@ -230,7 +230,7 @@ public sealed partial class RtfDocument {
         } else if (run.RevisionKind == RtfRevisionKind.Deleted) {
             kind = OfficeContentConcealmentKind.HiddenByProperty;
             evidence = "The RTF run is retained as deleted revision content rather than ordinary current text.";
-        } else if (effective.FontSize.HasValue && effective.FontSize.Value <= builder.Options.MaximumTinyFontSizePoints) {
+        } else if (effective.FontSize.HasValue && effective.FontSize.Value <= builder.Options.MaximumTinyFontSize.ToPoints()) {
             kind = OfficeContentConcealmentKind.TinyText;
             evidence = "The effective RTF font size is " + effective.FontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
         } else if (run.CharacterScalePercent.HasValue && run.CharacterScalePercent.Value <= 1) {

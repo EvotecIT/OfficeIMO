@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.Excel;
 using System.IO;
 using System.Management.Automation;
 using System.Threading.Tasks;
@@ -50,11 +52,11 @@ public sealed class ConvertFromOfficeImageCommand : AsyncPSCmdlet
 
     /// <summary>Advanced Excel typing, culture, row limit and table formatting settings.</summary>
     [Parameter]
-    public PdfTablesToExcelOptions? ExcelOptions { get; set; }
+    public ExcelPdfImportOptions? ExcelOptions { get; set; }
 
     /// <summary>Advanced Word projection settings.</summary>
     [Parameter]
-    public PdfToWordOptions? WordOptions { get; set; }
+    public WordPdfImportOptions? WordOptions { get; set; }
 
     /// <summary>Advanced HTML projection settings. Word and HTML defaults exclude the original scan from editable content.</summary>
     [Parameter]
@@ -88,7 +90,7 @@ public sealed class ConvertFromOfficeImageCommand : AsyncPSCmdlet
             throw new PSArgumentException("CSV settings require a .csv output.");
         string outputPath = PdfCommandUtilities.ResolveOutputFilePath(this, OutputPath, extension, Force.IsPresent);
         if (!ShouldProcess(outputPath, "Export recognized image")) return Task.CompletedTask;
-        var excel = ExcelOptions?.Clone() ?? new PdfTablesToExcelOptions();
+        var excel = ExcelOptions?.Clone() ?? new ExcelPdfImportOptions();
         if (MyInvocation.BoundParameters.ContainsKey(nameof(FirstRowIsHeader))) excel.UseFirstRowAsHeader = FirstRowIsHeader.IsPresent;
         var result = OfficeImageExporter.Export(InputObject, outputPath, Force.IsPresent, excel, WordOptions, CancelToken, HtmlOptions, CsvOptions);
         foreach (var page in InputObject.Ocr.Pages)

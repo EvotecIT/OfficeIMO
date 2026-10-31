@@ -27,9 +27,9 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 using var stream = new MemoryStream(bytes, writable: false);
                 var placement = IsStretchFit(GetAttribute(image.Attributes, "fit"))
                     ? box : ContainPicture(box, info.Width, info.Height);
-                picture = slide.AddPictureInches(stream, info.Format, placement.Left, placement.Top, placement.Width, placement.Height);
+                picture = slide.AddImage(stream, info.Format, OfficeIMO.OfficeLength.Inches(placement.Left), OfficeIMO.OfficeLength.Inches(placement.Top), OfficeIMO.OfficeLength.Inches(placement.Width), OfficeIMO.OfficeLength.Inches(placement.Height));
             } else {
-                picture = AddPicture(slide, path, box, GetAttribute(image.Attributes, "fit"));
+                picture = AddImage(slide, path, box, GetAttribute(image.Attributes, "fit"));
             }
             picture.AltText = image.Alt;
             if (!string.IsNullOrWhiteSpace(image.Title)) picture.Name = image.Title;
@@ -108,7 +108,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         var columns = rows.Max(row => row.Count);
         var height = Math.Min(cursor.RemainingHeight, Math.Max(0.8, 0.32 * rows.Count));
-        var powerPointTable = slide.AddTableInches(rows.Count, Math.Max(1, columns), cursor.Left, cursor.Top, cursor.Width, height);
+        var powerPointTable = slide.AddTable(rows.Count,Math.Max(1, columns),global::OfficeIMO.OfficeLength.Inches(cursor.Left),global::OfficeIMO.OfficeLength.Inches(cursor.Top),global::OfficeIMO.OfficeLength.Inches(cursor.Width),global::OfficeIMO.OfficeLength.Inches(height));
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             var row = rows[rowIndex];
             for (int columnIndex = 0; columnIndex < row.Count; columnIndex++) {
@@ -130,24 +130,24 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         var top = Math.Max(metrics.Vertical(0.18), box.Top - metrics.Vertical(padding));
         var right = Math.Min(metrics.Width - metrics.Horizontal(0.18), box.Left + box.Width + metrics.Horizontal(padding));
         var bottom = Math.Min(metrics.Height - metrics.Vertical(0.18), box.Top + box.Height + metrics.Vertical(padding));
-        var panel = slide.AddShapeInches(
+        var panel = slide.AddShape(
             OfficePresetShapeType.Rectangle,
-            left,
-            top,
-            Math.Max(0.5, right - left),
-            Math.Max(0.5, bottom - top),
+            OfficeIMO.OfficeLength.Inches(left),
+            OfficeIMO.OfficeLength.Inches(top),
+            OfficeIMO.OfficeLength.Inches(Math.Max(0.5, right - left)),
+            OfficeIMO.OfficeLength.Inches(Math.Max(0.5, bottom - top)),
             name);
         panel.FillColor = "FFFFFF";
         panel.FillTransparency = 4;
         panel.OutlineColor = "D9E2EF";
-        panel.OutlineWidthPoints = 0.75;
+        panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.75);
     }
 
-    private static PowerPointPicture AddPicture(PowerPointSlide slide, string path, LayoutCursor box, string? fit) {
+    private static PowerPointPicture AddImage(PowerPointSlide slide, string path, LayoutCursor box, string? fit) {
         switch (Normalize(fit ?? string.Empty)) {
             case "fill":
             case "stretch":
-                return slide.AddPictureInches(path, box.Left, box.Top, box.Width, box.Height);
+                return slide.AddImage(path,global::OfficeIMO.OfficeLength.Inches(box.Left),global::OfficeIMO.OfficeLength.Inches(box.Top),global::OfficeIMO.OfficeLength.Inches(box.Width),global::OfficeIMO.OfficeLength.Inches(box.Height));
             case "contain":
             default:
                 return AddPictureContained(slide, path, box);
@@ -157,7 +157,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     private static PowerPointPicture AddPictureContained(PowerPointSlide slide, string path, LayoutCursor box) {
         var placement = TryReadImageSize(path, out var pixelWidth, out var pixelHeight)
             ? ContainPicture(box, pixelWidth, pixelHeight) : box;
-        return slide.AddPictureInches(path, placement.Left, placement.Top, placement.Width, placement.Height);
+        return slide.AddImage(path,global::OfficeIMO.OfficeLength.Inches(placement.Left),global::OfficeIMO.OfficeLength.Inches(placement.Top),global::OfficeIMO.OfficeLength.Inches(placement.Width),global::OfficeIMO.OfficeLength.Inches(placement.Height));
     }
 
     private static LayoutCursor ContainPicture(LayoutCursor box, int pixelWidth, int pixelHeight) {

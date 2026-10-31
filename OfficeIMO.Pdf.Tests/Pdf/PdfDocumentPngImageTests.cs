@@ -24,7 +24,7 @@ public class PdfDocumentPngImageTests {
 
         try {
             byte[] pdf = PdfDocument.Create()
-                .Paragraph(paragraph => paragraph.InlineImage(source, 24, 24, "Status"))
+                .Paragraph(paragraph => paragraph.InlineImage(source, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), "Status"))
                 .ToBytes();
 
             Assert.Equal(1, alphaSplitPasses);
@@ -367,10 +367,10 @@ public class PdfDocumentPngImageTests {
 
         byte[] stamped = PdfStamper.StampImage(source, PdfPngTestImages.Create16BitRgbaPng(), new PdfImageStampOptions {
             PageNumbers = new[] { 1 },
-            X = 72,
-            Y = 650,
-            Width = 24,
-            Height = 24
+            X = global::OfficeIMO.OfficeLength.Points(72),
+            Y = global::OfficeIMO.OfficeLength.Points(650),
+            Width = global::OfficeIMO.OfficeLength.Points(24),
+            Height = global::OfficeIMO.OfficeLength.Points(24)
         });
 
         string pdfContent = Encoding.ASCII.GetString(stamped);

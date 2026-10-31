@@ -17,7 +17,7 @@ public partial class ExcelDocument {
     /// <param name="password">Password to open the file; XLS admits 1–15 UTF-16 code units.</param>
     /// <param name="format">Physical workbook format before encryption.</param>
     /// <param name="saveOptions">Format-specific save policy and limits.</param>
-    public void SaveEncrypted(Stream destination, string password, ExcelFileFormat format, ExcelSaveOptions? saveOptions = null) {
+    internal void SaveEncrypted(Stream destination, string password, ExcelFileFormat format, ExcelSaveOptions? saveOptions = null) {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         if (password == null) throw new ArgumentNullException(nameof(password));
         if (!destination.CanWrite) throw new ArgumentException("Destination must be writable.", nameof(destination));

@@ -13,7 +13,7 @@ public sealed class ReaderProjectionProbeEligibilityTests {
     private static readonly Lazy<byte[]> EncryptedWord = new(() => {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Eligible encrypted source");
-        using var output = new MemoryStream(); document.SaveEncrypted(output, Password);
+        using var output = new MemoryStream(); document.Save(output,new OfficeIMO.Word.WordSaveOptions{Password=Password});
         return output.ToArray();
     });
 

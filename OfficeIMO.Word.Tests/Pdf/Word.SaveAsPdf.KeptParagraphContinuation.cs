@@ -35,7 +35,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.CompatibilitySettings.CompatibilityMode = mode;
         document.Sections[0].ColumnCount = 2;
-        document.Sections[0].ColumnsSpace = 400;
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         if (prelude) {
             WordParagraph before = document.AddParagraph("Before");
             ConfigurePartialColumnParagraph(before);
@@ -45,15 +45,15 @@ public partial class Word {
             document.Sections[0].ColumnCount = 1;
             WordSection columns = document.AddSection(WordSectionBreakType.Continuous);
             columns.ColumnCount = 2;
-            columns.ColumnsSpace = 400;
+            columns.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         }
         string text = "Marker001\nMarker002\nMarker003\nMarker004";
         WordParagraph paragraph;
         if (numbered) {
             WordList list = document.AddCustomList();
             list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-            list.Numbering.Levels[0].IndentationLeft = 240;
-            list.Numbering.Levels[0].IndentationHanging = 240;
+            list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(12D);
+            list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(12D);
             paragraph = list.AddItem(text);
         } else {
             paragraph = document.AddParagraph(text);
@@ -65,13 +65,13 @@ public partial class Word {
             paragraph.Borders.TopStyle = paragraph.Borders.BottomStyle =
                 paragraph.Borders.LeftStyle = paragraph.Borders.RightStyle = WordBorderStyle.Single;
             paragraph.Borders.TopSize = paragraph.Borders.BottomSize =
-                paragraph.Borders.LeftSize = paragraph.Borders.RightSize = 4;
-            paragraph.Borders.TopSpace = paragraph.Borders.BottomSpace = 0;
+                paragraph.Borders.LeftSize = paragraph.Borders.RightSize = OfficeLength.Points(0.5);
+            paragraph.Borders.TopSpace = paragraph.Borders.BottomSpace = OfficeLength.Points(0);
         }
         ConfigurePartialColumnParagraph(document.AddParagraph("After"));
         var options = CellPaginationOptions();
-        options.PageSize = new OfficeIMO.Pdf.PageSize(500, 121);
-        options.PdfOptions = new OfficeIMO.Pdf.PdfOptions { MaxGeneratedPages = 6 };
+        options.PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(121));
+        options.PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { MaxGeneratedPages = 6 };
         using var input = new MemoryStream(document.ToBytes(format));
         using WordDocument loaded = WordDocument.Load(input);
         using var output = new MemoryStream();
@@ -112,11 +112,11 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.CompatibilitySettings.CompatibilityMode = mode;
         document.Sections[0].ColumnCount = 2;
-        document.Sections[0].ColumnsSpace = 400;
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-        list.Numbering.Levels[0].IndentationLeft = 240;
-        list.Numbering.Levels[0].IndentationHanging = 240;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(12D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(12D);
         foreach (int item in Enumerable.Range(0, 2)) {
             WordParagraph paragraph = list.AddItem($"Marker{item * 2 + 1:D3}\nMarker{item * 2 + 2:D3}");
             ConfigurePartialColumnParagraph(paragraph);
@@ -124,8 +124,8 @@ public partial class Word {
         }
         ConfigurePartialColumnParagraph(document.AddParagraph("After"));
         var options = CellPaginationOptions();
-        options.PageSize = new OfficeIMO.Pdf.PageSize(500, 121);
-        options.PdfOptions = new OfficeIMO.Pdf.PdfOptions { MaxGeneratedPages = 6 };
+        options.PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(121));
+        options.PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { MaxGeneratedPages = 6 };
         using var input = new MemoryStream(document.ToBytes(format));
         using WordDocument loaded = WordDocument.Load(input);
         using var output = new MemoryStream();
@@ -166,7 +166,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.CompatibilitySettings.CompatibilityMode = mode;
         document.Sections[0].ColumnCount = 2;
-        document.Sections[0].ColumnsSpace = 400;
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         WordParagraph paragraph = document.AddParagraph("Marker001\nMarker002\nMarker003\nMarker004");
         ConfigurePartialColumnParagraph(paragraph);
         paragraph.KeepLinesTogetherOverride = keepTogether;
@@ -176,13 +176,13 @@ public partial class Word {
             paragraph.Borders.TopStyle = paragraph.Borders.BottomStyle =
                 paragraph.Borders.LeftStyle = paragraph.Borders.RightStyle = WordBorderStyle.Single;
             paragraph.Borders.TopSize = paragraph.Borders.BottomSize =
-                paragraph.Borders.LeftSize = paragraph.Borders.RightSize = 4;
-            paragraph.Borders.TopSpace = paragraph.Borders.BottomSpace = 0;
+                paragraph.Borders.LeftSize = paragraph.Borders.RightSize = OfficeLength.Points(0.5);
+            paragraph.Borders.TopSpace = paragraph.Borders.BottomSpace = OfficeLength.Points(0);
         }
         ConfigurePartialColumnParagraph(document.AddParagraph("After"));
         var options = CellPaginationOptions();
-        options.PageSize = new OfficeIMO.Pdf.PageSize(500, 101);
-        options.PdfOptions = new OfficeIMO.Pdf.PdfOptions { MaxGeneratedPages = 6 };
+        options.PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(101));
+        options.PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { MaxGeneratedPages = 6 };
         using var input = new MemoryStream(document.ToBytes(format));
         using WordDocument loaded = WordDocument.Load(input);
         using var output = new MemoryStream();

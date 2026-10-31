@@ -93,8 +93,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task PresentationFacade_EnforcesPackageSecurityPolicies() {
             byte[] packageBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Security policy");
                 packageBytes = source.ToBytes();
             }
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
                        writable: false)) {
                 OfficePackageSecurityException exception = Assert.Throws<
                     OfficePackageSecurityException>(() =>
-                        PowerPointPresentation.Load(input, loadOptions));
+                        PowerPointDocument.Load(input, loadOptions));
                 Assert.Equal(OfficePackageSecurityRule
                     .ExternalRelationships, exception.Rule);
             }
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
                        writable: false)) {
                 OfficePackageSecurityException exception = await Assert
                     .ThrowsAsync<OfficePackageSecurityException>(() =>
-                        PowerPointPresentation.LoadAsync(input,
+                        PowerPointDocument.LoadAsync(input,
                             loadOptions));
                 Assert.Equal(OfficePackageSecurityRule
                     .ExternalRelationships, exception.Rule);
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
                 File.WriteAllBytes(path, packageBytes);
                 OfficePackageSecurityException exception = Assert.Throws<
                     OfficePackageSecurityException>(() =>
-                        PowerPointPresentation.Load(path, loadOptions));
+                        PowerPointDocument.Load(path, loadOptions));
                 Assert.Equal(OfficePackageSecurityRule
                     .ExternalRelationships, exception.Rule);
             } finally {
@@ -147,12 +147,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PresentationFacade_EnforcesPackageSecurityOnLegacyVba() {
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Legacy VBA security policy");
                 SetVbaProject(source, CreateVbaTestProject(
                     "SecurityModule", "Sub Main(): End Sub"));
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             var loadOptions = new PowerPointLoadOptions {
                 PackageSecurity = OfficePackageSecurityOptions
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(binary, writable: false);
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                    PowerPointPresentation.Load(input, loadOptions));
+                    PowerPointDocument.Load(input, loadOptions));
 
             Assert.Equal(OfficePackageSecurityRule.Macros, exception.Rule);
         }
@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
 
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                    PowerPointPresentation
+                    PowerPointDocument
                         .ConvertProjectedVbaPackageToMacroEnabled(
                             packageBytes, loadOptions));
 
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PresentationFacade_EnforcesPackageSecurityOnOriginalLegacyContainer() {
             byte[] binary = CreatePresentationBytes();
-            LegacyPptPresentation source = LegacyPptPresentation.Load(binary);
+            LegacyPptDocument source = LegacyPptDocument.Load(binary);
             byte[] withOpaqueObjectPool = source.Package
                 .RewriteCompoundStreams(new Dictionary<string, byte[]> {
                     ["ObjectPool/Preserved/Contents"] =
@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests {
                 writable: false);
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                    PowerPointPresentation.Load(input, loadOptions));
+                    PowerPointDocument.Load(input, loadOptions));
 
             Assert.Equal(OfficePackageSecurityRule.EmbeddedPayloads,
                 exception.Rule);
@@ -231,13 +231,13 @@ namespace OfficeIMO.Tests {
                 binary = CreateExternalObjectFixture(storage,
                     ExternalObjectFixtureKind.ActiveX, compressed: false);
             } else {
-                using PowerPointPresentation source =
-                    PowerPointPresentation.Create();
+                using PowerPointDocument source =
+                    PowerPointDocument.Create();
                 PowerPointSlide slide = source.AddSlide();
                 using var payload = new MemoryStream(storage,
                     writable: false);
                 slide.AddOleObject(payload, "Package");
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             var loadOptions = new PowerPointLoadOptions {
                 PackageSecurity = OfficePackageSecurityOptions
@@ -247,7 +247,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(binary, writable: false);
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                    PowerPointPresentation.Load(input, loadOptions));
+                    PowerPointDocument.Load(input, loadOptions));
 
             Assert.Equal(expectedRule, exception.Rule);
         }
@@ -259,11 +259,11 @@ namespace OfficeIMO.Tests {
             byte[] binary = CreateExternalObjectFixture(storage,
                 ExternalObjectFixtureKind.LinkedOle, compressed: false,
                 linkedUpdateMode: uint.MaxValue);
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+            LegacyPptDocument neutral = LegacyPptDocument.Load(
                 binary);
             Assert.Empty(neutral.LinkedOleObjects);
             Assert.Contains(neutral.Diagnostics, diagnostic =>
-                diagnostic.Code.StartsWith("PPT-OLE-LINK-",
+                diagnostic.Code.StartsWith("ppt-ole-link-",
                     StringComparison.Ordinal));
             var security = OfficePackageSecurityOptions.SecureDefaults;
             security.ExternalRelationships =
@@ -275,7 +275,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(binary, writable: false);
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                    PowerPointPresentation.Load(input, loadOptions));
+                    PowerPointDocument.Load(input, loadOptions));
 
             Assert.Equal(OfficePackageSecurityRule.ExternalRelationships,
                 exception.Rule);
@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
             var hyperlink = new LegacyPptHyperlink(1, friendlyName: null,
                 target: null, location: "https://example.test/location");
 
-            Assert.True(PowerPointPresentation.IsExternalLegacyHyperlink(
+            Assert.True(PowerPointDocument.IsExternalLegacyHyperlink(
                 hyperlink));
         }
 
@@ -294,12 +294,12 @@ namespace OfficeIMO.Tests {
         public void PresentationFacade_RejectsLegacyRunProgramActions() {
             var programUri = new Uri("file:///Applications/Calculator.app");
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(programUri, true);
                 P.NonVisualDrawingProperties properties =
@@ -309,9 +309,9 @@ namespace OfficeIMO.Tests {
                     Id = relationship.Id,
                     Action = "ppaction://program"
                 });
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+            LegacyPptDocument neutral = LegacyPptDocument.Load(
                 binary);
             Assert.Contains(neutral.Slides[0].Shapes.SelectMany(shape =>
                     shape.Interactions), interaction =>
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(binary, writable: false);
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                    PowerPointPresentation.Load(input, loadOptions));
+                    PowerPointDocument.Load(input, loadOptions));
 
             Assert.Equal(OfficePackageSecurityRule.ExternalRelationships,
                 exception.Rule);
@@ -339,11 +339,11 @@ namespace OfficeIMO.Tests {
         public void PresentationFacade_RejectsPreserveOnlyLegacyRunProgramActions(
             bool corruptActionOwner) {
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointAutoShape shape = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddRectangle(100000, 100000, 1000000, 500000);
+                    .AddRectangle(OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 P.NonVisualDrawingProperties properties =
                     ((P.Shape)shape.Element).NonVisualShapeProperties!
                     .NonVisualDrawingProperties!;
@@ -351,7 +351,7 @@ namespace OfficeIMO.Tests {
                     Id = string.Empty,
                     Action = "ppaction://macro?name=Module1.RunReport"
                 });
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             byte[] malformed = RewriteLegacyDocumentRecord(binary,
                 record => record.Type == 0xF004
@@ -380,15 +380,15 @@ namespace OfficeIMO.Tests {
                         WriteUInt16(document, malformedOffset + 2, 0xF012);
                     }
                 });
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+            LegacyPptDocument neutral = LegacyPptDocument.Load(
                 malformed);
             Assert.True(neutral.HasRunProgramContent);
             Assert.Empty(neutral.Slides[0].Shapes.SelectMany(shape =>
                 shape.Interactions));
             using (var preservationInput = new MemoryStream(malformed,
                        writable: false))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(preservationInput,
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(preservationInput,
                        new PowerPointLoadOptions {
                            LegacyPptImportOptions =
                                new LegacyPptImportOptions {
@@ -404,7 +404,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(malformed, writable: false);
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                PowerPointPresentation.Load(input,
+                PowerPointDocument.Load(input,
                     new PowerPointLoadOptions { PackageSecurity = security }));
 
             Assert.Equal(OfficePackageSecurityRule.ExternalRelationships,
@@ -423,12 +423,12 @@ namespace OfficeIMO.Tests {
         public void LegacyPreservationGateScansProjectedShapeRoots(
             int targetKind, bool runProgram) {
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(new Uri(
                         "https://example.test/preserved"), true);
@@ -438,12 +438,12 @@ namespace OfficeIMO.Tests {
                         Id = relationship.Id,
                         Action = runProgram ? "ppaction://program" : null
                     });
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using var input = new MemoryStream(binary, writable: false);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(input);
             imported.Slides[0].SlidePart.Slide!
                 .Descendants<A.HyperlinkOnClick>()
                 .ToList()
@@ -491,25 +491,25 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyPreservationGateDoesNotTreatInternalSlideJumpAsExternal() {
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship external = slide.SlidePart
                     .AddHyperlinkRelationship(
                         new Uri("https://example.test/remove"), true);
                 ((P.Shape)shape.Element).NonVisualShapeProperties!
                     .NonVisualDrawingProperties!
                     .Append(new A.HyperlinkOnClick { Id = external.Id });
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using var input = new MemoryStream(binary, writable: false);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(input);
             SlidePart slidePart = imported.Slides[0].SlidePart;
             slidePart.Slide!.Descendants<A.HyperlinkOnClick>()
                 .ToList().ForEach(item => item.Remove());
@@ -532,12 +532,12 @@ namespace OfficeIMO.Tests {
             var externalUri = new Uri("https://example.test/"
                 + new string('a', 8192));
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(externalUri, true);
                 ((P.Shape)shape.Element).NonVisualShapeProperties!
@@ -545,7 +545,7 @@ namespace OfficeIMO.Tests {
                     .Append(new A.HyperlinkOnClick {
                         Id = relationship.Id
                     });
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             byte[] malformed = RewriteLegacyDocumentRecord(binary,
                 record => record.Type == 0x0409,
@@ -559,7 +559,7 @@ namespace OfficeIMO.Tests {
                 });
 
             InvalidDataException exception = Assert.Throws<
-                InvalidDataException>(() => LegacyPptPresentation.Load(
+                InvalidDataException>(() => LegacyPptDocument.Load(
                 malformed, new LegacyPptImportOptions {
                     MaxRecordCount = 1000
                 }));
@@ -572,12 +572,12 @@ namespace OfficeIMO.Tests {
         public void PresentationFacade_RejectsDuplicateLegacyExternalHyperlinkTargets() {
             var externalUri = new Uri("https://example.test/preserve-only");
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(externalUri, true);
                 ((P.Shape)shape.Element).NonVisualShapeProperties!
@@ -585,7 +585,7 @@ namespace OfficeIMO.Tests {
                     .Append(new A.HyperlinkOnClick {
                         Id = relationship.Id
                     });
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             byte[] malformed = RewriteLegacyDocumentRecord(binary,
                 record => record.Type == 0x0FD7
@@ -599,12 +599,12 @@ namespace OfficeIMO.Tests {
                     WriteUInt16(document, atomOffset, 0x0010);
                     WriteUInt16(document, atomOffset + 2, 0x0FBA);
                 });
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+            LegacyPptDocument neutral = LegacyPptDocument.Load(
                 malformed);
             Assert.True(neutral.HasExternalHyperlinkContent);
             Assert.Empty(neutral.Hyperlinks);
             Assert.Contains(neutral.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-HYPERLINK-ATOM");
+                diagnostic.Code == "ppt-hyperlink-atom");
             var security = OfficePackageSecurityOptions.SecureDefaults;
             security.ExternalRelationships =
                 OfficePackageContentPolicy.Reject;
@@ -612,7 +612,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(malformed, writable: false);
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                PowerPointPresentation.Load(input,
+                PowerPointDocument.Load(input,
                     new PowerPointLoadOptions { PackageSecurity = security }));
 
             Assert.Equal(OfficePackageSecurityRule.ExternalRelationships,
@@ -623,8 +623,8 @@ namespace OfficeIMO.Tests {
         public void EncryptedLegacyLoad_ValidatesOuterSourceBeforePasswordProcessing() {
             const string password = "source-policy-pass";
             byte[] encrypted;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Encrypted source policy");
                 encrypted = source.ToEncryptedBytes(password,
                     PowerPointFileFormat.Ppt);
@@ -643,7 +643,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(encrypted, writable: false);
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                    PowerPointPresentation.LoadEncrypted(input,
+                    PowerPointDocument.LoadEncrypted(input,
                         "wrong-password", loadOptions));
 
             Assert.Equal(OfficePackageSecurityRule.PartCount,
@@ -658,12 +658,12 @@ namespace OfficeIMO.Tests {
             var externalUri = new Uri(
                 "https://example.test/malformed-owner");
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(externalUri, true);
                 ((P.Shape)shape.Element).NonVisualShapeProperties!
@@ -671,7 +671,7 @@ namespace OfficeIMO.Tests {
                     .Append(new A.HyperlinkOnClick {
                         Id = relationship.Id
                     });
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             ushort ownerType = corruptObjectList
                 ? (ushort)0x0409
@@ -681,7 +681,7 @@ namespace OfficeIMO.Tests {
                 (document, baseOffset, record) => WriteUInt16(document,
                     checked(baseOffset + record.Offset),
                     unchecked((ushort)((record.Instance << 4) | 0x0E))));
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+            LegacyPptDocument neutral = LegacyPptDocument.Load(
                 malformed);
             Assert.True(neutral.HasExternalHyperlinkContent);
             Assert.Empty(neutral.Hyperlinks);
@@ -692,7 +692,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(malformed, writable: false);
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                PowerPointPresentation.Load(input,
+                PowerPointDocument.Load(input,
                     new PowerPointLoadOptions { PackageSecurity = security }));
 
             Assert.Equal(OfficePackageSecurityRule.ExternalRelationships,
@@ -703,14 +703,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PresentationFacade_AllowsInternalHyperlinkInMalformedObjectList() {
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide first = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointSlide destination = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = first.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 first.SlidePart.AddPart(destination.SlidePart);
                 string relationshipId = first.SlidePart.GetIdOfPart(
                     destination.SlidePart);
@@ -720,14 +720,14 @@ namespace OfficeIMO.Tests {
                         Id = relationshipId,
                         Action = "ppaction://hlinksldjump"
                     });
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             byte[] malformed = RewriteLegacyDocumentRecord(binary,
                 record => record.Type == 0x0409,
                 (document, baseOffset, record) => WriteUInt16(document,
                     checked(baseOffset + record.Offset),
                     unchecked((ushort)((record.Instance << 4) | 0x0E))));
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+            LegacyPptDocument neutral = LegacyPptDocument.Load(
                 malformed);
             Assert.False(neutral.HasExternalHyperlinkContent);
             var security = OfficePackageSecurityOptions.SecureDefaults;
@@ -735,7 +735,7 @@ namespace OfficeIMO.Tests {
                 OfficePackageContentPolicy.Reject;
 
             using var input = new MemoryStream(malformed, writable: false);
-            using PowerPointPresentation loaded = PowerPointPresentation.Load(
+            using PowerPointDocument loaded = PowerPointDocument.Load(
                 input, new PowerPointLoadOptions {
                     PackageSecurity = security
                 });
@@ -749,12 +749,12 @@ namespace OfficeIMO.Tests {
         public void MalformedExternalObjectLists_FallBackWithoutCrashing(
             bool duplicateList) {
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(
                         new Uri("https://example.com/malformed-list"), true);
@@ -763,11 +763,11 @@ namespace OfficeIMO.Tests {
                     .Append(new A.HyperlinkOnClick {
                         Id = relationship.Id
                     });
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation sourcePresentation =
-                LegacyPptPresentation.Load(binary);
+            LegacyPptDocument sourcePresentation =
+                LegacyPptDocument.Load(binary);
             LegacyPptPersistObject documentPersist = sourcePresentation
                 .Package.PersistObjects[sourcePresentation.Package
                     .DocumentPersistId];
@@ -806,20 +806,19 @@ namespace OfficeIMO.Tests {
                     JoinExternalObjectRecords(documentChildren)));
 
             using var input = new MemoryStream(malformed, writable: false);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(input);
-            Assert.Single(imported.Slides[0].Shapes).Left += 1000;
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(input);
+            Assert.Single(imported.Slides[0].Shapes).Left += OfficeIMO.OfficeLength.Emus(1000);
 
             LegacyPptWritePreflightReport report = imported
                 .AnalyzeLegacyPptWrite();
             Assert.False(report.CanWrite);
             Assert.Throws<NotSupportedException>(() =>
-                imported.ToBytes(PowerPointFileFormat.Ppt));
-            byte[] rewritten = imported.ToBytes(PowerPointFileFormat.Ppt,
-                new PowerPointSaveOptions {
+                imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
+            byte[] rewritten = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                     LossPolicy = OfficeConversionLossPolicy.Allow
                 });
-            Assert.Single(LegacyPptPresentation.Load(rewritten).Slides);
+            Assert.Single(LegacyPptDocument.Load(rewritten).Slides);
         }
 
         [Theory]
@@ -833,12 +832,12 @@ namespace OfficeIMO.Tests {
                 "Malformed external-object owner");
             byte[] binary;
             if (fixtureKind == 0) {
-                using PowerPointPresentation source =
-                    PowerPointPresentation.Create();
+                using PowerPointDocument source =
+                    PowerPointDocument.Create();
                 using var payload = new MemoryStream(storage,
                     writable: false);
                 source.AddSlide().AddOleObject(payload, "Package");
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             } else {
                 ExternalObjectFixtureKind kind = fixtureKind switch {
                     1 => ExternalObjectFixtureKind.LinkedOle,
@@ -855,7 +854,7 @@ namespace OfficeIMO.Tests {
                 (document, baseOffset, record) => WriteUInt16(document,
                     checked(baseOffset + record.Offset),
                     unchecked((ushort)((record.Instance << 4) | 0x0E))));
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+            LegacyPptDocument neutral = LegacyPptDocument.Load(
                 malformed);
             switch (fixtureKind) {
                 case 0:
@@ -892,7 +891,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(malformed, writable: false);
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                PowerPointPresentation.Load(input,
+                PowerPointDocument.Load(input,
                     new PowerPointLoadOptions { PackageSecurity = security }));
 
             Assert.Equal(expectedRule, exception.Rule);
@@ -905,16 +904,16 @@ namespace OfficeIMO.Tests {
         public void PresentationFacade_RejectsVbaHiddenByMalformedOwnerOrDecoy(
             bool prependDecoy) {
             byte[] binary;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Hidden VBA policy");
                 SetVbaProject(source, CreateVbaTestProject(
                     "HiddenModule", "Sub Main(): End Sub"));
-                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+                binary = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             byte[] malformed;
             if (prependDecoy) {
-                LegacyPptPresentation source = LegacyPptPresentation.Load(
+                LegacyPptDocument source = LegacyPptDocument.Load(
                     binary);
                 LegacyPptPersistObject documentPersist = source.Package
                     .PersistObjects[source.Package.DocumentPersistId];
@@ -951,7 +950,7 @@ namespace OfficeIMO.Tests {
                         unchecked((ushort)((record.Instance << 4)
                             | 0x0E))));
             }
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+            LegacyPptDocument neutral = LegacyPptDocument.Load(
                 malformed);
             Assert.True(neutral.HasVbaContent);
             Assert.Null(neutral.VbaProject);
@@ -961,7 +960,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(malformed, writable: false);
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                PowerPointPresentation.Load(input,
+                PowerPointDocument.Load(input,
                     new PowerPointLoadOptions { PackageSecurity = security }));
 
             Assert.Equal(OfficePackageSecurityRule.Macros, exception.Rule);
@@ -970,7 +969,7 @@ namespace OfficeIMO.Tests {
         private static byte[] RewriteLegacyDocumentRecord(byte[] bytes,
             Func<LegacyPptRecord, bool> predicate,
             Action<byte[], int, LegacyPptRecord> rewrite) {
-            LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument source = LegacyPptDocument.Load(bytes);
             byte[] document = (byte[])source.Package.DocumentStream.Clone();
             foreach (LegacyPptPersistObject persistObject in source.Package
                          .PersistObjects.Values) {
@@ -993,7 +992,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] AppendLegacyDocumentPersist(
-            LegacyPptPresentation source, byte[] rewrittenDocument) {
+            LegacyPptDocument source, byte[] rewrittenDocument) {
             var offsets = source.Package.PersistObjectOffsets.ToDictionary(
                 pair => pair.Key, pair => pair.Value);
             using var stream = new MemoryStream();

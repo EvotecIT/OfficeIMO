@@ -6,21 +6,14 @@ namespace OfficeIMO.AI;
 
 /// <summary>Portable review artifacts. Saving or reopening an artifact does not approve model-authored content.</summary>
 public static partial class OfficeAiArtifacts {
-    private static readonly JsonSerializerOptions JsonOptions = new() {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() }
-    };
-
     /// <summary>Serializes a result with its captured text evidence and image descriptors, without image payloads or credentials.</summary>
     public static string SerializeReport(OfficeAiDocument document, OfficeAiResult result) {
         CheckSource(document, result);
-        return JsonSerializer.Serialize(new {
-            schema = "officeimo.ai.report.v1",
-            source = new { document.SourceHash, document.SnapshotHash, document.SourceByteLength, document.PageProvenance, document.Pages },
-            evidence = document.Evidence,
-            images = document.Images.Select(image => new { image.Id, image.Page, image.MediaType, image.Width, image.Height, image.ByteLength, image.ContentHash }),
-            result
-        }, JsonOptions);
+        return JsonSerializer.Serialize(new OfficeAiReportPayload("officeimo.ai.report.v1",
+            new(document.SourceHash, document.SnapshotHash, document.SourceByteLength, document.PageProvenance, document.Pages),
+            document.Evidence,
+            document.Images.Select(image => new OfficeAiReportImage(image.Id, image.Page, image.MediaType, image.Width,
+                image.Height, image.ByteLength, image.ContentHash)), result), OfficeAiReportJsonContext.Default.OfficeAiReportPayload);
     }
 
     /// <summary>Projects parsed blocks and tables into Reader's transport model, explicitly marked as AI proposals requiring review.</summary>

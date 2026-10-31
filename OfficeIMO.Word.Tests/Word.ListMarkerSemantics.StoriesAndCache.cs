@@ -58,7 +58,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordParagraph header = document.Header!.Default!.AddParagraph("Header item");
         AttachToList(header, list.NumberId);
 
-        string pdfText = PdfReadDocument.Open(document.ToPdfBytes(), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
+        string pdfText = PdfReadDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("1. Header item", pdfText, StringComparison.Ordinal);
         Assert.Contains("1. Body item", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("2. Header item", pdfText, StringComparison.Ordinal);

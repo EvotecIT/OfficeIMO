@@ -331,7 +331,7 @@ namespace OfficeIMO.Excel {
             calculatedColumnAnchorRow = 0;
             totalsRowAnchorRow = 0;
             if (table.Reference?.Value is not string reference
-                || !A1.TryParseRange(
+                || !ExcelA1.TryParseRange(
                     reference.Replace("$", string.Empty),
                     out int oldFirstRow,
                     out _,
@@ -353,7 +353,7 @@ namespace OfficeIMO.Excel {
                     lastDeletedRow,
                     out List<string> remapped)
                 && remapped.Count > 0
-                && A1.TryParseRange(
+                && ExcelA1.TryParseRange(
                     remapped[0].Replace("$", string.Empty),
                     out int remappedFirstRow,
                     out _,

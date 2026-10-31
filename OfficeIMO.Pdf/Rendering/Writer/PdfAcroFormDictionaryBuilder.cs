@@ -1,3 +1,6 @@
+using System.Threading;
+
+using System.Linq;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAcroFormDictionaryBuilder {
@@ -111,7 +114,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             " >>";
     }
 
-    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null, string? encodedTextHex = null, PdfFormFieldTextAlignment? textAlignment = null, double? textWidth = null, string? fontResourceName = null, Func<string, string?>? encodeTextSegmentHex = null, Func<string, double, double>? measureTextSegmentWidth = null, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments = null, double? singleLineBaseline = null) {
+    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null, string? encodedTextHex = null, PdfFormFieldTextAlignment? textAlignment = null, double? textWidth = null, string? fontResourceName = null, Func<string, string?>? encodeTextSegmentHex = null, Func<string, double, double>? measureTextSegmentWidth = null, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments = null, double? singleLineBaseline = null, int maximumMeasurementCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters, CancellationToken cancellationToken = default) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(value, nameof(value));
@@ -135,12 +138,12 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             content += BuildFormFieldBackgroundAppearanceContent(width, height, effectiveStyle);
         }
 
-        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth.ToPoints() > 0) {
             content += BuildRectangularBorderAppearanceContent(width, height, effectiveStyle);
         }
 
         if (effectiveStyle.IsMultiline) {
-            content += BuildMultilineTextFieldAppearanceContent(height, displayValue, fontSize, effectiveStyle, effectiveAlignment, availableTextWidth, effectiveFontResourceName, encodeTextSegmentHex, measureTextSegmentWidth, encodeTextSegments);
+            content += BuildMultilineTextFieldAppearanceContent(height, displayValue, fontSize, effectiveStyle, effectiveAlignment, availableTextWidth, effectiveFontResourceName, encodeTextSegmentHex, measureTextSegmentWidth, encodeTextSegments, maximumMeasurementCharacters, cancellationToken);
         } else if (effectiveStyle.IsComb && effectiveStyle.MaxLength.HasValue) {
             content += BuildCombTextFieldAppearanceContent(width, height, displayValue, fontSize, effectiveStyle, effectiveFontResourceName, encodeTextSegmentHex, measureTextSegmentWidth, encodeTextSegments);
         } else {
@@ -152,7 +155,20 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             content += "BT /" + effectiveFontResourceName + " " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + textShowing + " ET\n";
         }
 
-        return content + "Q\n";
+        return content + BuildDropDownArrowAppearanceContent(width, height, effectiveStyle) + "Q\n";
+    }
+
+    /// <summary>Draws the closed-list marker that tells readers a combo box offers choices.</summary>
+    internal static string BuildDropDownArrowAppearanceContent(double width, double height, PdfFormFieldStyle style) {
+        if (!style.ShowDropDownArrow || style.IsMultiline) return string.Empty;
+        double half = Math.Min(4D, Math.Max(1.5D, height * 0.16D));
+        double centerX = width - Math.Max(half + 3D, Math.Min(height / 2D, 12D));
+        double centerY = height / 2D;
+        if (centerX - half <= 0D) return string.Empty;
+        return FormatColor(style.TextColor) + " rg " +
+            Format(centerX - half) + " " + Format(centerY + half / 2D) + " m " +
+            Format(centerX + half) + " " + Format(centerY + half / 2D) + " l " +
+            Format(centerX) + " " + Format(centerY - half / 2D) + " l h f\n";
     }
 
     /// <summary>Centers nominal text ascent and descent consistently in authored, regenerated and transient widget appearances.</summary>
@@ -183,12 +199,14 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         }
     }
 
-    private static string BuildMultilineTextFieldAppearanceContent(double height, string displayValue, double fontSize, PdfFormFieldStyle effectiveStyle, PdfFormFieldTextAlignment alignment, double availableTextWidth, string fontResourceName, Func<string, string?>? encodeTextSegmentHex, Func<string, double, double>? measureTextSegmentWidth, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments) {
-        List<string> lines = WrapTextFieldAppearanceLines(displayValue, fontSize, availableTextWidth, measureTextSegmentWidth);
+    private static string BuildMultilineTextFieldAppearanceContent(double height, string displayValue, double fontSize, PdfFormFieldStyle effectiveStyle, PdfFormFieldTextAlignment alignment, double availableTextWidth, string fontResourceName, Func<string, string?>? encodeTextSegmentHex, Func<string, double, double>? measureTextSegmentWidth, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments, int maximumMeasurementCharacters, CancellationToken cancellationToken) {
+        var measurementBudget = new TextAppearanceMeasurementBudget(maximumMeasurementCharacters, cancellationToken);
+        List<string> lines = WrapTextFieldAppearanceLines(displayValue, fontSize, availableTextWidth, measureTextSegmentWidth, measurementBudget);
         double lineHeight = Math.Max(fontSize, fontSize * 1.2D);
         double baseline = Math.Max(2D, height - fontSize * 1.15D);
         var content = new StringBuilder();
         for (int i = 0; i < lines.Count && baseline >= 2D; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             string line = availableTextWidth <= 0.001D ? string.Empty : lines[i];
             double lineWidth = MeasureTextAppearanceSegment(line, fontSize, measureTextSegmentWidth);
             double textX = CalculateAlignedTextX(availableTextWidth, lineWidth, alignment);
@@ -212,30 +230,38 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         return content.ToString();
     }
 
-    private static List<string> WrapTextFieldAppearanceLines(string displayValue, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth) {
+    private static List<string> WrapTextFieldAppearanceLines(string displayValue, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth, TextAppearanceMeasurementBudget measurementBudget) {
         string[] explicitLines = SplitTextFieldAppearanceLines(displayValue);
         var wrappedLines = new List<string>();
         for (int i = 0; i < explicitLines.Length; i++) {
-            WrapTextFieldAppearanceLine(explicitLines[i], fontSize, availableTextWidth, measureTextSegmentWidth, wrappedLines);
+            measurementBudget.CheckCancellation();
+            WrapTextFieldAppearanceLine(explicitLines[i], fontSize, availableTextWidth, measureTextSegmentWidth, wrappedLines, measurementBudget);
         }
 
         return wrappedLines;
     }
 
-    private static void WrapTextFieldAppearanceLine(string line, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth, List<string> wrappedLines) {
+    private static void WrapTextFieldAppearanceLine(string line, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth, List<string> wrappedLines, TextAppearanceMeasurementBudget measurementBudget) {
         if (line.Length == 0 || availableTextWidth <= 0.001D) {
             wrappedLines.Add(line);
             return;
         }
 
+        // Built-in glyph widths are additive, so a line that fits cannot need token-by-token wrapping.
+        if (measureTextSegmentWidth == null && FitsTextFieldAppearanceLine(line, fontSize, availableTextWidth, null, measurementBudget)) {
+            AddWrappedTextFieldAppearanceLine(wrappedLines, line.TrimStart());
+            return;
+        }
+
         string currentLine = string.Empty;
         foreach (string token in EnumerateTextFieldAppearanceTokens(line)) {
+            measurementBudget.CheckCancellation();
             if (currentLine.Length == 0 && IsAllWhiteSpace(token)) {
                 continue;
             }
 
             string candidate = currentLine + token;
-            if (FitsTextFieldAppearanceLine(candidate, fontSize, availableTextWidth, measureTextSegmentWidth)) {
+            if (FitsTextFieldAppearanceLine(candidate, fontSize, availableTextWidth, measureTextSegmentWidth, measurementBudget)) {
                 currentLine = candidate;
                 continue;
             }
@@ -251,7 +277,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
                 currentLine = string.Empty;
             }
 
-            currentLine = AddWrappedTextFieldAppearanceWord(token, fontSize, availableTextWidth, measureTextSegmentWidth, wrappedLines);
+            currentLine = AddWrappedTextFieldAppearanceWord(token, fontSize, availableTextWidth, measureTextSegmentWidth, wrappedLines, measurementBudget);
         }
 
         AddWrappedTextFieldAppearanceLine(wrappedLines, currentLine);
@@ -274,15 +300,16 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         yield return line.Substring(start);
     }
 
-    private static string AddWrappedTextFieldAppearanceWord(string word, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth, List<string> wrappedLines) {
+    private static string AddWrappedTextFieldAppearanceWord(string word, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth, List<string> wrappedLines, TextAppearanceMeasurementBudget measurementBudget) {
         string currentLine = string.Empty;
         for (int i = 0; i < word.Length;) {
+            measurementBudget.CheckCancellation();
             int scalarLength = GetScalarLength(word, i);
             string scalar = word.Substring(i, scalarLength);
             i += scalarLength;
 
             string candidate = currentLine + scalar;
-            if (currentLine.Length == 0 || FitsTextFieldAppearanceLine(candidate, fontSize, availableTextWidth, measureTextSegmentWidth)) {
+            if (currentLine.Length == 0 || FitsTextFieldAppearanceLine(candidate, fontSize, availableTextWidth, measureTextSegmentWidth, measurementBudget)) {
                 currentLine = candidate;
                 continue;
             }
@@ -303,8 +330,30 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         wrappedLines.Add(line.TrimEnd());
     }
 
-    private static bool FitsTextFieldAppearanceLine(string line, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth) =>
-        MeasureTextAppearanceSegment(line.TrimEnd(), fontSize, measureTextSegmentWidth) <= availableTextWidth;
+    private static bool FitsTextFieldAppearanceLine(string line, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth, TextAppearanceMeasurementBudget measurementBudget) {
+        measurementBudget.Charge(line.Length);
+        return MeasureTextAppearanceSegment(line.TrimEnd(), fontSize, measureTextSegmentWidth) <= availableTextWidth;
+    }
+
+    private sealed class TextAppearanceMeasurementBudget {
+        private readonly int _maximumCharacters;
+        private readonly CancellationToken _cancellationToken;
+        private long _measuredCharacters;
+
+        internal TextAppearanceMeasurementBudget(int maximumCharacters, CancellationToken cancellationToken) {
+            _maximumCharacters = maximumCharacters;
+            _cancellationToken = cancellationToken;
+        }
+
+        internal void CheckCancellation() => _cancellationToken.ThrowIfCancellationRequested();
+
+        internal void Charge(int characters) {
+            CheckCancellation();
+            _measuredCharacters = checked(_measuredCharacters + characters);
+            if (_measuredCharacters > _maximumCharacters)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, _maximumCharacters, _measuredCharacters);
+        }
+    }
 
     private static bool IsAllWhiteSpace(string value) {
         for (int i = 0; i < value.Length; i++) {
@@ -430,7 +479,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             content += BuildFormFieldBackgroundAppearanceContent(width, height, effectiveStyle);
         }
 
-        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth.ToPoints() > 0) {
             content += BuildRectangularBorderAppearanceContent(width, height, effectiveStyle);
         }
 
@@ -465,11 +514,11 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             content += BuildFormFieldBackgroundAppearanceContent(width, height, effectiveStyle);
         }
 
-        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth.ToPoints() > 0) {
             if (effectiveStyle.BorderStyle == PdfFormFieldBorderStyle.Underline) {
                 content += BuildUnderlineBorderAppearanceContent(width, effectiveStyle);
             } else {
-                content += BuildBorderStrokeOperators(effectiveStyle.BorderColor.Value, effectiveStyle.BorderWidth, GetEffectiveBorderDashPattern(effectiveStyle)) +
+                content += BuildBorderStrokeOperators(effectiveStyle.BorderColor.Value, effectiveStyle.BorderWidth.ToPoints(), GetEffectiveBorderDashPattern(effectiveStyle)) +
                     Format(centerX + radius) + " " + Format(centerY) + " m " +
                     Format(centerX + radius) + " " + Format(centerY + control) + " " + Format(centerX + control) + " " + Format(centerY + radius) + " " + Format(centerX) + " " + Format(centerY + radius) + " c " +
                     Format(centerX - control) + " " + Format(centerY + radius) + " " + Format(centerX - radius) + " " + Format(centerY + control) + " " + Format(centerX - radius) + " " + Format(centerY) + " c " +
@@ -493,28 +542,28 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         return content + "Q\n";
     }
 
-    internal static string FormatColor(PdfColor color) =>
-        Format(color.R) + " " + Format(color.G) + " " + Format(color.B);
+    internal static string FormatColor(global::OfficeIMO.OfficeColor color) =>
+        Format(color.ToNormalizedRgb().R) + " " + Format(color.ToNormalizedRgb().G) + " " + Format(color.ToNormalizedRgb().B);
 
     internal static string BuildRectangularBorderAppearanceContent(double width, double height, PdfFormFieldStyle style) {
-        if (style.BorderColor == null || style.BorderWidth <= 0D) {
+        if (style.BorderColor == null || style.BorderWidth.ToPoints() <= 0D) {
             return string.Empty;
         }
 
-        if (style.CornerRadius <= 0D || style.BorderStyle == PdfFormFieldBorderStyle.Underline || style.BorderStyle == PdfFormFieldBorderStyle.Beveled || style.BorderStyle == PdfFormFieldBorderStyle.Inset) {
-            return BuildRectangularBorderAppearanceContent(width, height, style.BorderColor.Value, style.BorderWidth, GetEffectiveBorderDashPattern(style), style.BorderStyle);
+        if (style.CornerRadius.ToPoints() <= 0D || style.BorderStyle == PdfFormFieldBorderStyle.Underline || style.BorderStyle == PdfFormFieldBorderStyle.Beveled || style.BorderStyle == PdfFormFieldBorderStyle.Inset) {
+            return BuildRectangularBorderAppearanceContent(width, height, style.BorderColor.Value, style.BorderWidth.ToPoints(), GetEffectiveBorderDashPattern(style), style.BorderStyle);
         }
 
-        double inset = Math.Max(0.5D, style.BorderWidth * 0.5D);
-        return BuildBorderStrokeOperators(style.BorderColor.Value, style.BorderWidth, GetEffectiveBorderDashPattern(style)) +
-            BuildRoundedRectanglePath(width, height, style.CornerRadius, inset) + "S\n";
+        double inset = Math.Max(0.5D, style.BorderWidth.ToPoints() * 0.5D);
+        return BuildBorderStrokeOperators(style.BorderColor.Value, style.BorderWidth.ToPoints(), GetEffectiveBorderDashPattern(style)) +
+            BuildRoundedRectanglePath(width, height, style.CornerRadius.ToPoints(), inset) + "S\n";
     }
 
     internal static string BuildFormFieldBackgroundAppearanceContent(double width, double height, PdfFormFieldStyle style) {
         if (!style.BackgroundColor.HasValue) return string.Empty;
-        string path = style.CornerRadius <= 0D
+        string path = style.CornerRadius.ToPoints() <= 0D
             ? "0 0 " + Format(width) + " " + Format(height) + " re "
-            : BuildRoundedRectanglePath(width, height, style.CornerRadius, 0D);
+            : BuildRoundedRectanglePath(width, height, style.CornerRadius.ToPoints(), 0D);
         return FormatColor(style.BackgroundColor.Value) + " rg " + path + "f\n";
     }
 
@@ -540,7 +589,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             Format(left) + " " + Format(bottom + radius - control) + " " + Format(left + radius - control) + " " + Format(bottom) + " " + Format(left + radius) + " " + Format(bottom) + " c h ";
     }
 
-    internal static string BuildRectangularBorderAppearanceContent(double width, double height, PdfColor borderColor, double borderWidth, IReadOnlyList<double>? dashPattern, PdfFormFieldBorderStyle borderStyle) {
+    internal static string BuildRectangularBorderAppearanceContent(double width, double height, global::OfficeIMO.OfficeColor borderColor, double borderWidth, IReadOnlyList<double>? dashPattern, PdfFormFieldBorderStyle borderStyle) {
         if (borderWidth <= 0D) {
             return string.Empty;
         }
@@ -559,27 +608,27 @@ internal static partial class PdfAcroFormDictionaryBuilder {
     }
 
     private static string BuildUnderlineBorderAppearanceContent(double width, PdfFormFieldStyle style) {
-        if (style.BorderColor == null || style.BorderWidth <= 0D) {
+        if (style.BorderColor == null || style.BorderWidth.ToPoints() <= 0D) {
             return string.Empty;
         }
 
-        return BuildUnderlineBorderAppearanceContent(width, style.BorderColor.Value, style.BorderWidth);
+        return BuildUnderlineBorderAppearanceContent(width, style.BorderColor.Value, style.BorderWidth.ToPoints());
     }
 
-    private static string BuildUnderlineBorderAppearanceContent(double width, PdfColor borderColor, double borderWidth) {
+    private static string BuildUnderlineBorderAppearanceContent(double width, global::OfficeIMO.OfficeColor borderColor, double borderWidth) {
         double y = Math.Max(0.5D, borderWidth * 0.5D);
         return BuildBorderStrokeOperators(borderColor, borderWidth, null) +
             "0 " + Format(y) + " m " + Format(width) + " " + Format(y) + " l S\n";
     }
 
-    private static string BuildBeveledOrInsetBorderAppearanceContent(double width, double height, PdfColor borderColor, double borderWidth, PdfFormFieldBorderStyle borderStyle) {
+    private static string BuildBeveledOrInsetBorderAppearanceContent(double width, double height, global::OfficeIMO.OfficeColor borderColor, double borderWidth, PdfFormFieldBorderStyle borderStyle) {
         double inset = Math.Max(0.5D, borderWidth * 0.5D);
         double right = Math.Max(inset, width - inset);
         double top = Math.Max(inset, height - inset);
-        PdfColor light = Lighten(borderColor);
-        PdfColor dark = Darken(borderColor);
-        PdfColor topLeft = borderStyle == PdfFormFieldBorderStyle.Inset ? dark : light;
-        PdfColor bottomRight = borderStyle == PdfFormFieldBorderStyle.Inset ? light : dark;
+        global::OfficeIMO.OfficeColor light = Lighten(borderColor);
+        global::OfficeIMO.OfficeColor dark = Darken(borderColor);
+        global::OfficeIMO.OfficeColor topLeft = borderStyle == PdfFormFieldBorderStyle.Inset ? dark : light;
+        global::OfficeIMO.OfficeColor bottomRight = borderStyle == PdfFormFieldBorderStyle.Inset ? light : dark;
 
         return BuildBorderStrokeOperators(topLeft, borderWidth, null) +
             Format(inset) + " " + Format(inset) + " m " +
@@ -591,15 +640,15 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             Format(right) + " " + Format(top) + " l S\n";
     }
 
-    private static PdfColor Lighten(PdfColor color) => new PdfColor(Lighten(color.R), Lighten(color.G), Lighten(color.B));
+    private static global::OfficeIMO.OfficeColor Lighten(global::OfficeIMO.OfficeColor color) => global::OfficeIMO.OfficeColor.FromNormalizedRgb(Lighten(color.ToNormalizedRgb().R), Lighten(color.ToNormalizedRgb().G), Lighten(color.ToNormalizedRgb().B));
 
     private static double Lighten(double component) => component + (1D - component) * 0.55D;
 
-    private static PdfColor Darken(PdfColor color) => new PdfColor(color.R * 0.45D, color.G * 0.45D, color.B * 0.45D);
+    private static global::OfficeIMO.OfficeColor Darken(global::OfficeIMO.OfficeColor color) => global::OfficeIMO.OfficeColor.FromNormalizedRgb(color.ToNormalizedRgb().R * 0.45D, color.ToNormalizedRgb().G * 0.45D, color.ToNormalizedRgb().B * 0.45D);
 
-    private static IReadOnlyList<double>? GetEffectiveBorderDashPattern(PdfFormFieldStyle style) {
+    private static double[]? GetEffectiveBorderDashPattern(PdfFormFieldStyle style) {
         if (style.BorderDashPattern != null && style.BorderDashPattern.Count > 0) {
-            return style.BorderDashPattern;
+            return style.BorderDashPattern?.Select(static length => length.ToPoints()).ToArray();
         }
 
         return style.BorderStyle == PdfFormFieldBorderStyle.Dashed
@@ -607,7 +656,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             : null;
     }
 
-    internal static string BuildBorderStrokeOperators(PdfColor color, double borderWidth, IReadOnlyList<double>? dashPattern) {
+    internal static string BuildBorderStrokeOperators(global::OfficeIMO.OfficeColor color, double borderWidth, IReadOnlyList<double>? dashPattern) {
         string operators = FormatColor(color) + " RG " + Format(borderWidth) + " w ";
         if (dashPattern == null || dashPattern.Count == 0) {
             return operators;

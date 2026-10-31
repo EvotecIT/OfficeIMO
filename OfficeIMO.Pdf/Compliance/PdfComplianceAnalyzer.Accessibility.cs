@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfComplianceAnalyzer {
 
-    private static void AddAccessibilityRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, string? documentTitle, bool hasDocumentMetadataEvidence, PdfGeneratedImageAccessibilityEvidence[]? generatedImages, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings, PdfGeneratedFormAccessibilityEvidence[]? generatedForms, int? formulasMissingAlternativeText) {
+    private static void AddAccessibilityRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfCreateOptions options, string? documentTitle, bool hasDocumentMetadataEvidence, PdfGeneratedImageAccessibilityEvidence[]? generatedImages, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings, PdfGeneratedFormAccessibilityEvidence[]? generatedForms, int? formulasMissingAlternativeText) {
         if (profile == PdfComplianceProfile.PdfUa1 || profile == PdfComplianceProfile.PdfUa2) {
             AddPdfUaIdentificationRequirement(requirements, profile, options);
             requirements.Add(new PdfComplianceRequirement(
@@ -58,7 +58,7 @@ internal static partial class PdfComplianceAnalyzer {
         requirements.Add(BuildAlternateTextRequirement(generatedImages, generatedDrawings));
     }
 
-    private static PdfComplianceRequirement BuildTaggedPageTabOrderRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildTaggedPageTabOrderRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "tagged-page-tab-order",
@@ -74,7 +74,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged generated pages will emit /Tabs /S so annotation and keyboard tab order follows the structure tree as PDF/UA groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildTaggedStructureRequirement(PdfOptions options, bool hasDocumentMetadataEvidence, PdfGeneratedImageAccessibilityEvidence[]? generatedImages, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings, PdfGeneratedFormAccessibilityEvidence[]? generatedForms) {
+    private static PdfComplianceRequirement BuildTaggedStructureRequirement(PdfCreateOptions options, bool hasDocumentMetadataEvidence, PdfGeneratedImageAccessibilityEvidence[]? generatedImages, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings, PdfGeneratedFormAccessibilityEvidence[]? generatedForms) {
         if (!hasDocumentMetadataEvidence || generatedImages == null || generatedDrawings == null || generatedForms == null) {
             return new PdfComplianceRequirement(
                 "tagged-structure",
@@ -117,7 +117,7 @@ internal static partial class PdfComplianceAnalyzer {
             "OfficeIMO-generated content has tagged-structure groundwork: /Document structure root, document language metadata, parent-tree references, paragraph and heading marked content, list containers, table containers and cell references, link text and annotation references, form widget references, image and drawing figure/artifact handling, decorative page text/artifact markers, and structure-order tab hints. External PDF/UA/PDF/A-a validation is still required before claiming formal conformance.");
     }
 
-    private static PdfComplianceRequirement BuildTaggedParentTreeNextKeyRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildTaggedParentTreeNextKeyRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "tagged-parent-tree-next-key",
@@ -133,7 +133,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit /ParentTreeNextKey on generated StructTreeRoot dictionaries as PDF/UA/PDF/A-a groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedDocumentStructureRootRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedDocumentStructureRootRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "generated-document-structure-root",
@@ -149,7 +149,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will nest generated top-level structure elements below a generated /Document structure element as PDF/UA/PDF/A-a groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedDocumentStructureLanguageRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedDocumentStructureLanguageRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "generated-document-structure-language",
@@ -181,7 +181,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit /Lang metadata on generated /Document structure elements as PDF/UA/PDF/A-a groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildDocumentLanguageRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildDocumentLanguageRequirement(PdfCreateOptions options) {
         if (string.IsNullOrWhiteSpace(options.Language)) {
             return new PdfComplianceRequirement(
                 "document-language",
@@ -258,7 +258,7 @@ internal static partial class PdfComplianceAnalyzer {
         return true;
     }
 
-    private static void AddPdfUaIdentificationRequirement(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options) {
+    private static void AddPdfUaIdentificationRequirement(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfCreateOptions options) {
         PdfUaIdentification? identification = options.PdfUaIdentification;
         int expectedPart = profile == PdfComplianceProfile.PdfUa2 ? 2 : 1;
         Add(requirements, "pdfua-identification", "PDF/UA identification XMP",
@@ -267,7 +267,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Set PdfOptions.SetPdfUaIdentification(" + expectedPart.ToString(System.Globalization.CultureInfo.InvariantCulture) + ") before claiming " + GetDisplayName(profile) + ".");
     }
 
-    private static PdfComplianceRequirement BuildDocumentTitleRequirement(PdfOptions options, string? documentTitle, bool hasDocumentMetadataEvidence) {
+    private static PdfComplianceRequirement BuildDocumentTitleRequirement(PdfCreateOptions options, string? documentTitle, bool hasDocumentMetadataEvidence) {
         if (!hasDocumentMetadataEvidence) {
             return new PdfComplianceRequirement(
                 "document-title",
@@ -295,7 +295,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildDisplayDocumentTitleRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildDisplayDocumentTitleRequirement(PdfCreateOptions options) {
         PdfViewerPreferencesOptions? viewerPreferences = options.ViewerPreferences;
         if (viewerPreferences != null && viewerPreferences.DisplayDocTitle == true) {
             return new PdfComplianceRequirement(
@@ -417,7 +417,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildGeneratedDrawingStructureReferenceRequirement(PdfOptions options, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings) {
+    private static PdfComplianceRequirement BuildGeneratedDrawingStructureReferenceRequirement(PdfCreateOptions options, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings) {
         if (generatedDrawings == null) {
             return new PdfComplianceRequirement(
                 "generated-drawing-structure-references",
@@ -461,7 +461,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit MCID-marked generated shape and drawing figures plus StructTreeRoot and ParentTree references as PDF/UA groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedDecorativeDrawingArtifactRequirement(PdfOptions options, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings) {
+    private static PdfComplianceRequirement BuildGeneratedDecorativeDrawingArtifactRequirement(PdfCreateOptions options, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings) {
         if (generatedDrawings == null) {
             return new PdfComplianceRequirement(
                 "decorative-drawing-artifacts",
@@ -529,7 +529,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Set alternate text for " + string.Join(" and ", diagnostics.ToArray()) + " that are not decorative artifacts.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedRunningPageTextArtifactRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedRunningPageTextArtifactRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "decorative-running-page-text-artifacts",
@@ -545,7 +545,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit generated running header/footer text as PDF artifact marked content while header/footer images with alternate text remain meaningful figures.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedDecorativeFlowRuleArtifactRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedDecorativeFlowRuleArtifactRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "decorative-flow-rule-artifacts",
@@ -561,7 +561,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit generated horizontal rules in document and row/column flow as PDF artifact marked content.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedDecorativeLayoutArtifactRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedDecorativeLayoutArtifactRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "decorative-layout-artifacts",
@@ -577,7 +577,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit generated panel backgrounds, panel borders, table fills, table borders, row/column separators, and explicit cell borders as PDF artifact marked content.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedTextBlockStructureReferenceRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedTextBlockStructureReferenceRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "generated-text-structure-references",
@@ -593,7 +593,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit MCID-marked generated paragraph and heading slices plus StructTreeRoot and ParentTree references as PDF/UA groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedListStructureReferenceRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedListStructureReferenceRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "generated-list-structure-references",
@@ -609,7 +609,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit MCID-marked generated list labels and bodies plus StructTreeRoot and ParentTree references as PDF/UA groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedListContainerStructureRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedListContainerStructureRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "generated-list-structure-containers",
@@ -625,7 +625,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will nest generated list labels and bodies below generated L and LI structure elements as PDF/UA groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedTableCellStructureReferenceRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedTableCellStructureReferenceRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "generated-table-cell-structure-references",
@@ -641,7 +641,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit MCID-marked generated TH and TD table cell slices plus StructTreeRoot and ParentTree references as PDF/UA groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedTableContainerStructureRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedTableContainerStructureRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "generated-table-structure-containers",
@@ -657,7 +657,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will nest generated TH and TD table cell slices below generated Table and TR structure elements as PDF/UA groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedTableHeaderScopeRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedTableHeaderScopeRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "generated-table-header-scope-attributes",
@@ -673,7 +673,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit generated table header cells with /A /Table /Scope /Column attributes as PDF/UA groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedTableSpanAttributeRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedTableSpanAttributeRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "generated-table-span-attributes",
@@ -689,7 +689,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit generated column-spanned and row-spanned table cells with /ColSpan and /RowSpan attributes as PDF/UA groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedTableCaptionStructureRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedTableCaptionStructureRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "generated-table-caption-structure-references",
@@ -705,7 +705,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit generated table captions as /Caption content below generated Table structure elements as PDF/UA groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedLinkAnnotationStructureRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedLinkAnnotationStructureRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "generated-link-annotation-structure-references",
@@ -721,7 +721,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit generated link annotations with /StructParent entries plus /Link OBJR structure references as PDF/UA groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedLinkTextStructureRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildGeneratedLinkTextStructureRequirement(PdfCreateOptions options) {
         if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
             return new PdfComplianceRequirement(
                 "generated-link-text-structure-references",
@@ -737,7 +737,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit generated rich text links with visible /Link marked-content references combined with annotation OBJR references as PDF/UA groundwork.");
     }
 
-    private static PdfComplianceRequirement BuildGeneratedFormWidgetStructureRequirement(PdfOptions options, PdfGeneratedFormAccessibilityEvidence[]? generatedForms) {
+    private static PdfComplianceRequirement BuildGeneratedFormWidgetStructureRequirement(PdfCreateOptions options, PdfGeneratedFormAccessibilityEvidence[]? generatedForms) {
         if (generatedForms == null) {
             return new PdfComplianceRequirement(
                 "generated-form-widget-structure-references",
@@ -806,7 +806,7 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static PdfComplianceRequirement BuildGeneratedImageStructureReferenceRequirement(PdfOptions options, PdfGeneratedImageAccessibilityEvidence[]? generatedImages) {
+    private static PdfComplianceRequirement BuildGeneratedImageStructureReferenceRequirement(PdfCreateOptions options, PdfGeneratedImageAccessibilityEvidence[]? generatedImages) {
         if (generatedImages == null) {
             return new PdfComplianceRequirement(
                 "generated-image-structure-references",
@@ -850,7 +850,7 @@ internal static partial class PdfComplianceAnalyzer {
             "Tagged output will emit MCID-marked generated image figures plus StructTreeRoot and ParentTree references as PDF/UA groundwork.");
     }
 
-    private static bool WillEmitXmpMetadata(PdfOptions options) {
+    private static bool WillEmitXmpMetadata(PdfCreateOptions options) {
         return options.IncludeXmpMetadata ||
             options.PdfAIdentification != null ||
             options.PdfUaIdentification != null ||

@@ -51,10 +51,10 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(expected, reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Empty(reopened.ValidateDocument());
         } else {
-            using var result = source.ToPowerPointPresentationResult();
+            using var result = source.ToPowerPointDocumentResult();
             result.Report.RequireCompleteEditableReconstruction();
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             Assert.Equal(expected, Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text);
             Assert.Empty(reopened.ValidateDocument());
         }

@@ -39,7 +39,7 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
 
     /// <summary>Open PowerPoint presentation.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "PowerPoint")]
-    public PowerPointPresentation PowerPointPresentation { get; set; } = null!;
+    public PowerPointDocument PowerPointDocument { get; set; } = null!;
 
     /// <summary>Destination ODT, ODS, or ODP path.</summary>
     [Parameter(Mandatory = true, Position = 1)]
@@ -71,7 +71,7 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output) ?? SessionState.Path.CurrentFileSystemLocation.Path);
         WordDocument? ownedWord = null;
         ExcelDocument? ownedExcel = null;
-        PowerPointPresentation? ownedPresentation = null;
+        PowerPointDocument? ownedPresentation = null;
         try
         {
             object result;
@@ -102,10 +102,10 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
                     result = excelResult;
                     break;
                 case OdfDocumentKind.Presentation:
-                    var presentation = PowerPointPresentation;
+                    var presentation = PowerPointDocument;
                     if (sourcePath != null)
                     {
-                        presentation = PowerPointDocumentService.LoadPresentation(sourcePath, readOnly: true);
+                        presentation = PowerPointDocumentService.LoadDocument(sourcePath, readOnly: true);
                         ownedPresentation = presentation;
                     }
                     var presentationResult = presentation.ToOpenDocumentResult(PowerPointOptions);
@@ -122,7 +122,7 @@ public sealed class ConvertToOfficeOpenDocumentCommand : PSCmdlet
         {
             if (ownedWord != null) WordDocumentService.CloseDocument(ownedWord);
             if (ownedExcel != null) ExcelDocumentService.CloseDocument(ownedExcel);
-            if (ownedPresentation != null) PowerPointDocumentService.ClosePresentation(ownedPresentation, save: false, show: false);
+            if (ownedPresentation != null) PowerPointDocumentService.CloseDocument(ownedPresentation, save: false, show: false);
         }
     }
 

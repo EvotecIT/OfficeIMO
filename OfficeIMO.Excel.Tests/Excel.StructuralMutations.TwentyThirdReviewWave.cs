@@ -7,12 +7,14 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_CellShifts_ClearSpansOnlyOnChangedRows() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(1, 3, "C");
@@ -39,34 +41,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_StructuralReferenceRewrites_InvalidatePivotCacheRecordsAcrossMutationKinds() {
+        public void Test_StructuralReferenceRewrites_InvalidatePivotCacheRecordsAcrossMutationKinds()
+        {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, "East");
             sheet.CellValue(2, 2, 10d);
             sheet.CellValue(3, 1, "West");
             sheet.CellValue(3, 2, 20d);
-            sheet.AddPivotTable(
-                "A1:B3",
-                "F5",
-                "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
-            PivotTableCacheDefinitionPart cachePart = sheet.WorksheetPart.PivotTableParts.Single()
-                .PivotTableCacheDefinitionPart!;
-
+            sheet.AddPivotTable("A1:B3", "F5", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
+            PivotTableCacheDefinitionPart cachePart = sheet.WorksheetPart.PivotTableParts.Single().PivotTableCacheDefinitionPart!;
             SeedPivotCacheRecords(cachePart);
             sheet.InsertColumns(1);
             Assert.Equal("B1:C3", cachePart.PivotCacheDefinition!.CacheSource!.WorksheetSource!.Reference!.Value);
             AssertPivotCacheInvalidated(cachePart);
-
             SeedPivotCacheRecords(cachePart);
             sheet.InsertCells("A1:A3", ExcelCellShiftDirection.Right);
             Assert.Equal("C1:D3", cachePart.PivotCacheDefinition.CacheSource.WorksheetSource!.Reference!.Value);
             AssertPivotCacheInvalidated(cachePart);
-
             SeedPivotCacheRecords(cachePart);
             sheet.MoveRange("C1:D3", "A1");
             Assert.Equal("A1:B3", cachePart.PivotCacheDefinition.CacheSource.WorksheetSource!.Reference!.Value);
@@ -76,7 +70,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMovePlan_RejectsLegacyCommentVmlAnchorOverflow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Keep");
             sheet.SetComment("A1", "Anchored note");
 
@@ -91,7 +85,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImageRemoval_ReclaimsExclusiveRichValueChain() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             byte[] image = { 1, 2, 3, 4 };
 
             for (int cycle = 0; cycle < 2; cycle++) {

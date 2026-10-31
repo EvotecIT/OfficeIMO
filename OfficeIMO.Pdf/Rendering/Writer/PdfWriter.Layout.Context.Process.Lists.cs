@@ -10,14 +10,14 @@ internal static partial class PdfWriter {
             PreparedListLayout prepared = PrepareListLayout(
                 list,
                 width,
-                currentOpts.DefaultFontSize,
+                currentOpts.DefaultFontSize.ToPoints(),
                 topLevelSpacing: true);
             double preparedWidth = width;
             double listHeight = MeasurePreparedListHeight(prepared);
             void NewListStartFrame(bool forcePhysicalPage = false, bool preserveEmptyPage = false) {
                 NewBlockFrame(forcePhysicalPage, preserveEmptyPage);
                 if (Math.Abs(preparedWidth - width) > .001D) {
-                    prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize, topLevelSpacing: true);
+                    prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize.ToPoints(), topLevelSpacing: true);
                     preparedWidth = width;
                 }
                 prepared.SpacingBefore = 0D;
@@ -49,7 +49,7 @@ internal static partial class PdfWriter {
                 double nextHeight = MeasureKeepWithNextChainHeight(
                     blockList,
                     blockIndex + 1,
-                    currentOpts.MarginLeft,
+                    currentOpts.MarginLeft.ToPoints(),
                     width,
                     prepared.Size,
                     listHeight);
@@ -60,7 +60,7 @@ internal static partial class PdfWriter {
                     ShouldAdvanceForBlockHeight(keepHeight)) {
                     NewListStartFrame();
                     AdmitKeptListFrame();
-                    nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, prepared.Size, listHeight);
+                    nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, prepared.Size, listHeight);
                     keepHeight = listHeight + nextHeight;
                     availableHeight = GetMaximumBlockContinuationHeight();
                 }
@@ -73,7 +73,7 @@ internal static partial class PdfWriter {
             LayoutResult.Page? listStructurePage = null;
             for (int itemIndex = 0; itemIndex < prepared.Items.Count; itemIndex++) {
                 if (activeColumnFlow != null && Math.Abs(preparedWidth - width) > 0.001D) {
-                    prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize, topLevelSpacing: true);
+                    prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize.ToPoints(), topLevelSpacing: true);
                     preparedWidth = width;
                 }
                 RenderListItem(prepared, itemIndex, blockList, blockIndex,

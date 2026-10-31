@@ -10,7 +10,7 @@ public sealed partial class BookProject {
         XNamespace ns = OnixNamespace;
         foreach (var entry in values) {
             token.ThrowIfCancellationRequested();
-            ArgumentNullException.ThrowIfNull(entry);
+            if (entry == null) throw new ArgumentNullException(nameof(entry));
             string scheme = entry.Scheme switch {
                 BookOnixComplexityScheme.FryReadability => "03", BookOnixComplexityScheme.IoeBookBand => "04",
                 BookOnixComplexityScheme.FountasAndPinnell => "05", BookOnixComplexityScheme.Lexile => "06",

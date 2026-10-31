@@ -19,9 +19,9 @@ public partial class PdfDocumentVisualQualityTests {
     public void MergedAlignmentUsesTheCompleteLogicalCell(bool inRow, PdfCellVerticalAlign alignment, double rowGap) {
         double Position(double height, out int markerPage) {
             PdfTableStyle style = Style();
-            style.RowMinHeights = new() { 80, 80, 80 };
+            style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(80) };
             style.CellVerticalAlignments = new() { [(0, 0)] = alignment };
-            style.CellSpacing = rowGap;
+            style.CellSpacing = global::OfficeIMO.OfficeLength.Points(rowGap);
             PdfDocument document = PdfDocument.Create(Options(height));
             AddTable(document, new[] {
                 new[] { PdfTableCell.Merge("ANCHOR", rowSpan: 3), PdfTableCell.TextCell("First") },
@@ -46,7 +46,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true)]
     public void EmptyMergedContinuationLinksRemainUnderTheirCell(bool inRow) {
         PdfTableStyle style = Style();
-        style.RowMinHeights = new() { 80, 80, 80 };
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(80) };
         PdfDocument document = PdfDocument.Create(Options(140)).TaggedPdfCatalogMarkers();
         AddTable(document, new[] {
             new[] { new PdfTableCell("ANCHOR", rowSpan: 3, linkUri: "https://example.com"), PdfTableCell.TextCell("First") },

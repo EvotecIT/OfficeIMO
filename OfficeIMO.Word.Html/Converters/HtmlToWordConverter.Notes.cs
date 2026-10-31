@@ -6,21 +6,21 @@ namespace OfficeIMO.Word.Html {
         private bool TryProcessNoteAnchor(
             string anchor,
             WordSection section,
-            HtmlToWordOptions options,
+            WordHtmlImportOptions options,
             ref WordParagraph? currentParagraph,
             WordTableCell? cell,
             WordHeaderFooter? headerFooter) {
             if (_footnoteMap.TryGetValue(anchor, out var fnText)) {
                 currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
-                var noteRef = AddNoteReference(currentParagraph!, fnText, options, NoteReferenceType.Footnote);
-                TryLinkNoteReference(noteRef, string.Join(Environment.NewLine, fnText), options, NoteReferenceType.Footnote);
+                var noteRef = AddNoteReference(currentParagraph!, fnText, options, WordHtmlNoteReferenceType.Footnote);
+                TryLinkNoteReference(noteRef, string.Join(Environment.NewLine, fnText), options, WordHtmlNoteReferenceType.Footnote);
                 return true;
             }
 
             if (_endnoteMap.TryGetValue(anchor, out var enText)) {
                 currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
-                var noteRef = AddNoteReference(currentParagraph!, enText, options, NoteReferenceType.Endnote);
-                TryLinkNoteReference(noteRef, string.Join(Environment.NewLine, enText), options, NoteReferenceType.Endnote);
+                var noteRef = AddNoteReference(currentParagraph!, enText, options, WordHtmlNoteReferenceType.Endnote);
+                TryLinkNoteReference(noteRef, string.Join(Environment.NewLine, enText), options, WordHtmlNoteReferenceType.Endnote);
                 return true;
             }
 

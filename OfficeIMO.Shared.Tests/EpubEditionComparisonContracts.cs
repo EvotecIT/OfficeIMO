@@ -88,6 +88,23 @@ public sealed class EpubEditionComparisonContracts {
     }
 
     [Fact]
+    public void UnnamedSiblingParagraphsKeepTheirDistinctStructuralLocators() {
+        var before = EpubPublication.Create("Many paragraphs", "en");
+        before.AddChapter("one", "EPUB/one.xhtml", "One",
+            string.Concat(Enumerable.Range(0, 2000).Select(i => "<p>Paragraph " + i + "</p>")));
+        var after = EpubPublication.Load(new MemoryStream(before.Write().Bytes));
+        var xml = after.GetContentXml("one");
+        var paragraphs = xml.Descendants(XName.Get("p", "http://www.w3.org/1999/xhtml")).ToArray();
+        paragraphs[1999].Value = "Revised";
+        after.SetContentXml("one", xml);
+
+        var change = Assert.Single(before.CompareTo(after).TextChanges, item => item.Locator != "$body");
+        Assert.EndsWith("p[2000]", change.Locator, StringComparison.Ordinal);
+        Assert.Equal("Paragraph 1999", change.PreviousText);
+        Assert.Equal("Revised", change.CurrentText);
+    }
+
+    [Fact]
     public void ChangedTextBlockLimitRejectsInsteadOfReturningAPartialReport() {
         var before = EpubPublication.Create("Many paragraphs", "en");
         before.AddChapter("one", "EPUB/one.xhtml", "One", string.Concat(Enumerable.Range(0, 10_000).Select(i => "<p id='p" + i + "'>Before</p>")));

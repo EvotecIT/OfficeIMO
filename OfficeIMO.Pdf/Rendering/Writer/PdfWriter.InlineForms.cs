@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
         public RichSeg Segment { get; set; } = null!;
         public double X { get; set; }
         public double Baseline { get; set; }
-        public PdfColor? DefaultColor { get; set; }
+        public global::OfficeIMO.OfficeColor? DefaultColor { get; set; }
     }
 
     private static FormFieldAnnotation CreateInlineFormAnnotation(PdfInlineFormField field,
@@ -41,7 +41,7 @@ internal static partial class PdfWriter {
     }
 
     private static void CaptureInlineFormText(LayoutResult.Page page, RichSeg segment,
-        double x, double baseline, PdfColor? defaultColor, PdfOptions options,
+        double x, double baseline, global::OfficeIMO.OfficeColor? defaultColor, PdfCreateOptions options,
         int? parentElementIndex, double leadingAdvance) {
         double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
         double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline) + segment.LineAlignmentRise;
@@ -88,9 +88,9 @@ internal static partial class PdfWriter {
         });
     }
 
-    private static string BuildInlineFormAppearanceContent(FormFieldAnnotation field, PdfOptions options,
-        Func<PdfStandardFont, PdfOptions, int> ensureFont,
-        Func<PdfNamedFontFace, PdfOptions, int> ensureNamedFont,
+    private static string BuildInlineFormAppearanceContent(FormFieldAnnotation field, PdfCreateOptions options,
+        Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
+        Func<PdfNamedFontFace, PdfCreateOptions, int> ensureNamedFont,
         out IReadOnlyList<(string Name, int Id)> fontResources) {
         InlineFormAppearance appearance = field.InlineAppearance!;
         var resources = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -113,8 +113,8 @@ internal static partial class PdfWriter {
     }
 
     private static bool TryBuildInlineCheckBoxAppearance(FormFieldAnnotation field, bool isChecked,
-        LayoutResult.Page page, PdfOptions options, Func<PdfStandardFont, PdfOptions, int> ensureFont,
-        Func<PdfNamedFontFace, PdfOptions, int> ensureNamedFont, out string content,
+        LayoutResult.Page page, PdfCreateOptions options, Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
+        Func<PdfNamedFontFace, PdfCreateOptions, int> ensureNamedFont, out string content,
         out IReadOnlyList<(string Name, int Id)> fontResources) {
         PdfTextRun? source = isChecked ? field.InlineField?.CheckedAppearanceRun
             : field.InlineField?.UncheckedAppearanceRun;

@@ -138,7 +138,7 @@ public sealed class SetOfficeExcelRowCommand : PSWriteOffice.Cmdlets.OfficeMutat
 
         if (hasLayout) {
             sheet.SetRowLayout(Row, new ExcelRowLayoutOptions {
-                Height = Height,
+                Height = Height.HasValue ? ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(Height.Value)) : (ExcelColumnWidth?)null,
                 ClearHeight = ClearHeight.IsPresent,
                 AutoFit = AutoFit.IsPresent,
                 Hidden = Hidden,

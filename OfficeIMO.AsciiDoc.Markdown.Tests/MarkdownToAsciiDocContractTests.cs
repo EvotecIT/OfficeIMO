@@ -11,7 +11,7 @@ public sealed class MarkdownToAsciiDocContractTests {
             "- one\n- two\n\n" +
             "```csharp\nConsole.WriteLine();\n```\n\n" +
             "| Name | Value |\n| --- | --- |\n| A | B |\n";
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
         MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
 
@@ -41,7 +41,7 @@ public sealed class MarkdownToAsciiDocContractTests {
 
     [Fact]
     public void DefinitionsCalloutsAndCompoundListChildren_MapBackToNativeBlocks() {
-        var document = MarkdownDoc.Create();
+        var document = MarkdownDocument.Create();
         var definitions = new DefinitionListBlock();
         definitions.AddEntry(new DefinitionListEntry(
             new InlineSequence().Text("Term"),
@@ -68,7 +68,7 @@ public sealed class MarkdownToAsciiDocContractTests {
 
     [Fact]
     public void UnsupportedMarkdownBlock_IsVisibleAndDiagnosed() {
-        MarkdownDoc document = MarkdownDoc.Create().Hr();
+        MarkdownDocument document = MarkdownDocument.Create().Hr();
 
         MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
 
@@ -80,7 +80,7 @@ public sealed class MarkdownToAsciiDocContractTests {
 
     [Fact]
     public void RequestedLineEnding_IsUsedThroughoutGeneratedSource() {
-        MarkdownDoc document = MarkdownReader.Parse("# Title\n\nParagraph\n");
+        MarkdownDocument document = MarkdownDocument.Parse("# Title\n\nParagraph\n");
 
         MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult(new MarkdownToAsciiDocOptions { LineEnding = "\r\n" });
 
@@ -90,7 +90,7 @@ public sealed class MarkdownToAsciiDocContractTests {
 
     [Fact]
     public void CodeContainingListingFence_UsesALongerDelimiterWithoutChangingContent() {
-        MarkdownDoc document = MarkdownDoc.Create().Code("text", "before\n----\nafter");
+        MarkdownDocument document = MarkdownDocument.Create().Code("text", "before\n----\nafter");
 
         MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
 
@@ -102,10 +102,12 @@ public sealed class MarkdownToAsciiDocContractTests {
 
     [Fact]
     public void TableColumnCount_IncludesLogicalColumnSpans() {
-        TableBlock table = Assert.Single(MarkdownReader.Parse("| H |\n| --- |\n| wide |\n").Blocks.OfType<TableBlock>());
+        TableBlock table = Assert.Single(MarkdownDocument.Parse("| H |\n| --- |\n| wide |\n").Blocks.OfType<TableBlock>());
         table.GetCell(0, 0)!.ColumnSpan = 2;
 
-        MarkdownToAsciiDocResult result = MarkdownDoc.Create().Add(table).ToAsciiDocDocumentResult();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(table);
+        MarkdownToAsciiDocResult result = addedDocument.ToAsciiDocDocumentResult();
 
         Assert.Contains("[cols=2*", result.Source, StringComparison.Ordinal);
         Assert.Equal(2, Assert.Single(result.Value.BlocksOfType<AsciiDocTableBlock>()).Table.ColumnCount);

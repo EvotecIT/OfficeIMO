@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (payloads.Count == 0 || payloads[0].Length < 8) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-SST-SHORT",
+                    "xls-biff-sst-short",
                     "The shared string table record is too short.",
                     recordOffset: recordOffset,
                     recordType: (ushort)BiffRecordType.Sst));
@@ -117,7 +117,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } catch (InvalidDataException ex) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-SST-STRING-INVALID",
+                        "xls-biff-sst-string-invalid",
                         FormattableString.Invariant($"Shared string index {index} could not be read. {ex.Message}"),
                         recordOffset: recordOffset,
                         recordType: (ushort)BiffRecordType.Sst));
@@ -137,7 +137,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } catch (InvalidDataException ex) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-SST-STRING-INVALID",
+                        "xls-biff-sst-string-invalid",
                         FormattableString.Invariant($"Shared string index {index} could not be read. {ex.Message}"),
                         recordOffset: recordOffset,
                         recordType: (ushort)BiffRecordType.Sst));
@@ -147,7 +147,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if ((uint)strings.Count != uniqueCount && diagnostics.Count == 0) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-SST-STRING-INVALID",
+                    "xls-biff-sst-string-invalid",
                     FormattableString.Invariant(
                         $"The shared string table ended after {strings.Count} of {uniqueCount} declared unique strings."),
                     recordOffset: recordOffset,
@@ -161,7 +161,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (payloads.Count == 0 || payloads[0].Length < 8) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-SST-SHORT",
+                    "xls-biff-sst-short",
                     "The shared string table record is too short.",
                     recordOffset: recordOffset,
                     recordType: (ushort)BiffRecordType.Sst));
@@ -180,7 +180,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } catch (InvalidDataException ex) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
-                        "XLS-BIFF-SST-STRING-INVALID",
+                        "xls-biff-sst-string-invalid",
                         FormattableString.Invariant($"Shared string index {i} could not be read. {ex.Message}"),
                         recordOffset: recordOffset,
                         recordType: (ushort)BiffRecordType.Sst));

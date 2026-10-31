@@ -197,8 +197,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="columnIndex">1-based column index.</param>
         /// <param name="width">The column width.</param>
-        public void SetColumnWidth(int columnIndex, double width) {
-            width = NormalizeColumnWidth(width);
+        public void SetColumnWidth(int columnIndex, ExcelColumnWidth width) {
+            double value = NormalizeColumnWidth(width.ToCharacters(this));
             _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {
                 var worksheet = WorksheetRoot;
@@ -214,8 +214,8 @@ namespace OfficeIMO.Excel {
                 } else {
                     column = SplitColumn(columns, column, (uint)columnIndex);
                 }
-                if (width > 0) {
-                    column.Width = width;
+                if (value > 0) {
+                    column.Width = value;
                     column.CustomWidth = true;
                     column.BestFit = null;
                 } else {

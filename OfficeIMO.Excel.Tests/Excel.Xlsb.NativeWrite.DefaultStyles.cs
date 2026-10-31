@@ -14,24 +14,22 @@ namespace OfficeIMO.Tests {
         [InlineData(true, true)]
         public void Xlsb_NewUnformattedTextWorkbookDefinesDefaultStyle(bool multipleSheets, bool sharedStrings) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             if (multipleSheets) {
                 sheet.CellValue(1, 1, "Text");
                 sheet.CellValue(2, 1, "value");
-                document.AddWorksheet("Other").CellValue(1, 1, "other");
+                document.AddSheet("Other").CellValue(1, 1, "other");
             } else {
-                sheet.InsertObjects(new[] { "value" }, includeHeaders: true, startRow: 1,
-                    ("Text", static value => value));
+                sheet.WriteData(new[] { "value" }, includeHeaders: true, row: 1, ("Text", static value => value));
             }
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xlsb,
-                new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings });
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = sharedStrings });
 
             if (multipleSheets) Assert.NotEqual(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             else Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             AssertNativeDefaultStyle(workbook);
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.Equal("Text", reader.GetName(0));
             Assert.True(reader.Read());
             Assert.Equal("value", reader.GetString(0));
@@ -45,7 +43,7 @@ namespace OfficeIMO.Tests {
             var rows = new SnapshotXlsbRows(aboveCaptureLimit: true);
             rows.Values[0][2] = null;
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             var source = new ExcelDirectTabularSource("Data", rows, includeHeaders: true, preserveMissingValues: true);
             using var destination = new MemoryStream();
 
@@ -54,7 +52,7 @@ namespace OfficeIMO.Tests {
 
             byte[] workbook = destination.ToArray();
             AssertNativeDefaultStyle(workbook);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.Equal("Text", reader.GetName(0));
             Assert.True(reader.Read());
             Assert.Equal("Zażółć 🚀", reader.GetString(0));

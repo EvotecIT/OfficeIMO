@@ -16,19 +16,19 @@ namespace OfficeIMO.Examples.Markdown {
                 .WithColorScheme(MarkdownColorSchemeKind.Emerald)
                 .WithColors(accent: "SeaGreen", heading: "#064e3b")
                 .WithTable(table => {
-                    table.BorderWidth = 0.9;
-                    table.CellPaddingX = 8;
-                    table.CellPaddingY = 6;
+                    table.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.9);
+                    table.CellPaddingX = global::OfficeIMO.OfficeLength.Points(8);
+                    table.CellPaddingY = global::OfficeIMO.OfficeLength.Points(6);
                     table.UseRowStripes = true;
                 });
 
-            MarkdownDoc doc = MarkdownDoc.Create()
+            MarkdownDocument doc = MarkdownDocument.Create()
                 .FrontMatter(new { title = "Shared Theme Report", theme = "report", scheme = "emerald" })
                 .H1("Shared Theme Report")
                 .Toc(o => {
                     o.MinLevel = 2;
                     o.MaxLevel = 3;
-                    o.Layout = TocLayout.Panel;
+                    o.Layout = MarkdownTocLayout.Panel;
                     o.Title = "Contents";
                 }, placeAtTop: true)
                 .P("One Markdown AST can now drive HTML, PDF, and Word with a single shared visual theme.")
@@ -41,18 +41,18 @@ namespace OfficeIMO.Examples.Markdown {
                     .Headers("Surface", "Save API", "Theme source")
                     .Row("Markdown", "SaveAsMarkdown", "semantic source")
                     .Row("HTML", "SaveAsHtml", "HtmlOptions.Theme")
-                    .Row("PDF", "SaveAsPdf", "MarkdownToPdfOptions.Theme")
-                    .Row("Word", "ToWordDocument", "MarkdownToWordOptions.Theme"))
+                    .Row("PDF", "SaveAsPdf", "MarkdownPdfExportOptions.Theme")
+                    .Row("Word", "ToWordDocument", "WordMarkdownImportOptions.Theme"))
                 .Callout("success", "Consistent visuals", "The same theme object controls the conversion-specific renderer details.")
                 .H2("Code")
                 .Code("csharp", """
 var theme = MarkdownVisualTheme.Report()
     .WithColorScheme(MarkdownColorSchemeKind.Emerald)
     .WithColors(accent: "SeaGreen", heading: "#064e3b")
-    .WithTable(table => table.BorderWidth = 0.9);
+    .WithTable(table => table.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.9));
 
 doc.SaveAsHtml(htmlPath, new HtmlOptions { Theme = theme });
-doc.SaveAsPdf(pdfPath, new MarkdownToPdfOptions { Theme = theme });
+doc.SaveAsPdf(pdfPath, new MarkdownPdfExportOptions { Theme = theme });
 using var word = doc.ToWordDocument(new MarkdownToWordOptions { Theme = theme });
 word.SaveCopy(docxPath);
 """);
@@ -63,19 +63,19 @@ word.SaveCopy(docxPath);
             string docxPath = Path.Combine(mdFolder, "Markdown_SharedVisualTheme.docx");
 
             File.WriteAllText(mdPath, doc.ToMarkdown(), Encoding.UTF8);
-            doc.SaveAsHtml(htmlPath, new HtmlOptions {
+            doc.SaveAsHtml(htmlPath, new MarkdownHtmlExportOptions {
                 Title = "Shared Theme Report",
-                Kind = HtmlKind.Document,
+                Kind = MarkdownHtmlKind.Document,
                 Theme = theme,
                 ThemeToggle = true,
                 IncludeAnchorLinks = true,
                 BackToTopLinks = true
             });
-            doc.SaveAsPdf(pdfPath, new MarkdownToPdfOptions {
+            doc.SaveAsPdf(pdfPath, new MarkdownPdfExportOptions {
                 Theme = theme
             });
 
-            using var word = doc.ToWordDocument(new MarkdownToWordOptions {
+            using var word = doc.ToWord(new WordMarkdownImportOptions {
                 Theme = theme,
                 FontFamily = "Aptos"
             });

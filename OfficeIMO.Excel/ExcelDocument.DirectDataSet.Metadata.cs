@@ -218,7 +218,7 @@ namespace OfficeIMO.Excel {
 
         private static string CreateFrozenSheetViewsXml(int topRows, int leftCols) {
             if (topRows == 0 && leftCols == 0) return ExcelSheet.CreateDefaultSheetViews().OuterXml;
-            string topLeftCell = A1.CellReference(topRows + 1, leftCols + 1);
+            string topLeftCell = ExcelA1.CellReference(topRows + 1, leftCols + 1);
             string escapedTopLeftCell = EscapeXmlAttribute(topLeftCell);
             var builder = new StringBuilder(256);
             builder.Append("<sheetViews xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetView workbookViewId=\"0\"><pane");
@@ -264,7 +264,7 @@ namespace OfficeIMO.Excel {
             sheetView.RemoveAllChildren<Selection>();
             if (topRows == 0 && leftCols == 0) return;
 
-            string topLeftCell = A1.CellReference(topRows + 1, leftCols + 1);
+            string topLeftCell = ExcelA1.CellReference(topRows + 1, leftCols + 1);
             var pane = new Pane {
                 State = PaneStateValues.Frozen,
                 TopLeftCell = topLeftCell
@@ -674,7 +674,7 @@ namespace OfficeIMO.Excel {
             ExcelSheet sheet,
             string header,
             bool includeHeader,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             out int columnIndex,
             out int startRow,
             out int endRow) {
@@ -693,7 +693,7 @@ namespace OfficeIMO.Excel {
             ExcelSheet sheet,
             string header,
             bool includeHeader,
-            ExcelReadOptions? options,
+            ExcelReaderOptions? options,
             out int columnIndex,
             out int startRow,
             out int endRow,
@@ -798,7 +798,7 @@ namespace OfficeIMO.Excel {
         private static string GetDirectTabularSaveCandidateUsedRange(DirectDataSetSheetModel sheetModel, DirectWorksheetMetadata? metadata) {
             string range = sheetModel.Range;
             var overlayCells = metadata?.OverlayCells;
-            if (overlayCells == null || overlayCells.Count == 0 || !A1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (overlayCells == null || overlayCells.Count == 0 || !ExcelA1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return range;
             }
 
@@ -812,7 +812,7 @@ namespace OfficeIMO.Excel {
                 lastColumn = Math.Max(lastColumn, cell.Column);
             }
 
-            return A1.CellReference(firstRow, firstColumn) + ":" + A1.CellReference(lastRow, lastColumn);
+            return ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(lastRow, lastColumn);
         }
 
         internal bool TryGetDeferredDirectTabularPivotSource(

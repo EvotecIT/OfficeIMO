@@ -6,54 +6,38 @@ schema: 2.0.0
 ---
 # Copy-OfficePowerPointSlide
 ## SYNOPSIS
-Copies an existing slide within a PowerPoint presentation.
+Copies a native slide within its document, preserving its content and relationships.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Copy-OfficePowerPointSlide -Index <int> [-Presentation <PowerPointPresentation>] [-InsertAt <Int32>] [-PassThru] [<CommonParameters>]
+Copy-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector> [-Document <PowerPointDocument>] [-Position <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Uses OfficeIMO slide duplication so charts, notes, and shapes are preserved.
+Copies a native slide within its document, preserving its content and relationships.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePowerPoint -Path .\Examples\Documents\PowerPointCopySlide.pptx {
-    $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-    Set-OfficePowerPointSlideTitle -Slide $slide -Title 'Original'
-    $copy = Copy-OfficePowerPointSlide -Index 0 -PassThru
-    Set-OfficePowerPointSlideTitle -Slide $copy -Title 'Copied appendix'
-}
+Copy-OfficePowerPointSlide -Document $deck -Slide 1 -Position 3 -PassThru
 ```
 
-Duplicates a slide and updates the copied slide title.
+
+### EXAMPLE 2
+```powershell
+$slide | Copy-OfficePowerPointSlide -PassThru
+```
+
 
 ## PARAMETERS
 
-### -Index
-Zero-based slide index to duplicate.
+### -Document
+Gets or sets the document for numeric selection; omission uses the enclosing scope or native slide owner.
 
 ```yaml
-Type: Int32
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -InsertAt
-Optional target index for the duplicate; omit to insert after the source slide.
-
-```yaml
-Type: Int32
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -66,7 +50,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Gets or sets whether to return the new native slide.
 
 ```yaml
 Type: SwitchParameter
@@ -81,17 +65,33 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Presentation
-Presentation to update (optional inside DSL).
+### -Position
+Gets or sets the copy's one-based destination position; omission inserts it immediately after the source.
 
 ```yaml
-Type: PowerPointPresentation
+Type: Int32
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
 Required: False
 Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Slide
+Gets or sets a native slide or its one-based position.
+
+```yaml
+Type: PowerPointSlideSelector
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
@@ -102,7 +102,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `PSWriteOffice.Foundation.PowerPointSlideSelector`: A live slide or a one-based slide position in a document.
 
 ## OUTPUTS
 

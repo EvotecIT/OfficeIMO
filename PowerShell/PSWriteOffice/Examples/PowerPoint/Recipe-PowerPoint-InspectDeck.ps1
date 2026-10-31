@@ -1,26 +1,25 @@
-$path = '.\PowerPoint-Inspection-Source.pptx'
-PptNew -Path $path {
-    PptSlide {
-        PptTitle -Title 'Service Review'
-        PptTextBox -Text 'Executive summary' -X 80 -Y 150 -Width 420 -Height 60
-        PptNotes -Text 'Lead with the decision.'
+$path = Join-Path $PWD 'PowerPoint-Inspection-Source.pptx'
+New-OfficePowerPoint -Path $path {
+    PowerPointSlide -Title 'Service Review' {
+        PowerPointParagraph 'Executive summary'
     }
-    PptSlide {
-        PptTitle -Title 'Next Steps'
-        PptBullets -Bullets 'Assign owner', 'Confirm date' -X 80 -Y 150 -Width 420 -Height 160
+    PowerPointSlide -Title 'Next Steps' {
+        PowerPointList 'Assign owner', 'Confirm date'
     }
 }
 
-$presentation = Get-OfficePowerPoint -Path $path
-foreach ($index in 0..($presentation.Slides.Count - 1)) {
-    $slide = Get-OfficePowerPointSlide -Presentation $presentation -Index $index
-    $summary = Get-OfficePowerPointSlideSummary -Slide $slide
+$document = Open-OfficePowerPoint -Path $path
+try {
+    $slide = Get-OfficePowerPointSlide -Document $document -Slide 1
+    Set-OfficePowerPointNotes -Slide $slide -Text 'Lead with the decision.'
+    Save-OfficePowerPoint -Document $document
 
-    [pscustomobject]@{
-        Slide  = $index + 1
-        Title  = $summary.Title
-        Shapes = @(Get-OfficePowerPointShape -Slide $slide).Count
-        Notes  = @(Get-OfficePowerPointNotes -Slide $slide).Count
-    }
+    Get-OfficePowerPointSlide -Document $document -Summary |
+        Select-Object SlideIndex, Title, ShapeCount, HasNotes, NotesText
+} finally {
+    Close-OfficePowerPoint -Document $document
 }
-Close-OfficePowerPoint -Presentation $presentation
+
+# File inspection returns detached summaries and closes the source after reading it.
+Get-Item -LiteralPath $path | Get-OfficePowerPointSlide -Summary |
+    Select-Object Path, SlideIndex, Title, ShapeCount, HasNotes

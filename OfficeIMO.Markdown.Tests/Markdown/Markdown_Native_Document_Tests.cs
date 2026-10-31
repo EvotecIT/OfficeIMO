@@ -119,7 +119,7 @@ Inside details
     public void Parse_Projects_Task_List_Marker_SourceSpans_Into_Native_Snapshots_And_Edits() {
         const string markdown = "- [X]\tUpper\n- [ ]    Open\n- [x]tight\n";
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var list = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(native.Blocks));
 
         Assert.Collection(
@@ -172,7 +172,7 @@ Inside details
 After
 """;
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
         var quote = Assert.IsType<MarkdownNativeQuoteBlock>(native.Blocks[0]);
 
         Assert.Equal(new[] {
@@ -209,7 +209,7 @@ After
       gamma
 """;
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
         var list = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(native.Blocks));
         var item = Assert.Single(list.Items);
         var quote = Assert.Single(item.Children.OfType<MarkdownNativeQuoteBlock>());
@@ -258,7 +258,7 @@ After
 After
 """;
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
         var list = Assert.IsType<MarkdownNativeListBlock>(native.Blocks[0]);
         var outer = Assert.Single(list.Items);
         var nested = Assert.Single(outer.Children.OfType<MarkdownNativeListBlock>());
@@ -284,7 +284,7 @@ After
         const string markdown = "- outer\r\n  - old\r\n  - keep\r\n\r\nAfter\r\n";
         var native = MarkdownNativeDocument.Parse(
             markdown,
-            new MarkdownReaderOptions { PreserveTrivia = true });
+            new MarkdownLoadOptions { PreserveTrivia = true });
         var list = Assert.IsType<MarkdownNativeListBlock>(native.Blocks[0]);
         var outer = Assert.Single(list.Items);
         var nested = Assert.Single(outer.Children.OfType<MarkdownNativeListBlock>());
@@ -306,7 +306,7 @@ After
   - keep
 """;
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var items = native.EnumerateListItems().ToArray();
 
         Assert.Equal(3, items.Length);
@@ -327,7 +327,7 @@ After
 | CPU | 42 |
 """;
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var cells = native.EnumerateTableCells().ToArray();
 
         Assert.Equal(4, cells.Length);
@@ -345,7 +345,7 @@ After
         const string markdown = "| Name | Value |\r\n| --- | --- |\r\n| CPU | 42 |\r\n";
         var native = MarkdownNativeDocument.Parse(
             markdown,
-            new MarkdownReaderOptions {
+            new MarkdownLoadOptions {
                 PreserveTrivia = true,
                 Tables = true
             });
@@ -404,7 +404,7 @@ After
         const string markdown = "- item\r\n\r\n  | Name | Value |\r\n  | --- | --- |\r\n  | CPU | 42 |\r\n";
         var native = MarkdownNativeDocument.Parse(
             markdown,
-            new MarkdownReaderOptions {
+            new MarkdownLoadOptions {
                 PreserveTrivia = true,
                 Tables = true
             });
@@ -907,7 +907,7 @@ Second: Other
     [Fact]
     public void Source_Slice_Helpers_Expose_Original_Definition_Body_Text_For_Native_Field() {
         const string markdown = "Term\r\n:   First\r\n\r\n    - item\r\nlazy continuation\r\n";
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.DefinitionLists = true;
         options.PreserveTrivia = true;
 
@@ -925,7 +925,7 @@ Second: Other
         Assert.Equal(MarkdownSourceTextKind.Original, originalSlice.TextKind);
         Assert.Equal("First\r\n\r\n    - item\r\nlazy continuation", originalSlice.Text);
 
-        var noTriviaOptions = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var noTriviaOptions = MarkdownLoadOptions.CreateCommonMarkProfile();
         noTriviaOptions.DefinitionLists = true;
         var noTriviaNative = MarkdownNativeDocument.Parse(markdown, noTriviaOptions);
         var noTriviaDefinitionBody = Assert.Single(noTriviaNative.EnumerateBlockSourceFields("definitionBody"));
@@ -941,7 +941,7 @@ Second: Other
     public void Definition_List_Definition_Source_Edit_Indents_Multiline_Body_For_Reparse(
         string markdown,
         string expected) {
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.DefinitionLists = true;
         var native = MarkdownNativeDocument.Parse(markdown, options);
         var definition = Assert.Single(native.EnumerateDefinitionListDefinitions());
@@ -989,7 +989,7 @@ Body[^shape]
         Assert.Same(footnote, native.FindBlockAtPosition(3, 3));
         Assert.Same(footnote.Children[0], native.FindBlockAtPosition(3, 12));
         Assert.DoesNotContain(native.Diagnostics, diagnostic =>
-            diagnostic.Id == "native.unsupported-block"
+            diagnostic.Id == "native-unsupported-block"
             && ReferenceEquals(diagnostic.Block, footnote));
     }
 
@@ -1004,7 +1004,7 @@ Lead[^note]
   ```
 """;
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var footnote = Assert.IsType<MarkdownNativeFootnoteDefinitionBlock>(Assert.Single(native.Blocks, block => block.Kind == MarkdownNativeBlockKind.FootnoteDefinition));
         var code = Assert.Single(footnote.Children.OfType<MarkdownNativeCodeBlock>());
 
@@ -1063,7 +1063,7 @@ Lead[^note]
         Assert.Same(definition.Children[1], native.FindBlockAtPosition(3, 3));
         Assert.Contains(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "Term");
         Assert.DoesNotContain(native.Diagnostics, diagnostic =>
-            diagnostic.Id == "native.unsupported-block"
+            diagnostic.Id == "native-unsupported-block"
             && ReferenceEquals(diagnostic.Block, definitionList));
     }
 
@@ -1099,7 +1099,7 @@ Lead[^note]
         const string markdown = "**Term**: Intro\r\n\r\n  - first\r\n  - second\r\n\r\n| Name | Value |\r\n| --- | --- |\r\n| CPU | 42 |\r\n";
         var native = MarkdownNativeDocument.Parse(
             markdown,
-            new MarkdownReaderOptions { PreserveTrivia = true });
+            new MarkdownLoadOptions { PreserveTrivia = true });
         var definitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(native.Blocks[0]);
         var group = Assert.Single(definitionList.Groups);
         var term = Assert.Single(group.Terms);
@@ -1164,7 +1164,7 @@ After
         Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), thematicBreak.SourceSpan);
         Assert.Same(thematicBreak, native.FindBlockAtPosition(3, 2));
         Assert.DoesNotContain(native.Diagnostics, diagnostic =>
-            diagnostic.Id == "native.unsupported-block"
+            diagnostic.Id == "native-unsupported-block"
             && ReferenceEquals(diagnostic.Block, thematicBreak));
     }
 
@@ -1246,7 +1246,7 @@ After
 foo
 ]: /url
 bar
-""", MarkdownReaderOptions.CreateCommonMarkProfile());
+""", MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var definition = Assert.Single(native.ReferenceLinkDefinitions);
         Assert.Equal("foo", definition.Label);
@@ -1273,7 +1273,7 @@ Foo
 [bar]: /baz
 
 [bar]
-""", MarkdownReaderOptions.CreateCommonMarkProfile());
+""", MarkdownLoadOptions.CreateCommonMarkProfile());
 
         Assert.Empty(native.ReferenceLinkDefinitions);
         Assert.Equal(
@@ -1290,7 +1290,7 @@ Foo
 [foo]
 
 > [foo]: /url
-""", MarkdownReaderOptions.CreateCommonMarkProfile());
+""", MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var definition = Assert.Single(native.ReferenceLinkDefinitions);
         Assert.Equal("foo", definition.Label);
@@ -1309,7 +1309,7 @@ Foo
         Assert.Equal("url", native.FindReferenceLinkDefinitionFieldAtPosition(3, 10)!.Name);
         Assert.Equal(
             CommonMarkHtmlComparison.Normalize("<p><a href=\"/url\">foo</a></p>\n<blockquote>\n</blockquote>"),
-            CommonMarkHtmlComparison.Normalize(native.Document.ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions())));
+            CommonMarkHtmlComparison.Normalize(native.Document.ToHtml(CommonMarkHtmlComparison.CreatePlainHtmlOptions())));
     }
 
     [Fact]
@@ -1382,7 +1382,7 @@ After
 
     [Fact]
     public void Parse_Projects_Core_Blocks_With_SourceSpans() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
         var markdown = """
 Intro text
@@ -1485,7 +1485,7 @@ Console.WriteLine(1);
   ```
 """;
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var quote = Assert.IsType<MarkdownNativeQuoteBlock>(native.Blocks[0]);
         var quotedCode = Assert.IsType<MarkdownNativeCodeBlock>(Assert.Single(quote.Children));
@@ -1585,10 +1585,10 @@ After
 """), updated);
         Assert.DoesNotContain("this comment", updated);
         Assert.DoesNotContain(native.Diagnostics, diagnostic =>
-            diagnostic.Id == "native.unsupported-block"
+            diagnostic.Id == "native-unsupported-block"
             && ReferenceEquals(diagnostic.Block, html));
         Assert.DoesNotContain(native.Diagnostics, diagnostic =>
-            diagnostic.Id == "native.unsupported-block"
+            diagnostic.Id == "native-unsupported-block"
             && ReferenceEquals(diagnostic.Block, comment));
     }
 
@@ -1619,16 +1619,16 @@ After
         var native = MarkdownNativeDocument.Parse(markdown);
 
         var table = Assert.IsType<MarkdownNativeTableBlock>(Assert.Single(native.Blocks));
-        Assert.Equal(ColumnAlignment.Left, table.HeaderCells[0].Alignment);
-        Assert.Equal(ColumnAlignment.Right, table.HeaderCells[1].Alignment);
-        Assert.Equal(ColumnAlignment.Left, table.Rows[0][0].Alignment);
-        Assert.Equal(ColumnAlignment.Right, table.Rows[0][1].Alignment);
+        Assert.Equal(MarkdownColumnAlignment.Left, table.HeaderCells[0].Alignment);
+        Assert.Equal(MarkdownColumnAlignment.Right, table.HeaderCells[1].Alignment);
+        Assert.Equal(MarkdownColumnAlignment.Left, table.Rows[0][0].Alignment);
+        Assert.Equal(MarkdownColumnAlignment.Right, table.Rows[0][1].Alignment);
         Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 15), table.AlignmentRowSourceSpan);
         Assert.Equal(2, table.AlignmentCells.Count);
         Assert.Equal(":---", table.AlignmentCells[0].Markdown);
         Assert.Equal("---:", table.AlignmentCells[1].Markdown);
-        Assert.Equal(ColumnAlignment.Left, table.AlignmentCells[0].Alignment);
-        Assert.Equal(ColumnAlignment.Right, table.AlignmentCells[1].Alignment);
+        Assert.Equal(MarkdownColumnAlignment.Left, table.AlignmentCells[0].Alignment);
+        Assert.Equal(MarkdownColumnAlignment.Right, table.AlignmentCells[1].Alignment);
         Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 6), table.AlignmentCells[0].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(2, 10, 2, 13), table.AlignmentCells[1].SourceSpan);
         Assert.Equal(9, table.Pipes.Count);
@@ -1818,7 +1818,7 @@ After
 
     [Fact]
     public void Parse_Projects_Fence_Metadata_For_Code_And_Visual_Blocks() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
         var markdown = """
 ```csharp {#sample .wide title="Sample Code" copy=false}
@@ -1947,7 +1947,7 @@ Paragraph with `code`, footnote[^note], and ![Alt](img.png "Img").
 - # Bar
 """;
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
 
         var list = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(native.Blocks));
         Assert.Equal(2, list.Items.Count);
@@ -1971,7 +1971,7 @@ Paragraph with `code`, footnote[^note], and ![Alt](img.png "Img").
 
     [Fact]
     public void Parse_Includes_Syntax_Path_In_Block_Ids_For_Duplicated_Generated_Blocks() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new DuplicateParagraphTransform());
 
         var native = MarkdownNativeDocument.Parse("Same", options);
@@ -2008,7 +2008,7 @@ Paragraph with `code`, footnote[^note], and ![Alt](img.png "Img").
 
     [Fact]
     public void Parse_Exposes_Visual_Payload_Hints_Without_Json_Dependency() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownLoadOptions();
         options.DocumentTransforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "Mermaid",
@@ -2063,15 +2063,15 @@ graph TD
         Assert.Contains(heading.Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link && inline.Metadata["target"] == "https://example.com");
 
         var table = snapshot.Blocks[1];
-        Assert.Equal(ColumnAlignment.Left, table.HeaderCells[0].Alignment);
-        Assert.Equal(ColumnAlignment.Right, table.Rows[0][1].Alignment);
+        Assert.Equal(MarkdownColumnAlignment.Left, table.HeaderCells[0].Alignment);
+        Assert.Equal(MarkdownColumnAlignment.Right, table.Rows[0][1].Alignment);
         Assert.Contains(table.Rows[0][0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "CPU");
 
         var thematicBreak = snapshot.Blocks[2];
         Assert.Equal(MarkdownNativeBlockKind.ThematicBreak, thematicBreak.Kind);
         Assert.Equal("---", thematicBreak.Markdown);
         Assert.DoesNotContain(snapshot.Diagnostics, diagnostic =>
-            diagnostic.Id == "native.unsupported-block"
+            diagnostic.Id == "native-unsupported-block"
             && diagnostic.BlockId == native.Blocks[2].Id);
     }
 
@@ -2275,7 +2275,7 @@ Next paragraph.
     [Fact]
     public void Source_Edit_Helpers_Reject_Spans_When_Backing_Source_Is_Missing() {
         var parseResult = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Editable");
-        var withoutSource = new MarkdownParseResult(
+        var withoutSource = new MarkdownParseInfo(
             parseResult.Document,
             parseResult.SyntaxTree,
             parseResult.FinalSyntaxTree,
@@ -2304,7 +2304,7 @@ ix:cached-tool-evidence:v1
 
         Assert.Equal(MarkdownNativeDocumentSourceKind.RendererPreprocessed, native.SourceKind);
         Assert.Contains("ix:cached-tool-evidence:v1", native.SourceMarkdown);
-        Assert.Contains(native.Diagnostics, diagnostic => diagnostic.Id == "native.transform");
+        Assert.Contains(native.Diagnostics, diagnostic => diagnostic.Id == "native-transform");
         Assert.Contains(native.Blocks, block =>
             block is MarkdownNativeVisualBlock visual
             && visual.SemanticKind == MarkdownSemanticKinds.Chart
@@ -2320,7 +2320,7 @@ ix:cached-tool-evidence:v1
 HTML [docs]
 """;
         var options = new MarkdownRendererOptions {
-            ReaderOptions = new MarkdownReaderOptions {
+            ReaderOptions = new MarkdownLoadOptions {
                 Abbreviations = true,
                 PreserveTrivia = true
             }
@@ -2340,7 +2340,7 @@ HTML [docs]
 
     [Fact]
     public void Parse_Projects_Transform_Diagnostic_Related_SourceSpans_Into_Native_Snapshots() {
-        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new UppercaseParagraphsTransform());
 
         var native = MarkdownNativeDocument.Parse("""
@@ -2349,13 +2349,13 @@ alpha
 beta
 """, options);
 
-        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native.transform");
+        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native-transform");
         Assert.Equal(MarkdownNativeDiagnosticSeverity.Info, diagnostic.Severity);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 4), diagnostic.SourceSpan);
         Assert.Equal(new[] { 1, 3 }, diagnostic.RelatedSourceSpans.Select(span => span.StartLine).ToArray());
         Assert.Equal(new[] { 1, 3 }, diagnostic.RelatedSourceSpans.Select(span => span.EndLine).ToArray());
 
-        var snapshotDiagnostic = Assert.Single(native.ToSnapshot().Diagnostics, item => item.Id == "native.transform");
+        var snapshotDiagnostic = Assert.Single(native.ToSnapshot().Diagnostics, item => item.Id == "native-transform");
         Assert.Equal(1, snapshotDiagnostic.SourceSpan!.StartLine);
         Assert.Equal(3, snapshotDiagnostic.SourceSpan.EndLine);
         Assert.Equal(new[] { 1, 3 }, snapshotDiagnostic.RelatedSourceSpans.Select(span => span.StartLine).ToArray());
@@ -2364,17 +2364,17 @@ beta
 
     [Fact]
     public void Parse_Projects_Transform_Diagnostic_Precise_Node_SourceSpan_Into_Native_Snapshots() {
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
             NormalizeTightStrongBoundaries = true
         }));
 
         var native = MarkdownNativeDocument.Parse("Prefix **bold**suffix", options);
 
-        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native.transform");
+        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native-transform");
         Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 21), diagnostic.SourceSpan);
 
-        var snapshotDiagnostic = Assert.Single(native.ToSnapshot().Diagnostics, item => item.Id == "native.transform");
+        var snapshotDiagnostic = Assert.Single(native.ToSnapshot().Diagnostics, item => item.Id == "native-transform");
         Assert.Equal(1, snapshotDiagnostic.SourceSpan!.StartLine);
         Assert.Equal(16, snapshotDiagnostic.SourceSpan.StartColumn);
         Assert.Equal(1, snapshotDiagnostic.SourceSpan.EndLine);
@@ -2383,7 +2383,7 @@ beta
 
     [Fact]
     public void Parse_Projects_Nested_Transform_Diagnostic_Precise_Node_SourceSpan_Into_Native_Snapshots() {
-        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
             NormalizeTightColonSpacing = true
         }));
@@ -2393,10 +2393,10 @@ beta
 > coverage:missing evidence
 """, options);
 
-        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native.transform");
+        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native-transform");
         Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 27), diagnostic.SourceSpan);
 
-        var snapshotDiagnostic = Assert.Single(native.ToSnapshot().Diagnostics, item => item.Id == "native.transform");
+        var snapshotDiagnostic = Assert.Single(native.ToSnapshot().Diagnostics, item => item.Id == "native-transform");
         Assert.Equal(2, snapshotDiagnostic.SourceSpan!.StartLine);
         Assert.Equal(3, snapshotDiagnostic.SourceSpan.StartColumn);
         Assert.Equal(2, snapshotDiagnostic.SourceSpan.EndLine);
@@ -2405,7 +2405,7 @@ beta
 
     [Fact]
     public void Parse_Reports_Generated_Definition_Child_Diagnostics_For_Rebuilt_Paragraph_Wrappers() {
-        var options = new MarkdownReaderOptions { PreserveTrivia = true };
+        var options = new MarkdownLoadOptions { PreserveTrivia = true };
         options.DocumentTransforms.Add(new RewriteFirstDefinitionBodyTransform("generated"));
 
         var native = MarkdownNativeDocument.Parse("Term: original", options);
@@ -2413,7 +2413,7 @@ beta
         var definitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
         var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
         var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(definition.Children));
-        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native.generated-definition-child");
+        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native-generated-definition-child");
 
         Assert.Equal("generated", paragraph.Text);
         Assert.True(paragraph.SyntaxNode.IsGenerated);
@@ -2447,10 +2447,10 @@ beta
 
         var roundtrip = native.WriteWithSourceEdit(edit);
         Assert.Equal("Term: updated", roundtrip.Markdown);
-        Assert.Contains(roundtrip.Diagnostics, item => item.Id == "roundtrip.document-transformed");
+        Assert.Contains(roundtrip.Diagnostics, item => item.Id == "roundtrip-document-transformed");
         var sourceFailure = Assert.Single(
             roundtrip.Diagnostics,
-            item => item.Id == "roundtrip.original-source-slice-unavailable");
+            item => item.Id == "roundtrip-original-source-slice-unavailable");
         Assert.Contains("generated from semantic content", sourceFailure.Message, StringComparison.Ordinal);
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, sourceFailure.OriginalSourceFailureReason);
         Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 14), sourceFailure.SourceSpan);
@@ -2459,7 +2459,7 @@ beta
         Assert.Equal("Term: field-updated", fieldRoundtrip.Markdown);
         Assert.Contains(
             fieldRoundtrip.Diagnostics,
-            item => item.Id == "roundtrip.original-source-slice-unavailable" &&
+            item => item.Id == "roundtrip-original-source-slice-unavailable" &&
                     item.OriginalSourceFailureReason == MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode &&
                     item.SourceSpan.Equals(new MarkdownSourceSpan(1, 7, 1, 14)));
     }
@@ -2469,14 +2469,14 @@ beta
         var native = MarkdownNativeDocument.Parse("[TOC]");
 
         var other = Assert.IsType<MarkdownNativeOtherBlock>(Assert.Single(native.Blocks));
-        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native.unsupported-block");
+        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native-unsupported-block");
         Assert.Same(other, diagnostic.Block);
         Assert.Equal(MarkdownNativeDiagnosticSeverity.Info, diagnostic.Severity);
     }
 
     private sealed class DuplicateParagraphTransform : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
-            var clone = MarkdownDoc.Create();
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
+            var clone = MarkdownDocument.Create();
             clone.Add(new ParagraphBlock(new InlineSequence().Text("Same")));
             clone.Add(new ParagraphBlock(new InlineSequence().Text("Same")));
             return clone;
@@ -2484,8 +2484,8 @@ beta
     }
 
     private sealed class UppercaseParagraphsTransform : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
-            var transformed = MarkdownDoc.Create();
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
+            var transformed = MarkdownDocument.Create();
             foreach (var block in document.Blocks) {
                 if (block is ParagraphBlock paragraph) {
                     transformed.Add(new ParagraphBlock(new InlineSequence().Text(paragraph.Inlines.RenderMarkdown().ToUpperInvariant())));
@@ -2499,7 +2499,7 @@ beta
     }
 
     private sealed class RewriteFirstDefinitionBodyTransform(string text) : IMarkdownDocumentTransform {
-        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+        public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
             var definitionList = document.Blocks.OfType<DefinitionListBlock>().FirstOrDefault();
             var definition = definitionList?.Groups.FirstOrDefault()?.Definitions.FirstOrDefault();
             if (definition == null) {

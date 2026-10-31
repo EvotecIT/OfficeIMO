@@ -11,12 +11,12 @@ $trend = @(
     [pscustomobject]@{ Week = 'W4'; Complete = 72 }
 )
 
-WordNew -Path $path {
+New-OfficeWord -Path $path {
     WordSection {
         WordHeader { WordParagraph -Text 'Northwind migration | Weekly status' -Style Heading2 }
         WordFooter {
             WordText 'Internal | Page '
-            WordPageNumber -IncludeTotalPages
+            WordPageNumber -IncludeTotal
         }
 
         WordParagraph -Text 'Northwind Migration' -Style Heading1
@@ -43,14 +43,14 @@ WordNew -Path $path {
         WordParagraph -Text 'Delivery trend' -Style Heading1 {
             WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 6 -KeepWithNext $true
         }
-        WordChart -Type Line -Data $trend -CategoryProperty Week -SeriesProperty Complete -Title 'Completion by week (%)' -FitToPageWidth -HeightPixels 190
+        WordChart -Type Line -Data $trend -Category Week -Value Complete -Title 'Completion by week (%)' -FitToPageWidth -HeightPixels 190
 
         WordParagraph -Text 'Decision' -Style Heading1 {
             WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 6 -KeepWithNext $true
         }
         WordParagraph {
             WordParagraphStyle -SpacingAfterPoints 4 -KeepWithNext $true
-            WordBold 'Approve the pilot window: '
+            WordText -Bold 'Approve the pilot window: '
             WordCheckBox -Alias 'PilotApproved' -Tag 'pilot-approved'
         }
         WordParagraph {

@@ -7,6 +7,7 @@ namespace OfficeIMO.Pdf;
 /// Dependency-free text-selection and hit-test projection for one rendered PDF page.
 /// Coordinates use the visual page's top-left origin after CropBox and page rotation are applied.
 /// </summary>
+/// <remarks>Visual coordinates are numeric physical points (1/72 inch), with a top-left origin after crop, rotation and /UserUnit scaling. Use the page coordinate mapping methods when calling native read/edit APIs.</remarks>
 public sealed partial class PdfPageInteractionMap {
     private PdfPageInteractionMap(
         int pageNumber,

@@ -36,9 +36,9 @@ public class DrawingSparklineTests {
     }
 
     [Theory]
-    [InlineData(OfficeSparklineKind.Column)]
-    [InlineData(OfficeSparklineKind.WinLoss)]
-    public void OfficeSparklineRendererSkipsZeroColumnBars(OfficeSparklineKind kind) {
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeSparklineRendererSkipsZeroColumnBars(bool winLoss) {
         var builder = new StringBuilder();
         OfficeSparklineRenderer.AppendSvg(
             builder,
@@ -47,7 +47,7 @@ public class DrawingSparklineTests {
             width: 30D,
             height: 16D,
             values: new[] { 1D, 0D, -1D },
-            kind: kind,
+            kind: winLoss ? OfficeSparklineKind.WinLoss : OfficeSparklineKind.Column,
             style: new OfficeSparklineStyle {
                 DisplayAxis = true,
                 Padding = 0D,

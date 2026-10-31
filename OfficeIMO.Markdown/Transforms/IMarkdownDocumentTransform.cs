@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Post-parse document transform applied to a typed <see cref="MarkdownDoc"/>.
+/// Post-parse document transform applied to a typed <see cref="MarkdownDocument"/>.
 /// </summary>
 public interface IMarkdownDocumentTransform {
     /// <summary>
@@ -11,5 +11,5 @@ public interface IMarkdownDocumentTransform {
     /// <param name="document">Parsed markdown document.</param>
     /// <param name="context">Transform execution context.</param>
     /// <returns>The transformed document.</returns>
-    MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context);
+    MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context);
 }

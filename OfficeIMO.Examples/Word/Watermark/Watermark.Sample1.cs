@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Watermark {
@@ -26,8 +26,8 @@ namespace OfficeIMO.Examples.Word {
                 section0Header.AddParagraph("Section 0 - In header");
                 section0.SetMargins(WordMargin.Normal);
 
-                Console.WriteLine(document.Sections[0].Margins.Left);
-                Console.WriteLine(document.Sections[0].Margins.Right);
+                Console.WriteLine(checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())));
+                Console.WriteLine(checked((uint)(document.Sections[0].Margins.Right.GetValueOrDefault().ToTwips())));
 
                 Console.WriteLine(document.Sections[0].Margins.Type);
 
@@ -54,8 +54,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(watermark.Width);
 
                 // width and height in points (HTML wise)
-                watermark.Height = 100.15;
-                watermark.Width = 500.18;
+                watermark.Height = global::OfficeIMO.OfficeLength.Points(100.15);
+                watermark.Width = global::OfficeIMO.OfficeLength.Points(500.18);
 
                 document.AddPageBreak();
                 document.AddPageBreak();
@@ -78,11 +78,11 @@ namespace OfficeIMO.Examples.Word {
                 section1.AddParagraph("Test");
                 section1Header.AddWatermark(WordWatermarkStyle.Text, "Draft");
 
-                Console.WriteLine(document.Sections[0].Margins.Left);
-                Console.WriteLine(document.Sections[0].Margins.Right);
+                Console.WriteLine(checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())));
+                Console.WriteLine(checked((uint)(document.Sections[0].Margins.Right.GetValueOrDefault().ToTwips())));
 
-                Console.WriteLine(document.Sections[1].Margins.Left);
-                Console.WriteLine(document.Sections[1].Margins.Right);
+                Console.WriteLine(checked((uint)(document.Sections[1].Margins.Left.GetValueOrDefault().ToTwips())));
+                Console.WriteLine(checked((uint)(document.Sections[1].Margins.Right.GetValueOrDefault().ToTwips())));
 
                 Console.WriteLine(document.Sections[1].Margins.Type);
 

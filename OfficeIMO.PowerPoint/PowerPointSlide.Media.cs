@@ -11,8 +11,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an embedded video file to the slide.
         /// </summary>
-        public PowerPointMedia AddVideo(string videoPath, string? posterImagePath = null, long left = 0L, long top = 0L,
-            long width = 3657600L, long height = 2057400L) {
+        public PowerPointMedia AddVideo(string videoPath, string? posterImagePath = null, OfficeLength? left = null, OfficeLength? top = null,
+            OfficeLength? width = null, OfficeLength? height = null) {
             if (videoPath == null) {
                 throw new ArgumentNullException(nameof(videoPath));
             }
@@ -37,18 +37,20 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an embedded video stream to the slide.
         /// </summary>
-        public PowerPointMedia AddVideo(Stream video, string contentType, string extension, long left = 0L, long top = 0L,
-            long width = 3657600L, long height = 2057400L, Stream? posterImage = null,
+        public PowerPointMedia AddVideo(Stream video, string contentType, string extension, OfficeLength? left = null, OfficeLength? top = null,
+            OfficeLength? width = null, OfficeLength? height = null, Stream? posterImage = null,
             OfficeImageFormat posterImageType = OfficeImageFormat.Png) {
-            return AddMedia(video, contentType, extension, PowerPointMediaKind.Video, left, top, width, height, posterImage,
-                posterImageType);
+            return AddMedia(video, contentType, extension, PowerPointMediaKind.Video,
+                (left ?? OfficeLength.Emus(0L)).ToEmus(), (top ?? OfficeLength.Emus(0L)).ToEmus(),
+                (width ?? OfficeLength.Emus(3657600L)).ToEmus(), (height ?? OfficeLength.Emus(2057400L)).ToEmus(),
+                posterImage, posterImageType);
         }
 
         /// <summary>
         ///     Adds an embedded audio file to the slide.
         /// </summary>
-        public PowerPointMedia AddAudio(string audioPath, long left = 0L, long top = 0L, long width = 914400L,
-            long height = 914400L) {
+        public PowerPointMedia AddAudio(string audioPath, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null,
+            OfficeLength? height = null) {
             if (audioPath == null) {
                 throw new ArgumentNullException(nameof(audioPath));
             }
@@ -63,20 +65,26 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an embedded audio stream to the slide.
         /// </summary>
-        public PowerPointMedia AddAudio(Stream audio, string contentType, string extension, long left = 0L, long top = 0L,
-            long width = 914400L, long height = 914400L) {
-            return AddMedia(audio, contentType, extension, PowerPointMediaKind.Audio, left, top, width, height);
+        public PowerPointMedia AddAudio(Stream audio, string contentType, string extension, OfficeLength? left = null, OfficeLength? top = null,
+            OfficeLength? width = null, OfficeLength? height = null) {
+            return AddMedia(audio, contentType, extension, PowerPointMediaKind.Audio,
+                (left ?? OfficeLength.Emus(0L)).ToEmus(), (top ?? OfficeLength.Emus(0L)).ToEmus(),
+                (width ?? OfficeLength.Emus(914400L)).ToEmus(), (height ?? OfficeLength.Emus(914400L)).ToEmus());
         }
 
         /// <summary>Adds a linked audio frame without copying the payload into the package.</summary>
-        public PowerPointMedia AddLinkedAudio(Uri source, long left = 0L,
-            long top = 0L, long width = 914400L, long height = 914400L) =>
-            AddLinkedMedia(source, PowerPointMediaKind.Audio, left, top, width, height);
+        public PowerPointMedia AddLinkedAudio(Uri source, OfficeLength? left = null,
+            OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null) =>
+            AddLinkedMedia(source, PowerPointMediaKind.Audio,
+                (left ?? OfficeLength.Emus(0L)).ToEmus(), (top ?? OfficeLength.Emus(0L)).ToEmus(),
+                (width ?? OfficeLength.Emus(914400L)).ToEmus(), (height ?? OfficeLength.Emus(914400L)).ToEmus());
 
         /// <summary>Adds a linked video frame without copying the payload into the package.</summary>
-        public PowerPointMedia AddLinkedVideo(Uri source, long left = 0L,
-            long top = 0L, long width = 3657600L, long height = 2057400L) =>
-            AddLinkedMedia(source, PowerPointMediaKind.Video, left, top, width, height);
+        public PowerPointMedia AddLinkedVideo(Uri source, OfficeLength? left = null,
+            OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null) =>
+            AddLinkedMedia(source, PowerPointMediaKind.Video,
+                (left ?? OfficeLength.Emus(0L)).ToEmus(), (top ?? OfficeLength.Emus(0L)).ToEmus(),
+                (width ?? OfficeLength.Emus(3657600L)).ToEmus(), (height ?? OfficeLength.Emus(2057400L)).ToEmus());
 
         private PowerPointMedia AddLinkedMedia(Uri source, PowerPointMediaKind kind,
             long left, long top, long width, long height) {

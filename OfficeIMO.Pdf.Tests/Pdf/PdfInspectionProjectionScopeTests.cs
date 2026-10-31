@@ -14,7 +14,7 @@ public sealed class PdfInspectionProjectionScopeTests {
         PdfDocumentReadResult full = pdf.Read();
         Assert.Equal(1, Assert.Single(full.Pages).VectorPrimitiveCount);
         Assert.True(PdfLogicalTableAnalysis.AnalyzeExtractionScope(full).HasOmittedPageContent);
-        PdfDocumentReadResult lean = pdf.Read(new PdfReadOptions { IncludeImages = false });
+        PdfDocumentReadResult lean = pdf.Read(new PdfLoadOptions { IncludeImages = false });
         PdfLogicalPage page = Assert.Single(lean.Pages);
         Assert.False(page.HasVisualPrimitiveCounts);
         Assert.False(page.IncludesImages);
@@ -28,7 +28,7 @@ public sealed class PdfInspectionProjectionScopeTests {
     [InlineData(false)]
     [InlineData(true)]
     public void UnrequestedWidgetProjectionCannotEstablishOmissionScope(bool documentOverload) {
-        PdfDocumentReadResult lean = PdfDocument.Load(SingleStream(string.Empty)).Read(new PdfReadOptions { IncludeFormWidgets = false });
+        PdfDocumentReadResult lean = PdfDocument.Load(SingleStream(string.Empty)).Read(new PdfLoadOptions { IncludeFormWidgets = false });
         PdfLogicalPage page = Assert.Single(lean.Pages);
         Assert.True(page.HasVisualPrimitiveCounts);
         Assert.True(page.IncludesImages);
@@ -50,7 +50,7 @@ public sealed class PdfInspectionProjectionScopeTests {
     [Fact]
     public void SelectedRepeatedPagesPreserveUninspectedProjectionAndPermitTableExtraction() {
         PdfDocumentReadResult lean = PdfDocument.Load(SingleStream("1 0 0 rg 40 40 20 20 re f"))
-            .Read(new PdfReadOptions { IncludeImages = false, IncludeFormWidgets = false,
+            .Read(new PdfLoadOptions { IncludeImages = false, IncludeFormWidgets = false,
                 PageSelection = PdfPageSelection.From(1, 1) });
         Assert.Equal(2, lean.Pages.Count);
         Assert.All(lean.Pages, page => {

@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Section 9");
 
                 section2.PageSettings.PageSize = WordPageSize.Legal;
-                section2.PageSettings.Width = 500;
+                section2.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(25D);
                 section.PageSettings.PageSize = WordPageSize.A3;
                 section3.PageSettings.PageSize = WordPageSize.B5;
                 section4.PageSettings.PageSize = WordPageSize.Letter;

@@ -81,8 +81,8 @@ namespace OfficeIMO.Excel {
 
             private void ThrowIfXmlTextBufferingFailed() {
                 if (_xmlTextBufferingFailed) {
-                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxXmlDataReaderBufferedCharacters), _xmlTextBudget!.MaximumCharacters,
-                        $"The XML range data reader exceeded {nameof(ExcelReadOptions.MaxXmlDataReaderBufferedCharacters)}. Close the reader.");
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxXmlDataReaderBufferedCharacters), _xmlTextBudget!.MaximumCharacters,
+                        $"The XML range data reader exceeded {nameof(ExcelReaderOptions.MaxXmlDataReaderBufferedCharacters)}. Close the reader.");
                 }
             }
 

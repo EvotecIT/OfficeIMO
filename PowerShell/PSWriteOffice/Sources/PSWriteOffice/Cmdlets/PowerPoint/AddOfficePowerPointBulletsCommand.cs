@@ -68,7 +68,7 @@ public sealed class AddOfficePowerPointBulletsCommand : PSWriteOffice.Cmdlets.Of
 
             var slide = Slide ?? PowerPointDslContext.Require(this).RequireSlide();
             var items = NormalizeItems(Bullets);
-            var textBox = slide.AddTextBoxPoints(string.Empty, X, Y, Width, Height);
+            var textBox = slide.AddTextBox(string.Empty, OfficeIMO.OfficeLength.Points(X), OfficeIMO.OfficeLength.Points(Y), OfficeIMO.OfficeLength.Points(Width), OfficeIMO.OfficeLength.Points(Height));
             textBox.SetBullets(items, Level, ResolveBulletChar());
             WritePassThru(textBox);
         } catch (Exception ex) {

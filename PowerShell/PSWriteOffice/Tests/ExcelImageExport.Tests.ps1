@@ -45,7 +45,7 @@ Describe 'Excel image export cmdlets' {
                 ExcelCell -Address B1 -Value 'Value'
                 ExcelCell -Address A2 -Value 'Alpha'
                 ExcelCell -Address B2 -Value 42
-                $chart = Add-OfficeExcelChart -Range A1:B2 -Row 4 -Column 1 -Title 'Values' -PassThru
+                $chart = Add-OfficeExcelChart -Range A1:B2 -Address A4 -Title 'Values' -PassThru
                 $script:exportChartName = $chart.Name
             }
         } | Out-Null

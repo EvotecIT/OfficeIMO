@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(source.HasBackgroundFill);
         Assert.Equal(color, source.BackgroundColor?.RgbHex);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Equal(color, reopened.Slides[0].BackgroundColor);
         Assert.Empty(reopened.ValidateDocument());
         if (color == null) {
@@ -136,7 +136,7 @@ public sealed partial class IWorkBoundaryTests {
                 conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
             Assert.False(result.IsVisualFallback);
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved);
+            using var reopened = PowerPointDocument.Load(saved);
             foreach (IWorkKeynoteSlide slide in result.Projection.Slides) {
                 JsonElement expected = expectedSource.GetProperty("slidesIncludingTemplates").EnumerateArray()
                     .Single(item => item.GetProperty("identifier").GetUInt64() == slide.SourceIdentity!.RecordIdentifier);
@@ -160,7 +160,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains("wrapped title keeps all of its lines in this fixed frame", result.Projection.Slides[1].TitleBox!.Content.PlainText);
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Equal(new[] { "56C1FF", "FF968D" }, reopened.Slides.Select(slide => slide.BackgroundColor));
         Assert.Empty(reopened.ValidateDocument());
     }

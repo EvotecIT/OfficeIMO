@@ -14,9 +14,9 @@ namespace OfficeIMO.Tests.Pdf {
                 ? new[] { 5 }
                 : Array.Empty<int>();
 
-            PdfOptions options = new PdfOptions().SetTextLineBreaks(callback);
+            PdfCreateOptions options = new PdfCreateOptions().SetTextLineBreaks(callback);
 
-            PdfOptions clone = options.Clone();
+            PdfCreateOptions clone = options.Clone();
 
             Assert.Same(callback, clone.TextLineBreakCallback);
         }
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void WrapSimpleText_UsesTextLineBreakCallbackWithoutAddingHyphen() {
             const string text = "alphaomega";
             double maxWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "alpha", PdfStandardFont.Helvetica, 10.0) + 0.5D;
-            var options = new PdfOptions().SetTextLineBreaks(token => token == text ? new[] { 5 } : Array.Empty<int>());
+            var options = new PdfCreateOptions().SetTextLineBreaks(token => token == text ? new[] { 5 } : Array.Empty<int>());
 
             var lines = InvokePrivateFontMethod<List<string>>("WrapSimpleTextForOptions", text, maxWidth, PdfStandardFont.Helvetica, 10.0, options);
 
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void WrapRichRuns_UsesTextLineBreakCallbackWithoutAddingHyphen() {
             const string text = "alphaomega";
             double maxWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "alpha", PdfStandardFont.Helvetica, 10.0) + 0.5D;
-            var options = new PdfOptions().SetTextLineBreaks(token => token == text ? new[] { 5 } : Array.Empty<int>());
+            var options = new PdfCreateOptions().SetTextLineBreaks(token => token == text ? new[] { 5 } : Array.Empty<int>());
 
             object result = InvokePrivateFontMethod<object>(
                 "WrapRichRunsCore",
@@ -68,14 +68,14 @@ namespace OfficeIMO.Tests.Pdf {
                     : Array.Empty<int>();
             };
 
-            byte[] bytes = PdfDocument.Create(new PdfOptions {
-                    PageWidth = 80,
-                    PageHeight = 180,
-                    MarginLeft = 18,
-                    MarginRight = 18,
-                    MarginTop = 24,
-                    MarginBottom = 24,
-                    DefaultFontSize = 10,
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(80),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(18),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(18),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                     CompressContentStreams = false
                 })
                 .TextLineBreaks(callback)
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests.Pdf {
             }
 
             var report = new PdfConversionReport();
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                     CompressContentStreams = false
                 }
                 .ReportDiagnosticsTo(report, "OfficeIMO.Tests")

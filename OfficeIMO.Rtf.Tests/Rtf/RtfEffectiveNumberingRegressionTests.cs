@@ -17,7 +17,7 @@ public class RtfEffectiveNumberingRegressionTests {
         document.AddParagraph("Numbered").SetList(3);
         Assert.False(new RtfListNumbering(document).Next(document.Paragraphs[0])!.IsNumberFormatSupported);
         Assert.Contains(document.ToHtmlResult().RtfReport.Diagnostics, item => item.Code == "RtfHtmlListNumberFormatFlattened" && item.Action == RtfConversionAction.Flattened);
-        Assert.Contains(document.ToPdfDocumentResult().Warnings, item => item.Code == "ListNumberFormatFlattened" && item.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
+        Assert.Contains(document.ConvertToPdfWithEvidence().Warnings, item => item.Code == "ListNumberFormatFlattened" && item.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
         Assert.Contains(document.ToMarkdownResult().Report.Diagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
         document.ListDefinitions[0].Levels[0].NumberFormat = 1;
         Assert.Contains(document.ToMarkdownResult().Report.Diagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
@@ -193,9 +193,9 @@ public class RtfEffectiveNumberingRegressionTests {
         document.AddParagraph("Between");
         document.AddParagraph("Continued").SetList(3);
         document.AddParagraph("Other").SetList(4);
-        MarkdownDoc markdown = document.ToMarkdownDocument();
+        MarkdownDocument markdown = document.ToMarkdownDocument();
         Assert.Equal(new[] { 3, 4, 2 }, markdown.Blocks.OfType<OrderedListBlock>().Select(list => list.Start));
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string text = OfficeIMO.Pdf.PdfReadDocument.Open((document.ToPdf()).ToBytes()).ExtractText();
         Assert.Contains("3. First", text, StringComparison.Ordinal);
         Assert.Contains("4. Continued", text, StringComparison.Ordinal);
         Assert.Contains("2. Other", text, StringComparison.Ordinal);

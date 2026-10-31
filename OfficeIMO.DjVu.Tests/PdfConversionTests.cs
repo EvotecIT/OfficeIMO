@@ -17,7 +17,7 @@ public sealed class PdfConversionTests {
         Assert.Equal(document.Pages[0].GetText().Text.Length, pageReport.TextCharacters);
         Assert.Equal(96 * 72.0 / 300, pageReport.WidthPoints, 8);
         Assert.Equal(128 * 72.0 / 300, pageReport.HeightPoints, 8);
-        var pdf = PdfReadDocument.Open(result.ToBytes());
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes()));
         Assert.Contains("Zażółć 😀", pdf.ExtractText());
         Assert.Single(pdf.Pages);
         using var output = new MemoryStream(new byte[100_000], true);
@@ -25,7 +25,7 @@ public sealed class PdfConversionTests {
         Assert.True(output.CanWrite);
         Assert.Equal(0, output.Position);
         Assert.True(output.Length < 100_000);
-        Assert.Contains("Zażółć", PdfReadDocument.Open(output.ToArray()).ExtractText());
+        Assert.Contains("Zażółć", PdfDocument.Load(new System.IO.MemoryStream(output.ToArray())).ExtractText());
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class PdfConversionTests {
         Assert.Equal(.99, report.Pages[2].Recognition!.Confidence!.Value, 8);
         Assert.NotNull(report.OcrReport);
         Assert.Contains(report.FidelityDiagnostics, d => d.Code == "djvu.pdf.stored-text-corrupt");
-        var pdf = PdfReadDocument.Open(result.ToBytes());
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes()));
         Assert.Equal(4, pdf.Pages.Count);
         Assert.Contains("Zażółć 😀", pdf.ExtractText());
         Assert.Contains("Recognized 3", pdf.ExtractText());
@@ -76,7 +76,7 @@ public sealed class PdfConversionTests {
         var report = Assert.IsType<DjVuPdfConversionReport>(Assert.Single(result.SourceConversionReports));
         Assert.Equal(DjVuPdfTextSource.None, report.Pages[0].TextSource);
         Assert.Contains(report.FidelityDiagnostics, d => d.Code == "djvu.pdf.ocr-geometry-missing");
-        Assert.Equal(string.Empty, PdfReadDocument.Open(result.ToBytes()).ExtractText().Trim());
+        Assert.Equal(string.Empty, PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText().Trim());
     }
 
     [Fact]

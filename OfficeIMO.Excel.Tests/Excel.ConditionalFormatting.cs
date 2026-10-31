@@ -3,7 +3,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeColor = OfficeIMO.OfficeColor;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddConditionalRule() {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalRule.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 5d);
                 sheet.CellValue(2, 1, 15d);
                 sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan, "10");
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
         public void Test_RangeFluentConditionalFormatting() {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalRangeFluent.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellValue(3, 1, 3d);
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
         public void Test_AdditionalConditionalFormattingRuleTypes() {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalAdditionalRuleTypes.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Ready");
                 sheet.CellValue(2, 1, "Blocked");
                 sheet.CellValue(3, 1, "Ready");
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddConditionalColorScale() {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalColorScale.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellValue(3, 1, 3d);
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddConditionalDataBar() {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalDataBar.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellValue(3, 1, 3d);
@@ -228,7 +228,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddConditionalIconSet() {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalIconSet.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellValue(3, 1, 3d);
@@ -270,7 +270,7 @@ namespace OfficeIMO.Tests {
         public async Task Test_ConditionalFormattingConcurrent() {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalConcurrent.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellValue(3, 1, 3d);

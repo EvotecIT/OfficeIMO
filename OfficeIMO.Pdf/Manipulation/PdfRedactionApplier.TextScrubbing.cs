@@ -337,7 +337,7 @@ internal static partial class PdfRedactionApplier {
             Matrix2D[] effectiveTransforms = transforms
                 .Select(parent => Matrix2D.Multiply(parent, context.Transform))
                 .ToArray();
-            textObjects.Add(BuildRedactionTextObject(span.Index, span.Value, shownText, fontDecoders, fontWidthProviders, effectiveTransforms, context.TextState));
+            textObjects.Add(BuildRedactionTextObject(span.Index, span.Value, shownText, fontDecoders, fontWidthProviders, effectiveTransforms, context.TextState, limits));
         }
 
         return textObjects;
@@ -491,11 +491,12 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
         IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
         Matrix2D[] transforms,
-        PdfTextStateSnapshot textState) {
+        PdfTextStateSnapshot textState,
+        PdfReadLimits limits) {
         RedactionTextBounds? bounds = null;
         for (int transformIndex = 0; transformIndex < transforms.Length; transformIndex++) {
             string transformedContent = WrapContentWithTransform(textObject, transforms[transformIndex]);
-            List<PdfTextSpan> spans = ParseTextSpans(transformedContent, fontDecoders, fontWidthProviders, textState);
+            List<PdfTextSpan> spans = ParseTextSpans(transformedContent, fontDecoders, fontWidthProviders, limits, textState);
             for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
                 bounds = AddSpanBounds(bounds, spans[spanIndex]);
             }
@@ -508,6 +509,7 @@ internal static partial class PdfRedactionApplier {
         string content,
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
         IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
+        PdfReadLimits limits,
         PdfTextStateSnapshot? initialTextState = null) {
         string DecodeWithFont(string fontResource, byte[] bytes) =>
             fontDecoders.TryGetValue(fontResource, out Func<byte[], string>? decoder)
@@ -518,7 +520,8 @@ internal static partial class PdfRedactionApplier {
                 ? provider(bytes)
                 : bytes is null ? 0D : bytes.Length * 500D;
 
-        return TextContentParser.Parse(content, DecodeWithFont, SumWidth1000, initialTextState: initialTextState);
+        return TextContentParser.Parse(content, DecodeWithFont, SumWidth1000, initialTextState: initialTextState,
+            maxNestingDepth: limits.MaxContentNestingDepth);
     }
 
     private static RedactionTextBounds AddSpanBounds(RedactionTextBounds? current, PdfTextSpan span) {

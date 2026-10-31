@@ -1,0 +1,20 @@
+{
+  "package": "OfficeIMO.Visio",
+  "changes": [],
+  "extraChanges": [
+    {
+      "old": "VisioPageImageExportBuilder; VisioDocumentImageExportBuilder; VisioDocumentImageBatchExportBuilder; VisioImageExportFluentExtensions",
+      "new": "Visio page/document ToImage(options), SaveAsImage(pathOrStream, options), document SaveAsImages(folder, options) returning OfficeConversionReport",
+      "action": "consolidate",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Visio/VisioImageExportBuilder.cs",
+        "OfficeIMO.Visio/VisioImageExportExtensions.cs"
+      ],
+      "reason": "Remove the fluent image surface while retaining format renderers, Core execution/persistence, streaming, deadlines, limits and diagnostic evidence.",
+      "qualification": "Static preparation only. Parent applies and qualifies every maintained target; no build or test was run.",
+      "notes": "The PowerShell cmdlet retains its current per-file PassThru shape using the same friend-only SaveImageResults pattern as Tier 1. Only its call site changes; aliases, loader, module foundations and M5 remain untouched."
+    }
+  ]
+}

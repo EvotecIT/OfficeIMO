@@ -26,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(24D + expectedBaseline, PaintBaseline(text), 3);
         Assert.Equal("Hgyp", text.Text);
         AssertPdfBackedSvgRetainsBaselineInk(rendered.Pages[0], document.ToSvg(options));
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options)));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes());
         var page = pdf.GetPage(1);
         double savedPdfBaseline = (page.Height - page.Letters.First(letter => letter.Value == "H").StartBaseLine.Y) / 0.75D;
         Assert.Equal(24D + expectedBaseline, savedPdfBaseline, 3);
@@ -134,8 +134,8 @@ public sealed partial class HtmlRenderingTests {
         string image = "<img style='width:1px;height:0' src='data:image/png;base64,"
             + Convert.ToBase64String(OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red))) + "'>";
         OfficeIMO.Pdf.PdfReadDocument Read(string sibling) => OfficeIMO.Pdf.PdfReadDocument.Open(
-            HtmlConversionDocument.Parse("<style>body{margin:0;font:16px/20px Pinned}</style><div>H"
-                + sibling + "</div>").ToPdfBytes(new HtmlToPdfOptions(OrdinaryBaselineOptions())));
+            (HtmlConversionDocument.Parse("<style>body{margin:0;font:16px/20px Pinned}</style><div>H"
+                + sibling + "</div>").ToPdf(new HtmlToPdfOptions(OrdinaryBaselineOptions()))).ToBytes());
         OfficeIMO.Pdf.PdfReadDocument ordinary = Read(string.Empty), imageLine = Read(image);
 
         Assert.True(Assert.Single(ordinary.Pages[0].GetTextSpans(), span => span.Text == "H").IsVisible);

@@ -36,7 +36,7 @@ public sealed class ReaderPublisherReviewTests {
     [InlineData("  \t[value](url)")]
     public void LiteralIndentationAndPunctuationRemainParagraphText(string text) {
         string markdown = ReaderMarkdownEscaping.EscapeLiteral(text);
-        var paragraph = Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(Assert.Single(MarkdownReader.Parse(markdown).Blocks));
+        var paragraph = Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(Assert.Single(MarkdownDocument.Parse(markdown).Blocks));
         var literal = new StringBuilder();
         ((IPlainTextMarkdownInline)paragraph.Inlines).AppendPlainText(literal);
         Assert.Equal(text, literal.ToString());
@@ -45,7 +45,7 @@ public sealed class ReaderPublisherReviewTests {
     [Fact]
     public void IndentedNativeBulletBodyRemainsLiteralListContent() {
         const string text = "    *value*";
-        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(MarkdownReader.Parse("- " + ReaderMarkdownEscaping.EscapeLiteral(text)).Blocks));
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(MarkdownDocument.Parse("- " + ReaderMarkdownEscaping.EscapeLiteral(text)).Blocks));
         ListItem item = Assert.Single(list.Items);
         var literal = new StringBuilder();
         ((IPlainTextMarkdownInline)item.Content).AppendPlainText(literal);
@@ -74,8 +74,8 @@ public sealed class ReaderPublisherReviewTests {
         PdfDocumentConversionResult conversion = source.ToPdfDocumentResult(new PdfProjectionOptions {
             PagePolicy = PdfProjectionPagePolicy.ContinuousFlow, IncludeMetadata = false
         });
-        string text = PdfReadDocument.Open(conversion.ToBytes()).ExtractText();
-        Assert.Contains(conversion.Warnings, warning => warning.Code == "MODEL_SOURCE_PAGE_LABELS_OMITTED" && warning.LossKind == OfficeConversionLossKind.Omission);
+        string text = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes())).ExtractText();
+        Assert.Contains(conversion.Warnings, warning => warning.Code == "model-source-page-labels-omitted" && warning.LossKind == OfficeConversionLossKind.Omission);
         Assert.DoesNotContain("PhysicalFirst", text);
         Assert.True(text.IndexOf("OrderAlpha", StringComparison.Ordinal) < text.IndexOf("OrderBravo", StringComparison.Ordinal));
         Assert.True(text.IndexOf("OrderBravo", StringComparison.Ordinal) < text.IndexOf("OrderCharlie", StringComparison.Ordinal));
@@ -97,9 +97,9 @@ public sealed class ReaderPublisherReviewTests {
         var source = new OfficeDocumentReadResult { Tables = Enumerable.Repeat(table, aggregateCount).ToArray(),
             Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = Enumerable.Repeat(table, pageCount).ToArray() } } };
         if (transport) source = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source));
-        string text = PdfReadDocument.Open(source.ToPdfDocumentResult(new PdfProjectionOptions {
+        string text = PdfDocument.Load(new System.IO.MemoryStream(source.ToPdfDocumentResult(new PdfProjectionOptions {
             PagePolicy = PdfProjectionPagePolicy.ContinuousFlow, IncludeMetadata = false
-        }).ToBytes()).ExtractText();
+        }).ToBytes())).ExtractText();
         Assert.Equal(Math.Max(aggregateCount, pageCount), Regex.Matches(text, "OccurrenceTable").Count);
     }
 
@@ -111,7 +111,7 @@ public sealed class ReaderPublisherReviewTests {
         var source = new OfficeDocumentReadResult { Tables = new[] { table },
             Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = new[] { table } } } };
         if (transport) source = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source));
-        string text = PdfReadDocument.Open(source.ToPdfDocumentResult(new PdfProjectionOptions { IncludeMetadata = false }).ToBytes()).ExtractText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(source.ToPdfDocumentResult(new PdfProjectionOptions { IncludeMetadata = false }).ToBytes())).ExtractText();
         Assert.Single(Regex.Matches(text, "UniquePageTable"));
         Assert.Null(table.Location);
     }
@@ -128,7 +128,7 @@ public sealed class ReaderPublisherReviewTests {
         if (transport) source = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source));
         PdfDocumentConversionResult conversion = source.ToPdfDocumentResult(new PdfProjectionOptions { IncludeMetadata = false });
         Assert.Equal(3, Regex.Matches(PdfReadDocument.Open(conversion.ToBytes()).ExtractText(), "AmbiguousTable").Count);
-        Assert.Contains(conversion.Warnings, warning => warning.Code == "MODEL_TABLE_CORRELATION_UNASSESSED"
+        Assert.Contains(conversion.Warnings, warning => warning.Code == "model-table-correlation-unassessed"
             && warning.LossKind == OfficeConversionLossKind.Unassessed);
         Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
     }
@@ -144,7 +144,7 @@ public sealed class ReaderPublisherReviewTests {
         if (transport) source = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source));
         PdfDocumentConversionResult conversion = source.ToPdfDocumentResult(new PdfProjectionOptions { IncludeMetadata = false });
         Assert.Equal(2, Regex.Matches(PdfReadDocument.Open(conversion.ToBytes()).ExtractText(), "DistinctTable").Count);
-        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "MODEL_TABLE_CORRELATION_UNASSESSED");
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "model-table-correlation-unassessed");
     }
 
     [Theory]
@@ -171,9 +171,9 @@ public sealed class ReaderPublisherReviewTests {
             Pages = new[] { new OfficeDocumentPage { Number = 1, Tables = new[] { Table(10) } } } };
         if (transport) source = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(source));
         PdfDocumentConversionResult conversion = source.ToPdfDocumentResult(new PdfProjectionOptions { IncludeMetadata = false });
-        string text = PdfReadDocument.Open(conversion.ToBytes()).ExtractText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes())).ExtractText();
         Assert.Equal(equalSpan ? 1 : 2, Regex.Matches(text, "SpanTable").Count);
-        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "MODEL_TABLE_CORRELATION_UNASSESSED");
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "model-table-correlation-unassessed");
     }
 
     [Fact]
@@ -223,7 +223,7 @@ public sealed class ReaderPublisherReviewTests {
         string text = pdf.ExtractText();
         Assert.True(text.IndexOf("LogicalSecond", StringComparison.Ordinal) < text.IndexOf("LogicalFirst", StringComparison.Ordinal));
         Assert.Contains("PhysicalFirst", text); Assert.Contains("PhysicalSecond", text);
-        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "MODEL_SOURCE_PAGE_LABELS_OMITTED");
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "model-source-page-labels-omitted");
     }
 
     [Fact]
@@ -254,7 +254,7 @@ public sealed class ReaderPublisherReviewTests {
         foreach (ReaderChunk chunk in chunks) {
             string expected = chunk.Text.TrimEnd('\r', '\n');
             if (expected.Length == 0) continue;
-            var paragraph = Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(Assert.Single(MarkdownReader.Parse(chunk.Markdown!).Blocks));
+            var paragraph = Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(Assert.Single(MarkdownDocument.Parse(chunk.Markdown!).Blocks));
             var literal = new StringBuilder();
             ((IPlainTextMarkdownInline)paragraph.Inlines).AppendPlainText(literal);
             Assert.Equal(expected, literal.ToString());

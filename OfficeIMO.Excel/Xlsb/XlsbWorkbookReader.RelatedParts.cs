@@ -46,6 +46,18 @@ internal static partial class XlsbWorkbookReader {
         ReadRelatedGraph(parts, partName, options, workbook, 0);
     }
 
+    private static void ReadThemeGraph(XlsbPackagePartReader parts, string workbookPartName,
+        IReadOnlyDictionary<string, XlsbPackageRelationship> relationships, XlsbImportOptions options, XlsbWorkbook workbook) {
+        var matches = relationships.Values.Where(item => item.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme").ToArray();
+        if (matches.Length == 0) return;
+        if (matches.Length != 1 || matches[0].IsExternal) throw new InvalidDataException("The XLSB theme must have one internal relationship.");
+        string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, matches[0].Target);
+        if (parts.GetContentType(partName) != "application/vnd.openxmlformats-officedocument.theme+xml")
+            throw new InvalidDataException("Invalid XLSB theme content type.");
+        workbook.ThemePartName = partName;
+        ReadRelatedGraph(parts, partName, options, workbook, 0);
+    }
+
     private static void ReadRelatedGraph(XlsbPackagePartReader parts, string partName,
         XlsbImportOptions options, XlsbWorkbook workbook, int depth) {
         if (workbook.RelatedParts.ContainsKey(partName)) return;

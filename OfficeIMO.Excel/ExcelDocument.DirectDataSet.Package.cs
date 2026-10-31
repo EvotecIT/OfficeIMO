@@ -103,6 +103,13 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            if (WorkbookPartRoot.GetPartsOfType<DocumentFormat.OpenXml.Packaging.ThemePart>().Any(theme =>
+                    theme.Parts.Any() || theme.ExternalRelationships.Any() || theme.HyperlinkRelationships.Any() ||
+                    theme.DataPartReferenceRelationships.Any())) {
+                skipReason = "Theme relationships require the extended package writer.";
+                return false;
+            }
+
             ApplySignatureMutationPolicy(options);
 
             DirectDataSetWorkbookModel packageModel;
@@ -140,7 +147,7 @@ namespace OfficeIMO.Excel {
             PrepareDestinationStreamForWrite(writeTarget);
             bool disableSharedStrings = packageModel.Sheets.Count == 1
                 && !packageModel.Sheets[0].IncludeCellReferences;
-            DirectDataSetWorkbookWriter.Write(writeTarget, packageModel, ct, disableSharedStrings);
+            DirectDataSetWorkbookWriter.Write(writeTarget, packageModel, ct, GetWorkbookThemeXml(), disableSharedStrings);
             try { writeTarget.Flush(); } catch (NotSupportedException) { }
             if (boundedOrStagedPackage is FileStream stagedPackage) {
                 CommitStagedPackageToStream(stagedPackage, destination, options);
@@ -623,7 +630,7 @@ namespace OfficeIMO.Excel {
             string? reference = cell.CellReference?.Value;
             if (!string.IsNullOrWhiteSpace(reference)) {
                 try {
-                    (row, column) = A1.ParseCellRef(reference!);
+                    (row, column) = ExcelA1.ParseCellRef(reference!);
                     return row > 0 && column > 0;
                 } catch {
                     return false;

@@ -27,7 +27,7 @@ public sealed class XpsTiffFaxTests {
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var drawing));
             var native = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: OfficeColor.White);
             var svgImage = OfficeDrawingRasterRenderer.Render(drawing!, background: OfficeColor.White);
-            var pdfImage = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(document.ToPdf()).Pages[0].ToDrawing(),
+            var pdfImage = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf())).Pages[0].ToDrawing(),
                 scale: 4D / 3D, background: OfficeColor.White);
             byte[]? reference = folder == "TiffFaxUncompressed" ? File.ReadAllBytes(Path.Combine(corpus, fields[0] + ".rgb")) : null;
             bool whiteIsZero = fields[3] == "0";

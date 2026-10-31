@@ -15,10 +15,10 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Inherited indentation");
         switch (attribute) {
-            case "left": paragraph.IndentationBefore = 393; paragraph.IndentationBefore = null; break;
-            case "right": paragraph.IndentationAfter = 393; paragraph.IndentationAfter = null; break;
-            case "firstLine": paragraph.IndentationFirstLine = 393; paragraph.IndentationFirstLine = null; break;
-            case "hanging": paragraph.IndentationHanging = 393; paragraph.IndentationHanging = null; break;
+            case "left": paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(19.65D); paragraph.IndentationBefore= null; break;
+            case "right": paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(19.65D); paragraph.IndentationAfter= null; break;
+            case "firstLine": paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(19.65D); paragraph.IndentationFirstLine= null; break;
+            case "hanging": paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points(19.65D); paragraph.IndentationHanging= null; break;
         }
         using var stream = new MemoryStream(document.ToBytes());
         using var saved = WordprocessingDocument.Open(stream, false);

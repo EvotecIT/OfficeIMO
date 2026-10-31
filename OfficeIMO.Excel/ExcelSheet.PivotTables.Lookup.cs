@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
             var cacheFields = part.PivotTableCacheDefinitionPart?.PivotCacheDefinition?.CacheFields;
             if (definition == null || location == null || cacheFields == null
                 || location.FirstDataRow == null || location.FirstDataColumn == null
-                || !A1.TryParseRange(location.Reference?.Value ?? "", out int top, out int left, out int bottom, out int right))
+                || !ExcelA1.TryParseRange(location.Reference?.Value ?? "", out int top, out int left, out int bottom, out int right))
                 return PivotLookupReferenceError();
             if (cacheFields.ChildElements.Count > 256 || definition.PivotFields?.ChildElements.Count > 256
                 || definition.DataFields?.ChildElements.Count > 256 || criteria.Count > 256
@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel {
             var dateGroupings = new PivotDateGrouping?[fields.Length];
             var manualGroupings = new PivotManualGrouping?[fields.Length];
             int sourceFieldCount = part.PivotTableCacheDefinitionPart?.PivotCacheDefinition?.CacheSource?.WorksheetSource is WorksheetSource sourceRange
-                && A1.TryParseRange(sourceRange.Reference?.Value ?? "", out _, out int firstSourceColumn, out _, out int lastSourceColumn)
+                && ExcelA1.TryParseRange(sourceRange.Reference?.Value ?? "", out _, out int firstSourceColumn, out _, out int lastSourceColumn)
                     ? lastSourceColumn - firstSourceColumn + 1 : fields.Length;
             foreach (int field in rowFields.Concat(columnFields).Where(f => f >= 0)) {
                 if (IsDerivedDateGroup(fields[field])) dateGroupings[field] = ReadPivotDateGrouping(fields, field, sourceFieldCount);

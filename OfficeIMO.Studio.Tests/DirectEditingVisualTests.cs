@@ -111,9 +111,9 @@ public sealed class DirectEditingVisualTests {
         using var files = new TextEditingReviewTests.Files();
         byte[] image = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         PdfDocument document = annotation
-            ? PdfDocument.Load(TextEditingReviewTests.CreateDocument().Annotations.Add(new PdfAnnotationCreateOptions {
+            ? PdfDocument.Load(new System.IO.MemoryStream(TextEditingReviewTests.CreateDocument().Annotations.Add(new PdfAnnotationCreateOptions {
                 Subtype = "Square", Rectangle = [2, 450, 122, 510], Contents = "Review area"
-            }).Bytes)
+            }).Bytes))
             : TextEditingReviewTests.CreateDocument().Images.Add(new PdfPageRegion(1, 2, 450, 120, 60), image).Document;
         document.Save(files.Source);
         using var app = TestAppBuilder.StartSession();

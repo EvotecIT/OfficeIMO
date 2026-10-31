@@ -870,11 +870,11 @@ Shared SVG, raster and PDF layout approximates `ShrinkToFit` on fixed text-box f
 
 Controlled native resaves retain the three canonical fitting modes and the nearest-style override rule in Draw, plus shrinking declarations in ODP/FODP. Six fixed-frame caption controls cover rectangles and text boxes with full-width, left and right areas, mixed run sizes, asymmetric padding, wrapping and vertical placement. Shared and native PDF exports retain every sampled caption marker; word breaks, font scale and glyph placement differ. These controls qualify the tested producer profile rather than independent authorship or exact typography.
 
-Use `ToDrawing(renderingProfile, lossPolicy)` or `ToDrawings(renderingProfile, lossPolicy)` to supply an `OfficeRenderingProfile` before projection. Its fonts and shaping settings guide fitting and clipping checks and remain on the returned drawings. ODG-to-PDF conversion uses the final `PdfOptions` font selection for those checks.
+Use `ToDrawing(renderingProfile, lossPolicy)` or `ToDrawings(renderingProfile, lossPolicy)` to supply an `OfficeRenderingProfile` before projection. Its fonts and shaping settings guide fitting and clipping checks and remain on the returned drawings. ODG-to-PDF conversion uses the final `PdfCreateOptions` font selection for those checks.
 
 Fixed text frames and line/connector captions check shared layout and placed glyph, decoration, background and tab-leader paint for clipping with the conversion's current font resources. `text-clipped` reports an unsupported mapping when frame bounds, paragraph margins, padding, tabs or shared layout limits omit content or cut off text paint, including ordinary text without fitting. `ThrowOnSkippedOrUnsupported` rejects that projection. `ReportOnly` retains the supported preview and the original native text; adjust the frame, margins, padding, line spacing or font size and inspect the report before accepting output. A later font-provider replacement can change the measured result.
 
-PDF clipping checks use the selected conversion metrics. Unembedded standard fonts use Adobe glyph bounds; a reader's substitute can paint outside them. Configure licensed embedded fonts through the PDF adapter's `PdfOptions` when predictable font selection is required. Reader substitution and exact native typography remain outside this qualification.
+PDF clipping checks use the selected conversion metrics. Unembedded standard fonts use Adobe glyph bounds; a reader's substitute can paint outside them. Configure licensed embedded fonts through the PDF adapter's `PdfCreateOptions` when predictable font selection is required. Reader substitution and exact native typography remain outside this qualification.
 
 ### Draw text-box sizing
 

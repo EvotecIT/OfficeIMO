@@ -20,7 +20,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Update an existing TOC object from a document.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $doc |
 ///     Get-OfficeWordTableOfContents |
 ///     Set-OfficeWordTableOfContents -Text 'Report contents'

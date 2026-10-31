@@ -74,7 +74,7 @@ public sealed class GetOfficeExcelDataCommand : PSCmdlet
 
         try
         {
-            var options = new ExcelReadOptions
+            var options = new ExcelReaderOptions
             {
                 SheetName = string.IsNullOrWhiteSpace(Sheet) ? null : Sheet,
                 SheetIndex = string.IsNullOrWhiteSpace(Sheet) ? 0 : null,

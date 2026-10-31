@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Spreadsheet;
 using System.Text;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
@@ -11,6 +12,16 @@ namespace OfficeIMO.Excel {
         /// Returns a lightweight object wrapper for a single cell.
         /// </summary>
         public ExcelCell CellAt(int row, int column) => new ExcelCell(this, row, column);
+
+        /// <summary>Returns an editable cell addressed within this worksheet.</summary>
+        public ExcelCell CellAt(string reference) {
+            if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentNullException(nameof(reference));
+            var syntax = SpreadsheetRangeReference.Parse(reference, SpreadsheetAddressDialect.ExcelA1);
+            if (syntax.End != null || !syntax.Start.IsCell || syntax.Start.SheetName != null)
+                throw new ArgumentException("Cell reference must identify one cell on the current worksheet.", nameof(reference));
+            return CellAt(checked((int)syntax.Start.Row!.Value), syntax.Start.Column!.Value);
+        }
+
 
         /// <summary>
         /// Returns a lightweight object wrapper for an A1 range.
@@ -93,7 +104,7 @@ namespace OfficeIMO.Excel {
         /// Applies a number format to every cell in the range.
         /// </summary>
         public void FormatRange(string a1Range, string numberFormat) {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImportIfNeeded();
@@ -107,7 +118,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void FillRange(string a1Range, string hexColor) {
             if (string.IsNullOrWhiteSpace(hexColor)) return;
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImportIfNeeded();
@@ -120,7 +131,7 @@ namespace OfficeIMO.Excel {
         /// Clears selected parts of every cell and attached worksheet metadata in the range.
         /// </summary>
         public void ClearRange(string a1Range, ExcelClearOptions options = ExcelClearOptions.All) {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (options == ExcelClearOptions.None) {
                 return;
             }

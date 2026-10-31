@@ -25,7 +25,7 @@ internal static partial class LegacyDocWriter {
             if (width < LegacyDocSectionColumns.MinimumWidth || width > LegacyDocSectionColumns.MaximumDimension ||
                 gap > LegacyDocSectionColumns.MaximumDimension)
                 throw new NotSupportedException("Native DOC explicit columns require widths from 718 through 32767 twips and gaps from zero through 32767 twips.");
-            definitions.Add(new WordSectionColumn(width, gap));
+            definitions.Add(new WordSectionColumn(OfficeLength.Points(width / 20D), OfficeLength.Points(gap / 20D)));
         }
         return definitions.AsReadOnly();
     }
@@ -50,8 +50,8 @@ internal static partial class LegacyDocWriter {
         if (definitions == null || definitions.Count == 0) return;
         AddSingleByteSprm(grpprl, LegacyDocSectionColumns.EvenlySpacedSprm, 0);
         for (int index = 0; index < definitions.Count; index++) {
-            AddIndexedColumnSprm(grpprl, LegacyDocSectionColumns.WidthSprm, index, definitions[index].WidthTwips);
-            AddIndexedColumnSprm(grpprl, LegacyDocSectionColumns.SpacingSprm, index, definitions[index].SpaceAfterTwips ?? 0);
+            AddIndexedColumnSprm(grpprl, LegacyDocSectionColumns.WidthSprm, index, checked((int)definitions[index].Width.ToTwips()));
+            AddIndexedColumnSprm(grpprl, LegacyDocSectionColumns.SpacingSprm, index, checked((int)(definitions[index].SpaceAfter?.ToTwips() ?? 0)));
         }
     }
 

@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
     // Its selection/search text must remain the identifier, without those layout controls.
     // Use only the rendered slice, so a continued paragraph never repeats its whole source.
     private static bool TryBeginOptionalBreakText(StringBuilder sb, RichParagraphBlock block,
-        List<List<RichSeg>> lines, bool suppressed, PdfOptions options, double x, double y, double width, double height) {
+        List<List<RichSeg>> lines, bool suppressed, PdfCreateOptions options, double x, double y, double width, double height) {
         if (suppressed) return false;
         string source = string.Concat(block.Runs.Select(run => run.Text));
         if (source.IndexOf('\u200B') < 0 || source.Any(char.IsWhiteSpace) || block.Runs.Any(run => run.InlineElement != null)) return false;
@@ -26,7 +26,7 @@ internal static partial class PdfWriter {
         return true;
     }
     private static void EndOptionalBreakText(StringBuilder sb, RichParagraphBlock block, List<List<RichSeg>> lines,
-        PdfOptions options, double x, double y, double width, double height) {
+        PdfCreateOptions options, double x, double y, double width, double height) {
         string logicalText = string.Concat(lines.SelectMany(line => line).Select(segment => segment.Text)).Replace("\u200B", string.Empty);
         PdfStandardFont font = ChooseNormal(options.DefaultFont);
         string fontResource = GetFontResourceName(font, null, font);

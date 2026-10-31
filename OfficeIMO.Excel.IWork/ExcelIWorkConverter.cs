@@ -260,7 +260,7 @@ public static partial class ExcelIWorkConverter {
                         sheet.SetImportedRowLayout(table.RowHeights, table.HiddenRows, cancellationToken);
                         foreach (var column in table.ColumnWidths) {
                             cancellationToken.ThrowIfCancellationRequested();
-                            sheet.SetColumnWidth(column.Key, PointsToExcelColumnWidth(column.Value));
+                            sheet.SetColumnWidth(column.Key, OfficeIMO.Excel.ExcelColumnWidth.Characters(PointsToExcelColumnWidth(column.Value)));
                         }
                         foreach (int column in table.HiddenColumns) {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -269,11 +269,16 @@ public static partial class ExcelIWorkConverter {
                     }
                 }
             } else {
-                ExcelSheet sheet = document.AddWorksheet("Preview");
+                ExcelSheet sheet = document.AddSheet("Preview");
                 IWorkPreviewAsset visualPreview = preview!;
                 (int width, int height) = PreviewSize(visualPreview);
-                sheet.AddImage(1, 1, visualPreview.GetBytes(), visualPreview.MediaType, width, height,
-                    name: "Numbers visual fallback", altText: "Visual fallback from the source Numbers package");
+                sheet.AddImage(1, 1, visualPreview.GetBytes(), new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = visualPreview.MediaType,
+                    Width = OfficeIMO.OfficeLength.Pixels(width),
+                    Height = OfficeIMO.OfficeLength.Pixels(height),
+                    Name = "Numbers visual fallback",
+                    Description = "Visual fallback from the source Numbers package"
+                });
             }
 
             destinationDiagnostics = destinationDiagnostics.Concat(worksheetMappings

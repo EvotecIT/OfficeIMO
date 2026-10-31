@@ -76,8 +76,8 @@ internal static class NativeNumbersBlankReferenceSmoke {
 
     private static void VerifyAllBlankExcelArguments() {
         using var document = ExcelDocument.Create();
-        var inputs = document.AddWorksheet("Inputs");
-        var checks = document.AddWorksheet("Checks");
+        var inputs = document.AddSheet("Inputs");
+        var checks = document.AddSheet("Checks");
         string[] formulas = { "GCD(Inputs!A1)", "LCM(Inputs!A1)",
             "GCD(Inputs!A1,Inputs!A1)", "LCM(Inputs!A1,Inputs!A1)", "IFERROR(LCM(Inputs!A1),99)" };
         for (int row = 0; row < formulas.Length; row++) checks.CellFormula(row + 1, 1, formulas[row]);

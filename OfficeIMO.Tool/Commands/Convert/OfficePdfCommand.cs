@@ -47,58 +47,12 @@ Conversion diagnostics are written to standard error.
             if (!File.Exists(inputPath)) throw new FileNotFoundException("Input document was not found.", inputPath);
             if (!parsed.Force && File.Exists(outputPath)) throw new OfficePdfOutputExistsException(outputPath);
 
-            if (parsed.IsDrawInput || parsed.IsDjVuInput) {
-                return await FixedLayoutPdfCommand.RunAsync(
-                    parsed, inputPath, outputPath, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
-            }
-
-            string temporaryPath = CreateTemporaryOutputPath(outputPath);
-            try {
-                PdfSaveResult result;
-                await using (var destination = new FileStream(
-                    temporaryPath,
-                    FileMode.CreateNew,
-                    FileAccess.Write,
-                    FileShare.None,
-                    bufferSize: 81920,
-                    options: FileOptions.Asynchronous | FileOptions.SequentialScan)) {
-                    using var boundedOutput = new OfficePdfOutputLimitStream(destination, parsed.MaxOutputBytes);
-                    result = await ConvertAsync(inputPath, boundedOutput, parsed, cancellationToken).ConfigureAwait(false);
-                    await boundedOutput.FlushAsync(cancellationToken).ConfigureAwait(false);
-                }
-
-                if (!result.Succeeded) {
-                    foreach (string diagnostic in result.Diagnostics) {
-                        await standardError.WriteLineAsync(diagnostic).ConfigureAwait(false);
-                    }
-                    return (int)OfficeImoToolExitCode.OutputFailed;
-                }
-
-                foreach (PdfConversionWarning warning in result.Warnings) {
-                    await standardError.WriteLineAsync(
-                        warning.Severity + " " + warning.Code + " [" + warning.Source + "]: " + warning.Message).ConfigureAwait(false);
-                }
-                foreach (IOfficeConversionReport stage in result.ConversionReports.Take(result.ConversionReports.Count - 1))
-                    foreach (OfficeConversionFidelityDiagnostic finding in stage.FidelityDiagnostics)
-                        await standardError.WriteLineAsync(finding.Code + " [" + finding.Source + "]: " + finding.Message).ConfigureAwait(false);
-                if (result.HasLoss && result.Warnings.Count == 0) {
-                    await standardError.WriteLineAsync("Warning SourceContentLoss: the source conversion reported possible content loss.").ConfigureAwait(false);
-                }
-                if (result.Report.HasErrors) {
-                    return (int)OfficeImoToolExitCode.OutputFailed;
-                }
-
-                cancellationToken.ThrowIfCancellationRequested();
-                await CommitOutputAsync(temporaryPath, outputPath, parsed.Force, cancellationToken).ConfigureAwait(false);
-                temporaryPath = string.Empty;
-                await WriteUtf8Async(
-                    standardOutput,
-                    outputPath + Environment.NewLine,
-                    CancellationToken.None).ConfigureAwait(false);
-                return (int)OfficeImoToolExitCode.Success;
-            } finally {
-                if (temporaryPath.Length > 0 && File.Exists(temporaryPath)) File.Delete(temporaryPath);
-            }
+            OfficeIMO.Workflows.OfficeWorkflow.RegisterConversions();
+            OfficeConversionReport report = await OfficeConverter.ConvertAsync(inputPath, outputPath,
+                CreateOptions(parsed), cancellationToken).ConfigureAwait(false);
+            await WriteDiagnosticsAsync(report, standardError).ConfigureAwait(false);
+            await WriteUtf8Async(standardOutput, report.OutputPath + Environment.NewLine, CancellationToken.None).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.Success;
         } catch (OfficePdfUsageException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
             await standardError.WriteLineAsync(Usage).ConfigureAwait(false);
@@ -112,9 +66,21 @@ Conversion diagnostics are written to standard error.
         } catch (OfficePdfOutputExistsException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.OutputFailed;
-        } catch (OfficePdfOutputLimitException exception) {
+        } catch (Exception exception) when (OfficeIMO.Core.Internal.OfficeOutputLimit.Is(exception)) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.OutputFailed;
+        } catch (OfficeConversionException exception) {
+            if (exception.Report is OfficeConversionReport report) await WriteDiagnosticsAsync(report, standardError).ConfigureAwait(false);
+            await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
+            IReadOnlyList<OfficeDiagnostic> findings = (exception.Report as OfficeConversionReport)?.Diagnostics ?? [];
+            if (findings.Any(finding => finding.Code == OfficeDiagnosticCodes.ConversionInputUnsupported)) return (int)OfficeImoToolExitCode.UnsupportedInput;
+            if (findings.Any(finding => finding.Code == OfficeDiagnosticCodes.ConversionInputNotFound)) return (int)OfficeImoToolExitCode.InputNotFound;
+            if (findings.Any(finding => finding.Code == OfficeDiagnosticCodes.ConversionRequestInvalid)) return (int)OfficeImoToolExitCode.Usage;
+            if (findings.Any(finding => finding.Code == OfficeDiagnosticCodes.ConversionOutputFailed)) return (int)OfficeImoToolExitCode.OutputFailed;
+            return (int)OfficeImoToolExitCode.OperationFailed;
+        } catch (InvalidDataException exception) {
+            await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.UnsupportedInput;
         } catch (IOException exception) {
             await standardError.WriteLineAsync("I/O failed: " + exception.Message).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.UnsupportedInput;
@@ -127,90 +93,37 @@ Conversion diagnostics are written to standard error.
         }
     }
 
-    private static async Task<PdfSaveResult> ConvertAsync(
-        string inputPath,
-        Stream output,
-        OfficePdfArguments arguments, CancellationToken cancellationToken) {
+    private static OfficeConversionOptions CreateOptions(OfficePdfArguments arguments) {
         OfficePackageSecurityOptions packageSecurity = OfficePackageSecurityOptions.SecureDefaults;
         packageSecurity.MaxPackageBytes = arguments.MaxInputBytes;
         packageSecurity.MaxXmlCharactersInPart = arguments.MaxCharactersInPart;
-        var openSettings = new OfficeOpenXmlLoadSettings {
-            MaxCharactersInPart = arguments.MaxCharactersInPart
+        var openSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = arguments.MaxCharactersInPart };
+        return new OfficeConversionOptions {
+            FileConflictPolicy = arguments.Force ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail,            FailOnLoss = arguments.RequireNoLoss,            MaximumInputBytes = arguments.MaxInputBytes,MaximumOutputBytes = arguments.MaxOutputBytes,            MaximumXmlCharactersInPart = arguments.MaxCharactersInPart,            WordLoad = new WordLoadOptions {
+                AccessMode = DocumentAccessMode.ReadOnly, MaxInputBytes = arguments.MaxInputBytes,
+                PackageSecurity = packageSecurity, OpenSettings = openSettings,
+                FailOnLoss = Path.GetExtension(arguments.InputPath!).Equals(".doc", StringComparison.OrdinalIgnoreCase) && !arguments.AllowLegacyLoss
+            },            ExcelLoad = new ExcelLoadOptions {
+                AccessMode = DocumentAccessMode.ReadOnly, MaxInputBytes = arguments.MaxInputBytes,
+                PackageSecurity = packageSecurity, OpenSettings = openSettings
+            },            PowerPointLoad = new PowerPointLoadOptions {
+                AccessMode = DocumentAccessMode.ReadOnly, MaxInputBytes = arguments.MaxInputBytes,
+                PackageSecurity = packageSecurity, OpenSettings = openSettings
+            },            PlainText = new PdfTextImportOptions { EncodingName = arguments.TextEncoding, TabSize = arguments.TabSize },            RegisteredSettings = new OfficeIMO.Workflows.OfficeWorkflowRouteSettings {
+                DjVu = arguments.IsDjVuInput ? new OfficeIMO.DjVu.Pdf.DjVuToPdfOptions() : null,
+                Draw = arguments.IsDrawInput ? new OfficeIMO.OpenDocument.Odg.Pdf.OdgToPdfOptions {
+                    ForPrint = arguments.DiagramForPrint, LossPolicy = OfficeIMO.OpenDocument.OdfConversionLossPolicy.ReportOnly
+                } : null
+            }
         };
-
-        switch (Path.GetExtension(inputPath).ToLowerInvariant()) {
-            case ".doc": {
-                using var source = File.OpenRead(inputPath);
-                return await LegacyDocPdfConverter.ToPdfDocumentResult(source,
-                    importOptions: new OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions {
-                        MaxInputBytes = (int)Math.Min(int.MaxValue, arguments.MaxInputBytes)
-                    }, lossPolicy: arguments.AllowLegacyLoss ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block,
-                    cancellationToken: cancellationToken).SaveResultAsync(output, cancellationToken).ConfigureAwait(false);
-            }
-            case ".txt": {
-                using var source = File.OpenRead(inputPath);
-                return await PdfPlainTextConverter.ToPdfDocumentResult(source, new PdfPlainTextOptions {
-                    EncodingName = arguments.TextEncoding, TabSize = arguments.TabSize
-                }, arguments.MaxInputBytes, cancellationToken).SaveResultAsync(output, cancellationToken).ConfigureAwait(false);
-            }
-            case ".docx":
-                using (WordDocument document = WordDocument.Load(inputPath, new WordLoadOptions {
-                    AccessMode = DocumentAccessMode.ReadOnly,
-                    MaxInputBytes = arguments.MaxInputBytes,
-                    PackageSecurity = packageSecurity,
-                    OpenSettings = openSettings
-                })) {
-                    return await document.SaveAsPdfResultAsync(output, cancellationToken: cancellationToken).ConfigureAwait(false);
-                }
-            case ".xlsx":
-                using (ExcelDocument document = ExcelDocument.Load(inputPath, new ExcelLoadOptions {
-                    AccessMode = DocumentAccessMode.ReadOnly,
-                    MaxInputBytes = arguments.MaxInputBytes,
-                    PackageSecurity = packageSecurity,
-                    OpenSettings = openSettings
-                })) {
-                    return await document.SaveAsPdfResultAsync(output, cancellationToken: cancellationToken).ConfigureAwait(false);
-                }
-            case ".pptx":
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(inputPath, new PowerPointLoadOptions {
-                    AccessMode = DocumentAccessMode.ReadOnly,
-                    MaxInputBytes = arguments.MaxInputBytes,
-                    PackageSecurity = packageSecurity,
-                    OpenSettings = openSettings
-                })) {
-                    return await presentation.SaveAsPdfResultAsync(output, cancellationToken: cancellationToken).ConfigureAwait(false);
-                }
-            default:
-                throw new OfficePdfUsageException("The convert command supports DOC, DOCX, TXT, XLSX, and PPTX input.");
-        }
     }
 
-    internal static Task CommitOutputAsync(
-        string temporaryPath,
-        string outputPath,
-        bool force,
-        CancellationToken cancellationToken) {
-        try {
-            cancellationToken.ThrowIfCancellationRequested();
-            try {
-                File.Move(temporaryPath, outputPath, overwrite: force);
-            } catch (IOException) when (!force && File.Exists(outputPath)) {
-                throw new OfficePdfOutputExistsException(outputPath);
-            }
-            temporaryPath = string.Empty;
-        } finally {
-            if (temporaryPath.Length > 0 && File.Exists(temporaryPath)) File.Delete(temporaryPath);
+    private static async Task WriteDiagnosticsAsync(OfficeConversionReport report, TextWriter error) {
+        foreach (OfficeDiagnostic diagnostic in report.Diagnostics) {
+            string context = diagnostic.Format is null ? string.Empty : " [" + diagnostic.Format + "]";
+            if (diagnostic.Location is not null) context += " [" + diagnostic.Location + "]";
+            await error.WriteLineAsync(diagnostic.Severity + " " + diagnostic.Code + context + ": " + diagnostic.Message).ConfigureAwait(false);
         }
-
-        return Task.CompletedTask;
-    }
-
-    private static string CreateTemporaryOutputPath(string outputPath) {
-        string? directory = Path.GetDirectoryName(outputPath);
-        if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        return Path.Combine(
-            directory ?? Directory.GetCurrentDirectory(),
-            ".officeimo-" + Guid.NewGuid().ToString("N") + ".tmp");
     }
 
     private static async Task WriteUtf8Async(Stream output, string value, CancellationToken cancellationToken) {

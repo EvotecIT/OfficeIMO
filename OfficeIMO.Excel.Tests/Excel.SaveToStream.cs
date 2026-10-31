@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SaveToStream.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var sheet = document.AddWorksheet("StreamData");
+                var sheet = document.AddSheet("StreamData");
                 sheet.CellValue(1, 1, "Hello Stream");
 
                 using var memory = new MemoryStream();
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(memory.Length > 0);
 
                 // Document should remain usable after stream save
-                document.AddWorksheet("PostSave");
+                document.AddSheet("PostSave");
                 Assert.Equal(2, document.Sheets.Count);
 
                 memory.Position = 0;
@@ -45,14 +45,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SaveToStreamAsync.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var sheet = document.AddWorksheet("AsyncStream");
+                var sheet = document.AddSheet("AsyncStream");
                 sheet.CellValue(2, 2, 42);
 
                 using var memory = new MemoryStream();
                 await document.SaveAsync(memory, new ExcelSaveOptions { ValidateOpenXml = true });
                 Assert.True(memory.Length > 0);
 
-                document.AddWorksheet("PostAsyncSave");
+                document.AddSheet("PostAsyncSave");
                 Assert.Equal(2, document.Sheets.Count);
 
                 memory.Position = 0;
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_Save_SyncAndAsync_ToNonSeekableStreams_PackagesAreReadable() {
             using var document = ExcelDocument.Create();
-            document.AddWorksheet("Response").CellValue(1, 1, "Streamed");
+            document.AddSheet("Response").CellValue(1, 1, "Streamed");
             using var syncOutput = new NonSeekableReadWriteBuffer(new byte[0]);
             using var asyncOutput = new NonSeekableReadWriteBuffer(new byte[0]);
 
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SaveToReusedStream.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var sheet = document.AddWorksheet("StreamData");
+                var sheet = document.AddSheet("StreamData");
                 sheet.CellValue(1, 1, "Fresh");
 
                 using var memory = new MemoryStream();
@@ -116,12 +116,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SaveToFailingStream.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                document.AddWorksheet("Original");
+                document.AddSheet("Original");
 
                 using var failing = new ThrowAfterBytesWriteStream(64);
                 Assert.Throws<IOException>(() => document.Save(failing));
 
-                document.AddWorksheet("Recovered");
+                document.AddSheet("Recovered");
 
                 using var memory = new MemoryStream();
                 document.Save(memory, new ExcelSaveOptions { ValidateOpenXml = true });
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var existing = ExcelDocument.Create(destinationPath)) {
-                    existing.AddWorksheet("Original");
+                    existing.AddSheet("Original");
                     existing.Save(destinationPath);
                 }
 
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
                 destinationFile.IsReadOnly = true;
 
                 using var document = ExcelDocument.Create(sourcePath);
-                document.AddWorksheet("Updated");
+                document.AddSheet("Updated");
 
                 var exception = Assert.Throws<IOException>(() => document.Save(destinationPath));
                 Assert.Contains("read-only", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("Original", savedSheet.Name?.Value);
                 }
 
-                document.AddWorksheet("Recovered");
+                document.AddSheet("Recovered");
 
                 using var memory = new MemoryStream();
                 document.Save(memory, new ExcelSaveOptions { ValidateOpenXml = true });
@@ -196,12 +196,12 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var existing = ExcelDocument.Create(destinationPath)) {
-                    existing.AddWorksheet("Original");
+                    existing.AddSheet("Original");
                     existing.Save(destinationPath);
                 }
 
                 using var document = ExcelDocument.Create(sourcePath);
-                document.AddWorksheet("Broken");
+                document.AddSheet("Broken");
 
                 var brokenSheet = document._spreadSheetDocument.WorkbookPart!.Workbook.Sheets!
                     .OfType<Sheet>()

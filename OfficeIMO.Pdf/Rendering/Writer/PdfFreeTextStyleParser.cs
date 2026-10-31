@@ -5,7 +5,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfFreeTextDefaultStyle {
-    public PdfFreeTextDefaultStyle(double? fontSize, PdfColor? textColor, PdfAlign? textAlign) {
+    public PdfFreeTextDefaultStyle(double? fontSize, global::OfficeIMO.OfficeColor? textColor, PdfAlign? textAlign) {
         FontSize = fontSize;
         TextColor = textColor;
         TextAlign = textAlign;
@@ -13,13 +13,13 @@ internal readonly struct PdfFreeTextDefaultStyle {
 
     public double? FontSize { get; }
 
-    public PdfColor? TextColor { get; }
+    public global::OfficeIMO.OfficeColor? TextColor { get; }
 
     public PdfAlign? TextAlign { get; }
 }
 
 internal readonly struct PdfFreeTextRichTextRun {
-    public PdfFreeTextRichTextRun(string text, bool bold, bool italic, bool underline, bool strike, PdfColor? color, double? fontSize, bool isLineBreak) {
+    public PdfFreeTextRichTextRun(string text, bool bold, bool italic, bool underline, bool strike, global::OfficeIMO.OfficeColor? color, double? fontSize, bool isLineBreak) {
         Text = text;
         Bold = bold;
         Italic = italic;
@@ -40,7 +40,7 @@ internal readonly struct PdfFreeTextRichTextRun {
 
     public bool Strike { get; }
 
-    public PdfColor? Color { get; }
+    public global::OfficeIMO.OfficeColor? Color { get; }
 
     public double? FontSize { get; }
 
@@ -48,7 +48,7 @@ internal readonly struct PdfFreeTextRichTextRun {
 }
 
 internal readonly struct PdfFreeTextRichTextStyle {
-    public PdfFreeTextRichTextStyle(bool bold, bool italic, bool underline, bool strike, PdfColor? color, double? fontSize) {
+    public PdfFreeTextRichTextStyle(bool bold, bool italic, bool underline, bool strike, global::OfficeIMO.OfficeColor? color, double? fontSize) {
         Bold = bold;
         Italic = italic;
         Underline = underline;
@@ -65,7 +65,7 @@ internal readonly struct PdfFreeTextRichTextStyle {
 
     public bool Strike { get; }
 
-    public PdfColor? Color { get; }
+    public global::OfficeIMO.OfficeColor? Color { get; }
 
     public double? FontSize { get; }
 }
@@ -80,7 +80,7 @@ internal static class PdfFreeTextStyleParser {
         }
 
         double? fontSize = null;
-        PdfColor? textColor = null;
+        global::OfficeIMO.OfficeColor? textColor = null;
         PdfAlign? textAlign = null;
         for (int start = 0; start < defaultStyle!.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -107,7 +107,7 @@ internal static class PdfFreeTextStyleParser {
                     } else if (valueEnd - valueStart <= 4096) {
                         string value = PdfEncoding.StringSliceCancellable(defaultStyle, valueStart, valueEnd - valueStart, cancellationToken);
                         if (MatchesCssProperty(defaultStyle, propertyStart, propertyLength, "color") &&
-                            TryReadCssColor(value, out PdfColor parsedColor)) {
+                            TryReadCssColor(value, out global::OfficeIMO.OfficeColor parsedColor)) {
                             textColor = parsedColor;
                         } else if (MatchesCssProperty(defaultStyle, propertyStart, propertyLength, "text-align") &&
                                    TryReadCssTextAlign(value, out PdfAlign parsedAlign)) {
@@ -261,7 +261,7 @@ internal static class PdfFreeTextStyleParser {
         return false;
     }
 
-    private static bool TryReadCssColor(string value, out PdfColor color) {
+    private static bool TryReadCssColor(string value, out global::OfficeIMO.OfficeColor color) {
         value = value.Trim();
         if (TryReadHexColor(value, out color) ||
             TryReadRgbColor(value, out color) ||
@@ -269,12 +269,12 @@ internal static class PdfFreeTextStyleParser {
             return true;
         }
 
-        color = PdfColor.Black;
+        color = global::OfficeIMO.OfficeColor.Black;
         return false;
     }
 
-    private static bool TryReadHexColor(string value, out PdfColor color) {
-        color = PdfColor.Black;
+    private static bool TryReadHexColor(string value, out global::OfficeIMO.OfficeColor color) {
+        color = global::OfficeIMO.OfficeColor.Black;
         if (value.Length == 4 && value[0] == '#') {
             return TryReadHexDigit(value[1], out int r) &&
                 TryReadHexDigit(value[2], out int g) &&
@@ -292,8 +292,8 @@ internal static class PdfFreeTextStyleParser {
         return false;
     }
 
-    private static bool TryReadRgbColor(string value, out PdfColor color) {
-        color = PdfColor.Black;
+    private static bool TryReadRgbColor(string value, out global::OfficeIMO.OfficeColor color) {
+        color = global::OfficeIMO.OfficeColor.Black;
         if (!value.StartsWith("rgb(", StringComparison.OrdinalIgnoreCase) ||
             value.Length == 0 ||
             value[value.Length - 1] != ')') {
@@ -308,42 +308,42 @@ internal static class PdfFreeTextStyleParser {
             return false;
         }
 
-        color = new PdfColor(r, g, b);
+        color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(r, g, b);
         return true;
     }
 
-    private static bool TryReadNamedColor(string value, out PdfColor color) {
+    private static bool TryReadNamedColor(string value, out global::OfficeIMO.OfficeColor color) {
         switch (value.Trim().ToLowerInvariant()) {
             case "black":
-                color = PdfColor.Black;
+                color = global::OfficeIMO.OfficeColor.Black;
                 return true;
             case "white":
-                color = PdfColor.White;
+                color = global::OfficeIMO.OfficeColor.White;
                 return true;
             case "red":
-                color = new PdfColor(1D, 0D, 0D);
+                color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 0D);
                 return true;
             case "green":
-                color = new PdfColor(0D, 0.5019607843137255D, 0D);
+                color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0.5019607843137255D, 0D);
                 return true;
             case "blue":
-                color = new PdfColor(0D, 0D, 1D);
+                color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0D, 1D);
                 return true;
             case "gray":
             case "grey":
-                color = new PdfColor(0.5D, 0.5D, 0.5D);
+                color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
                 return true;
             case "yellow":
-                color = new PdfColor(1D, 1D, 0D);
+                color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 1D, 0D);
                 return true;
             case "cyan":
-                color = new PdfColor(0D, 1D, 1D);
+                color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 1D, 1D);
                 return true;
             case "magenta":
-                color = new PdfColor(1D, 0D, 1D);
+                color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 1D);
                 return true;
             default:
-                color = PdfColor.Black;
+                color = global::OfficeIMO.OfficeColor.Black;
                 return false;
         }
     }
@@ -515,7 +515,7 @@ internal static class PdfFreeTextStyleParser {
                 continue;
             }
 
-            if (string.Equals(property, "color", StringComparison.OrdinalIgnoreCase) && TryReadCssColor(value, out PdfColor color)) {
+            if (string.Equals(property, "color", StringComparison.OrdinalIgnoreCase) && TryReadCssColor(value, out global::OfficeIMO.OfficeColor color)) {
                 style = new PdfFreeTextRichTextStyle(style.Bold, style.Italic, style.Underline, style.Strike, color, style.FontSize);
                 continue;
             }
@@ -729,13 +729,13 @@ internal static class PdfFreeTextStyleParser {
         return true;
     }
 
-    private static bool TryCreateRgbColor(int r, int g, int b, out PdfColor color) {
+    private static bool TryCreateRgbColor(int r, int g, int b, out global::OfficeIMO.OfficeColor color) {
         if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) {
-            color = PdfColor.Black;
+            color = global::OfficeIMO.OfficeColor.Black;
             return false;
         }
 
-        color = new PdfColor(r / 255D, g / 255D, b / 255D);
+        color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(r / 255D, g / 255D, b / 255D);
         return true;
     }
 

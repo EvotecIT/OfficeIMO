@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents BIFF8 ignored formula error metadata parsed from an ISFFEC2 shared feature.
     /// </summary>
-    public sealed class LegacyXlsIgnoredError {
+    internal sealed class LegacyXlsIgnoredError {
         /// <summary>
         /// Creates ignored-error metadata for one or more worksheet ranges.
         /// </summary>

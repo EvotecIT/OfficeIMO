@@ -1,56 +1,37 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
-using PSWriteOffice.Services.PowerPoint;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
-/// <summary>Lists slide layouts available in a presentation.</summary>
-/// <example>
-///   <summary>Enumerate layouts for the first master.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficePowerPointLayout -Presentation $ppt</code>
-///   <para>Returns layout metadata including name, type, and index.</para>
-/// </example>
-/// <example>
-///   <summary>Get the first layout inside the DSL.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficePowerPoint -Path .\deck.pptx { $layout = @(Get-OfficePowerPointLayout)[0] }</code>
-///   <para>Uses the current DSL presentation context.</para>
-/// </example>
+/// <summary>Lists template layouts from all masters, or one selected master.</summary>
+/// <example><summary>List layouts in a live deck.</summary>
+/// <code>Get-OfficePowerPointLayout -Document $deck</code></example>
+/// <example><summary>Reuse a returned layout in a designed slide.</summary>
+/// <code>New-OfficePowerPoint -Path ./Review.pptx {
+///     $layout = @(Get-OfficePowerPointLayout -Master 1)[0]
+///     PowerPointSlide -Title 'Review' -TemplateLayout $layout
+/// }</code></example>
 [Cmdlet(VerbsCommon.Get, "OfficePowerPointLayout")]
 [OutputType(typeof(PowerPointSlideLayoutInfo))]
-public sealed class GetOfficePowerPointLayoutCommand : PSCmdlet
-{
-    /// <summary>Presentation to inspect (optional inside DSL).</summary>
-    [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
-
-    /// <summary>Slide master index.</summary>
-    [Parameter]
-    [ValidateRange(0, int.MaxValue)]
-    public int Master { get; set; }
-
+public sealed class GetOfficePowerPointLayoutCommand : OfficeCmdlet {
+    /// <summary>Gets or sets the live document; omission uses the enclosing content scope.</summary>
+    [Parameter(Position = 0, ValueFromPipeline = true)]
+    public PowerPointDocument? Document { get; set; }
+    /// <summary>Gets or sets a one-based master position; omission lists all masters.</summary>
+    [Parameter, ValidateRange(1, int.MaxValue)]
+    public int? Master { get; set; }
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        try
-        {
-            if (Master < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(Master), "Master index cannot be negative.");
+    protected override void ProcessRecord() {
+        var document = ResolveDocument(Document);
+        try {
+            if (Master.HasValue) {
+                foreach (var layout in document.GetSlideLayouts(Master.Value - 1)) WriteObject(layout);
+            } else {
+                foreach (var master in PowerPointTemplate.Inspect(document).Masters)
+                    foreach (var layout in document.GetSlideLayouts(master.MasterIndex)) WriteObject(layout);
             }
-
-            var presentation = Presentation ?? PowerPointDslContext.Require(this).Presentation;
-            var layouts = presentation.GetSlideLayouts(Master);
-            foreach (var layout in layouts)
-            {
-                WriteObject(layout);
-            }
-        }
-        catch (Exception ex) when (ex.GetType().Name != "StopUpstreamCommandsException")
-        {
-            WriteError(new ErrorRecord(ex, "PowerPointGetLayoutFailed", ErrorCategory.InvalidOperation, Presentation));
-        }
+        } catch (ArgumentException error) { InvalidArgument(error, document); }
     }
 }

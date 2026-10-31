@@ -71,7 +71,7 @@ public static partial class HtmlRtfConverterExtensions {
             if (!HtmlRenderStylesheetApplier.IsApplicableStylesheetLink(element, stylesheetOptions, preferredSet)) continue;
             string source = element.GetAttribute("href") ?? string.Empty;
             options.AddDiagnostic(
-                "HtmlStylesheetLinkSkipped",
+                global::OfficeIMO.OfficeDiagnosticCodes.HtmlStylesheetLinkSkipped,
                 "An HTML stylesheet link was not loaded by the semantic RTF importer.",
                 string.IsNullOrWhiteSpace(source) ? HtmlRenderStyleResolver.DescribeSource(element) : source,
                 action: RtfConversionAction.Omitted);

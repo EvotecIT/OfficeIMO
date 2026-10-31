@@ -47,7 +47,7 @@ public sealed class PdfScanPreviewTests {
     }
 
     private static PdfDocument Source() => PdfDocument.Create(compose => {
-        compose.Page(page => page.Size(200, 100).Margin(0).Content(c => c.Item(i => i.Paragraph(t => t.Text("First source page")))));
-        compose.Page(page => page.Size(200, 100).Margin(0).Content(c => c.Item(i => i.Paragraph(t => t.Text("Second source page")))));
+        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(0)).Content(c => c.Item(i => i.Paragraph(t => t.Text("First source page")))));
+        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(0)).Content(c => c.Item(i => i.Paragraph(t => t.Text("Second source page")))));
     });
 }

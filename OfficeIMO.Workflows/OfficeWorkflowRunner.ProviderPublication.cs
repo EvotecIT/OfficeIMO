@@ -4,7 +4,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private static async Task<ProviderPublicationOutcome> PublishProviderArtifactAsync(string stagingPath, string destination,
-        OfficeWorkflowStreamOutput provider, long maximumBytes, IOfficeWorkflowPublicationGuard? guard,
+        OfficeWorkflowStreamOutput provider, long maximumBytes, IOfficePublicationGuard? guard,
         Action cleanupStaging, List<OfficeWorkflowDiagnostic> diagnostics, CancellationToken token) {
         OfficeWorkflowOutputRecoveryStore.RecoveryLease? lease = null;
         OfficeWorkflowOutputRecovery? recovery = null;
@@ -15,7 +15,7 @@ public sealed partial class OfficeWorkflowRunner {
         string summary;
         try {
             byte[] bytes;
-            await using (var source = new FileStream(stagingPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+            using (var source = new FileStream(stagingPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 bytes = await OfficeStreamReader.ReadAllBytesAsync(source, token, maximumBytes).ConfigureAwait(false);
             }
             lease = await provider.RecoveryStore.CreateAsync(bytes, destination, provider.Name, token).ConfigureAwait(false);

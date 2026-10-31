@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HeaderFooterImageExportMatchesApprovedBaselines() {
             using ExcelBaselineFixture fixture = CreateHeaderFooterImagesBaselineWorkbook();
-            ExcelWorksheetImageExportOptions options = CreateHeaderFooterImagesBaselineOptions();
+            ExcelImageExportOptions options = CreateHeaderFooterImagesBaselineOptions();
 
             OfficeImageExportResult png = fixture.Sheet.ExportImages(OfficeImageExportFormat.Png, options)[1];
             OfficeImageExportResult svg = fixture.Sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1];
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
             string svgPath = Path.Combine(BaselineDirectory, HeaderFooterImagesBaselineName + ".svg");
             if (UpdateBaselines) {
                 using ExcelBaselineFixture fixture = CreateHeaderFooterImagesBaselineWorkbook();
-                ExcelWorksheetImageExportOptions options = CreateHeaderFooterImagesBaselineOptions();
+                ExcelImageExportOptions options = CreateHeaderFooterImagesBaselineOptions();
                 AssertRasterBaseline(HeaderFooterImagesBaselineName + ".png", fixture.Sheet.ExportImages(OfficeImageExportFormat.Png, options)[1].Bytes);
                 AssertTextBaseline(HeaderFooterImagesBaselineName + ".svg", Encoding.UTF8.GetString(fixture.Sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1].Bytes));
             }
@@ -75,12 +75,12 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateHeaderFooterImagesBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelHeaderFooterImagesBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("HeaderFooterImages");
+            ExcelSheet sheet = document.AddSheet("HeaderFooterImages");
 
             string[] headers = { "Area", "Owner", "State", "Score" };
             for (int column = 1; column <= headers.Length; column++) {
                 sheet.CellValue(1, column, headers[column - 1]);
-                sheet.CellAt(1, column).SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold().SetFontSize(12D);
+                sheet.CellAt(1, column).SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
                 sheet.CellAlign(1, column, ExcelHorizontalAlignment.Center);
                 sheet.CellVerticalAlign(1, column, ExcelVerticalAlignment.Center);
             }
@@ -89,29 +89,29 @@ namespace OfficeIMO.Tests {
             AddHeaderFooterImageRow(sheet, 3, "South", "Blake", "Review", 0.81D, "FEF3C7", "92400E");
             AddHeaderFooterImageRow(sheet, 4, "West", "Casey", "Risk", 0.68D, "FEE2E2", "991B1B");
 
-            sheet.SetColumnWidth(1, 42D);
-            sheet.SetColumnWidth(2, 38D);
-            sheet.SetColumnWidth(3, 30D);
-            sheet.SetColumnWidth(4, 26D);
-            sheet.SetRowHeight(1, 32D);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(42D));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(38D));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(30D));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(26D));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32D)));
             for (int row = 2; row <= 4; row++) {
-                sheet.SetRowHeight(row, 58D);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(58D)));
             }
 
             for (int row = 1; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "94A3B8").SetFontSize(12D);
+                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "94A3B8").SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
                 }
             }
 
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
             sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(0.35D, 0.35D, 0.35D, 0.35D);
+            sheet.SetMargins(OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D));
             sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
             sheet.SetHeaderFooter(headerLeft: "&BHeader/Footer Image Baseline", footerCenter: "Rendered on page &P");
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterHeaderLogoPng(), "image/png", widthPoints: 72D, heightPoints: 24D);
-            sheet.SetFooterImage(ExcelHeaderFooterPosition.Right, CreateHeaderFooterFooterLogoPng(), "image/png", widthPoints: 56D, heightPoints: 18D);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterHeaderLogoPng(), "image/png", width: OfficeLength.Points(72D), height: OfficeLength.Points(24D));
+            sheet.SetFooterImage(ExcelHeaderFooterPosition.Right, CreateHeaderFooterFooterLogoPng(), "image/png", width: OfficeLength.Points(56D), height: OfficeLength.Points(18D));
             sheet.AddManualRowPageBreak(2, save: false);
             return new ExcelBaselineFixture(document, sheet);
         }
@@ -123,13 +123,13 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(row, 4, score);
             sheet.Range("A" + row.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":D" + row.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .SetFillColor(row == 2 ? "F8FAFC" : "FFFFFF");
-            sheet.CellAt(row, 3).SetFillColor(stateFill).SetFontColor(stateText).SetBold().SetFontSize(12D);
-            sheet.CellAt(row, 4).Percent(0).SetBold().SetFontSize(12D);
+            sheet.CellAt(row, 3).SetFillColor(stateFill).SetFontColor(stateText).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+            sheet.CellAt(row, 4).Percent(0).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
             sheet.CellAlign(row, 4, ExcelHorizontalAlignment.Right);
         }
 
-        private static ExcelWorksheetImageExportOptions CreateHeaderFooterImagesBaselineOptions() =>
-            new ExcelWorksheetImageExportOptions {
+        private static ExcelImageExportOptions CreateHeaderFooterImagesBaselineOptions() =>
+            new ExcelImageExportOptions {
                 Fonts = OfficeIMO.TestAssets.PortableVisualFontAssets.CreateSpreadsheetFonts(),
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,

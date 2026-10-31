@@ -21,7 +21,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Find an existing checklist and append another item.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// Find-OfficeWordList -Document $doc -Text 'Initial review' |
 ///     Add-OfficeWordListItem -Text 'Final approval'</code>
 ///   <para>Searches list-item paragraphs and returns matching OfficeIMO list objects for further editing.</para>
@@ -29,7 +29,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Append several follow-up items to an existing checklist.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Handover.docx
+///   <code>$doc = Open-OfficeWord -Path .\Handover.docx
 /// $list = Find-OfficeWordList -Document $doc -Text 'Initial review' | Select-Object -First 1
 /// $list | Add-OfficeWordListItem -Text 'Business sign-off'
 /// $list | Add-OfficeWordListItem -Text 'Go-live approval'

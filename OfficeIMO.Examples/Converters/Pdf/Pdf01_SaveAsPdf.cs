@@ -46,14 +46,11 @@ namespace OfficeIMO.Examples.Word.Converters {
             
             // Save as PDF
             string outputPath = Path.Combine(folderPath, "SaveAsPdf.pdf");
-            doc.SaveAsPdf(outputPath, new WordToPdfOptions {
+            doc.SaveAsPdf(outputPath, new WordPdfExportOptions {
                 Orientation = OfficePageOrientation.Portrait,
-                PageSize = OfficeIMO.Pdf.PageSizes.A4,
-                Margins = OfficeIMO.Pdf.PageMargins.FromCentimeters(
-                    left: 1,
-                    top: 3,
-                    right: 2,
-                    bottom: 2)
+                PageSize = OfficeIMO.Pdf.PdfPageSizes.A4,
+                Margins = new OfficeIMO.Pdf.PdfPageMargins(
+left: OfficeIMO.OfficeLength.Centimeters(1),top: OfficeIMO.OfficeLength.Centimeters(3),right: OfficeIMO.OfficeLength.Centimeters(2),bottom: OfficeIMO.OfficeLength.Centimeters(2))
             });
             
             Console.WriteLine($"✓ Created: {outputPath}");

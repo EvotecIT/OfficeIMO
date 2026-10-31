@@ -44,14 +44,14 @@ public sealed partial class OfficeVisualIntegrationTests {
                     var image = document.Images[index];
                     Assert.Equal(expected[index].GetPlacementBytes(), image.ToBytes());
                     Assert.Equal(expected[index].AlternativeText, image.Description);
-                    Assert.Equal(400D, image.Width!.Value, 6);
-                    Assert.Equal(240D, image.Height!.Value, 6);
+                    Assert.Equal(400D, (image.Width?.ToPixels())!.Value, 6);
+                    Assert.Equal(240D, (image.Height?.ToPixels())!.Value, 6);
                 }
             }
 
             string excelPath = Path.Combine(folder, "repeated.xlsx");
             using (var document = ExcelDocument.Create(excelPath)) {
-                var sheet = document.AddWorksheet("Requests");
+                var sheet = document.AddSheet("Requests");
                 for (int index = 0; index < expected.Length; index++) sheet.AddVisualArtifact(2 + index * 14, 2, expected[index]);
                 document.Save();
             }
@@ -61,24 +61,24 @@ public sealed partial class OfficeVisualIntegrationTests {
                 for (int index = 0; index < expected.Length; index++) {
                     Assert.Equal(expected[index].GetPlacementBytes(), images[index].ToBytes());
                     Assert.Equal(expected[index].AlternativeText, images[index].Description);
-                    Assert.Equal(400, images[index].WidthPixels);
-                    Assert.Equal(240, images[index].HeightPixels);
+                    Assert.Equal(400, images[index].Width.ToPixels());
+                    Assert.Equal(240, images[index].Height.ToPixels());
                 }
             }
 
             string presentationPath = Path.Combine(folder, "repeated.pptx");
-            using (var presentation = PowerPointPresentation.Create(presentationPath)) {
+            using (var presentation = PowerPointDocument.Create(presentationPath)) {
                 foreach (var visual in expected) presentation.AddSlide().AddVisualArtifact(visual, 36D, 54D);
                 presentation.Save();
             }
-            using (var presentation = PowerPointPresentation.Load(presentationPath)) {
+            using (var presentation = PowerPointDocument.Load(presentationPath)) {
                 Assert.Equal(expected.Length, presentation.Slides.Count);
                 for (int index = 0; index < expected.Length; index++) {
                     var image = Assert.Single(presentation.Slides[index].Pictures);
                     Assert.Equal(expected[index].GetPlacementBytes(), image.GetImageBytes());
                     Assert.Equal(expected[index].AlternativeText, image.Description);
-                    Assert.Equal(300D, image.WidthPoints, 6);
-                    Assert.Equal(180D, image.HeightPoints, 6);
+                    Assert.Equal(300D, image.Width.ToPoints(), 6);
+                    Assert.Equal(180D, image.Height.ToPoints(), 6);
                 }
             }
         } finally {

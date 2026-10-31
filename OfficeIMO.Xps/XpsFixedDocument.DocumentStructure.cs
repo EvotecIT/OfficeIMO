@@ -15,6 +15,11 @@ public sealed partial class XpsFixedDocument {
 
 public sealed partial class XpsDocument {
     internal (string Part, XElement Markup)? ReadOwnedDocumentStructure(XpsFixedDocument document, CancellationToken token) {
+        string? part = ResolveOwnedDocumentStructurePart(document, token);
+        return part == null ? null : (part, ReadDocumentStructurePart(part, token));
+    }
+
+    private string? ResolveOwnedDocumentStructurePart(XpsFixedDocument document, CancellationToken token) {
         string relName = RelationshipPartName(document.PartName);
         if (!_parts.ContainsKey(relName)) return null;
         var relationships = ReadXml(relName, token);
@@ -26,9 +31,13 @@ public sealed partial class XpsDocument {
         if (((string?)candidates[0].Attribute("TargetMode") ?? "Internal") != "Internal") throw new InvalidDataException("DocumentStructure must be package-local.");
         string part = XpsPackage.Resolve(document.PartName, (string?)candidates[0].Attribute("Target") ?? "");
         if (ContentType(part) != XpsPackage.Type("documentstructure")) throw new InvalidDataException("Invalid DocumentStructure content type.");
+        return part;
+    }
+
+    private XElement ReadDocumentStructurePart(string part, CancellationToken token) {
         var markup = ReadXml(part, token);
         if (markup.Name != StructureNamespace + "DocumentStructure") throw new InvalidDataException("Invalid DocumentStructure root or dialect.");
-        return (part, markup);
+        return markup;
     }
     internal void CommitDocumentStructure(XpsFixedDocument document, XElement markup) {
         var copy = ValidatePageMarkup(markup);

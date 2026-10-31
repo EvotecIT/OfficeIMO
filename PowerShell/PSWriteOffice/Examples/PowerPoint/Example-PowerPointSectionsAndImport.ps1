@@ -19,8 +19,8 @@ Add-OfficePowerPointTextBox -Slide $slide1 -Text 'FY24 summary for leadership' -
 $slide2 = Add-OfficePowerPointSlide -Presentation $target -Layout 1 -PassThru
 Set-OfficePowerPointSlideTitle -Slide $slide2 -Title 'FY24 Results'
 
-Add-OfficePowerPointSection -Presentation $target -Name 'Intro' -StartSlideIndex 0
-Add-OfficePowerPointSection -Presentation $target -Name 'Results' -StartSlideIndex 1
+Add-OfficePowerPointSection -Document $target -Name 'Intro' -Slide 1
+Add-OfficePowerPointSection -Document $target -Name 'Results' -Slide 2
 Rename-OfficePowerPointSection -Presentation $target -Name 'Results' -NewName 'Deep Dive'
 
 Update-OfficePowerPointText -Presentation $target -OldValue 'FY24' -NewValue 'FY25'

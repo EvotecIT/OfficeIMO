@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanClassifiesExternalValidationAndFormattingFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
 
             var validation = new DataValidation(new Formula1("Data!A5")) {
                 SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
@@ -76,8 +76,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanClassifiesExternallyHostedTableAndSparklineFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.CellValue(1, 1, "Value");
             summary.CellValue(2, 1, 1);
             summary.AddTable(
@@ -113,8 +113,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanRejectsPreservedFastSaveRowsWithoutMaterializing() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.InsertDataTable(CreateDataTable());
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.WriteData(CreateDataTable());
             document.PreserveDeferredDataSetFastSaveModelAndClearCandidate();
             Assert.False(document.HasDeferredDirectDataSetImport);
             Assert.True(document.HasUnmaterializedDirectDataSetRows);
@@ -129,9 +129,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanApplyMaterializesPreservedFastSaveRows() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelRowMutationPlan plan = sheet.PlanInsertRows(2);
-            sheet.InsertDataTable(CreateDataTable());
+            sheet.WriteData(CreateDataTable());
             document.PreserveDeferredDataSetFastSaveModelAndClearCandidate();
             Assert.True(document.HasUnmaterializedDirectDataSetRows);
 

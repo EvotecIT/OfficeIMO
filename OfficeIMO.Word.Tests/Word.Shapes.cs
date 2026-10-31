@@ -1,6 +1,6 @@
 using System.IO;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using Xunit;
 using HeaderFooterValues = DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues;
 
@@ -11,22 +11,22 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreateDocumentWithShapes.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Paragraph with shape");
-                var shape = paragraph.AddShape(100, 50, Color.Red);
+                var shape = paragraph.AddShape(OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50), Color.Red);
                 shape.Title = "Rectangle";
                 shape.Description = "My rectangle";
                 shape.Hidden = false;
                 shape.Stroked = true;
                 shape.StrokeColor = Color.Blue;
-                shape.StrokeWeight = 2;
-                shape.Left = 10;
-                shape.Top = 20;
+                shape.StrokeWeight = OfficeIMO.OfficeLength.Points(2);
+                shape.Left = OfficeIMO.OfficeLength.Points(10);
+                shape.Top = OfficeIMO.OfficeLength.Points(20);
                 shape.Rotation = 45;
-                shape.Width = 120;
-                shape.Height = 60;
+                shape.Width = OfficeIMO.OfficeLength.Points(120);
+                shape.Height = OfficeIMO.OfficeLength.Points(60);
 
-                WordShape.AddEllipse(paragraph, 80, 40, Color.Lime);
+                WordShape.AddEllipse(paragraph, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40), Color.Lime);
                 WordShape.AddPolygon(paragraph, "0,0 50,0 50,50 0,50", Color.White, Color.Blue);
-                WordShape.AddLine(paragraph, 0, 60, 100, 60, Color.Red, 2);
+                WordShape.AddLine(paragraph, OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60), Color.Red, OfficeIMO.OfficeLength.Points(2));
 
                 Assert.True(document.Paragraphs.Count == 1);
                 Assert.NotNull(paragraph.Shape);
@@ -35,11 +35,11 @@ namespace OfficeIMO.Tests {
                 Assert.False(shape.Hidden!.Value);
                 Assert.True(shape.Stroked!.Value);
                 Assert.Equal(Color.Blue.ToRgbHex(), shape.StrokeColorHex);
-                Assert.Equal(2d, shape.StrokeWeight!.Value, 1);
-                Assert.Equal(120d, shape.Width, 1);
-                Assert.Equal(60d, shape.Height, 1);
-                Assert.Equal(10d, shape.Left!.Value, 1);
-                Assert.Equal(20d, shape.Top!.Value, 1);
+                Assert.Equal(2d, shape.StrokeWeight!.Value.ToPoints(), 1);
+                Assert.Equal(120d, shape.Width.ToPoints(), 1);
+                Assert.Equal(60d, shape.Height.ToPoints(), 1);
+                Assert.Equal(10d, shape.Left!.Value.ToPoints(), 1);
+                Assert.Equal(20d, shape.Top!.Value.ToPoints(), 1);
                 Assert.Equal(45d, shape.Rotation!.Value, 1);
 
                 document.Save();
@@ -54,11 +54,11 @@ namespace OfficeIMO.Tests {
                 Assert.False(loadedShape.Hidden!.Value);
                 Assert.True(loadedShape.Stroked!.Value);
                 Assert.Equal(Color.Blue.ToRgbHex(), loadedShape.StrokeColorHex);
-                Assert.Equal(2d, loadedShape.StrokeWeight!.Value, 1);
-                Assert.Equal(120d, loadedShape.Width, 1);
-                Assert.Equal(60d, loadedShape.Height, 1);
-                Assert.Equal(10d, loadedShape.Left!.Value, 1);
-                Assert.Equal(20d, loadedShape.Top!.Value, 1);
+                Assert.Equal(2d, loadedShape.StrokeWeight!.Value.ToPoints(), 1);
+                Assert.Equal(120d, loadedShape.Width.ToPoints(), 1);
+                Assert.Equal(60d, loadedShape.Height.ToPoints(), 1);
+                Assert.Equal(10d, loadedShape.Left!.Value.ToPoints(), 1);
+                Assert.Equal(20d, loadedShape.Top!.Value.ToPoints(), 1);
                 Assert.Equal(45d, loadedShape.Rotation!.Value, 1);
             }
         }
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddShapeFromDocument() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentAddShape.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var shape = document.AddShape(WordShapeType.Rectangle, 80, 40, Color.Lime, Color.Black, 2);
+                var shape = document.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40), Color.Lime, Color.Black, OfficeIMO.OfficeLength.Points(2));
                 Assert.True(document.Paragraphs[0].IsShape);
                 Assert.Equal(Color.Lime.ToRgbHex(), shape.FillColorHex);
                 Assert.Equal(Color.Black.ToRgbHex(), shape.StrokeColorHex);
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ParagraphAddShape.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
-                var shape = paragraph.AddShape(WordShapeType.Ellipse, 60, 30, Color.Aqua, Color.Red, 1.5);
+                var shape = paragraph.AddShape(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30), Color.Aqua, Color.Red, OfficeIMO.OfficeLength.Points(1.5));
                 Assert.True(paragraph.IsShape);
                 Assert.Equal(Color.Aqua.ToRgbHex(), shape.FillColorHex);
                 Assert.Equal(Color.Red.ToRgbHex(), shape.StrokeColorHex);
@@ -108,8 +108,8 @@ namespace OfficeIMO.Tests {
         public void Test_ShapeCollectionsAndRemoval() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentShapesCollections.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var rect = document.AddShape(WordShapeType.Rectangle, 50, 20);
-                var ellipse = document.AddShape(WordShapeType.Ellipse, 40, 40, Color.Green, Color.Blue);
+                var rect = document.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(20));
+                var ellipse = document.AddShape(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40), Color.Green, Color.Blue);
                 ellipse.FillColor = Color.Yellow;
 
                 Assert.True(document.Shapes.Count == 2);
@@ -136,15 +136,15 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SectionHeaderShapes.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var section = document.Sections[0];
-                section.AddShape(WordShapeType.Rectangle, 40, 20, Color.Red, Color.Black);
-                section.AddShape(WordShapeType.RoundedRectangle, 30, 15, Color.Yellow, Color.Black, 1, arcSize: 0.3);
-                section.AddShapeDrawing(WordShapeType.Ellipse, 20, 20);
+                section.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(20), Color.Red, Color.Black);
+                section.AddShape(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(15), Color.Yellow, Color.Black, OfficeIMO.OfficeLength.Points(1), arcSize: 0.3);
+                section.AddShapeDrawing(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
 
                 section.AddHeadersAndFooters();
                 var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
-                defaultHeader.AddShape(WordShapeType.Rectangle, 30, 15, Color.Blue, Color.Black);
-                defaultHeader.AddShape(WordShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
-                defaultHeader.AddShapeDrawing(WordShapeType.Ellipse, 20, 20);
+                defaultHeader.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(15), Color.Blue, Color.Black);
+                defaultHeader.AddShape(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(25), OfficeIMO.OfficeLength.Points(15), Color.Green, Color.Black, OfficeIMO.OfficeLength.Points(1), arcSize: 0.3);
+                defaultHeader.AddShapeDrawing(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
 
                 document.Save();
             }
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddRoundedRectangleShape() {
             string filePath = Path.Combine(_directoryWithFiles, "RoundedRectangleShape.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var shape = document.AddShape(WordShapeType.RoundedRectangle, 60, 30, Color.Lime, Color.Black, 1, arcSize: 0.3);
+                var shape = document.AddShape(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30), Color.Lime, Color.Black, OfficeIMO.OfficeLength.Points(1), arcSize: 0.3);
                 Assert.True(document.Paragraphs[0].IsShape);
                 Assert.NotNull(shape.ArcSize);
                 Assert.InRange(shape.ArcSize!.Value, 0.29, 0.31);

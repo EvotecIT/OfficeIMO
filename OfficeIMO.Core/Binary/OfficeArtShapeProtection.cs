@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing.Binary;
 /// <summary>
 /// Decodes the shared OfficeArt protection Boolean property for a shape.
 /// </summary>
-public sealed class OfficeArtShapeProtection {
+internal sealed class OfficeArtShapeProtection {
     private OfficeArtShapeProtection(
         IReadOnlyList<OfficeArtProperty> properties) {
         Properties = properties?.ToArray() ?? Array.Empty<OfficeArtProperty>();

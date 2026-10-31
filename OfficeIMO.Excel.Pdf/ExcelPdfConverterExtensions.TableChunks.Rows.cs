@@ -1,7 +1,7 @@
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         // Map authored row numbers after hidden-row filtering and any title-row prepend.
-        private static IReadOnlyList<int> GetPrintTitleRowIndexes(ExcelSheet? sheet, string?[,]? references, ExcelToPdfOptions options) {
+        private static IReadOnlyList<int> GetPrintTitleRowIndexes(ExcelSheet? sheet, string?[,]? references, ExcelPdfExportOptions options) {
             ExcelPrintTitles? titles = sheet?.GetPrintTitles();
             if (!options.UseWorksheetPrintTitleRows || titles?.HasRows != true || references == null) return Array.Empty<int>();
             var indexes = new List<int>();
@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static int GetChunkHeaderRowCount(WorksheetPdfExportPlan plan, IReadOnlyList<int> rows) {
             // PDF tables can repeat a leading header prefix. Natural middle rows become
             // that prefix only on later chunks, after earlier body rows have been traversed.
-            var repeating = new HashSet<int>(plan.ExportData.RepeatingRowIndexes);
+            HashSet<int> repeating = plan.ExportData.RepeatingRowSet;
             int count = 0;
             while (count < rows.Count && repeating.Contains(rows[count])) count++;
             return count;

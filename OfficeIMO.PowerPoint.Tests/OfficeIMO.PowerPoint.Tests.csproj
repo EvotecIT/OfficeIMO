@@ -77,4 +77,7 @@
     <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
   </PropertyGroup>
 
+  <ItemGroup><ProjectReference Include="..\OfficeIMO.Pdf.PowerPoint\OfficeIMO.Pdf.PowerPoint.csproj" /></ItemGroup>
+  <ItemGroup><Using Include="OfficeIMO.PowerPoint.Pdf" /></ItemGroup>
+  <ItemGroup><Using Include="OfficeIMO.Pdf.PowerPoint" /></ItemGroup>
 </Project>

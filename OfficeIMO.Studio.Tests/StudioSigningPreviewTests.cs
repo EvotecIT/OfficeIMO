@@ -138,7 +138,7 @@ public sealed class StudioSigningPreviewTests {
                 if (stale) { Assert.Equal(0, loads); Assert.Empty(services.Jobs.Entries); Assert.Null(result); Assert.False(File.Exists(output)); }
                 else {
                     Assert.Null(model.ErrorMessage); Assert.Equal(1, loads); Assert.NotNull(result); Assert.True(result.CanOpenOutput); Assert.Equal(folderNavigation, result.CanRevealOutput);
-                    var signed = PdfDocument.Load(File.ReadAllBytes(output)); Assert.Equal(3, signed.Inspect().PageCount);
+                    var signed = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output))); Assert.Equal(3, signed.Inspect().PageCount);
                     var report = signed.Security.ValidateSignatures(new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default));
                     Assert.Equal("Approval", Assert.Single(report.Signatures).Signature.FieldName); Assert.True(report.MathematicalSignaturesVerified);
                     Assert.Contains("Certificate chain: not verified", result.Verification);
@@ -178,7 +178,7 @@ public sealed class StudioSigningPreviewTests {
                 Assert.False(result.CanRevealOutput); Assert.False(Assert.Single(services.Jobs.Entries).IsActive);
                 byte[] bytes = output.Bytes;
                 if (fail) { var recovery = Assert.Single(services.WorkflowRecovery.GetRecoveries()); await services.WorkflowRecovery.VerifyAsync(recovery); bytes = File.ReadAllBytes(recovery.FilePath); Assert.Contains("destination contents are unconfirmed", result.Verification); }
-                Assert.True(PdfDocument.Load(bytes).Security.ValidateSignatures(new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default)).MathematicalSignaturesVerified);
+                Assert.True(PdfDocument.Load(new System.IO.MemoryStream(bytes)).Security.ValidateSignatures(new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default)).MathematicalSignaturesVerified);
             }
             return true;
         }, CancellationToken.None);
@@ -250,8 +250,8 @@ public sealed class StudioSigningPreviewTests {
         frame.Save(Path.Combine(root, name + ".png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
     }
     private static PdfDocument CreatePdf() => PdfDocument.Create(document => {
-        document.Page(page => page.Size(300, 400).Content(content => content.Text("Document for signing review")));
-        document.Page(page => page.Size(300, 400));
+        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Text("Document for signing review")));
+        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
     });
     private static void SelectCertificate(MainWindowViewModel model, X509Certificate2 certificate) {
         model.SelectedSigningCertificate = new(certificate.Thumbprint, "Studio Test Signer", certificate.NotAfter, certificate.Issuer);

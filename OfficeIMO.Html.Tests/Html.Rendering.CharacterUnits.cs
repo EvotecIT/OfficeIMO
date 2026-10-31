@@ -19,6 +19,17 @@ public sealed class HtmlCharacterUnitTests {
     }
 
     [Fact]
+    public void ReferencedCustomCharacterUnitResolvesAlongsideUnusedInheritedPayload() {
+        string html = "<div style='font-family:Courier New;font-size:20px;--distance:3ch;--unused:" +
+            new string('x', 100_000) + "'><div>0</div>" +
+            string.Concat(Enumerable.Repeat("<span style='display:none'></span>", 200)) +
+            "<div style='margin-left:var(--distance)'>Body</div></div>";
+        var text = Render(html);
+
+        Assert.Equal(Find(text, "0").TextAdvanceWidth!.Value * 3D, Find(text, "Body").X, 3);
+    }
+
+    [Fact]
     public void CharacterWidthConstrainsTheActualBox() {
         var text = Render("<div style='font-family:Courier New;font-size:20px'><div>0</div><div style='width:5ch;overflow-wrap:anywhere'>1234567890</div></div>");
         var zero = Find(text, "0");
@@ -38,9 +49,9 @@ public sealed class HtmlCharacterUnitTests {
     [InlineData("<style>:root{--measure:20ch}</style><div style='font-size:0'>Hidden<span style='font-size:16px'>Visible</span></div>")]
     [InlineData("<div style='font-size:0'><span style='font-size:2ch'>Hidden</span><span style='font-size:16px'>Visible</span></div>")]
     public void ZeroSizeCharacterMeasurementPreservesVisiblePdfDescendants(string html) {
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        })).ToBytes();
 
         string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Equal("Visible", text.Trim());

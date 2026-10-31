@@ -1,12 +1,16 @@
 using OfficeIMO.Workflows;
+using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Studio.Features.Conversion;
 
 /// <summary>A document format that converts to PDF: its route, its name and the file extensions it is read from.</summary>
 internal sealed record PdfConversionSource(string Route, string Name, IReadOnlyList<string> Extensions);
 
-/// <summary>A note about a conversion's fidelity, such as content the PDF shows differently; severity is "warning" or "error".</summary>
-internal sealed record PdfConversionNote(string Severity, string Message);
+/// <summary>
+/// A note about a conversion's fidelity in plain words for the person converting, such as content the PDF shows
+/// differently; severity is "warning" or "error" and code is the converter's stable diagnostic code.
+/// </summary>
+internal sealed record PdfConversionNote(string Severity, string Message, string Code);
 
 /// <summary>A finished conversion: the route used, the PDF's size and the converter's notes.</summary>
 internal sealed record PdfConversionResult(string Route, string Source, long OutputBytes, IReadOnlyList<PdfConversionNote> Notes);
@@ -48,7 +52,7 @@ internal static class PdfConversion {
             InputPath = inputPath,
             OutputPath = outputPath,
             ConversionRouteId = route.Route,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            ConflictPolicy = OfficePublicationPolicy.Replace
         }, route.Name, $"“{Path.GetFileName(inputPath)}” couldn’t be converted", cancellationToken).ConfigureAwait(false);
     }
 
@@ -59,9 +63,9 @@ internal static class PdfConversion {
 
     /// <summary>
     /// Converts a PDF, such as the open revision of a document, to Word, Excel, PowerPoint or HTML at
-    /// <paramref name="outputPath"/>, replacing what is there. A password opens an encrypted PDF.
+    /// <paramref name="outputPath"/>, replacing what is there. The read options retain the open document's decoding limits.
     /// </summary>
-    internal static async Task<PdfConversionResult> ConvertPdfAsync(byte[] pdf, string? password, string target, string outputPath,
+    internal static async Task<PdfConversionResult> ConvertPdfAsync(byte[] pdf, PdfLoadOptions? readOptions, string target, string outputPath,
         CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(pdf);
         if (!PdfTargets.TryGetValue(target, out string? routeId) || OfficeWorkflowCatalog.FindExecutable(routeId) is null)
@@ -78,13 +82,28 @@ internal static class PdfConversion {
                 InputPath = inputPath,
                 OutputPath = outputPath,
                 ConversionRouteId = routeId,
-                PdfPassword = password,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                InputPdfLoadOptions = readOptions,
+                ConflictPolicy = OfficePublicationPolicy.Replace
             }, "PDF", "The PDF couldn’t be converted", cancellationToken).ConfigureAwait(false);
         } finally {
             try { Directory.Delete(folder, recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
     }
+
+    /// <summary>What a route always does, whatever the document holds, so it says nothing about this conversion.</summary>
+    private static readonly HashSet<string> RouteStatements = new(StringComparer.Ordinal) {
+        "pdf-editable-layout-reconstructed", "pdf-editable-content-reconstructed", "pdf-semantic-layout-reflowed"
+    };
+
+    /// <summary>The sentence shown for a diagnostic code. Apps can translate these fixed sentences or the code.</summary>
+    private static string PlainNote(string code) => code switch {
+        "font-family-substitution" or "FontFamilySubstituted" => "A font wasn’t available, so a similar one was used.",
+        "pdf-vector-graphics-reconstructed-semantically" or "pdf-vector-appearance-omitted" or "pdf-vectors-not-reconstructed" =>
+            "Some drawn lines and shapes were left out.",
+        "pdf-excel-page-content-omitted" => "Content outside tables was left out.",
+        "pdf-artifact-text-omitted" => "Running headers, footers or page numbers were left out.",
+        _ => "Some content looks different from the original."
+    };
 
     private static async Task<PdfConversionResult> RunAsync(OfficeWorkflowRequest request, string source, string failure,
         CancellationToken cancellationToken) {
@@ -92,9 +111,9 @@ internal static class PdfConversion {
         switch (result.Status) {
             case OfficeWorkflowStatus.Completed:
                 return new PdfConversionResult(request.ConversionRouteId!, source, result.OutputBytes, result.Diagnostics
-                    .Where(static diagnostic => diagnostic.Severity != OfficeWorkflowDiagnosticSeverity.Information)
+                    .Where(static diagnostic => diagnostic.Severity != OfficeWorkflowDiagnosticSeverity.Information && !RouteStatements.Contains(diagnostic.Code))
                     .Select(static diagnostic => new PdfConversionNote(diagnostic.Severity == OfficeWorkflowDiagnosticSeverity.Error ? "error" : "warning",
-                        diagnostic.Message)).ToArray());
+                        PlainNote(diagnostic.Code), diagnostic.Code)).ToArray());
             case OfficeWorkflowStatus.Cancelled:
                 throw new OperationCanceledException(cancellationToken);
             default:

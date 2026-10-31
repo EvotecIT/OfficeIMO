@@ -79,7 +79,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         using var publicApiStream = new MemoryStream(payload);
         Assert.Throws<InvalidDataException>(() =>
-            document.AddParagraph().AddImage(publicApiStream, "truncated.jp2", width: null, height: null));
+            document.AddParagraph().AddImage(publicApiStream,"truncated.jp2",width:null,height:null));
     }
 
     private static byte[] CreateIncompleteJpeg2000Container() {

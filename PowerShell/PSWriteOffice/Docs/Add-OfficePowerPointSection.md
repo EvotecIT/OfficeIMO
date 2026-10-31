@@ -6,34 +6,55 @@ schema: 2.0.0
 ---
 # Add-OfficePowerPointSection
 ## SYNOPSIS
-Adds a section to a PowerPoint presentation.
+Starts a named section at an existing, current or next appended slide.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Add-OfficePowerPointSection -Name <string> [-Presentation <PowerPointPresentation>] [-StartSlideIndex <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointSection [-Name] <string> [-Document <PowerPointDocument>] [-Slide <PowerPointSlideSelector>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates a new section starting at the requested slide index or at the current slide inside the DSL.
+Starts a named section at an existing, current or next appended slide.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePowerPoint -Path .\Examples\Documents\PowerPointSections.pptx {
-    Add-OfficePowerPointSlide -Layout 1 -PassThru | Set-OfficePowerPointSlideTitle -Title 'Overview'
-    Add-OfficePowerPointSlide -Layout 1 -PassThru | Set-OfficePowerPointSlideTitle -Title 'Results'
-    Add-OfficePowerPointSection -Name 'Results' -StartSlideIndex 1
+New-OfficePowerPoint -Path ./Results.pptx {
+    PowerPointSection 'Results'
+    PowerPointSlide -Title 'Revenue' { PowerPointParagraph 'Revenue increased.' }
+    PowerPointSlide -Title 'Margin' { PowerPointParagraph 'Margin improved.' }
 }
 ```
 
-Creates a section named Results starting at the second slide.
+
+### EXAMPLE 2
+```powershell
+Add-OfficePowerPointSection -Document $deck -Name Appendix -Slide 9
+```
+
 
 ## PARAMETERS
 
+### -Document
+Gets or sets the document; omission uses the enclosing scope or selected native slide's owner.
+
+```yaml
+Type: PowerPointDocument
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -Name
-Name of the section to add.
+Gets or sets the section name.
 
 ```yaml
 Type: String
@@ -42,14 +63,14 @@ Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Gets or sets whether to return section metadata, including its stable native identifier.
 
 ```yaml
 Type: SwitchParameter
@@ -64,27 +85,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Presentation
-Presentation to update (optional inside DSL).
+### -Slide
+Gets or sets a native slide or one-based slide position; omission uses the current or next slide.
 
 ```yaml
-Type: PowerPointPresentation
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -StartSlideIndex
-Zero-based slide index where the section should start.
-
-```yaml
-Type: Int32
+Type: PowerPointSlideSelector
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -101,7 +106,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

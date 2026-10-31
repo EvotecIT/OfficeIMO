@@ -166,7 +166,7 @@ public sealed class StudioPageOrganizationTests {
             }
         });
     }
-    private static string[] ReadPages(string path) => PdfReadDocument.Open(path).Pages.Select(page => page.ExtractText().Trim()).ToArray();
+    private static string[] ReadPages(string path) => PdfDocument.Load(path).Pages.Select(page => page.ExtractText().Trim()).ToArray();
     private static int[] Selected(MainWindowViewModel model) => model.OrganizerPages.Where(page => page.IsSelected).Select(page => page.PageNumber).ToArray();
     private static async Task Layout(Window window) => await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
         () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);

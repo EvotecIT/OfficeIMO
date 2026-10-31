@@ -23,9 +23,9 @@ public sealed class PdfTableCellFormField {
 
         Kind = kind;
         Name = name;
-        Width = width;
-        Height = height;
-        FontSize = fontSize;
+        Width = OfficeLength.Points(width);
+        Height = OfficeLength.Points(height);
+        FontSize = OfficeLength.Points(fontSize);
         IsComboBox = isComboBox;
         _style = style?.Clone() ?? new PdfFormFieldStyle();
 
@@ -62,14 +62,14 @@ public sealed class PdfTableCellFormField {
     /// <summary>Available choice options. Empty for text fields.</summary>
     public System.Collections.Generic.IReadOnlyList<string> Options { get; }
 
-    /// <summary>Preferred visual width in points. Rendering clamps this to the available cell width.</summary>
-    public double Width { get; }
+    /// <summary>Preferred visual width. Rendering clamps this to the available cell width.</summary>
+    public OfficeLength Width { get; }
 
-    /// <summary>Visual height in points.</summary>
-    public double Height { get; }
+    /// <summary>Visual height.</summary>
+    public OfficeLength Height { get; }
 
-    /// <summary>Text font size in points.</summary>
-    public double FontSize { get; }
+    /// <summary>Text font size.</summary>
+    public OfficeLength FontSize { get; }
 
     /// <summary>Whether a choice field is emitted as a combo box.</summary>
     public bool IsComboBox { get; }
@@ -78,15 +78,15 @@ public sealed class PdfTableCellFormField {
     public PdfFormFieldStyle Style => _style.Clone();
 
     /// <summary>Creates a table-cell text field.</summary>
-    public static PdfTableCellFormField TextField(string name, string? value = null, double width = 120, double height = 18, double fontSize = 10, PdfFormFieldStyle? style = null) =>
-        new PdfTableCellFormField(PdfTableCellFormFieldKind.Text, name, width, height, fontSize, value, null, isComboBox: false, style);
+    public static PdfTableCellFormField TextField(string name, string? value = null, OfficeLength? width = null, OfficeLength? height = null, OfficeLength? fontSize = null, PdfFormFieldStyle? style = null) =>
+        new PdfTableCellFormField(PdfTableCellFormFieldKind.Text, name, (width ?? OfficeLength.Points(120)).ToPoints(), (height ?? OfficeLength.Points(18)).ToPoints(), (fontSize ?? OfficeLength.Points(10)).ToPoints(), value, null, isComboBox: false, style);
 
     /// <summary>Creates a table-cell scalar choice field.</summary>
-    public static PdfTableCellFormField ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 120, double height = 18, double fontSize = 10, bool isComboBox = true, PdfFormFieldStyle? style = null) =>
-        new PdfTableCellFormField(PdfTableCellFormFieldKind.Choice, name, width, height, fontSize, value, options, isComboBox, style);
+    public static PdfTableCellFormField ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null, global::OfficeIMO.OfficeLength? fontSize = null, bool isComboBox = true, PdfFormFieldStyle? style = null) =>
+        new PdfTableCellFormField(PdfTableCellFormFieldKind.Choice, name, (width?.ToPoints() ?? 120), (height?.ToPoints() ?? 18), (fontSize?.ToPoints() ?? 10), value, options, isComboBox, style);
 
     internal PdfTableCellFormField Clone() =>
-        new PdfTableCellFormField(Kind, Name, Width, Height, FontSize, Value, Options, IsComboBox, _style);
+        new PdfTableCellFormField(Kind, Name, Width.ToPoints(), Height.ToPoints(), FontSize.ToPoints(), Value, Options, IsComboBox, _style);
 
     private static System.Collections.Generic.List<string> NormalizeOptions(System.Collections.Generic.IEnumerable<string>? options) {
         Guard.NotNull(options, nameof(options));

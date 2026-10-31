@@ -13,14 +13,14 @@ namespace OfficeIMO.Tests {
             paragraph.AddText(" and ");
             paragraph.AddText("highlighted").Highlight = WordHighlightColor.Yellow;
 
-            string markdownDefault = doc.ToMarkdown(new WordToMarkdownOptions());
+            string markdownDefault = ((doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
             Assert.DoesNotContain("<u>", markdownDefault);
             Assert.DoesNotContain("==highlighted==", markdownDefault);
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+            string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
                 EnableUnderline = true,
                 EnableHighlight = true
-            });
+            }).ToMarkdown()));
 
             Assert.Contains("<u>underlined</u>", markdown);
             Assert.Contains("==highlighted==", markdown);

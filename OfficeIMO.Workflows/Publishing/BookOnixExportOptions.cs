@@ -1,3 +1,6 @@
+#if !NET8_0_OR_GREATER
+using DateOnly = System.DateTime;
+#endif
 namespace OfficeIMO.Workflows;
 
 /// <summary>Complete-record notification types supported by the bibliographic ONIX export profile.</summary>

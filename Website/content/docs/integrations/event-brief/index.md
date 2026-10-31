@@ -84,7 +84,7 @@ $scope = 'Application log | last 24 hours | levels 1, 2, 3 | limit {0} | collect
 
 New-OfficeWord -Path $docx {
     WordHeader { WordParagraph -Text 'OPERATIONS / EVENT REVIEW' }
-    WordFooter { WordPageNumber -IncludeTotalPages }
+    WordFooter { WordPageNumber -IncludeTotal }
     WordParagraph {
         WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
         WordText 'Windows event review' -Bold -FontSize 26 -Color '17365D'
@@ -104,8 +104,8 @@ New-OfficeWord -Path $docx {
         $table = WordTable -InputObject $providers -Style GridTable4Accent1 `
             -Layout AutoFitToWindow -PassThru
         $table | Get-OfficeWordTableCell | ForEach-Object {
-            $_.MarginTopCentimeters = 0.14
-            $_.MarginBottomCentimeters = 0.14
+            $_.MarginTop = [OfficeIMO.OfficeLength]::Centimeters(0.14)
+            $_.MarginBottom = [OfficeIMO.OfficeLength]::Centimeters(0.14)
         }
     } else {
         WordParagraph -Text 'No matching records were returned for this collection.'
@@ -120,7 +120,7 @@ New-OfficeWord -Path $docx {
         WordListItem -Text 'Record the investigation owner, next action and follow-up time in this document.'
     }
 }
-Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
+Convert-OfficeDocument -LiteralPath $docx -To Pdf -OutputPath $pdf
 ```
 
 The heading stays with the table, the cells have breathing room, and the next section starts with a deliberate gap. These small details make a generated document much easier to read. The Word file remains editable, so the investigator can add what they found before passing it on.
@@ -137,7 +137,7 @@ New-OfficeExcel -Path $xlsx {
         ExcelRow -Row 1 -Height 30 -Bold $true
         ExcelCell -Address A2 -Value $scope
         if ($records.Count) {
-            ExcelTable -InputObject $records -StartRow 4 -TableName EventRegister `
+            ExcelTable -InputObject $records -StartRow 4 -Name EventRegister `
                 -TableStyle TableStyleMedium2
             for ($row = 5; $row -lt 5 + $records.Count; $row++) {
                 ExcelCell -Row $row -Column 1 -Value $records[$row - 5].TimeCreated `

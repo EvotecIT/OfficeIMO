@@ -4,7 +4,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
     private static readonly char[] SpaceSeparators = { ' ' };
     private static readonly double[] DefaultBorderDashPattern = { 3D };
 
-    internal static string BuildTextAnnotation(double x1, double y1, double x2, double y2, string contents, PdfTextAnnotationIcon icon = PdfTextAnnotationIcon.Comment, PdfColor? color = null, bool open = false, int? structParentIndex = null) {
+    internal static string BuildTextAnnotation(double x1, double y1, double x2, double y2, string contents, PdfTextAnnotationIcon icon = PdfTextAnnotationIcon.Comment, global::OfficeIMO.OfficeColor? color = null, bool open = false, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(contents, nameof(contents));
         PdfDocument.ValidateTextAnnotationIcon(icon, nameof(icon));
@@ -18,13 +18,13 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             PdfSyntaxEscaper.TextString(contents) +
             " /Name /" +
             PdfSyntaxEscaper.Name(GetTextAnnotationIconName(icon)) +
-            (color.HasValue ? " /C [" + FormatCoordinate(color.Value.R) + " " + FormatCoordinate(color.Value.G) + " " + FormatCoordinate(color.Value.B) + "]" : string.Empty) +
+            (color.HasValue ? " /C [" + FormatCoordinate(color.Value.ToNormalizedRgb().R) + " " + FormatCoordinate(color.Value.ToNormalizedRgb().G) + " " + FormatCoordinate(color.Value.ToNormalizedRgb().B) + "]" : string.Empty) +
             (open ? " /Open true" : string.Empty) +
             BuildStructParentEntry(structParentIndex) +
             " >>\n";
     }
 
-    internal static string BuildFreeTextAnnotation(double x1, double y1, double x2, double y2, string contents, double fontSize = 10D, PdfColor? textColor = null, PdfColor? borderColor = null, double borderWidth = 1D, PdfColor? fillColor = null, int normalAppearanceId = 0, int? structParentIndex = null) {
+    internal static string BuildFreeTextAnnotation(double x1, double y1, double x2, double y2, string contents, double fontSize = 10D, global::OfficeIMO.OfficeColor? textColor = null, global::OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 1D, global::OfficeIMO.OfficeColor? fillColor = null, int normalAppearanceId = 0, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(contents, nameof(contents));
         ValidateFinite(fontSize, nameof(fontSize));
@@ -37,7 +37,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             throw new ArgumentOutOfRangeException(nameof(borderWidth), borderWidth, "PDF free text annotation border width must be non-negative.");
         }
 
-        PdfColor resolvedTextColor = textColor ?? PdfColor.Black;
+        global::OfficeIMO.OfficeColor resolvedTextColor = textColor ?? global::OfficeIMO.OfficeColor.Black;
         return "<< /Type /Annot /Subtype /FreeText /Rect [" +
             FormatCoordinate(x1) + " " +
             FormatCoordinate(y1) + " " +
@@ -57,10 +57,10 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             " >>\n";
     }
 
-    internal static string BuildHighlightAnnotation(double x1, double y1, double x2, double y2, string contents, PdfColor? color = null, int normalAppearanceId = 0, int? structParentIndex = null) {
+    internal static string BuildHighlightAnnotation(double x1, double y1, double x2, double y2, string contents, global::OfficeIMO.OfficeColor? color = null, int normalAppearanceId = 0, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(contents, nameof(contents));
-        PdfColor resolvedColor = color ?? new PdfColor(1D, 0.92D, 0.2D);
+        global::OfficeIMO.OfficeColor resolvedColor = color ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.92D, 0.2D);
 
         return "<< /Type /Annot /Subtype /Highlight /Rect [" +
             FormatCoordinate(x1) + " " +
@@ -86,7 +86,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             " >>\n";
     }
 
-    internal static string BuildFreeTextAppearanceContent(double width, double height, string contents, double fontSize = 10D, PdfColor? textColor = null, PdfColor? borderColor = null, double borderWidth = 1D, PdfColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null, IReadOnlyList<double>? borderDashPattern = null, PdfFormFieldBorderStyle borderStyle = PdfFormFieldBorderStyle.Solid, IReadOnlyList<PdfAnnotationPathPoint>? calloutLine = null, string? calloutLineEnding = null, IReadOnlyList<double>? rectangleDifferences = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
+    internal static string BuildFreeTextAppearanceContent(double width, double height, string contents, double fontSize = 10D, global::OfficeIMO.OfficeColor? textColor = null, global::OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 1D, global::OfficeIMO.OfficeColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null, IReadOnlyList<double>? borderDashPattern = null, PdfFormFieldBorderStyle borderStyle = PdfFormFieldBorderStyle.Solid, IReadOnlyList<PdfAnnotationPathPoint>? calloutLine = null, string? calloutLineEnding = null, IReadOnlyList<double>? rectangleDifferences = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(contents, nameof(contents));
@@ -98,7 +98,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             Guard.Positive(lineHeight.Value, nameof(lineHeight));
         }
 
-        PdfColor resolvedTextColor = textColor ?? PdfColor.Black;
+        global::OfficeIMO.OfficeColor resolvedTextColor = textColor ?? global::OfficeIMO.OfficeColor.Black;
         ResolveFreeTextInnerRectangle(width, height, rectangleDifferences, out double innerX, out double innerY, out double innerWidth, out double innerHeight);
         double effectiveLineHeight = lineHeight ?? fontSize * 1.2D;
         double availableWidth = Math.Max(0D, innerWidth - padding * 2D);
@@ -120,7 +120,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
 
         if (calloutLine != null && calloutLine.Count >= 2) {
-            PdfColor calloutColor = borderColor ?? resolvedTextColor;
+            global::OfficeIMO.OfficeColor calloutColor = borderColor ?? resolvedTextColor;
             double calloutWidth = borderWidth > 0D ? borderWidth : 1D;
             content += BuildFreeTextCalloutLineContent(calloutLine, calloutColor, calloutWidth, borderDashPattern, calloutLineEnding);
         }
@@ -153,7 +153,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return content + "Q\n";
     }
 
-    internal static string BuildFreeTextRichAppearanceContent(double width, double height, IReadOnlyList<PdfFreeTextRichTextRun> runs, out IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources, double fontSize = 10D, PdfColor? textColor = null, PdfColor? borderColor = null, double borderWidth = 1D, PdfColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null, IReadOnlyList<double>? borderDashPattern = null, PdfFormFieldBorderStyle borderStyle = PdfFormFieldBorderStyle.Solid, IReadOnlyList<PdfAnnotationPathPoint>? calloutLine = null, string? calloutLineEnding = null, IReadOnlyList<double>? rectangleDifferences = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
+    internal static string BuildFreeTextRichAppearanceContent(double width, double height, IReadOnlyList<PdfFreeTextRichTextRun> runs, out IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources, double fontSize = 10D, global::OfficeIMO.OfficeColor? textColor = null, global::OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 1D, global::OfficeIMO.OfficeColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null, IReadOnlyList<double>? borderDashPattern = null, PdfFormFieldBorderStyle borderStyle = PdfFormFieldBorderStyle.Solid, IReadOnlyList<PdfAnnotationPathPoint>? calloutLine = null, string? calloutLineEnding = null, IReadOnlyList<double>? rectangleDifferences = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(runs, nameof(runs));
@@ -165,7 +165,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             Guard.Positive(lineHeight.Value, nameof(lineHeight));
         }
 
-        PdfColor resolvedTextColor = textColor ?? PdfColor.Black;
+        global::OfficeIMO.OfficeColor resolvedTextColor = textColor ?? global::OfficeIMO.OfficeColor.Black;
         ResolveFreeTextInnerRectangle(width, height, rectangleDifferences, out double innerX, out double innerY, out double innerWidth, out double innerHeight);
         double effectiveLineHeight = lineHeight ?? fontSize * 1.2D;
         double availableWidth = Math.Max(0D, innerWidth - padding * 2D);
@@ -188,7 +188,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
 
         if (calloutLine != null && calloutLine.Count >= 2) {
-            PdfColor calloutColor = borderColor ?? resolvedTextColor;
+            global::OfficeIMO.OfficeColor calloutColor = borderColor ?? resolvedTextColor;
             double calloutWidth = borderWidth > 0D ? borderWidth : 1D;
             content.Append(BuildFreeTextCalloutLineContent(calloutLine, calloutColor, calloutWidth, borderDashPattern, calloutLineEnding));
         }
@@ -264,7 +264,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return "q\n1 0 0 1 " + FormatCoordinate(x) + " " + FormatCoordinate(y) + " cm\n" + content + "Q\n";
     }
 
-    private static string BuildFreeTextCalloutLineContent(IReadOnlyList<PdfAnnotationPathPoint> calloutLine, PdfColor color, double borderWidth, IReadOnlyList<double>? borderDashPattern, string? lineEnding) {
+    private static string BuildFreeTextCalloutLineContent(IReadOnlyList<PdfAnnotationPathPoint> calloutLine, global::OfficeIMO.OfficeColor color, double borderWidth, IReadOnlyList<double>? borderDashPattern, string? lineEnding) {
         var builder = new StringBuilder();
         builder.Append(BuildBorderStrokeOperators(color, borderWidth, borderDashPattern));
         builder.Append(FormatCoordinate(calloutLine[0].X)).Append(' ').Append(FormatCoordinate(calloutLine[0].Y)).Append(" m ");
@@ -277,17 +277,17 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return builder.ToString();
     }
 
-    internal static string BuildHighlightAppearanceContent(double width, double height, PdfColor? color = null) {
+    internal static string BuildHighlightAppearanceContent(double width, double height, global::OfficeIMO.OfficeColor? color = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
-        PdfColor resolvedColor = color ?? new PdfColor(1D, 0.92D, 0.2D);
+        global::OfficeIMO.OfficeColor resolvedColor = color ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.92D, 0.2D);
         return "q\n" +
             "/OfficeIMOHighlightGs gs\n" +
             FormatColor(resolvedColor) + " rg 0 0 " + FormatCoordinate(width) + " " + FormatCoordinate(height) + " re f\n" +
             "Q\n";
     }
 
-    internal static string BuildHighlightAppearanceContent(double width, double height, IReadOnlyList<PdfHighlightQuad> quadPoints, PdfColor? color = null) {
+    internal static string BuildHighlightAppearanceContent(double width, double height, IReadOnlyList<PdfHighlightQuad> quadPoints, global::OfficeIMO.OfficeColor? color = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(quadPoints, nameof(quadPoints));
@@ -295,7 +295,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             return BuildHighlightAppearanceContent(width, height, color);
         }
 
-        PdfColor resolvedColor = color ?? new PdfColor(1D, 0.92D, 0.2D);
+        global::OfficeIMO.OfficeColor resolvedColor = color ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.92D, 0.2D);
         var builder = new StringBuilder();
         builder.Append("q\n")
             .Append("/OfficeIMOHighlightGs gs\n")
@@ -314,11 +314,11 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return builder.ToString();
     }
 
-    internal static string BuildTextMarkupAppearanceContent(double width, double height, string subtype, PdfColor? color = null) {
+    internal static string BuildTextMarkupAppearanceContent(double width, double height, string subtype, global::OfficeIMO.OfficeColor? color = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         ValidateTextMarkupSubtype(subtype);
-        PdfColor resolvedColor = color ?? PdfColor.Black;
+        global::OfficeIMO.OfficeColor resolvedColor = color ?? global::OfficeIMO.OfficeColor.Black;
         double y = ResolveTextMarkupLineY(subtype, 0D, height);
         if (string.Equals(subtype, "Squiggly", StringComparison.Ordinal)) {
             var builder = new StringBuilder();
@@ -335,7 +335,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             "Q\n";
     }
 
-    internal static string BuildTextMarkupAppearanceContent(double width, double height, IReadOnlyList<PdfHighlightQuad> quadPoints, string subtype, PdfColor? color = null) {
+    internal static string BuildTextMarkupAppearanceContent(double width, double height, IReadOnlyList<PdfHighlightQuad> quadPoints, string subtype, global::OfficeIMO.OfficeColor? color = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(quadPoints, nameof(quadPoints));
@@ -344,7 +344,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             return BuildTextMarkupAppearanceContent(width, height, subtype, color);
         }
 
-        PdfColor resolvedColor = color ?? PdfColor.Black;
+        global::OfficeIMO.OfficeColor resolvedColor = color ?? global::OfficeIMO.OfficeColor.Black;
         var builder = new StringBuilder();
         builder.Append("q\n")
             .Append(FormatColor(resolvedColor))
@@ -369,7 +369,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return builder.ToString();
     }
 
-    internal static string BuildShapeAppearanceContent(double width, double height, string subtype, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
+    internal static string BuildShapeAppearanceContent(double width, double height, string subtype, global::OfficeIMO.OfficeColor? strokeColor = null, global::OfficeIMO.OfficeColor? fillColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NonNegative(borderWidth, nameof(borderWidth));
@@ -381,7 +381,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             return "q\nQ\n";
         }
 
-        PdfColor resolvedStrokeColor = strokeColor ?? PdfColor.Black;
+        global::OfficeIMO.OfficeColor resolvedStrokeColor = strokeColor ?? global::OfficeIMO.OfficeColor.Black;
         double inset = hasStroke ? borderWidth * 0.5D : 0D;
         bool useCloudyBorder = hasStroke &&
             borderEffectIntensity > 0D &&
@@ -426,7 +426,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return builder.ToString();
     }
 
-    internal static string BuildLineAppearanceContent(double width, double height, double x1, double y1, double x2, double y2, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null, string? startEnding = null, string? endEnding = null) {
+    internal static string BuildLineAppearanceContent(double width, double height, double x1, double y1, double x2, double y2, global::OfficeIMO.OfficeColor? strokeColor = null, global::OfficeIMO.OfficeColor? fillColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null, string? startEnding = null, string? endEnding = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NonNegative(borderWidth, nameof(borderWidth));
@@ -442,8 +442,8 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             return "q\nQ\n";
         }
 
-        PdfColor resolvedStrokeColor = strokeColor ?? PdfColor.Black;
-        PdfColor resolvedFillColor = fillColor ?? resolvedStrokeColor;
+        global::OfficeIMO.OfficeColor resolvedStrokeColor = strokeColor ?? global::OfficeIMO.OfficeColor.Black;
+        global::OfficeIMO.OfficeColor resolvedFillColor = fillColor ?? resolvedStrokeColor;
         var builder = new StringBuilder();
         builder.Append("q\n")
             .Append(BuildBorderStrokeOperators(resolvedStrokeColor, borderWidth, borderDashPattern))
@@ -571,7 +571,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return width;
     }
 
-    private static void AppendFreeTextRichLine(StringBuilder content, List<PdfFreeTextRichTextRun> line, double x, double y, double defaultFontSize, PdfColor defaultTextColor, List<(string Name, PdfStandardFont Font)> resources) {
+    private static void AppendFreeTextRichLine(StringBuilder content, List<PdfFreeTextRichTextRun> line, double x, double y, double defaultFontSize, global::OfficeIMO.OfficeColor defaultTextColor, List<(string Name, PdfStandardFont Font)> resources) {
         double xCursor = 0D;
         for (int i = 0; i < line.Count; i++) {
             PdfFreeTextRichTextRun run = line[i];
@@ -580,7 +580,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             }
 
             double runFontSize = run.FontSize ?? defaultFontSize;
-            PdfColor runColor = run.Color ?? defaultTextColor;
+            global::OfficeIMO.OfficeColor runColor = run.Color ?? defaultTextColor;
             PdfStandardFont font = ResolveFreeTextRichFont(run);
             string resourceName = ResolveFreeTextRichFontResourceName(font);
             RegisterFreeTextRichFontResource(resources, resourceName, font);
@@ -606,7 +606,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
     }
 
-    private static void AppendFreeTextRichDecoration(StringBuilder content, double x, double y, double width, double fontSize, PdfColor color, bool underline, bool strike) {
+    private static void AppendFreeTextRichDecoration(StringBuilder content, double x, double y, double width, double fontSize, global::OfficeIMO.OfficeColor color, bool underline, bool strike) {
         double strokeWidth = Math.Max(0.35D, fontSize / 18D);
         if (underline) {
             double underlineY = y - Math.Max(1D, fontSize * 0.12D);
@@ -895,7 +895,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             .Append(FormatCoordinate(endX)).Append(' ').Append(FormatCoordinate(endY)).Append(" c ");
     }
 
-    private static void AppendLineEnding(StringBuilder builder, string? ending, double tipX, double tipY, double oppositeX, double oppositeY, double borderWidth, PdfColor strokeColor, PdfColor fillColor) {
+    private static void AppendLineEnding(StringBuilder builder, string? ending, double tipX, double tipY, double oppositeX, double oppositeY, double borderWidth, global::OfficeIMO.OfficeColor strokeColor, global::OfficeIMO.OfficeColor fillColor) {
         if (string.IsNullOrWhiteSpace(ending) ||
             string.Equals(ending, "None", StringComparison.Ordinal)) {
             return;
@@ -989,7 +989,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
     }
 
-    private static void AppendQuadrilateral(StringBuilder builder, PdfColor fillColor, double centerX, double centerY, double ux, double uy, double px, double py, double halfLength, double halfWidth) {
+    private static void AppendQuadrilateral(StringBuilder builder, global::OfficeIMO.OfficeColor fillColor, double centerX, double centerY, double ux, double uy, double px, double py, double halfLength, double halfWidth) {
         double frontX = centerX + ux * halfLength;
         double frontY = centerY + uy * halfLength;
         double backX = centerX - ux * halfLength;
@@ -1009,10 +1009,10 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
     }
 
-    private static string FormatColor(PdfColor color) =>
-        FormatCoordinate(color.R) + " " + FormatCoordinate(color.G) + " " + FormatCoordinate(color.B);
+    private static string FormatColor(global::OfficeIMO.OfficeColor color) =>
+        FormatCoordinate(color.ToNormalizedRgb().R) + " " + FormatCoordinate(color.ToNormalizedRgb().G) + " " + FormatCoordinate(color.ToNormalizedRgb().B);
 
-    private static string BuildBorderStrokeOperators(PdfColor color, double borderWidth, IReadOnlyList<double>? dashPattern) {
+    private static string BuildBorderStrokeOperators(global::OfficeIMO.OfficeColor color, double borderWidth, IReadOnlyList<double>? dashPattern) {
         string operators = FormatColor(color) + " RG " + FormatCoordinate(borderWidth) + " w ";
         if (dashPattern == null || dashPattern.Count == 0) {
             return operators;

@@ -143,9 +143,9 @@ public class ExcelArrowConversionBenchmarks {
     }
 
     private ArrowConversionObservation ConvertOfficeIMO(bool inferSchema, int batchSize) {
-        using DbDataReader reader = ExcelDocument.OpenDataReader(
+        using DbDataReader reader = ExcelDocument.OpenReader(
             MarkPflug65KFixture.XlsxPath,
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 InferSchema = inferSchema,
                 SchemaSampleRows = SchemaSampleRows,
                 NumericAsDecimal = false

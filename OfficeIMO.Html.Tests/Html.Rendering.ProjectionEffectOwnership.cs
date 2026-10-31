@@ -17,7 +17,7 @@ public sealed partial class HtmlRenderingTests {
             + ".clip span{position:relative;top:-150px;font:200px/200px Courier}</style>"
             + "<div class='clip'><span>A</span></div>";
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(300D / 96D, 100D / 96D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)),
             Margins = HtmlRenderMargins.All(0), ViewportWidth = 300, ViewportHeight = 300,
             HonorCssPageRules = false, AllowSystemFontFallback = false
         };
@@ -35,11 +35,11 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("<div style='transform:translateY(50px);transform-origin:0 0'><div style='transform:translateY(100px);transform-origin:0 0'>MovedMarker</div></div>", 1)]
     public void SnapshotProjectionPreservesTranslatedText(string content, int expectedPage) {
         string html = "<style>html,body{margin:0;height:300px}div{font:16px/20px Courier}</style>" + content;
-        var options = new HtmlToPdfOptions {PageSize=new OfficePageSize(300d/96d,100d/96d), Margins=HtmlRenderMargins.All(0),
+        var options = new HtmlToPdfOptions {PageSize=new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300d/96d),global::OfficeIMO.OfficeLength.Inches(100d/96d)), Margins=HtmlRenderMargins.All(0),
             ViewportWidth=300, ViewportHeight=300, HonorCssPageRules=false, AllowSystemFontFallback=false};
         byte[] pdf = HtmlConversionDocument.Parse(html).RenderToPdfBytes(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, options));
-        var read = PdfReadDocument.Open(pdf);
+        var read = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         Assert.Equal(3, read.Pages.Count);
         Assert.Contains("MovedMarker", read.Pages[expectedPage].ExtractText());
         Assert.Equal(1, read.ExtractText().Split(new[]{"MovedMarker"},StringSplitOptions.None).Length-1);
@@ -53,11 +53,11 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>html,body{margin:0;height:300px}div{font:16px/20px Courier}</style>"+
             "<div style='height:20px;overflow:hidden;"+(moveClip?transform:"")+"'><div style='"+
             (moveClip?"":transform)+"'>ClippedMarker</div></div>";
-        var options = new HtmlToPdfOptions { PageSize=new OfficePageSize(300d/96d,100d/96d), Margins=HtmlRenderMargins.All(0),
+        var options = new HtmlToPdfOptions { PageSize=new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300d/96d),global::OfficeIMO.OfficeLength.Inches(100d/96d)), Margins=HtmlRenderMargins.All(0),
             ViewportWidth=300, ViewportHeight=300, HonorCssPageRules=false, AllowSystemFontFallback=false };
         byte[] pdf = HtmlConversionDocument.Parse(html).RenderToPdfBytes(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, options));
-        var read = PdfReadDocument.Open(pdf);
+        var read = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         if (moveClip) Assert.Contains("ClippedMarker", read.Pages[1].ExtractText());
         Assert.Equal(moveClip?1:0, read.ExtractText().Split(new[]{"ClippedMarker"},StringSplitOptions.None).Length-1);
     }
@@ -74,7 +74,7 @@ public sealed partial class HtmlRenderingTests {
             "img{position:absolute;left:20px;top:0;width:100px;height:20px}</style>"+
             "<a class='wide' href='https://example.test/same'>Translated</a><a class='narrow' href='https://example.test/same'>"+
             "<img src='data:image/png;base64,"+png+"'></a>";
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {Margins=HtmlRenderMargins.All(0), AutoFitWidePrintContent=false});
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {Margins=HtmlRenderMargins.All(0), AutoFitWidePrintContent=false})).ToBytes();
         var links = PdfReadDocument.Open(bytes).Pages[0].GetLinkAnnotations();
         Assert.Contains(links, link => link.Uri=="https://example.test/same" && link.X1 >= 14 && link.X1 <= 16 && link.X2 >= 89);
         if (translated) Assert.Contains(links, link => link.Uri=="https://example.test/same" && link.X1 >= 200);

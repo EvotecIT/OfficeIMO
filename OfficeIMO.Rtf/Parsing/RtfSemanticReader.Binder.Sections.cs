@@ -366,7 +366,7 @@ internal static partial class RtfSemanticReader {
 
         private void CountSemanticBlock() => _limits.AddSemanticBlock(-1);
 
-        private void AddPicture(RtfImage image) {
+        private void AddImage(RtfImage image) {
             if (_currentParagraph.Inlines.Count > 0 ||
                 _currentParagraphIsInTable ||
                 _currentRow != null ||

@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -120,6 +121,25 @@ public sealed class XpsStrokeOutlineTests {
         Assert.Throws<System.IO.InvalidDataException>(() => doc.Pages[0].ToSvg());
     }
 
+    [Fact]
+    public void ExplicitStrokeFiguresShareOneFlatteningPointBudget() {
+        var doc = Create(XpsFormat.Xps, "M0,0L1,1", "Triangle", "Flat", "Flat");
+        var page = doc.Pages[0];
+        var xml = page.GetMarkup();
+        var path = xml.Elements().Single();
+        path.Attribute("Data")!.Remove();
+        XNamespace ns = xml.Name.Namespace;
+        string points = string.Join(" ", Enumerable.Repeat("1000000,1000000 0,0", 40));
+        path.Add(new XElement(ns + "Path.Data", new XElement(ns + "PathGeometry",
+            Enumerable.Range(0, 20).Select(_ => new XElement(ns + "PathFigure",
+                new XAttribute("StartPoint", "0,0"),
+                new XElement(ns + "PolyQuadraticBezierSegment", new XAttribute("Points", points)))))));
+        page.ReplaceMarkup(xml);
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => page.ToSvg());
+        Assert.Contains("point limit", error.InnerException?.Message ?? "", StringComparison.OrdinalIgnoreCase);
+    }
+
     [Theory]
     [InlineData(XpsFormat.Xps, false)]
     [InlineData(XpsFormat.OpenXps, true)]
@@ -142,7 +162,7 @@ public sealed class XpsStrokeOutlineTests {
         Assert.True(image.GetPixel(35,80).R < 30);
         Assert.True(image.GetPixel(35,86).R > 240);
         Assert.True(image.GetPixel(165,86).R < 30);
-        var reimport = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(doc.ToPdf()).Pages[0].ToDrawing(), scale: 4D/3D, background: OfficeColor.White);
+        var reimport = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).Pages[0].ToDrawing(), scale: 4D/3D, background: OfficeColor.White);
         Assert.True(reimport.GetPixel(35,80).R < 30);
         Assert.True(reimport.GetPixel(35,86).R > 240);
     }

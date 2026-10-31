@@ -12,14 +12,14 @@ public partial class HtmlWordGapClosure {
         string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(1600, 600));
         string html = $"<p>Before</p><img src='data:image/png;base64,{image}' alt='Wide photo'><p>After</p>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = result.Value;
         WordImage drawing = Assert.Single(document.Images);
         WordSection section = document.Sections[0];
-        double contentWidth = (section.PageSettings.Width!.Value - section.Margins.Left - section.Margins.Right) / 15D;
+        double contentWidth = (checked((uint?)(section.PageSettings.Width?.ToTwips()))!.Value - checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()))) / 15D;
 
-        Assert.Equal(contentWidth, drawing.Width!.Value, precision: 2);
-        Assert.Equal(contentWidth * 600D / 1600D, drawing.Height!.Value, precision: 2);
+        Assert.Equal(contentWidth, (drawing.Width?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(contentWidth * 600D / 1600D, (drawing.Height?.ToPixels())!.Value, precision: 2);
         Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "After");
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
@@ -34,15 +34,15 @@ public partial class HtmlWordGapClosure {
             <p><img src="data:image/png;base64,{ValidPng}" width="200" height="100" alt="Large"></p>
             """;
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = result.Value;
         WordImage[] images = document.Images.ToArray();
 
         Assert.Equal(2, images.Length);
-        Assert.Equal(100D, images[0].Width!.Value, precision: 2);
-        Assert.Equal(50D, images[0].Height!.Value, precision: 2);
-        Assert.Equal(200D, images[1].Width!.Value, precision: 2);
-        Assert.Equal(100D, images[1].Height!.Value, precision: 2);
+        Assert.Equal(100D, (images[0].Width?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(50D, (images[0].Height?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(200D, (images[1].Width?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(100D, (images[1].Height?.ToPixels())!.Value, precision: 2);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
     }
@@ -54,22 +54,22 @@ public partial class HtmlWordGapClosure {
             <img src="data:image/png;base64,{ValidPng}" width="200" alt="Scaled">
             <img src="data:image/png;base64,{ValidPng}" alt="Intrinsic">
             """;
-        var options = new HtmlToWordOptions {
+        var options = new WordHtmlImportOptions {
             MaxTotalImageBytes = Convert.FromBase64String(ValidPng).LongLength
         };
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
         using WordDocument document = result.Value;
         WordImage[] images = document.Images.ToArray();
 
         Assert.Equal(3, images.Length);
-        Assert.Equal(100D, images[0].Width!.Value, precision: 2);
-        Assert.Equal(50D, images[0].Height!.Value, precision: 2);
-        Assert.Equal(200D, images[1].Width!.Value, precision: 2);
-        Assert.Equal(200D, images[1].Height!.Value, precision: 2);
-        Assert.Equal(1D, images[2].Width!.Value, precision: 2);
-        Assert.Equal(1D, images[2].Height!.Value, precision: 2);
+        Assert.Equal(100D, (images[0].Width?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(50D, (images[0].Height?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(200D, (images[1].Width?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(200D, (images[1].Height?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(1D, (images[2].Width?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(1D, (images[2].Height?.ToPixels())!.Value, precision: 2);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
-            diagnostic.Code == "ImageResourceBudgetExceeded");
+            diagnostic.Code == "image-resource-budget-exceeded");
     }
 }

@@ -76,13 +76,17 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc />
         public bool IsReadOnly => false;
 
-        /// <inheritdoc />
-        public void Add(string key, ExcelCustomProperty value) {
+        /// <summary>Adds a property and returns the value attached to this workbook.</summary>
+        public ExcelCustomProperty Add(string key, ExcelCustomProperty value) {
             string normalizedKey = NormalizeKey(key);
-            Attach(value ?? throw new ArgumentNullException(nameof(value)));
+            if (value == null) throw new ArgumentNullException(nameof(value));
             _properties.Add(normalizedKey, value);
+            Attach(value);
             MarkChanged();
+            return value;
         }
+
+        void IDictionary<string, ExcelCustomProperty>.Add(string key, ExcelCustomProperty value) => Add(key, value);
 
         /// <inheritdoc />
         public bool ContainsKey(string key) {
@@ -110,10 +114,10 @@ namespace OfficeIMO.Excel {
             return _properties.TryGetValue(NormalizeKey(key), out value!);
         }
 
-        /// <inheritdoc />
-        public void Add(KeyValuePair<string, ExcelCustomProperty> item) {
-            Add(item.Key, item.Value);
-        }
+        /// <summary>Adds a property pair and returns the value attached to this workbook.</summary>
+        public ExcelCustomProperty Add(KeyValuePair<string, ExcelCustomProperty> item) => Add(item.Key, item.Value);
+
+        void ICollection<KeyValuePair<string, ExcelCustomProperty>>.Add(KeyValuePair<string, ExcelCustomProperty> item) => Add(item);
 
         /// <inheritdoc />
         public void Clear() {

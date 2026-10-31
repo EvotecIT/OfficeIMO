@@ -155,7 +155,9 @@ internal sealed partial class HtmlRenderStyleResolver {
         // Document mode's code tags whose unstyled fallback remains monospace.
         if (computed.IsInheritedValue("font-family") && !computed.IsImplicitlyInheritedValue("font-family"))
             defaultFamily = parent?.Font.FamilyName ?? _options.DefaultFontFamily;
-        string family = ResolveFontFamily(fontTag, computed, defaultFamily, ResolveInitialFontFamily(fontTag, _options));
+        string family = pseudoElement
+            ? ResolveFontFamily(fontTag, computed, defaultFamily, ResolveInitialFontFamily(fontTag, _options))
+            : ResolveElementFontFamily(fontTag, computed, defaultFamily, _options);
         if (_fontDefaults.HasValue && HtmlFontSizePolicy.IsSoleGenericMonospace(family)) family = "monospace";
         HtmlFontSizeContext? fontSizeContext = _fontDefaults.HasValue
             ? ResolveBrowserFontSize(tag, computed, family, parent, pseudoElement, pseudoSemanticRole)
@@ -294,7 +296,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             _diagnostics.Add(
                 "OfficeIMO.Html.Renderer",
                 HtmlRenderDiagnosticCodes.FontVariantApproximated,
-                "CSS small-caps used an uppercase managed-rendering approximation because synthetic small-cap glyph sizing is not available.",
+                "CSS small-caps were synthesized from capitals at reduced size because the font's own small-cap glyphs are not used.",
                 HtmlDiagnosticSeverity.Warning,
                 DescribeSource(element),
                 "font-variant-caps=" + fontVariantCaps,
@@ -837,7 +839,12 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.MarginBottom = 8D;
             style.MarginLeft = 8D;
         }
-        if (tag == "p" || tag == "pre" || tag == "blockquote" || tag == "figure" || tag == "ul" || tag == "ol"
+        if (tag == "p") {
+            // Paragraphs take the browser default of one em above and below; adjacent margins collapse, so
+            // HTML written for browsers keeps its spacing, such as the gap after an inline badge.
+            style.MarginTop = fontSize;
+            style.MarginBottom = fontSize;
+        } else if (tag == "pre" || tag == "blockquote" || tag == "figure" || tag == "ul" || tag == "ol"
             || tag == "table" && _options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Document) {
             style.MarginBottom = fontSize;
         } else if (tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6') {

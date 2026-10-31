@@ -9,7 +9,7 @@ public sealed class PdfDeclaredComplianceClaimsTests {
     [Fact]
     public void DeclaredClaims_DoNotTreatMetadataAsConformanceProof() {
         PdfComplianceArtifact artifact = PdfDocument.Create(
-                new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B))
+                new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B))
             .Meta(title: "Declared compliance gate")
             .CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
         byte[] bytes = artifact.ToBytes();
@@ -30,7 +30,7 @@ public sealed class PdfDeclaredComplianceClaimsTests {
     [Fact]
     public void DeclaredClaims_AcceptArtifactBoundExternalValidationOnlyAfterInternalReadiness() {
         PdfComplianceArtifact artifact = PdfDocument.Create(
-                new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B))
+                new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B))
             .Meta(title: "Exact declared compliance proof")
             .CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
         byte[] bytes = artifact.ToBytes();

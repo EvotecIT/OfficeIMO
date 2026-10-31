@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
         internal RunningShapePaint Get(PdfHeaderFooterShape variant, OfficeShape shape) {
             if (_entries.TryGetValue(variant, out var cached)) return cached;
             var report = new PdfConversionReport();
-            var options = new PdfOptions().ReportDiagnosticsTo(report, "OfficeIMO.Pdf");
+            var options = new PdfCreateOptions().ReportDiagnosticsTo(report, "OfficeIMO.Pdf");
             var bounds = new List<RunningPaintBounds>();
             if (TryGetHeaderFooterShapeBounds(shape, 0, 0, options, "Running shape", out double x, out double y, out double width, out double height))
                 bounds.Add(new("shape", x, y, width, height));

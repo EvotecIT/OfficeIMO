@@ -50,15 +50,15 @@ public sealed class WordPdfRunSpacingTests {
         using WordDocument document = WordDocument.Create();
         WordParagraph run = document.AddParagraph("Authored width");
         run.CharacterScale = 50;
-        run.Spacing = 20;
+        run.Spacing = OfficeLength.Emus((long)(20) * 635);
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Equal(50, loaded.Paragraphs[0].CharacterScale);
-        Assert.Equal(20, loaded.Paragraphs[0].Spacing);
+        Assert.Equal(OfficeLength.Emus(20L * 635), loaded.Paragraphs[0].Spacing);
         loaded.Paragraphs[0].CharacterScale = 100;
         Assert.Equal(100, loaded.Paragraphs[0].CharacterScale);
         loaded.Paragraphs[0].CharacterScale = null;
         Assert.Null(loaded.Paragraphs[0].CharacterScale);
-        Assert.Equal(20, loaded.Paragraphs[0].Spacing);
+        Assert.Equal(OfficeLength.Emus(20L * 635), loaded.Paragraphs[0].Spacing);
         Assert.Throws<ArgumentOutOfRangeException>(() => run.CharacterScale = 0);
         Assert.Throws<ArgumentOutOfRangeException>(() => run.CharacterScale = 601);
     }
@@ -93,7 +93,7 @@ public sealed class WordPdfRunSpacingTests {
             paragraph = document.AddParagraph(route == "link" ? string.Empty : "ABCD");
             if (route == "link") paragraph.AddHyperLink("ABCD", new Uri("https://example.com/"));
         }
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.FontFamily = "Arial";
         if (styled) {
             RunPropertiesBaseStyle defaults = styles.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!;
@@ -133,14 +133,14 @@ public sealed class WordPdfRunSpacingTests {
         if (mixed) {
             paragraph.Text = "AB";
             WordParagraph normal = paragraph.AddText("CD");
-            normal.FontSize = 12;
+            normal.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             normal.FontFamily = "Arial";
             normal.CharacterScale = 100;
-            normal.Spacing = 0;
+            normal.Spacing = OfficeLength.Emus((long)(0) * 635);
         }
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         return pdf.GetPage(1).Letters.Where(letter => "ABCD".IndexOf(letter.Value, StringComparison.Ordinal) >= 0)
             .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))

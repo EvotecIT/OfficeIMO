@@ -72,6 +72,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LoadAppliesConfiguredCharacterLimitToPageContentPart() {
+            string filePath = CreateBasicVisioDocument();
+            try {
+                ReplaceZipEntry(filePath, "visio/pages/page1.xml", writer => {
+                    writer.Write("<PageContents xmlns=\"http://schemas.microsoft.com/office/visio/2012/main\">");
+                    writer.Write("<!--");
+                    writer.Write(new string('x', 24_000));
+                    writer.Write("--></PageContents>");
+                });
+
+                Assert.ThrowsAny<XmlException>(() => VisioDocument.Load(filePath,
+                    new VisioLoadOptions { MaxPackageXmlCharacters = 20_000 }));
+                VisioDocument accepted = VisioDocument.Load(filePath,
+                    new VisioLoadOptions { MaxPackageXmlCharacters = 30_000 });
+                Assert.Single(accepted.Pages);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void ListMastersRejectsDtdInMastersPart() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             using (ZipArchive archive = ZipFile.Open(filePath, ZipArchiveMode.Create)) {

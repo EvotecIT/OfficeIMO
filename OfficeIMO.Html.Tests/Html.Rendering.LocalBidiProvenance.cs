@@ -25,7 +25,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.True(text.PreservesPaintedGlyphs);
         });
 
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = pdf.ToBytes();
         pdf.RequireNoLoss();
         Assert.Equal(logicalText, PdfCore.PdfReadDocument.Open(bytes).ExtractText().Trim());

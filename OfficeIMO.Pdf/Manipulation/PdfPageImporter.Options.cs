@@ -88,9 +88,9 @@ internal static partial class PdfPageImporter {
         var source = PdfReadDocument.Open(sourcePdf, sourceOptions, cancellationToken);
         if (!PdfTaggedPageOrganizer.IsTagged(target) && !PdfTaggedPageOrganizer.IsTagged(source)) {
             var sourceCatalog = (PdfDictionary)source.Objects[source.Security.RootObjectNumber!.Value].Value;
-            // Incoming forms and layers still need the merger's explicit collision policies. Ordinary page graphs
+            // Layers and non-destination name trees still need document merge policies. Page and form graphs
             // use the same catalog-preserving ImportPages route whether either document is tagged or not.
-            bool needsMergePolicy = source.AcroFormXfa != null || source.FormFields.Count > 0 || sourceCatalog.Items.ContainsKey("OCProperties") ||
+            bool needsMergePolicy = sourceCatalog.Items.ContainsKey("OCProperties") ||
                 sourceCatalog.Items.TryGetValue("Names", out var value) && PdfObjectLookup.Resolve(source.Objects, value) is PdfDictionary names &&
                 names.Items.Keys.Any(key => key != "Dests");
             if (needsMergePolicy) { output = Array.Empty<byte>(); return false; }

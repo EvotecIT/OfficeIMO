@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImage_MetadataIsDetachedByClearValueAndFormulaReplacement() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Clear");
             sheet.SetInCellImage(1, 2, TinyPng, altText: "Value");
             sheet.SetInCellImage(1, 3, TinyPng, altText: "Formula");
@@ -31,12 +31,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_PackageWorksheetCopy_StreamsAndRemapsInCellImagesAcrossWorkbooks() {
             using var sourceDocument = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet source = sourceDocument.AddWorksheet("Images");
+            ExcelSheet source = sourceDocument.AddSheet("Images");
             source.SetInCellImage(2, 2, TinyPng, altText: "Copied image");
 
             using var targetStream = new MemoryStream();
             using (var targetDocument = ExcelDocument.Create(targetStream)) {
-                targetDocument.AddWorksheet("Existing").CellValue(1, 1, "Keep");
+                targetDocument.AddSheet("Existing").CellValue(1, 1, "Keep");
                 ExcelSheet copied = targetDocument.CopyWorksheetFrom(
                     sourceDocument,
                     "Images",
@@ -79,8 +79,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_UnicodeSheetQualifier_IsSearchableAndRewrittenByStructuralEdits() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Данные");
-            ExcelSheet summary = document.AddWorksheet("Итог");
+            ExcelSheet data = document.AddSheet("Данные");
+            ExcelSheet summary = document.AddSheet("Итог");
             data.CellValue(1, 1, 10);
             summary.CellFormula(1, 1, "Данные!A1");
 

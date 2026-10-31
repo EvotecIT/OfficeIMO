@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AnchoredShape_Valid.docx");
             using (var document = WordDocument.Create(filePath)) {
                 var p = document.AddParagraph("Anchor here");
-                var shape = WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, 80, 40, leftPt: 36, topPt: 72);
+                var shape = WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40), left: OfficeIMO.OfficeLength.Points(36), top: OfficeIMO.OfficeLength.Points(72));
                 document.Save();
             }
 
@@ -30,18 +30,18 @@ namespace OfficeIMO.Tests {
         public void AddShapeDrawing_WithNegativeCoordinates_ThrowsException() {
             using var document = WordDocument.Create();
             var p = document.AddParagraph();
-            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, 10, 10, -1, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, 10, 10, 0, -5));
+            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(-1), OfficeIMO.OfficeLength.Points(0)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(-5)));
         }
 
         [Fact]
         public void AddShapeDrawing_WithExtremeValues_ThrowsException() {
             using var document = WordDocument.Create();
             var p = document.AddParagraph();
-            // Use a very large value to trigger EMU overflow guard
+            // Length construction rejects values beyond the shared whole-EMU range.
             double huge = double.MaxValue / 2; // will overflow when multiplied
-            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, 10, 10, huge, 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, 10, 10, 0, huge));
+            Assert.Throws<OverflowException>(() => WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(huge), OfficeIMO.OfficeLength.Points(0)));
+            Assert.Throws<OverflowException>(() => WordShape.AddDrawingShapeAnchored(p, WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(huge)));
         }
 
         [Fact]
@@ -50,8 +50,8 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var p1 = document.AddParagraph("A");
                 var p2 = document.AddParagraph("B");
-                WordShape.AddDrawingShapeAnchored(p1, WordShapeType.Rectangle, 40, 40, 10, 10);
-                WordShape.AddDrawingShapeAnchored(p2, WordShapeType.Ellipse, 30, 30, 20, 20);
+                WordShape.AddDrawingShapeAnchored(p1, WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10));
+                WordShape.AddDrawingShapeAnchored(p2, WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
                 document.Save();
             }
 

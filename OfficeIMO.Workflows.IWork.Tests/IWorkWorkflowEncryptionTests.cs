@@ -16,14 +16,14 @@ public sealed partial class IWorkWorkflowTests {
         using var files = new Files(kind, "pdf");
         File.WriteAllText(files.Output, "keep existing");
         var settings = new IWorkWorkflowSettings();
-        var pdf = new PdfOptions().SetEncryption("synthetic-document-password");
+        var pdf = new PdfCreateOptions().SetEncryption("synthetic-document-password");
         if (kind == "pages") settings.PagesPdfOptions.PdfOptions = pdf;
         else if (kind == "numbers") settings.NumbersPdfOptions.PdfOptions = pdf;
         else settings.KeynotePdfOptions.PdfOptions = pdf;
         OfficeWorkflowRequest request = files.Request(route);
         request.RegisteredConversionSettings = settings;
         request.ConversionOptions = new() { CompressPdfOutput = compress };
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
         var result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.False(result.Succeeded);
         Assert.Contains("encryption", result.Summary, StringComparison.OrdinalIgnoreCase);

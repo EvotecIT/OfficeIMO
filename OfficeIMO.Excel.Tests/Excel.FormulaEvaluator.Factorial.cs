@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [InlineData(170.9d, 7.257415615307999e306)]
         public void Factorial_retains_finite_large_results_through_saved_output(double input, double expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Factorial");
+            var sheet = document.AddSheet("Factorial");
             sheet.CellValue(1, 1, input);
             sheet.CellValue(1, 2, 42d); sheet.CellFormula(1, 2, "FACT(A1)");
             Assert.Equal(1, document.Calculate());

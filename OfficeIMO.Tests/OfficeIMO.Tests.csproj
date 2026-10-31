@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <IsTestProject>true</IsTestProject>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+    <ProjectReference Include="../OfficeIMO/OfficeIMO.csproj">
+      <SetTargetFramework Condition="'$(OfficeIMOCompatibilityTarget)' != ''">TargetFramework=$(OfficeIMOCompatibilityTarget)</SetTargetFramework>
+    </ProjectReference>
+    <ProjectReference Include="../OfficeIMO.Workflows/OfficeIMO.Workflows.csproj" />
+    <Using Include="Xunit" />
+    <Using Include="System.Text" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/pronom-visio2003.vsd" Link="Fixtures/Visio/pronom-visio2003.vsd" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/pronom-visio2003.vss" Link="Fixtures/Visio/pronom-visio2003.vss" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/pronom-visio2003.vst" Link="Fixtures/Visio/pronom-visio2003.vst" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

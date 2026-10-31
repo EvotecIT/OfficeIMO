@@ -5,12 +5,14 @@ using S = DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_StructuralColumns_PlanCommitRemapsCellsFormulasTablesAndSecurityRegions() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(1, 3, "Tax");
@@ -47,7 +49,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RejectsDeletingEntireTableBeforeMutation() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
@@ -61,7 +63,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_PlanRevalidatesNewTableBeforeApply() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
@@ -76,7 +78,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_ResultUsesRevalidatedAffectedCellCount() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "One");
             ExcelStructuralMutationPlan plan = sheet.PlanInsertColumns(1);
             sheet.CellValue(2, 1, "Two");
@@ -90,7 +92,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralMutation_RollbackRestoresDeletedCalculationChain() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             CalculationChainPart chainPart = document.WorkbookPartRoot.AddNewPart<CalculationChainPart>();
             chainPart.CalculationChain = new DocumentFormat.OpenXml.Spreadsheet.CalculationChain(
                 new DocumentFormat.OpenXml.Spreadsheet.CalculationCell { CellReference = "A1", SheetId = 0 });
@@ -109,7 +111,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralMutation_RollbackRestoresConnections() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ConnectionsPart connectionsPart = document.WorkbookPartRoot.AddNewPart<ConnectionsPart>();
             connectionsPart.Connections = new S.Connections(
                 new S.Connection { Id = 1U, Name = "Original" });
@@ -126,7 +128,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_InsertionPreservesHeadersAndRemapsFilterColumn() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(1, 3, "C");
@@ -146,7 +148,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_DeletionInvalidatesRemovedStructuredColumn() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);
@@ -160,17 +162,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_StructuralColumns_RejectsPivotOutputIntersection() {
+        public void Test_StructuralColumns_RejectsPivotOutputIntersection()
+        {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "A");
             sheet.CellValue(2, 2, 1);
-            sheet.AddPivotTable("A1:B2", "E5", rowFields: new[] { "Category" },
-                dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) });
+            sheet.AddPivotTable("A1:B2", "E5", options: new ExcelPivotTableOptions { RowFields = new[] { "Category" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) } });
             S.Location location = Assert.Single(sheet.WorksheetPart.PivotTableParts).PivotTableDefinition!.Location!;
-
             Assert.Throws<System.InvalidOperationException>(() => sheet.PlanDeleteColumns(5));
             Assert.Equal("E5", location.Reference!.Value.Split(':')[0]);
         }
@@ -178,12 +179,16 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralMutation_RollbackRemovesAddedImageRelationship() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             int baselineParts = sheet.WorksheetPart.Parts.Count();
             using var cancellation = new CancellationTokenSource();
 
             Assert.Throws<OperationCanceledException>(() => sheet.ApplyTransactionalMutation(_ => {
-                sheet.AddImage(1, 1, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png", 8, 8);
+                sheet.AddImage(1, 1, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(8),
+                    Height = OfficeIMO.OfficeLength.Pixels(8)
+                });
                 cancellation.Cancel();
             }, 0, new ExcelMutationPlanOptions(), cancellation.Token));
 
@@ -194,7 +199,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFilter_RejectsColumnOffsetOutsideRange() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
 
             Assert.Throws<System.ArgumentOutOfRangeException>(() => sheet.AutoFilterBlanks("A1:B2", 2));
             Assert.Empty(sheet.GetAutoFilters());

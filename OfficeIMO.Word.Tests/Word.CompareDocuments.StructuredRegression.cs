@@ -151,13 +151,13 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image_geometry.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddParagraph().AddImage(imagePath, 40, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_geometry.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.AddParagraph().AddImage(imagePath, 120, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(120), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -530,14 +530,14 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_body_image_to_header.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_body_image_to_header.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddHeadersAndFooters();
-                doc.Header.Default!.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.Header.Default!.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -584,14 +584,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_mixed_image_order.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 AddVmlImageParagraph(doc, logoPath);
-                doc.AddParagraph().AddImage(logoPath, 80, 40);
+                doc.AddParagraph().AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_mixed_image_order.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 AddVmlImageParagraph(doc, replacementPath);
-                doc.AddParagraph().AddImage(logoPath, 80, 40);
+                doc.AddParagraph().AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 

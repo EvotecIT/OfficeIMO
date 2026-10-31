@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing.Binary;
 /// <summary>
 /// Decodes OfficeArt picture-frame properties that can be shared by binary Office consumers.
 /// </summary>
-public sealed class OfficeArtPictureProperties {
+internal sealed class OfficeArtPictureProperties {
     private OfficeArtPictureProperties(IReadOnlyList<OfficeArtProperty> properties) {
         Properties = properties?.ToArray() ?? Array.Empty<OfficeArtProperty>();
         CropFromTopRaw = GetSignedValue(0x0100);

@@ -25,6 +25,15 @@ internal static class OfficeColorUtilities
         }
     }
 
+    internal static OfficeIMO.OfficeColor? ToExcelColor(string? color, string parameterName = "Color")
+    {
+        string? argb = ToExcelArgbHex(color, parameterName);
+        if (argb == null) return null;
+        uint value = Convert.ToUInt32(argb, 16);
+        return OfficeIMO.OfficeColor.FromRgba((byte)(value >> 16), (byte)(value >> 8),
+            (byte)value, (byte)(value >> 24));
+    }
+
     internal static string? ToExcelColorHex(string? color, string parameterName = "Color")
     {
         if (string.IsNullOrWhiteSpace(color))
@@ -77,7 +86,7 @@ internal static class OfficeColorUtilities
     internal static bool IsNone(string? color)
         => string.Equals(color?.Trim(), "None", StringComparison.OrdinalIgnoreCase);
 
-    internal static PdfColor? ToPdfColor(string? color, string parameterName = "Color")
+    internal static global::OfficeIMO.OfficeColor? ToPdfColor(string? color, string parameterName = "Color")
     {
         if (string.IsNullOrWhiteSpace(color))
         {
@@ -94,6 +103,6 @@ internal static class OfficeColorUtilities
             throw new PSArgumentException(exception.Message, parameterName);
         }
 
-        return PdfColor.FromRgb(parsed.R, parsed.G, parsed.B);
+        return global::OfficeIMO.OfficeColor.FromRgb(parsed.R, parsed.G, parsed.B);
     }
 }

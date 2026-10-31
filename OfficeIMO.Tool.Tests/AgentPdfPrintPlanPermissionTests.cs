@@ -87,7 +87,7 @@ namespace OfficeIMO.Tool.Tests {
             using PrintFixture fixture = new(PdfStandardPermissions.Print);
             using CancellationTokenSource cancellation = new();
             cancellation.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(() => Plan(fixture, "1", cancellation.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Plan(fixture, "1", cancellation.Token));
             Assert.Equal(fixture.Bytes, await File.ReadAllBytesAsync(fixture.Path));
         }
 
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tool.Tests {
                         int pageNumber = number;
                         compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Printable page " + pageNumber)))));
                     }
-                }, new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions(UserPassword) {
+                }, new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions(UserPassword) {
                     OwnerPassword = OwnerPassword, AllowedPermissions = permissions
                 })).ToBytes();
                 File.WriteAllBytes(Path, Bytes);

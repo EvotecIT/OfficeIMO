@@ -126,8 +126,8 @@ public class HtmlExcelRasterNormalization {
         using ExcelDocument reopened = ExcelDocument.Load(output);
         ExcelImage picture = Assert.Single(Assert.Single(reopened.Sheets).Images);
         Assert.Equal("image/png", picture.ContentType);
-        Assert.Equal(120, picture.WidthPixels);
-        Assert.Equal(80, picture.HeightPixels);
+        Assert.Equal(120, picture.Width.ToPixels());
+        Assert.Equal(80, picture.Height.ToPixels());
         Assert.Equal(target, picture.HyperlinkUri!.OriginalString);
         Assert.True(OfficeRasterImageDecoder.TryDecode(picture.ToBytes(), out OfficeRasterImage? decoded));
         byte[] expected = File.ReadAllBytes(fixture + ".rgba");
@@ -152,8 +152,8 @@ public class HtmlExcelRasterNormalization {
         ExcelImage picture = Assert.Single(workbook.Sheets.SelectMany(sheet => sheet.Images));
         Assert.True(picture.HasAbsoluteAnchor);
         Assert.Equal("image/png", picture.ContentType);
-        Assert.Equal(120, picture.WidthPixels);
-        Assert.Equal(80, picture.HeightPixels);
+        Assert.Equal(120, picture.Width.ToPixels());
+        Assert.Equal(80, picture.Height.ToPixels());
     }
 
     [Theory]

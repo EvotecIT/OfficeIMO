@@ -65,13 +65,13 @@ internal static partial class PdfWriter {
         internal double HorizontalScale { get; }
     }
 
-    private static TableRowTextSizing ResolveTableRowTextSizing(TableBlock table, PdfTableStyle style, int rowIndex, int columnCount, double[] columnWidths, double columnGap, double rowFontSize, bool rowUsesBold, PdfOptions? options) {
+    private static TableRowTextSizing ResolveTableRowTextSizing(TableBlock table, PdfTableStyle style, int rowIndex, int columnCount, double[] columnWidths, double columnGap, double rowFontSize, bool rowUsesBold, PdfCreateOptions? options) {
         if (!style.ShrinkTextToFit || rowFontSize <= 0D) {
             return new TableRowTextSizing(rowFontSize, 1D);
         }
 
-        double minimumFontSize = style.MinimumShrinkFontSize ?? 6D;
-        PdfOptions effectiveOptions = options ?? new PdfOptions();
+        double minimumFontSize = style.MinimumShrinkFontSize?.ToPoints() ?? 6D;
+        PdfCreateOptions effectiveOptions = options ?? new PdfCreateOptions();
         PdfStandardFont rowFont = GetTableRowFont(effectiveOptions, rowUsesBold);
         var cells = GetTableCellLayouts(table, rowIndex, columnCount);
         return ResolveTableCellsTextSizing(cells, rowFontSize, minimumFontSize, rowFont, effectiveOptions, cell => {
@@ -81,7 +81,7 @@ internal static partial class PdfWriter {
     }
 
     private static TableRowTextSizing ResolveTableCellsTextSizing(System.Collections.Generic.IReadOnlyList<TableCellLayout> cells, double rowFontSize,
-        double minimumFontSize, PdfStandardFont rowFont, PdfOptions effectiveOptions, Func<TableCellLayout, double> contentWidth,
+        double minimumFontSize, PdfStandardFont rowFont, PdfCreateOptions effectiveOptions, Func<TableCellLayout, double> contentWidth,
         double initialRunFontSizeScale = 1D) {
         TableCellTextWidthMeasurement?[]? explicitMeasurements = null;
         double resolvedFontSize = rowFontSize;
@@ -164,7 +164,7 @@ internal static partial class PdfWriter {
         return new TableRowTextSizing(resolvedFontSize, scale);
     }
 
-    private static TableCellTextWidthMeasurement PrepareTableCellTextWidthMeasurement(TableCellLayout cell, PdfStandardFont baseFont, PdfOptions options) {
+    private static TableCellTextWidthMeasurement PrepareTableCellTextWidthMeasurement(TableCellLayout cell, PdfStandardFont baseFont, PdfCreateOptions options) {
         int paragraphCount = cell.Paragraphs.Count;
         var lines = new TableTextLineWidthMeasurement[Math.Max(1, paragraphCount)][];
         double maxExplicitFontSize = 0D;
@@ -182,7 +182,7 @@ internal static partial class PdfWriter {
         return new TableCellTextWidthMeasurement(lines, maxExplicitFontSize);
     }
 
-    private static TableTextLineWidthMeasurement[] PrepareTableTextLineWidths(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, PdfOptions options) {
+    private static TableTextLineWidthMeasurement[] PrepareTableTextLineWidths(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, PdfCreateOptions options) {
         System.Collections.Generic.IReadOnlyList<PdfTextRun> normalizedRuns = NormalizeFallbackRuns(runs, baseFont, options);
         System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<PdfTextRun>> sourceLines = BuildPageTextLineRuns(normalizedRuns);
         var preparedLines = new TableTextLineWidthMeasurement[sourceLines.Count];
@@ -205,7 +205,7 @@ internal static partial class PdfWriter {
                 if (run.InlineElement != null) {
                     preparedRuns[runIndex] = new TableRunWidthMeasurement(
                         run.HorizontalOffset,
-                        run.InlineElement.Width,
+                        run.InlineElement.Width.ToPoints(),
                         0D,
                         null,
                         inline: true);
@@ -220,14 +220,14 @@ internal static partial class PdfWriter {
                 double baselineScale = EffectiveRichFontSize(1D, run.Baseline);
                 double horizontalScale = run.HorizontalTextScaling / 100D;
                 double unitTextWidth = command.AdvanceWidth1000.GetValueOrDefault() / 1000D * baselineScale * horizontalScale;
-                double fixedTracking = command.GlyphCount * run.CharacterSpacing;
+                double fixedTracking = command.GlyphCount * (run.CharacterSpacing.ToPoints());
                 if (double.IsNaN(unitTextWidth + fixedTracking) || double.IsInfinity(unitTextWidth + fixedTracking))
                     throw new InvalidOperationException("The requested glyph width and character spacing produce an invalid text advance.");
                 preparedRuns[runIndex] = new TableRunWidthMeasurement(
                     run.HorizontalOffset,
                     fixedTracking,
                     unitTextWidth,
-                    run.FontSize,
+                    (run.FontSize?.ToPoints()),
                     inline: false, command, baselineScale, horizontalScale);
             }
 
@@ -309,8 +309,8 @@ internal static partial class PdfWriter {
     private static double GetMaxExplicitRunFontSize(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs) {
         double max = 0D;
         foreach (PdfTextRun run in runs) {
-            if (run.FontSize.HasValue) {
-                max = Math.Max(max, run.FontSize.Value);
+            if (run.FontSize is OfficeLength fontSize) {
+                max = Math.Max(max, fontSize.ToPoints());
             }
         }
 

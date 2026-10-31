@@ -1,0 +1,28 @@
+{
+  "package": "OfficeIMO.PowerPoint.OpenDocument",
+  "summary": "Image adapter consumers use the single options type from their rendering package.",
+  "changes": [
+    {
+      "old": "PowerPointOpenDocumentImageExportExtensions.ExportImages(OdpPresentation, OfficeImageExportFormat, PowerPointDocumentImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)",
+      "new": "PowerPointOpenDocumentImageExportExtensions.ExportImages(OdpPresentation, OfficeImageExportFormat, PowerPointImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)",
+      "file": "OfficeIMO.PowerPoint.OpenDocument/PowerPointOpenDocumentImageExportExtensions.cs",
+      "kind": "method",
+      "action": "merge",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior."
+    },
+    {
+      "old": "PowerPointOpenDocumentImageExportExtensions.ExportImages(OdpPresentation, OfficeImageExportFormat, OfficeImageExportConsumer, PowerPointDocumentImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)",
+      "new": "PowerPointOpenDocumentImageExportExtensions.ExportImages(OdpPresentation, OfficeImageExportFormat, OfficeImageExportConsumer, PowerPointImageExportOptions, PowerPointOpenDocumentConversionOptions, CancellationToken)",
+      "file": "OfficeIMO.PowerPoint.OpenDocument/PowerPointOpenDocumentImageExportExtensions.cs",
+      "kind": "method",
+      "action": "merge",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior."
+    }
+  ]
+}

@@ -26,18 +26,18 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Adding paragraph with some text");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Blue.ToRgbHex());
-                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Crimson.ToRgbHex());
-                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Aquamarine.ToRgbHex());
+                Console.WriteLine(OfficeIMO.OfficeColor.Blue.ToRgbHex());
+                Console.WriteLine(OfficeIMO.OfficeColor.Crimson.ToRgbHex());
+                Console.WriteLine(OfficeIMO.OfficeColor.Aquamarine.ToRgbHex());
 
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 paragraph = document.AddParagraph("Adding another paragraph with some more text");
                 paragraph.Bold = true;
                 paragraph = paragraph.AddText(" , but now we also decided to add more text to this paragraph using different style");
                 paragraph.Underline = WordUnderlineStyle.DashLong;
                 paragraph = paragraph.AddText(" , and we still continue adding more text to existing paragraph.");
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.CornflowerBlue;
+                paragraph.Color = OfficeIMO.OfficeColor.CornflowerBlue;
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

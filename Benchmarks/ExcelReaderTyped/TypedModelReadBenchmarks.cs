@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 }
                 Check(_expected, count);
             }
-            using (ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = true })) {
+            using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_bytes, writable: false), new ExcelReaderOptions { HasHeaderRow = true })) {
                 int count = 0;
                 if (Model == TypedModelKind.Class) {
                     foreach (TypedRecord row in reader.RowsAs<TypedRecord>())
@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         [Benchmark]
         public long OfficeIMOAutomatic() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = true });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_bytes, writable: false), new ExcelReaderOptions { HasHeaderRow = true });
             long sum = 0;
             int count = 0;
             if (Model == TypedModelKind.Class) {
@@ -148,12 +148,12 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                     Validate(row, ++count);
                 Check(_expected, count);
             }
-            using (ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = true })) {
+            using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_bytes, writable: false), new OfficeIMO.Excel.ExcelReaderOptions { HasHeaderRow = true })) {
                 int count = 0;
                 while (reader.Read()) Validate(ReadOfficeIMO(reader), ++count);
                 Check(_expected, count);
             }
-            using (ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = true })) {
+            using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_bytes, writable: false), new OfficeIMO.Excel.ExcelReaderOptions { HasHeaderRow = true })) {
                 int count = 0;
                 foreach (BorrowedTypedRecord row in reader.RowsAsBorrowed<BorrowedTypedRecord>(ReadOfficeIMO))
                     Validate(row, ++count);
@@ -180,7 +180,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         [Benchmark]
         public long OfficeIMOManualRefStruct() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = true });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_bytes, writable: false), new OfficeIMO.Excel.ExcelReaderOptions { HasHeaderRow = true });
             long sum = 0;
             int count = 0;
             while (reader.Read()) {
@@ -192,7 +192,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         [Benchmark]
         public long OfficeIMOFactoryRefStruct() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = true });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_bytes, writable: false), new OfficeIMO.Excel.ExcelReaderOptions { HasHeaderRow = true });
             long sum = 0;
             int count = 0;
             foreach (BorrowedTypedRecord row in reader.RowsAsBorrowed<BorrowedTypedRecord>(ReadOfficeIMO)) {

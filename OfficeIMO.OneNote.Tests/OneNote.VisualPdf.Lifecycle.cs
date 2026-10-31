@@ -80,7 +80,7 @@ public sealed class OneNoteVisualPdfLifecycleTests {
 
         using var stream = new MemoryStream(bytes);
         PdfDocument document = PdfDocument.Load(stream);
-        Assert.True(document.Preflight().CanRead);
+        Assert.True(document.Analyze().Preflight.CanRead);
         Assert.Equal(1, document.Inspect().PageCount);
     }
 }

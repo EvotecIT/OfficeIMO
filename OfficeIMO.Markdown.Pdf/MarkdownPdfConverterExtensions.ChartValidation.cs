@@ -19,11 +19,11 @@ public static partial class MarkdownPdfConverterExtensions {
         return false;
     }
 
-    private static bool HasUnsupportedCategoryScaleType(MarkdownPdfJsonValue root, OfficeChartKind chartKind) {
-        if (chartKind == OfficeChartKind.Scatter ||
-            chartKind == OfficeChartKind.Pie ||
-            chartKind == OfficeChartKind.Doughnut ||
-            chartKind == OfficeChartKind.Radar) {
+    private static bool HasUnsupportedCategoryScaleType(MarkdownPdfJsonValue root, OfficeChartType chartKind) {
+        if (chartKind == OfficeChartType.Scatter ||
+            chartKind == OfficeChartType.Pie ||
+            chartKind == OfficeChartType.Doughnut ||
+            chartKind == OfficeChartType.Radar) {
             return false;
         }
 
@@ -122,7 +122,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return true;
     }
 
-    private static bool HasUnsupportedFloatingBarTuples(MarkdownPdfJsonValue dataElement, OfficeChartKind chartKind) {
+    private static bool HasUnsupportedFloatingBarTuples(MarkdownPdfJsonValue dataElement, OfficeChartType chartKind) {
         if (!IsBarChart(chartKind) && !IsColumnChart(chartKind)) {
             return false;
         }
@@ -130,7 +130,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return HasNumericTupleData(dataElement);
     }
 
-    private static bool HasUnsupportedBarBase(MarkdownPdfJsonValue dataElement, OfficeChartKind chartKind) {
+    private static bool HasUnsupportedBarBase(MarkdownPdfJsonValue dataElement, OfficeChartType chartKind) {
         if (!IsBarChart(chartKind) && !IsColumnChart(chartKind)) {
             return false;
         }

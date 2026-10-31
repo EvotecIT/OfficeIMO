@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
             }
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].ColumnsSpace = 50;
+                document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(2.5);
                 Console.WriteLine("+ Settings Zoom Preset: " + document.Settings.ZoomPreset);
                 Console.WriteLine("+ Settings Zoom Percent: " + document.Settings.ZoomPercentage);
 
@@ -71,31 +71,31 @@ namespace OfficeIMO.Examples.Word {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 //paragraph = document.InsertPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 //paragraph = document.InsertPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 //paragraph = document.InsertPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 //paragraph = document.InsertPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 5");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 //var section2 = document.AddSection(WordSectionBreakType.NextPage);
                 var section2 = document.AddSection();
@@ -114,35 +114,35 @@ namespace OfficeIMO.Examples.Word {
                 var section2EvenHeader = RequireHeader(section2Headers.Even, "Section 2 even header");
 
                 var paragraghInHeaderSection1 = section2DefaultHeader.AddParagraph();
-                paragraghInHeaderSection1.Text = "Weird shit? 1";
+                paragraghInHeaderSection1.Text = "Section 1 header";
 
                 paragraghInHeaderSection1 = section2FirstHeader.AddParagraph();
-                paragraghInHeaderSection1.Text = "Weird shit 2?";
+                paragraghInHeaderSection1.Text = "Section 2 header";
                 // paragraghInHeaderSection1.InsertText("ok?");
 
                 paragraghInHeaderSection1 = section2EvenHeader.AddParagraph();
-                paragraghInHeaderSection1.Text = "Weird shit? 3";
+                paragraghInHeaderSection1.Text = "Section 3 header";
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 6");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 paragraph = document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 7");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
 
                 paragraph = document.AddParagraph("Basic paragraph - Section 3.1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 paragraph = document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Section 3.2");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 paragraph = document.AddPageBreak();
 

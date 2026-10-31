@@ -98,11 +98,11 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 Table table = FindTableByRangeNameOrDisplayName(tableOrRange)
                     ?? throw new InvalidOperationException($"Table '{tableOrRange}' was not found on worksheet '{Name}'.");
-                var currentBounds = A1.ParseRange(table.Reference?.Value
+                var currentBounds = ExcelA1.ParseRange(table.Reference?.Value
                     ?? throw new InvalidOperationException("Table reference is missing."));
                 var targetBounds = string.IsNullOrWhiteSpace(newRange)
                     ? currentBounds
-                    : A1.ParseRange(newRange!);
+                    : ExcelA1.ParseRange(newRange!);
                 if (targetBounds.r1 != currentBounds.r1 || targetBounds.c1 != currentBounds.c1) {
                     throw new InvalidOperationException("Table schema resize must preserve the table's top-left cell. Move the cell range explicitly before resizing the table.");
                 }
@@ -124,7 +124,7 @@ namespace OfficeIMO.Excel {
                     || targetBounds.r2 != currentBounds.r2
                     || targetBounds.c2 != currentBounds.c2;
                 if (rangeChanged) {
-                    string targetText = A1.CellReference(targetBounds.r1, targetBounds.c1) + ":" + A1.CellReference(targetBounds.r2, targetBounds.c2);
+                    string targetText = ExcelA1.CellReference(targetBounds.r1, targetBounds.c1) + ":" + ExcelA1.CellReference(targetBounds.r2, targetBounds.c2);
                     EnsureNoIntersectingOwnedStructures(
                         ExcelReference.Parse(targetText),
                         "Table resize would overlap another table, merged cells, an array or data-table formula, or PivotTable output.",
@@ -155,7 +155,7 @@ namespace OfficeIMO.Excel {
                 for (int index = existing.Count - 1; index >= names.Length; index--) existing[index].Remove();
                 columns.Count = (uint)names.Length;
 
-                string normalizedRange = A1.CellReference(targetBounds.r1, targetBounds.c1) + ":" + A1.CellReference(targetBounds.r2, targetBounds.c2);
+                string normalizedRange = ExcelA1.CellReference(targetBounds.r1, targetBounds.c1) + ":" + ExcelA1.CellReference(targetBounds.r2, targetBounds.c2);
                 if (rangeChanged) RelocateTableTotalsRows(
                     currentBounds,
                     targetBounds,
@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel {
                 AutoFilter? filter = table.GetFirstChild<AutoFilter>();
                 if (filter != null) {
                     int filterLastRow = Math.Max(targetBounds.r1, targetBounds.r2 - totalsRows);
-                    filter.Reference = A1.CellReference(targetBounds.r1, targetBounds.c1) + ":" + A1.CellReference(filterLastRow, targetBounds.c2);
+                    filter.Reference = ExcelA1.CellReference(targetBounds.r1, targetBounds.c1) + ":" + ExcelA1.CellReference(filterLastRow, targetBounds.c2);
                     foreach (FilterColumn stale in filter.Elements<FilterColumn>()
                         .Where(item => (item.ColumnId?.Value ?? uint.MaxValue) >= (uint)names.Length).ToList()) stale.Remove();
                 }
@@ -272,8 +272,8 @@ namespace OfficeIMO.Excel {
                 TargetColumn: targetBounds.c1 + item.Column - currentBounds.c1,
                 Cell: (Cell)item.Cell.CloneNode(true))).ToList();
             var totalsSource = ExcelReference.Parse(
-                A1.CellReference(sourceFirstRow, currentBounds.c1) + ":" +
-                A1.CellReference(currentBounds.r2, survivingLastColumn));
+                ExcelA1.CellReference(sourceFirstRow, currentBounds.c1) + ":" +
+                ExcelA1.CellReference(currentBounds.r2, survivingLastColumn));
             int destinationLastRow = targetFirstRow + totalsRows - 1;
             RemoveRangeMoveDestinationComments(
                 totalsSource,
@@ -295,7 +295,7 @@ namespace OfficeIMO.Excel {
                 transpose: false);
             foreach (var source in sourceCells) source.Cell.Remove();
             foreach (var item in relocated) {
-                item.Cell.CellReference = A1.CellReference(item.TargetRow, item.TargetColumn);
+                item.Cell.CellReference = ExcelA1.CellReference(item.TargetRow, item.TargetColumn);
                 if (item.Cell.CellFormula != null && item.TargetRow != item.SourceRow) {
                     item.Cell.CellFormula.Text = TranslateCopiedFormula(
                         item.Cell.CellFormula.Text,
@@ -464,7 +464,7 @@ namespace OfficeIMO.Excel {
             if (worksheetPart?.Worksheet == null) return;
             foreach (Cell cell in worksheetPart.Worksheet.Descendants<Cell>()) {
                 if (cell.CellFormula?.Text is not string formula
-                    || !A1.TryParseCellReferenceFast(cell.CellReference?.Value, out int row, out int column)
+                    || !ExcelA1.TryParseCellReferenceFast(cell.CellReference?.Value, out int row, out int column)
                     || !tableRange!.Contains(row, column)) {
                     continue;
                 }

@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string base64 = Convert.ToBase64String(imageBytes);
             string html = $"<figure><img src=\"data:image/png;base64,{base64}\" alt=\"Logo\"/><figcaption>Logo caption</figcaption></figure>";
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             Assert.Single(doc.Images);
             Assert.Equal("Logo caption", doc.Paragraphs[1].Text);
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
             string base64 = Convert.ToBase64String(imageBytes);
             string html = $"<figure><figcaption>Logo caption</figcaption><img src=\"data:image/png;base64,{base64}\" alt=\"Logo\"/></figure>";
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             Assert.Single(doc.Images);
             Assert.Equal("Logo caption", doc.Paragraphs[0].Text);
@@ -75,10 +75,10 @@ namespace OfficeIMO.Tests {
         public void Html_FigureWithMultipleContentBlocksReportsFlattening() {
             const string html = "<figure><p>First</p><p>Second</p><figcaption>Grouped content</figcaption></figure>";
 
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions());
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new WordHtmlImportOptions());
             using var document = conversion.Value;
 
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics, item => item.Code == "HtmlFigureStructureFlattened");
+            var diagnostic = Assert.Single(conversion.Report.Diagnostics, item => item.Code == "html-figure-structure-flattened");
             Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
             Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "First");
             Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "Second");
@@ -89,12 +89,12 @@ namespace OfficeIMO.Tests {
         public void Html_FigureWhoseSingleDomChildExpandsToMultipleWordBlocksReportsFlattening() {
             const string html = "<figure><ol><li>A</li><li>B</li></ol><figcaption>List caption</figcaption></figure>";
 
-            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions());
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new WordHtmlImportOptions());
             using var document = conversion.Value;
             string roundTrip = document.ToHtml();
             var parsed = HtmlDocumentParser.ParseDocument(roundTrip);
 
-            Assert.Single(conversion.Report.Diagnostics, item => item.Code == "HtmlFigureStructureFlattened");
+            Assert.Single(conversion.Report.Diagnostics, item => item.Code == "html-figure-structure-flattened");
             Assert.Empty(parsed.QuerySelectorAll("figure"));
             Assert.Equal(new[] { "A", "B" }, parsed.QuerySelectorAll("ol > li").Select(item => item.TextContent));
         }
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
                 ? "<figure><figcaption>Figure caption</figcaption><p>Figure body</p></figure>"
                 : "<figure><p>Figure body</p><figcaption>Figure caption</figcaption></figure>";
 
-            using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             string roundTrip = document.ToHtml();
             var parsed = HtmlDocumentParser.ParseDocument(roundTrip);
             var figure = Assert.Single(parsed.QuerySelectorAll("figure"));
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
         public void Html_TableFigureWithLeadingCaption_RoundTripsAsOneFigure() {
             const string html = "<figure><figcaption>Table caption</figcaption><table><tr><td>Cell</td></tr></table></figure>";
 
-            using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             string roundTrip = document.ToHtml();
             var parsed = HtmlDocumentParser.ParseDocument(roundTrip);
             var figure = Assert.Single(parsed.QuerySelectorAll("figure"));

@@ -30,7 +30,7 @@ public class ExcelDataTableRowShapeBenchmarks {
         _range = $"A1:{lastColumn}{RowCount}";
         try {
             using (var document = ExcelDocument.Create(_path)) {
-                document.AddWorksheet("Data");
+                document.AddSheet("Data");
                 document.Save();
             }
             using (var package = ZipFile.Open(_path, ZipArchiveMode.Update)) {
@@ -78,7 +78,7 @@ public class ExcelDataTableRowShapeBenchmarks {
     }
 
     private DataTable ReadTable() {
-        using var owner = ExcelDocumentReader.Open(_path, new ExcelReadOptions { InferDataTableColumnTypes = false });
+        using var owner = ExcelDocumentReader.Open(_path, new ExcelReaderOptions { InferDataTableColumnTypes = false });
         DataTable table = owner.GetSheet("Data").ReadRangeAsDataTable(_range, headersInFirstRow: false);
         if (table.Rows.Count == RowCount && table.Columns.Count == ColumnCount) return table;
         table.Dispose();

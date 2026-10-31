@@ -8,6 +8,38 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPageMarginContextCache_ManyUnusedNamesDoNotRetainEveryComputedCascade() {
+        string css = string.Concat(Enumerable.Range(0, 40).Select(index =>
+            "@page name" + index + "{@bottom-center{content:'x';font-family:Family" + index + "}}"));
+        using var document = new HtmlParser().ParseDocument("<style>" + css + "</style><p>Body</p>");
+        var options = PageMarginTypographyOptions();
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, options, limits);
+        HtmlComputedStyle root = styles.Elements[document.DocumentElement!];
+        HtmlCssPageRuleSet rules = HtmlCssPageSettingsResolver.Apply(document, options, new HtmlDiagnosticReport(), limits);
+
+        var families = rules.EnumerateMarginFontRequests(root, styles, options, default)
+            .Select(request => request.Families).ToHashSet(StringComparer.Ordinal);
+
+        Assert.Contains("Family0", families);
+        Assert.Contains("Family39", families);
+        Assert.InRange(rules.CachedMarginContextCount, 1, 16);
+    }
+
+    [Fact]
+    public void HtmlPageMarginContextCache_RepeatedGeneratedDeclarationsKeepLinearCandidateHistory() {
+        var parent = new HtmlComputedStyle(new Dictionary<string, string>());
+        var declarations = Enumerable.Range(0, 5_000).Select(index =>
+            new HtmlGeneratedStyleDeclaration("font-size", index == 4_999 ? "20px" : "12px",
+                false, 0, 0, null, index));
+
+        HtmlComputedStyle result = HtmlComputedStyleEngine.ComputeGeneratedContext(
+            parent, declarations, enforceResolutionLimits: true, default);
+
+        Assert.Equal("20px", result.GetValue("font-size"));
+    }
+
+    [Fact]
     public void HtmlPageMarginContextCache_RepeatedPagesDoNotConsumeFreshRegisteredPropertyFanout() {
         string html = PageMarginContextCacheSource("white-space:pre;line-height:12px", "counter(page)")
             + "<p>" + string.Join("\n", Enumerable.Repeat("Body", 120)) + "</p>";

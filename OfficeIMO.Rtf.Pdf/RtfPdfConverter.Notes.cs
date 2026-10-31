@@ -24,8 +24,8 @@ internal static partial class RtfPdfConverter {
         foreach (PdfNoteReference noteReference in state.NoteReferences) {
             if (noteReference.Note.Paragraphs.Count == 0) {
                 pdf.Paragraph(paragraph => paragraph.Runs(new[] {
-                    state.CreateDefaultRun(GetNoteLabel(noteReference), bold: true, fontSize: 9D),
-                    state.CreateDefaultRun(string.Empty, fontSize: 9D)
+                    state.CreateDefaultRun(GetNoteLabel(noteReference), bold: true, fontSize: global::OfficeIMO.OfficeLength.Points(9D)),
+                    state.CreateDefaultRun(string.Empty, fontSize: global::OfficeIMO.OfficeLength.Points(9D))
                 }));
             }
 
@@ -35,7 +35,7 @@ internal static partial class RtfPdfConverter {
                 if (RtfPdfMapping.HasPageBreakBefore(document, source)) pdf.PageBreak();
                 var runs = new List<PdfCore.PdfTextRun>();
                 if (i == 0) {
-                    runs.Add(state.CreateDefaultRun(GetNoteLabel(noteReference), bold: true, fontSize: 9D));
+                    runs.Add(state.CreateDefaultRun(GetNoteLabel(noteReference), bold: true, fontSize: global::OfficeIMO.OfficeLength.Points(9D)));
                 }
 
                 int bodyStartIndex = runs.Count;

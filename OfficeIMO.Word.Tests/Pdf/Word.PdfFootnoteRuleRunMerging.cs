@@ -84,7 +84,7 @@ public partial class WordPdfPageFootnoteTests {
         string[] before = { main.Document.OuterXml, main.FootnotesPart.Footnotes.OuterXml,
             main.StyleDefinitionsPart!.Styles!.OuterXml, main.DocumentSettingsPart!.Settings!.OuterXml,
             string.Join("\n", main.FooterParts.Select(part => part.Footer!.OuterXml)) };
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         byte[] actual = result.ToBytes();
         Assert.Equal(before, new[] { main.Document.OuterXml, main.FootnotesPart.Footnotes.OuterXml,
             main.StyleDefinitionsPart.Styles.OuterXml, main.DocumentSettingsPart.Settings.OuterXml,

@@ -12,15 +12,20 @@ internal static partial class OfficeC2paManifestStore {
     /// Reads what the active (last) manifest of a structurally valid store says. Never throws; returns null when the
     /// store or its claim cannot be read. Values are as written in the manifest and are not signature-verified.
     /// </summary>
-    internal static OfficeC2paManifestSummary? TryDescribe(byte[] data, int offset, int length) {
+    internal static OfficeC2paManifestSummary? TryDescribe(byte[] data, int offset, int length) =>
+        TryDescribe(data, offset, length, new OfficeCborMapComparisonBudget(OfficeCborMapComparisonBudget.DefaultLimit));
+
+    internal static OfficeC2paManifestSummary? TryDescribe(byte[] data, int offset, int length,
+        OfficeCborMapComparisonBudget comparisonBudget) {
         try {
-            return Describe(data, offset, length);
+            return Describe(data, offset, length, comparisonBudget);
         } catch (Exception error) when (error is FormatException or ArgumentException or IndexOutOfRangeException or OverflowException) {
             return null;
         }
     }
 
-    private static OfficeC2paManifestSummary? Describe(byte[] data, int offset, int length) {
+    private static OfficeC2paManifestSummary? Describe(byte[] data, int offset, int length,
+        OfficeCborMapComparisonBudget comparisonBudget) {
         if (data == null || offset < 0 || length <= 0 || offset > data.Length - length) return null;
         if (!TryOpenSuperbox(data, offset, length, out _, out string storeLabel, out int cursor, out int storeEnd) || storeLabel != "c2pa") return null;
 
@@ -57,17 +62,17 @@ internal static partial class OfficeC2paManifestStore {
                 if (SameUuid(uuid, AssertionStoreUuid)) {
                     assertionStores.Add((content, contentEnd));
                 } else if (SameUuid(uuid, ClaimUuid) && TryReadContent(data, content, contentEnd, out string claimType, out int claimOffset, out int claimLength) &&
-                    claimType == "cbor" && OfficeCborReader.TryDecode(data, claimOffset, claimLength, out object? claimValue)) {
+                    claimType == "cbor" && OfficeCborReader.TryDecode(data, claimOffset, claimLength, out object? claimValue, comparisonBudget)) {
                     claim = claimValue as Dictionary<object, object?>;
                 } else if (SameUuid(uuid, ClaimSignatureUuid) && TryReadContent(data, content, contentEnd, out string signatureType, out int signatureOffset, out int signatureLength) &&
                     signatureType == "cbor") {
-                    ReadSigner(data, signatureOffset, signatureLength, out signedBy, out issuer);
+                    ReadSigner(data, signatureOffset, signatureLength, comparisonBudget, out signedBy, out issuer);
                 }
             }
             child += (int)childLength;
         }
 
-        if (claim == null) return null;
+        if (claim == null || comparisonBudget.Exceeded) return null;
         HashSet<string> claimedAssertions = ClaimedAssertions(claim, activeLabel!);
         var assertionBoxes = new List<(string Label, string Type, int Offset, int Length)>();
         foreach ((int content, int contentEnd) in assertionStores) CollectAssertions(data, content, contentEnd, claimedAssertions, assertionBoxes);
@@ -81,7 +86,8 @@ internal static partial class OfficeC2paManifestStore {
         }
 
         foreach ((string label, string type, int boxOffset, int boxLength) in assertionBoxes) {
-            if (!claimedAssertions.Contains(label) || type != "cbor" || !OfficeCborReader.TryDecode(data, boxOffset, boxLength, out object? value) || value is not Dictionary<object, object?> assertion) continue;
+            if (comparisonBudget.Exceeded) return null;
+            if (!claimedAssertions.Contains(label) || type != "cbor" || !OfficeCborReader.TryDecode(data, boxOffset, boxLength, out object? value, comparisonBudget) || value is not Dictionary<object, object?> assertion) continue;
             if (BaseLabel(label) == "c2pa.actions") {
                 DescribeActions(assertion, label, actions, ref declaresGenerativeAi);
             } else if (BaseLabel(label) == "c2pa.ingredient" && ingredients.Count < MaximumDescribedIngredients) {
@@ -89,6 +95,8 @@ internal static partial class OfficeC2paManifestStore {
                 if (!string.IsNullOrWhiteSpace(title)) ingredients.Add(title!);
             }
         }
+
+        if (comparisonBudget.Exceeded) return null;
 
         return new OfficeC2paManifestSummary(
             activeLabel,
@@ -166,14 +174,15 @@ internal static partial class OfficeC2paManifestStore {
     }
 
     /// <summary>Reads the signer from the COSE_Sign1 x5chain (header 33): the first certificate is the signing certificate.</summary>
-    private static void ReadSigner(byte[] data, int offset, int length, out string? signedBy, out string? issuer) {
+    private static void ReadSigner(byte[] data, int offset, int length, OfficeCborMapComparisonBudget comparisonBudget,
+        out string? signedBy, out string? issuer) {
         signedBy = issuer = null;
-        if (!OfficeCborReader.TryDecode(data, offset, length, out object? value)) return;
+        if (!OfficeCborReader.TryDecode(data, offset, length, out object? value, comparisonBudget)) return;
         if (value is OfficeCborTag tag) value = tag.Value;
         if (value is not List<object?> sign1 || sign1.Count < 2) return;
         object? chain = null;
         if (sign1[0] is byte[] protectedHeader && protectedHeader.Length > 0 &&
-            OfficeCborReader.TryDecode(protectedHeader, 0, protectedHeader.Length, out object? decoded) && decoded is Dictionary<object, object?> protectedMap) {
+            OfficeCborReader.TryDecode(protectedHeader, 0, protectedHeader.Length, out object? decoded, comparisonBudget) && decoded is Dictionary<object, object?> protectedMap) {
             chain = Get(protectedMap, 33L);
         }
         if (chain == null && sign1[1] is Dictionary<object, object?> unprotectedMap) chain = Get(unprotectedMap, 33L) ?? Get(unprotectedMap, "x5chain");

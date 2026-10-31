@@ -19,6 +19,6 @@ public sealed class HtmlFontOpticalSizeTests {
             + size + "px}</style><p>Variable OfficeIMO</p>");
         var reference = new HtmlToPdfOptions();
         reference.Fonts.FontVariationResolver = _ => new Dictionary<string, float> { ["opsz"] = size };
-        Assert.Equal(source.ToPdfBytes(reference), source.ToPdfBytes(new HtmlToPdfOptions()));
+        Assert.Equal((source.ToPdf(reference)).ToBytes(), (source.ToPdf(new HtmlToPdfOptions())).ToBytes());
     }
 }

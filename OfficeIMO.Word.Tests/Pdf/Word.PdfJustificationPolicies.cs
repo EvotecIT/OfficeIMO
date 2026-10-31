@@ -81,8 +81,7 @@ public sealed class WordPdfJustificationPolicyTests {
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table._tableProperties!.TableWidth = new W.TableWidth { Type = W.TableWidthUnitValues.Dxa, Width = "4800" };
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.Width = 4800;
-        cell.WidthType = WordTableWidthUnit.Dxa;
+        cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4800) * 635)));
         W.Paragraph original = cell.Paragraphs[0]._paragraph;
         W.Paragraph paragraph = CreateJustificationPolicyParagraph(W.JustificationValues.Both);
         original.InsertAfterSelf(paragraph);
@@ -124,10 +123,10 @@ public sealed class WordPdfJustificationPolicyTests {
         string body = main.Document.OuterXml;
         string settings = main.DocumentSettingsPart!.Settings!.OuterXml;
         string? notes = main.FootnotesPart?.Footnotes?.OuterXml;
-        byte[] bytes = document.ToPdfDocumentResult(new WordToPdfOptions {
+        byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PageSize(300, 320),
-            Margins = PageMargins.Uniform(30),
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(320)),
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
             FontFamily = "Helvetica"
         }).ToBytes();
         Assert.Equal(body, main.Document.OuterXml);

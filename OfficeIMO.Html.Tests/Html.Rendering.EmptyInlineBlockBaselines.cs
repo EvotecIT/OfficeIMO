@@ -246,7 +246,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
     private static byte[] FontBytes() => File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf"));
     private static HtmlRenderOptions Options() {
         var options = new HtmlRenderOptions { ViewportWidth = 600D, ViewportHeight = 900D,
-            PageSize = new OfficePageSize(600D / 96D, 900D / 96D), Margins = HtmlRenderMargins.All(0D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(600D / 96D), global::OfficeIMO.OfficeLength.Inches(900D / 96D)), Margins = HtmlRenderMargins.All(0D),
             UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser, HonorCssPageRules = false };
         options.Fonts.Add("Pinned", FontBytes());
         return options;

@@ -23,7 +23,7 @@ internal static partial class PdfWriter {
             }
             var points = new List<OfficePoint> { new(left, y) };
             if (style == OfficeTextDecorationStyle.Wavy) {
-                double step = Math.Max(thickness * 5D, 2D), amplitude = Math.Max(thickness * 1.5D, .75D);
+                double step = WavyDecorationStep(thickness), amplitude = WavyDecorationAmplitude(thickness);
                 bool raised = true;
                 for (double cursor = left; cursor < right;) {
                     cancellationToken.ThrowIfCancellationRequested();

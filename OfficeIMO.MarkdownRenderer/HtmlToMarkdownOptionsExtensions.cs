@@ -10,7 +10,7 @@ public static class HtmlToMarkdownOptionsExtensions {
     /// <summary>
     /// Applies a renderer plugin's HTML-ingestion contract to HTML-to-markdown options.
     /// </summary>
-    public static void ApplyPlugin(this HtmlToMarkdownOptions options, MarkdownRendererPlugin plugin) {
+    public static void ApplyPlugin(this MarkdownHtmlImportOptions options, MarkdownRendererPlugin plugin) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -33,7 +33,7 @@ public static class HtmlToMarkdownOptionsExtensions {
     /// Returns <see langword="true"/> when a renderer plugin's HTML-ingestion contract
     /// has already been applied to HTML-to-markdown options.
     /// </summary>
-    public static bool HasPlugin(this HtmlToMarkdownOptions options, MarkdownRendererPlugin plugin) {
+    public static bool HasPlugin(this MarkdownHtmlImportOptions options, MarkdownRendererPlugin plugin) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -52,7 +52,7 @@ public static class HtmlToMarkdownOptionsExtensions {
     /// <summary>
     /// Applies a renderer feature pack's HTML-ingestion contract to HTML-to-markdown options.
     /// </summary>
-    public static void ApplyFeaturePack(this HtmlToMarkdownOptions options, MarkdownRendererFeaturePack featurePack) {
+    public static void ApplyFeaturePack(this MarkdownHtmlImportOptions options, MarkdownRendererFeaturePack featurePack) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -79,7 +79,7 @@ public static class HtmlToMarkdownOptionsExtensions {
     /// Returns <see langword="true"/> when a renderer feature pack's HTML-ingestion contract
     /// has already been applied to HTML-to-markdown options.
     /// </summary>
-    public static bool HasFeaturePack(this HtmlToMarkdownOptions options, MarkdownRendererFeaturePack featurePack) {
+    public static bool HasFeaturePack(this MarkdownHtmlImportOptions options, MarkdownRendererFeaturePack featurePack) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -120,7 +120,7 @@ public static class HtmlToMarkdownOptionsExtensions {
         }
     }
 
-    private static void AddElementBlockConverters(ICollection<HtmlElementBlockConverter> target, IReadOnlyList<HtmlElementBlockConverter> converters) {
+    private static void AddElementBlockConverters(ICollection<MarkdownHtmlBlockConverter> target, IReadOnlyList<MarkdownHtmlBlockConverter> converters) {
         if (target == null || converters == null || converters.Count == 0) {
             return;
         }
@@ -145,7 +145,7 @@ public static class HtmlToMarkdownOptionsExtensions {
         }
     }
 
-    private static void AddInlineElementConverters(ICollection<HtmlInlineElementConverter> target, IReadOnlyList<HtmlInlineElementConverter> converters) {
+    private static void AddInlineElementConverters(ICollection<MarkdownHtmlInlineConverter> target, IReadOnlyList<MarkdownHtmlInlineConverter> converters) {
         if (target == null || converters == null || converters.Count == 0) {
             return;
         }
@@ -249,7 +249,7 @@ public static class HtmlToMarkdownOptionsExtensions {
         return true;
     }
 
-    private static bool ContainsAllElementBlockConverters(IReadOnlyList<HtmlElementBlockConverter> target, IReadOnlyList<HtmlElementBlockConverter> converters) {
+    private static bool ContainsAllElementBlockConverters(IReadOnlyList<MarkdownHtmlBlockConverter> target, IReadOnlyList<MarkdownHtmlBlockConverter> converters) {
         if (target == null || converters == null || converters.Count == 0) {
             return false;
         }
@@ -276,7 +276,7 @@ public static class HtmlToMarkdownOptionsExtensions {
         return true;
     }
 
-    private static bool ContainsAllInlineElementConverters(IReadOnlyList<HtmlInlineElementConverter> target, IReadOnlyList<HtmlInlineElementConverter> converters) {
+    private static bool ContainsAllInlineElementConverters(IReadOnlyList<MarkdownHtmlInlineConverter> target, IReadOnlyList<MarkdownHtmlInlineConverter> converters) {
         if (target == null || converters == null || converters.Count == 0) {
             return false;
         }

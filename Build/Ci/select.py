@@ -106,12 +106,12 @@ def select(root, changed, full=False):
     suites["powershell"] |= any(p.startswith("PowerShell/") for p in changed)
     partitions = [p for p, roots in config["partitions"].items() if selected(roots)]
     frameworks = ["net8.0", "net10.0"] if full else ["net10.0"]
-    ubuntu = [{"framework": f, "partition": p, "collectCoverage": False} for f in frameworks for p in partitions]
+    ubuntu = [{"framework": f, "partition": p} for f in frameworks for p in partitions]
     windows = [row for row in config["windows"] if Path(row["project"]).stem in names]
     return {
         "full": full,
         "suites": suites,
-        "ubuntu": {"include": ubuntu or [{"framework": "net10.0", "partition": "none", "collectCoverage": False}]},
+        "ubuntu": {"include": ubuntu or [{"framework": "net10.0", "partition": "none"}]},
         "ubuntu_enabled": bool(ubuntu),
         "windows": {"include": windows or [{"name": "none", "project": "none"}]},
         "windows_enabled": bool(windows),

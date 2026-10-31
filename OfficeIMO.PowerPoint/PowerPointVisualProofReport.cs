@@ -54,7 +54,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>Structural, extraction, accessibility, and visual evidence for one slide.</summary>
     public sealed class PowerPointVisualSlideProof {
         internal PowerPointVisualSlideProof(int slideNumber, int shapeCount, string extractedText,
-            PowerPointSlideVisualSnapshot snapshot, byte[] png, byte[] svg,
+            PowerPointSlideVisualInfo snapshot, byte[] png, byte[] svg,
             int accessibilityErrors, int accessibilityWarnings) {
             SlideNumber = slideNumber;
             ShapeCount = shapeCount;
@@ -237,7 +237,7 @@ namespace OfficeIMO.PowerPoint {
             .Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
     }
 
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         /// <summary>Creates structural, extraction, accessibility, PNG, SVG, and snapshot proof for every slide.</summary>
         public PowerPointVisualProofReport InspectVisuals(string sourceKind = "generated") {
             if (string.IsNullOrWhiteSpace(sourceKind)) throw new ArgumentException("Source kind cannot be empty.", nameof(sourceKind));
@@ -251,7 +251,7 @@ namespace OfficeIMO.PowerPoint {
             var slides = new List<PowerPointVisualSlideProof>(_slides.Count);
             for (int index = 0; index < _slides.Count; index++) {
                 PowerPointSlide slide = _slides[index];
-                PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot(
+                PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot(
                     new PowerPointImageExportOptions { IncludeHiddenShapes = true });
                 byte[] png = OfficeDrawingRasterRenderer.ToPng(snapshot.Drawing);
                 byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(snapshot.Drawing);

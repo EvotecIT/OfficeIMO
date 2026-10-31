@@ -27,10 +27,10 @@ public sealed class StudioConversionRunHistoryTests {
             string broken = Path.Combine(source, "two.docx");
             File.WriteAllText(broken, "A document that needs repair");
             string path = Path.Combine(root, "reviewed-job.json");
-            OfficeConversionJobSerializer.SaveFile(new OfficeConversionJob {
-                InputDirectory = "source", OutputDirectory = "output", CheckpointDirectory = "checkpoints",
-                MaximumConcurrency = 1, RetryFailed = true
-            }, path);
+            (new OfficeBatchOptions {
+                InputDirectory = "source", OutputDirectory = "output", ResumeFrom = "checkpoints/plan.json",
+                MaxParallelism = 1, RetryFailed = true
+            }).Save(path);
             var dialogs = new Dialogs { OpenPath = path };
             using (var initial = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services) { FileDialogs = dialogs }) {
                 await initial.ConversionWorkbench.BatchExport.LoadJobCommand.ExecuteAsync(null);
@@ -38,7 +38,7 @@ public sealed class StudioConversionRunHistoryTests {
                 Assert.Equal(OfficeWorkflowStatus.Failed, Assert.Single(services.Jobs.Entries).Outcome);
             }
             string firstPath = Assert.Single(Directory.GetFiles(services.Paths.ConversionRunsRoot, "*.json"));
-            byte[] firstReport = File.ReadAllBytes(firstPath), firstPdf = File.ReadAllBytes(Path.Combine(output, "one.txt.pdf"));
+            byte[] firstReport = File.ReadAllBytes(firstPath), firstPdf = File.ReadAllBytes(Path.Combine(output, "one.pdf"));
             var restarted = StudioApplicationServices.Create(services.Paths);
             var first = Assert.Single(restarted.Jobs.Entries);
             Assert.True(first.HasRunReport); Assert.True(first.CanOpenOutput); Assert.True(first.IsFailed);
@@ -72,29 +72,30 @@ public sealed class StudioConversionRunHistoryTests {
                 Assert.True(window.ViewModel.ConversionWorkbench.IsFolderJobReviewVisible);
                 Assert.Equal(path, window.ViewModel.ConversionWorkbench.BatchExport.SavedJobPath);
                 Assert.Single(restarted.Jobs.Entries);
-                Assert.False(File.Exists(Path.Combine(output, "two.docx.pdf")));
+                Assert.False(File.Exists(Path.Combine(output, "two.pdf")));
                 await window.ViewModel.ConversionWorkbench.BatchExport.PlanJobCommand.ExecuteAsync(null);
                 Assert.Contains("Selected 2", window.ViewModel.ConversionWorkbench.BatchExport.PlanSummary);
+                Capture(window, $"durable-jobs-{width}-review-before-run.png");
                 await ClickAsync(window, window.ViewModel.ConversionWorkbench.BatchExport.RunCommand);
                 Assert.Equal(2, restarted.Jobs.Entries.Count);
                 var retry = restarted.Jobs.Entries[0];
                 Assert.True(retry.IsSucceeded, retry.Summary);
-                Assert.Equal(1, retry.RunReport!.Batch!.Summary.Reused);
-                Assert.Equal(2, retry.RunReport.Batch.Summary.Completed);
-                Assert.Equal(0, retry.RunReport.Batch.Summary.Failed);
-                var retryReport = OfficeConversionJobRunReportSerializer.ReadFile(retry.RunReportPath!);
-                Assert.Single(retryReport.Batch!.Items, item => item.Reused);
-                Assert.Single(retryReport.Batch.Items, item => item.Status == OfficeWorkflowStatus.Completed && !item.Reused);
-                Assert.Equal(firstPdf, File.ReadAllBytes(Path.Combine(output, "one.txt.pdf")));
+                Assert.Equal(1, retry.RunReport!.Summary.Reused);
+                Assert.Equal(2, retry.RunReport.Summary.Completed);
+                Assert.Equal(0, retry.RunReport.Summary.Failed);
+                var retryReport = OfficeBatchReport.Load(retry.RunReportPath!);
+                Assert.Single(retryReport.Items, item => item.Reused);
+                Assert.Single(retryReport.Items, item => item.Status == OfficeBatchItemStatus.Completed && !item.Reused);
+                Assert.Equal(firstPdf, File.ReadAllBytes(Path.Combine(output, "one.pdf")));
                 Assert.Equal(firstReport, File.ReadAllBytes(firstPath));
-                Assert.Contains("Repaired second source", OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(output, "two.docx.pdf")).Read().Text);
+                Assert.Contains("Repaired second source", OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(output, "two.pdf")).Read().Text);
                 window.ViewModel.ShowJobsCommand.Execute(null); Layout(window);
                 list.SelectedItem = retry; list.ScrollIntoView(retry); Layout(window);
                 Capture(window, $"durable-jobs-{width}-retried.png");
                 window.ViewModel.Jobs.ClearFinishedCommand.Execute(null);
                 Assert.Empty(restarted.Jobs.Entries);
                 Assert.Empty(Directory.GetFiles(restarted.Paths.ConversionRunsRoot, "*.json"));
-                Assert.Equal(firstPdf, File.ReadAllBytes(Path.Combine(output, "one.txt.pdf")));
+                Assert.Equal(firstPdf, File.ReadAllBytes(Path.Combine(output, "one.pdf")));
                 Assert.True(Directory.Exists(Path.Combine(root, "checkpoints")));
                 Assert.True(File.Exists(path));
             } finally { window.Close(); }
@@ -104,13 +105,13 @@ public sealed class StudioConversionRunHistoryTests {
 
     [Fact]
     public void FileResultExcerptKeepsSummaryWarningsAndErrorsWithoutInformationalDetails() {
-        var item = new OfficeConversionBatchItemResult("failed.docx", null, OfficeWorkflowStatus.Failed, false,
+        var item = new OfficeBatchItemReport("failed.docx", null, OfficeBatchItemStatus.Failed, false,
             "The source document could not be read.", [
-                new("capture", "The source was captured internally."),
-                new("stage", "The artifact was staged for one filesystem move."),
-                new("publish", "The publication boundary was checked."),
-                new("font", "A required font is unavailable.", OfficeWorkflowDiagnosticSeverity.Warning),
-                new("source", "The document archive is damaged.", OfficeWorkflowDiagnosticSeverity.Error)
+                new("capture", OfficeDiagnosticSeverity.Information, "The source was captured internally."),
+                new("stage", OfficeDiagnosticSeverity.Information, "The artifact was staged for one filesystem move."),
+                new("publish", OfficeDiagnosticSeverity.Information, "The publication boundary was checked."),
+                new("font", OfficeDiagnosticSeverity.Warning, "A required font is unavailable."),
+                new("source", OfficeDiagnosticSeverity.Error, "The document archive is damaged.")
             ]);
         var displayed = new StudioConversionRunItem(item, OfficeIMO.Studio.Infrastructure.Localization.StudioLocalization.Current);
         Assert.Equal(string.Join(Environment.NewLine, "The source document could not be read.",
@@ -130,7 +131,7 @@ public sealed class StudioConversionRunHistoryTests {
             string root = services.Paths.Root, source = Path.Combine(root, "source"), path = Path.Combine(root, "job.json");
             Directory.CreateDirectory(source);
             File.WriteAllText(Path.Combine(source, "one.txt"), "Reviewed source");
-            OfficeConversionJobSerializer.SaveFile(new OfficeConversionJob { InputDirectory = "source", OutputDirectory = "output" }, path);
+            (new OfficeBatchOptions { InputDirectory = "source", OutputDirectory = "output" }).Save(path);
             var dialogs = new Dialogs { OpenPath = path };
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services) { FileDialogs = dialogs };
             var batch = model.ConversionWorkbench.BatchExport;
@@ -139,10 +140,10 @@ public sealed class StudioConversionRunHistoryTests {
             batch.InputDirectory = "reviewed-input"; batch.OutputDirectory = "reviewed-output"; batch.TabSize = 6;
             if (condition == "missing") File.Delete(path);
             else if (condition == "corrupt") File.WriteAllText(path, "{not a conversion job");
-            else if (condition == "oversized") File.WriteAllText(path, new string('x', OfficeConversionJobSerializer.MaximumJobBytes + 1));
+            else if (condition == "oversized") File.WriteAllText(path, new string('x', OfficeBatchOptionsSerializer.MaximumJobBytes + 1));
             else {
-                var changed = OfficeConversionJobSerializer.ReadFile(path); changed.MaximumFiles = 20;
-                OfficeConversionJobSerializer.SaveFile(changed, path, overwrite: true);
+                var changed = OfficeBatchOptions.Load(path); changed.MaximumFiles = 20;
+                (changed).Save(path, overwrite: true);
             }
             model.ShowJobsCommand.Execute(null);
             await model.Jobs.ReviewJobCommand.ExecuteAsync(attempt);
@@ -165,7 +166,7 @@ public sealed class StudioConversionRunHistoryTests {
             Directory.CreateDirectory(source);
             File.WriteAllText(Path.Combine(source, "one.txt"), "Session-only source");
             string path = Path.Combine(services.Paths.Root, "job.json");
-            OfficeConversionJobSerializer.SaveFile(new OfficeConversionJob { InputDirectory = "source", OutputDirectory = "output" }, path);
+            (new OfficeBatchOptions { InputDirectory = "source", OutputDirectory = "output" }).Save(path);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services) { FileDialogs = new Dialogs { OpenPath = path } };
             var batch = model.ConversionWorkbench.BatchExport;
             if (savedButPrivate) {
@@ -177,7 +178,7 @@ public sealed class StudioConversionRunHistoryTests {
             Assert.False(Assert.Single(services.Jobs.Entries).HasRunReport);
             Assert.False(Directory.Exists(services.Paths.ConversionRunsRoot));
             Assert.Empty(StudioApplicationServices.Create(services.Paths).Jobs.Entries);
-            Assert.True(File.Exists(Path.Combine(output, "one.txt.pdf")));
+            Assert.True(File.Exists(Path.Combine(output, "one.pdf")));
             return true;
         }, CancellationToken.None);
     }
@@ -189,7 +190,7 @@ public sealed class StudioConversionRunHistoryTests {
             var services = ((App)Application.Current!).Services;
             string source = Path.Combine(services.Paths.Root, "source"), output = Path.Combine(services.Paths.Root, "output"), path = Path.Combine(services.Paths.Root, "job.json");
             Directory.CreateDirectory(source); File.WriteAllText(Path.Combine(source, "one.txt"), "Source stays available");
-            OfficeConversionJobSerializer.SaveFile(new OfficeConversionJob { InputDirectory = "source", OutputDirectory = "output" }, path);
+            (new OfficeBatchOptions { InputDirectory = "source", OutputDirectory = "output" }).Save(path);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services) { FileDialogs = new Dialogs { OpenPath = path } };
             await model.ConversionWorkbench.BatchExport.LoadJobCommand.ExecuteAsync(null);
             await model.ConversionWorkbench.BatchExport.RunCommand.ExecuteAsync(null);
@@ -219,7 +220,7 @@ public sealed class StudioConversionRunHistoryTests {
             var services = ((App)Application.Current!).Services;
             string source = Path.Combine(services.Paths.Root, "source"), output = Path.Combine(services.Paths.Root, "output"), path = Path.Combine(services.Paths.Root, "job.json");
             Directory.CreateDirectory(source); File.WriteAllText(Path.Combine(source, "one.txt"), "A committed output survives a history failure");
-            OfficeConversionJobSerializer.SaveFile(new OfficeConversionJob { InputDirectory = "source", OutputDirectory = "output" }, path);
+            (new OfficeBatchOptions { InputDirectory = "source", OutputDirectory = "output" }).Save(path);
             File.WriteAllText(services.Paths.ConversionRunsRoot, "Keep this blocked history location");
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services) { FileDialogs = new Dialogs { OpenPath = path } };
             await model.ConversionWorkbench.BatchExport.LoadJobCommand.ExecuteAsync(null);
@@ -228,7 +229,7 @@ public sealed class StudioConversionRunHistoryTests {
             Assert.True(attempt.IsSucceeded, attempt.Summary); Assert.True(attempt.CanOpenOutput);
             Assert.Contains("could not be fully saved", attempt.RecordingError);
             Assert.Contains("could not be fully saved", model.ConversionWorkbench.BatchExport.Status);
-            Assert.Contains("committed output", OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(output, "one.txt.pdf")).Read().Text);
+            Assert.Contains("committed output", OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(output, "one.pdf")).Read().Text);
             Assert.Equal("Keep this blocked history location", File.ReadAllText(services.Paths.ConversionRunsRoot));
             return true;
         }, CancellationToken.None);
@@ -241,13 +242,13 @@ public sealed class StudioConversionRunHistoryTests {
             var services = ((App)Application.Current!).Services;
             string path = Path.Combine(services.Paths.Root, "job.json");
             Directory.CreateDirectory(services.Paths.Root);
-            OfficeConversionJobSerializer.SaveFile(new OfficeConversionJob { InputDirectory = "source", OutputDirectory = "output" }, path);
-            _ = OfficeConversionJobSerializer.ReadFile(path, out string fingerprint);
+            (new OfficeBatchOptions { InputDirectory = "source", OutputDirectory = "output" }).Save(path);
+            string fingerprint = OfficeBatchOptions.Load(path).JobSha256!;
             string reportPath = services.DocumentHistory.ConversionRuns.CreateReportPath()!;
-            File.WriteAllText(reportPath, OfficeConversionJobRunReportSerializer.Serialize(new OfficeConversionJobRunReport {
+            File.WriteAllText(reportPath, OfficeBatchReportSerializer.Serialize(new OfficeBatchReport {
                 RunId = Guid.NewGuid().ToString("N"), StartedUtc = DateTimeOffset.UtcNow,
                 JobPath = path, JobSha256 = fingerprint, OutputDirectory = Path.Combine(services.Paths.Root, "output"),
-                State = OfficeConversionJobRunState.Running
+                State = OfficeBatchRunState.Running, Summary = new(0, 0, 0, 0, false)
             }));
             var restored = Assert.Single(StudioApplicationServices.Create(services.Paths).Jobs.Entries);
             Assert.Equal("Interrupted", restored.Status); Assert.False(restored.IsActive);
@@ -260,7 +261,10 @@ public sealed class StudioConversionRunHistoryTests {
 
     private static async Task ClickAsync(Window window, IAsyncRelayCommand command, object? parameter = null) {
         Layout(window);
-        var button = window.GetVisualDescendants().OfType<Button>().Single(item => ReferenceEquals(item.Command, command) && ReferenceEquals(item.CommandParameter, parameter));
+        var buttons = window.GetVisualDescendants().OfType<Button>().ToArray();
+        var button = buttons.SingleOrDefault(item => ReferenceEquals(item.Command, command) && ReferenceEquals(item.CommandParameter, parameter))
+            ?? throw new InvalidOperationException("The requested command has no button. Visible buttons: " + string.Join("; ", buttons.Select(item =>
+                $"{item.Content} | {item.Command?.GetType().Name} | matches={ReferenceEquals(item.Command, command)} | parameter={item.CommandParameter ?? "null"} | visible={item.IsEffectivelyVisible}")));
         button.BringIntoView(); Layout(window);
         Assert.True(button.IsEffectivelyVisible); Assert.True(button.IsEffectivelyEnabled);
         Point point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;

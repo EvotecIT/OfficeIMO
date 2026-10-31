@@ -24,14 +24,14 @@ public partial class Word {
                 field.AddText(" S").AddField(WordFieldType.SectionPages);
             }
             WordParagraph body = document.AddParagraph("A");
-            body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
-            body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
+            body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             if (index < 2) body.AddBreak(WordBreakType.Page);
         }
-        WordToPdfOptions options = EmptyRunningOptions();
+        WordPdfExportOptions options = EmptyRunningOptions();
         options.IncludePageNumbers = true;
         options.PageNumberFormat = "NUMBER {page}/{pages}";
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         for (int index = 0; index < 3; index++) {
             string text = pdf.GetPage(index + 1).Text;
@@ -81,8 +81,8 @@ public partial class Word {
         int targetLines = absent ? 60 : 40;
         for (int index = 0; index < 3; index++) {
             WordParagraph body = source.AddParagraph("A");
-            body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
-            body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
+            body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             body.KeepLinesTogether = false; body.AvoidWidowAndOrphan = false;
             for (int line = 1; line < (index == variant ? targetLines : 1); line++) body.AddBreak().AddText("A");
             if (index < 2) body.AddBreak(WordBreakType.Page);
@@ -91,11 +91,11 @@ public partial class Word {
         // including a missing default alongside present first/even siblings.
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        WordToPdfOptions options = EmptyRunningOptions();
+        WordPdfExportOptions options = EmptyRunningOptions();
         options.IncludePageNumbers = true;
         options.PageNumberFormat = "NUMBER {page}/{pages}";
         for (int repeat = 0; repeat < 2; repeat++) {
-            using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+            using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             Assert.Equal(3, pdf.NumberOfPages);
             for (int index = 0; index < 3; index++) {
                 var page = pdf.GetPage(index + 1);
@@ -125,27 +125,27 @@ public partial class Word {
         for (int index = 0; index < 3; index++) {
             if (index != emptyVariant) stories[index].AddParagraph("STORY" + index);
             WordParagraph body = document.AddParagraph("A");
-            body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
-            body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
+            body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             if (index < 2) body.AddBreak(WordBreakType.Page);
         }
-        WordToPdfOptions options = EmptyRunningOptions();
+        WordPdfExportOptions options = EmptyRunningOptions();
         options.IncludePageNumbers = true;
         options.PageNumberFormat = "NUMBER {page}/{pages}";
-        options.PdfOptions = new PdfOptions { FooterOffsetY = typography ? 18D : 24D };
+        options.PdfOptions = new PdfCreateOptions { FooterOffsetY = global::OfficeIMO.OfficeLength.Points(typography ? 18D : 24D) };
         if (typography) {
             options.PdfOptions.FooterFont = PdfStandardFont.Courier;
-            options.PdfOptions.FooterFontSize = 24D;
+            options.PdfOptions.FooterFontSize = global::OfficeIMO.OfficeLength.Points(24D);
             options.PdfOptions.FooterAlign = PdfAlign.Left;
-            options.PdfOptions.FooterTextColor = PdfColor.FromRgb(255, 0, 0);
+            options.PdfOptions.FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
         }
-        using var withImplicit = PdfPigDocument.Open(document.ToPdfBytes(options));
+        using var withImplicit = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         W.HeaderFooterValues kind = emptyVariant == 0 ? W.HeaderFooterValues.First
             : emptyVariant == 1 ? W.HeaderFooterValues.Even : W.HeaderFooterValues.Default;
         foreach (var reference in document.Sections[0]._sectionProperties.Elements<W.FooterReference>()
             .Where(reference => reference.Type?.Value == kind).ToArray()) reference.Remove();
         using WordDocument withoutDocument = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        using var withoutImplicit = PdfPigDocument.Open(withoutDocument.ToPdfBytes(options));
+        using var withoutImplicit = PdfPigDocument.Open(withoutDocument.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, withImplicit.NumberOfPages);
         Assert.Equal(3, withoutImplicit.NumberOfPages);
         for (int index = 0; index < 3; index++) {

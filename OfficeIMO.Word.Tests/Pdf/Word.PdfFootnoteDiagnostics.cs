@@ -33,7 +33,7 @@ public partial class Word {
         Assert.Empty(document.ValidateDocument());
         Assert.Equal(2, document._wordprocessingDocument.MainDocumentPart!.Document
             .Descendants<W.FootnoteReference>().Count());
-        var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         foreach (string token in new[] { "BODY", "LASTBODY", "FOOTNOTEALPHA", "FOOTNOTEBETA" })
@@ -42,7 +42,7 @@ public partial class Word {
         // Both notes and duplicate traversal wrappers share one placement
         // approximation for this conversion; their text is retained.
         var warning = Assert.Single(result.Warnings,
-            item => item.Code == "NativeFootnotePlacementApproximated");
+            item => item.Code == "native-footnote-placement-approximated");
         Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
         Assert.True(result.HasLoss);
         Assert.True(result.Report.HasLoss);
@@ -71,13 +71,13 @@ public partial class Word {
         Assert.Contains(stored, note => note.Type?.Value == W.FootnoteEndnoteValues.ContinuationSeparator);
         Assert.Equal(storedOrdinaryNote ? 1 : 0, stored.Count(note => note.Id?.Value > 0));
 
-        var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.Contains("BODY", text, StringComparison.Ordinal);
         Assert.DoesNotContain("STOREDONLYNOTE", text, StringComparison.Ordinal);
         Assert.DoesNotContain(result.Warnings,
-            warning => warning.Code == "NativeFootnotePlacementApproximated");
+            warning => warning.Code == "native-footnote-placement-approximated");
     }
 
     [Fact]
@@ -89,13 +89,13 @@ public partial class Word {
         Assert.Empty(document._wordprocessingDocument.MainDocumentPart!.Document.Descendants<W.FootnoteReference>());
         Assert.Single(document._wordprocessingDocument.MainDocumentPart.Document.Descendants<W.EndnoteReference>());
 
-        var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.Contains("BODY", text, StringComparison.Ordinal);
         Assert.Contains("ENDNOTEBODY", text, StringComparison.Ordinal);
         Assert.DoesNotContain(result.Warnings,
-            warning => warning.Code == "NativeFootnotePlacementApproximated");
+            warning => warning.Code == "native-footnote-placement-approximated");
     }
 
     private static WordDocument CreateFootnoteDiagnosticDocument() {
@@ -106,7 +106,7 @@ public partial class Word {
         return document;
     }
 
-    private static WordToPdfOptions FootnoteDiagnosticOptions() => new() {
+    private static WordPdfExportOptions FootnoteDiagnosticOptions() => new() {
         IncludePageNumbers = false,
         ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
     };

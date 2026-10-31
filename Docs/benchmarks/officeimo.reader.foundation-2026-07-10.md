@@ -47,9 +47,9 @@ The ZIP corpus contains 20 table-heavy Markdown entries. Its allocation is appro
 
 ## Markdown defect and fix
 
-The first isolated run showed `MarkdownReader.ParseWithSyntaxTree` at about 73.7 ms and 237 MB for 80 sections containing 80 five-row tables. CPU/allocation tracing found that every parser `MarkdownDoc.Add(...)` rebound the entire growing semantic tree.
+The first isolated run showed `MarkdownReader.ParseWithSyntaxTree` at about 73.7 ms and 237 MB for 80 sections containing 80 five-row tables. CPU/allocation tracing found that every parser `MarkdownDocument.Add(...)` rebound the entire growing semantic tree.
 
-Parser-owned binding is now deferred until the final syntax tree exists. Public `MarkdownDoc.Add(...)` still binds immediately. On the same corpus:
+Parser-owned binding is now deferred until the final syntax tree exists. Public `MarkdownDocument.Add(...)` still binds immediately. On the same corpus:
 
 | Lane | Before | After |
 | --- | ---: | ---: |

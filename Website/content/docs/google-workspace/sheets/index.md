@@ -12,7 +12,7 @@ using OfficeIMO.Excel.GoogleSheets;
 using OfficeIMO.GoogleWorkspace;
 
 using ExcelDocument workbook = ExcelDocument.Create();
-var summary = workbook.AddWorksheet("Summary");
+var summary = workbook.AddSheet("Summary");
 summary.CellValue(1, 1, "Quarter");
 summary.CellValue(1, 2, "Revenue");
 summary.CellValue(2, 1, "Q1");

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes an Array BIFF record discovered while importing a legacy XLS worksheet.
     /// </summary>
-    public sealed class LegacyXlsArrayFormulaRecord {
+    internal sealed class LegacyXlsArrayFormulaRecord {
         internal LegacyXlsArrayFormulaRecord(
             int firstRow,
             int firstColumn,
@@ -54,8 +54,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the A1 range covered by the array formula.</summary>
         public string Range {
             get {
-                string start = A1.CellReference(FirstRow, FirstColumn);
-                string end = A1.CellReference(LastRow, LastColumn);
+                string start = ExcelA1.CellReference(FirstRow, FirstColumn);
+                string end = ExcelA1.CellReference(LastRow, LastColumn);
                 return string.Equals(start, end, StringComparison.Ordinal) ? start : start + ":" + end;
             }
         }

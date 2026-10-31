@@ -97,7 +97,7 @@ namespace OfficeIMO.Visio {
             cancellationToken.ThrowIfCancellationRequested();
             using var buffer = new MemoryStream(bytes, writable: false);
             using Package package = Package.Open(buffer, FileMode.Open, FileAccess.Read);
-            VisioDocument document = LoadCore(package, filePath, cancellationToken);
+            VisioDocument document = LoadCore(package, filePath, cancellationToken, options.MaxPackageXmlCharacters);
             document._loadedSignatureInfo = InspectPackageSignatures(bytes);
             document._sourceStream = sourceStream;
             cancellationToken.ThrowIfCancellationRequested();

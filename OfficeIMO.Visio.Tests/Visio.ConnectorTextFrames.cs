@@ -96,7 +96,7 @@ public sealed class VisioConnectorTextFrameTests {
             var saved = candidate.Pages[0].Connectors[0];
             var point = VisioConnectorLabelFrame.ResolvePlacement(saved)!;
             Assert.Null(point.PinX); Assert.Null(point.PinY);
-            var snapshot = candidate.CreateInspectionSnapshot().Pages[0].Connectors[0];
+            var snapshot = candidate.Inspect().Pages[0].Connectors[0];
             Assert.Equal(2.1, snapshot.LabelResolvedPinX!.Value, 8); Assert.Equal(3.2, snapshot.LabelResolvedPinY!.Value, 8);
             Assert.DoesNotContain("OfficeIMOConnectorLabelPlacement", saved.Data.Keys);
             Assert.DoesNotContain(saved.ShapeData, row => row.Name == "OfficeIMOConnectorLabelPlacement");
@@ -163,7 +163,7 @@ public sealed class VisioConnectorTextFrameTests {
         connector.LabelPlacement.Position = .25; connector.LabelPlacement.OffsetX = .1; connector.LabelPlacement.OffsetY = .2;
         document = Reopen(document, format); connector = document.Pages[0].Connectors[0];
         connector.EndPoint = new OfficePoint(5, 6);
-        var snapshot = Reopen(document, format).CreateInspectionSnapshot().Pages[0].Connectors[0];
+        var snapshot = Reopen(document, format).Inspect().Pages[0].Connectors[0];
         Assert.Equal(2.1, snapshot.LabelResolvedPinX!.Value, 8); Assert.Equal(3.2, snapshot.LabelResolvedPinY!.Value, 8);
     }
 

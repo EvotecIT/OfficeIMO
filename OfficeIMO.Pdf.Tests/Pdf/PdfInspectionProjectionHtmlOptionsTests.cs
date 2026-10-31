@@ -15,7 +15,7 @@ public sealed class PdfInspectionProjectionHtmlOptionsTests {
         PdfDocument pdf = PdfDocument.Load(PdfInspectionProjectionFixture.Build(skipImages ? 32 : 1),
             skipImages ? new PdfLoadOptions { Limits = new PdfReadLimits { MaxContentOperands = 20 } } : null);
         var options = new PdfToHtmlOptions {
-            ReadOptions = new PdfReadOptions { IncludeImages = !skipImages, IncludeFormWidgets = skipImages,
+            ReadOptions = new PdfLoadOptions { IncludeImages = !skipImages, IncludeFormWidgets = skipImages,
                 PageSelection = PdfPageSelection.From(1) },
             PageRanges = usePageRanges ? new[] { PdfPageRange.From(1, 1) } : null
         };
@@ -29,7 +29,7 @@ public sealed class PdfInspectionProjectionHtmlOptionsTests {
             new PdfLoadOptions { Limits = new PdfReadLimits { MaxContentOperands = 20 } });
         Assert.Throws<PdfReadLimitException>(() => pdf.ToHtmlResult());
         var options = new PdfToHtmlOptions {
-            ReadOptions = new PdfReadOptions { IncludeImages = false, IncludeFormWidgets = false },
+            ReadOptions = new PdfLoadOptions { IncludeImages = false, IncludeFormWidgets = false },
             PageRanges = new[] { PdfPageRange.From(1, 1) }
         };
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => pdf.ToHtmlResult(options));

@@ -35,7 +35,7 @@ public sealed class PdfAllSeverityBatch17SecurityTests {
     public void RawSignatureCompletionIgnoresEndstreamDecoyInDeclaredStreamData() {
         const string decoy =
             "endstream\n<< /Type /Sig /ByteRange [0 0 0 0] /Contents <0000> >>\nendobj";
-        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Paragraph(paragraph => paragraph.Text(decoy))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(

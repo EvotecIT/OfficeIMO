@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents one entry in a binary PowerPoint document sound collection.</summary>
-    public sealed class LegacyPptSound {
+    internal sealed class LegacyPptSound {
         internal LegacyPptSound(uint id, string name, string? extension,
             int? builtInId, byte[] dataBytes) {
             if (id == 0) throw new ArgumentOutOfRangeException(nameof(id));

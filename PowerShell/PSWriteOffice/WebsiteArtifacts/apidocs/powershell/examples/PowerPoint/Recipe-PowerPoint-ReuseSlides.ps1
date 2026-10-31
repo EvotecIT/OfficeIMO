@@ -18,5 +18,5 @@ PptNew -Path $targetPath {
 $target = Get-OfficePowerPoint -Path $targetPath
 Import-OfficePowerPointSlide -Presentation $target -SourcePath $sourcePath -SourceIndex 0 -InsertAt 1
 Copy-OfficePowerPointSlide -Presentation $target -Index 0 -InsertAt 2
-Add-OfficePowerPointSection -Presentation $target -Name 'Shared material' -StartSlideIndex 1
+Add-OfficePowerPointSection -Document $target -Name 'Shared material' -Slide 2
 Close-OfficePowerPoint -Presentation $target -Save

@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.PowerPoint;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
@@ -19,7 +20,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///   <para>Adds a picture to a generated slide.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointImage")]
-[Alias("PptImage")]
+[Alias("PowerPointImage")]
 [OutputType(typeof(PowerPointPicture))]
 public sealed class AddOfficePowerPointImageCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Target slide that will receive the picture (optional inside DSL).</summary>
@@ -29,6 +30,10 @@ public sealed class AddOfficePowerPointImageCommand : PSWriteOffice.Cmdlets.Offi
     /// <summary>Path to the image file.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public string Path { get; set; } = string.Empty;
+
+    /// <summary>Accessible description of the image.</summary>
+    [Parameter]
+    public string? AlternativeText { get; set; }
 
     /// <summary>Left offset (in points) from the slide origin.</summary>
     [Parameter]
@@ -49,6 +54,7 @@ public sealed class AddOfficePowerPointImageCommand : PSWriteOffice.Cmdlets.Offi
     /// <inheritdoc />
     protected override void ProcessRecord() {
         try {
+            var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
             if (Width <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(Width), "Width must be greater than 0.");
             }
@@ -57,11 +63,14 @@ public sealed class AddOfficePowerPointImageCommand : PSWriteOffice.Cmdlets.Offi
                 throw new ArgumentOutOfRangeException(nameof(Height), "Height must be greater than 0.");
             }
 
-            var slide = Slide ?? PowerPointDslContext.Require(this).RequireSlide();
-            var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-            var picture = slide.AddPicturePoints(resolvedPath, X, Y, Width, Height);
+            var scope = Slide == null ? PowerPointContentScope.Current : null;
+            var slide = Slide ?? scope?.NativeSlide ?? PowerPointDslContext.Require(this).RequireSlide();
+            var picture = slide.AddImage(resolvedPath, OfficeLength.Points(X), OfficeLength.Points(Y), OfficeLength.Points(Width), OfficeLength.Points(Height));
+            if (AlternativeText != null) picture.Description = AlternativeText;
+            if (scope != null) scope.AddFigure(new PowerPointLayoutImage(resolvedPath, AlternativeText) { NativePicture = picture }, picture);
             WritePassThru(picture);
         } catch (Exception ex) {
+            if (PowerPointContentScope.Current != null) ThrowTerminatingError(OfficeError.Create(ex, "invalid-argument", Path, ErrorCategory.InvalidArgument));
             WriteError(new ErrorRecord(ex, "PowerPointAddImageFailed", ErrorCategory.InvalidOperation, Slide));
         }
     }

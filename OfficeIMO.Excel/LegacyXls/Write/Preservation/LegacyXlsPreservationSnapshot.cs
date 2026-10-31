@@ -36,7 +36,10 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
 
     internal static LegacyXlsPreservationSnapshot? Capture(ExcelDocument document, LegacyXlsWorkbook workbook, CancellationToken cancellationToken) {
         if (workbook.SourceCompoundFile == null
-            || workbook.CompoundFeatureRecords.Any(item => item.Kind == LegacyXlsCompoundFeatureRecordKind.DigitalSignature)) return null;
+            || workbook.CompoundFeatureRecords.Any(item => item.Kind == LegacyXlsCompoundFeatureRecordKind.DigitalSignature)
+            || workbook.ExternalReferences.Any(reference =>
+                reference.Kind is LegacyXlsExternalReferenceKind.AddIn or LegacyXlsExternalReferenceKind.DdeOrOle
+                || reference.Kind == LegacyXlsExternalReferenceKind.ExternalWorkbook && !workbook.PreserveExternalWorkbookLinks)) return null;
         try { return new LegacyXlsPreservationSnapshot(document, workbook, cancellationToken); }
         catch (NotSupportedException) { return null; }
     }

@@ -50,9 +50,9 @@ public sealed class WordPdfOmittedFontSizeTests {
         table._tableProperties!.TableStyle = new TableStyle { Val = derivedStyle || derivedConditional ? "DerivedSizedTable" : "SizedTable" };
         table.ConditionalFormattingFirstRow = true;
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Cell";
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         var letter = pdf.GetPage(1).Letters.First();
         Assert.Equal(11D, letter.PointSize, precision: 3);
@@ -80,10 +80,10 @@ public sealed class WordPdfOmittedFontSizeTests {
 
         document.AddParagraph("Body");
         document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Cell";
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         var letters = pdf.GetPages().SelectMany(page => page.Letters).ToArray();
         Assert.Equal("BodyCell", string.Concat(letters.Select(letter => letter.Value)));
@@ -108,7 +108,7 @@ public sealed class WordPdfOmittedFontSizeTests {
             paragraph._run.RunProperties.Append(new ComplexScript());
             if (directSize != null) paragraph._run.RunProperties.Append(new FontSizeComplexScript { Val = directSize });
         }
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Equal(expectedSize, letter.PointSize, precision: 3));
     }
@@ -119,13 +119,13 @@ public sealed class WordPdfOmittedFontSizeTests {
         document.Settings.FontFamily = "Arial";
         document.AddParagraph("Policy test");
         using var stream = new System.IO.MemoryStream();
-        var report = document.SaveAsPdf(stream, new WordToPdfOptions {
+        var report = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
             IncludePageNumbers = false
-        });
+        }).Save(stream);
         report.RequireSuccess();
         var warning = Assert.Single(report.Warnings, warning =>
-            warning.Code == "NativeFontFamilySubstituted" && warning.Details["fontFamily"] == "Arial");
+            warning.Code == "font-family-substitution" && warning.Details["fontFamily"] == "Arial");
         Assert.Equal("ResourcePolicy", warning.Details["substitutionReason"]);
         Assert.Contains("resource policy", warning.Message, System.StringComparison.Ordinal);
         Assert.DoesNotContain("unavailable", warning.Message, System.StringComparison.Ordinal);
@@ -171,9 +171,9 @@ public sealed class WordPdfOmittedFontSizeTests {
             table.ConditionalFormattingFirstRow = true;
         }
         if (disable) cell._run.RunProperties.Append(new ComplexScript { Val = false });
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Equal(disable ? 10D : 14D, letter.PointSize, precision: 3));
     }
 
@@ -194,12 +194,12 @@ public sealed class WordPdfOmittedFontSizeTests {
         table.ConditionalFormattingFirstRow = enabled;
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Cell";
         using var stream = new System.IO.MemoryStream();
-        var result = document.SaveAsPdf(stream, new WordToPdfOptions {
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
             ResourcePolicy = trusted ? PdfResourcePolicy.CreateTrustedHost() : PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).Save(stream);
         result.RequireSuccess();
-        var warnings = result.Warnings.Where(w => w.Code == "NativeFontFamilySubstituted" && w.Details["fontFamily"] == family).ToArray();
+        var warnings = result.Warnings.Where(w => w.Code == "font-family-substitution" && w.Details["fontFamily"] == family).ToArray();
         if (enabled) Assert.Equal(trusted ? "FontUnavailable" : "ResourcePolicy", Assert.Single(warnings).Details["substitutionReason"]);
         else Assert.Empty(warnings);
     }

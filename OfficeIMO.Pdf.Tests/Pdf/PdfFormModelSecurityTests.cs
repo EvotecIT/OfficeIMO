@@ -80,7 +80,7 @@ public class PdfFormModelSecurityTests {
 
     [Fact]
     public void StructuredLeaderRowsDeduplicateWithStableInsertionOrder() {
-        var page = new StructuredPage();
+        var page = new PdfStructuredPage();
         for (int index = 0; index < 4096; index++) {
             Assert.True(page.TryAddLeaderRow("Label " + index, "Value " + index));
         }

@@ -4,6 +4,7 @@ import { mkdir, writeFile, readFile, copyFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../OfficeIMO.JavaScript/',import.meta.url));
+const compilerVersion = JSON.parse(await readFile(join(root,'node_modules/typescript/package.json'),'utf8')).version;
 const output = process.argv[2] && resolve(process.argv[2]);
 if (!output || !process.env.npm_execpath) throw new Error('Use npm run test:datatables-types -- <packed-evidence-directory>.');
 const archive = JSON.parse(await readFile(join(output,'consumer-report.json'),'utf8')).archive;
@@ -34,7 +35,7 @@ for (const [name,dt,buttons] of [['bundled','2.3.7','3.2.6'],['current','3.1.3',
   const checked = spawnSync(process.execPath,[...flags,'--skipLibCheck'],{cwd:folder,encoding:'utf8',timeout:30000});
   if (checked.status !== 0) throw new Error(checked.stdout+checked.stderr);
   await copyFile(join(folder,'package-lock.json'),join(output,'types-'+name+'-lock.json'));
-  reports.push({name,dataTables:dt,buttons,consumerPassed:true,fullDeclarationsPassed:full.status===0,compiler:'5.9.3',resolution:'Bundler'});
+  reports.push({name,dataTables:dt,buttons,consumerPassed:true,fullDeclarationsPassed:full.status===0,compiler:compilerVersion,resolution:'Bundler'});
 }
 await writeFile(join(output,'datatables-types.json'),JSON.stringify(reports,null,2)+'\n');
 console.log(JSON.stringify(reports));

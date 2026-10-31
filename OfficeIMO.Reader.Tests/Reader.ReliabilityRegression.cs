@@ -102,12 +102,12 @@ public sealed class ReaderReliabilityRegressionTests {
     public void ExcelRegistrationSnapshotsMutableReadOptions() {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.Cell(1, 1, "Name");
             sheet.Cell(2, 1, "alpha");
             document.Save();
         }
-        var policy = new ExcelReadOptions();
+        var policy = new ExcelReaderOptions();
         var reader = new OfficeDocumentReaderBuilder().AddExcelHandler(new ReaderExcelOptions { ReadOptions = policy }).Build();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -117,7 +117,7 @@ public sealed class ReaderReliabilityRegressionTests {
 
     [Fact]
     public void ExcelOptionsCloneIsolatesCultureAndExecutionThresholds() {
-        var options = new ExcelReadOptions { Culture = new CultureInfo("pl-PL") };
+        var options = new ExcelReaderOptions { Culture = new CultureInfo("pl-PL") };
         var clone = options.Clone();
         options.Culture.NumberFormat.NumberDecimalSeparator = "!";
         options.Execution.OperationThresholds["ReadRange"] = 1;

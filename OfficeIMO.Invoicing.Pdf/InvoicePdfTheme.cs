@@ -7,19 +7,19 @@ public sealed class InvoicePdfTheme {
     private double _cornerRadius = 7D;
 
     /// <summary>Primary accent used for headings, table headers, and highlighted totals.</summary>
-    public PdfColor Accent { get; set; } = PdfColor.FromRgb(63, 92, 255);
+    public global::OfficeIMO.OfficeColor Accent { get; set; } = global::OfficeIMO.OfficeColor.FromRgb(63, 92, 255);
 
     /// <summary>Primary text color.</summary>
-    public PdfColor Text { get; set; } = PdfColor.FromRgb(1, 21, 52);
+    public global::OfficeIMO.OfficeColor Text { get; set; } = global::OfficeIMO.OfficeColor.FromRgb(1, 21, 52);
 
     /// <summary>Secondary text color.</summary>
-    public PdfColor MutedText { get; set; } = PdfColor.FromRgb(82, 99, 122);
+    public global::OfficeIMO.OfficeColor MutedText { get; set; } = global::OfficeIMO.OfficeColor.FromRgb(82, 99, 122);
 
     /// <summary>Soft background used for cards and alternating rows.</summary>
-    public PdfColor Surface { get; set; } = PdfColor.FromRgb(245, 248, 252);
+    public global::OfficeIMO.OfficeColor Surface { get; set; } = global::OfficeIMO.OfficeColor.FromRgb(245, 248, 252);
 
     /// <summary>Border and separator color.</summary>
-    public PdfColor Border { get; set; } = PdfColor.FromRgb(214, 223, 235);
+    public global::OfficeIMO.OfficeColor Border { get; set; } = global::OfficeIMO.OfficeColor.FromRgb(214, 223, 235);
 
     /// <summary>Corner radius in points for cards and tables.</summary>
     public double CornerRadius {
@@ -32,7 +32,7 @@ public sealed class InvoicePdfTheme {
     }
 
     /// <summary>Creates a modern theme from one brand accent while retaining accessible neutral colors.</summary>
-    public static InvoicePdfTheme Modern(PdfColor accent) => new InvoicePdfTheme { Accent = accent };
+    public static InvoicePdfTheme Modern(global::OfficeIMO.OfficeColor accent) => new InvoicePdfTheme { Accent = accent };
 
     internal InvoicePdfTheme Snapshot() => new InvoicePdfTheme {
         Accent = Accent,

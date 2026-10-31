@@ -113,37 +113,31 @@ if (arrowBatch.Length != 1 || arrowBatch.Schema.FieldsList.Count != 2) {
 }
 
 using var excelSourceStream = new System.IO.MemoryStream();
-ExcelDocument.WriteRows(
-    excelSourceStream,
-    new[] {
+using (var writer = ExcelDocument.CreateWriter(excelSourceStream, new ExcelWriterOptions {
+    IncludeCellReferences = false, UseSharedStrings = false
+}, leaveOpen: true)) {
+    writer.WriteTable("Data", new[] {
         new AotExcelRow { Id = 1, Name = "Ada" },
         new AotExcelRow { Id = 2, Name = "Grace" }
-    },
-    new[] { "Id", "Name" },
-    static (writer, row) => writer.Write(row.Id).Write(row.Name),
-    new ExcelTabularWriteOptions {
-        IncludeCellReferences = false,
-        UseSharedStrings = false
-    });
+    }, new[] { "Id", "Name" }, static (rowWriter, row) => rowWriter.Write(row.Id).Write(row.Name));
+}
 excelSourceStream.Position = 0;
-using var excelSourceReader = ExcelDocument.OpenDataReader(
+using var excelSourceReader = ExcelDocument.OpenReader(
     excelSourceStream,
-    new ExcelReadOptions {
+    new ExcelReaderOptions {
         SheetName = "Data",
         InferSchema = true
     });
 using var excelStream = new System.IO.MemoryStream();
-ExcelDocument.WriteDataReader(
-    excelStream,
-    excelSourceReader,
-    new ExcelTabularWriteOptions {
-        IncludeCellReferences = false,
-        UseSharedStrings = false
-    });
+using (var writer = ExcelDocument.CreateWriter(excelStream, new ExcelWriterOptions {
+    IncludeCellReferences = false, UseSharedStrings = false
+}, leaveOpen: true)) {
+    writer.WriteTable("Data", excelSourceReader);
+}
 excelStream.Position = 0;
-using var excelReader = ExcelDocument.OpenDataReader(
+using var excelReader = ExcelDocument.OpenReader(
     excelStream,
-    new ExcelReadOptions {
+    new ExcelReaderOptions {
         SheetName = "Data",
         InferSchema = true
     });
@@ -175,11 +169,11 @@ try {
         .Page(page => page.Content(content => content
             .Element(element => element
                 .Semantic(PdfSemanticRole.Article)
-                .Padding(6)
+                .Padding(global::OfficeIMO.OfficeLength.Points(6))
                 .Content(article => article
                     .Paragraph(paragraph => paragraph.Text("Native workflow source"))
                     .Row(row => row
-                        .FixedColumn(36, cell => cell.Text("AOT"))
+                        .FixedColumn(global::OfficeIMO.OfficeLength.Points(36), cell => cell.Text("AOT"))
                         .RelativeColumn(cell => cell.Text("layout"))))))))
         .Save(sourcePdf);
 

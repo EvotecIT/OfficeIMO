@@ -123,8 +123,8 @@ namespace OfficeIMO.Excel {
                     return new ExcelDataReaderInsertResult(Name, null, string.Empty, 0, headers.Length);
                 }
 
-                string appendedRange = A1.CellReference(startRow, startColumn) + ":" +
-                    A1.CellReference(startRow + appendedOccupiedRows - 1, startColumn + headers.Length - 1);
+                string appendedRange = ExcelA1.CellReference(startRow, startColumn) + ":" +
+                    ExcelA1.CellReference(startRow + appendedOccupiedRows - 1, startColumn + headers.Length - 1);
 
                 string? appendedTableName = null;
                 if (createTable) {
@@ -218,8 +218,8 @@ namespace OfficeIMO.Excel {
                 return new ExcelDataReaderInsertResult(Name, null, string.Empty, 0, headers.Length);
             }
 
-            string range = A1.CellReference(startRow, startColumn) + ":" +
-                A1.CellReference(startRow + occupiedRows - 1, startColumn + headers.Length - 1);
+            string range = ExcelA1.CellReference(startRow, startColumn) + ":" +
+                ExcelA1.CellReference(startRow + occupiedRows - 1, startColumn + headers.Length - 1);
 
             string? actualTableName = null;
             if (createTable) {
@@ -268,7 +268,7 @@ namespace OfficeIMO.Excel {
             bool canCancel = ct.CanBeCanceled;
             bool useBulkRead = CanUseBulkDataReaderValues(reader);
             int headerRowOffset = includeHeaders ? 1 : 0;
-            int maxDataRows = A1.MaxRows - startRow - headerRowOffset + 1;
+            int maxDataRows = ExcelA1.MaxRows - startRow - headerRowOffset + 1;
             if (!canCancel && !useBulkRead && columnCount == 8) {
                 while (reader.Read()) {
                     if (rows.Count >= maxDataRows) {
@@ -303,8 +303,8 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            string range = A1.CellReference(startRow, startColumn) + ":" +
-                A1.CellReference(startRow + occupiedRows - 1, startColumn + columnCount - 1);
+            string range = ExcelA1.CellReference(startRow, startColumn) + ":" +
+                ExcelA1.CellReference(startRow + occupiedRows - 1, startColumn + columnCount - 1);
 
             string[] columnNames = BuildDirectReaderColumnNames(headers, includeHeaders);
             Type[] columnTypes = BuildDirectReaderColumnTypes(fieldTypes);
@@ -426,7 +426,7 @@ namespace OfficeIMO.Excel {
             directRows = collectDirectRows ? CreateDirectDataReaderRowBuffer() : null;
 
             int columnCount = headers.Count;
-            if (columnCount == 0 || startColumn + columnCount - 1 > A1.MaxColumns) {
+            if (columnCount == 0 || startColumn + columnCount - 1 > ExcelA1.MaxColumns) {
                 return false;
             }
 
@@ -492,7 +492,7 @@ namespace OfficeIMO.Excel {
                     int existingColumnIndex = 0;
                     string? reference = existingCell.CellReference?.Value;
                     if (!string.IsNullOrEmpty(reference)) {
-                        existingColumnIndex = A1.ParseColumnIndexFromCellReference(reference!);
+                        existingColumnIndex = ExcelA1.ParseColumnIndexFromCellReference(reference!);
                     }
 
                     if (existingColumnIndex <= 0) {
@@ -568,7 +568,7 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                if (rowIndex > A1.MaxRows) {
+                if (rowIndex > ExcelA1.MaxRows) {
                     throw new InvalidOperationException("Data reader import exceeds the maximum worksheet row count.");
                 }
 

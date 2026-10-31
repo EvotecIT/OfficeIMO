@@ -15,7 +15,7 @@ public sealed class MarkdownPdfExportWarning {
 
     /// <summary>Creates a Markdown PDF export warning.</summary>
     public MarkdownPdfExportWarning(string code, string source, string message) {
-        Code = string.IsNullOrWhiteSpace(code) ? "MarkdownPdfWarning" : code;
+        Code = string.IsNullOrWhiteSpace(code) ? "markdown-pdf-warning" : code;
         Source = source ?? string.Empty;
         Message = message ?? string.Empty;
     }

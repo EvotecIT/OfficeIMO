@@ -10,8 +10,8 @@ namespace OfficeIMO.Excel {
 
         private readonly int _startRow;
         private readonly int _startColumn;
-        private readonly int _widthPixels;
-        private readonly int _heightPixels;
+        private readonly OfficeLength _width;
+        private readonly OfficeLength _height;
         private readonly int _chartsPerRow;
         private readonly int _horizontalAdvanceColumns;
         private readonly int _verticalAdvanceRows;
@@ -22,34 +22,37 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="row">One-based worksheet row for the first chart.</param>
         /// <param name="column">One-based worksheet column for the first chart.</param>
-        /// <param name="widthPixels">Chart width in pixels.</param>
-        /// <param name="heightPixels">Chart height in pixels.</param>
+        /// <param name="width">Chart physical width.</param>
+        /// <param name="height">Chart physical height.</param>
         /// <param name="chartsPerRow">Number of charts to place before wrapping to the next row.</param>
-        /// <param name="horizontalGapPixels">Minimum horizontal gap between chart slots, in pixels, calculated against default-width Excel columns.</param>
+        /// <param name="horizontalGap">Minimum horizontal physical gap between chart slots, calculated against default-width Excel columns.</param>
         /// <param name="verticalGapRows">Minimum vertical gap between chart rows, in worksheet rows, calculated against default-height Excel rows.</param>
         public ExcelChartGridLayout(
             int row,
             int column,
-            int widthPixels = 520,
-            int heightPixels = 320,
+            OfficeLength? width = null,
+            OfficeLength? height = null,
             int chartsPerRow = 2,
-            int horizontalGapPixels = 48,
+            OfficeLength? horizontalGap = null,
             int verticalGapRows = 2) {
+            OfficeLength chartWidth = width ?? OfficeLength.Pixels(520);
+            OfficeLength chartHeight = height ?? OfficeLength.Pixels(320);
+            OfficeLength gap = horizontalGap ?? OfficeLength.Pixels(48);
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row));
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column));
-            if (widthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
-            if (heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(heightPixels));
+            if (chartWidth <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width));
+            if (chartHeight <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height));
             if (chartsPerRow <= 0) throw new ArgumentOutOfRangeException(nameof(chartsPerRow));
-            if (horizontalGapPixels < 0) throw new ArgumentOutOfRangeException(nameof(horizontalGapPixels));
+            if (gap < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(horizontalGap));
             if (verticalGapRows < 0) throw new ArgumentOutOfRangeException(nameof(verticalGapRows));
 
             _startRow = row;
             _startColumn = column;
-            _widthPixels = widthPixels;
-            _heightPixels = heightPixels;
+            _width = chartWidth;
+            _height = chartHeight;
             _chartsPerRow = chartsPerRow;
-            _horizontalAdvanceColumns = Math.Max(1, CeilDiv(widthPixels + horizontalGapPixels, DefaultColumnPixels));
-            _verticalAdvanceRows = Math.Max(1, CeilDiv(heightPixels, DefaultRowPixels) + verticalGapRows);
+            _horizontalAdvanceColumns = Math.Max(1, CeilDiv((chartWidth + gap).ToEmus(), OfficeLength.Pixels(DefaultColumnPixels).ToEmus()));
+            _verticalAdvanceRows = Math.Max(1, checked(CeilDiv(chartHeight.ToEmus(), OfficeLength.Pixels(DefaultRowPixels).ToEmus()) + verticalGapRows));
         }
 
         /// <summary>
@@ -59,17 +62,17 @@ namespace OfficeIMO.Excel {
         public ExcelChartPlacement Next() {
             int rowOffset = _index / _chartsPerRow;
             int columnOffset = _index % _chartsPerRow;
-            _index++;
-
-            return new ExcelChartPlacement(
-                _startRow + (rowOffset * _verticalAdvanceRows),
-                _startColumn + (columnOffset * _horizontalAdvanceColumns),
-                _widthPixels,
-                _heightPixels);
+            var placement = new ExcelChartPlacement(
+                checked(_startRow + checked(rowOffset * _verticalAdvanceRows)),
+                checked(_startColumn + checked(columnOffset * _horizontalAdvanceColumns)),
+                _width,
+                _height);
+            _index = checked(_index + 1);
+            return placement;
         }
 
-        private static int CeilDiv(int value, int divisor) {
-            return (value + divisor - 1) / divisor;
+        private static int CeilDiv(long value, long divisor) {
+            return checked((int)((value / divisor) + (value % divisor == 0 ? 0 : 1)));
         }
     }
 }

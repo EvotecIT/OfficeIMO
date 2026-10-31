@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Equal(width == 0 ? WordBorderStyle.Nil : WordBorderStyle.Single, actual.Style);
                 Assert.Equal(exported.Style, actual.Style);
                 if (width > 0) {
-                    Assert.Equal(checked((uint)(width * 8)), actual.Size);
+                    Assert.Equal(OfficeLength.Points(width), actual.Size);
                     Assert.Equal(exported.Size, actual.Size);
                     Assert.Equal(rgb, actual.Color, ignoreCase: true);
                     Assert.Equal(exported.Color, actual.Color, ignoreCase: true);
@@ -69,7 +69,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(expected.GetProperty("sourceSha256").GetString(), BorderCorpusHash(source));
     }
 
-    private static (WordBorderStyle? Style, uint? Size, string? Color) PagesBorderSide(WordTableCellBorder border, string side) => side switch {
+    private static (WordBorderStyle? Style, OfficeLength? Size, string? Color) PagesBorderSide(WordTableCellBorder border, string side) => side switch {
         "left" => (border.LeftStyle, border.LeftSize, border.LeftColorHex),
         "right" => (border.RightStyle, border.RightSize, border.RightColorHex),
         "top" => (border.TopStyle, border.TopSize, border.TopColorHex),

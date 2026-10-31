@@ -10,10 +10,10 @@ namespace OfficeIMO.Excel {
             row = 0;
             column = 0;
             try {
-                var cellRef = A1.ParseCellRef(reference.Replace("$", string.Empty));
+                var cellRef = ExcelA1.ParseCellRef(reference.Replace("$", string.Empty));
                 row = cellRef.Row;
                 column = cellRef.Col;
-                return row > 0 && column > 0 && row <= A1.MaxRows && column <= A1.MaxColumns;
+                return row > 0 && column > 0 && row <= ExcelA1.MaxRows && column <= ExcelA1.MaxColumns;
             } catch (ArgumentException) {
                 return false;
             }
@@ -94,13 +94,13 @@ namespace OfficeIMO.Excel {
                 sheet = defaultSheet;
             }
 
-            var cellRef = A1.ParseCellRef(reference.Replace("$", string.Empty));
+            var cellRef = ExcelA1.ParseCellRef(reference.Replace("$", string.Empty));
             row = cellRef.Row;
             column = cellRef.Col;
             return row > 0
                 && column > 0
-                && row <= A1.MaxRows
-                && column <= A1.MaxColumns;
+                && row <= ExcelA1.MaxRows
+                && column <= ExcelA1.MaxColumns;
         }
 
         private bool TryParseQualifiedFormulaRange(string token, out ExcelSheet sheet, out int r1, out int c1, out int r2, out int c2) {
@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel {
                 sheet = defaultSheet;
             }
 
-            return A1.TryParseRange(reference.Replace("$", string.Empty), out r1, out c1, out r2, out c2);
+            return ExcelA1.TryParseRange(reference.Replace("$", string.Empty), out r1, out c1, out r2, out c2);
         }
 
         private bool TryParseQualifiedFormulaWholeRange(
@@ -153,16 +153,16 @@ namespace OfficeIMO.Excel {
                 sheet = defaultSheet;
             }
 
-            if (A1.TryParseWholeColumnRange(reference, out c1, out c2)) {
+            if (ExcelA1.TryParseWholeColumnRange(reference, out c1, out c2)) {
                 r1 = 1;
-                r2 = A1.MaxRows;
-                address = A1.ColumnIndexToLetters(c1) + ":" + A1.ColumnIndexToLetters(c2);
+                r2 = ExcelA1.MaxRows;
+                address = ExcelA1.ColumnIndexToLetters(c1) + ":" + ExcelA1.ColumnIndexToLetters(c2);
                 return true;
             }
 
-            if (A1.TryParseWholeRowRange(reference, out r1, out r2)) {
+            if (ExcelA1.TryParseWholeRowRange(reference, out r1, out r2)) {
                 c1 = 1;
-                c2 = A1.MaxColumns;
+                c2 = ExcelA1.MaxColumns;
                 address = r1.ToString(CultureInfo.InvariantCulture) + ":" + r2.ToString(CultureInfo.InvariantCulture);
                 return true;
             }
@@ -524,7 +524,7 @@ namespace OfficeIMO.Excel {
             c2 = 0;
 
             if (table.Reference?.Value == null
-                || !A1.TryParseRange(table.Reference.Value.Replace("$", string.Empty), out int tableR1, out int tableC1, out int tableR2, out int tableC2)) {
+                || !ExcelA1.TryParseRange(table.Reference.Value.Replace("$", string.Empty), out int tableR1, out int tableC1, out int tableR2, out int tableC2)) {
                 return false;
             }
 
@@ -791,15 +791,15 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            var cellRef = A1.ParseCellRef(reference!.Trim().Replace("$", string.Empty));
+            var cellRef = ExcelA1.ParseCellRef(reference!.Trim().Replace("$", string.Empty));
             if (cellRef.Row <= 0
                 || cellRef.Col <= 0
-                || cellRef.Row > A1.MaxRows
-                || cellRef.Col > A1.MaxColumns) {
+                || cellRef.Row > ExcelA1.MaxRows
+                || cellRef.Col > ExcelA1.MaxColumns) {
                 return null;
             }
 
-            return A1.CellReference(cellRef.Row, cellRef.Col);
+            return ExcelA1.CellReference(cellRef.Row, cellRef.Col);
         }
 
         private string GetFormulaEvaluationCacheKey(string reference) {

@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html.Pdf;
@@ -32,7 +33,7 @@ public sealed class PdfLogicalReadingOrderTests {
         Assert.All(ordered, item => {
             Assert.True(item.HasGeometry);
             Assert.InRange(item.Confidence, 0D, 1D);
-            Assert.Contains(item.Evidence, static evidence => evidence.Code == "reading-order.column-band");
+            Assert.Contains(item.Evidence, static evidence => evidence.Code == "reading-order-column-band");
         });
     }
 
@@ -100,7 +101,7 @@ public sealed class PdfLogicalReadingOrderTests {
             "BT /F1 12 Tf 12 160 Td (Partially clipped reading-order marker) Tj ET",
             width: 300,
             height: 240);
-        byte[] croppedAndRotated = PdfDocument.Load(source)
+        byte[] croppedAndRotated = PdfDocument.Load(new System.IO.MemoryStream(source))
             .Pages.SetCropBox(40, 0, 280, 240)
             .Pages.Rotate(90, "1")
             .ToBytes();
@@ -113,8 +114,8 @@ public sealed class PdfLogicalReadingOrderTests {
         Assert.True(item.HasGeometry);
         Assert.True(item.IsClipped);
         Assert.True(item.Left >= 0D && item.Top >= 0D);
-        Assert.Contains(item.Evidence, static evidence => evidence.Code == "reading-order.page-rotation");
-        Assert.Contains(item.Evidence, static evidence => evidence.Code == "reading-order.crop-clipped");
+        Assert.Contains(item.Evidence, static evidence => evidence.Code == "reading-order-page-rotation");
+        Assert.Contains(item.Evidence, static evidence => evidence.Code == "reading-order-crop-clipped");
     }
 
     [Fact]
@@ -123,7 +124,7 @@ public sealed class PdfLogicalReadingOrderTests {
             "BT /F1 12 Tf\n" +
             "1 0 0 1 30 180 Tm (Raw left) Tj\n" +
             "1 0 0 1 230 180 Tm (Raw right) Tj ET");
-        byte[] rotated = PdfDocument.Load(source).Pages.Rotate(270, "1").ToBytes();
+        byte[] rotated = PdfDocument.Load(new System.IO.MemoryStream(source)).Pages.Rotate(270, "1").ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(rotated);
         PdfLogicalPage page = Assert.Single(logical.Pages);
 
@@ -145,7 +146,7 @@ public sealed class PdfLogicalReadingOrderTests {
             "1 0 0 1 230 150 Tm (Right bottom) Tj ET");
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
-        using (OfficeIMO.Word.WordDocument word = logical.ToWordDocument(new PdfToWordOptions { UseSharedPageReadingOrder = true })) {
+        using (OfficeIMO.Word.WordDocument word = (logical.ConvertToWordWithEvidence(new WordPdfImportOptions { UseSharedPageReadingOrder = true })).Value) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
             string wordText = string.Join(" ", package.MainDocumentPart!.Document!.Body!.Descendants<Text>().Select(static text => text.Text));
             AssertInOrder(wordText, "Left top", "Left bottom", "Right top", "Right bottom");
@@ -183,7 +184,7 @@ public sealed class PdfLogicalReadingOrderTests {
             item => item.Kind == PdfLogicalReadingOrderKind.TextBlock &&
                 firstPage.TextBlocks[item.SourceIndex].Kind == PdfLogicalElementKind.Header);
 
-        using (OfficeIMO.Word.WordDocument word = logical.ToWordDocument(new PdfToWordOptions { UseSharedPageReadingOrder = true })) {
+        using (OfficeIMO.Word.WordDocument word = (logical.ConvertToWordWithEvidence(new WordPdfImportOptions { UseSharedPageReadingOrder = true })).Value) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
             string wordText = string.Join(" ", package.MainDocumentPart!.Document!.Body!.Descendants<Text>().Select(static text => text.Text));
             AssertArtifactSequence(wordText, header, "First page body marker.", footer);
@@ -209,7 +210,7 @@ public sealed class PdfLogicalReadingOrderTests {
             .Paragraph(paragraph => paragraph.Text("Readable body text."))
             .ToBytes();
 
-        PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read();
+        PdfDocumentReadResult logical = PdfDocument.Load(new System.IO.MemoryStream(pdf)).Read();
 
         Assert.Contains("Readable heading", logical.Text, StringComparison.Ordinal);
         Assert.Contains("Readable body text.", logical.Text, StringComparison.Ordinal);
@@ -242,9 +243,9 @@ public sealed class PdfLogicalReadingOrderTests {
     public void CanonicalText_PreservesBlocksOmittedByATableProjection() {
         var style = new PdfTableStyle {
             HeaderRowCount = 1,
-            CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-                [(1, 0)] = new PdfColor(0.86D, 0.92D, 0.99D),
-                [(3, 0)] = new PdfColor(0.99D, 0.95D, 0.78D)
+            CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+                [(1, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.86D, 0.92D, 0.99D),
+                [(3, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.99D, 0.95D, 0.78D)
             },
             CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
                 [(1, 0)] = PdfColumnAlign.Center,
@@ -256,9 +257,9 @@ public sealed class PdfLogicalReadingOrderTests {
         };
         var rows = new[] {
             new[] { PdfTableCell.TextCell("Service"), PdfTableCell.TextCell("Status"), PdfTableCell.TextCell("Owner") },
-            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Identity systems", bold: true, italic: true, fontSize: 17) }, 3) },
+            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Identity systems", bold: true, italic: true, fontSize: global::OfficeIMO.OfficeLength.Points(17)) }, 3) },
             new[] { PdfTableCell.TextCell("Entra"), PdfTableCell.TextCell("Watch"), PdfTableCell.TextCell("IAM") },
-            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Follow-up", bold: true, fontSize: 15) }, 3) },
+            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Follow-up", bold: true, fontSize: global::OfficeIMO.OfficeLength.Points(15)) }, 3) },
             new[] { PdfTableCell.TextCell("Release"), PdfTableCell.TextCell("Ready"), PdfTableCell.TextCell("OfficeIMO") }
         };
         byte[] pdf = PdfDocument.Create()
@@ -266,7 +267,7 @@ public sealed class PdfLogicalReadingOrderTests {
             .Paragraph(paragraph => paragraph.Text("Content below the table"))
             .ToBytes();
 
-        PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read();
+        PdfDocumentReadResult logical = PdfDocument.Load(new System.IO.MemoryStream(pdf)).Read();
 
         Assert.Contains(logical.TextBlocks, static block => block.Text == "Identity systems");
         Assert.Contains("Identity systems", logical.Text, StringComparison.Ordinal);

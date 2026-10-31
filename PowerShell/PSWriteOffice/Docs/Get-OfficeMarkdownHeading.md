@@ -11,17 +11,17 @@ Gets heading metadata from a Markdown document.
 ## SYNTAX
 ### Document
 ```powershell
-Get-OfficeMarkdownHeading -Document <MarkdownDoc> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
+Get-OfficeMarkdownHeading -Document <MarkdownDocument> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Get-OfficeMarkdownHeading [-Path] <string> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
+Get-OfficeMarkdownHeading [-Path] <string> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ### Text
 ```powershell
-Get-OfficeMarkdownHeading -Text <string> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
+Get-OfficeMarkdownHeading -Text <string> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-MinLevel <int>] [-MaxLevel <int>] [-HeadingText <string>] [-Anchor <string>] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -38,7 +38,7 @@ Parses Markdown text and returns the document headings.
 
 ### EXAMPLE 2
 ```powershell
-PS> Get-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownHeading -MinLevel 2
+PS> Open-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownHeading -MinLevel 2
 ```
 
 Returns headings from an existing Markdown document object.
@@ -177,7 +177,7 @@ Accept wildcard characters: False
 Markdown document to inspect.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -273,7 +273,7 @@ Accept wildcard characters: False
 Optional reader options used when parsing path or text input.
 
 ```yaml
-Type: MarkdownReaderOptions
+Type: MarkdownLoadOptions
 Parameter Sets: Document, Path, Text
 Aliases: ReaderOptions
 Possible values:
@@ -354,12 +354,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 - `System.String`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc+HeadingInfo`
+- `OfficeIMO.Markdown.MarkdownDocument+HeadingInfo`
 
 ## RELATED LINKS
 

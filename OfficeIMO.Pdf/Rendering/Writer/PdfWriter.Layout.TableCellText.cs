@@ -3,11 +3,11 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false, RichWrapPurpose purpose = RichWrapPurpose.Layout) {
+    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfCreateOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false, RichWrapPurpose purpose = RichWrapPurpose.Layout, System.Threading.CancellationToken cancellationToken = default) {
         if (cell.ShrinkTextToFit && fontSize > 0D) {
             minimumShrinkFontSize = minimumShrinkFontSize > 0D ? minimumShrinkFontSize : 6D;
             TableRowTextSizing sizing = ResolveTableCellsTextSizing(new[] { cell }, fontSize,
-                minimumShrinkFontSize, baseFont, options ?? new PdfOptions(),
+                minimumShrinkFontSize, baseFont, options ?? new PdfCreateOptions(),
                 _ => innerWidth, runFontSizeScale);
             leading *= sizing.FontSize / fontSize;
             fontSize = sizing.FontSize;
@@ -15,12 +15,12 @@ internal static partial class PdfWriter {
         }
         double wrapWidth = ResolveImportedTableCellWrapWidth(cell, innerWidth, baseFont, fontSize, options, runFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
         if (cell.Paragraphs.Count > 0) {
-            return CreateTableCellParagraphTextLayout(ScaleTableCellParagraphsForShrink(cell.Paragraphs, runFontSizeScale, minimumShrinkFontSize), wrapWidth, innerWidth, baseFont, fontSize, leading, options, purpose);
+            return CreateTableCellParagraphTextLayout(ScaleTableCellParagraphsForShrink(cell.Paragraphs, runFontSizeScale, minimumShrinkFontSize), wrapWidth, innerWidth, baseFont, fontSize, leading, options, purpose, cancellationToken);
         }
 
         var wrap = WrapRichRunsCoreWithFirstLineOrigin(ScaleTableRunsForShrink(cell.Runs, runFontSizeScale, minimumShrinkFontSize),
             wrapWidth, fontSize, baseFont, leading, null, null, DefaultParagraphTabStopWidth, options,
-            purpose: purpose, inlineRuleWidth: innerWidth);
+            purpose: purpose, inlineRuleWidth: innerWidth, cancellationToken: cancellationToken);
         if (wrap.Lines.Count == 0) {
             wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
         }
@@ -44,7 +44,7 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            double? scaledFontSize = ScaleTableFontSizeForShrink(run.FontSize, runFontSizeScale, minimumShrinkFontSize);
+            double? scaledFontSize = ScaleTableFontSizeForShrink((run.FontSize?.ToPoints()), runFontSizeScale, minimumShrinkFontSize);
 
             var scaledRun = new PdfTextRun(
                 run.Text,
@@ -53,7 +53,7 @@ internal static partial class PdfWriter {
                 run.Color,
                 run.Italic,
                 run.Strike,
-                scaledFontSize,
+                ((double?)(scaledFontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
                 run.Font,
                 run.LinkUri,
                 run.LinkContents,
@@ -97,7 +97,7 @@ internal static partial class PdfWriter {
                 paragraph.LineHeight,
                 paragraph.DefaultTabStopWidth,
                 paragraph.TabStops,
-                ScaleTableFontSizeForShrink(paragraph.FontSize, runFontSizeScale, minimumShrinkFontSize),
+                (ScaleTableFontSizeForShrink((paragraph.FontSize?.ToPoints()), runFontSizeScale, minimumShrinkFontSize) is { } points2810874636 ? global::OfficeIMO.OfficeLength.Points(points2810874636) : (global::OfficeIMO.OfficeLength?)null),
                 paragraph.LineSpacing, paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext,
                 paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing));
         }
@@ -108,7 +108,7 @@ internal static partial class PdfWriter {
     private static double GetTableCellWrapWidth(double innerWidth, bool noWrap) =>
         noWrap ? TableCellNoWrapWidth : innerWidth;
 
-    private static TableCellTextLayout CreateTableCellParagraphTextLayout(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double wrapWidth, double cellInnerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, RichWrapPurpose purpose = RichWrapPurpose.Layout) {
+    private static TableCellTextLayout CreateTableCellParagraphTextLayout(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double wrapWidth, double cellInnerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfCreateOptions? options, RichWrapPurpose purpose = RichWrapPurpose.Layout, System.Threading.CancellationToken cancellationToken = default) {
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
         var lineHeights = new System.Collections.Generic.List<double>();
         var lineAlignments = new System.Collections.Generic.List<PdfAlign?>();
@@ -120,7 +120,7 @@ internal static partial class PdfWriter {
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PdfTableCellParagraph paragraph = paragraphs[paragraphIndex];
             PdfParagraphStyle paragraphStyle = CreateTableCellParagraphStyle(paragraph, cellInnerWidth);
-            double paragraphFontSize = paragraphStyle.FontSize ?? fontSize;
+            double paragraphFontSize = (paragraphStyle.FontSize?.ToPoints()) ?? fontSize;
             double paragraphLeading = paragraphStyle.LineHeight.HasValue || paragraphStyle.LineSpacing != null
                 ? GetParagraphLeading(paragraphStyle, paragraphFontSize) : leading;
             var paragraphFrame = GetParagraphTextFrame(paragraphStyle, 0D, wrapWidth);
@@ -139,7 +139,8 @@ internal static partial class PdfWriter {
                 options,
                 paragraphStyle.TabStops.ToArray(), lineSpacing: paragraphStyle.LineSpacing, purpose: purpose,
                 inlineRuleWidth: alignmentFrame.Width, firstLineInlineRuleWidth: alignmentFrame.FirstLineWidth,
-                wordJustificationMode: paragraphStyle.UseWordJustificationSpacing && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
+                wordJustificationMode: paragraphStyle.UseWordJustificationSpacing && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null,
+                cancellationToken: cancellationToken);
             if (wrap.Lines.Count == 0) {
                 wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
             }
@@ -149,18 +150,18 @@ internal static partial class PdfWriter {
             }
 
             int firstNewLineIndex = lines.Count;
-            if (paragraph.SpacingBefore > 0D) {
+            if (paragraph.SpacingBefore.ToPoints() > 0D) {
                 if (lineHeights.Count > 0) {
-                    lineHeights[lineHeights.Count - 1] += paragraph.SpacingBefore;
+                    lineHeights[lineHeights.Count - 1] += paragraph.SpacingBefore.ToPoints();
                 } else {
-                    topSpacing = paragraph.SpacingBefore;
+                    topSpacing = paragraph.SpacingBefore.ToPoints();
                 }
             }
 
             if (wrap.Lines.Count > 0 && wrap.Lines[0] is RichLine firstBarLine)
-                firstBarLine.BarSpacingBefore = paragraph.SpacingBefore;
+                firstBarLine.BarSpacingBefore = paragraph.SpacingBefore.ToPoints();
             if (wrap.Lines.Count > 0 && wrap.Lines[wrap.Lines.Count - 1] is RichLine lastBarLine)
-                lastBarLine.BarSpacingAfter = paragraph.SpacingAfter;
+                lastBarLine.BarSpacingAfter = paragraph.SpacingAfter.ToPoints();
             lines.AddRange(wrap.Lines);
             paragraphRanges.Add(new TableCellParagraphRange(paragraph, firstNewLineIndex, wrap.Lines.Count));
             lineHeights.AddRange(wrap.LineHeights);
@@ -181,9 +182,9 @@ internal static partial class PdfWriter {
                 MarkRichLineHardBreak(lines[lines.Count - 1]);
             }
 
-            if (paragraph.SpacingAfter > 0D && lineHeights.Count > firstNewLineIndex) {
+            if (paragraph.SpacingAfter.ToPoints() > 0D && lineHeights.Count > firstNewLineIndex) {
                 int lastParagraphLineIndex = lineHeights.Count - 1;
-                lineHeights[lastParagraphLineIndex] += paragraph.SpacingAfter;
+                lineHeights[lastParagraphLineIndex] += paragraph.SpacingAfter.ToPoints();
             }
         }
 
@@ -205,17 +206,17 @@ internal static partial class PdfWriter {
         double safeWidth = double.IsNaN(availableWidth) || double.IsInfinity(availableWidth)
             ? minimumTextWidth
             : System.Math.Min(maximumSafeIndentMagnitude, System.Math.Max(minimumTextWidth, availableWidth));
-        double leftIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.LeftIndent, safeWidth - minimumTextWidth));
-        double rightIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.RightIndent, safeWidth - leftIndent - minimumTextWidth));
+        double leftIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.LeftIndent.ToPoints(), safeWidth - minimumTextWidth));
+        double rightIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.RightIndent.ToPoints(), safeWidth - leftIndent - minimumTextWidth));
         double textWidth = System.Math.Max(minimumTextWidth, safeWidth - leftIndent - rightIndent);
-        double firstLineIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.FirstLineIndent, textWidth - minimumTextWidth));
+        double firstLineIndent = System.Math.Max(-maximumSafeIndentMagnitude, System.Math.Min(paragraph.FirstLineIndent.ToPoints(), textWidth - minimumTextWidth));
         var style = new PdfParagraphStyle {
             FontSize = paragraph.FontSize,
             LineSpacing = paragraph.LineSpacing,
             LineHeight = paragraph.LineHeight,
-            LeftIndent = leftIndent,
-            RightIndent = rightIndent,
-            FirstLineIndent = firstLineIndent,
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(leftIndent),
+            RightIndent = global::OfficeIMO.OfficeLength.Points(rightIndent),
+            FirstLineIndent = global::OfficeIMO.OfficeLength.Points(firstLineIndent),
             DefaultTabStopWidth = paragraph.DefaultTabStopWidth,
             JustificationMode = paragraph.JustificationMode,
             JustifyExplicitLineBreaks = paragraph.JustifyExplicitLineBreaks,
@@ -230,8 +231,8 @@ internal static partial class PdfWriter {
         return style;
     }
 
-    private static TableCellTextLayout CreateListItemTextLayout(PdfListItem item, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, PdfLineSpacing? lineSpacing) {
-        var wrap = WrapRichRunsWithSpacing(item.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options, lineSpacing);
+    private static TableCellTextLayout CreateListItemTextLayout(PdfListItem item, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfCreateOptions? options, PdfLineSpacing? lineSpacing, System.Threading.CancellationToken cancellationToken = default) {
+        var wrap = WrapRichRunsWithSpacing(item.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options, lineSpacing, cancellationToken: cancellationToken);
         if (wrap.Lines.Count == 0) {
             wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
         }

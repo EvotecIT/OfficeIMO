@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using System.Collections.Generic;
 using System.Management.Automation;
 using OfficeIMO.Word;
@@ -14,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficePdfToWordOptions")]
 [Alias("New-OfficePdfWordImportOptions")]
-[OutputType(typeof(PdfToWordOptions))]
+[OutputType(typeof(WordPdfImportOptions))]
 public sealed class NewOfficePdfToWordOptionsCommand : PSCmdlet {
     /// <summary>Use the built-in tables-only import profile.</summary>
     [Parameter] public SwitchParameter TablesOnly { get; set; }
@@ -65,7 +66,7 @@ public sealed class NewOfficePdfToWordOptionsCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        PdfToWordOptions options = TablesOnly.IsPresent ? PdfToWordOptions.CreateTablesOnly() : new PdfToWordOptions();
+        WordPdfImportOptions options = TablesOnly.IsPresent ? WordPdfImportOptions.CreateTablesOnly() : new WordPdfImportOptions();
         Apply(nameof(IncludeMetadata), value => options.IncludeMetadata = value);
         Apply(nameof(PreservePageBreaks), value => options.PreservePageBreaks = value);
         Apply(nameof(IncludeEmptyPages), value => options.IncludeEmptyPages = value);

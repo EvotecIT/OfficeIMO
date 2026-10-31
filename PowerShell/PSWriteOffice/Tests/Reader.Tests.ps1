@@ -32,58 +32,6 @@ Describe 'Reader cmdlets' {
         $capabilities.Id | Should -Contain 'officeimo.reader.rtf'
     }
 
-    It 'exports Reader projection and ingestion cmdlets' {
-        Get-Command -Name Get-OfficeDocumentTable -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Get-OfficeDocumentVisual -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Get-OfficeDocumentAsset -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Get-OfficeDocumentIngest -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Search-OfficeDocument -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Get-OfficeDocumentPageMarkdown -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Read-OfficeDocumentTable -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Read-OfficeDocumentVisual -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Read-OfficeDocumentAsset -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        (Get-Command -Name Get-OfficeDocument).Parameters.Keys | Should -Contain 'IncludePageLocations'
-        $searchParameters = (Get-Command -Name Search-OfficeDocument).Parameters.Keys
-        $searchParameters | Should -Contain 'Path'
-        $searchParameters | Should -Contain 'Recurse'
-        $searchParameters | Should -Contain 'MaxDocuments'
-        $searchParameters | Should -Contain 'NoDocumentLimit'
-        $searchParameters | Should -Contain 'MaxStoreItems'
-        $searchParameters | Should -Contain 'AllStoreItems'
-        $searchParameters | Should -Contain 'AllResults'
-        $searchParameters | Should -Contain 'Reader'
-
-        $batchParameters = (Get-Command -Name Get-OfficeDocumentBatch).Parameters.Keys
-        $batchParameters | Should -Contain 'MaxDocuments'
-        $batchParameters | Should -Contain 'MaxDegreeOfParallelism'
-        $batchParameters | Should -Contain 'ContinueOnError'
-
-        $readerParameters = (Get-Command -Name New-OfficeDocumentReader).Parameters.Keys
-        $readerParameters | Should -Contain 'TesseractLanguage'
-        $readerParameters | Should -Contain 'MaxStoreItems'
-
-        foreach ($commandName in 'Get-OfficeDocument', 'Get-OfficeDocumentChunk', 'Get-OfficeDocumentIngest') {
-            $parameters = (Get-Command -Name $commandName).Parameters.Keys
-            $parameters | Should -Contain 'MaxStoreItems'
-            $parameters | Should -Contain 'AllStoreItems'
-        }
-    }
-
-    It 'rejects conflicting advanced OCR sources before provisioning either runtime' {
-        $command = Get-Command New-OfficeDocumentReader
-        $tesseractOptions = [Activator]::CreateInstance($command.Parameters['TesseractOptions'].ParameterType)
-        $tesseractOptions.Engine.ExecutablePath = 'definitely-missing-tesseract-for-pswriteoffice'
-        $processOptions = [Activator]::CreateInstance($command.Parameters['ProcessOcrOptions'].ParameterType)
-        $processOptions.FileName = 'unused-process-ocr-provider'
-
-        {
-            New-OfficeDocumentReader `
-                -TesseractOptions $tesseractOptions `
-                -ProcessOcrOptions $processOptions `
-                -ErrorAction Stop
-        } | Should -Throw '*Specify only one OCR source*'
-    }
-
     It 'accepts a caller-configured immutable Reader' {
         $handlerId = 'pswriteoffice.test.custom'
         $registrationType = Get-TestPSWriteOfficeType -AssemblyName 'OfficeIMO.Reader.Core' -TypeName 'OfficeIMO.Reader.ReaderHandlerRegistration' -CommandName 'Get-OfficeDocumentCapability'
@@ -107,42 +55,49 @@ Describe 'Reader cmdlets' {
         $builderType.GetMethod('AddHandler').Invoke($builder, @($registration, $false)) | Out-Null
         $reader = $builderType.GetMethod('Build').Invoke($builder, @())
 
-        $capabilities = @(Get-OfficeDocumentCapability -Reader $reader -ExcludeBuiltIn)
+        $capabilities = @(Get-OfficeDocumentCapability -Reader $reader -Origin Custom)
         $customCapability = $capabilities | Where-Object Id -EQ $handlerId
         $customCapability | Should -HaveCount 1
         $customCapability.Extensions | Should -Contain '.custom'
-        (Get-Command Get-OfficeDocumentChunk).Parameters.Keys | Should -Contain 'Reader'
-        (Get-Command New-OfficeDocumentReader).Parameters.Keys | Should -Contain 'ReaderAllOptions'
+        $manifest = Get-OfficeDocumentCapability -Reader $reader -Origin Custom -Manifest
+        $manifest.Handlers | Should -HaveCount 1
+        $manifest.Handlers[0].Id | Should -Be $handlerId
+        @(Get-OfficeDocumentCapability -Reader $reader -Origin OfficeIMO) | Should -HaveCount 0
 
         $customPath = Join-Path $TestDrive 'source.custom'
         Set-Content -Path $customPath -Value 'custom reader input' -Encoding UTF8
 
-        { Get-OfficeDocumentChunk -Path $customPath -Reader $reader -NoMarkdownHeadingChunks } |
-            Should -Throw -ExpectedMessage '*immutable OfficeIMO 3 reader*'
+        { Read-OfficeDocument -Path $customPath -Reader $reader -NoHeadingChunks } |
+            Should -Throw -ExpectedMessage '*immutable Reader*'
     }
 
     It 'reads Markdown files as chunks and a document envelope' {
         $path = Join-Path $TestDrive 'source.md'
         Set-Content -Path $path -Value "# Reader smoke`n`nOfficeIMO Reader keeps this text." -Encoding UTF8
 
-        $chunks = @(Get-OfficeDocumentChunk -Path $path)
+        $chunks = @(Read-OfficeDocument -As Chunks -Path $path)
         $chunks.Count | Should -BeGreaterThan 0
         ($chunks.Text -join "`n") | Should -Match 'OfficeIMO Reader keeps this text'
 
-        $document = Get-OfficeDocument -Path $path
+        $document = Read-OfficeDocument -Path $path
         $document.Chunks.Count | Should -BeGreaterThan 0
         $document.Markdown | Should -Match 'Reader smoke'
 
-        $json = Get-OfficeDocument -Path $path -AsJson
+        $json = Read-OfficeDocument -Path $path -As Json
         $json | Should -Match 'officeimo.document.read-result'
         $json | Should -Match 'OfficeIMO Reader keeps this text'
+
+        $hierarchyOptions = New-OfficeDocumentHierarchyOptions -MaximumTokens 40 -OverlapTokens 0 -IncludeContextInText
+        $hierarchy = $document | Read-OfficeDocument -As Hierarchy -HierarchyOptions $hierarchyOptions
+        $hierarchy.Chunks.Count | Should -BeGreaterThan 0
+        ($hierarchy.Chunks.Text -join "`n") | Should -Match 'OfficeIMO Reader keeps this text'
     }
 
     It 'reads HTML, JSON, and YAML files through modular Reader adapters' {
         $htmlPath = Join-Path $TestDrive 'source.html'
         Set-Content -Path $htmlPath -Value '<!doctype html><html><body><h1>Reader HTML</h1><p>OfficeIMO adapter text.</p></body></html>' -Encoding UTF8
 
-        $htmlChunks = @(Get-OfficeDocumentChunk -Path $htmlPath)
+        $htmlChunks = @(Read-OfficeDocument -As Chunks -Path $htmlPath)
         $htmlChunks.Count | Should -BeGreaterThan 0
         $htmlChunks[0].Kind.ToString() | Should -Be 'Html'
         ($htmlChunks.Text -join "`n") | Should -Match 'Reader HTML'
@@ -151,7 +106,7 @@ Describe 'Reader cmdlets' {
         $jsonPath = Join-Path $TestDrive 'source.json'
         Set-Content -Path $jsonPath -Value '{"name":"Ada","score":42}' -Encoding UTF8
 
-        $jsonChunks = @(Get-OfficeDocumentChunk -Path $jsonPath)
+        $jsonChunks = @(Read-OfficeDocument -As Chunks -Path $jsonPath)
         $jsonChunks.Count | Should -BeGreaterThan 0
         $jsonChunks[0].Kind.ToString() | Should -Be 'Json'
         ($jsonChunks.Text -join "`n") | Should -Match '\$\.name'
@@ -164,7 +119,7 @@ Describe 'Reader cmdlets' {
             '  port: 443'
         ) -Encoding UTF8
 
-        $yamlChunks = @(Get-OfficeDocumentChunk -Path $yamlPath)
+        $yamlChunks = @(Read-OfficeDocument -As Chunks -Path $yamlPath)
         $yamlChunks.Count | Should -BeGreaterThan 0
         $yamlChunks[0].Kind.ToString() | Should -Be 'Yaml'
         ($yamlChunks.Text -join "`n") | Should -Match '\$\.service\.name'
@@ -175,7 +130,7 @@ Describe 'Reader cmdlets' {
         $path = Join-Path $TestDrive 'source.rtf'
         New-OfficeRtf -Path $path -Text 'Reader RTF adapter', 'Semantic chunk text' | Out-Null
 
-        $chunks = @(Get-OfficeDocumentChunk -Path $path)
+        $chunks = @(Read-OfficeDocument -As Chunks -Path $path)
         $chunks.Count | Should -BeGreaterThan 0
         $chunks[0].Kind.ToString() | Should -Be 'Rtf'
         ($chunks.Text -join "`n") | Should -Match 'Reader RTF adapter'
@@ -190,19 +145,19 @@ Describe 'Reader cmdlets' {
             '{\rtf1\ansi First page text\page Second page retention period}',
             [System.Text.Encoding]::ASCII)
 
-        $document = Get-OfficeDocument -Path $path -IncludePageLocations
+        $document = Read-OfficeDocument -Path $path -IncludePageLocations
         $document.Pages.Count | Should -Be 2
 
-        $matches = $document | Search-OfficeDocument -Query 'retention period' -WholeWord
-        $matches.Hits | Should -HaveCount 1
-        $matches.PageNumbers | Should -Be @(2)
-        $matches.Hits[0].Pages[0].Provenance.ToString() | Should -Be 'ExplicitBreak'
+        $matches = @($document | Search-OfficeDocument -Pattern 'retention period' -SimpleMatch -WholeWord)
+        $matches | Should -HaveCount 1
+        $matches[0].Pages | Should -Be @(2)
+        $matches[0].Match | Should -Be 'retention period'
 
-        $pageMarkdown = @($document | Get-OfficeDocumentPageMarkdown)
+        $pageMarkdown = @($document | Read-OfficeDocument -As Markdown -ByPage)
         $pageMarkdown | Should -HaveCount 2
         $pageMarkdown[1].Markdown | Should -Match 'Second page retention period'
 
-        $combined = $document | Get-OfficeDocumentPageMarkdown -AsString
+        $combined = $document | Read-OfficeDocument -As Markdown
         $combined | Should -Match '<!-- page: 2/2; provenance: ExplicitBreak -->'
     }
 
@@ -235,8 +190,8 @@ Describe 'Reader cmdlets' {
         Set-Content -Path (Join-Path $folder 'ignored.bin') -Value 'Synthetic unsupported input' -Encoding UTF8
 
         $readErrors = @()
-        $matches = @(Search-OfficeDocument -Path $folder -Recurse -Query 'Synthetic' `
-                -MaxDocuments 10 -MaxStoreItems 10 -MaximumResults 10 -MaxDegreeOfParallelism 2 `
+        $matches = @(Search-OfficeDocument -Path $folder -Recurse -Pattern 'Synthetic' `
+                -MaximumFiles 10 -MaximumStoreItems 10 -MaximumResults 10 -ThrottleLimit 2 `
                 -ErrorVariable +readErrors -ErrorAction SilentlyContinue)
 
         ($matches.Path | Select-Object -Unique) | Should -HaveCount 5
@@ -254,11 +209,11 @@ Describe 'Reader cmdlets' {
         $matches.SourceLimitReached | Should -Not -Contain $true
         $readErrors | Should -HaveCount 1
 
-        $unlimited = @(Search-OfficeDocument -Path $markdownPath -Query 'Synthetic' `
-                -NoDocumentLimit -AllStoreItems -AllResults)
+        $unlimited = @(Search-OfficeDocument -Path $markdownPath -Pattern 'Synthetic' `
+                -MaximumFiles 0 -MaximumStoreItems 0 -MaximumResults 0)
         $unlimited | Should -HaveCount 1
 
-        $store = Get-OfficeDocument -Path $pstPath -AllStoreItems
+        $store = Read-OfficeDocument -Path $pstPath -MaximumStoreItems 0
         $store.Kind.ToString() | Should -Be 'Email'
         $store.Metadata | Where-Object Name -EQ 'SelectionLimitReached' |
             Select-Object -ExpandProperty Value | Should -Not -Contain 'True'
@@ -273,12 +228,12 @@ Describe 'Reader cmdlets' {
         }
 
         $warnings = @()
-        $matches = @(Search-OfficeDocument -Path $folder -Query 'Synthetic' -MaxDocuments 2 `
+        $matches = @(Search-OfficeDocument -Path $folder -Pattern 'Synthetic' -MaximumFiles 2 `
                 -WarningVariable +warnings -WarningAction SilentlyContinue)
 
         ($matches.Path | Select-Object -Unique) | Should -HaveCount 2
         $matches.DocumentLimitReached | Should -Not -Contain $false
-        ($warnings -join ' ') | Should -Match 'configured document ceiling \(2\)'
+        ($warnings -join ' ') | Should -Match 'MaximumFiles \(2\)'
     }
 
     It 'applies extension filters before explicit paths consume the search ceiling' {
@@ -290,7 +245,7 @@ Describe 'Reader cmdlets' {
         Set-Content -Path $includedPath -Value '# Synthetic included document' -Encoding UTF8
 
         $matches = @(Search-OfficeDocument -Path @($excludedPath, $includedPath) `
-                -Extension md -Query 'Synthetic' -MaxDocuments 1)
+                -Extension md -Pattern 'Synthetic' -MaximumFiles 1)
 
         $matches | Should -HaveCount 1
         $matches[0].Path | Should -Be $includedPath
@@ -305,8 +260,8 @@ Describe 'Reader cmdlets' {
         $includedPath = Join-Path $folder 'second.md'
         Set-Content -Path $includedPath -Value '# Synthetic included document' -Encoding UTF8
 
-        $documents = @(Get-OfficeDocumentBatch -Path (Join-Path $folder '*') `
-                -Extension md -MaxDocuments 1)
+        $documents = @(Read-OfficeDocument -Path (Join-Path $folder '*') `
+                -Extension md -MaximumFiles 1)
 
         $documents | Should -HaveCount 1
         $documents[0].Source.Path | Should -Be $includedPath
@@ -320,8 +275,8 @@ Describe 'Reader cmdlets' {
         Set-Content -Path (Join-Path $folder 'broken.docx') -Value 'not an OpenXML package' -Encoding UTF8
 
         $readErrors = @()
-        $documents = @(Get-OfficeDocumentBatch -Path $folder -MaxDocuments 10 `
-                -MaxDegreeOfParallelism 2 -ContinueOnError `
+        $documents = @(Read-OfficeDocument -Path $folder -MaximumFiles 10 `
+                -ThrottleLimit 2 `
                 -ErrorVariable +readErrors -ErrorAction SilentlyContinue)
 
         $documents | Should -HaveCount 1
@@ -331,9 +286,8 @@ Describe 'Reader cmdlets' {
 
     It 'creates configurable readers without requiring OfficeIMO option objects' {
         $runtime = New-TestTesseractExecutable -Directory $TestDrive
-        $reader = New-OfficeDocumentReader -TesseractLanguage 'eng+pol' `
-            -TesseractExecutablePath $runtime -TesseractTimeoutSeconds 30 `
-            -MaxStoreItems 2500 -MaxConcurrentReads 2
+        $ocr = New-OfficeOcrOptions -LanguageExpression 'eng+pol' -TesseractPath $runtime -NoLanguageDownload
+        $reader = New-OfficeDocumentReader -OcrOptions $ocr -MaximumStoreItems 2500 -MaximumConcurrentReads 2
 
         $reader | Should -Not -BeNullOrEmpty
         $reader.MaxConcurrentReads | Should -Be 2
@@ -343,17 +297,17 @@ Describe 'Reader cmdlets' {
     It 'uses caller-selected search concurrency and rejects an undersized immutable Reader' {
         $path = Join-Path $TestDrive 'configured-search.md'
         Set-Content -Path $path -Value '# Concurrency', 'Synthetic configurable search' -Encoding UTF8
-        $reader = New-OfficeDocumentReader -MaxConcurrentReads 6
+        $reader = New-OfficeDocumentReader -MaximumConcurrentReads 6
 
-        $matches = @(Search-OfficeDocument -Path $path -Query 'Synthetic' `
-                -Reader $reader -MaxDegreeOfParallelism 6)
+        $matches = @(Search-OfficeDocument -Path $path -Pattern 'Synthetic' `
+                -Reader $reader -ThrottleLimit 6)
 
         $matches | Should -HaveCount 1
         $matches[0].Path | Should -Be $path
         {
-            Search-OfficeDocument -Path $path -Query 'Synthetic' `
-                -Reader (New-OfficeDocumentReader -MaxConcurrentReads 2) `
-                -MaxDegreeOfParallelism 3 -ErrorAction Stop
+            Search-OfficeDocument -Path $path -Pattern 'Synthetic' `
+                -Reader (New-OfficeDocumentReader -MaximumConcurrentReads 2) `
+                -ThrottleLimit 3 -ErrorAction Stop
         } | Should -Throw -ExpectedMessage '*requested batch concurrency (3)*Reader limit (2)*'
     }
 
@@ -367,20 +321,20 @@ Describe 'Reader cmdlets' {
             '| Ada | 42 |'
         ) -Encoding UTF8
 
-        $tables = @(Get-OfficeDocumentTable -Path $path)
+        $tables = @(Read-OfficeDocument -As Tables -Path $path)
         $tables | Should -HaveCount 1
         $tables[0].Columns | Should -Be @('Name', 'Score')
         $tables[0].Rows[0][0] | Should -Be 'Ada'
         $tables[0].Rows[0][1] | Should -Be '42'
 
-        $exports = @(Get-OfficeDocumentTable -Path $path -AsExport)
+        $exports = @(Read-OfficeDocument -As Tables -Path $path -Bundle)
         $exports | Should -HaveCount 1
         $exports[0].Csv | Should -Match 'Name,Score'
         $exports[0].Markdown | Should -Match '\| Ada \| 42 \|'
         $exports[0].Json | Should -Match '"columns":\["Name","Score"\]'
 
         $outputDirectory = Join-Path $TestDrive 'table-exports'
-        $materialized = @(Get-OfficeDocumentTable -Path $path -OutputDirectory $outputDirectory)
+        $materialized = @(Export-OfficeDocumentAsset -Type Table -Path $path -OutputDirectory $outputDirectory)
         $materialized | Should -HaveCount 3
         $materialized.Written | Should -Not -Contain $false
         Test-Path -LiteralPath (Join-Path $outputDirectory 'table-table-0000.csv') | Should -BeTrue
@@ -399,14 +353,14 @@ Describe 'Reader cmdlets' {
             }
         } | Out-Null
 
-        $assets = @(Get-OfficeDocumentAsset -Path $path -Kind image)
+        $assets = @(Read-OfficeDocument -Path $path -As Assets | Where-Object Kind -EQ image)
         $assets.Count | Should -BeGreaterThan 0
         $assets[0].Kind | Should -Be 'image'
         $assets[0].MediaType | Should -Match 'image'
         $assets[0].PayloadBytes.Length | Should -BeGreaterThan 0
 
         $outputDirectory = Join-Path $TestDrive 'asset-exports'
-        $materialized = @(Get-OfficeDocumentAsset -Path $path -Kind image -OutputDirectory $outputDirectory -ValidatePayloadHash)
+        $materialized = @(Export-OfficeDocumentAsset -Path $path -Kind image -OutputDirectory $outputDirectory -ValidatePayloadHash)
         ($materialized | Where-Object Written).Count | Should -BeGreaterThan 0
         Test-Path -LiteralPath $materialized[0].Path | Should -BeTrue
     }
@@ -417,7 +371,7 @@ Describe 'Reader cmdlets' {
         Set-Content -Path (Join-Path $folder 'first.md') -Value '# First' -Encoding UTF8
         Set-Content -Path (Join-Path $folder 'skip.txt') -Value 'skip me' -Encoding UTF8
 
-        $chunks = @(Get-OfficeDocumentChunk -FolderPath $folder -Extension md -NoRecurse)
+        $chunks = @(Read-OfficeDocument -As Chunks -Path $folder -Extension md)
         ($chunks.Location.Path | Select-Object -Unique) | Should -HaveCount 1
         ($chunks.Text -join "`n") | Should -Match 'First'
         ($chunks.Text -join "`n") | Should -Not -Match 'skip me'
@@ -432,7 +386,7 @@ Describe 'Reader cmdlets' {
 
         Set-Content -Path (Join-Path $folder 'config.yaml') -Value "name: Indexed YAML" -Encoding UTF8
 
-        $result = Get-OfficeDocumentIngest -FolderPath $folder -Extension html,json,yaml -NoRecurse
+        $result = Read-OfficeDocument -As Ingest -Path $folder -Extension html,json,yaml
         $result.FilesScanned | Should -Be 3
         $result.FilesParsed | Should -Be 3
         $result.ChunksProduced | Should -Be 3

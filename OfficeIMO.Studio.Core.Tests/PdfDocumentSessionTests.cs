@@ -41,8 +41,8 @@ public sealed class PdfDocumentSessionTests {
             System.IO.Path.GetTempPath(),
             $"officeimo-studio-search-{Guid.NewGuid():N}.pdf");
         PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(500, 700));
-            compose.Page(page => page.Size(500, 700));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(700)));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(700)));
         }).Save(path);
         using var cancellation = new CancellationTokenSource();
         var progress = new InlineProgress<double>(fraction => {

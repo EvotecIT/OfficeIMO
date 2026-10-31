@@ -11,17 +11,17 @@ Adds chapter content, reading order and a navigation entry.
 ## SYNTAX
 ### Text (Default)
 ```powershell
-Add-OfficeEpubChapter [-Title] <string> -Publication <EpubPublication> -Text <string> [-Id <string>] [-ContainerPath <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeEpubChapter [-Title] <string> -Text <string> [-Id <string>] [-ContainerPath <string>] [-PassThru] [-Document <EpubPublication>] [<CommonParameters>]
 ```
 
 ### Xhtml
 ```powershell
-Add-OfficeEpubChapter [-Title] <string> -Publication <EpubPublication> -Xhtml <string> [-Id <string>] [-ContainerPath <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeEpubChapter [-Title] <string> -Xhtml <string> [-Id <string>] [-ContainerPath <string>] [-PassThru] [-Document <EpubPublication>] [<CommonParameters>]
 ```
 
 ### Markdown
 ```powershell
-Add-OfficeEpubChapter [-Title] <string> -Publication <EpubPublication> -Markdown <string> [-Id <string>] [-ContainerPath <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeEpubChapter [-Title] <string> -Markdown <string> [-Id <string>] [-ContainerPath <string>] [-PassThru] [-Document <EpubPublication>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -50,6 +50,22 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Document
+Gets or sets an explicit live document; omission uses the enclosing content block.
+
+```yaml
+Type: EpubPublication
+Parameter Sets: Text, Xhtml, Markdown
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -98,22 +114,6 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Publication
-Live editable publication.
-
-```yaml
-Type: EpubPublication
-Parameter Sets: Text, Xhtml, Markdown
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 

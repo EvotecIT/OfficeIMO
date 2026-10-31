@@ -11,9 +11,9 @@ namespace OfficeIMO.Tests {
             string mono = WordFontResolver.Resolve("monospace")!;
             doc.AddParagraph("Console.WriteLine(\"Hello\");").SetFontFamily(mono).SetStyleId("CodeLang_csharp");
 
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+            string markdown = doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown();
 
-            Assert.Equal("```csharp\nConsole.WriteLine(\"Hello\");\n```", markdown);
+            Assert.Equal(string.Join(Environment.NewLine, "```csharp", "Console.WriteLine(\"Hello\");", "```", ""), markdown);
         }
 
         [Fact]
@@ -22,10 +22,10 @@ namespace OfficeIMO.Tests {
             const string codeFont = "Courier New";
             doc.AddParagraph("System.out.println(\"Hello\");").SetFontFamily(codeFont).SetStyleId("CodeLang_java");
 
-            var options = new WordToMarkdownOptions { FontFamily = codeFont };
-            string markdown = doc.ToMarkdown(options);
+            var options = new WordMarkdownExportOptions { FontFamily = codeFont };
+            string markdown = doc.ToMarkdown(options).ToMarkdown();
 
-            Assert.Equal("```java\nSystem.out.println(\"Hello\");\n```", markdown);
+            Assert.Equal(string.Join(Environment.NewLine, "```java", "System.out.println(\"Hello\");", "```", ""), markdown);
         }
 
         [Fact]
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 new Break { Type = BreakValues.Page },
                 new Text("After")));
 
-            OfficeIMO.Markdown.MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+            OfficeIMO.Markdown.MarkdownDocument markdown = doc.ToMarkdown(new WordMarkdownExportOptions());
 
             Assert.Collection(
                 markdown.Blocks,

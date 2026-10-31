@@ -9,11 +9,11 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_FontTagAttributes() {
             string html = "<p><font color=\"#00FF00\" size=\"5\">Green</font></p>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
             Assert.Equal("00FF00", run.ColorHex);
-            Assert.Equal(18, run.FontSize);
+            Assert.Equal(18, run.FontSize?.ToPoints());
         }
     }
 }

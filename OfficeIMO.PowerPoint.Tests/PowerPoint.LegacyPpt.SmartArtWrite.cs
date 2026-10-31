@@ -26,15 +26,15 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_ExplicitlyConvertsSmartArtToStaticPngPicture(
             PowerPointSmartArtType sourceKind, OfficeDiagramKind expectedKind) {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSmartArt smartArt = source
                     .AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddSmartArt(sourceKind,
                         new[] { "Discover", "Build", "Validate", "Ship" },
-                        PowerPointUnits.FromPoints(20D),
-                        PowerPointUnits.FromPoints(30D),
-                        PowerPointUnits.FromPoints(260D),
-                        PowerPointUnits.FromPoints(160D));
+                        OfficeIMO.OfficeLength.Points(20D),
+                        OfficeIMO.OfficeLength.Points(30D),
+                        OfficeIMO.OfficeLength.Points(260D),
+                        OfficeIMO.OfficeLength.Points(160D));
                 Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
                     out OfficeDiagramSnapshot snapshot));
                 Assert.Equal(expectedKind, snapshot.Kind);
@@ -46,17 +46,15 @@ namespace OfficeIMO.Tests {
                 Assert.False(preflight.CanWrite);
                 LegacyPptWriteFinding finding = Assert.Single(
                     preflight.Findings, candidate =>
-                        candidate.Code == "PPT-WRITE-SMARTART-CONVERTED");
+                        candidate.Code == "ppt-write-smartart-converted");
                 Assert.Equal(LegacyPptFeature.SmartArt, finding.Feature);
-                Assert.Throws<NotSupportedException>(() => source.ToBytes(
-                    PowerPointFileFormat.Ppt));
-                bytes = source.ToBytes(PowerPointFileFormat.Ppt,
-                    new PowerPointSaveOptions {
+                Assert.Throws<NotSupportedException>(() => source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
+                bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
             }
 
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             OfficeArtBlipStoreEntry image = Assert.Single(
                 legacy.BlipStoreEntries);
             Assert.Equal("image/png", image.ContentType);
@@ -70,13 +68,13 @@ namespace OfficeIMO.Tests {
                 picture.Bounds);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(
+            using PowerPointDocument projected = PowerPointDocument.Load(
                 input);
             Assert.Empty(projected.Slides[0].SmartArts);
             Assert.Single(projected.Slides[0].Pictures);
             Assert.Empty(projected.ValidateDocument());
             Assert.True(projected.AnalyzeLegacyPptWrite().CanWrite);
-            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(bytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
     }
 }

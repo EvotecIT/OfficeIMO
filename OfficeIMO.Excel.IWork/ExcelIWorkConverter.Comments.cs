@@ -9,7 +9,7 @@ public static partial class ExcelIWorkConverter {
             cancellationToken.ThrowIfCancellationRequested();
             if (cell.Comment is not { } comment) continue;
             yield return new ExcelThreadedCommentOptions {
-                Address = A1.CellReference(cell.Row, cell.Column), Text = comment.Text,
+                Address = ExcelA1.CellReference(cell.Row, cell.Column), Text = comment.Text,
                 Author = comment.Author, Date = comment.CreationDateUtc
             };
         }

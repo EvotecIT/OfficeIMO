@@ -18,6 +18,8 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Maximum characters in a legacy XML document. Default: 30 million.</summary>
         public long MaxLegacyXmlCharacters { get; set; } = 30_000_000;
+        /// <summary>Maximum characters in each VSDX content XML part. Default: 30 million.</summary>
+        public long MaxPackageXmlCharacters { get; set; } = 30_000_000;
         /// <summary>Maximum legacy XML nesting depth, enforced before materialization.</summary>
         public int MaxLegacyXmlDepth { get; set; } = 128;
         /// <summary>Maximum legacy XML elements and cumulative attributes, enforced before materialization.</summary>

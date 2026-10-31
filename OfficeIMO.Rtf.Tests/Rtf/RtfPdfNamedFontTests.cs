@@ -23,12 +23,12 @@ public sealed class RtfPdfNamedFontTests {
         if (scenario != "planned-default") run.FontId = sourceId;
         run.FontSize = 10;
         string expectedFamily = scenario == "registered-source" ? Source : Target;
-        PdfCore.PdfOptions caller = CreateOptions(expectedFamily, substitute: scenario != "registered-source");
+        PdfCore.PdfCreateOptions caller = CreateOptions(expectedFamily, substitute: scenario != "registered-source");
         if (scenario == "explicit-default") caller.DefaultFont = PdfCore.PdfStandardFont.Courier;
         byte[] sourceBefore = document.ToBytes();
         byte[] callerFont = caller.NamedFontFamilies[expectedFamily].Regular;
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(ConvertOptions(caller));
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(ConvertOptions(caller));
         using PdfPigDocument actual = PdfPigDocument.Open(result.ToBytes());
         Assert.Equal(1, actual.NumberOfPages);
         var word = Assert.Single(actual.GetPage(1).GetWords(), word => word.Text == "AB");
@@ -69,14 +69,14 @@ public sealed class RtfPdfNamedFontTests {
         run.FontSize = 12;
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300,
             Enumerable.Range(32, 95).ToArray());
-        var caller = new PdfCore.PdfOptions().RegisterFontFamily(slot,
+        var caller = new PdfCore.PdfCreateOptions().RegisterFontFamily(slot,
             new PdfCore.PdfEmbeddedFontFamily(familyName, font));
         string resourceName = caller.EmbeddedFonts[slot].FontName!.Replace(" ", string.Empty).Replace(",", string.Empty);
         var embeddedBefore = caller.EmbeddedFonts.ToDictionary(entry => entry.Key,
             entry => new { entry.Value.FontName, Data = entry.Value.Data.ToArray() });
         byte[] sourceBefore = document.ToBytes();
 
-        byte[] bytes = document.ToPdfDocumentResult(ConvertOptions(caller)).ToBytes();
+        byte[] bytes = document.ConvertToPdfWithEvidence(ConvertOptions(caller)).ToBytes();
         using PdfPigDocument actual = PdfPigDocument.Open(bytes);
         Assert.Equal(1, actual.NumberOfPages);
         var letters = actual.GetPage(1).Letters;
@@ -115,7 +115,8 @@ public sealed class RtfPdfNamedFontTests {
         run.Bold = bold;
         run.Italic = italic;
 
-        using PdfPigDocument actual = PdfPigDocument.Open(document.ToPdfBytes(ConvertOptions(CreateOptions(Target, substitute: true))));
+        using PdfCore.PdfDocument actualModel = document.ToPdf(ConvertOptions(CreateOptions(Target, substitute: true)));
+        using PdfPigDocument actual = PdfPigDocument.Open(actualModel.ToBytes());
         var letters = actual.GetPage(1).Letters;
         Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));
         Assert.All(letters, letter => Assert.EndsWith("PortableSubstitute-" + face, letter.FontName, StringComparison.OrdinalIgnoreCase));
@@ -166,7 +167,7 @@ public sealed class RtfPdfNamedFontTests {
             paragraph.AddText("\t");
         } else if (owner != "empty") paragraph.AddText("AB");
         byte[] sourceBefore = document.ToBytes();
-        PdfCore.PdfDocument converted = document.ToPdfDocument(ConvertOptions(CreateOptions(Target, substitute: true)));
+        PdfCore.PdfDocument converted = document.ToPdf(ConvertOptions(CreateOptions(Target, substitute: true)));
         if (owner == "empty") {
             PdfCore.RichParagraphBlock projected = Assert.IsType<PdfCore.RichParagraphBlock>(Assert.Single(converted.Blocks));
             Assert.Equal("\"" + Target + "\"", Assert.Single(projected.Runs, run => run.IsLineBoxStrut).FontFamily);
@@ -198,11 +199,12 @@ public sealed class RtfPdfNamedFontTests {
         var note = new RtfNote(RtfNoteKind.Footnote);
         note.AddParagraph("GH");
         document.AddParagraph("IJ ").AddNoteReference(note, "5");
-        PdfCore.PdfOptions caller = CreateOptions(Target, substitute: true);
+        PdfCore.PdfCreateOptions caller = CreateOptions(Target, substitute: true);
         if (explicitDefault) caller.DefaultFont = PdfCore.PdfStandardFont.Courier;
         byte[] sourceBefore = document.ToBytes();
 
-        using PdfPigDocument actual = PdfPigDocument.Open(document.ToPdfBytes(ConvertOptions(caller)));
+        using PdfCore.PdfDocument actualModel = document.ToPdf(ConvertOptions(caller));
+        using PdfPigDocument actual = PdfPigDocument.Open(actualModel.ToBytes());
         Assert.Equal(1, actual.NumberOfPages);
         Assert.All(actual.GetPage(1).Letters, letter => Assert.Contains(
             explicitDefault ? "Courier" : "PortableSubstitute", letter.FontName, StringComparison.OrdinalIgnoreCase));
@@ -232,11 +234,11 @@ public sealed class RtfPdfNamedFontTests {
         string unavailableFamily = scenario == "literal-comma" ? "Unavailable, Courier" : "Unavailable Secondary";
         run.FontId = document.AddFont(unavailableFamily);
         run.FontSize = 10;
-        PdfCore.PdfOptions caller = CreateOptions(Target, substitute: true);
+        PdfCore.PdfCreateOptions caller = CreateOptions(Target, substitute: true);
         if (explicitDefault) caller.DefaultFont = PdfCore.PdfStandardFont.Courier;
         byte[] sourceBefore = document.ToBytes();
 
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(ConvertOptions(caller));
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(ConvertOptions(caller));
         using PdfPigDocument actual = PdfPigDocument.Open(result.ToBytes());
         var word = Assert.Single(actual.GetPage(1).GetWords(), word => word.Text == "AB");
         Assert.All(word.Letters, letter => Assert.Contains(explicitDefault ? "Courier" : "PortableSubstitute",
@@ -260,10 +262,11 @@ public sealed class RtfPdfNamedFontTests {
         RtfRun run = document.AddParagraph().AddText("AB");
         run.FontId = document.AddFont(sourceName);
         run.FontSize = 10;
-        PdfCore.PdfOptions caller = CreateOptions(targetName, substitute: false);
+        PdfCore.PdfCreateOptions caller = CreateOptions(targetName, substitute: false);
         if (substitute) caller.RegisterFontFamilySubstitution(sourceName, targetName);
 
-        using PdfPigDocument actual = PdfPigDocument.Open(document.ToPdfBytes(ConvertOptions(caller)));
+        using PdfCore.PdfDocument actualModel = document.ToPdf(ConvertOptions(caller));
+        using PdfPigDocument actual = PdfPigDocument.Open(actualModel.ToBytes());
         var letters = actual.GetPage(1).Letters;
         Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));
         Assert.All(letters, letter => Assert.Contains("Portable", letter.FontName, StringComparison.OrdinalIgnoreCase));
@@ -278,19 +281,19 @@ public sealed class RtfPdfNamedFontTests {
         return document;
     }
 
-    private static PdfCore.PdfOptions CreateOptions(string familyName, bool substitute) {
+    private static PdfCore.PdfCreateOptions CreateOptions(string familyName, bool substitute) {
         int[] scalars = Enumerable.Range(32, 95).ToArray();
         var family = new PdfCore.PdfEmbeddedFontFamily(familyName,
             ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, scalars),
             ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 800, scalars),
             ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, scalars),
             ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 900, scalars));
-        var options = new PdfCore.PdfOptions { DefaultFontSize = 10 }.RegisterNamedFontFamily(family);
+        var options = new PdfCore.PdfCreateOptions { DefaultFontSize = OfficeLength.Points(10) }.RegisterNamedFontFamily(family);
         if (substitute) options.RegisterFontFamilySubstitution(Source, familyName, PdfCore.PdfFontFamilySubstitutionImpact.Compatible);
         return options;
     }
 
-    private static RtfToPdfOptions ConvertOptions(PdfCore.PdfOptions options) => new RtfToPdfOptions {
+    private static RtfToPdfOptions ConvertOptions(PdfCore.PdfCreateOptions options) => new RtfToPdfOptions {
         PdfOptions = options,
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None

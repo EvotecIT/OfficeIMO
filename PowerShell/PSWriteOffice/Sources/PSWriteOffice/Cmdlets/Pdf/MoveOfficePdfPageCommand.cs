@@ -55,7 +55,7 @@ public sealed class MoveOfficePdfPageCommand : PSWriteOffice.Cmdlets.OfficeMutat
         PdfDocument.Load(
                 PdfCommandUtilities.ResolvePath(this, Path),
                 PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
-            .Pages.Move(BeforePage, PageRange).Save(outputPath).RequireSuccess();
+            .Pages.Move(BeforePage, PageRange).Save(outputPath);
         WritePassThru(new FileInfo(outputPath));
     }
 }

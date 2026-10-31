@@ -4,7 +4,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Diagnostics {
         /// <summary>Creates an import diagnostic.</summary>
         public LegacyPptImportDiagnostic(string code, string message, LegacyPptDiagnosticSeverity severity,
             long? streamOffset = null) {
-            Code = string.IsNullOrWhiteSpace(code) ? "PPT-UNKNOWN" : code;
+            Code = string.IsNullOrWhiteSpace(code) ? "ppt-unknown" : code;
             Message = message ?? string.Empty;
             Severity = severity;
             StreamOffset = streamOffset;

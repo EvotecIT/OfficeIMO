@@ -18,7 +18,7 @@ public sealed class HtmlImageFontCoverageTests {
             FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
         };
 
-        HtmlConversionException pdf = Assert.Throws<HtmlConversionException>(() => document.ToPdfBytes(options));
+        HtmlConversionException pdf = Assert.Throws<HtmlConversionException>(() => (document.ToPdf(options)).ToBytes());
         HtmlConversionException png = Assert.Throws<HtmlConversionException>(() => document.ToPng(options));
 
         foreach (HtmlConversionException failure in new[] { pdf, png }) {
@@ -57,8 +57,8 @@ public sealed class HtmlImageFontCoverageTests {
         options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs((text + " ").Select(character => (int)character).ToArray()));
 
-        byte[] synchronous = pdfRoute ? document.ToPdfBytes(options) : document.ToPng(options);
-        byte[] asynchronous = pdfRoute ? await document.ToPdfBytesAsync(options) : await document.ToPngAsync(options);
+        byte[] synchronous = pdfRoute ? (document.ToPdf(options)).ToBytes() : document.ToPng(options);
+        byte[] asynchronous = pdfRoute ? (await document.ToPdfAsync(options)).Value.ToBytes() : await document.ToPngAsync(options);
 
         Assert.NotEmpty(synchronous);
         Assert.NotEmpty(asynchronous);
@@ -68,7 +68,7 @@ public sealed class HtmlImageFontCoverageTests {
             }
         } else {
             Assert.Equal(synchronous, asynchronous);
-            PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+            PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
             pdf.RequireNoLoss();
             Assert.Equal(expectedText, PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText().Trim());
             OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
@@ -101,7 +101,7 @@ public sealed class HtmlImageFontCoverageTests {
             (text + " ").Select(character => (int)character).ToArray());
         options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, fontData);
 
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
         OfficeImageExportResult pdfPng = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
             pdf, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
@@ -133,7 +133,7 @@ public sealed class HtmlImageFontCoverageTests {
             .Add("Spacing Fallback", ManagedTextShapingTestAssets.CreateFontWithEmptyGlyphs(2, separator))
             .AddFallbackFamily("Spacing Fallback");
 
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
         OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
             pdf, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
@@ -158,7 +158,7 @@ public sealed class HtmlImageFontCoverageTests {
         };
         options.Fonts.Add("Primary", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'));
 
-        HtmlConversionException pdf = Assert.Throws<HtmlConversionException>(() => document.ToPdfBytes(options));
+        HtmlConversionException pdf = Assert.Throws<HtmlConversionException>(() => (document.ToPdf(options)).ToBytes());
         HtmlConversionException png = Assert.Throws<HtmlConversionException>(() => document.ToPng(options));
 
         foreach (HtmlConversionException failure in new[] { pdf, png }) {

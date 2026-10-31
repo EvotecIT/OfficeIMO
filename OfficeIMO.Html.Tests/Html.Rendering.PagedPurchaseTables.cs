@@ -71,9 +71,9 @@ public sealed partial class HtmlRenderingTests {
             .Replace("TAX", tax.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))
             .Replace("GRAND_TOTAL", grandTotal.ToString("N2", System.Globalization.CultureInfo.InvariantCulture));
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(5D, 4D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5D), global::OfficeIMO.OfficeLength.Inches(4D)),
             Margins = HtmlRenderMargins.All(16D),
-            PdfOptions = new PdfCore.PdfOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 FileVersion = PdfCore.PdfFileVersion.Pdf17,
                 ObjectSerializationMode = PdfCore.PdfObjectSerializationMode.ForwardOnly,
                 TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers
@@ -112,7 +112,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed);
 
         using var output = new MemoryStream();
-        PdfCore.PdfSaveResult save = document.SaveAsPdf(output, options).RequireSuccess();
+        PdfCore.PdfSaveResult save = document.ConvertToPdfWithEvidence(options).Save(output);
         byte[] pdf = output.ToArray();
         PdfCore.PdfSerializationReport serialization = Assert.IsType<PdfCore.PdfSerializationReport>(save.Serialization);
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();

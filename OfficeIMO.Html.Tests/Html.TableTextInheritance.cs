@@ -9,9 +9,9 @@ namespace OfficeIMO.Tests;
 
 public class HtmlTableTextInheritance {
     [Theory]
-    [InlineData(TableCaptionPosition.Above)]
-    [InlineData(TableCaptionPosition.Below)]
-    public void WordTableTextInheritsContainerGroupRowAndCellStyles(TableCaptionPosition captionPosition) {
+    [InlineData(WordHtmlTableCaptionPosition.Above)]
+    [InlineData(WordHtmlTableCaptionPosition.Below)]
+    public void WordTableTextInheritsContainerGroupRowAndCellStyles(WordHtmlTableCaptionPosition captionPosition) {
         const string html = """
             <body style="background-color: #f2f5f7"><div style="color: #123456; font-family: Arial">
               <table style="font-size: 18px">
@@ -27,9 +27,9 @@ public class HtmlTableTextInheritance {
               </table>
             </div></body>
             """;
-        using var document = HtmlConversionDocument.Parse(html).ToWordDocument(
-            new HtmlToWordOptions { TableCaptionPosition = captionPosition });
-        using var artifact = document.ToStream();
+        using var document = HtmlConversionDocument.Parse(html).ToWord(
+            new WordHtmlImportOptions { TableCaptionPosition = captionPosition });
+        using var artifact = new System.IO.MemoryStream(document.ToBytes());
         using var package = WordprocessingDocument.Open(artifact, false);
         var errors = new OpenXmlValidator().Validate(package).ToArray();
         Assert.True(errors.Length == 0, string.Join(Environment.NewLine, errors.Select(error => error.Description + " " + error.Path?.XPath + " " + error.Node?.Parent?.OuterXml)));

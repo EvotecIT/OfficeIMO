@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Specifies the view used to display an embedded OLE object.</summary>
-    public enum LegacyPptOleDrawAspect : uint {
+    internal enum LegacyPptOleDrawAspect : uint {
         /// <summary>The object's content view.</summary>
         Content = 0x00000001,
         /// <summary>A thumbnail view.</summary>
@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Specifies how an embedded object follows the presentation colors.</summary>
-    public enum LegacyPptOleColorFollow : uint {
+    internal enum LegacyPptOleColorFollow : uint {
         /// <summary>The object does not follow the color scheme.</summary>
         None = 0,
         /// <summary>The object follows the full color scheme.</summary>
@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents one decoded embedded OLE compound storage.</summary>
-    public sealed class LegacyPptEmbeddedOleObject {
+    internal sealed class LegacyPptEmbeddedOleObject {
         private readonly byte[] _storageBytes;
 
         internal LegacyPptEmbeddedOleObject(uint id, uint persistId,

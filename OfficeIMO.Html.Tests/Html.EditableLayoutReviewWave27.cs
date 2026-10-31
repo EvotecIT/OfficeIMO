@@ -55,7 +55,7 @@ public sealed class HtmlEditableLayoutReviewWave27Tests {
     [Fact]
     public void CustomGeometryWordShapeInsertsFillBeforeOutlineAndEffects() {
         using WordDocument document = WordDocument.Create();
-        WordShape shape = document.AddShapeDrawing(WordShapeType.Rectangle, 80, 40);
+        WordShape shape = document.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
         Wps.ShapeProperties properties = Assert.IsType<Wps.ShapeProperties>(
             shape._wpsShape?.GetFirstChild<Wps.ShapeProperties>());
         properties.GetFirstChild<A.PresetGeometry>()?.Remove();
@@ -76,7 +76,7 @@ public sealed class HtmlEditableLayoutReviewWave27Tests {
     public void ProjectedFixedHeightWordRegionDisablesShapeAutoFitAfterReopen() {
         const string html = "<div style='position:absolute;width:120px;height:18px'>"
             + "Text that is intentionally longer than the fixed rendered box height.</div>";
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using var stream = new MemoryStream();
         result.Value.Save(stream);
         result.Value.Dispose();
@@ -85,6 +85,6 @@ public sealed class HtmlEditableLayoutReviewWave27Tests {
         WordTextBox textBox = Assert.Single(reopened.TextBoxes);
 
         Assert.Equal(WordTextBoxAutoFitType.NoAutoFit, textBox.AutoFit);
-        Assert.Equal(171450L, textBox.Height);
+        Assert.Equal(171450L, textBox.Height.ToEmus());
     }
 }

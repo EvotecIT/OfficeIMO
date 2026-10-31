@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the item type stored in an SXVI PivotTable item record.
     /// </summary>
-    public enum LegacyXlsPivotItemType {
+    internal enum LegacyXlsPivotItemType {
         /// <summary>Regular data item.</summary>
         Data = 0,
 

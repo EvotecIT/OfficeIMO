@@ -11,12 +11,12 @@ Converts HTML content to Markdown.
 ## SYNTAX
 ### Html (Default)
 ```powershell
-ConvertFrom-OfficeMarkdownHtml [-Html] <string> [-OutputPath <string>] [-AsDocument] [-PassThru] [-Options <HtmlToMarkdownOptions>] [-Portable] [-BaseUri <string>] [-IncludeDocumentChrome] [-PreserveScriptsAndStyles] [-DropUnsupportedBlocks] [-DropUnsupportedInlineHtml] [-MaxInputCharacters <Int32>] [-Base64ImageHandling <HtmlBase64ImageHandling>] [-Base64ImageOutputDirectory <string>] [-ListingCardMetadataMode <HtmlListingCardMetadataMode>] [-MaxTableExpandedColumns <Int32>] [-WriteOptions <MarkdownWriteOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <string>] [-UnorderedListMarker <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertFrom-OfficeMarkdownHtml [-Html] <string> [-OutputPath <string>] [-AsDocument] [-PassThru] [-Options <MarkdownHtmlImportOptions>] [-Portable] [-BaseUri <string>] [-IncludeDocumentChrome] [-PreserveScriptsAndStyles] [-DropUnsupportedBlocks] [-DropUnsupportedInlineHtml] [-MaxInputCharacters <Int32>] [-Base64ImageHandling <MarkdownHtmlBase64ImageHandling>] [-Base64ImageOutputDirectory <string>] [-ListingCardMetadataMode <MarkdownHtmlListingCardMetadataMode>] [-MaxTableExpandedColumns <Int32>] [-WriteOptions <MarkdownSaveOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <string>] [-UnorderedListMarker <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-ConvertFrom-OfficeMarkdownHtml [-Path] <string> [-OutputPath <string>] [-AsDocument] [-PassThru] [-Options <HtmlToMarkdownOptions>] [-Portable] [-BaseUri <string>] [-IncludeDocumentChrome] [-PreserveScriptsAndStyles] [-DropUnsupportedBlocks] [-DropUnsupportedInlineHtml] [-MaxInputCharacters <Int32>] [-Base64ImageHandling <HtmlBase64ImageHandling>] [-Base64ImageOutputDirectory <string>] [-ListingCardMetadataMode <HtmlListingCardMetadataMode>] [-MaxTableExpandedColumns <Int32>] [-WriteOptions <MarkdownWriteOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <string>] [-UnorderedListMarker <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertFrom-OfficeMarkdownHtml [-Path] <string> [-OutputPath <string>] [-AsDocument] [-PassThru] [-Options <MarkdownHtmlImportOptions>] [-Portable] [-BaseUri <string>] [-IncludeDocumentChrome] [-PreserveScriptsAndStyles] [-DropUnsupportedBlocks] [-DropUnsupportedInlineHtml] [-MaxInputCharacters <Int32>] [-Base64ImageHandling <MarkdownHtmlBase64ImageHandling>] [-Base64ImageOutputDirectory <string>] [-ListingCardMetadataMode <MarkdownHtmlListingCardMetadataMode>] [-MaxTableExpandedColumns <Int32>] [-WriteOptions <MarkdownSaveOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <string>] [-UnorderedListMarker <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 Controls how base64 data URI images are converted.
 
 ```yaml
-Type: HtmlBase64ImageHandling
+Type: MarkdownHtmlBase64ImageHandling
 Parameter Sets: Html, Path
 Aliases: None
 Possible values: Include, Skip, SaveToFile
@@ -204,7 +204,7 @@ Accept wildcard characters: False
 Controls whether repeated listing-card metadata is preserved or suppressed.
 
 ```yaml
-Type: HtmlListingCardMetadataMode
+Type: MarkdownHtmlListingCardMetadataMode
 Parameter Sets: Html, Path
 Aliases: None
 Possible values: Preserve, SuppressInRepeatedCards
@@ -252,7 +252,7 @@ Accept wildcard characters: False
 Optional conversion options.
 
 ```yaml
-Type: HtmlToMarkdownOptions
+Type: MarkdownHtmlImportOptions
 Parameter Sets: Html, Path
 Aliases: None
 Possible values:
@@ -364,7 +364,7 @@ Accept wildcard characters: False
 Optional Markdown writer options for generated Markdown text.
 
 ```yaml
-Type: MarkdownWriteOptions
+Type: MarkdownSaveOptions
 Parameter Sets: Html, Path
 Aliases: None
 Possible values:
@@ -403,7 +403,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 - `System.String`
 - `System.IO.FileInfo`
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

@@ -89,6 +89,31 @@ public sealed class TiffJpegTests {
         Assert.False(OfficeImageReader.TryValidateContent(bytes, "malformed.tif", out _));
     }
 
+    [Fact]
+    public void RepeatedScanOfSameComponentsIsRejectedBeforeTiffJpegDecode() {
+        byte[] original = File.ReadAllBytes(Path.Combine(Corpus, "p0-be0-t0-q0-pl1-s1.tif"));
+        Assert.True(OfficeTiffCodec.TryDecode(original, out _));
+        var (offsetSlot, lengthSlot) = FirstStripSlots(original);
+        int start = BitConverter.ToInt32(original, offsetSlot), length = BitConverter.ToUInt16(original, lengthSlot);
+        int scan = FindMarker(original, start, 218);
+        Assert.Equal(255, original[start + length - 2]);
+        Assert.Equal(217, original[start + length - 1]);
+
+        int repeatedLength = length + start + length - 2 - scan;
+        byte[] repeated = new byte[original.Length + repeatedLength];
+        original.CopyTo(repeated, 0);
+        int appended = original.Length;
+        Array.Copy(original, start, repeated, appended, length - 2);
+        Array.Copy(original, scan, repeated, appended + length - 2, start + length - 2 - scan);
+        repeated[appended + repeatedLength - 2] = 255;
+        repeated[appended + repeatedLength - 1] = 217;
+        BitConverter.GetBytes(appended).CopyTo(repeated, offsetSlot);
+        BitConverter.GetBytes((ushort)repeatedLength).CopyTo(repeated, lengthSlot);
+
+        Assert.False(OfficeTiffCodec.TryDecode(repeated, out _));
+        Assert.False(OfficeImageReader.TryValidateContent(repeated, "repeated.tif", out _));
+    }
+
     [Theory]
     [InlineData(2)]
     [InlineData(5)]

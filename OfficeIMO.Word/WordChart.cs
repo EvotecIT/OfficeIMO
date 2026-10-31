@@ -6,7 +6,6 @@ using AxisId = DocumentFormat.OpenXml.Drawing.Charts.AxisId;
 using Chart = DocumentFormat.OpenXml.Drawing.Charts.Chart;
 using ChartSpace = DocumentFormat.OpenXml.Drawing.Charts.ChartSpace;
 using DataLabels = DocumentFormat.OpenXml.Drawing.Charts.DataLabels;
-using Formula = DocumentFormat.OpenXml.Drawing.Charts.Formula;
 using NumericValue = DocumentFormat.OpenXml.Drawing.Charts.NumericValue;
 using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
 
@@ -17,6 +16,7 @@ namespace OfficeIMO.Word {
     /// </summary>
     public partial class WordChart : WordElement {
         private static int _axisIdSeed = 148921728;
+        private bool _ownsChartDefaults;
         internal static void InitializeAxisIdSeed(WordprocessingDocument document) {
             uint max = (uint)System.Threading.Volatile.Read(ref _axisIdSeed);
             foreach (var part in document.MainDocumentPart?.ChartParts ?? Enumerable.Empty<ChartPart>()) {
@@ -57,13 +57,17 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph where the chart will be placed.</param>
         /// <param name="title">Optional chart title.</param>
         /// <param name="roundedCorners">Specifies whether the chart frame should have rounded corners.</param>
-        /// <param name="width">Initial chart width in pixels.</param>
-        /// <param name="height">Initial chart height in pixels.</param>
-        public WordChart(WordDocument document, WordParagraph paragraph, string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
+        /// <param name="width">Initial chart width; defaults to 600 pixels.</param>
+        /// <param name="height">Initial chart height; defaults to 600 pixels.</param>
+        public WordChart(WordDocument document, WordParagraph paragraph, string title = "", bool roundedCorners = false, OfficeLength? width = null, OfficeLength? height = null) {
             _document = document;
             _paragraph = paragraph;
             SetTitle(title);
-            InsertChart(document, paragraph, roundedCorners, width, height);
+            var frameWidth = width ?? OfficeLength.Pixels(600);
+            var frameHeight = height ?? OfficeLength.Pixels(600);
+            if (frameWidth.ToEmus() <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+            if (frameHeight.ToEmus() <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            InsertChart(document, paragraph, roundedCorners, frameWidth, frameHeight);
         }
 
 
@@ -195,7 +199,7 @@ namespace OfficeIMO.Word {
             return dataLabels1;
         }
 
-        private WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners, int width = 600, int height = 600) {
+        private WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners, OfficeLength width, OfficeLength height) {
             OpenXmlPart owner = WordPartOwnership.Resolve(wordDocument, paragraph._paragraph);
             ChartPart part = CreateChartPart(owner, roundedCorners);
             // _chartPart = part;
@@ -211,6 +215,7 @@ namespace OfficeIMO.Word {
         }
 
         private ChartPart CreateChartPart(OpenXmlPart owner, bool roundedCorners) {
+            _ownsChartDefaults = true;
             ChartPart part = owner.AddNewPart<ChartPart>();
 
             ChartSpace chartSpace1 = new ChartSpace();
@@ -222,6 +227,23 @@ namespace OfficeIMO.Word {
             part.ChartSpace.Append(new RoundedCorners() { Val = roundedCorners });
             return part;
         }
+        // New charts have no chart-area frame or fill. Without c:spPr, Word and Excel draw a
+        // border around the chart; the document's own layout already separates it.
+        private void EnsureFramelessChartArea() {
+            ChartSpace? space = _chartPart?.ChartSpace;
+            Chart? chart = space?.GetFirstChild<Chart>();
+            if (space == null || chart == null) return;
+            if (_ownsChartDefaults) {
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.Apply(_chartPart!, OfficeTheme.Default);
+                _ownsChartDefaults = false;
+            }
+            if (space.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShapeProperties>() != null) return;
+            var properties = new DocumentFormat.OpenXml.Drawing.Charts.ShapeProperties(
+                new DocumentFormat.OpenXml.Drawing.NoFill(),
+                new DocumentFormat.OpenXml.Drawing.Outline(new DocumentFormat.OpenXml.Drawing.NoFill()));
+            chart.InsertAfterSelf(properties);
+        }
+
         private Chart GenerateChart(string title = "") {
             Chart chart1 = new Chart();
 
@@ -325,6 +347,7 @@ namespace OfficeIMO.Word {
 
             title1.Append(chartText1);
             title1.Append(overlay1);
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.ApplyTitle(title1, OfficeTheme.Default);
             return title1;
 
         }
@@ -340,7 +363,7 @@ namespace OfficeIMO.Word {
             DocumentFormat.OpenXml.Drawing.Paragraph paragraph = new DocumentFormat.OpenXml.Drawing.Paragraph();
             DocumentFormat.OpenXml.Drawing.ParagraphProperties paragraphProperties = new DocumentFormat.OpenXml.Drawing.ParagraphProperties();
             DocumentFormat.OpenXml.Drawing.DefaultRunProperties runProperties = new DocumentFormat.OpenXml.Drawing.DefaultRunProperties() {
-                FontSize = _axisTitleFontSize * 100
+                FontSize = _axisTitleFontSize
             };
             DocumentFormat.OpenXml.Drawing.SolidFill solidFill = new DocumentFormat.OpenXml.Drawing.SolidFill(
                 new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = _axisTitleColor.ToRgbHex() });
@@ -442,27 +465,18 @@ namespace OfficeIMO.Word {
             return categoryAxis;
         }
 
-        internal StringReference AddSeries(UInt32Value index, string series) {
-            StringReference stringReference1 = new StringReference();
+        // Literal series names use c:v. A c:strRef needs a formula into an embedded
+        // workbook; Word charts built here have none, and other consumers reject the whole
+        // document when the reference formula is empty.
+        internal NumericValue AddSeries(UInt32Value index, string series) =>
+            new NumericValue() { Text = series };
 
-            Formula formula1 = new Formula() { Text = "" };
-            NumericValue numericValue1 = new NumericValue() { Text = series };
-            StringPoint stringPoint1 = new StringPoint() { Index = index };
-            StringCache stringCache1 = new StringCache();
-
-            stringPoint1.Append(numericValue1);
-            stringCache1.Append(stringPoint1);
-            stringReference1.Append(formula1);
-            stringReference1.Append(stringCache1);
-            return stringReference1;
-        }
-
-        internal WordDrawing CreateChartDrawing(string id, int width = 600, int height = 600) {
+        internal WordDrawing CreateChartDrawing(string id, OfficeLength width, OfficeLength height) {
             WordDrawing drawing1 = new WordDrawing();
 
             DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline inline1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Inline();
             inline1.AddNamespaceDeclaration("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing");
-            DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent extent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent() { Cx = (long)width * EnglishMetricUnitsPerInch / PixelsPerInch, Cy = (long)height * EnglishMetricUnitsPerInch / PixelsPerInch };
+            DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent extent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.Extent() { Cx = width.ToEmus(), Cy = height.ToEmus() };
             DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent effectExtent1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.EffectExtent() { LeftEdge = 0L, TopEdge = 0L, RightEdge = 19050L, BottomEdge = 19050L };
             DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties docProperties1 = new DocumentFormat.OpenXml.Drawing.Wordprocessing.DocProperties() { Id = WordDrawingIdAllocator.Reserve(_document), Name = "chart" };
 

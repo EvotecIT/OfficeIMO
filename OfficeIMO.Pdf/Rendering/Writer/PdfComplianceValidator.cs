@@ -44,7 +44,7 @@ internal static class PdfComplianceValidator {
         "qualified external PDF/X preflight validation bound to the exact artifact"
     };
 
-    internal static void ValidateGenerationOptions(PdfOptions options) {
+    internal static void ValidateGenerationOptions(PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));
         Guard.ComplianceProfile(options.ComplianceProfile, nameof(options.ComplianceProfile));
 
@@ -54,7 +54,7 @@ internal static class PdfComplianceValidator {
     }
 
     // All declared A/UA claims participate in the gate, including combined output.
-    private static IEnumerable<PdfComplianceProfile> RequestedProfiles(PdfOptions options) {
+    private static IEnumerable<PdfComplianceProfile> RequestedProfiles(PdfCreateOptions options) {
         if (options.ComplianceProfile == PdfComplianceProfile.None) yield break;
         var profiles = new HashSet<PdfComplianceProfile> { options.ComplianceProfile };
         if (options.PdfAIdentification is PdfAIdentification a) {
@@ -78,7 +78,7 @@ internal static class PdfComplianceValidator {
             or PdfComplianceProfile.FacturX or PdfComplianceProfile.Zugferd
             or PdfComplianceProfile.PdfX1A2003 or PdfComplianceProfile.PdfX4;
 
-    internal static void ValidateGeneratedDocument(PdfOptions options, string? documentTitle, PdfGeneratedDocumentComplianceEvidence evidence) {
+    internal static void ValidateGeneratedDocument(PdfCreateOptions options, string? documentTitle, PdfGeneratedDocumentComplianceEvidence evidence) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(evidence, nameof(evidence));
         foreach (PdfComplianceProfile profile in RequestedProfiles(options)) {
@@ -86,16 +86,26 @@ internal static class PdfComplianceValidator {
         }
     }
 
-    internal static bool RequiresExactArtifactValidation(PdfOptions options) => options.ComplianceProfile != PdfComplianceProfile.None;
+    internal static bool RequiresExactArtifactValidation(PdfCreateOptions options) => options.ComplianceProfile != PdfComplianceProfile.None;
+
+    /// <summary>Prevents native save options from retaining identification that prohibits encryption.</summary>
+    internal static void ValidateOutputEncryptionIdentification(PdfReadDocument document) {
+        PdfXmpMetadataInfo? xmp = document.XmpMetadata;
+        PdfMetadata metadata = document.Metadata;
+        if (xmp?.HasPdfAIdentification == true || xmp?.HasPdfXIdentification == true ||
+            xmp?.HasElectronicInvoiceMetadata == true || !string.IsNullOrEmpty(metadata.PdfXVersion) ||
+            !string.IsNullOrEmpty(metadata.PdfXConformance))
+            throw new ArgumentException("PDF Standard encryption cannot retain PDF/A, PDF/X, Factur-X, or ZUGFeRD identification.");
+    }
 
     internal static void ValidateGeneratedArtifact(
-        PdfOptions options, byte[] artifact,
-        System.Threading.CancellationToken cancellationToken = default) {
+        PdfCreateOptions options, byte[] artifact,
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(artifact, nameof(artifact));
         cancellationToken.ThrowIfCancellationRequested();
         foreach (PdfComplianceProfile profile in RequestedProfiles(options)) {
-            ThrowForGaps(profile, PdfComplianceAnalyzer.AssessReadback(profile, artifact, cancellationToken), "exact-artifact");
+            ThrowForGaps(profile, PdfComplianceAnalyzer.AssessReadback(profile, artifact, cancellationToken, readOptions), "exact-artifact");
         }
     }
 

@@ -85,7 +85,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         PowerPointSlide persisted = Assert.Single(reopened.Slides);
         Assert.Equal("Named slide", persisted.Name);
         PowerPointParagraph persistedParagraph = Assert.Single(

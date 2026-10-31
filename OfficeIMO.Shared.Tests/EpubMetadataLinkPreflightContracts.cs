@@ -8,6 +8,25 @@ namespace OfficeIMO.Shared.Tests;
 public sealed class EpubMetadataLinkPreflightContracts {
     private static readonly XNamespace Opf = "http://www.idpf.org/2007/opf";
 
+    [Fact]
+    public void LongVocabularyAndManyUnrelatedRelationsDoNotExpandIntoRetainedUris() {
+        string relations = string.Join(" ", Enumerable.Range(0, 1_000).Select(index => "custom:term" + index));
+        byte[] source = Package(relations, null, null, false);
+        var original = EpubPublication.Load(new MemoryStream(source));
+        XDocument package = original.GetPackageXml();
+        package.Root!.SetAttributeValue("prefix", "custom: https://example.org/" + new string('a', 8_192));
+        package.Root.Element(Opf + "metadata")!.Add(Enumerable.Range(0, 1_000).Select(index =>
+            new XElement(Opf + "meta", new XAttribute("property", "custom:noise" + index), "x")));
+        byte[] bytes = EpubWritingContracts.ReplaceEntry(source, original.PackagePath,
+            Encoding.UTF8.GetBytes(package.ToString()));
+        var book = EpubPublication.Load(new MemoryStream(bytes));
+
+        EpubPreflightCheck check = book.Preflight().Checks.Single(item => item.Code == "metadata-links");
+
+        Assert.Equal(EpubPreflightStatus.Passed, check.Status);
+        Assert.Equal(bytes, book.Write().Bytes);
+    }
+
     [Theory]
     [InlineData("record", "#c", "application/xml", "EPUB_PREFLIGHT_LINK_REFINES_FORBIDDEN")]
     [InlineData("alternate", "#c", "application/pdf", "EPUB_PREFLIGHT_LINK_REFINES_FORBIDDEN")]

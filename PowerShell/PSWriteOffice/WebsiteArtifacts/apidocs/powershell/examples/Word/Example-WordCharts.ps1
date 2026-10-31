@@ -21,16 +21,16 @@ $docPath = Join-Path $documents 'Word-Charts.docx'
 
 New-OfficeWord -Path $docPath {
     Add-OfficeWordParagraph -Text 'Pie chart from PowerShell objects'
-    Add-OfficeWordChart -Type Pie -Data $rows -CategoryProperty Region -SeriesProperty Revenue -Title 'Regional Revenue Mix' -FitToPageWidth -WidthFraction 0.70
+    Add-OfficeWordChart -Type Pie -Data $rows -Category Region -Value Revenue -Title 'Regional Revenue Mix' -FitToPageWidth -WidthFraction 0.70
 
     Add-OfficeWordParagraph -Text 'Line chart with two series'
-    Add-OfficeWordChart -Type Line -Data $trend -CategoryProperty Month -SeriesProperty Sales, Profit -Legend -XAxisTitle 'Month' -YAxisTitle 'Value' -SeriesColor '#1f77b4', '#ff7f0e'
+    Add-OfficeWordChart -Type Line -Data $trend -Category Month -Value Sales, Profit -Legend -XAxisTitle 'Month' -YAxisTitle 'Value' -SeriesColor '#1f77b4', '#ff7f0e'
 
     Add-OfficeWordParagraph -Text 'Pie chart anchored inside a table cell'
     Add-OfficeWordTable -InputObject $tableRows -Style 'GridTable1LightAccent1' {
         WordTableCell -Row 1 -Column 1 {
             WordParagraph {
-                WordChart -Type Pie -Data $rows -CategoryProperty Region -SeriesProperty Revenue -Title 'Cell Revenue Mix' -WidthPixels 420 -HeightPixels 280
+                WordChart -Type Pie -Data $rows -Category Region -Value Revenue -Title 'Cell Revenue Mix' -WidthPixels 420 -HeightPixels 280
             }
         }
     }

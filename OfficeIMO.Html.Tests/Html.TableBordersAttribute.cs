@@ -9,12 +9,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableBorderAttribute_AndCellContent() {
             string html = "<table border=\"2\"><tr><td>A1</td><td style=\"border:1px solid #ff0000\">B1</td></tr></table>";
-            using WordDocument doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
             var table = doc.Tables[0];
 
             var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
             Assert.Equal(WordBorderStyle.Single, style);
-            Assert.Equal(12U, size);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.5), size);
             Assert.Equal("000000", colorHex);
 
             Assert.Contains("A1", string.Join(string.Empty, table.Rows[0].Cells[0].Paragraphs.ConvertAll(p => p.Text)));
@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             var cell = table.Rows[0].Cells[1];
             Assert.Equal(WordBorderStyle.Single, cell.Borders.TopStyle);
             Assert.Equal("FF0000", cell.Borders.TopColorHex);
-            Assert.Equal(6U, cell.Borders.TopSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.75), cell.Borders.TopSize);
         }
     }
 }

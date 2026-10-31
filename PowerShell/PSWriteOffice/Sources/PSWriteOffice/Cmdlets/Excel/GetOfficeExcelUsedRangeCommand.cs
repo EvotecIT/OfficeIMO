@@ -80,7 +80,7 @@ public sealed class GetOfficeExcelUsedRangeCommand : AsyncPSCmdlet {
         ExcelReadOutputService.WriteOutput(this, table, AsDataTable.IsPresent, AsHashtable.IsPresent);
     }
 
-    private async Task<ExcelWorkbookDataReader> CreateDataReaderAsync(ExcelReadOptions options) {
+    private async Task<ExcelWorkbookDataReader> CreateDataReaderAsync(ExcelReaderOptions options) {
         if (ParameterSetName == ParameterSetDocument) {
             return Document.CreateDataReader(options);
         }
@@ -90,7 +90,8 @@ public sealed class GetOfficeExcelUsedRangeCommand : AsyncPSCmdlet {
                 throw new PSArgumentException("Workbook URI was not provided.", nameof(Uri));
             }
 
-            return await ExcelDocument.OpenDataReaderAsync(Uri, options, ExcelHttpLoadService.CreateOptions(AllowHttp), CancelToken)
+            options.Transport = ExcelHttpLoadService.CreateOptions(AllowHttp);
+            return await ExcelDocument.OpenReaderAsync(Uri, options, CancelToken)
                 .ConfigureAwait(false);
         }
 
@@ -99,6 +100,6 @@ public sealed class GetOfficeExcelUsedRangeCommand : AsyncPSCmdlet {
             throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
         }
 
-        return ExcelDocument.OpenDataReader(resolvedPath, options);
+        return ExcelDocument.OpenReader(resolvedPath, options);
     }
 }

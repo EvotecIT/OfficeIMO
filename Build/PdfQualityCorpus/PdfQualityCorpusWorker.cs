@@ -31,7 +31,8 @@ internal static class PdfQualityCorpusWorker {
         PdfDocumentReadResult? logical = null;
 
         Run(checks, "open-and-inspect", () => {
-            document = PdfDocument.Load(bytes);
+
+            document = CorpusPdfInput.Load(bytes);
             info = document.Inspect();
             metrics.PageCount = info.Pages.Count;
             metrics.AttachmentCount = info.AttachmentCount;
@@ -72,7 +73,7 @@ internal static class PdfQualityCorpusWorker {
             IReadOnlyList<PdfPageRenderResult> renders = Require(document).Render.Pages(
                 PdfPageSelection.From(new PdfPageRange(1, renderPages)),
                 new PdfPageRenderOptions {
-                    Format = PdfPageRenderFormat.Svg,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg,
                     ContinueOnError = true,
                     MaxPages = renderPages
                 });

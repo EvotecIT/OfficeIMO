@@ -465,15 +465,11 @@ namespace OfficeIMO.Word {
         public List<WordShape> Shapes {
             get {
                 List<WordShape> list = new List<WordShape>();
-                var paragraphs = ParagraphsShapes;
-                foreach (var paragraph in paragraphs) {
-                    if (paragraph.Shape != null) {
-                        list.Add(paragraph.Shape);
-                    }
+                foreach (var paragraph in Paragraphs) {
+                    list.AddRange(paragraph.EnumerateShapes());
                 }
                 return list;
             }
-
         }
 
         /// <summary>

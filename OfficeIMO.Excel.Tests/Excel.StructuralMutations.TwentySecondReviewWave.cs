@@ -10,10 +10,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaSearch_ExpandsThreeDimensionalSheetQualifiers() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("First Sheet");
-            document.AddWorksheet("Middle Sheet");
-            document.AddWorksheet("Last Sheet");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            document.AddSheet("First Sheet");
+            document.AddSheet("Middle Sheet");
+            document.AddSheet("Last Sheet");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.CellFormula(1, 1, "SUM('First Sheet':'Last Sheet'!B2)");
 
             ExcelFormulaCellInfo match = Assert.Single(document.SearchFormulas(
@@ -27,8 +27,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_NamedStyleRedefinition_LeavesAmbiguousSharedConsumersUnchanged() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet first = document.AddWorksheet("First");
-            ExcelSheet second = document.AddWorksheet("Second");
+            ExcelSheet first = document.AddSheet("First");
+            ExcelSheet second = document.AddSheet("Second");
             first.CellValue(1, 1, "Replacement");
             first.CellAt(1, 1).SetFillColor("C6EFCE");
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_PreservesImplicitShownTotalsRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(2, 1, 1);

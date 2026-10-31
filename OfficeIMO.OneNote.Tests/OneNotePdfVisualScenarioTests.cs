@@ -26,7 +26,7 @@ public sealed class OneNotePdfVisualScenarioTests {
 
         PdfCore.PdfDocumentConversionResult result = section.ToPdfDocumentResult();
         byte[] pdf = result.ToBytes();
-        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
         OneNoteMarkdownConversionReport projection = Assert.IsType<OneNoteMarkdownConversionReport>(
             Assert.Single(result.SourceConversionReports));
 

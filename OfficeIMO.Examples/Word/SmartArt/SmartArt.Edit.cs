@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
             // Emphasize a node with newline + formatting (use a safe index)
             if (sa.NodeCount > 0) {
                 var idx = Math.Min(0, sa.NodeCount - 1);
-                sa.SetNodeText(idx, "Test\nQA", bold: true, italic: false, underline: true, colorHex: "#FF0000", sizePt: 12);
+                sa.SetNodeText(idx, "Test\nQA", bold: true, italic: false, underline: true, colorHex: "#FF0000", fontSize: OfficeIMO.OfficeLength.Points(12));
             }
 
             document.Save();
@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.Word {
             sa.ReplaceTexts("Discover", "Design", "Develop", "Deliver", "Delight");
             if (sa.NodeCount > 0) {
                 var last = sa.NodeCount - 1;
-                sa.SetNodeText(last, "Delight\nFeedback", bold: false, italic: true, underline: false, colorHex: "#0066CC", sizePt: 11);
+                sa.SetNodeText(last, "Delight\nFeedback", bold: false, italic: true, underline: false, colorHex: "#0066CC", fontSize: OfficeIMO.OfficeLength.Points(11));
             }
 
             document.Save();
@@ -86,7 +86,7 @@ namespace OfficeIMO.Examples.Word {
             // Replace remaining texts in cycle order
             sa.ReplaceTexts("Start", "AB", "C", "D");
             // Add style on one node
-            sa.SetNodeText(1, "AB", bold: false, italic: true, underline: false, colorHex: "#008000", sizePt: 12);
+            sa.SetNodeText(1, "AB", bold: false, italic: true, underline: false, colorHex: "#008000", fontSize: OfficeIMO.OfficeLength.Points(12));
 
             document.Save();
             if (openWord) document.OpenInApplication();

@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 internal static class HtmlTextEncoder {
-    internal static string Encode(string? text, HtmlOptions? options) {
+    internal static string Encode(string? text, MarkdownHtmlExportOptions? options) {
         if (options?.EscapeNonAsciiText == false) {
             return Encode(text);
         }

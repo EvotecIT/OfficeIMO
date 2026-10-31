@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create(filePath);
 
             var paragraph = document.AddParagraph();
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             var paragraph = defaultHeader.AddParagraph();
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;
             var headerPart = mainPart.HeaderParts.First();
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var paragraph = defaultFooter.AddParagraph();
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;
             var footerPart = mainPart.FooterParts.First();

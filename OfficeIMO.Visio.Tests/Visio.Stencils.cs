@@ -964,7 +964,7 @@ namespace OfficeIMO.Tests {
             document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            VisioInspectionMasterSnapshot master = Assert.Single(loaded.CreateInspectionSnapshot().Masters, item => item.NameU == "FancyCloud");
+            VisioInspectionMasterSnapshot master = Assert.Single(loaded.Inspect().Masters, item => item.NameU == "FancyCloud");
             Assert.Equal("rIdImage", master.StencilPreviewImageRelationshipId);
             Assert.Equal("../media/image1.emf", master.StencilPreviewImageTarget);
             Assert.Equal("image/x-emf", master.StencilPreviewImageContentType);

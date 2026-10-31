@@ -110,7 +110,7 @@ internal static class XmlDigitalSignatureService {
         string canonicalizationMethod = canonicalizationElement?.GetAttribute("Algorithm") ?? string.Empty;
         if (!IsSupportedCanonicalizationMethod(canonicalizationMethod) ||
             !request.AllowedCanonicalizationMethods.Contains(canonicalizationMethod, StringComparer.Ordinal)) {
-            findings.Add(Finding(SecurityFindingSeverity.Warning, "UnsupportedSignedInfoCanonicalizationMethod",
+            findings.Add(Finding(SecurityFindingSeverity.Warning, global::OfficeIMO.OfficeDiagnosticCodes.UnsupportedSignedInfoCanonicalizationMethod,
                 "SignedInfo canonicalization method '" + canonicalizationMethod + "' is not accepted by provider and caller policy."));
             return Result(SecurityValidationStatus.Indeterminate, Array.Empty<X509Certificate2>(), findings);
         }
@@ -164,7 +164,7 @@ internal static class XmlDigitalSignatureService {
                 string algorithm = transform.GetAttribute("Algorithm");
                 if (IsSupportedReferenceTransform(algorithm) &&
                     request.AllowedReferenceTransforms.Contains(algorithm, StringComparer.Ordinal)) continue;
-                findings.Add(Finding(SecurityFindingSeverity.Warning, "UnsupportedSignedInfoTransform",
+                findings.Add(Finding(SecurityFindingSeverity.Warning, global::OfficeIMO.OfficeDiagnosticCodes.UnsupportedSignedInfoTransform,
                     "SignedInfo reference transform '" + algorithm + "' is not accepted by provider and caller policy."));
                 return Result(SecurityValidationStatus.Indeterminate, Array.Empty<X509Certificate2>(), findings);
             }
@@ -183,7 +183,7 @@ internal static class XmlDigitalSignatureService {
             if (item is not Reference reference) continue;
             string uri = reference.Uri ?? string.Empty;
             if (uri.Length == 0 || uri[0] == '#') continue;
-            findings.Add(Finding(SecurityFindingSeverity.Warning, "ExternalSignedInfoReference",
+            findings.Add(Finding(SecurityFindingSeverity.Warning, global::OfficeIMO.OfficeDiagnosticCodes.ExternalSignedInfoReference,
                 "SignedInfo reference '" + uri + "' is not a local fragment and was not dereferenced."));
             return Result(SecurityValidationStatus.Indeterminate, Array.Empty<X509Certificate2>(), findings);
         }

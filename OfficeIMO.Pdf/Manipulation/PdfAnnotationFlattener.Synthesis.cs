@@ -116,12 +116,12 @@ internal static partial class PdfAnnotationFlattener {
         string contents = TryReadFreeTextContents(objects, annotation);
         PdfFreeTextDefaultStyle defaultStyle = PdfFreeTextStyleParser.ParseDefaultStyle(TryReadString(objects, annotation, "DS"));
         double fontSize = TryReadFreeTextFontSize(objects, annotation) ?? defaultStyle.FontSize ?? 10D;
-        PdfColor? textColor = TryReadFreeTextTextColor(objects, annotation) ?? defaultStyle.TextColor;
-        PdfColor? borderColor = TryReadColor(objects, annotation, "C");
+        global::OfficeIMO.OfficeColor? textColor = TryReadFreeTextTextColor(objects, annotation) ?? defaultStyle.TextColor;
+        global::OfficeIMO.OfficeColor? borderColor = TryReadColor(objects, annotation, "C");
         double borderWidth = TryReadBorderWidth(objects, annotation);
         IReadOnlyList<double>? borderDashPattern = TryReadBorderDashPattern(objects, annotation);
         PdfFormFieldBorderStyle borderStyle = TryReadBorderStyle(objects, annotation);
-        PdfColor? fillColor = TryReadColor(objects, annotation, "IC");
+        global::OfficeIMO.OfficeColor? fillColor = TryReadColor(objects, annotation, "IC");
         PdfAlign textAlign = TryReadFreeTextAlignment(objects, annotation, defaultStyle.TextAlign);
         IReadOnlyList<PdfAnnotationPathPoint> calloutLine = TryReadFreeTextCalloutLine(objects, annotation, x, y, width, height);
         string? calloutLineEnding = TryReadFreeTextCalloutLineEnding(objects, annotation);
@@ -685,9 +685,9 @@ internal static partial class PdfAnnotationFlattener {
             : null;
     }
 
-    private static PdfColor? TryReadFreeTextTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
+    private static global::OfficeIMO.OfficeColor? TryReadFreeTextTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
         string? defaultAppearance = TryReadString(objects, annotation, "DA");
-        return PdfDefaultAppearanceParser.TryReadTextColor(defaultAppearance, out PdfColor color)
+        return PdfDefaultAppearanceParser.TryReadTextColor(defaultAppearance, out global::OfficeIMO.OfficeColor color)
             ? color
             : null;
     }

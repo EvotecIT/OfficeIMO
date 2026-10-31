@@ -92,14 +92,14 @@ namespace OfficeIMO.Excel {
 
             long tableLastRow = (long)options.TableRow + data.Rows.Count;
             long tableLastColumn = (long)options.TableColumn + data.Columns.Count - 1L;
-            if (tableLastRow > A1.MaxRows || tableLastColumn > A1.MaxColumns) {
+            if (tableLastRow > ExcelA1.MaxRows || tableLastColumn > ExcelA1.MaxColumns) {
                 throw new ArgumentException("Dashboard table exceeds Excel worksheet bounds.", nameof(options));
             }
 
             if (options.AddChart) {
                 int chartRow = options.ChartRow ?? options.TableRow;
                 int chartColumn = options.ChartColumn ?? options.TableColumn + data.Columns.Count + 2;
-                if (chartRow <= 0 || chartRow > A1.MaxRows || chartColumn <= 0 || chartColumn > A1.MaxColumns) {
+                if (chartRow <= 0 || chartRow > ExcelA1.MaxRows || chartColumn <= 0 || chartColumn > ExcelA1.MaxColumns) {
                     throw new ArgumentOutOfRangeException(nameof(options), "Dashboard chart anchor exceeds Excel worksheet bounds.");
                 }
             }

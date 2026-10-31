@@ -1,9 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
-using OfficeIMO.Html;
-using OfficeIMO.Markdown.Html;
-using OfficeIMO.Word.Html;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,8 +22,10 @@ namespace OfficeIMO.Word.Markdown {
 
         private sealed class DocumentWordBlockRenderHost : IWordBlockRenderHost {
             private readonly WordDocument _document;
+            private readonly WordMarkdownImportOptions _options;
 
-            public DocumentWordBlockRenderHost(WordDocument document) {
+            public DocumentWordBlockRenderHost(WordDocument document, WordMarkdownImportOptions options) {
+                _options = options;
                 _document = document ?? throw new ArgumentNullException(nameof(document));
             }
 
@@ -41,7 +40,14 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             public bool SupportsHtmlInsertion => true;
-            public void InsertHtml(string html) => _document.AddHtmlToBody(HtmlConversionDocument.Parse(html));
+            public void InsertHtml(string html) {
+                if (_options.RawHtmlRenderer?.Invoke(html, _document, _options.DiagnosticSink) == true) return;
+                _document.AddParagraph(html);
+                _options.DiagnosticSink?.Invoke(new WordMarkdownConversionDiagnostic(
+                    OfficeDiagnosticCodes.HtmlBlockAsText,
+                    "Raw HTML was retained as literal text because no HTML renderer was configured.",
+                    OfficeConversionLossKind.Approximation));
+            }
             public bool SupportsHorizontalRule => true;
             public void InsertHorizontalRule() => _document.AddHorizontalLine();
             public void NotifyListRendered(WordList list) { }

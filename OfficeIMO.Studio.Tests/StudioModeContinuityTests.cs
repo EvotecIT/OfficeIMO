@@ -24,7 +24,7 @@ public sealed class StudioModeContinuityTests {
             PdfDocument.Create(document => {
                 for (int page = 1; page <= 8; page++) {
                     int number = page;
-                    document.Page(content => content.Size(400, 560).Content(body => body.Item(item => item.Paragraph(text => text.Text("Page " + number)))));
+                    document.Page(content => content.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(560)).Content(body => body.Item(item => item.Paragraph(text => text.Text("Page " + number)))));
                 }
             }).Save(source);
             var window = new MainWindow(services) { Width = 1280, Height = 820 };
@@ -77,7 +77,7 @@ public sealed class StudioModeContinuityTests {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "form-continuity.pdf");
-            File.WriteAllBytes(source, PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)))
+            File.WriteAllBytes(source, PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))))
                 .Forms.Edit(edit => edit.Create(new() { Name = "Reference", Value = "Original", X = 30, Y = 300 })).ToBytes());
             using var document = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
             await document.OpenDocumentAsync(source);

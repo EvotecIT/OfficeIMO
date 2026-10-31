@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void SortRangeByColumn(string a1Range, int columnOffset, bool ascending = true, bool hasHeader = true) {
             if (columnOffset < 1) throw new ArgumentOutOfRangeException(nameof(columnOffset));
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             int targetColumn = c1 + columnOffset - 1;
             if (targetColumn > c2) throw new ArgumentOutOfRangeException(nameof(columnOffset));
 
@@ -85,13 +85,13 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                var cell = A1.ParseCellRef(reference);
+                var cell = ExcelA1.ParseCellRef(reference);
                 if (cell.Row < firstRow || cell.Row > lastRow || cell.Col < firstColumn || cell.Col > lastColumn) {
                     continue;
                 }
 
                 if (rowMap.TryGetValue(cell.Row, out int targetRow)) {
-                    comment.Reference = A1.CellReference(targetRow, cell.Col);
+                    comment.Reference = ExcelA1.CellReference(targetRow, cell.Col);
                     moved.Add((cell, (targetRow, cell.Col)));
                 }
             }
@@ -191,7 +191,7 @@ namespace OfficeIMO.Excel {
                     .ToList();
                 cell.ClearAllAttributes();
                 cell.SetAttributes(sourceAttributes);
-                cell.CellReference = A1.CellReference(targetRow, column);
+                cell.CellReference = ExcelA1.CellReference(targetRow, column);
                 if (source.CellFormula != null) {
                     var formula = (CellFormula)source.CellFormula.CloneNode(true);
                     if (!string.IsNullOrEmpty(formula.Text)) {

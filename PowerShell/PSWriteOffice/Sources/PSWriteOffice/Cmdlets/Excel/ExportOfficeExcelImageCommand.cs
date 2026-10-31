@@ -36,7 +36,7 @@ public sealed class ExportOfficeExcelImageCommand : PSCmdlet
 
     /// <summary>Optional sheet selection, range, size, and rendering settings.</summary>
     [Parameter]
-    public ExcelWorkbookImageExportOptions? Options { get; set; }
+    public ExcelImageExportOptions? Options { get; set; }
 
     /// <summary>Emit one structured image export result per saved sheet.</summary>
     [Parameter]
@@ -58,7 +58,9 @@ public sealed class ExportOfficeExcelImageCommand : PSCmdlet
                 owned = ExcelDocumentService.LoadDocument(input, readOnly: true, autoSave: false);
                 document = owned;
             }
-            IReadOnlyList<OfficeImageExportResult> results = document.SaveAsImages(output, Format, Options);
+            ExcelImageExportOptions effectiveOptions = Options?.Clone() ?? new ExcelImageExportOptions();
+            effectiveOptions.Format = Format;
+            IReadOnlyList<OfficeImageExportResult> results = document.SaveImageResults(output, effectiveOptions);
             if (PassThru.IsPresent) WriteObject(results, enumerateCollection: true);
         }
         finally

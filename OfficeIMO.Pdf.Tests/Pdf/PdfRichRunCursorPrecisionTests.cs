@@ -26,17 +26,17 @@ namespace OfficeIMO.Tests.Pdf {
 
         internal static byte[] CreateFixture(bool useFontUnits) {
             byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(2048, 1229, 'A', 'B');
-            var options = new PdfOptions {
-                PageWidth = 4000D, PageHeight = 200D, DefaultFontSize = 20D,
-                MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D,
+            var options = new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(4000D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
                 UseFontUnitTextLayout = useFontUnits
             };
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
             PdfTextRun[] runs = Enumerable.Range(0, 5).Select(index => new PdfTextRun(new string('A', 50),
                 fontFamily: ManagedTextShapingTestAssets.FamilyName,
-                color: index % 2 == 0 ? PdfColor.Black : PdfColor.FromRgb(0, 0, 255))).Concat(new[] {
+                color: index % 2 == 0 ? global::OfficeIMO.OfficeColor.Black : global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))).Concat(new[] {
                     new PdfTextRun("B", fontFamily: ManagedTextShapingTestAssets.FamilyName, underline: true,
-                        backgroundColor: PdfColor.FromRgb(255, 255, 0))
+                        backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0))
                 }).ToArray();
             return PdfDocument.Create(options).Paragraph(p => p.Runs(runs)).ToBytes();
         }

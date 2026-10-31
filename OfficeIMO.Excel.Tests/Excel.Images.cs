@@ -19,15 +19,22 @@ namespace OfficeIMO.Tests {
             OfficeImageInfo info = OfficeImageReader.Identify(imagePath);
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                ExcelImage image = sheet.AddImageFromFile(2, 3, imagePath, scalePercent: 20, offsetXPixels: 5, offsetYPixels: 7,
-                    name: "ScaledLogo", altText: "Evotec logo", title: "Logo", rotationDegrees: 15);
+                ExcelSheet sheet = document.AddSheet("Images");
+                ExcelImage image = sheet.AddImage(2, 3, imagePath, new OfficeIMO.Excel.ExcelImageOptions {
+                    ScalePercent = 20,
+                    OffsetX = OfficeIMO.OfficeLength.Pixels(5),
+                    OffsetY = OfficeIMO.OfficeLength.Pixels(7),
+                    Name = "ScaledLogo",
+                    Description = "Evotec logo",
+                    Title = "Logo",
+                    RotationDegrees = 15
+                });
 
                 Assert.Equal("ScaledLogo", image.Name);
                 Assert.Equal("Evotec logo", image.Description);
                 Assert.Equal("Logo", image.Title);
-                Assert.Equal(Math.Max(1, (int)System.Math.Round(info.Width * 0.20)), image.WidthPixels);
-                Assert.Equal(Math.Max(1, (int)System.Math.Round(info.Height * 0.20)), image.HeightPixels);
+                Assert.Equal((OfficeIMO.OfficeLength.Pixels(info.Width) * 0.20).ToPixels(), image.Width.ToPixels());
+                Assert.Equal((OfficeIMO.OfficeLength.Pixels(info.Height) * 0.20).ToPixels(), image.Height.ToPixels());
                 Assert.Equal(15, image.RotationDegrees);
 
                 document.Save();
@@ -54,11 +61,15 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                ExcelImage image = sheet.AddImageFromFileToRange("A1:C15", imagePath, name: "RangeLogo", altText: "Logo pinned to report header",
-                    title: "Pinned logo", placement: ExcelImagePlacement.MoveAndSize);
-                Assert.True(image.WidthPixels > 0);
-                Assert.True(image.HeightPixels > 0);
+                ExcelSheet sheet = document.AddSheet("Images");
+                ExcelImage image = sheet.AddImage("A1:C15", imagePath, new OfficeIMO.Excel.ExcelImageOptions {
+                    Name = "RangeLogo",
+                    Description = "Logo pinned to report header",
+                    Title = "Pinned logo",
+                    Placement = ExcelImagePlacement.MoveAndSize
+                });
+                Assert.True(image.Width.ToPixels() > 0);
+                Assert.True(image.Height.ToPixels() > 0);
                 document.Save();
             }
 
@@ -86,16 +97,16 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                sheet.SetColumnWidth(1, 20);
-                sheet.SetColumnWidth(2, 18);
-                sheet.SetRowHeight(1, 30);
-                sheet.SetRowHeight(2, 24);
+                ExcelSheet sheet = document.AddSheet("Images");
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(18));
+                sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+                sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
 
-                ExcelImage image = sheet.AddImageFromFileToRange("A1:B2", imagePath, name: "CustomSizedRange");
+                ExcelImage image = sheet.AddImage("A1:B2", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "CustomSizedRange" });
 
-                Assert.True(image.WidthPixels > 128);
-                Assert.True(image.HeightPixels > 40);
+                Assert.True(image.Width.ToPixels() > 128);
+                Assert.True(image.Height.ToPixels() > 40);
                 document.Save();
             }
 
@@ -114,15 +125,15 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                ExcelImage image = sheet.AddImageFromFileToRange("A1:C15", imagePath, name: "ScaledRange");
-                int originalWidth = image.WidthPixels;
-                int originalHeight = image.HeightPixels;
+                ExcelSheet sheet = document.AddSheet("Images");
+                ExcelImage image = sheet.AddImage("A1:C15", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "ScaledRange" });
+                double originalWidth = image.Width.ToPixels();
+                double originalHeight = image.Height.ToPixels();
 
                 image.SetSizePercent(50);
 
-                Assert.True(image.WidthPixels < originalWidth);
-                Assert.True(image.HeightPixels < originalHeight);
+                Assert.True(image.Width.ToPixels() < originalWidth);
+                Assert.True(image.Height.ToPixels() < originalHeight);
                 document.Save();
             }
 
@@ -142,18 +153,18 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Images");
-            ExcelImage image = sheet.AddImageFromFileToRange("A1:B2", imagePath, name: "DynamicRange");
-            int originalWidth = image.WidthPixels;
-            int originalHeight = image.HeightPixels;
+            ExcelSheet sheet = document.AddSheet("Images");
+            ExcelImage image = sheet.AddImage("A1:B2", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "DynamicRange" });
+            double originalWidth = image.Width.ToPixels();
+            double originalHeight = image.Height.ToPixels();
 
-            sheet.SetColumnWidth(1, 30);
-            sheet.SetColumnWidth(2, 30);
-            sheet.SetRowHeight(1, 45);
-            sheet.SetRowHeight(2, 45);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(30));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(45)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(45)));
 
-            Assert.True(image.WidthPixels > originalWidth);
-            Assert.True(image.HeightPixels > originalHeight);
+            Assert.True(image.Width.ToPixels() > originalWidth);
+            Assert.True(image.Height.ToPixels() > originalHeight);
         }
 
         [Fact]
@@ -162,16 +173,16 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Images");
-            sheet.SetColumnWidth(1, 20);
-            sheet.SetColumnWidth(2, 20);
-            sheet.SetColumnWidth(3, 20);
-            ExcelImage image = sheet.AddImageFromFileToRange("A1:C1", imagePath, name: "HiddenColumnRange");
-            int visibleWidth = image.WidthPixels;
+            ExcelSheet sheet = document.AddSheet("Images");
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(20));
+            ExcelImage image = sheet.AddImage("A1:C1", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "HiddenColumnRange" });
+            double visibleWidth = image.Width.ToPixels();
 
             sheet.SetColumnHidden(2, true);
 
-            Assert.True(image.WidthPixels < visibleWidth);
+            Assert.True(image.Width.ToPixels() < visibleWidth);
         }
 
         [Fact]
@@ -180,15 +191,15 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Images");
-            sheet.SetRowHeight(1, 15);
-            sheet.SetRowHeight(2, 15);
-            sheet.SetRowHeight(3, 15);
-            ExcelImage image = sheet.AddImageFromFileToRange("A1:A3", imagePath, name: "HiddenRowRange");
+            ExcelSheet sheet = document.AddSheet("Images");
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15)));
+            ExcelImage image = sheet.AddImage("A1:A3", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "HiddenRowRange" });
 
             sheet.SetRowHidden(2, true);
 
-            Assert.Equal(40, image.HeightPixels);
+            Assert.Equal(40, image.Height.ToPixels());
         }
 
         [Fact]
@@ -197,18 +208,18 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Images");
-            ExcelImage image = sheet.AddImageFromFileToRange("A1:B2", imagePath, name: "MoveOnlyRange", placement: ExcelImagePlacement.MoveOnly);
-            int originalWidth = image.WidthPixels;
-            int originalHeight = image.HeightPixels;
+            ExcelSheet sheet = document.AddSheet("Images");
+            ExcelImage image = sheet.AddImage("A1:B2", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "MoveOnlyRange", Placement = ExcelImagePlacement.MoveOnly });
+            double originalWidth = image.Width.ToPixels();
+            double originalHeight = image.Height.ToPixels();
 
-            sheet.SetColumnWidth(1, 30);
-            sheet.SetColumnWidth(2, 30);
-            sheet.SetRowHeight(1, 45);
-            sheet.SetRowHeight(2, 45);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(30));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(45)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(45)));
 
-            Assert.Equal(originalWidth, image.WidthPixels);
-            Assert.Equal(originalHeight, image.HeightPixels);
+            Assert.Equal(originalWidth, image.Width.ToPixels());
+            Assert.Equal(originalHeight, image.Height.ToPixels());
         }
 
         [Fact]
@@ -217,9 +228,9 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.CellAt(3, 1).SetValue("{{Name}}");
-                sheet.AddImageFromFileToRange("A2:B5", imagePath, name: "MoveOnlyTemplateRange", placement: ExcelImagePlacement.MoveOnly);
+                sheet.AddImage("A2:B5", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "MoveOnlyTemplateRange", Placement = ExcelImagePlacement.MoveOnly });
 
                 sheet.ApplyTemplateRows(3, new[] {
                     new Dictionary<string, object?> { ["Name"] = "First" },
@@ -243,9 +254,9 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.CellAt(2, 1).SetValue("Remove");
-                sheet.AddImageFromFileToRange("A2:B5", imagePath, name: "MoveAndSizePartialDelete", placement: ExcelImagePlacement.MoveAndSize);
+                sheet.AddImage("A2:B5", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "MoveAndSizePartialDelete", Placement = ExcelImagePlacement.MoveAndSize });
 
                 sheet.RemoveTemplateOptionalRows(2, 1);
                 document.Save();
@@ -266,9 +277,9 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.CellAt(5, 1).SetValue("{{Name}}");
-                sheet.AddImageFromFileToRange("A2:B5", imagePath, name: "MoveAndSizeInsertBelow", placement: ExcelImagePlacement.MoveAndSize);
+                sheet.AddImage("A2:B5", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "MoveAndSizeInsertBelow", Placement = ExcelImagePlacement.MoveAndSize });
 
                 sheet.ApplyTemplateRows(5, new[] {
                     new Dictionary<string, object?> { ["Name"] = "First" },
@@ -293,20 +304,20 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
             SetDefaultWorkbookFont(document._spreadSheetDocument, "Consolas", 11);
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
 
-            ExcelImage image = sheet.AddImageFromFileToRange("A1:B1", imagePath, name: "FontSizedRange");
-            int regularWidth = image.WidthPixels;
+            ExcelImage image = sheet.AddImage("A1:B1", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "FontSizedRange" });
+            double regularWidth = image.Width.ToPixels();
             SetDefaultWorkbookFont(document._spreadSheetDocument, "Consolas", 44);
-            ExcelImage large = sheet.AddImageFromFileToRange("A2:B2", imagePath, name: "LargeFontSizedRange");
+            ExcelImage large = sheet.AddImage("A2:B2", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "LargeFontSizedRange" });
             OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadFontFamilyForText("Consolas", OfficeFontStyle.Regular, "0123456789", out _);
             if (font?.MatchesFamilyName("Consolas") == true) {
-                Assert.True(large.WidthPixels > regularWidth);
+                Assert.True(large.Width.ToPixels() > regularWidth);
             } else {
                 // An unavailable authored face keeps the portable seven-pixel
                 // digit fallback at either font size.
                 Assert.Equal(128, regularWidth);
-                Assert.Equal(regularWidth, large.WidthPixels);
+                Assert.Equal(regularWidth, large.Width.ToPixels());
             }
         }
 
@@ -331,8 +342,8 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "saturn.tif");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                ExcelImage image = sheet.AddImageFromFile(2, 2, imagePath, widthPixels: 32, heightPixels: 32);
+                ExcelSheet sheet = document.AddSheet("Images");
+                ExcelImage image = sheet.AddImage(2, 2, imagePath, new OfficeIMO.Excel.ExcelImageOptions { Width = OfficeIMO.OfficeLength.Pixels(32), Height = OfficeIMO.OfficeLength.Pixels(32) });
 
                 Assert.Equal("image/tiff", image.ContentType);
                 document.Save();
@@ -350,10 +361,10 @@ namespace OfficeIMO.Tests {
             File.WriteAllText(imagePath, "not an image");
 
             using ExcelDocument document = ExcelDocument.Create(workbookPath);
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
 
             Assert.Throws<ArgumentException>(() =>
-                sheet.AddImageFromFile(2, 2, imagePath, widthPixels: 32, heightPixels: 32));
+                sheet.AddImage(2, 2, imagePath, new OfficeIMO.Excel.ExcelImageOptions { Width = OfficeIMO.OfficeLength.Pixels(32), Height = OfficeIMO.OfficeLength.Pixels(32) }));
             Assert.Empty(sheet.Images);
         }
 
@@ -367,10 +378,10 @@ namespace OfficeIMO.Tests {
             });
 
             using ExcelDocument document = ExcelDocument.Create(workbookPath);
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
 
             Assert.Throws<ArgumentException>(() =>
-                sheet.AddImageFromFile(2, 2, imagePath, widthPixels: 32, heightPixels: 32));
+                sheet.AddImage(2, 2, imagePath, new OfficeIMO.Excel.ExcelImageOptions { Width = OfficeIMO.OfficeLength.Pixels(32), Height = OfficeIMO.OfficeLength.Pixels(32) }));
             Assert.Empty(sheet.Images);
         }
 
@@ -386,10 +397,10 @@ namespace OfficeIMO.Tests {
             });
 
             using ExcelDocument document = ExcelDocument.Create(workbookPath);
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
 
             Assert.Throws<ArgumentException>(() =>
-                sheet.AddImageFromFile(2, 2, imagePath, widthPixels: 32, heightPixels: 32));
+                sheet.AddImage(2, 2, imagePath, new OfficeIMO.Excel.ExcelImageOptions { Width = OfficeIMO.OfficeLength.Pixels(32), Height = OfficeIMO.OfficeLength.Pixels(32) }));
             Assert.Empty(sheet.Images);
         }
 
@@ -405,8 +416,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                ExcelImage image = sheet.AddImageFromFile(2, 2, imagePath, widthPixels: 32, heightPixels: 32);
+                ExcelSheet sheet = document.AddSheet("Images");
+                ExcelImage image = sheet.AddImage(2, 2, imagePath, new OfficeIMO.Excel.ExcelImageOptions { Width = OfficeIMO.OfficeLength.Pixels(32), Height = OfficeIMO.OfficeLength.Pixels(32) });
 
                 Assert.Equal(expectedContentType, image.ContentType);
                 document.Save();
@@ -446,13 +457,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.FromUrl.ScaleOnly.xlsx");
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
 
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-                sheet.AddImageFromUrlAsync(2, 2, "http://127.0.0.1:1/not-found.png", scalePercent: 25,
-                    cancellationToken: cancellation.Token));
+                sheet.AddImageAsync(2, 2, new System.Uri("http://127.0.0.1:1/not-found.png"), new OfficeIMO.Excel.ExcelImageOptions {
+                    ScalePercent = 25
+                }, cancellationToken: cancellation.Token));
         }
     }
 }

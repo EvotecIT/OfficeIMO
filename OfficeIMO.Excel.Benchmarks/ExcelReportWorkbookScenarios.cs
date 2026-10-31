@@ -84,8 +84,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteReportWorkbookBytes(IReadOnlyList<Dictionary<string, object?>> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.InsertObjects(rows);
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(rows);
             ApplyOfficeImoReportWorkbookCore(sheet, rows.Count);
             AddOfficeImoReportWorkbookChart(sheet, rows.Count);
             AddOfficeImoReportWorkbookPivotTable(sheet, rows.Count);
@@ -101,8 +101,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteReportWorkbookCoreBytes(IReadOnlyList<Dictionary<string, object?>> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.InsertObjects(rows);
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(rows);
             ApplyOfficeImoReportWorkbookCore(sheet, rows.Count);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "report workbook core");
@@ -117,8 +117,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteReportWorkbookDataTableBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.InsertDataTable(dataTable);
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(dataTable);
             ApplyOfficeImoReportWorkbookCore(sheet, dataTable.Rows.Count);
             AddOfficeImoReportWorkbookChart(sheet, dataTable.Rows.Count);
             AddOfficeImoReportWorkbookPivotTable(sheet, dataTable.Rows.Count);
@@ -134,8 +134,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteReportWorkbookDataTableCoreBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.InsertDataTable(dataTable);
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(dataTable);
             ApplyOfficeImoReportWorkbookCore(sheet, dataTable.Rows.Count);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "report workbook DataTable core");
@@ -262,21 +262,20 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static void AddOfficeImoReportWorkbookChart(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
-        sheet.AddChartFromRange($"F1:G{lastRow.ToString(CultureInfo.InvariantCulture)}", row: 2, column: 12, widthPixels: 720, heightPixels: 320, type: ExcelChartType.ColumnClustered, title: "Score by Created", includeCachedData: false);
+        sheet.AddChart(OfficeChartType.ColumnClustered, $"F1:G{lastRow.ToString(CultureInfo.InvariantCulture)}", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 12, Width = OfficeLength.Pixels(720), Height = OfficeLength.Pixels(320), Title = "Score by Created", IncludeCachedData = false });
     }
 
     private static void AddOfficeImoReportWorkbookPivotTable(ExcelSheet sheet, int rowCount) {
-        sheet.AddPivotTable(
-            sourceRange: BuildReportWorkbookRange(rowCount),
-            destinationCell: "L24",
-            name: "ReportPivot",
-            rowFields: new[] { "Region" },
-            columnFields: new[] { "Department" },
-            dataFields: new[] {
+        sheet.AddPivotTable(BuildReportWorkbookRange(rowCount), "L24", options: new ExcelPivotTableOptions {
+            Name = "ReportPivot",
+            RowFields = new[] { "Region" },
+            ColumnFields = new[] { "Department" },
+            DataFields = new[] {
                 new ExcelPivotDataField("Score", ExcelPivotDataFunction.Average, "Average Score"),
                 new ExcelPivotDataField("TicketCount", ExcelPivotDataFunction.Sum, "Sum TicketCount")
             },
-            pivotStyleName: "PivotStyleMedium9");
+            PivotStyleName = "PivotStyleMedium9"
+        });
     }
 
     private static void PopulateEpPlusReportWorkbookData(ExcelWorksheet worksheet, IReadOnlyList<Dictionary<string, object?>> rows) {

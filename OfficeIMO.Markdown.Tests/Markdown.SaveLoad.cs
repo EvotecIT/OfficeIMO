@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                 originalDoc.AddParagraph("Roundtrip content");
                 originalDoc.SaveAsMarkdown(filePath);
 
-                using var loaded = (await OfficeIMO.Markdown.MarkdownDoc.LoadAsync(filePath)).ToWordDocument();
+                using var loaded = (await OfficeIMO.Markdown.MarkdownDocument.LoadAsync(filePath)).ToWord();
                 Assert.NotEmpty(loaded.Paragraphs);
                 Assert.Contains("Roundtrip content", loaded.Paragraphs.Select(p => p.Text));
             } finally {
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
                 writer.Flush();
             }
             stream.Position = 0;
-            using var doc = (await OfficeIMO.Markdown.MarkdownDoc.LoadAsync(stream, encoding: Encoding.Unicode)).ToWordDocument();
+            using var doc = (await OfficeIMO.Markdown.MarkdownDocument.LoadAsync(stream, new OfficeIMO.Markdown.MarkdownLoadOptions { Encoding = Encoding.Unicode })).ToWord();
             Assert.Contains(text, doc.Paragraphs.Select(p => p.Text));
         }
     }

@@ -32,7 +32,7 @@ public sealed partial class IWorkBoundaryTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(12.345d, result.Value.Sheets[0].DefaultRowHeight);
+        Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(12.345d)), result.Value.Sheets[0].DefaultRowHeight);
     }
 
     [Fact]

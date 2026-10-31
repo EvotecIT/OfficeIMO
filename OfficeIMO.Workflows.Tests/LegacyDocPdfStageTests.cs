@@ -8,21 +8,25 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class LegacyDocPdfStageTests {
     [Fact]
-    public void UnsupportedLegacyStorageBlocksByDefaultAndRemainsVisibleWhenAccepted() {
+    public void ExplicitLegacyLossPolicyBlocksOutputAndAcceptedLossStaysVisible() {
         byte[] source = CreateLegacySource();
-        var settings = new LegacyDocImportOptions { ReportUnsupportedContent = false };
-        var rejection = Assert.Throws<OfficeConversionException>(() => LegacyDocPdfConverter.ToPdfDocumentResult(new MemoryStream(source), importOptions: settings));
-        Assert.True(rejection.Report.HasLoss);
-        var accepted = LegacyDocPdfConverter.ToPdfDocumentResult(new MemoryStream(source), importOptions: settings,
-            lossPolicy: OfficeConversionLossPolicy.Allow);
-        Assert.True(Assert.Single(accepted.SourceConversionReports).HasLoss);
+        using var input = new MemoryStream(source);
         using var destination = new MemoryStream();
-        PdfSaveResult output = accepted.SaveResult(destination);
-        output.RequireSuccess();
-        Assert.True(output.HasLoss);
-        Assert.Equal(2, output.ConversionReports.Count);
-        Assert.Contains(output.Report.Warnings, warning => warning.Code == "NativeFontFamilySubstituted");
-        Assert.Contains(accepted.FidelityDiagnostics, finding => finding.LossKind != OfficeConversionLossKind.None);
+        var settings = new OfficeConversionOptions {
+            SourceName = "source.doc", WordLoad = new WordLoadOptions { ReportUnsupportedContent = false, FailOnLoss = true }
+        };
+        OfficeConversionException rejection = Assert.Throws<OfficeConversionException>(() =>
+            OfficeConverter.Convert(input, OfficeDocumentFormat.Word, destination, OfficeDocumentFormat.Pdf, settings));
+        Assert.True(rejection.Report.HasLoss);
+        Assert.Equal(0, destination.Length);
+        settings.WordLoad.FailOnLoss = false;
+        OfficeConversionReport accepted = OfficeConverter.Convert(input, OfficeDocumentFormat.Word,
+            destination, OfficeDocumentFormat.Pdf, settings);
+        Assert.True(accepted.HasLoss);
+        Assert.Contains(accepted.Diagnostics, finding => finding.Format == "Word" && finding.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(accepted.Diagnostics, finding => finding.Code == OfficeDiagnosticCodes.FontFamilySubstitution);
+        using var pdf = PdfDocument.Load(new MemoryStream(destination.ToArray()));
+        Assert.Contains("Preserved DOC text", pdf.ExtractText());
     }
 
     [Theory]
@@ -36,14 +40,16 @@ public sealed class LegacyDocPdfStageTests {
             byte[] sentinel = [1, 2, 3]; File.WriteAllBytes(output, sentinel);
             OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new() {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output, ConversionRouteId = "doc-pdf",
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
-                ConversionOptions = new() { LegacyDocLossPolicy = allowImport ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block },
+                ConflictPolicy = OfficePublicationPolicy.Replace,
+                ConversionOptions = new() {
+                WordLoad = new OfficeIMO.Word.WordLoadOptions { FailOnLoss = (allowImport ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block) == OfficeConversionLossPolicy.Block }
+            },
                 Limits = new() { MaximumOutputBytes = allowImport ? 1 : 10_000_000 }
             });
             Assert.False(result.Succeeded);
             Assert.Equal(sentinel, File.ReadAllBytes(output));
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
-            var imports = evidence.FidelityDiagnostics.Where(finding => finding.Source.StartsWith("OfficeIMO.Word.LegacyDoc", StringComparison.Ordinal)).ToArray();
+            var imports = evidence.FidelityDiagnostics.Where(finding => finding.Source == "Word").ToArray();
             Assert.NotEmpty(imports);
             foreach (var finding in imports)
                 Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == finding.Code && diagnostic.Message == finding.Message

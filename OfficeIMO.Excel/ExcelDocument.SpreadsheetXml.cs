@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Packaging;
 namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
+    private long _sourceMaxCharactersInPart;
     /// <summary>
     /// Imports a bounded XML Spreadsheet 2003 file into the normal editable workbook model.
     /// Unsupported features are reported, never evaluated. The caller owns the returned workbook.
@@ -45,7 +46,7 @@ public partial class ExcelDocument {
         byte[] bytes = readOnly
             ? Locking.ExecuteRead(EnsureLock(), () => CaptureSpreadsheetXmlSnapshot(resolved, readOnly: true))
             : Locking.ExecuteWrite(EnsureLock(), () => CaptureSpreadsheetXmlSnapshot(resolved, readOnly: false));
-        return SpreadsheetXmlWriter.Write(bytes, resolved);
+        return SpreadsheetXmlWriter.Write(bytes, resolved, _sourceMaxCharactersInPart);
     }
 
     private byte[] CaptureSpreadsheetXmlSnapshot(ExcelSpreadsheetXmlOptions options, bool readOnly) {

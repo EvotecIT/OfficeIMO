@@ -8,6 +8,26 @@ public sealed class EpubMergeIdentifierContracts {
     private static readonly XNamespace Html = "http://www.w3.org/1999/xhtml";
 
     [Fact]
+    public void IdentifierReferenceExpansionStopsAtChapterEntryLimitBeforeCommit() {
+        var book = EpubPublication.Create("Bounded references", "en");
+        book.AddChapter("one", "EPUB/one.xhtml", "First", "<p>First</p>");
+        string references = string.Join(" ", Enumerable.Repeat("x", 40));
+        book.AddChapter("two", "EPUB/two.xhtml", "Second",
+            "<p id='x'>Target</p><p aria-labelledby='" + references + "'>References</p>");
+        var limited = EpubPublication.Load(new MemoryStream(book.Write().Bytes),
+            new EpubPublicationLoadOptions { MaxEntryBytes = 4_096 });
+        byte[] before = limited.Write().Bytes;
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => limited.MergeChapters(
+            "one", "two", "boundary", new EpubChapterMergeOptions {
+                SecondChapterIdMap = new Dictionary<string, string> { ["x"] = new string('z', 1_024) }
+            }));
+
+        Assert.Contains("Rewritten identifier references", error.Message);
+        Assert.Equal(before, limited.Write().Bytes);
+    }
+
+    [Fact]
     public void ExplicitMapRepairsIncomingLinksLocalRelationshipsAndSvgUrls() {
         var book = Book();
         book.AddChapter("third", "EPUB/third.xhtml", "Third", "<a href='two.xhtml#heading'>Second heading</a>");

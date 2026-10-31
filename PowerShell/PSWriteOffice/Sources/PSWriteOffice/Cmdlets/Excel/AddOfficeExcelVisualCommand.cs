@@ -48,7 +48,7 @@ public sealed class AddOfficeExcelVisualCommand : OfficeVisualCommandBase {
     protected override void ProcessRecord() {
         ExcelSheet worksheet = Worksheet ?? ExcelDslContext.Require(this).RequireSheet();
         (int row, int column) = ExcelHostExtensions.ResolveCellAddress(Row, Column, Address);
-        var image = worksheet.AddVisualArtifact(row, column, ResolveVisual(InputObject), OffsetX, OffsetY);
+        var image = worksheet.AddVisualArtifact(row, column, ResolveVisual(InputObject), OfficeIMO.OfficeLength.Pixels(OffsetX), OfficeIMO.OfficeLength.Pixels(OffsetY));
         if (PassThru.IsPresent) {
             WriteObject(image);
         }

@@ -61,13 +61,13 @@ namespace OfficeIMO.Tests.Pdf
             PdfReadDocument forensic = PdfReadDocument.Open(fragment);
             Assert.Single(forensic.Objects);
             Assert.Empty(forensic.Pages);
-            Assert.Contains(forensic.RepairReport.Diagnostics, diagnostic => diagnostic.Code == "MissingStartXref");
+            Assert.Contains(forensic.RepairReport.Diagnostics, diagnostic => diagnostic.Code == "missing-start-xref");
         }
 
         [Fact]
         public void GeneratedDiagnosticReportsUseOneSerializedSnapshot() {
             int compositionCalls = 0;
-            PdfDocument CreateDocument() => PdfDocument.Create(new PdfOptions {
+            PdfDocument CreateDocument() => PdfDocument.Create(new PdfCreateOptions {
                 TextLineBreakCallback = text => {
                     compositionCalls++;
                     return new[] { text.Length };
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests.Pdf
         public void MutationReportsCaptureWrongPasswordsWithoutAuthorizingOperations(bool withOutline) {
             byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Protected report input")),
-                new PdfOptions { CreateOutlineFromHeadings = withOutline }.SetEncryption("open", "owner")).ToBytes();
+                new PdfCreateOptions { CreateOutlineFromHeadings = withOutline }.SetEncryption("open", "owner")).ToBytes();
             PdfLoadOptions incorrect = new PdfLoadOptions { Password = "incorrect" };
             PdfDocument document = PdfDocument.Load(bytes, incorrect);
 
@@ -189,7 +189,7 @@ namespace OfficeIMO.Tests.Pdf
             var (objects, _) = PdfSyntax.ParseObjects(bytes);
             Assert.Empty(objects);
             Assert.Equal("1.7", PdfInspector.Probe(bytes).HeaderVersion);
-            PdfArtifactSnapshot artifact = PdfArtifactSnapshot.Capture(bytes);
+            PdfArtifactInfo artifact = PdfArtifactInfo.Capture(bytes);
             Assert.Null(artifact.PageCount);
             Assert.Equal(bytes.LongLength, artifact.ByteCount);
             Assert.False(string.IsNullOrEmpty(artifact.Sha256));
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests.Pdf
 
         private static void AssertNoObjects(Action read) {
             PdfParseException error = Assert.Throws<PdfParseException>(read);
-            Assert.Equal("NoIndirectObjects", error.Code);
+            Assert.Equal("no-indirect-objects", error.Code);
             Assert.Null(error.ObjectNumber);
         }
     }

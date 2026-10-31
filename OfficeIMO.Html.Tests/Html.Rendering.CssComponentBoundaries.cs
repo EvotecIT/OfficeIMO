@@ -9,7 +9,7 @@ public sealed class HtmlCssComponentBoundaryTests {
     [Fact]
     public void ComponentBoundaryFixturePreservesTextAndAnExplicitPageBreak() {
         string html = System.IO.File.ReadAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "Documents", "Html", "Css", "component-boundaries.html"));
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions()));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         string first = pdf.GetPage(1).Text;
         Assert.Contains("Curly block", first);
@@ -32,7 +32,7 @@ public sealed class HtmlCssComponentBoundaryTests {
         HtmlRenderShape shape = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), item => item.Source == "div#kept" && item.Shape.FillColor.HasValue);
         Assert.Equal(OfficeColor.FromRgb(0, 102, 153), shape.Shape.FillColor);
         Assert.Contains("#006699", document.ToSvg(options), StringComparison.OrdinalIgnoreCase);
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions()));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlToPdfOptions())).ToBytes());
         Assert.Contains("VISIBLE", string.Concat(pdf.GetPages().Select(page => page.Text)));
     }
 }

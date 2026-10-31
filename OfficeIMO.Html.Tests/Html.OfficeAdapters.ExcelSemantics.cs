@@ -9,7 +9,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
     [Fact]
     public void ExcelHtml_HeaderModeMakesHeaderIntentExplicit() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Data");
+        ExcelSheet sheet = workbook.AddSheet("Data");
         sheet.CellValue(1, 1, "Not a header");
         sheet.CellValue(2, 1, "Second row");
 
@@ -27,7 +27,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
     public void ExcelHtml_RoundTripsDateFormattedSerialAsDateTime() {
         DateTime expected = new(2026, 7, 11, 14, 15, 16, DateTimeKind.Unspecified);
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Dates");
+        ExcelSheet sheet = workbook.AddSheet("Dates");
         sheet.CellValue(1, 1, "When");
         sheet.CellValue(2, 1, expected);
 
@@ -37,7 +37,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
         Assert.Contains("data-officeimo-value-kind=\"date-time\" data-officeimo-value=\"2026-07-11T14:15:16.0000000\"", html, StringComparison.Ordinal);
-        Assert.True(importedSheet.TryGetCellValueSnapshot(2, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(2, 1, out ExcelNativeCellValueInfo? snapshot));
         Assert.Equal(ExcelCellValueKind.DateTime, snapshot!.Kind);
         Assert.Equal(expected, snapshot.DateTimeValue);
         Assert.True(importedSheet.GetCellStyle(2, 1).IsDateLike);
@@ -70,7 +70,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
         using ExcelDocument workbook = result.Value;
 
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
-        Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? first));
+        Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? first));
         Assert.Equal("First", first!.Text);
         Assert.Equal("Second", sheet.CellAt(1, 2).GetValue<string>());
         Assert.Equal(2, result.Cells);

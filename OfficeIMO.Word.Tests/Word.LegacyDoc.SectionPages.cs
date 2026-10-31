@@ -36,7 +36,7 @@ public partial class Word {
             paragraph._paragraph.Append(new SimpleField(result) { Instruction = instruction });
         }
 
-        byte[] native = source.ToBytes(WordFileFormat.Doc);
+        byte[] native = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.True(OfficeCompoundFileReader.TryRead(native, out OfficeCompoundFile? compound, out string? error), error);
         byte[] word = compound!.Streams["WordDocument"];
         byte[] table = compound.Streams["1Table"];
@@ -55,12 +55,12 @@ public partial class Word {
         Assert.Equal("225588", display.RunProperties.Color!.Val!.Value);
         WordFieldInfo editable = Assert.Single(imported.InspectFields());
         Assert.Equal(WordFieldType.SectionPages, editable.FieldType);
-        Assert.Contains(WordFieldFormat.Roman, editable.FormatSwitches);
+        Assert.Contains(WordFieldFormat.UpperRoman, editable.FormatSwitches);
         Assert.Equal("II", editable.ResultText);
 
         field.Instruction = " SECTIONPAGES \\* Arabic ";
         display.GetFirstChild<Text>()!.Text = "3";
-        using WordDocument edited = WordDocument.Load(new MemoryStream(imported.ToBytes(WordFileFormat.Doc)));
+        using WordDocument edited = WordDocument.Load(new MemoryStream(imported.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         SimpleField editedField = Assert.Single(GetSectionPagesStoryRoot(edited, story).Descendants<SimpleField>());
         Assert.Equal(" SECTIONPAGES \\* Arabic ", editedField.Instruction!.Value);
         Assert.Equal("3", editedField.InnerText);
@@ -71,11 +71,11 @@ public partial class Word {
     [InlineData(true)]
     public void LegacyDoc_SectionPagesTypedAuthoringRemainsGettable(bool advanced) {
         using WordDocument source = WordDocument.Create();
-        source.AddParagraph().AddField(WordFieldType.SectionPages, WordFieldFormat.Roman, advanced: advanced);
-        using WordDocument imported = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        source.AddParagraph().AddField(WordFieldType.SectionPages, WordFieldFormat.UpperRoman, advanced: advanced);
+        using WordDocument imported = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordField field = Assert.Single(imported.Paragraphs, p => p.Field != null).Field!;
         Assert.Equal(WordFieldType.SectionPages, field.FieldType);
-        Assert.Contains(WordFieldFormat.Roman, field.FieldFormat);
+        Assert.Contains(WordFieldFormat.UpperRoman, field.FieldFormat);
     }
 
     [Theory]
@@ -142,13 +142,13 @@ public partial class Word {
     }
 
     private static WordParagraph AddSectionPagesStoryParagraph(WordDocument document, string story) {
-        if (story == "cell") return document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        if (story == "cell") return document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
         if (story == "header" || story == "footer") {
             document.AddHeadersAndFooters();
             return story == "header" ? document.Sections[0].Header.Default!.AddParagraph() : document.Sections[0].Footer.Default!.AddParagraph();
         }
-        if (story == "footnote") return document.AddParagraph("Footnote ").AddFootNote("Note ").FootNote!.Paragraphs![1];
-        if (story == "endnote") return document.AddParagraph("Endnote ").AddEndNote("Note ").EndNote!.Paragraphs![1];
+        if (story == "footnote") return document.AddParagraph("Footnote ").AddFootNote("Note ").Paragraph.FootNote!.Paragraphs![1];
+        if (story == "endnote") return document.AddParagraph("Endnote ").AddEndNote("Note ").Paragraph.EndNote!.Paragraphs![1];
         return document.AddParagraph();
     }
 

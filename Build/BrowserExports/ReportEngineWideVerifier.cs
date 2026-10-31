@@ -43,7 +43,7 @@ internal static class ReportEngineWideVerifier {
         return new { file = Path.GetFileName(path), format = "xlsx", rows = seen.Count, typedColumns = columns.Length, openXml = true, bytes = new FileInfo(path).Length };
     }
     private static object Pdf(string path, JsonElement contract) {
-        var document = PdfReadDocument.Open(path, new PdfLoadOptions { IncludeArtifactText = true });
+        using var document = PdfDocument.Load(path, new PdfLoadOptions { IncludeArtifactText = true });
         Require(!document.RepairReport.HasRepairs, "Wide PDF required repair.");
         string all = string.Concat(document.Pages.SelectMany(page => page.GetTextSpans()).Select(span => span.Text)), compact = Compact(all);
         foreach (var column in contract.GetProperty("columns").EnumerateArray()) Require(compact.Contains(Compact(column.GetProperty("header").GetString()!), StringComparison.Ordinal), "Wide PDF lost a selected heading.");

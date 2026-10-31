@@ -13,11 +13,17 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfDocumentVisualBaselineTests {
     [Fact]
     public void RepresentativeReport_MatchesVisualGeometryBaseline() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
+            BackgroundColor = null,
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10.5,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10.5),
+            // Fixed snapshots keep their measured body rhythm as creation themes evolve.
+            DefaultParagraphStyle = new PdfParagraphStyle {
+                LineHeight = 1.4D,
+                SpacingAfter = OfficeLength.Points(10.5D * 1.4D * 0.3D)
+            },
             FooterFont = PdfStandardFont.Helvetica,
-            FooterFontSize = 8,
+            FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
             FooterFormat = "OfficeIMO.Pdf visual gate - page {page}/{pages}",
             FooterAlign = PdfAlign.Right,
             ShowPageNumbers = true
@@ -25,7 +31,7 @@ public class PdfDocumentVisualBaselineTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Meta(title: "OfficeIMO.Pdf Visual Baseline", author: "OfficeIMO")
-            .H1("OfficeIMO.Pdf Visual Baseline", PdfAlign.Left, PdfColor.FromRgb(32, 76, 120))
+            .H1("OfficeIMO.Pdf Visual Baseline", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(32, 76, 120))
             .Paragraph(p => p
                 .Text("This report combines ")
                 .Bold("rich text")
@@ -33,10 +39,10 @@ public class PdfDocumentVisualBaselineTests {
             .PanelParagraph(
                 p => p.Text("Panel content should sit inside the page margins with comfortable padding and without clipping."),
                 new PdfPanelStyle {
-                    Background = PdfColor.FromRgb(245, 248, 252),
-                    BorderColor = PdfColor.FromRgb(150, 170, 190),
-                    PaddingX = 8,
-                    PaddingY = 7
+                    Background = global::OfficeIMO.OfficeColor.FromRgb(245, 248, 252),
+                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(150, 170, 190),
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                 })
             .Bullets(new[] {
                 "Readable line spacing",
@@ -48,39 +54,47 @@ public class PdfDocumentVisualBaselineTests {
                 new[] { "Typography", "Natural word spacing for standard proportional fonts.", "Guarded" },
                 new[] { "Tables", "Long content wraps inside cells instead of drawing through adjacent columns or page margins.", "Guarded" },
                 new[] { "PowerShell", "PSWriteOffice can eventually expose this engine as the PSWritePDF successor.", "Roadmap" }
-            }, style: TableStyles.RightAlignedNumbers())
-            .Paragraph(p => p.Text("End of visual baseline."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))
+            }, style: PdfTableStyles.RightAlignedNumbers())
+            .Paragraph(p => p.Text("End of visual baseline."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
             .ToBytes();
 
-        string snapshot = BuildVisualSnapshot(bytes);
+        PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact("representative-report-snapshot", bytes);
+        string snapshot = BuildVisualSnapshot(bytes, options.MarginRight.ToPoints());
+        PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact("representative-geometry", bytes);
         AssertVisualBaseline("officeimo-pdf-representative-report", snapshot);
     }
 
     [Fact]
     public void ProfessionalReport_MatchesVisualContentBaseline() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
+            BackgroundColor = null,
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
+            // Fixed snapshots keep their measured body rhythm as creation themes evolve.
+            DefaultParagraphStyle = new PdfParagraphStyle {
+                LineHeight = 1.4D,
+                SpacingAfter = OfficeLength.Points(10D * 1.4D * 0.3D)
+            },
             HeaderFont = PdfStandardFont.Helvetica,
-            HeaderFontSize = 8,
+            HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
             HeaderFormat = "OfficeIMO.Pdf professional report",
             HeaderAlign = PdfAlign.Left,
-            HeaderOffsetY = 18,
+            HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18),
             ShowHeader = true,
             FooterFont = PdfStandardFont.Helvetica,
-            FooterFontSize = 8,
+            FooterFontSize = global::OfficeIMO.OfficeLength.Points(8),
             FooterFormat = "OfficeIMO.Pdf professional report - page {page}/{pages}",
             FooterAlign = PdfAlign.Center,
             ShowPageNumbers = true,
             CreateOutlineFromHeadings = true
         };
 
-        byte[] logo = CreateMinimalJpeg(200, 100);
+        byte[] logo = PdfPngTestImages.CreateRgbPng(200, 100);
         byte[] alphaBadge = CreateTransparentBadgePng();
 
         byte[] bytes = PdfDocument.Create(options)
             .Meta(title: "OfficeIMO.Pdf Professional Report", author: "OfficeIMO")
-            .H1("Executive Security Summary", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+            .H1("Executive Security Summary", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
             .Paragraph(p => p
                 .Text("A polished first-party PDF report built with ")
                 .Bold("OfficeIMO.Pdf")
@@ -89,16 +103,16 @@ public class PdfDocumentVisualBaselineTests {
             .PanelParagraph(
                 p => p.Bold("Healthy").Text(" posture with no critical findings."),
                 CreateStatusPanelStyle(),
-                defaultColor: PdfColor.FromRgb(42, 132, 82))
+                defaultColor: global::OfficeIMO.OfficeColor.FromRgb(42, 132, 82))
             .Image(alphaBadge, 18, 18, PdfAlign.Left)
             .Shape(CreateAccentRibbon(), spacingBefore: 12, spacingAfter: 10)
             .PanelParagraph(
                 p => p.Text("Operator note: long values should wrap cleanly, tables should stay inside the page, and reusable drawing primitives should remain available to Word, Excel, PowerPoint, and PDF exporters."),
                 new PdfPanelStyle {
-                    Background = PdfColor.FromRgb(248, 250, 252),
-                    BorderColor = PdfColor.FromRgb(183, 194, 207),
-                    PaddingX = 9,
-                    PaddingY = 7
+                    Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                 })
             .Table(new[] {
                 new[] { "Signal", "Evidence", "Action" },
@@ -108,14 +122,16 @@ public class PdfDocumentVisualBaselineTests {
                 new[] { "PDF", "The report is generated by the MIT licensed dependency-free OfficeIMO.Pdf engine.", "Expand" }
             }, style: CreateReportTableStyle())
             .Image(logo, 112, 36, PdfAlign.Center, fit: OfficeImageFit.Contain)
-            .Paragraph(p => p.Text("Generated by OfficeIMO.Pdf."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))
+            .Paragraph(p => p.Text("Generated by OfficeIMO.Pdf."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))
             .ToBytes();
 
-        string snapshot = BuildVisualSnapshot(bytes);
+        PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact("professional-report-snapshot", bytes);
+        string snapshot = BuildVisualSnapshot(bytes, options.MarginRight.ToPoints());
+        PdfDocumentRasterVisualBaselineTests.WriteReviewPdfArtifact("professional-content", bytes);
         AssertVisualBaseline("officeimo-pdf-professional-report", snapshot);
     }
 
-    private static string BuildVisualSnapshot(byte[] pdfBytes) {
+    private static string BuildVisualSnapshot(byte[] pdfBytes, double marginRight) {
         using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
         var sb = new StringBuilder();
         sb.AppendLine("pages=" + pdf.NumberOfPages.ToString(CultureInfo.InvariantCulture));
@@ -135,7 +151,7 @@ public class PdfDocumentVisualBaselineTests {
             sb.AppendLine("size=" + Format(page.Width) + "x" + Format(page.Height));
             sb.AppendLine("visibleLetters=" + visibleLetters.Count.ToString(CultureInfo.InvariantCulture));
             sb.AppendLine("bounds=x:" + Format(minX) + ".." + Format(maxX) + " y:" + Format(minY) + ".." + Format(maxY));
-            sb.AppendLine("rightOverflow=" + Format(Math.Max(0, maxX - (page.Width - 72))));
+            sb.AppendLine("rightOverflow=" + Format(Math.Max(0, maxX - (page.Width - marginRight))));
 
             var lines = page.Letters
                 .Where(static letter => !string.IsNullOrEmpty(letter.Value))
@@ -331,12 +347,12 @@ public class PdfDocumentVisualBaselineTests {
 
     private static PdfPanelStyle CreateStatusPanelStyle() {
         return new PdfPanelStyle {
-            Background = PdfColor.FromRgb(230, 247, 238),
-            BorderColor = PdfColor.FromRgb(42, 132, 82),
-            BorderWidth = 1.2,
-            PaddingX = 8,
-            PaddingY = 5,
-            MaxWidth = 245
+            Background = global::OfficeIMO.OfficeColor.FromRgb(230, 247, 238),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(42, 132, 82),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(1.2),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(5),
+            MaxWidth = global::OfficeIMO.OfficeLength.Points(245)
         };
     }
 
@@ -353,31 +369,15 @@ public class PdfDocumentVisualBaselineTests {
 
     private static PdfTableStyle CreateReportTableStyle() {
         return new PdfTableStyle {
-            HeaderFill = PdfColor.FromRgb(32, 76, 120),
-            HeaderTextColor = PdfColor.White,
-            TextColor = PdfColor.FromRgb(31, 41, 55),
-            RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-            BorderColor = PdfColor.FromRgb(210, 218, 226),
-            BorderWidth = 0.5,
-            CellPaddingX = 6,
-            CellPaddingY = 5,
+            HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(32, 76, 120),
+            HeaderTextColor = global::OfficeIMO.OfficeColor.White,
+            TextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
+            RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
             AutoFitColumns = true
-        };
-    }
-
-    private static byte[] CreateMinimalJpeg(int width, int height) {
-        return new byte[] {
-            0xFF, 0xD8,
-            0xFF, 0xC0,
-            0x00, 0x11,
-            0x08,
-            (byte)(height >> 8), (byte)(height & 0xFF),
-            (byte)(width >> 8), (byte)(width & 0xFF),
-            0x03,
-            0x01, 0x11, 0x00,
-            0x02, 0x11, 0x00,
-            0x03, 0x11, 0x00,
-            0xFF, 0xD9
         };
     }
 

@@ -28,7 +28,7 @@ internal static partial class LegacyXlsWriter {
                 if (record.Type == 0x000a) { if (--depth == 0) break; continue; }
                 if (depth != 1) continue;
                 if (record.Type == 0x0006 && record.Payload.Length >= 22) {
-                    previousAddress = A1.CellReference(BiffRecordReader.ReadUInt16(record.Payload, 0) + 1, BiffRecordReader.ReadUInt16(record.Payload, 2) + 1);
+                    previousAddress = ExcelA1.CellReference(BiffRecordReader.ReadUInt16(record.Payload, 0) + 1, BiffRecordReader.ReadUInt16(record.Payload, 2) + 1);
                     nativeCells.Add(previousAddress, previous = new() { record });
                 } else if (previous != null && record.Type is 0x0207 or 0x04bc or 0x0221 or 0x0236 or 0x003c) {
                     previous.Add(record);
@@ -41,16 +41,16 @@ internal static partial class LegacyXlsWriter {
                 continue;
             }
             var cellIndex = new ExcelCellRangeIndex<KeyValuePair<string, Cell>>(currentCells.Select(entry => {
-                var position = A1.ParseCellRef(entry.Key);
+                var position = ExcelA1.ParseCellRef(entry.Key);
                 return (position.Row, position.Col, position.Row, position.Col, entry);
             }));
             var nativeIndex = new ExcelCellRangeIndex<KeyValuePair<string, List<BiffRecord>>>(nativeCells.Select(entry => {
-                var position = A1.ParseCellRef(entry.Key);
+                var position = ExcelA1.ParseCellRef(entry.Key);
                 return (position.Row, position.Col, position.Row, position.Col, entry);
             }));
             var sheetEdits = edits.Where(edit => edit.Sheet == currentName).ToArray();
             var editIndex = new ExcelCellRangeIndex<LegacyXlsCellEdit>(sheetEdits.Select(edit => {
-                var position = A1.ParseCellRef(edit.Address);
+                var position = ExcelA1.ParseCellRef(edit.Address);
                 return (position.Row, position.Col, position.Row, position.Col, edit);
             }));
             foreach (var group in groups) {
@@ -98,13 +98,13 @@ internal static partial class LegacyXlsWriter {
                 if (!result.TryGetValue(ownerKey, out var ownerEdit) || ownerEdit.PreserveFormula) continue;
                 string[] range = (owner.CellFormula!.Reference?.Value ?? string.Empty).Split(':');
                 if (range.Length is < 1 or > 2) throw new NotSupportedException("Invalid native array formula range.");
-                var first = A1.ParseCellRef(range[0]); var last = A1.ParseCellRef(range[range.Length - 1]);
+                var first = ExcelA1.ParseCellRef(range[0]); var last = ExcelA1.ParseCellRef(range[range.Length - 1]);
                 if (first.Row < 1 || last.Row > 65536 || first.Col < 1 || last.Col > 256 || first.Row > last.Row || first.Col > last.Col)
                     throw new NotSupportedException("Native XLS array formulas require an ordered range within rows 1–65536 and columns 1–256.");
                 for (int row = first.Row; row <= last.Row; row++) {
                     token.ThrowIfCancellationRequested();
                     for (int column = first.Col; column <= last.Col; column++) {
-                        string address = A1.CellReference(row, column);
+                        string address = ExcelA1.CellReference(row, column);
                         if (!cells.TryGetValue(address, out var member)) throw new NotSupportedException("Every native array formula member requires a cell.");
                         var key = (sheet.Name, address);
                         encoding.NativeFormulaCells.Remove(key); encoding.FormulaCaches.Remove(key);

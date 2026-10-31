@@ -1,3 +1,5 @@
+using AngleSharp.Html.Parser;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -8,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWordConverter_HandlesRowspanAndColspan() {
             string html = "<table><tr><td rowspan=\"2\">A1</td><td>B1</td></tr><tr><td>B2</td></tr><tr><td colspan=\"2\">A3</td></tr></table>";
-            using WordDocument doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
             var table = doc.Tables[0];
 
             Assert.Equal(WordCellMerge.Restart, table.Rows[0].Cells[0].VerticalMerge);
@@ -35,9 +37,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToHtmlConverter_ResolvesRowSpanByLogicalGridColumn() {
+            using var stream = new MemoryStream();
+            using (var package = WordprocessingDocument.Create(stream, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, true)) {
+                var main = package.AddMainDocumentPart();
+                main.Document = new Document(new Body(new Table(
+                    new TableGrid(new GridColumn(), new GridColumn(), new GridColumn()),
+                    new TableRow(
+                        new TableCell(new TableCellProperties(new GridSpan { Val = 2 }), new Paragraph(new Run(new Text("Wide")))),
+                        new TableCell(new TableCellProperties(new VerticalMerge { Val = MergedCellValues.Restart }), new Paragraph(new Run(new Text("Group"))))),
+                    new TableRow(
+                        new TableCell(new Paragraph(new Run(new Text("Left")))),
+                        new TableCell(new Paragraph(new Run(new Text("Middle")))),
+                        new TableCell(new TableCellProperties(new VerticalMerge()), new Paragraph())))));
+                main.Document.Save();
+            }
+            stream.Position = 0;
+            using WordDocument document = WordDocument.Load(stream);
+            var html = new HtmlParser().ParseDocument(document.ToHtml());
+            var group = Assert.Single(html.QuerySelectorAll("td,th"), cell => cell.TextContent == "Group");
+            Assert.Equal("2", group.GetAttribute("rowspan"));
+            var wide = Assert.Single(html.QuerySelectorAll("td,th"), cell => cell.TextContent == "Wide");
+            Assert.Equal("2", wide.GetAttribute("colspan"));
+        }
+
+        [Fact]
         public void HtmlToWordConverter_RowSpanZero_StopsAtSectionEnd() {
             string html = "<table><tbody><tr><td rowspan=\"0\">A</td><td>B1</td></tr><tr><td>B2</td></tr></tbody><tfoot><tr><td>F1</td><td>F2</td></tr></tfoot></table>";
-            using WordDocument doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using WordDocument doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
             var table = doc.Tables[0];
 
             Assert.Equal(WordCellMerge.Restart, table.Rows[0].Cells[0].VerticalMerge);

@@ -43,7 +43,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var textRequirements = new HashSet<(string Text, OfficeFontInfo Font)>();
 
         void AddText(string text, OfficeFontInfo font) {
-            if (text.Length > 0 && textRequirements.Add((text, font))) prepared.Text.Add((text, font));
+            if (text.Length == 0) return;
+            ChargeLayoutOperations(font.FamilyName.Length, "page-margin font family hashing");
+            if (textRequirements.Add((text, font))) prepared.Text.Add((text, font));
         }
 
         foreach (string? pageName in blocks.Select(block => block.PageName)

@@ -10,6 +10,7 @@ export interface CanopyExportCell {
   readonly text: string;
   /** Frozen pivot display semantics; values are already computed by CanopyX. */
   readonly mode?: "value" | "percentGrandTotal" | "percentParent" | "percentColumn" | "percentRow" | "runningTotal" | "rank" | "difference" | "percentChange";
+  /** Native format; optional for mode=value, whose unformatted integer values stay whole in PDF. */
   readonly numberFormat?: string;
   readonly tone?: string;
   readonly link?: ExportLink;

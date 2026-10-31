@@ -94,7 +94,7 @@ public sealed class PdfGraphicsGradientAlphaTests {
     [InlineData(false, true)]
     [InlineData(true, true)]
     public void ShortGradientIntervalsRetainStrictBoundsForAxialRadialAndPrint(bool radial, bool convertToPrint) {
-        PdfOptions options = Options();
+        PdfCreateOptions options = Options();
         if (convertToPrint) options.ConfigurePdfXGroundwork(PdfComplianceProfile.PdfX4,
             IccMabTestProfiles.CreateCmykLab8Bidirectional(), "Managed test CMYK", PdfTrappingStatus.False);
         var document = PdfDocument.Create(options);
@@ -128,6 +128,6 @@ public sealed class PdfGraphicsGradientAlphaTests {
     }
 
     private static OfficeRasterImage Render(byte[] pdf) => OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), background: OfficeColor.White);
-    private static PdfOptions Options() => new PdfOptions { PageWidth = 80D, PageHeight = 160D,
-        MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D };
+    private static PdfCreateOptions Options() => new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(80D), PageHeight = global::OfficeIMO.OfficeLength.Points(160D),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D) };
 }

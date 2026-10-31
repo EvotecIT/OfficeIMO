@@ -10,7 +10,7 @@ public class PdfEncryptedSignatureTests {
     [Fact]
     public void EncryptedSigningHonorsOutputBudgetAndCancellationBeforeCallingSigner() {
         byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("Protected signing content"))),
-            new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" })).ToBytes();
+            new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" })).ToBytes();
         PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions { Password = "owner" });
         var signer = new UnexpectedSigner();
         Assert.Throws<InvalidDataException>(() => document.Security.SignExternal(signer,
@@ -29,7 +29,7 @@ public class PdfEncryptedSignatureTests {
     [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
     public void EncryptedApprovalAndCountersignaturePreserveEncryptionAndVerifyDigests(PdfStandardEncryptionAlgorithm algorithm) {
         byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("Protected signing content"))),
-            new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+            new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = algorithm,
                 AllowedPermissions = PdfStandardPermissions.Print
             })).ToBytes();

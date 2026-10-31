@@ -21,7 +21,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse(PagedImageHtml);
         var options = new HtmlRenderOptions { AllowSystemFontFallback = false };
         var actual = document.ExportImages(format, options);
-        var expected = document.ToPdfDocumentResult(new HtmlToPdfOptions(options)).ExportImages(format,
+        var expected = document.ConvertToPdfWithEvidence(new HtmlToPdfOptions(options)).ExportImages(format,
             new PdfImageExportOptions { Scale = 96D / 72D });
 
         Assert.Equal(2, actual.Count);
@@ -40,7 +40,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse(PagedImageHtml);
         var options = new HtmlRenderOptions { AllowSystemFontFallback = false, TargetDpi = dpi };
         var all = document.ExportImages(OfficeImageExportFormat.Png, options);
-        var pdfPages = document.ToPdfDocumentResult(new HtmlToPdfOptions(options)).ExportImages(
+        var pdfPages = document.ConvertToPdfWithEvidence(new HtmlToPdfOptions(options)).ExportImages(
             OfficeImageExportFormat.Png, new PdfImageExportOptions { TargetDpi = dpi });
         Assert.Equal(all.Count, pdfPages.Count);
         for (int index = 0; index < all.Count; index++) Assert.Equal(pdfPages[index].Bytes, all[index].Bytes);

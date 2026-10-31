@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
         [InlineData("ROUNDUP(5e-324,-15)", 1e15d)]
         public void Directional_math_keeps_decimal_boundaries_and_finite_saved_caches(string formula, double expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
+            var sheet = document.AddSheet("Math");
             sheet.CellFormula(1, 1, formula);
             Assert.Equal(1, document.Calculate());
             Assert.Equal(expected, sheet.CellAt(1, 1).GetValue<double>());
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(TRUNC(#REF!,16),99)")]
         public void Directional_math_preserves_caches_for_unsupported_operands_and_arities(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
+            var sheet = document.AddSheet("Math");
             sheet.CellValue(1, 1, 1d); sheet.CellValue(2, 1, 2d);
             sheet.CellValue(1, 2, 42d); sheet.CellFormula(1, 2, formula);
             Assert.Equal(0, document.Calculate());

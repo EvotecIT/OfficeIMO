@@ -84,6 +84,16 @@ public sealed class HtmlCssPropertyGrammarTests {
     }
 
     [Fact]
+    public void NestedVarFunctionsPreserveDeferredAndInvalidResults() {
+        string deeplyNested = string.Concat(Enumerable.Repeat("var(--x,", 4_000)) + "red" + new string(')', 4_000);
+
+        Assert.Equal(HtmlCssPropertyParseStatus.Deferred,
+            HtmlCssPropertyParser.Parse("color", deeplyNested).Status);
+        Assert.Equal(HtmlCssPropertyParseStatus.InvalidSyntax,
+            HtmlCssPropertyParser.Parse("color", "var(--x, var(red))").Status);
+    }
+
+    [Fact]
     public void DeclarationParsingRetainsSourceAndSeparatesImportant() {
         HtmlCssDeclaration declaration = Assert.Single(
             HtmlCssSyntaxParser.ParseStyleBlock("color: /* tone */ ReD !/**/ IMPORTANT;").Declarations);

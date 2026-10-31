@@ -219,15 +219,6 @@ public sealed class UpdateOfficeWordTextCommand : PSWriteOffice.Cmdlets.OfficeMu
         if (string.IsNullOrEmpty(source) || string.IsNullOrEmpty(oldValue)) {
             return source;
         }
-
-        var startIndex = 0;
-        var result = source;
-        while ((startIndex = result.IndexOf(oldValue, startIndex, comparison)) >= 0) {
-            result = result.Remove(startIndex, oldValue.Length).Insert(startIndex, newValue);
-            startIndex += newValue.Length;
-            replacements++;
-        }
-
-        return result;
+        return source.FindAndReplace(oldValue, newValue, comparison, ref replacements);
     }
 }

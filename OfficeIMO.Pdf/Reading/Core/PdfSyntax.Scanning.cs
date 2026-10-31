@@ -1,6 +1,8 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<string, CommentLineEndIndex>
+        CommentLineEnds = new System.Runtime.CompilerServices.ConditionalWeakTable<string, CommentLineEndIndex>();
     private static int FindObjectEnd(
         string text,
         int start,
@@ -975,7 +977,11 @@ internal static partial class PdfSyntax {
             int skipped = -1;
             if (c == '<') skipped = FindHexStringEnd(text, i, limit, cancellationToken);
             else if (c == '(' && literalsEnd) literalsEnd = (skipped = FindLiteralStringEnd(text, i, limit, cancellationToken)) > i;
-            else if (c == '%' && commentsEnd) commentsEnd = (skipped = FindCommentEnd(text, i, limit, cancellationToken)) > i;
+            else if (c == '%' && commentsEnd) {
+                CommentLineEndIndex lineEnds = CommentLineEnds.GetValue(text,
+                    value => new CommentLineEndIndex(value, cancellationToken));
+                commentsEnd = (skipped = lineEnds.FindEnd(text, i, limit, cancellationToken)) > i;
+            }
             if (skipped > i) i = skipped - 1;
         }
         return -1;
@@ -1003,12 +1009,35 @@ internal static partial class PdfSyntax {
         return -1;
     }
 
-    private static int FindCommentEnd(string text, int start, int limit, System.Threading.CancellationToken cancellationToken) {
-        for (int i = start + 1; i < limit; i++) {
-            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            if (text[i] == '\n' || text[i] == '\r') return i;
+    // A sparse next-line index is shared by dictionary scans of the same source text.
+    // Raw header discovery can produce many candidates inside one long PDF comment.
+    private sealed class CommentLineEndIndex {
+        private const int BlockShift = 10;
+        private const int BlockLength = 1 << BlockShift;
+        private readonly int[] _nextLineEnd;
+
+        internal CommentLineEndIndex(string text, System.Threading.CancellationToken cancellationToken) {
+            _nextLineEnd = new int[(text.Length >> BlockShift) + 2];
+            for (int i = 0; i < _nextLineEnd.Length; i++) _nextLineEnd[i] = -1;
+            int next = -1;
+            for (int i = text.Length - 1; i >= 0; i--) {
+                if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                if (text[i] is '\r' or '\n') next = i;
+                if ((i & (BlockLength - 1)) == 0) _nextLineEnd[i >> BlockShift] = next;
+            }
         }
-        return -1;
+
+        internal int FindEnd(string text, int start, int limit, System.Threading.CancellationToken cancellationToken) {
+            int from = start + 1;
+            int blockEnd = Math.Min(limit, ((from >> BlockShift) + 1) << BlockShift);
+            for (int i = from; i < blockEnd; i++) {
+                if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                if (text[i] is '\r' or '\n') return i;
+            }
+            if (blockEnd >= limit) return -1;
+            int next = _nextLineEnd[blockEnd >> BlockShift];
+            return next >= 0 && next < limit ? next : -1;
+        }
     }
 
     private static int IndexOfKeyword(string text, string keyword, int start, int limit) {

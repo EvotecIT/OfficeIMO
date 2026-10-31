@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
             string imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var imagePath = Path.Combine(imagePaths, "Kulek.jpg");
-                document.AddParagraph().AddPictureControl(imagePath, 100, 100, "Pic", "PicTag");
+                document.AddParagraph().AddPictureControl(imagePath, OfficeLength.Pixels(100), OfficeLength.Pixels(100), "Pic", "PicTag");
                 document.Save();
                 if (openWord) document.OpenInApplication();
             }

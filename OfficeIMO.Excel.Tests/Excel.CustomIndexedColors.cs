@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.ContentSafety;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Utilities;
 using Xunit;
@@ -9,7 +10,7 @@ public sealed class ExcelCustomIndexedColorTests {
     [Fact]
     public void Workbook_palette_colors_reach_cell_inspection_visual_snapshots_and_saved_readback() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Palette");
+        var sheet = document.AddSheet("Palette");
         sheet.CellValue(1, 1, "Custom palette");
         sheet.CellAt(1, 1).SetFontColor("112233").SetFillColor("445566")
             .SetBorder(ExcelCellBorders.Bottom, ExcelBorderStyle.Thin, "778899");
@@ -25,7 +26,7 @@ public sealed class ExcelCustomIndexedColorTests {
             new RgbColor { Rgb = "FF445566" }, new RgbColor { Rgb = "FF778899" }));
 
         AssertPaletteStyle(sheet.GetCellStyle(1, 1));
-        AssertPaletteStyle(Assert.Single(Assert.Single(document.CreateInspectionSnapshot().Worksheets).Cells).Style!);
+        AssertPaletteStyle(Assert.Single(Assert.Single(document.Inspect().Worksheets).Cells).Style!);
         AssertPaletteStyle(Assert.Single(sheet.Range("A1").CreateVisualSnapshot().Cells).Style);
         using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
@@ -36,7 +37,7 @@ public sealed class ExcelCustomIndexedColorTests {
     [Fact]
     public void Custom_palette_resolution_applies_tint_and_observes_palette_edits_without_changing_default_colors() {
         using var document = ExcelDocument.Create();
-        document.AddWorksheet("Palette").CellAt(1, 1).SetFontColor("112233");
+        document.AddSheet("Palette").CellAt(1, 1).SetFontColor("112233");
         var workbook = document.OpenXmlDocument.WorkbookPart!;
         var styles = workbook.WorkbookStylesPart!.Stylesheet!;
         var entry = new RgbColor { Rgb = "FF112233" };
@@ -50,7 +51,27 @@ public sealed class ExcelCustomIndexedColorTests {
         Assert.Equal("FF000000", ExcelThemeColorResolver.Resolve(new Color { Indexed = 0U }, workbook));
     }
 
-    private static void AssertPaletteStyle(ExcelCellStyleSnapshot style) {
+    [Fact]
+    public void Content_safety_inspection_uses_the_workbook_palette_for_indexed_font_colors() {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddSheet("Palette");
+        sheet.CellValue(1, 1, "Concealed text");
+        sheet.CellAt(1, 1).SetFontColor("112233");
+        var workbook = document.OpenXmlDocument.WorkbookPart!;
+        var styles = workbook.WorkbookStylesPart!.Stylesheet!;
+        Cell cell = workbook.WorksheetParts.Single().Worksheet.Descendants<Cell>().Single();
+        CellFormat format = styles.CellFormats!.Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);
+        styles.Fonts!.Elements<Font>().ElementAt((int)format.FontId!.Value).Color = new Color { Indexed = 2U };
+        styles.Colors = new Colors(new IndexedColors(new RgbColor { Rgb = "FF000000" },
+            new RgbColor { Rgb = "FF000000" }, new RgbColor { Rgb = "FFFFFFFF" }));
+
+        byte[] bytes = document.ToBytes(ExcelFileFormat.Xlsx);
+        Assert.Contains(ExcelDocument.InspectContentSafety(bytes, "palette.xlsx").Findings,
+            finding => finding.Kind == OfficeContentConcealmentKind.LowContrastText
+                && finding.Location.IndexOf("Cell(A1)", StringComparison.Ordinal) >= 0);
+    }
+
+    private static void AssertPaletteStyle(ExcelCellStyleInfo style) {
         Assert.Equal("FF112233", style.FontColorArgb);
         Assert.Equal("FF445566", style.FillColorArgb);
         Assert.Equal("FF778899", style.Border!.Bottom!.ColorArgb);

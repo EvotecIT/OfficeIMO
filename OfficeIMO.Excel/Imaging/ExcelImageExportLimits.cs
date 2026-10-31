@@ -7,6 +7,26 @@ namespace OfficeIMO.Excel {
         internal const int MaximumAnchorExtentPixels = 16_384;
         internal const double MaximumStrokeWidth = 64D;
 
+        internal static int ImageExtentPixels(ExcelImage image, bool horizontal) {
+            try { return ExtentPixels(horizontal ? image.Width : image.Height); }
+            catch (OverflowException) { return MaximumAnchorExtentPixels; }
+        }
+
+        internal static int ExtentPixels(OfficeLength value) {
+            if (value <= OfficeLength.Zero) return 0;
+            double pixels = Math.Max(1D, Math.Round(value.ToPixels()));
+            return ClampExtentPixels(pixels >= int.MaxValue ? int.MaxValue : (int)pixels);
+        }
+
+        internal static int OffsetPixels(OfficeLength value) {
+            double pixels = Math.Round(value.ToPixels());
+            if (pixels <= -int.MaxValue) return -MaximumAnchorOffsetPixels;
+            if (pixels >= int.MaxValue) return MaximumAnchorOffsetPixels;
+            return ClampOffsetPixels((int)pixels);
+        }
+
+        internal static int AbsoluteOffsetPixels(OfficeLength value) => ClampAbsoluteOffsetPixels(OffsetPixels(value));
+
         internal static int ClampOffsetPixels(int value) =>
             Math.Max(-MaximumAnchorOffsetPixels, Math.Min(MaximumAnchorOffsetPixels, value));
 

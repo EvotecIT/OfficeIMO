@@ -47,7 +47,7 @@ public sealed class StudioTranslatedWorkspaceTests {
                 window.UpdateLayout();
                 Capture(window, culture + "-settings-" + width);
                 string source = Path.Combine(paths.Root, "translation-layout.pdf");
-                PdfDocument.Create(document => document.Page(page => page.Size(200, 300).Content(content =>
+                PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)).Content(content =>
                     content.Item(item => item.Paragraph(text => text.Text("Translated interface print layout")))))).Save(source);
                 await window.TabHost.OpenDocumentAsync(source);
                 window.ViewModel.ShowPrintPreviewCommand.Execute(null);

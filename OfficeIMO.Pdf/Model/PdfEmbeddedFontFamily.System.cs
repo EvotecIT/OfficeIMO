@@ -40,8 +40,13 @@ public sealed partial class PdfEmbeddedFontFamily {
     public static bool TryFromSystem(string familyName, out PdfEmbeddedFontFamily? fontFamily, string? pdfFamilyName = null) {
         Guard.NotNullOrWhiteSpace(familyName, nameof(familyName));
         string requestedFamily = familyName.Trim();
+        string normalizedFamily = NormalizeFamilyKey(requestedFamily);
+        if (normalizedFamily.Length == 0) {
+            fontFamily = null;
+            return false;
+        }
         string exposedFamily = string.IsNullOrWhiteSpace(pdfFamilyName) ? requestedFamily : pdfFamilyName!.Trim();
-        string cacheKey = NormalizeFamilyKey(requestedFamily) + "\0" + exposedFamily;
+        string cacheKey = normalizedFamily + "\0" + exposedFamily;
         System.Lazy<SystemFontFamilyCacheEntry> lazyEntry;
         lock (SystemFontFamilyCacheLock) {
             if (!SystemFontFamilyCache.TryGetValue(cacheKey, out lazyEntry!)) {
@@ -61,7 +66,9 @@ public sealed partial class PdfEmbeddedFontFamily {
 
     private static SystemFontFamilyCacheEntry ResolveSystemFontFamily(string requestedFamily, string exposedFamily) {
         foreach (string candidate in OfficeIMO.Drawing.OfficeSystemFontFamilyAliases.Expand(requestedFamily)) {
-            System.Collections.Generic.IReadOnlyList<string> files = SystemFontIndex.Value.Find(NormalizeFamilyKey(candidate));
+            string normalizedCandidate = NormalizeFamilyKey(candidate);
+            if (normalizedCandidate.Length == 0) continue;
+            System.Collections.Generic.IReadOnlyList<string> files = SystemFontIndex.Value.Find(normalizedCandidate);
             if (TryFromSystemFontFiles(candidate, files, out PdfEmbeddedFontFamily? family, exposedFamily))
                 return new SystemFontFamilyCacheEntry(family);
         }
@@ -101,6 +108,10 @@ public sealed partial class PdfEmbeddedFontFamily {
         Guard.NotNullOrWhiteSpace(familyName, nameof(familyName));
         Guard.NotNull(fontFiles, nameof(fontFiles));
         string normalizedFamily = NormalizeFamilyKey(familyName);
+        if (normalizedFamily.Length == 0) {
+            fontFamily = null;
+            return false;
+        }
         string[] acceptedFileNamePrefixes = BuildAcceptedFileNamePrefixes(normalizedFamily);
 
         SystemFontFaceCandidate? regularFace = null;
@@ -670,6 +681,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         }
 
         internal System.Collections.Generic.IReadOnlyList<string> Find(string normalizedFamily) {
+            if (normalizedFamily.Length == 0) return System.Array.Empty<string>();
             if (_filesByFamily.TryGetValue(normalizedFamily, out System.Collections.Generic.List<string>? files)) return files;
             string[] prefixes = BuildAcceptedFileNamePrefixes(normalizedFamily);
             return _allFiles.Where(path => {

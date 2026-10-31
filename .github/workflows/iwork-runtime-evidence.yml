@@ -3,34 +3,44 @@ name: iWork runtime evidence
 on:
   pull_request:
     paths:
+      - '.github/workflows/ci-coverage.yml'
       - "OfficeIMO.IWork.Benchmarks/**"
       - "Build/Benchmarks/*IWork*"
       - "Build/Benchmarks/iwork-runtime.benchmark.ps1"
       - ".github/workflows/iwork-runtime-evidence.yml"
+  push:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   evidence:
+    needs: coverage
+    if: needs.coverage.outputs.build == 'true'
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest","windows-latest"]' || '["ubuntu-latest","windows-latest","macos-latest"]') }}
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.114
-            10.0.303
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - name: Build iWork workloads
         run: dotnet build OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Release -f net8.0
       - name: Validate native content and active cancellation
@@ -48,6 +58,11 @@ jobs:
           ref: 77bb1364bd4e21a23200189504c6805f8c13c8dc
           path: .benchmark-artifacts/iwork-tooling
           persist-credentials: false
+      - name: Setup pinned PowerForge SDK
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: .benchmark-artifacts/iwork-tooling/global.json
       - name: Build pinned PowerForge measurement owner
         if: github.event_name == 'workflow_dispatch'
         working-directory: .benchmark-artifacts/iwork-tooling
@@ -83,3 +98,22 @@ jobs:
           name: iwork-runtime-${{ matrix.os }}
           path: .benchmark-artifacts/iwork-resource
           if-no-files-found: error
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [coverage, evidence]
+    steps:
+      - name: Require coverage and validation
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += ['coverage'] if results['coverage']['result'] != 'success' else []
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY

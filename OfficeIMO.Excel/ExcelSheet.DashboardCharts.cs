@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
         public int Column { get; set; } = 1;
 
         /// <summary>Optional chart type override.</summary>
-        public ExcelChartType? ChartType { get; set; }
+        public OfficeChartType? ChartType { get; set; }
 
         /// <summary>Optional chart title.</summary>
         public string? Title { get; set; }
@@ -46,11 +46,11 @@ namespace OfficeIMO.Excel {
         /// <summary>Include cached data in the chart for portability.</summary>
         public bool IncludeCachedData { get; set; } = true;
 
-        /// <summary>Optional width override in pixels.</summary>
-        public int? WidthPixels { get; set; }
+        /// <summary>Optional width physical override.</summary>
+        public OfficeLength? Width { get; set; }
 
-        /// <summary>Optional height override in pixels.</summary>
-        public int? HeightPixels { get; set; }
+        /// <summary>Optional height physical override.</summary>
+        public OfficeLength? Height { get; set; }
 
         /// <summary>Optional chart style id override.</summary>
         public int? StyleId { get; set; }
@@ -67,26 +67,31 @@ namespace OfficeIMO.Excel {
         /// <returns>The created chart.</returns>
         public ExcelChart AddDashboardChart(ExcelDashboardChartOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
-            if (options.Row <= 0 || options.Row > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.Row), "Chart row must be between 1 and the Excel row limit.");
-            if (options.Column <= 0 || options.Column > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(options.Column), "Chart column must be between 1 and the Excel column limit.");
-            if (options.WidthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(options.WidthPixels), "Chart width must be greater than zero.");
-            if (options.HeightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(options.HeightPixels), "Chart height must be greater than zero.");
+            if (!Enum.IsDefined(typeof(ExcelDashboardChartPreset), options.Preset)) throw new ArgumentOutOfRangeException(nameof(options.Preset));
+            if (options.Row <= 0 || options.Row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.Row), "Chart row must be between 1 and the Excel row limit.");
+            if (options.Column <= 0 || options.Column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(options.Column), "Chart column must be between 1 and the Excel column limit.");
+            if (options.Width <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(options.Width), "Chart width must be greater than zero.");
+            if (options.Height <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(options.Height), "Chart height must be greater than zero.");
             if (string.IsNullOrWhiteSpace(options.Range) == string.IsNullOrWhiteSpace(options.TableName)) {
                 throw new ArgumentException("Provide either Range or TableName.", nameof(options));
             }
 
             var preset = ResolveDashboardChartPreset(options.Preset);
             var chartType = options.ChartType ?? preset.ChartType;
-            int width = options.WidthPixels ?? preset.WidthPixels;
-            int height = options.HeightPixels ?? preset.HeightPixels;
-            int styleId = options.StyleId ?? preset.StyleId;
-            int colorStyleId = options.ColorStyleId ?? preset.ColorStyleId;
+            OfficeLength width = options.Width ?? OfficeLength.Pixels(preset.WidthPixels);
+            OfficeLength height = options.Height ?? OfficeLength.Pixels(preset.HeightPixels);
 
             ExcelChart chart = !string.IsNullOrWhiteSpace(options.TableName)
-                ? AddChartFromTable(options.TableName!, options.Row, options.Column, width, height, chartType, options.Title, options.IncludeCachedData)
-                : AddChartFromRange(options.Range!, options.Row, options.Column, width, height, chartType, options.HasHeaders, options.Title, options.IncludeCachedData);
+                ? AddChart(chartType, options.TableName!, new OfficeIMO.Excel.ExcelChartOptions { Row = options.Row, Column = options.Column, Width = width, Height = height, Title = options.Title, IncludeCachedData = options.IncludeCachedData })
+                : AddChart(chartType, options.Range!, new OfficeIMO.Excel.ExcelChartOptions { Row = options.Row, Column = options.Column, Width = width, Height = height, HasHeaders = options.HasHeaders, Title = options.Title, IncludeCachedData = options.IncludeCachedData });
 
-            chart.ApplyStylePreset(styleId, colorStyleId);
+            return chart.ApplyDashboardPreset(options.Preset, options.StyleId, options.ColorStyleId);
+        }
+
+        internal static void ApplyDashboardAppearance(ExcelChart chart, ExcelDashboardChartPreset kind,
+            int? styleId, int? colorStyleId) {
+            var preset = ResolveDashboardChartPreset(kind);
+            chart.ApplyStylePreset(styleId ?? preset.StyleId, colorStyleId ?? preset.ColorStyleId);
             if (preset.HideLegend) {
                 chart.HideLegend();
             } else {
@@ -104,18 +109,16 @@ namespace OfficeIMO.Excel {
                     numberFormat: null);
             }
 
-            if (!string.IsNullOrWhiteSpace(options.Title)) {
-                chart.SetTitleTextStyle(fontSizePoints: 12, bold: true);
+            if (!string.IsNullOrWhiteSpace(chart.Title)) {
+                chart.SetTitleTextStyle(fontSize: OfficeLength.Points(12), bold: true);
             }
-
-            return chart;
         }
 
         private static ResolvedDashboardChartPreset ResolveDashboardChartPreset(ExcelDashboardChartPreset preset) {
             switch (preset) {
                 case ExcelDashboardChartPreset.Trend:
                     return new ResolvedDashboardChartPreset(
-                        ExcelChartType.Line,
+                        OfficeChartType.Line,
                         widthPixels: 720,
                         heightPixels: 320,
                         styleId: 252,
@@ -129,7 +132,7 @@ namespace OfficeIMO.Excel {
                         dataLabelPosition: null);
                 case ExcelDashboardChartPreset.Contribution:
                     return new ResolvedDashboardChartPreset(
-                        ExcelChartType.Pie,
+                        OfficeChartType.Pie,
                         widthPixels: 520,
                         heightPixels: 360,
                         styleId: 253,
@@ -143,7 +146,7 @@ namespace OfficeIMO.Excel {
                         dataLabelPosition: C.DataLabelPositionValues.BestFit);
                 case ExcelDashboardChartPreset.CompactComparison:
                     return new ResolvedDashboardChartPreset(
-                        ExcelChartType.BarClustered,
+                        OfficeChartType.BarClustered,
                         widthPixels: 420,
                         heightPixels: 260,
                         styleId: 251,
@@ -157,7 +160,7 @@ namespace OfficeIMO.Excel {
                         dataLabelPosition: C.DataLabelPositionValues.OutsideEnd);
                 default:
                     return new ResolvedDashboardChartPreset(
-                        ExcelChartType.ColumnClustered,
+                        OfficeChartType.ColumnClustered,
                         widthPixels: 640,
                         heightPixels: 360,
                         styleId: 251,
@@ -174,7 +177,7 @@ namespace OfficeIMO.Excel {
 
         private sealed class ResolvedDashboardChartPreset {
             internal ResolvedDashboardChartPreset(
-                ExcelChartType chartType,
+                OfficeChartType chartType,
                 int widthPixels,
                 int heightPixels,
                 int styleId,
@@ -200,7 +203,7 @@ namespace OfficeIMO.Excel {
                 DataLabelPosition = dataLabelPosition;
             }
 
-            internal ExcelChartType ChartType { get; }
+            internal OfficeChartType ChartType { get; }
             internal int WidthPixels { get; }
             internal int HeightPixels { get; }
             internal int StyleId { get; }

@@ -24,7 +24,7 @@ public enum OfficeImageOrientation {
 }
 
 /// <summary>Reads and normalizes embedded JPEG EXIF and classic-TIFF orientation without platform imaging dependencies.</summary>
-public static class OfficeImageOrientationNormalizer {
+internal static class OfficeImageOrientationNormalizer {
     /// <summary>Attempts to read an explicit non-default or default orientation from JPEG EXIF or classic TIFF bytes.</summary>
     public static bool TryRead(byte[]? imageBytes, out OfficeImageOrientation orientation) {
         return TryRead(imageBytes, CancellationToken.None, out orientation);

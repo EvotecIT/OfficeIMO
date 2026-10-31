@@ -17,25 +17,25 @@ namespace OfficeIMO.Examples.Word {
 
                 WordList wordList = document.AddList(WordListStyle.Numbered);
                 wordList.AddItem("Text 1").SetCapsStyle(WordCapsStyle.SmallCaps);
-                wordList.AddItem("Text 2.1", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
-                wordList.AddItem("Text 2.2", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
+                wordList.AddItem("Text 2.1", 1).SetColor(OfficeIMO.OfficeColor.Brown);
+                wordList.AddItem("Text 2.2", 1).SetColor(OfficeIMO.OfficeColor.Brown);
                 // here we set another list element but we also change it using standard paragraph change
                 paragraph = wordList.AddItem("Text 3");
                 paragraph.Bold = true;
                 paragraph.SetItalic();
 
-                document.AddParagraph("This is second list").SetColor(OfficeIMO.Drawing.OfficeColor.OrangeRed).SetUnderline(WordUnderlineStyle.Double);
+                document.AddParagraph("This is second list").SetColor(OfficeIMO.OfficeColor.OrangeRed).SetUnderline(WordUnderlineStyle.Double);
 
                 WordList wordList1 = document.AddList(WordListStyle.HeadingIA1);
                 wordList1.AddItem("Temp 1").SetCapsStyle(WordCapsStyle.SmallCaps);
-                wordList1.AddItem("Temp 2.1", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
-                wordList1.AddItem("Temp 2.2", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
-                wordList1.AddItem("Temp 2.3", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
-                wordList1.AddItem("Temp 2.3.4", 2).SetColor(OfficeIMO.Drawing.OfficeColor.Brown).Remove();
+                wordList1.AddItem("Temp 2.1", 1).SetColor(OfficeIMO.OfficeColor.Brown);
+                wordList1.AddItem("Temp 2.2", 1).SetColor(OfficeIMO.OfficeColor.Brown);
+                wordList1.AddItem("Temp 2.3", 1).SetColor(OfficeIMO.OfficeColor.Brown);
+                wordList1.AddItem("Temp 2.3.4", 2).SetColor(OfficeIMO.OfficeColor.Brown).Remove();
                 wordList1.ListItems[1].Remove();
                 wordList1.AddItem("Temp 3");
 
-                document.Lists[0].AddItem("Added 2.3.5", 3).SetColor(OfficeIMO.Drawing.OfficeColor.DimGrey);
+                document.Lists[0].AddItem("Added 2.3.5", 3).SetColor(OfficeIMO.OfficeColor.DimGrey);
 
 
                 Console.WriteLine("Lists count - before adding section: " + document.Lists.Count);
@@ -48,8 +48,8 @@ namespace OfficeIMO.Examples.Word {
 
                 WordList wordList2 = document.AddList(WordListStyle.Numbered);
                 wordList2.AddItem("Section 1").SetCapsStyle(WordCapsStyle.SmallCaps);
-                wordList2.AddItem("Section 2.1", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
-                wordList2.AddItem("Section 2.2", 1).SetColor(OfficeIMO.Drawing.OfficeColor.Brown);
+                wordList2.AddItem("Section 2.1", 1).SetColor(OfficeIMO.OfficeColor.Brown);
+                wordList2.AddItem("Section 2.2", 1).SetColor(OfficeIMO.OfficeColor.Brown);
 
                 Console.WriteLine("Lists count - after adding section and 1 list: " + document.Lists.Count);
                 Console.WriteLine("Lists count - section 0: " + document.Sections[0].Lists.Count);

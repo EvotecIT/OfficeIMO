@@ -17,7 +17,7 @@ public enum PdfColumnWidthUnit {
 /// <see cref="Auto"/>, or <see cref="Percent"/> to make sizing intent explicit.
 /// </summary>
 public readonly struct PdfColumnWidth {
-    private PdfColumnWidth(PdfColumnWidthUnit unit, double value, double minimum, double? maximum) {
+    private PdfColumnWidth(PdfColumnWidthUnit unit, double value, global::OfficeIMO.OfficeLength minimum, global::OfficeIMO.OfficeLength? maximum) {
         Unit = unit;
         Value = value;
         Minimum = minimum;
@@ -31,30 +31,30 @@ public readonly struct PdfColumnWidth {
     public double Value { get; }
 
     /// <summary>Gets the minimum automatic width in points.</summary>
-    public double Minimum { get; }
+    public global::OfficeIMO.OfficeLength Minimum { get; }
 
     /// <summary>Gets the optional maximum automatic width in points.</summary>
-    public double? Maximum { get; }
+    public global::OfficeIMO.OfficeLength? Maximum { get; }
 
     /// <summary>Creates a column that receives a weighted share of remaining width.</summary>
     public static PdfColumnWidth Relative(double weight = 1D) {
         ValidatePositiveFinite(weight, nameof(weight));
-        return new PdfColumnWidth(PdfColumnWidthUnit.Relative, weight, 0D, null);
+        return new PdfColumnWidth(PdfColumnWidthUnit.Relative, weight, global::OfficeIMO.OfficeLength.Points(0D), null);
     }
 
     /// <summary>Creates a column with an exact width in points.</summary>
-    public static PdfColumnWidth Fixed(double points) {
-        ValidatePositiveFinite(points, nameof(points));
-        return new PdfColumnWidth(PdfColumnWidthUnit.Points, points, 0D, null);
+    public static PdfColumnWidth Fixed(global::OfficeIMO.OfficeLength points) {
+        ValidatePositiveFinite(points.ToPoints(), nameof(points));
+        return new PdfColumnWidth(PdfColumnWidthUnit.Points, points.ToPoints(), global::OfficeIMO.OfficeLength.Points(0D), null);
     }
 
     /// <summary>Creates a content-sized column, optionally constrained in points.</summary>
-    public static PdfColumnWidth Auto(double minimum = 0D, double? maximum = null) {
-        ValidateNonNegativeFinite(minimum, nameof(minimum));
+    public static PdfColumnWidth Auto(global::OfficeIMO.OfficeLength minimum = default, global::OfficeIMO.OfficeLength? maximum = null) {
+        ValidateNonNegativeFinite(minimum.ToPoints(), nameof(minimum));
         if (maximum.HasValue) {
-            ValidatePositiveFinite(maximum.Value, nameof(maximum));
-            if (maximum.Value < minimum) {
-                throw new System.ArgumentOutOfRangeException(nameof(maximum), maximum, "Maximum automatic width cannot be smaller than the minimum width.");
+            ValidatePositiveFinite(maximum.Value.ToPoints(), nameof(maximum));
+            if (maximum.Value.ToPoints() < minimum.ToPoints()) {
+                throw new System.ArgumentOutOfRangeException(nameof(maximum), (maximum?.ToPoints()), "Maximum automatic width cannot be smaller than the minimum width.");
             }
         }
 
@@ -68,7 +68,7 @@ public readonly struct PdfColumnWidth {
             throw new System.ArgumentOutOfRangeException(nameof(percent), percent, "Column width cannot exceed 100%.");
         }
 
-        return new PdfColumnWidth(PdfColumnWidthUnit.Percent, percent, 0D, null);
+        return new PdfColumnWidth(PdfColumnWidthUnit.Percent, percent, global::OfficeIMO.OfficeLength.Points(0D), null);
     }
 
     internal void Validate(string parameterName) {
@@ -84,9 +84,9 @@ public readonly struct PdfColumnWidth {
                 }
                 break;
             case PdfColumnWidthUnit.Auto:
-                ValidateNonNegativeFinite(Minimum, parameterName);
-                if (Maximum.HasValue && Maximum.Value < Minimum) {
-                    throw new System.ArgumentOutOfRangeException(parameterName, Maximum, "Maximum automatic width cannot be smaller than the minimum width.");
+                ValidateNonNegativeFinite(Minimum.ToPoints(), parameterName);
+                if (Maximum.HasValue && Maximum.Value.ToPoints() < Minimum.ToPoints()) {
+                    throw new System.ArgumentOutOfRangeException(parameterName, (Maximum?.ToPoints()), "Maximum automatic width cannot be smaller than the minimum width.");
                 }
                 break;
             default:

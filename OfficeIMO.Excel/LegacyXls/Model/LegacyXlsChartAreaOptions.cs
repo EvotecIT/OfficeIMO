@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes area chart group options decoded from a legacy XLS Area record.
     /// </summary>
-    public sealed class LegacyXlsChartAreaOptions {
+    internal sealed class LegacyXlsChartAreaOptions {
         internal LegacyXlsChartAreaOptions(ushort flags) {
             Flags = flags;
         }

@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
             }
             DocumentFormat.OpenXml.Packaging.PivotTablePart? selected = null;
             foreach (var part in sheet._worksheetPart.PivotTableParts) {
-                if (!A1.TryParseRange(part.PivotTableDefinition?.Location?.Reference?.Value ?? "", out int r1, out int c1, out int r2, out int c2)
+                if (!ExcelA1.TryParseRange(part.PivotTableDefinition?.Location?.Reference?.Value ?? "", out int r1, out int c1, out int r2, out int c2)
                     || top > r2 || bottom < r1 || left > c2 || right < c1) continue;
                 if (selected != null) { result = FormulaArgumentValue.Error("#REF!"); return true; }
                 selected = part;

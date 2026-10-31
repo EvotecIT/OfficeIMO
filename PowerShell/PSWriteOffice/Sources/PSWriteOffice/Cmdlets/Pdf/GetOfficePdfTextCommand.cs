@@ -72,7 +72,7 @@ public sealed class GetOfficePdfTextCommand : PSCmdlet
             PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent));
         var semanticOptions = string.IsNullOrWhiteSpace(PageRange)
             ? null
-            : new PdfReadOptions { PageSelection = PdfPageSelection.Parse(PageRange!) };
+            : new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRange!) };
         PdfDocumentReadResult result = document.Read(semanticOptions);
         if (AsTextBlock.IsPresent)
         {
@@ -131,7 +131,7 @@ public sealed class GetOfficePdfTextCommand : PSCmdlet
             return;
         }
 
-        var text = AsMarkdown.IsPresent ? result.ToMarkdown() : result.Text;
+        var text = AsMarkdown.IsPresent ? result.ExtractMarkdown() : result.Text;
 
         if (!string.IsNullOrWhiteSpace(OutputPath))
         {

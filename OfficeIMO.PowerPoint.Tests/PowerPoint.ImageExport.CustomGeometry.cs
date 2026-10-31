@@ -24,20 +24,20 @@ namespace OfficeIMO.Tests {
             sharedPath.StrokeWidth = 2.25D;
 
             using var stream = new System.IO.MemoryStream();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
-                presentation.SlideSize.SetSizePoints(180, 140);
-                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometryPoints(
-                    sharedPath, 30, 20, 120, 100, "Shared freeform");
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+                presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(140));
+                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometry(
+                    sharedPath, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(100), "Shared freeform");
                 Assert.Equal("Shared freeform", shape.Name);
                 Assert.Null(shape.ShapeType);
                 Assert.Equal("0EA5E9", shape.FillColor);
                 Assert.Equal("0C4A6E", shape.OutlineColor);
-                Assert.Equal(2.25D, shape.OutlineWidthPoints);
+                Assert.Equal(2.25D, shape.OutlineWidth?.ToPoints());
                 presentation.Save();
             }
 
             stream.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             PowerPointAutoShape authored = Assert.IsType<PowerPointAutoShape>(
                 Assert.Single(reopened.Slides[0].Shapes));
             Assert.Null(authored.ShapeType);
@@ -57,8 +57,8 @@ namespace OfficeIMO.Tests {
             double[] invalidWidths = {
                 -1D, double.NaN, double.PositiveInfinity, 1585D
             };
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             foreach (double width in invalidWidths) {
                 OfficeShape path = OfficeShape.Path(
@@ -68,22 +68,16 @@ namespace OfficeIMO.Tests {
                 path.StrokeWidth = width;
 
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
-                    slide.AddCustomGeometryPoints(path,
-                        10, 10, 100, 100));
+                    slide.AddCustomGeometry(path,
+                        OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
                 Assert.Empty(slide.Shapes);
             }
-
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                10, 10, 100, 100);
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-                shape.OutlineWidthPoints = double.NaN);
-            Assert.Null(shape.OutlineWidthPoints);
         }
 
         [Fact]
         public void PowerPointSlide_RejectsCustomGeometryGradientsBeforeMutation() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             OfficeShape fillGradient = OfficeShape.Polygon(
                 new OfficePoint(0, 0), new OfficePoint(100, 0),
@@ -93,8 +87,8 @@ namespace OfficeIMO.Tests {
                 OfficeColor.FromRgb(37, 99, 235),
                 OfficeColor.FromRgb(14, 165, 233));
             Assert.Throws<NotSupportedException>(() =>
-                slide.AddCustomGeometryPoints(fillGradient,
-                    10, 10, 100, 100));
+                slide.AddCustomGeometry(fillGradient,
+                    OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
 
             OfficeShape strokeGradient = OfficeShape.Path(
                 OfficePathCommand.MoveTo(0, 0),
@@ -104,8 +98,8 @@ namespace OfficeIMO.Tests {
                     OfficeColor.FromRgb(37, 99, 235),
                     OfficeColor.FromRgb(14, 165, 233));
             Assert.Throws<NotSupportedException>(() =>
-                slide.AddCustomGeometryPoints(strokeGradient,
-                    10, 10, 100, 100));
+                slide.AddCustomGeometry(strokeGradient,
+                    OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
             Assert.Empty(slide.Shapes);
         }
 
@@ -122,11 +116,11 @@ namespace OfficeIMO.Tests {
                 OfficePathCommand.LineTo(0, 100),
                 OfficePathCommand.Close());
             geometry.FillColor = OfficeColor.FromRgb(14, 165, 233);
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
 
             NotSupportedException error = Assert.Throws<NotSupportedException>(() =>
-                slide.AddCustomGeometryPoints(geometry, 10, 10, 100, 100));
+                slide.AddCustomGeometry(geometry, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
             Assert.Contains("even-odd", error.Message,
                 StringComparison.OrdinalIgnoreCase);
 
@@ -137,12 +131,12 @@ namespace OfficeIMO.Tests {
                 new OfficePoint(100, 0));
             selfIntersecting.FillColor = OfficeColor.FromRgb(14, 165, 233);
             Assert.Throws<NotSupportedException>(() =>
-                slide.AddCustomGeometryPoints(selfIntersecting,
-                    10, 10, 100, 100));
+                slide.AddCustomGeometry(selfIntersecting,
+                    OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
 
             geometry.FillRule = OfficeFillRule.NonZero;
-            Assert.NotNull(slide.AddCustomGeometryPoints(geometry,
-                10, 10, 100, 100));
+            Assert.NotNull(slide.AddCustomGeometry(geometry,
+                OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
             Assert.Empty(presentation.ValidateDocument());
         }
 
@@ -158,12 +152,12 @@ namespace OfficeIMO.Tests {
             OfficeShape geometry = OfficeShape.Polygon(points);
             geometry.FillRule = OfficeFillRule.EvenOdd;
             geometry.FillColor = OfficeColor.FromRgb(14, 165, 233);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
 
             NotSupportedException error = Assert.Throws<NotSupportedException>(() =>
-                slide.AddCustomGeometryPoints(geometry, 10, 10, 100, 100));
+                slide.AddCustomGeometry(geometry, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
             Assert.Contains("even-odd", error.Message,
                 StringComparison.OrdinalIgnoreCase);
             Assert.Empty(slide.Shapes);
@@ -180,9 +174,9 @@ namespace OfficeIMO.Tests {
             polygon.StrokeWidth = 3D;
 
             using var stream = new System.IO.MemoryStream();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
-                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometryPoints(
-                    polygon, 20, 20, 120, 80);
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometry(
+                    polygon, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
                 Assert.Equal(75, shape.OutlineTransparency);
                 A.Alpha alpha = shape.Element.Descendants<A.Outline>().Single()
                     .Descendants<A.Alpha>().Single();
@@ -191,7 +185,7 @@ namespace OfficeIMO.Tests {
             }
 
             stream.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             PowerPointAutoShape authored = Assert.IsType<PowerPointAutoShape>(
                 Assert.Single(reopened.Slides[0].Shapes));
             Assert.Equal(75, authored.OutlineTransparency);
@@ -214,10 +208,10 @@ namespace OfficeIMO.Tests {
                 OfficeLineMarkerKind.Diamond, 12D, 16D);
 
             using var stream = new System.IO.MemoryStream();
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Create(stream)) {
-                presentation.AddSlide().AddCustomGeometryPoints(path,
-                    20, 20, 120, 80);
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Create(stream)) {
+                presentation.AddSlide().AddCustomGeometry(path,
+                    OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
                 var validation = presentation.ValidateDocument();
                 Assert.True(validation.Count == 0, string.Join(
                     Environment.NewLine, validation.Select(error =>
@@ -227,8 +221,8 @@ namespace OfficeIMO.Tests {
             }
 
             stream.Position = 0;
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(stream);
             PowerPointAutoShape authored = Assert.IsType<PowerPointAutoShape>(
                 Assert.Single(reopened.Slides[0].Shapes));
             A.Outline outline = authored.Element.Descendants<A.Outline>()
@@ -257,9 +251,9 @@ namespace OfficeIMO.Tests {
             polygon.FillOpacity = 0.5D;
 
             using var stream = new System.IO.MemoryStream();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
-                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometryPoints(
-                    polygon, 20, 20, 120, 80);
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometry(
+                    polygon, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
                 Assert.Equal(75, shape.FillTransparency);
                 A.Alpha alpha = shape.Element.Descendants<A.SolidFill>().First()
                     .Descendants<A.Alpha>().Single();
@@ -268,7 +262,7 @@ namespace OfficeIMO.Tests {
             }
 
             stream.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             PowerPointAutoShape authored = Assert.IsType<PowerPointAutoShape>(
                 Assert.Single(reopened.Slides[0].Shapes));
             Assert.Equal(75, authored.FillTransparency);
@@ -277,9 +271,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointShape_OutlineOpacityPreservesSchemeColorChoice() {
             using var stream = new System.IO.MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            PowerPointAutoShape shape = presentation.AddSlide().AddRectanglePoints(
-                20, 20, 120, 80);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            PowerPointAutoShape shape = presentation.AddSlide().AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             shape.OutlineColor = "112233";
             A.SolidFill solid = shape.Element.Descendants<A.Outline>().Single()
                 .GetFirstChild<A.SolidFill>()!;
@@ -301,13 +295,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointShape_OutlineTransparencyPreservesThemeLineReference() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.SetThemeColorForAllMasters(
                 PowerPointThemeColor.Accent2, "123456");
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             A.Outline themeOutline = slide.SlidePart.SlideLayoutPart!
                 .SlideMasterPart!.ThemePart!.Theme.ThemeElements!
@@ -358,9 +352,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointShape_FillTransparencyPreservesSchemeColorChoice() {
             using var stream = new System.IO.MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            PowerPointAutoShape shape = presentation.AddSlide().AddRectanglePoints(
-                20, 20, 120, 80);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            PowerPointAutoShape shape = presentation.AddSlide().AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             shape.FillColor = "112233";
             A.SolidFill solid = shape.Element.Descendants<ShapeProperties>().Single()
                 .GetFirstChild<A.SolidFill>()!;
@@ -382,13 +376,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointShape_FillTransparencyPreservesThemeFillReference() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.SetThemeColorForAllMasters(
                 PowerPointThemeColor.Accent2, "123456");
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
             var scheme = new A.SchemeColor {
@@ -418,11 +412,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointShape_FillTransparencyMaterializesFixedThemeFill() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
             A.FillStyleList fillStyles = slide.SlidePart.SlideLayoutPart!
@@ -460,13 +454,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointShape_FillTransparencyRejectsTransformedPlaceholderThemeFill() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.SetThemeColorForAllMasters(
                 PowerPointThemeColor.Accent2, "123456");
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
             A.FillStyleList fillStyles = slide.SlidePart.SlideLayoutPart!
@@ -505,9 +499,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointShape_FillTransparencyRejectsInheritedPictureFillWithoutMutation() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
             A.FillStyleList fillStyles = slide.SlidePart.SlideLayoutPart!
@@ -540,11 +534,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointShape_OutlineTransparencyMaterializesFixedThemeLine() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.Outline>();
             A.LineStyleList lineStyles = slide.SlidePart.SlideLayoutPart!
@@ -592,11 +586,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointShape_OutlineTransparencyRejectsTransformedPlaceholderThemeLine() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.Outline>();
             A.LineStyleList lineStyles = slide.SlidePart.SlideLayoutPart!
@@ -634,11 +628,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointShape_TransparencyMaterializesMixedThemeColors() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
             openXmlShape.ShapeProperties.RemoveAllChildren<A.Outline>();
@@ -694,8 +688,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointSlide_RejectsNonFiniteCustomGeometryOpacityBeforeMutation() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             OfficeShape invalidFill = OfficeShape.Polygon(
                 new OfficePoint(0, 0), new OfficePoint(100, 0),
@@ -709,9 +703,9 @@ namespace OfficeIMO.Tests {
             invalidStroke.StrokeOpacity = double.PositiveInfinity;
 
             Assert.Throws<ArgumentException>(() => slide
-                .AddCustomGeometryPoints(invalidFill, 10, 10, 100, 80));
+                .AddCustomGeometry(invalidFill, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(80)));
             Assert.Throws<ArgumentException>(() => slide
-                .AddCustomGeometryPoints(invalidStroke, 10, 10, 100, 80));
+                .AddCustomGeometry(invalidStroke, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(80)));
             Assert.Empty(slide.Shapes);
         }
 
@@ -725,19 +719,19 @@ namespace OfficeIMO.Tests {
             polygon.FillColor = OfficeColor.FromRgb(34, 197, 94);
 
             using var stream = new System.IO.MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddCustomGeometryCm(
-                polygon, 1, 1, 4, 3, "Shared polygon");
+            PowerPointAutoShape shape = slide.AddCustomGeometry(
+                polygon, OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(4), OfficeIMO.OfficeLength.Centimeters(3), "Shared polygon");
             Assert.Null(shape.ShapeType);
-            Assert.Throws<ArgumentException>(() => slide.AddCustomGeometryPoints(
-                OfficeShape.Rectangle(10, 10), 0, 0, 10, 10));
+            Assert.Throws<ArgumentException>(() => slide.AddCustomGeometry(
+                OfficeShape.Rectangle(10, 10), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10)));
         }
 
         [Fact]
         public void PowerPointSlide_RejectsUnrepresentableCustomGeometryCoordinatesBeforeMutation() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             int originalShapeCount = slide.Shapes.Count;
             OfficeShape infiniteNormalized = OfficeShape.Path(double.Epsilon,
@@ -748,11 +742,11 @@ namespace OfficeIMO.Tests {
                 OfficePathCommand.LineTo(300000000D, 1D));
 
             Assert.Throws<ArgumentException>(() =>
-                slide.AddCustomGeometryPoints(infiniteNormalized,
-                    0D, 0D, 100D, 100D));
+                slide.AddCustomGeometry(infiniteNormalized,
+                    OfficeIMO.OfficeLength.Points(0D), OfficeIMO.OfficeLength.Points(0D), OfficeIMO.OfficeLength.Points(100D), OfficeIMO.OfficeLength.Points(100D)));
             Assert.Throws<ArgumentException>(() =>
-                slide.AddCustomGeometryPoints(outOfRangeNormalized,
-                    0D, 0D, 100D, 100D));
+                slide.AddCustomGeometry(outOfRangeNormalized,
+                    OfficeIMO.OfficeLength.Points(0D), OfficeIMO.OfficeLength.Points(0D), OfficeIMO.OfficeLength.Points(100D), OfficeIMO.OfficeLength.Points(100D)));
             Assert.Equal(originalShapeCount, slide.Shapes.Count);
             Assert.Empty(presentation.ValidateDocument());
         }

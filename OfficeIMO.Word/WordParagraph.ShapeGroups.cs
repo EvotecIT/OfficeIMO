@@ -25,8 +25,8 @@ namespace OfficeIMO.Word {
         public WordShapeGroup AddShapeGroup(IEnumerable<WordShapeGroupItem> items) =>
             WordShapeGroup.Add(this, items, null, null);
 
-        /// <summary>Adds a native DrawingML shape group anchored at page-relative point offsets.</summary>
-        public WordShapeGroup AddShapeGroup(IEnumerable<WordShapeGroupItem> items, double leftPt, double topPt) =>
-            WordShapeGroup.Add(this, items, leftPt, topPt);
+        /// <summary>Adds a native DrawingML shape group anchored at page-relative physical offsets.</summary>
+        public WordShapeGroup AddShapeGroup(IEnumerable<WordShapeGroupItem> items, OfficeLength left, OfficeLength top) =>
+            WordShapeGroup.Add(this, items, left, top);
     }
 }

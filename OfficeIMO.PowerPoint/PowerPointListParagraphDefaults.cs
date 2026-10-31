@@ -4,7 +4,7 @@ namespace OfficeIMO.PowerPoint {
         private const double ListLevelStepPoints = 18D;
 
         private static readonly PowerPointParagraphStyle DefaultStyle =
-            new(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+            new(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 
         internal static void Apply(PowerPointParagraph paragraph) {
             DefaultStyle.Apply(paragraph);
@@ -12,8 +12,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyDefaultIndent(PowerPointParagraph paragraph) {
-            if ((paragraph.LeftMarginPoints.HasValue || paragraph.IndentPoints.HasValue) &&
-                !IsDefaultListIndent(paragraph.LeftMarginPoints, paragraph.IndentPoints)) {
+            if ((paragraph.LeftMargin.HasValue || paragraph.Indent.HasValue) &&
+                !IsDefaultListIndent(paragraph.LeftMargin?.ToPoints(), paragraph.Indent?.ToPoints())) {
                 return;
             }
 
@@ -24,8 +24,8 @@ namespace OfficeIMO.PowerPoint {
                 level = 8;
             }
 
-            paragraph.LeftMarginPoints = ListHangingPoints + (level * ListLevelStepPoints);
-            paragraph.IndentPoints = -ListHangingPoints;
+            paragraph.LeftMargin = global::OfficeIMO.OfficeLength.Points(ListHangingPoints + (level * ListLevelStepPoints));
+            paragraph.Indent = global::OfficeIMO.OfficeLength.Points(-ListHangingPoints);
         }
 
         private static bool IsDefaultListIndent(double? leftMarginPoints, double? indentPoints) {

@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
             if (cells == null) throw new ArgumentNullException(nameof(cells));
             var selected = cells.Distinct().ToArray();
             foreach (var cell in selected) {
-                if (cell.Row < 1 || cell.Row > A1.MaxRows || cell.Column < 1 || cell.Column > A1.MaxColumns) {
+                if (cell.Row < 1 || cell.Row > ExcelA1.MaxRows || cell.Column < 1 || cell.Column > ExcelA1.MaxColumns) {
                     throw new ArgumentOutOfRangeException(nameof(cells), "Cell coordinates must be within the worksheet.");
                 }
             }

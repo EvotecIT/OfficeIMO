@@ -8,7 +8,7 @@ using System.Net;
 namespace OfficeIMO.Email;
 
 /// <summary>Thin email image-export bridge over the HTML renderer.</summary>
-public static class EmailImageExportExtensions {
+public static partial class EmailImageExportExtensions {
     private static readonly Uri FallbackBaseUri =
         new Uri("https://officeimo.invalid/message/");
 
@@ -17,12 +17,15 @@ public static class EmailImageExportExtensions {
         this EmailDocument source,
         OfficeImageExportFormat format,
         EmailImageExportOptions? options = null,
-        int pageIndex = 0) {
+        int pageIndex = 0,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         EmailRenderPreparation preparation = Prepare(source, options);
         OfficeImageExportResult result = preparation.Document.ExportImage(
             format,
             preparation.Options,
-            pageIndex);
+            pageIndex,
+            cancellationToken);
         return AttachDiagnostics(
             result,
             preparation.Diagnostics,

@@ -20,6 +20,8 @@ internal sealed class PdfFlattenedContentGrowth {
     private long _operations;
     private long _sourceOperations;
     private int _sourceContexts;
+    private long _sourcePageWorkBytes;
+    private long _sourceTotalWorkBytes;
 
     internal PdfFlattenedContentGrowth(Dictionary<int, PdfIndirectObject> objects, PdfLoadOptions? readOptions,
         int? firstGeneratedObject, CancellationToken cancellationToken, PdfDecodedStreamBudget? sourceDecodeBudget = null) {
@@ -35,6 +37,7 @@ internal sealed class PdfFlattenedContentGrowth {
         var inspection = new PdfFlattenedContentGrowth(source.Objects, source.ReadOptions, firstGeneratedObject: null, cancellationToken, source.DecodedStreamBudget);
         foreach (PdfReadPage page in source.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
+            inspection._sourcePageWorkBytes = 0;
             page.VisitNormalAppearanceStreams((stream, resources) => {
                 byte[] decoded = source.DecodedStreamBudget.Decode(stream, source.Objects,
                     source.ReadOptions.Limits.MaxDecodedStreamBytes, cancellationToken);
@@ -43,6 +46,7 @@ internal sealed class PdfFlattenedContentGrowth {
                         inspection._limits.MaxPrintProductionContexts, inspection._sourceContexts);
                 long bytes = 0;
                 int operations = 0, operands = 0;
+                inspection.ChargeSourceContentWork(decoded.LongLength);
                 inspection.VisitContent(PdfEncoding.Latin1GetString(decoded), resources, generated: false, depth: 0,
                     new HashSet<PdfStream> { stream }, ref bytes, ref operations, ref operands);
             }, cancellationToken);
@@ -51,6 +55,7 @@ internal sealed class PdfFlattenedContentGrowth {
 
     internal void AddPage(PdfDictionary page, PdfStream addedStream, int isolationBytes) {
         _cancellationToken.ThrowIfCancellationRequested();
+        _sourcePageWorkBytes = 0;
         PdfDictionary? resources = page.Items.TryGetValue("Resources", out PdfObject? value)
             ? PdfObjectLookup.ResolveChainCancellable(_objects, value, _cancellationToken) as PdfDictionary : null;
         long pageBytes = addedStream.Data.LongLength + isolationBytes;
@@ -118,6 +123,8 @@ internal sealed class PdfFlattenedContentGrowth {
                 if (invocation.Generated) {
                     pageBytes = checked(pageBytes + decoded.LongLength);
                     _contexts++;
+                } else {
+                    ChargeSourceContentWork(decoded.LongLength);
                 }
                 PdfDictionary? childResources = invocation.Stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? childValue)
                     ? (PdfObjectLookup.ResolveChainCancellable(_objects, childValue, _cancellationToken) as PdfDictionary ?? resources) : resources;
@@ -125,6 +132,17 @@ internal sealed class PdfFlattenedContentGrowth {
                     active, ref pageBytes, ref operations, ref operands);
             } finally { active.Remove(invocation.Stream); }
         }
+    }
+
+    private void ChargeSourceContentWork(long decodedBytes) {
+        _sourcePageWorkBytes = checked(_sourcePageWorkBytes + decodedBytes);
+        if (_sourcePageWorkBytes > _limits.MaxPageContentBytes)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.PageContentBytes,
+                _limits.MaxPageContentBytes, _sourcePageWorkBytes);
+        _sourceTotalWorkBytes = checked(_sourceTotalWorkBytes + decodedBytes);
+        if (_sourceTotalWorkBytes > _limits.MaxRetainedContentBytes)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RetainedContentBytes,
+                _limits.MaxRetainedContentBytes, _sourceTotalWorkBytes);
     }
 
     internal PdfGeneratedOutputGrowth ToGrowth() {

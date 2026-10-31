@@ -5,7 +5,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Validates bounded classic-TIFF structure used by images and embedded Exif metadata.</summary>
-internal static class OfficeTiffStructureValidator {
+internal static partial class OfficeTiffStructureValidator {
     private const int MaximumIfdCount = 1024;
     private const int MaximumEntryCount = 65535;
 

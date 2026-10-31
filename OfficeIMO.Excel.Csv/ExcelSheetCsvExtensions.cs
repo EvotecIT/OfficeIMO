@@ -73,7 +73,7 @@ public static class ExcelSheetCsvExtensions {
         this ExcelSheet sheet,
         bool headersInFirstRow = true,
         CsvSaveOptions? csvOptions = null,
-        ExcelReadOptions? readOptions = null,
+        ExcelReaderOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         return ToCsvCore(sheet, a1Range: null, headersInFirstRow, csvOptions, readOptions, cancellationToken);
     }
@@ -84,7 +84,7 @@ public static class ExcelSheetCsvExtensions {
         string a1Range,
         bool headersInFirstRow = true,
         CsvSaveOptions? csvOptions = null,
-        ExcelReadOptions? readOptions = null,
+        ExcelReaderOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentException("Range cannot be empty.", nameof(a1Range));
         return ToCsvCore(sheet, a1Range, headersInFirstRow, csvOptions, readOptions, cancellationToken);
@@ -94,7 +94,7 @@ public static class ExcelSheetCsvExtensions {
     public static CsvDocument ToCsvDocument(
         this ExcelSheet sheet,
         bool headersInFirstRow = true,
-        ExcelReadOptions? readOptions = null,
+        ExcelReaderOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         return ToCsvDocumentCore(sheet, a1Range: null, headersInFirstRow, readOptions, cancellationToken);
     }
@@ -104,7 +104,7 @@ public static class ExcelSheetCsvExtensions {
         this ExcelSheet sheet,
         string a1Range,
         bool headersInFirstRow = true,
-        ExcelReadOptions? readOptions = null,
+        ExcelReaderOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentException("Range cannot be empty.", nameof(a1Range));
         return ToCsvDocumentCore(sheet, a1Range, headersInFirstRow, readOptions, cancellationToken);
@@ -116,7 +116,7 @@ public static class ExcelSheetCsvExtensions {
         string path,
         bool headersInFirstRow = true,
         CsvSaveOptions? csvOptions = null,
-        ExcelReadOptions? readOptions = null,
+        ExcelReaderOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         using ExcelWorkbookDataReader reader = CreateSheetReader(
@@ -134,7 +134,7 @@ public static class ExcelSheetCsvExtensions {
         Stream stream,
         bool headersInFirstRow = true,
         CsvSaveOptions? csvOptions = null,
-        ExcelReadOptions? readOptions = null,
+        ExcelReaderOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         using ExcelWorkbookDataReader reader = CreateSheetReader(
@@ -186,7 +186,7 @@ public static class ExcelSheetCsvExtensions {
         string? a1Range,
         bool headersInFirstRow,
         CsvSaveOptions? csvOptions,
-        ExcelReadOptions? readOptions,
+        ExcelReaderOptions? readOptions,
         CancellationToken cancellationToken) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         using ExcelWorkbookDataReader reader = CreateSheetReader(
@@ -204,7 +204,7 @@ public static class ExcelSheetCsvExtensions {
         ExcelSheet sheet,
         string? a1Range,
         bool headersInFirstRow,
-        ExcelReadOptions? readOptions,
+        ExcelReaderOptions? readOptions,
         CancellationToken cancellationToken) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         using ExcelWorkbookDataReader reader = CreateSheetReader(
@@ -232,14 +232,14 @@ public static class ExcelSheetCsvExtensions {
         ExcelSheet sheet,
         string? a1Range,
         bool headersInFirstRow,
-        ExcelReadOptions? readOptions,
+        ExcelReaderOptions? readOptions,
         CancellationToken cancellationToken) {
-        ExcelReadOptions source = readOptions ?? new ExcelReadOptions();
+        ExcelReaderOptions source = readOptions ?? new ExcelReaderOptions();
         var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
             source.CancellationToken);
         try {
-            ExcelReadOptions effective = source.ForSheet(
+            ExcelReaderOptions effective = source.ForSheet(
                 sheet.Name,
                 a1Range,
                 headersInFirstRow,

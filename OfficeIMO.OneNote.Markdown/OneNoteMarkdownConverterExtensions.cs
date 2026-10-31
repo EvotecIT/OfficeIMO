@@ -13,18 +13,18 @@ public static class OneNoteMarkdownConverterExtensions {
         OneNoteMarkdownProjection.ToMarkdown(notebook, options);
 
     /// <summary>Converts a section to a first-party Markdown document.</summary>
-    public static MarkdownDoc ToMarkdownDocument(this OneNoteSection section, OneNoteMarkdownOptions? options = null) =>
+    public static MarkdownDocument ToMarkdownDocument(this OneNoteSection section, OneNoteMarkdownOptions? options = null) =>
         section.ToMarkdownDocumentResult(options).Value;
 
     /// <summary>Converts a notebook to a first-party Markdown document.</summary>
-    public static MarkdownDoc ToMarkdownDocument(this OneNoteNotebook notebook, OneNoteMarkdownOptions? options = null) =>
+    public static MarkdownDocument ToMarkdownDocument(this OneNoteNotebook notebook, OneNoteMarkdownOptions? options = null) =>
         notebook.ToMarkdownDocumentResult(options).Value;
 
     /// <summary>Converts a section to Markdown with explicit source and semantic-projection diagnostics.</summary>
     public static OneNoteMarkdownConversionResult ToMarkdownDocumentResult(this OneNoteSection section, OneNoteMarkdownOptions? options = null) {
         if (section == null) throw new ArgumentNullException(nameof(section));
         OneNoteMarkdownOptions operation = CreateTrackedOptions(options, out HashSet<OneNoteBinaryElement> resolvedAssets);
-        MarkdownDoc value = MarkdownReader.Parse(section.ToMarkdown(operation));
+        MarkdownDocument value = MarkdownDocument.Parse(section.ToMarkdown(operation));
         return new OneNoteMarkdownConversionResult(value, OneNoteMarkdownDiagnosticCollector.Collect(section, operation, resolvedAssets));
     }
 
@@ -32,7 +32,7 @@ public static class OneNoteMarkdownConverterExtensions {
     public static OneNoteMarkdownConversionResult ToMarkdownDocumentResult(this OneNoteNotebook notebook, OneNoteMarkdownOptions? options = null) {
         if (notebook == null) throw new ArgumentNullException(nameof(notebook));
         OneNoteMarkdownOptions operation = CreateTrackedOptions(options, out HashSet<OneNoteBinaryElement> resolvedAssets);
-        MarkdownDoc value = MarkdownReader.Parse(notebook.ToMarkdown(operation));
+        MarkdownDocument value = MarkdownDocument.Parse(notebook.ToMarkdown(operation));
         return new OneNoteMarkdownConversionResult(value, OneNoteMarkdownDiagnosticCollector.Collect(notebook, operation, resolvedAssets));
     }
 

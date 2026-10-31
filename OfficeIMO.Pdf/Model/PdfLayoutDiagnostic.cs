@@ -16,7 +16,7 @@ public sealed class PdfLayoutDiagnostic {
     /// <summary>
     /// Creates a layout diagnostic with optional source bounds in points.
     /// </summary>
-    public PdfLayoutDiagnostic(PdfLayoutDiagnosticKind kind, string source, string message, double? x, double? y, double? width, double? height) {
+    public PdfLayoutDiagnostic(PdfLayoutDiagnosticKind kind, string source, string message, global::OfficeIMO.OfficeLength? x, global::OfficeIMO.OfficeLength? y, global::OfficeIMO.OfficeLength? width, global::OfficeIMO.OfficeLength? height) {
         Kind = kind;
         Source = source ?? string.Empty;
         Message = message ?? string.Empty;
@@ -36,16 +36,16 @@ public sealed class PdfLayoutDiagnostic {
     public string Message { get; }
 
     /// <summary>Optional left coordinate in points.</summary>
-    public double? X { get; }
+    public global::OfficeIMO.OfficeLength? X { get; }
 
     /// <summary>Optional top coordinate in points.</summary>
-    public double? Y { get; }
+    public global::OfficeIMO.OfficeLength? Y { get; }
 
     /// <summary>Optional width in points.</summary>
-    public double? Width { get; }
+    public global::OfficeIMO.OfficeLength? Width { get; }
 
     /// <summary>Optional height in points.</summary>
-    public double? Height { get; }
+    public global::OfficeIMO.OfficeLength? Height { get; }
 
     /// <summary>Whether source bounds were provided.</summary>
     public bool HasBounds => X.HasValue && Y.HasValue && Width.HasValue && Height.HasValue;
@@ -63,10 +63,10 @@ public sealed class PdfLayoutDiagnostic {
             "{0} [{1}] at {2:0.###},{3:0.###},{4:0.###},{5:0.###}: {6}",
             Kind,
             Source,
-            X!.Value,
-            Y!.Value,
-            Width!.Value,
-            Height!.Value,
+            X!.Value.ToPoints(),
+            Y!.Value.ToPoints(),
+            Width!.Value.ToPoints(),
+            Height!.Value.ToPoints(),
             Message);
     }
 }

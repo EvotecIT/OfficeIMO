@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorksheet("Data");
+                    var sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, "Alpha");
                     sheet.CellValue(2, 1, "Beta");
                     sheet.CellValue(3, 1, "Gamma");
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorksheet("Data");
+                    var sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, "Delta");
                     sheet.CellValue(2, 1, "Epsilon");
                     sheet.CellValue(3, 1, "Zeta");
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorksheet("AutoSave");
+                    var sheet = document.AddSheet("AutoSave");
                     sheet.CellValue(1, 1, "Original");
                     document.Save();
                 }
@@ -220,7 +220,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorksheet("AutoSave");
+                    var sheet = document.AddSheet("AutoSave");
                     sheet.CellValue(1, 1, "Original Async");
                     document.Save();
                 }
@@ -260,7 +260,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorksheet("AutoSave");
+                    var sheet = document.AddSheet("AutoSave");
                     sheet.CellValue(1, 1, "Original Settings");
                     document.Save();
                 }
@@ -301,7 +301,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorksheet("AutoSave");
+                    var sheet = document.AddSheet("AutoSave");
                     sheet.CellValue(1, 1, "Original Settings Async");
                     document.Save();
                 }
@@ -342,7 +342,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    document.AddWorksheet("Readonly");
+                    document.AddSheet("Readonly");
                     document.Save();
                 }
 
@@ -368,7 +368,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    document.AddWorksheet("Readonly");
+                    document.AddSheet("Readonly");
                     document.Save();
                 }
 
@@ -391,7 +391,7 @@ namespace OfficeIMO.Tests
             byte[] bytes;
             using (var created = ExcelDocument.Create())
             {
-                created.AddWorksheet("ReadOnly").CellValue(1, 1, "Original");
+                created.AddSheet("ReadOnly").CellValue(1, 1, "Original");
                 bytes = created.ToBytes();
             }
 
@@ -428,12 +428,12 @@ namespace OfficeIMO.Tests
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             }))
             {
-                document.AddWorksheet("Initial");
+                document.AddSheet("Initial");
 
                 using var export = new MemoryStream();
                 document.Save(export, new ExcelSaveOptions { ValidateOpenXml = true });
 
-                document.AddWorksheet("AfterExplicitSave");
+                document.AddSheet("AfterExplicitSave");
             }
 
             source.Position = 0;
@@ -449,7 +449,7 @@ namespace OfficeIMO.Tests
             using var source = new MemoryStream();
             using (var document = ExcelDocument.Create(source))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Saved");
                 document.Save();
             }
@@ -466,7 +466,7 @@ namespace OfficeIMO.Tests
             using var source = new MemoryStream();
             await using (var document = ExcelDocument.Create(source))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Saved Async");
                 await document.SaveAsync();
             }
@@ -486,7 +486,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorksheet("AutoSave");
+                    var sheet = document.AddSheet("AutoSave");
                     sheet.CellValue(1, 1, "Original");
                     document.Save();
                 }

@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Markdown {
         public static void Example_MarkdownBlockQuotes(string folderPath, bool openWord) {
             string filePath = Path.Combine(folderPath, "MarkdownBlockQuotes.docx");
             string markdown = "> Level 1\n> > Level 2";
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
             doc.Save(filePath);
             if (openWord) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CrossRefBookmark.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Start").AddBookmark("B1");
-                document.AddParagraph("See ").AddCrossReference("B1", WordCrossReferenceType.Bookmark).AddText(".");
+                document.AddParagraph("See ").AddCrossReference("B1", WordCrossReferenceType.Bookmark).Paragraph.AddText(".");
                 document.Save();
             }
 
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 heading.Style = WordParagraphStyles.Heading1;
                 heading.AddBookmark("H1");
 
-                document.AddParagraph("See heading ").AddCrossReference("H1", WordCrossReferenceType.Heading).AddText(".");
+                document.AddParagraph("See heading ").AddCrossReference("H1", WordCrossReferenceType.Heading).Paragraph.AddText(".");
                 document.Save();
             }
 

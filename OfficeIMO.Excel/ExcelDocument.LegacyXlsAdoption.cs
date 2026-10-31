@@ -27,7 +27,7 @@ public partial class ExcelDocument {
             if (native == null) continue;
             var root = sheet.WorksheetPart.Worksheet!;
             var cleared = new HashSet<string>(native.Cells.Where(cell => cell.IsFormula && cell.Kind == LegacyXlsCellValueKind.Text && cell.Value is string text && text.Length == 0)
-                .Select(cell => A1.CellReference(cell.Row, cell.Column)), StringComparer.Ordinal);
+                .Select(cell => ExcelA1.CellReference(cell.Row, cell.Column)), StringComparer.Ordinal);
             if (cleared.Count != 0) foreach (var cell in root.Descendants<Cell>())
                 if (cell.CellFormula == null && cleared.Contains(cell.CellReference?.Value ?? string.Empty)) {
                     cell.InlineString = null; cell.DataType = CellValues.String; cell.CellValue = new CellValue(string.Empty);

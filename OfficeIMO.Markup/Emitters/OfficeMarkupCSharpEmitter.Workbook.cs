@@ -8,7 +8,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         sb.AppendLine($"using ExcelDocument workbook = ExcelDocument.Create({options.FilePathVariable});");
         sb.AppendLine("ExcelSheet? sheet = null;");
         sb.AppendLine("ExcelSheet GetOrAddSheet(string name) {");
-        sb.AppendLine("    return workbook.TryGetSheet(name, out var existingSheet) ? existingSheet! : workbook.AddWorksheet(name);");
+        sb.AppendLine("    return workbook.TryGetSheet(name, out var existingSheet) ? existingSheet! : workbook.AddSheet(name);");
         sb.AppendLine("}");
         var chartIndex = 0;
         foreach (var block in document.Blocks) {

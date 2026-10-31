@@ -86,8 +86,8 @@ namespace OfficeIMO.Excel {
                 if (ExcelReference.TryParse(part, out ExcelReference? reference) && reference != null) {
                     string prefix = "'" + EscapeSheetName(sheet.Name) + "'!";
                     if (reference.Kind == ExcelReferenceKind.WholeColumn) {
-                        return prefix + "$" + A1.ColumnIndexToLetters(Math.Min(reference.Start.Column, reference.End.Column))
-                            + ":$" + A1.ColumnIndexToLetters(Math.Max(reference.Start.Column, reference.End.Column));
+                        return prefix + "$" + ExcelA1.ColumnIndexToLetters(Math.Min(reference.Start.Column, reference.End.Column))
+                            + ":$" + ExcelA1.ColumnIndexToLetters(Math.Max(reference.Start.Column, reference.End.Column));
                     }
                     if (reference.Kind == ExcelReferenceKind.WholeRow) {
                         return prefix + "$" + Math.Min(reference.Start.Row, reference.End.Row).ToString(System.Globalization.CultureInfo.InvariantCulture)
@@ -268,8 +268,8 @@ namespace OfficeIMO.Excel {
                 rowsPart = $"'{EscapeSheetName(sheet.Name)}'!${firstRow.GetValueOrDefault()}:${lastRow.GetValueOrDefault()}";
             }
             if (hasCols) {
-                string c1 = A1.ColumnIndexToLetters(firstCol.GetValueOrDefault());
-                string c2 = A1.ColumnIndexToLetters(lastCol.GetValueOrDefault());
+                string c1 = ExcelA1.ColumnIndexToLetters(firstCol.GetValueOrDefault());
+                string c2 = ExcelA1.ColumnIndexToLetters(lastCol.GetValueOrDefault());
                 colsPart = $"'{EscapeSheetName(sheet.Name)}'!${c1}:${c2}";
             }
 
@@ -420,10 +420,10 @@ namespace OfficeIMO.Excel {
             a1 = a1.Replace("$", string.Empty);
 
             int r1, c1, r2, c2;
-            if (!A1.TryParseRangeCoordinates(a1,
+            if (!ExcelA1.TryParseRangeCoordinates(a1,
                     out r1, out c1, out r2, out c2)) {
                 bool containsColon = a1.IndexOf(':') >= 0;
-                if (!A1.TryParseCellReferenceCoordinates(a1,
+                if (!ExcelA1.TryParseCellReferenceCoordinates(a1,
                         out int cellRow, out int cellColumn)) {
                     string message = containsColon
                         ? "Range must be a valid A1 reference such as 'A1:B2'."
@@ -435,17 +435,17 @@ namespace OfficeIMO.Excel {
             }
 
             // Bounds check: Excel supports 1..1,048,576 rows and 1..16,384 columns (XFD)
-            bool outOfBounds = (r1 < 1 || c1 < 1 || r2 > A1.MaxRows || c2 > A1.MaxColumns || c1 > A1.MaxColumns || r1 > A1.MaxRows);
+            bool outOfBounds = (r1 < 1 || c1 < 1 || r2 > ExcelA1.MaxRows || c2 > ExcelA1.MaxColumns || c1 > ExcelA1.MaxColumns || r1 > ExcelA1.MaxRows);
             if (outOfBounds && validationMode == ExcelDefinedNameValidationMode.Strict)
                 throw new ArgumentOutOfRangeException(nameof(range), "A1 range exceeds Excel bounds (rows ≤ 1,048,576; cols ≤ 16,384). Use Sanitize to clamp.");
             // Sanitize: clamp into valid range
-            r1 = Math.Max(1, Math.Min(A1.MaxRows, r1));
-            r2 = Math.Max(1, Math.Min(A1.MaxRows, r2));
-            c1 = Math.Max(1, Math.Min(A1.MaxColumns, c1));
-            c2 = Math.Max(1, Math.Min(A1.MaxColumns, c2));
+            r1 = Math.Max(1, Math.Min(ExcelA1.MaxRows, r1));
+            r2 = Math.Max(1, Math.Min(ExcelA1.MaxRows, r2));
+            c1 = Math.Max(1, Math.Min(ExcelA1.MaxColumns, c1));
+            c2 = Math.Max(1, Math.Min(ExcelA1.MaxColumns, c2));
 
-            string start = A1.AbsoluteCellReference(r1, c1);
-            string end = A1.AbsoluteCellReference(r2, c2);
+            string start = ExcelA1.AbsoluteCellReference(r1, c1);
+            string end = ExcelA1.AbsoluteCellReference(r2, c2);
 
             string normalized = start;
             if (start != end) {
@@ -509,7 +509,7 @@ namespace OfficeIMO.Excel {
             }
 
             bool LooksLikeA1(string value) {
-                var parsed = OfficeIMO.Excel.A1.ParseCellRef(value);
+                var parsed = OfficeIMO.Excel.ExcelA1.ParseCellRef(value);
                 return parsed.Row > 0 && parsed.Col > 0;
             }
             bool LooksLikeR1C1(string value) {

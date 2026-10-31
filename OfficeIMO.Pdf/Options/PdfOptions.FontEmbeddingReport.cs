@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     /// <summary>Records actual font-program payload cost once per emitted stream, excluding PDF dictionaries and maps.</summary>
     internal void ReportFontEmbedding(string source, string fontName, string format, int objectId,
         long originalBytes, long fontFileBytes, long streamBytes, bool compressed, string embeddingMode) {

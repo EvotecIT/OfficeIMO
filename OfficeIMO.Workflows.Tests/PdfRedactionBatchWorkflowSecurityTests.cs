@@ -153,7 +153,7 @@ public sealed partial class PdfRedactionWorkflowTests {
             InputRoot = inputRoot,
             EvidenceRoot = evidenceRoot,
             ManifestPath = manifest,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+            ConflictPolicy = OfficePublicationPolicy.Replace,
             Recipe = CreateRecipe("secret")
         });
 
@@ -245,7 +245,7 @@ public sealed partial class PdfRedactionWorkflowTests {
             DecisionsRoot = decisionsRoot,
             ManifestPath = decisionPath,
             PublicationPolicy = PdfRedactionBatchPublicationPolicy.ContinuePerItem,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+            ConflictPolicy = OfficePublicationPolicy.Replace,
             Recipe = recipe
         }));
 

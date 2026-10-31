@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Tests {
@@ -78,8 +78,8 @@ namespace OfficeIMO.Tests {
                 Assert.False(watermark.Stroked);
                 Assert.False(watermark.AllowInCell);
                 Assert.Equal(90, watermark.Rotation);
-                Assert.Equal(131.95, watermark.Height);
-                Assert.Equal(527.85, watermark.Width);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(131.95), watermark.Height);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(527.85), watermark.Width);
                 Assert.Equal("silver", watermark.ColorHex);
                 Assert.Equal(Color.Silver, watermark.Color);
                 Assert.Equal("Watermark", watermark.Text);
@@ -108,8 +108,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(Color.Silver, firstSectionWatermark.Color);
                 Assert.Equal("silver", firstSectionWatermark.ColorHex);
                 Assert.Equal("Watermark", firstSectionWatermark.Text);
-                Assert.Equal(131.95, firstSectionWatermark.Height);
-                Assert.Equal(527.85, firstSectionWatermark.Width);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(131.95), firstSectionWatermark.Height);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(527.85), firstSectionWatermark.Width);
                 Assert.Equal(90, firstSectionWatermark.Rotation);
                 Assert.False(firstSectionWatermark.Stroked);
                 Assert.False(firstSectionWatermark.AllowInCell);
@@ -126,8 +126,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(Color.Silver, section2Watermark.Color);
                 Assert.Equal("silver", section2Watermark.ColorHex);
                 Assert.Equal("Check me", section2Watermark.Text);
-                Assert.Equal(131.95, section2Watermark.Height);
-                Assert.Equal(527.85, section2Watermark.Width);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(131.95), section2Watermark.Height);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(527.85), section2Watermark.Width);
                 Assert.Equal(180, section2Watermark.Rotation);
                 Assert.False(section2Watermark.Stroked);
 
@@ -140,8 +140,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(Color.Silver, firstSectionWatermark.Color);
                 Assert.Equal("silver", firstSectionWatermark.ColorHex);
                 Assert.Equal("Watermark", firstSectionWatermark.Text);
-                Assert.Equal(131.95, firstSectionWatermark.Height);
-                Assert.Equal(527.85, firstSectionWatermark.Width);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(131.95), firstSectionWatermark.Height);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(527.85), firstSectionWatermark.Width);
                 Assert.Equal(90, firstSectionWatermark.Rotation);
                 Assert.True(firstSectionWatermark.Stroked);
                 Assert.False(firstSectionWatermark.AllowInCell);
@@ -334,41 +334,102 @@ namespace OfficeIMO.Tests {
                 var imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
                 var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                 var watermark = firstHeader.AddWatermark(WordWatermarkStyle.Image, imagePath);
-                Assert.True(watermark.Width > 0);
-                Assert.True(watermark.Height > 0);
+                Assert.True(watermark.Width > global::OfficeIMO.OfficeLength.Zero);
+                Assert.True(watermark.Height > global::OfficeIMO.OfficeLength.Zero);
+                watermark.Width = global::OfficeIMO.OfficeLength.Inches(2);
+                watermark.Height = global::OfficeIMO.OfficeLength.Millimeters(25.4);
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                 var watermark = Assert.Single(firstHeader.Watermarks);
-                Assert.True(watermark.Width > 0);
-                Assert.True(watermark.Height > 0);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(144), watermark.Width);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(72), watermark.Height);
+            }
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, false)) {
+                var shape = package.MainDocumentPart!.HeaderParts.SelectMany(part => part.Header!.Descendants<V.Shape>()).Single();
+                Assert.Contains("width:144pt", shape.Style!.Value);
+                Assert.Contains("height:72pt", shape.Style.Value);
             }
         }
 
         [Fact]
         public void Test_WatermarkOffsetsAndScale() {
             string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkOffsetsAndScale.docx");
-            using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddParagraph("Test");
-                document.AddHeadersAndFooters();
-                var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
-                var watermark = firstHeader.AddWatermark(WordWatermarkStyle.Text, "Offset", 10, 20, 2.0);
-                Assert.Equal(10, watermark.HorizontalOffset);
-                Assert.Equal(20, watermark.VerticalOffset);
-                Assert.True(watermark.Width > 0);
-                Assert.True(watermark.Height > 0);
-                document.Save();
-            }
+            var currentCulture = System.Globalization.CultureInfo.CurrentCulture;
+            try {
+                System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("fr-FR");
+                using (WordDocument document = WordDocument.Create(filePath)) {
+                    document.AddParagraph("Test");
+                    document.AddHeadersAndFooters();
+                    var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
+                    var watermark = firstHeader.AddWatermark(WordWatermarkStyle.Text, "Offset",
+                        global::OfficeIMO.OfficeLength.Millimeters(25.4), global::OfficeIMO.OfficeLength.Centimeters(-1.27), 2.0);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(72), watermark.HorizontalOffset);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(-36), watermark.VerticalOffset);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(1055.7), watermark.Width);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(263.9), watermark.Height);
+                    Assert.Equal(90, watermark.Rotation);
+                    document.Save();
+                }
 
-            using (WordDocument document = WordDocument.Load(filePath)) {
-                var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
-                var watermark = Assert.Single(firstHeader.Watermarks);
-                Assert.Equal(10, watermark.HorizontalOffset);
-                Assert.Equal(20, watermark.VerticalOffset);
-                Assert.True(watermark.Width > 0);
-                Assert.True(watermark.Height > 0);
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    var watermark = Assert.Single(GetHeader(document, 0, HeaderFooterValues.Default).Watermarks);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(72), watermark.HorizontalOffset);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(-36), watermark.VerticalOffset);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(1055.7), watermark.Width);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(263.9), watermark.Height);
+                }
+
+                using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                    var header = package.MainDocumentPart!.HeaderParts.Single(part => part.Header!.Descendants<V.Shape>().Any());
+                    var shape = Assert.Single(header.Header!.Descendants<V.Shape>());
+                    Assert.Contains("width:1055.7pt", shape.Style!.Value);
+                    Assert.Contains("height:263.9pt", shape.Style.Value);
+                    Assert.Contains("margin-left:72pt", shape.Style.Value);
+                    Assert.Contains("margin-top:-36pt", shape.Style.Value);
+                    // Native input uses independent VML unit literals, not the public writer.
+                    shape.Style = "position:absolute;width:1in;height:25.4mm;margin-left:-2.54cm;margin-top:96px;rotation:90";
+                    header.Header.Save();
+                }
+
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    var watermark = Assert.Single(GetHeader(document, 0, HeaderFooterValues.Default).Watermarks);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(72), watermark.Width);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(72), watermark.Height);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(-72), watermark.HorizontalOffset);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(72), watermark.VerticalOffset);
+                    watermark.Width = null;
+                    watermark.Height = null;
+                    watermark.HorizontalOffset = null;
+                    watermark.VerticalOffset = null;
+                    document.Save();
+                }
+
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    var watermark = Assert.Single(GetHeader(document, 0, HeaderFooterValues.Default).Watermarks);
+                    Assert.Null(watermark.Width);
+                    Assert.Null(watermark.Height);
+                    Assert.Null(watermark.HorizontalOffset);
+                    Assert.Null(watermark.VerticalOffset);
+                    watermark.Width = global::OfficeIMO.OfficeLength.Inches(2);
+                    watermark.Height = global::OfficeIMO.OfficeLength.Millimeters(12.7);
+                    watermark.HorizontalOffset = global::OfficeIMO.OfficeLength.Pixels(-16);
+                    watermark.VerticalOffset = global::OfficeIMO.OfficeLength.Points(12.5);
+                    document.Save();
+                }
+
+                using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, false)) {
+                    var shape = package.MainDocumentPart!.HeaderParts.SelectMany(part => part.Header!.Descendants<V.Shape>()).Single();
+                    Assert.Contains("width:144pt", shape.Style!.Value);
+                    Assert.Contains("height:36pt", shape.Style.Value);
+                    Assert.Contains("margin-left:-12pt", shape.Style.Value);
+                    Assert.Contains("margin-top:12.5pt", shape.Style.Value);
+                    Assert.Contains("rotation:90", shape.Style.Value);
+                }
+            } finally {
+                System.Globalization.CultureInfo.CurrentCulture = currentCulture;
             }
         }
 

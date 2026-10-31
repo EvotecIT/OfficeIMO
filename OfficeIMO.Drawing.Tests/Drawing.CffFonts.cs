@@ -518,6 +518,26 @@ public sealed class DrawingCffFontTests {
     }
 
     [Fact]
+    public void SvgOutlinedCffRunsShareOneExportBudget() {
+        byte[] data = ReadAsset("SourceSansPro-Regular.otf");
+        OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add("Source Sans", data).Faces);
+        var cff = Assert.IsAssignableFrom<IOfficeCffBoundedFontProgram>(face.Program);
+        var measuringBudget = new OfficeCffOperationBudget();
+        Assert.NotEmpty(cff.GetTextContoursBounded("A", 0D, 0D, 1D, 100_000, CancellationToken.None, measuringBudget));
+        int operationsForOneGlyph = 1_000_000 - measuringBudget.RemainingOperations;
+        int glyphsPerRun = 1_000_000 / operationsForOneGlyph / 3 + 1;
+
+        var drawing = new OfficeDrawing(100D, 20D) { SvgTextAsPaths = true };
+        drawing.Fonts.Add("Source Sans", data);
+        for (int index = 0; index < 4; index++)
+            drawing.AddText(new string('A', glyphsPerRun), 0D, 0D, 100D, 20D,
+                new OfficeFontInfo("Source Sans", 1D), wrapText: false);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => OfficeDrawingSvgExporter.ToSvg(drawing));
+        Assert.Contains("operation budget", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CffRandomOperatorProducesADeterministicSequenceWithinTheUnitRange() {
         byte[] data = ReadAsset("SourceSansPro-Regular.otf");
         OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));

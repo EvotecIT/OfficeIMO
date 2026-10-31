@@ -20,42 +20,70 @@ using OfficeIMO.Html;
 using OfficeIMO.Word.Html;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1>Hello</h1><p>Body</p>");
-using WordDocument document = source.ToWordDocument(new HtmlToWordOptions());
+using WordDocument document = source.ToWord(new WordHtmlImportOptions());
 
 string html = document.ToHtml(
-    WordToHtmlOptions.CreateDocumentRoundTripProfile(OfficeVisualThemeKind.Report));
+    WordHtmlExportOptions.CreateDocumentRoundTripProfile(OfficeVisualThemeKind.Report));
 
-HtmlTextConversionResult export = document.ToHtmlResult();
-Console.WriteLine(export.RequireValue());
+string exported = document.ToHtml(null, out OfficeIMO.OfficeConversionReport report);
+Console.WriteLine(exported);
 ```
 
 HTML can also be appended to an existing body, header, footer, or table cell with
-`AddHtmlToBody`, `AddHtmlToHeader`, `AddHtmlToFooter`, and `WordTableCell.AddHtml`.
+`WordDocument.AddHtml`, `WordHeader.AddHtml`, `WordFooter.AddHtml`, and
+`WordTableCell.AddHtml`. Body and cell imports accept HTML text or a parsed
+`HtmlConversionDocument`; header and footer imports accept a parsed source.
+These methods return `IReadOnlyList<WordElement>` containing live
+imported elements in document order; `AddHtmlAsync` returns
+`Task<IReadOnlyList<WordElement>>`. Paragraphs use the existing run-level Word
+projection; nested content remains inside its table or content control. An initial
+empty cell paragraph filled by inline HTML is included. Pure section boundaries
+are structural and are omitted. The collection is a snapshot; its Word models
+remain editable. The parsed HTML source is not modified.
+
+```csharp
+document.AddHtml("<p>Body content</p>");
+WordSection section = document.Sections[0];
+WordHeader header = section.GetOrCreateHeader(WordHeaderFooterType.Default);
+IReadOnlyList<WordElement> imported = header.AddHtml(
+    HtmlConversionDocument.Parse("<p>Report header</p>"), section: section);
+section.GetOrCreateFooter(WordHeaderFooterType.First).AddHtml(
+    HtmlConversionDocument.Parse("<p>First-page footer</p>"));
+```
+
+Header and footer imports default to the first section defining the receiver's
+story. When sections share a header or footer, pass `section:` to use that
+section's content width for images and tables. The section must belong to the
+same document and share or inherit that story; unrelated contexts are rejected
+before insertion. The receiver selects the default, first-page, or even-page
+story. Synchronous imports remain offline-only; use `AddHtmlAsync` for remote
+resources and cancellation.
 
 To save an editable report from an HTML file:
 
 ```csharp
+using OfficeIMO.Html;
 var report = HtmlConversionDocument.Load("service-review.html");
-var result = report.ToWordDocumentResult();
-using var document = result.RequireValue();
+using var document = report.ToWord();
 document.Save("service-review.docx");
 ```
 
 See the [multi-format report example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) for a complete report input.
 
-Use the result API when conversion evidence matters:
+Use the out-report overload when conversion evidence matters:
 
 ```csharp
+using OfficeIMO.Html;
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-HtmlToWordResult result = source.ToWordDocumentResult(options);
-using WordDocument document = result.RequireValue();
+using WordDocument document = source.ToWord(options, out OfficeIMO.OfficeConversionReport report);
 
-foreach (HtmlDiagnostic diagnostic in result.Report.Diagnostics) {
+foreach (OfficeIMO.OfficeDiagnostic diagnostic in report.Diagnostics) {
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.LossKind}");
 }
 ```
 
-`HtmlConversionDocument` is the required source model. It keeps parsing, base-URI handling, resource policy, and source diagnostics in one owner. `HtmlToWordOptions.Limits` uses the shared `HtmlConversionLimits` contract; `MaxHtmlNodes`, `MaxHtmlDepth`, `MaxCssBytes`, and `MaxTotalCssBytes` remain forwarding properties for compatibility. `HtmlToWordOptions.StyleMissingHandler` scopes custom class mapping to one conversion.
+`HtmlConversionDocument` is the parsed source model; the document and cell
+`AddHtml` string overloads create it with bounded, untrusted-input defaults. It keeps parsing, base-URI handling, resource policy, and source diagnostics in one owner. `WordHtmlImportOptions.Limits` uses the shared `HtmlConversionLimits` contract; `MaxHtmlNodes`, `MaxHtmlDepth`, `MaxCssBytes`, and `MaxTotalCssBytes` remain forwarding properties for compatibility. `WordHtmlImportOptions.StyleMissingHandler` scopes custom class mapping to one conversion.
 
 The document result path projects bounded, single-surface `position:absolute`, `position:fixed`, and left/right floating regions into editable page-relative DrawingML text-box anchors. Exact offsets, size, native wrapping, solid fill, and z-order are retained. Repeated or fragmented paged regions stay in semantic flow, and CSS background layers or shadows without a Word-native editable equivalent produce stable layout diagnostics. Set `ImportEditableLayoutRegions = false` to keep every region in semantic flow.
 
@@ -67,9 +95,11 @@ Word export has named profiles for the intended fidelity contract:
 - `CreateDocumentRoundTripProfile()` enables editable structure, comments, section metadata, headers, footers, and trusted round-trip details.
 - `CreatePrintReviewProfile()` produces a static browser and print review without claiming browser/Word pagination parity.
 
-Each named profile uses the shared responsive OfficeIMO document shell and accepts an `OfficeVisualThemeKind`. The shell styles headings, tables, forms, figures, code, document regions, compact screens, and print output. It does not enable JavaScript, remote execution, or live browser behavior. `new WordToHtmlOptions()` and the existing `IncludeDefaultCss` switch retain their compact compatibility output unless `UseSharedDocumentShell` is selected explicitly.
+`ToHtml()` and `SaveAsHtml(path)` produce a complete HTML5 document with the default OfficeIMO theme styles. Set `IncludeDefaultCss = false` to supply your own CSS, or combine it with `EmitDocumentShell = false` to embed an unstyled fragment in another page.
 
-`WordHtmlExportProfile` is the Word-only profile enum; `WordToHtmlOptions.SharedProfile` exposes its mapping to the generic engine profile. Use `DocumentOutput` to select a full document or fragment and configure title, language, theme, default styles, and newlines as one settings object. `TrackedChangePolicy` selects final, original, or static markup projection without mutating the source document. `FieldPolicy` keeps stored field results by default and can add inert instruction metadata for review; HTML never evaluates Word fields. Named profiles also expose floating-picture wrap, anchor, offset, crop, transform, and supported effect values as inert review metadata with an explicit approximation diagnostic rather than claiming Word/browser layout parity.
+Each named profile uses the shared responsive OfficeIMO document shell and accepts an `OfficeVisualThemeKind`. The shell styles headings, tables, forms, figures, code, document regions, compact screens, and print output. It does not enable JavaScript, remote execution, or live browser behavior. `UseSharedDocumentShell` selects this shell explicitly for custom options.
+
+`WordHtmlExportProfile` is the Word-only profile enum; `WordHtmlExportOptions.SharedProfile` exposes its mapping to the generic engine profile. Use `DocumentOutput` to select a full document or fragment and configure title, language, theme, default styles, and newlines as one settings object. `TrackedChangePolicy` selects final, original, or static markup projection without mutating the source document. `FieldPolicy` keeps stored field results by default and can add inert instruction metadata for review; HTML never evaluates Word fields. Named profiles also expose floating-picture wrap, anchor, offset, crop, transform, and supported effect values as inert review metadata with an explicit approximation diagnostic rather than claiming Word/browser layout parity.
 
 ## What it maps
 
@@ -87,7 +117,7 @@ MathML operators with a recognized `form` or nonblank `lspace`/`rspace` produce
 `ContentApproximated` diagnostics with `LossKind.Approximation`: editable Word
 math does not retain their authored form and spacing. This also applies to
 formulas with an accessibility label and to side syntax outside the shared
-renderer's supported grammar. Inspect `ToWordDocumentResult(...).Report.Diagnostics`
+renderer's supported grammar. Inspect the `OfficeConversionReport.Diagnostics` from `ToWord(options, out report)`
 before accepting that approximation. Retain HTML/MathML or use the shared drawing
 renderer when exact operator spacing is required.
 
@@ -96,30 +126,30 @@ Imported tables use a default column grid that fits the section text area or con
 ## Import profiles
 
 ```csharp
-var safeOptions = HtmlToWordOptions.CreateUntrustedHtmlProfile();
+using OfficeIMO.Html;
+var safeOptions = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
 safeOptions.MaxHtmlNodes = 5000;
-safeOptions.DiagnosticHandler = diagnostic =>
-    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Source}");
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-using WordDocument safeDocument = source.ToWordDocument(safeOptions);
+using WordDocument safeDocument = source.ToWord(safeOptions);
 ```
 
 Remote images and stylesheets require the async API:
 
 ```csharp
-HtmlToWordResult remote = await source.ToWordDocumentResultAsync(options, cancellationToken);
-using WordDocument remoteDocument = remote.RequireValue();
+using OfficeIMO.Html;
+OfficeIMO.OfficeConversionResult<WordDocument> remote = await source.ToWordAsync(options, cancellationToken);
+using WordDocument remoteDocument = remote.Value;
 ```
 
-Remote image prefetch uses at most `HtmlToWordOptions.MaxConcurrentResourceLoads` requests at
+Remote image prefetch uses at most `WordHtmlImportOptions.MaxConcurrentResourceLoads` requests at
 once. Imports with `MaxTotalImageBytes` stay sequential so responses that exceed the remaining
 budget can be rejected before their bodies are read.
 
 - `CreateOfficeIMOProfile()` keeps the compatibility-oriented defaults.
 - `CreateUntrustedHtmlProfile()` keeps external document resources offline by default and enables bounded conversion. WebP images normalized to PNG are limited to four million decoded pixels; `MaxDecodedImagePixels` configures this limit independently of encoded-byte limits. Oversized images retain their alternative text and produce a diagnostic.
 - `CreateTrustedDocumentProfile()` enables document-provided stylesheet links for known-good HTML while keeping resource validation.
-- `new HtmlToWordOptions()` embeds data URI images only; use a trusted/compatibility profile or set `ImageProcessing = ImageProcessingMode.Embed` for trusted remote image fetching.
+- `new WordHtmlImportOptions()` embeds data URI images only; use a trusted/compatibility profile or set `ImageProcessing = WordHtmlImageProcessingMode.Embed` for trusted remote image fetching.
 - Local file images are not loaded by default; use a trusted/compatibility profile or add `Uri.UriSchemeFile` to `AllowedImageUriSchemes` for trusted local files.
 
 ## Related packages

@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void Test_ArrayCalculation_ReferencedBooleanChildrenKeepAggregateCoercion(bool dynamic) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
+            var sheet = document.AddSheet("Arrays");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(2, 1, 1d);
             const string formula = "FILTER(A1:A2=1,A1:A2>0)";

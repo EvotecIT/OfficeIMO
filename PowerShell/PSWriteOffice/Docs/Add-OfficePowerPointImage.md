@@ -11,7 +11,7 @@ Adds an image to a PowerPoint slide.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Add-OfficePowerPointImage [-Path] <string> [-Slide <PowerPointSlide>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointImage [-Path] <string> [-Slide <PowerPointSlide>] [-AlternativeText <string>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -32,6 +32,22 @@ New-OfficePowerPoint -Path .\Examples\Documents\PowerPointImage.pptx {
 Adds a picture to a generated slide.
 
 ## PARAMETERS
+
+### -AlternativeText
+Accessible description of the image.
+
+```yaml
+Type: String
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -Height
 Image height in points.

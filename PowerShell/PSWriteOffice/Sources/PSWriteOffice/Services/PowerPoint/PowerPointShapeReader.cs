@@ -86,10 +86,10 @@ internal static class PowerPointShapeReader
             ShapeIndex = shapeIndex,
             Kind = GetKind(shape),
             Name = shape.Name,
-            LeftPoints = shape.LeftPoints,
-            TopPoints = shape.TopPoints,
-            WidthPoints = shape.WidthPoints,
-            HeightPoints = shape.HeightPoints
+            LeftPoints = shape.Left.ToPoints(),
+            TopPoints = shape.Top.ToPoints(),
+            WidthPoints = shape.Width.ToPoints(),
+            HeightPoints = shape.Height.ToPoints()
         };
 
         switch (shape)

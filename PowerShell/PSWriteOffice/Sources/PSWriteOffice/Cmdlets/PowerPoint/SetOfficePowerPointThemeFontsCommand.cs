@@ -17,12 +17,12 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficePowerPointThemeFonts")]
 [Alias("PptThemeFonts")]
-[OutputType(typeof(PowerPointPresentation))]
+[OutputType(typeof(PowerPointDocument))]
 public sealed class SetOfficePowerPointThemeFontsCommand : PSCmdlet
 {
     /// <summary>Presentation to update (optional inside New-OfficePowerPoint).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Major Latin font.</summary>
     [Parameter]
@@ -75,7 +75,7 @@ public sealed class SetOfficePowerPointThemeFontsCommand : PSCmdlet
                 throw new PSArgumentException("Specify at least one theme font to update.");
             }
 
-            var presentation = Presentation ?? PowerPointDslContext.Require(this).Presentation;
+            var presentation = Presentation ?? PowerPointDslContext.Require(this).Document;
             var fonts = new PowerPointThemeFontSet(
                 MajorLatin,
                 MinorLatin,

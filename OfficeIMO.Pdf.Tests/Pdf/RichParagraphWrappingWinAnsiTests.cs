@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests.Pdf {
                     PdfTextRun.LineBreak(),
                     PdfTextRun.Normal("Beta \u2603")
                 },
-                new PdfOptions(),
+                new PdfCreateOptions(),
                 PdfStandardFont.Helvetica,
                 "paragraph",
                 "PdfParagraph[0]");

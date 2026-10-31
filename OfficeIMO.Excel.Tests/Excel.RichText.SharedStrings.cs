@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Rich Text");
+                    ExcelSheet sheet = document.AddSheet("Rich Text");
                     sheet.CellValue(1, 1, "placeholder");
                     document.Save();
                 }

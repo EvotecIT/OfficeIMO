@@ -5,20 +5,20 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Converts literal text through the canonical PDF flow engine without HTML or Markdown parsing.</summary>
-public static class PdfPlainTextConverter {
+internal static class PdfPlainTextConverter {
     /// <summary>Reads a caller-owned stream under a byte limit; seekable position is restored and the stream remains open.</summary>
-    public static PdfDocumentConversionResult ToPdfDocumentResult(Stream source,
-        PdfPlainTextOptions? options = null, long maximumInputBytes = 64L * 1024 * 1024,
+    internal static PdfDocumentConversionResult ToPdfDocumentResult(Stream source,
+        PdfTextImportOptions? options = null, long maximumInputBytes = 64L * 1024 * 1024,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(source, nameof(source));
         Guard.Positive(maximumInputBytes, nameof(maximumInputBytes));
         return ToPdfDocumentResult(OfficeStreamReader.ReadAllBytes(source, cancellationToken, maximumInputBytes), options, cancellationToken);
     }
     /// <summary>Decodes bounded bytes using an explicit encoding or a Unicode BOM and strict UTF-8 fallback.</summary>
-    public static PdfDocumentConversionResult ToPdfDocumentResult(byte[] bytes,
-        PdfPlainTextOptions? options = null, CancellationToken cancellationToken = default) {
+    internal static PdfDocumentConversionResult ToPdfDocumentResult(byte[] bytes,
+        PdfTextImportOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(bytes, nameof(bytes));
-        PdfPlainTextOptions settings = (options ?? new PdfPlainTextOptions()).Clone();
+        PdfTextImportOptions settings = (options ?? new PdfTextImportOptions()).Clone();
         cancellationToken.ThrowIfCancellationRequested();
         Encoding encoding = ResolveEncoding(bytes, settings.EncodingName, out int offset);
         int characters = encoding.GetCharCount(bytes, offset, bytes.Length - offset);
@@ -27,10 +27,10 @@ public static class PdfPlainTextConverter {
     }
 
     /// <summary>Preserves source lines, blank lines and spacing; expands tabs at source columns and honors form feeds.</summary>
-    public static PdfDocumentConversionResult ToPdfDocumentResult(string text,
-        PdfPlainTextOptions? options = null, CancellationToken cancellationToken = default) {
+    internal static PdfDocumentConversionResult ToPdfDocumentResult(string text,
+        PdfTextImportOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(text, nameof(text));
-        PdfPlainTextOptions settings = (options ?? new PdfPlainTextOptions()).Clone();
+        PdfTextImportOptions settings = (options ?? new PdfTextImportOptions()).Clone();
         if (text.Length > settings.MaximumCharacters) throw new InvalidDataException("Plain text exceeds the decoded character limit.");
         cancellationToken.ThrowIfCancellationRequested();
         var normalized = new StringBuilder(Math.Min(text.Length, settings.MaximumCharacters));
@@ -53,13 +53,13 @@ public static class PdfPlainTextConverter {
             if (value is '\n' or '\f') column = 0;
             else if (!char.IsLowSurrogate(value)) column += count;
         }
-        PdfOptions pdfOptions = settings.PdfOptions;
+        PdfCreateOptions pdfOptions = settings.PdfOptions;
         pdfOptions.PreserveTextWhitespace = true;
         pdfOptions.MaxGeneratedPages = Math.Min(pdfOptions.MaxGeneratedPages ?? settings.MaximumPages, settings.MaximumPages);
-        PdfDocument document = PdfDocument.Create(pdfOptions);
+        PdfDocument document = PdfDocument.CreateForImportedLayout(pdfOptions);
         string[] pages = normalized.ToString().Split('\f');
         if (pages.Length > settings.MaximumPages) throw new InvalidDataException("Plain text exceeds the explicit page limit.");
-        var style = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0, LineHeight = 1.2 };
+        var style = new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineHeight = 1.2 };
         for (int index = 0; index < pages.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (index > 0) document.Content.PageBreak();

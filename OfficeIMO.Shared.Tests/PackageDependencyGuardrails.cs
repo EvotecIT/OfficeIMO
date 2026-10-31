@@ -484,6 +484,7 @@ public sealed class PackageDependencyGuardrailTests {
 
         Assert.Equal(
             new[] {
+                "OfficeIMO.SharedSource/Charts/OfficeChartTypeName.cs",
                 "OfficeIMO.SharedSource/Compatibility/TrimmingAttributes.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundDocumentDetector.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFile.cs",
@@ -496,6 +497,7 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Stream.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileWriter.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundWriterLayout.cs",
+                "OfficeIMO.SharedSource/Html/OfficeThemeCssTokens.cs",
                 "OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs",
                 "OfficeIMO.SharedSource/Invoicing/InvoicePreservedXml.cs",
                 "OfficeIMO.SharedSource/Invoicing/InvoiceProfile.cs",
@@ -693,17 +695,17 @@ public sealed class PackageDependencyGuardrailTests {
     public static IEnumerable<object[]> OpenDocumentPdfAdapters() {
         yield return new object[] {
             "OfficeIMO.OpenDocument.Odt.Pdf/OfficeIMO.OpenDocument.Odt.Pdf.csproj",
-            new[] { "OfficeIMO.Word.OpenDocument", "OfficeIMO.Word.Pdf" },
+            new[] { "OfficeIMO.Word.OpenDocument", "OfficeIMO.Word.Pdf", "OfficeIMO.Pdf.Word" },
             new[] { "OfficeIMO.Excel", "OfficeIMO.PowerPoint" }
         };
         yield return new object[] {
             "OfficeIMO.OpenDocument.Ods.Pdf/OfficeIMO.OpenDocument.Ods.Pdf.csproj",
-            new[] { "OfficeIMO.Excel.OpenDocument", "OfficeIMO.Excel.Pdf" },
+            new[] { "OfficeIMO.Excel.OpenDocument", "OfficeIMO.Excel.Pdf", "OfficeIMO.Pdf.Excel" },
             new[] { "OfficeIMO.Word", "OfficeIMO.PowerPoint" }
         };
         yield return new object[] {
             "OfficeIMO.OpenDocument.Odp.Pdf/OfficeIMO.OpenDocument.Odp.Pdf.csproj",
-            new[] { "OfficeIMO.PowerPoint.OpenDocument", "OfficeIMO.PowerPoint.Pdf" },
+            new[] { "OfficeIMO.PowerPoint.OpenDocument", "OfficeIMO.PowerPoint.Pdf", "OfficeIMO.Pdf.PowerPoint" },
             new[] { "OfficeIMO.Word", "OfficeIMO.Excel" }
         };
     }

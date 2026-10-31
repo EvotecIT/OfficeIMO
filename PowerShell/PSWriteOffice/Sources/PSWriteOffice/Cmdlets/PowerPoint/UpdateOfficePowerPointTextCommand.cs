@@ -28,7 +28,7 @@ public sealed class UpdateOfficePowerPointTextCommand : PSWriteOffice.Cmdlets.Of
 
     /// <summary>Presentation to update.</summary>
     [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetPresentation)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Slide to update.</summary>
     [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetSlide)]
@@ -83,6 +83,6 @@ public sealed class UpdateOfficePowerPointTextCommand : PSWriteOffice.Cmdlets.Of
             return context.CurrentSlide.ReplaceText(OldValue, NewValue ?? string.Empty, IncludeTables, IncludeNotes.IsPresent);
         }
 
-        return context.Presentation.ReplaceText(OldValue, NewValue ?? string.Empty, IncludeTables, IncludeNotes.IsPresent);
+        return context.Document.ReplaceText(OldValue, NewValue ?? string.Empty, IncludeTables, IncludeNotes.IsPresent);
     }
 }

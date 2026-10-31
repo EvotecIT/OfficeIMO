@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using OfficeIMO.CSV;
+using OfficeIMO.Data;
 using Xunit;
 
 namespace OfficeIMO.CSV.Tests;
@@ -83,6 +84,29 @@ public sealed class CsvDataReaderUtf8TextTests {
         Assert.True(reader.Read());
         Assert.False(reader.TryGetUtf8Text(0, out _));
         Assert.Equal("last", reader.GetString(0));
+    }
+
+    [Fact]
+    public void QuotedFallbackCopiesUtf8ChunksAcrossRowsAndCharacterBoundaries() {
+        string value = new string('a', 8191) + "🐢\"終";
+        byte[] payload = Encoding.UTF8.GetBytes("Name\n\"" + value.Replace("\"", "\"\"") + "\"\nnext\n");
+        using var stream = new MemoryStream(payload);
+        using var reader = CsvDocument.OpenDataReader(stream);
+        Assert.True(reader.Read());
+        Assert.False(reader.TryGetUtf8Text(0, out _));
+        byte[] expected = Encoding.UTF8.GetBytes(value);
+        Assert.Equal(expected.Length, reader.GetUtf8Bytes(0, 0, null, 0, 0));
+        byte[] actual = new byte[expected.Length];
+        byte[] chunk = new byte[79];
+        for (int offset = 0; offset < actual.Length; offset += chunk.Length) {
+            int copied = (int)reader.GetUtf8Bytes(0, offset, chunk, 0, chunk.Length);
+            Array.Copy(chunk, 0, actual, offset, copied);
+        }
+        Assert.Equal(expected, actual);
+        Assert.True(reader.Read());
+        Assert.Equal("next", reader.GetString(0));
+        Assert.Equal(4, reader.GetUtf8Bytes(0, 0, chunk, 0, chunk.Length));
+        Assert.Equal("next", Encoding.UTF8.GetString(chunk, 0, 4));
     }
 
     [Fact]

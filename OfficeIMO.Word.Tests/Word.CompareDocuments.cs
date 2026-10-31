@@ -608,13 +608,13 @@ namespace OfficeIMO.Tests {
         public void CompareStructureReportsExternalLinkedImageChanges() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_external_image.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddParagraph().AddImage(new Uri("https://example.com/logo-a.png"), 50, 50);
+                doc.AddParagraph().AddImage(new Uri("https://example.com/logo-a.png"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_external_image.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.AddParagraph().AddImage(new Uri("https://example.com/logo-b.png"), 50, 50);
+                doc.AddParagraph().AddImage(new Uri("https://example.com/logo-b.png"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                 doc.Save();
             }
 

@@ -25,7 +25,7 @@ public partial class Excel {
             """;
         try {
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", (utf16 ? Encoding.Unicode : Encoding.UTF8).GetBytes(xml));
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 InferDataTableColumnTypes = inferTypes,
                 CellValueConverter = static _ => ExcelCellValue.NotHandled
             };

@@ -108,7 +108,8 @@ public class PdfCorpusReadBenchmarks {
 
     private PdfCorpusReadPayload ReadOfficeImo() {
         var options = new global::OfficeIMO.Pdf.PdfLoadOptions { IncludeArtifactText = true };
-        global::OfficeIMO.Pdf.PdfReadDocument document = global::OfficeIMO.Pdf.PdfReadDocument.Open(_pdf, options);
+        using var documentStream = new MemoryStream(_pdf, writable: false);
+        using global::OfficeIMO.Pdf.PdfDocument document = global::OfficeIMO.Pdf.PdfDocument.Load(documentStream, options);
         string[] pages = document.Pages.Select(static page => page.ExtractText()).ToArray();
         return PdfCorpusReadPayload.Create(pages);
     }

@@ -29,7 +29,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0, unsupported);
         AssertGradientSample(OfficeDrawingRasterRenderer.Render(imported!).GetPixel(x, y), red, blue);
 
-        byte[] pdf = document.ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (document.ToPdf(new HtmlToPdfOptions(options))).ToBytes();
         OfficeDrawing pdfDrawing = OfficeIMO.Pdf.PdfPageImageRenderer.RenderPage(pdf);
         OfficeRasterImage pdfImage = OfficeDrawingRasterRenderer.Render(pdfDrawing,
             new OfficeDrawingRasterRenderOptions { Scale = 96D / 72D });

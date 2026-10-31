@@ -6,78 +6,39 @@ schema: 2.0.0
 ---
 # Get-OfficePowerPointNotes
 ## SYNOPSIS
-Reads speaker notes from a slide or presentation.
+Reads speaker notes without creating empty notes parts.
 
 ## SYNTAX
-### Slide (Default)
+### __AllParameterSets
 ```powershell
-Get-OfficePowerPointNotes [-Slide <PowerPointSlide>] [-IncludeEmpty] [<CommonParameters>]
-```
-
-### Presentation
-```powershell
-Get-OfficePowerPointNotes [-Presentation <PowerPointPresentation>] [-Index <Int32>] [-IncludeEmpty] [<CommonParameters>]
+Get-OfficePowerPointNotes [-Document <PowerPointDocument>] [-Slide <PowerPointSlideSelector>] [-IncludeEmpty] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Returns note metadata without creating empty notes parts on slides that do not already have them.
+Reads speaker notes without creating empty notes parts.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficePowerPointSlide -Presentation $ppt -Index 0 | Get-OfficePowerPointNotes
+Get-OfficePowerPointNotes -Document $deck -IncludeEmpty | Select-Object SlideIndex, Text
 ```
 
-Returns the notes text and metadata for the selected slide.
 
 ### EXAMPLE 2
 ```powershell
-PS> Get-OfficePowerPointNotes -Presentation $ppt -IncludeEmpty
+Get-OfficePowerPointNotes -Document $deck -Slide 3
 ```
 
-Lists slide indexes together with note text, including slides that have no notes yet.
 
 ## PARAMETERS
 
-### -IncludeEmpty
-Include slides that do not currently have speaker notes.
+### -Document
+Gets or sets a live document; omission uses the enclosing document block.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Slide, Presentation
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Index
-Optional zero-based slide index when reading from a presentation.
-
-```yaml
-Type: Int32
-Parameter Sets: Presentation
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Presentation
-Presentation whose slides should be inspected.
-
-```yaml
-Type: PowerPointPresentation
-Parameter Sets: Presentation
+Type: PowerPointDocument
+Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
@@ -85,22 +46,38 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -IncludeEmpty
+Gets or sets whether slides without notes are included.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Slide
-Slide to inspect (optional inside the DSL).
+Gets or sets a native slide object or one-based slide position.
 
 ```yaml
-Type: PowerPointSlide
-Parameter Sets: Slide
+Type: PowerPointSlideSelector
+Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
 
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -109,8 +86,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointSlide`
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

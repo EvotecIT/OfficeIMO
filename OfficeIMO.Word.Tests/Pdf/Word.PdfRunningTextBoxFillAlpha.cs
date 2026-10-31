@@ -69,8 +69,8 @@ public partial class Word {
         }
         string[] before = AnchoredRunningStoryXml(document);
 
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         byte[] bytes = result.Value.ToBytes();
         using (var pdf = PdfPigDocument.Open(bytes)) {
             Assert.Equal(3, pdf.NumberOfPages);
@@ -80,7 +80,7 @@ public partial class Word {
         }
 
         var primitives = PdfCore.PdfReadDocument.Open(bytes).Pages[1].GetIdentityVisualPrimitives();
-        var frame = Assert.Single(primitives, primitive => primitive.FillColor == OfficeColor.FromRgb(68, 114, 196));
+        var frame = Assert.Single(primitives, primitive => primitive.FillColor == OfficeTheme.Default.Palette.Accent1);
         Assert.InRange(frame.FillOpacity ?? 1D, 0.45D - 1D / 255D, 0.45D + 1D / 255D);
         Assert.Equal((612D - 468D * 0.585D) / 2D, frame.X, precision: 3);
         Assert.Equal(footer ? 730D : 14.4D, frame.Y, precision: 3);

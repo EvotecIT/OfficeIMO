@@ -11,11 +11,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 NamedRangeCount = 0,
             };
             var unsupportedFunctions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var inspection = document.CreateInspectionSnapshot(new ExcelReadOptions {
+            var inspection = document.Inspect(new ExcelReaderOptions {
                 UseCachedFormulaResult = true,
                 TreatDatesUsingNumberFormat = true,
             });
-            foreach (ExcelCellSnapshot cell in inspection.Worksheets.SelectMany(sheet => sheet.Cells)) {
+            foreach (ExcelCellInfo cell in inspection.Worksheets.SelectMany(sheet => sheet.Cells)) {
                 if (string.IsNullOrWhiteSpace(cell.Formula)) continue;
                 plan.FormulaCount++;
                 GoogleSheetsFormulaTranslation translation = GoogleSheetsFormulaCatalog.Translate(cell.Formula!, options.Formulas);

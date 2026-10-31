@@ -1,10 +1,10 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static int FindMatchingBracket(
         string text,
         int openIndex,
-        MarkdownReaderOptions? options = null,
+        MarkdownLoadOptions? options = null,
         InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         if (string.IsNullOrEmpty(text) || openIndex < 0 || openIndex >= text.Length || text[openIndex] != '[') return -1;
 
@@ -49,7 +49,7 @@ public static partial class MarkdownReader {
     private static bool TrySkipLinkLabelInlineSpan(
         string text,
         int start,
-        MarkdownReaderOptions? options,
+        MarkdownLoadOptions? options,
         out int consumed,
         InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         consumed = 0;
@@ -179,7 +179,7 @@ public static partial class MarkdownReader {
         return UnescapeMarkdownBackslashEscapes(value);
     }
 
-    private static bool TryParseRefLink(string text, int start, MarkdownReaderOptions? options, out int consumed, out string label, out string refLabel, InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
+    private static bool TryParseRefLink(string text, int start, MarkdownLoadOptions? options, out int consumed, out string label, out string refLabel, InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         consumed = 0; label = refLabel = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
         int rb = FindMatchingBracket(text, start, options, inlineHtmlWrapperMatches); if (rb < 0) return false;
@@ -190,7 +190,7 @@ public static partial class MarkdownReader {
         consumed = rb2 - start + 1; return true;
     }
 
-    private static bool TryParseCollapsedRef(string text, int start, MarkdownReaderOptions? options, out int consumed, out string label, InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
+    private static bool TryParseCollapsedRef(string text, int start, MarkdownLoadOptions? options, out int consumed, out string label, InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         consumed = 0; label = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
         int rb = FindMatchingBracket(text, start, options, inlineHtmlWrapperMatches); if (rb < 0) return false;
@@ -200,7 +200,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryParseShortcutRef(string text, int start, MarkdownReaderOptions? options, out int consumed, out string label, InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
+    private static bool TryParseShortcutRef(string text, int start, MarkdownLoadOptions? options, out int consumed, out string label, InlineHtmlWrapperMatchIndex? inlineHtmlWrapperMatches = null) {
         consumed = 0; label = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
         int rb = FindMatchingBracket(text, start, options, inlineHtmlWrapperMatches); if (rb < 0) return false;
@@ -210,7 +210,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool ContainsResolvedLinkInLabel(string label, MarkdownReaderOptions? options, MarkdownReaderState? state) {
+    private static bool ContainsResolvedLinkInLabel(string label, MarkdownLoadOptions? options, MarkdownReaderState? state) {
         if (string.IsNullOrEmpty(label)) return false;
         var inlineHtmlWrapperMatches = BuildInlineHtmlWrapperMatchIndex(label);
 
@@ -281,14 +281,30 @@ public static partial class MarkdownReader {
     }
 
     private static bool ContainsAngleAutolinkInLabelSpan(
-        string text, int start, int end, MarkdownReaderOptions? options, MarkdownReaderState? state,
+        string text, int start, int end, MarkdownLoadOptions? options, MarkdownReaderState? state,
         InlineHtmlWrapperMatchIndex matches) {
         // Inspect wrapper contents without recursively rescanning nested wrappers. Code, escapes,
         // HTML attributes and image alternatives are literal contexts rather than nested links.
+        // Index the next equal-length backtick run once: probing every possible opener
+        // separately rescans unmatched suffixes quadratically.
+        var nextBacktickRun = new Dictionary<int, int>();
+        var codeSpanEnds = new Dictionary<int, int>();
+        for (int runEnd = end; runEnd > start;) {
+            int runStart = runEnd - 1;
+            if (text[runStart] != '`') { runEnd--; continue; }
+            while (runStart > start && text[runStart - 1] == '`') runStart--;
+            int length = runEnd - runStart;
+            if (nextBacktickRun.TryGetValue(length, out int closer))
+                codeSpanEnds[runStart] = closer + length;
+            nextBacktickRun[length] = runStart;
+            runEnd = runStart;
+        }
         for (int i = start; i < end; i++) {
             if (text[i] == '\\' && i + 1 < end && IsBackslashEscapable(text[i + 1])) { i++; continue; }
-            if (text[i] == '`' && TryConsumeMatchedBacktickSpan(text, i, out int codeLength) && i + codeLength <= end) {
-                i += codeLength - 1;
+            if (text[i] == '`') {
+                int runStart = i;
+                while (i + 1 < end && text[i + 1] == '`') i++;
+                if (codeSpanEnds.TryGetValue(runStart, out int codeSpanEnd)) i = codeSpanEnd - 1;
                 continue;
             }
             if (text[i] == '!' && TrySkipLinkLabelImage(text, i, state, matches, out int imageLength) && i + imageLength <= end) {
@@ -309,7 +325,7 @@ public static partial class MarkdownReader {
     private static bool TryParseLink(
         string text,
         int start,
-        MarkdownReaderOptions? options,
+        MarkdownLoadOptions? options,
         MarkdownInlineSourceMap? sourceMap,
         MarkdownReaderState? state,
         out int consumed,

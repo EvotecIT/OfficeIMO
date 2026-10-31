@@ -140,4 +140,5 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.DocBook" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.IWork" />
   </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
 </Project>

@@ -12,16 +12,16 @@ $path = Join-Path $OutputDirectory 'Example-Visio-StencilFlow.vsdx'
 $svgPath = Join-Path $OutputDirectory 'Example-Visio-StencilFlow.svg'
 $pngPath = Join-Path $OutputDirectory 'Example-Visio-StencilFlow.png'
 
-OfficeVisio -Path $path -Title 'Customer onboarding flow' -Author 'PSWriteOffice' -Width 11 -Height 8.5 -UseMastersByDefault -RequestRecalcOnOpen {
+New-OfficeVisio -Path $path -Title 'Customer onboarding flow' -Author 'PSWriteOffice' -Width 11in -Height 8.5in -UseMastersByDefault -RequestRecalcOnOpen {
     VisioStencilImport -BuiltIn Flowchart -Name Flow -Default
 
-    VisioTextBox 'Customer onboarding' -X 5.5 -Y 7.55 -Width 5.2 -Height 0.42 -FillColor '#FFFFFF' -LineColor '#FFFFFF'
-    VisioTextBox 'A compact, editable flowchart generated from PowerShell and OfficeIMO stencils.' -X 5.5 -Y 7.08 -Width 6.4 -Height 0.32 -FillColor '#FFFFFF' -LineColor '#FFFFFF'
+    VisioTextBox 'Customer onboarding' -X 5.5in -Y 7.55in -Width 5.2in -Height 0.42in -FillColor '#FFFFFF' -LineColor '#FFFFFF'
+    VisioTextBox 'A compact, editable flowchart generated from PowerShell and OfficeIMO stencils.' -X 5.5in -Y 7.08in -Width 6.4in -Height 0.32in -FillColor '#FFFFFF' -LineColor '#FFFFFF'
 
-    VisioRectangle -Key laneA -X 2.35 -Y 4.15 -Width 3.6 -Height 4.2 -FillColor '#EFF6FF' -LineColor '#BFDBFE'
-    VisioRectangle -Key laneB -X 6.95 -Y 4.15 -Width 4.6 -Height 4.2 -FillColor '#F0FDFA' -LineColor '#99F6E4'
-    VisioTextBox 'Intake' -X 2.35 -Y 6.05 -Width 2.8 -Height 0.32 -FillColor '#EFF6FF' -LineColor '#EFF6FF'
-    VisioTextBox 'Automation' -X 6.95 -Y 6.05 -Width 3.2 -Height 0.32 -FillColor '#F0FDFA' -LineColor '#F0FDFA'
+    VisioRectangle -Key laneA -X 2.35in -Y 4.15in -Width 3.6in -Height 4.2in -FillColor '#EFF6FF' -LineColor '#BFDBFE'
+    VisioRectangle -Key laneB -X 6.95in -Y 4.15in -Width 4.6in -Height 4.2in -FillColor '#F0FDFA' -LineColor '#99F6E4'
+    VisioTextBox 'Intake' -X 2.35in -Y 6.05in -Width 2.8in -Height 0.32in -FillColor '#EFF6FF' -LineColor '#EFF6FF'
+    VisioTextBox 'Automation' -X 6.95in -Y 6.05in -Width 3.2in -Height 0.32in -FillColor '#F0FDFA' -LineColor '#F0FDFA'
 
     VisioStencil -Catalog Flow -Stencil start -Key start -Text 'Request' -X 1.1 -Y 4.9 -FillColor '#DBEAFE' -LineColor '#2563EB'
     VisioStencil -Catalog Flow -Stencil process -Key validate -Text 'Validate profile' -X 3.0 -Y 4.9 -FillColor '#E0F2FE' -LineColor '#0284C7'

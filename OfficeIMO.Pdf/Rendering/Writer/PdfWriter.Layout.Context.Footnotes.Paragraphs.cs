@@ -4,12 +4,12 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void AppendFootnoteParagraph(RichParagraphBlock paragraph, PdfParagraphStyle? style,
             double frameX, double frameWidth, FootnotePanel[] panels, List<FootnoteUnit> units) {
-            double size = style?.FontSize ?? currentOpts.DefaultFontSize;
+            double size = style?.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(style, size);
             var frame = GetParagraphTextFrame(style, frameX, frameWidth);
             var wrapped = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, frame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
                 frame.FirstLineWidth, frame.FirstLineX - frame.X, GetParagraphTabStopWidth(style), currentOpts,
-                style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? style.JustificationMode : null);
+                style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing, textWhitespaceMode: style?.TextWhitespaceMode, wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? style.JustificationMode : null, cancellationToken: cancellationToken);
             var captured = new RichParagraphBlock(paragraph.Runs, paragraph.Align, paragraph.DefaultColor, style);
             for (int index = 0; index < wrapped.Lines.Count; index++) {
                 if (units.Count >= MaximumTextLayoutLines) throw new InvalidDataException("Footnote flow exceeded the 100,000-fragment limit.");
@@ -54,12 +54,12 @@ internal static partial class PdfWriter {
             FootnoteUnit normalFrame = firstLineFrame ? units[start + 1] : first;
             WriteRichParagraph(sb, paragraph, lines, heights, currentOpts,
                 FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), first.Size, top), first.Size, first.Leading,
-                currentPage!.Annotations, (originX ?? currentOpts.MarginLeft) + normalFrame.X, normalFrame.Width,
-                firstLineXOverride: firstLineFrame ? (originX ?? currentOpts.MarginLeft) + first.X : null,
+                currentPage!.Annotations, (originX ?? currentOpts.MarginLeft.ToPoints()) + normalFrame.X, normalFrame.Width,
+                firstLineXOverride: firstLineFrame ? (originX ?? currentOpts.MarginLeft.ToPoints()) + first.X : null,
                 firstLineWidthOverride: firstLineFrame ? first.Width : null,
                 structureType: structureType, markedContentId: markedContentId, structurePage: currentPage,
                 hasFollowingParagraphLines: last.ParagraphLine + 1 < last.ParagraphLines, paragraphSpacingAfter: last.After,
-                paragraphSpacingBefore: first.Before);
+                paragraphSpacingBefore: first.Before, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
             pageDirty = true;
             top -= advance + last.After;
         }

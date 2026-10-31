@@ -5,9 +5,9 @@ $rows = @(
     [pscustomobject]@{ Service = 'Files'; Owner = 'Storage'; Incidents = 0; Status = 'Ready' }
 )
 
-ExcelNew -Path $path {
+New-OfficeExcel -Path $path {
     ExcelSheet 'Services' {
-        ExcelTable -Data $rows -TableName 'ServiceHealth' -AutoFit
+        ExcelTable -Data $rows -Name 'ServiceHealth' -AutoFit
     }
 }
 

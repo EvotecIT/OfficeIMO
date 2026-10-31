@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class OfficeDocumentModelPdfExtensions {
+internal static partial class OfficeDocumentModelPdfExtensions {
     private static bool HasExplicitReadingOrder(OfficeDocumentModel source) =>
         source.Blocks.Any(block => block.Location?.LogicalOrder.HasValue == true)
         || source.Tables.Any(table => table.Location?.LogicalOrder.HasValue == true)
@@ -33,7 +33,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
         links.AddRange(identities.TakeLinks(source.Links));
         forms.AddRange(identities.TakeForms(source.Forms));
         if (omittedPageNames) {
-            report.Add(new PdfConversionWarning(ConverterName, "MODEL_SOURCE_PAGE_LABELS_OMITTED", source.Format + "/document",
+            report.Add(new PdfConversionWarning(ConverterName, "model-source-page-labels-omitted", source.Format + "/document",
                 "Automatic physical-page headings are omitted in continuous flow to preserve the source's explicit logical reading order.",
                 PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission));
         }

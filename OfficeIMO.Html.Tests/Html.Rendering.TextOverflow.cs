@@ -16,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.EndsWith("\u2026", text.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("delta", text.Text, StringComparison.Ordinal);
         Assert.InRange(text.TextAdvanceWidth ?? text.Width, 0.01D, 90D);
-        string pdfText = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions())).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes()).ExtractText();
         Assert.Contains("\u2026", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("delta", pdfText, StringComparison.Ordinal);
     }
@@ -201,7 +201,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain('\t', string.Concat(compactText.Select(text => text.Text)));
         Assert.DoesNotContain('\t', string.Concat(wideText.Select(text => text.Text)));
         Assert.True(Assert.Single(wideText, text => text.Text == "B").X > Assert.Single(compactText, text => text.Text == "B").X);
-        Assert.Contains("B", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(wide).ToPdfBytes(new HtmlToPdfOptions())).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("B", PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(wide).ToPdf(new HtmlToPdfOptions())).ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText after = Assert.Single(text, item => item.Text == " B");
 
         Assert.True(after.X > before.X + before.Width + 15D);
-        Assert.Contains("B", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("B", PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -308,7 +308,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { "A", " ", "B" }, spacedGlyphs.Select(glyph => glyph.Text).ToArray());
         Assert.True(spacedGlyphs.Sum(glyph => glyph.TextAdvanceWidth ?? glyph.Width) > normalAdvance + 10D);
         Assert.True(spacedGlyphs[2].X - spacedGlyphs[0].X > normalAdvance / 2D);
-        string pdfText = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(spaced).ToPdfBytes(new HtmlToPdfOptions())).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open((HtmlConversionDocument.Parse(spaced).ToPdf(new HtmlToPdfOptions())).ToBytes()).ExtractText();
         Assert.Contains("A B", pdfText, StringComparison.Ordinal);
     }
 
@@ -334,7 +334,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Contains(text, item => item.Text == " ");
         Assert.True(def.X - abc.X > baselineDef.X - baselineAbc.X + 10D);
-        Assert.Contains("abc def אבג", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("abc def אבג", PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -382,8 +382,8 @@ public sealed partial class HtmlRenderingTests {
 
             HtmlRenderText[] baseline = Paint(.01D);
             HtmlRenderText[] spaced = Paint(20D);
-            HtmlRenderText[] baselineSample = baseline.Where(text => text.Color == OfficeIMO.Drawing.OfficeColor.Red).ToArray();
-            HtmlRenderText[] spacedSample = spaced.Where(text => text.Color == OfficeIMO.Drawing.OfficeColor.Red).ToArray();
+            HtmlRenderText[] baselineSample = baseline.Where(text => text.Color == OfficeIMO.OfficeColor.Red).ToArray();
+            HtmlRenderText[] spacedSample = spaced.Where(text => text.Color == OfficeIMO.OfficeColor.Red).ToArray();
             HtmlRenderText baselineFollowing = Assert.Single(baseline, text => text.Text == "TAIL");
             HtmlRenderText spacedFollowing = Assert.Single(spaced, text => text.Text == "TAIL");
 

@@ -19,8 +19,8 @@ public sealed class PdfInvoiceContainerTests {
     public void UnsupportedProfileOnlyRequestCannotBeReplacedByInvoiceGroundwork(PdfComplianceProfile profile) {
         PdfInvoiceDocument snapshot = Snapshot();
         foreach (bool useHelper in new[] { false, true }) {
-            PdfOptions options = useHelper ? new PdfOptions().RequireCompliance(profile)
-                : new PdfOptions { ComplianceProfile = profile };
+            PdfCreateOptions options = useHelper ? new PdfCreateOptions().RequireCompliance(profile)
+                : new PdfCreateOptions { ComplianceProfile = profile };
             Assert.Null(options.PdfAIdentification);
             Assert.Null(options.PdfUaIdentification);
             NotSupportedException error = Assert.Throws<NotSupportedException>(() => snapshot.ToPdfBytes(options));
@@ -41,11 +41,11 @@ public sealed class PdfInvoiceContainerTests {
     [InlineData(PdfComplianceProfile.PdfUa1, "B", 1)]
     public void SupportedProfileOnlyRequestPreservesItsConformance(
         PdfComplianceProfile profile, string conformance, int? uaPart) {
-        PdfOptions options = Options().RequireCompliance(profile);
+        PdfCreateOptions options = Options().RequireCompliance(profile);
         Assert.Null(options.PdfAIdentification);
         Assert.Null(options.PdfUaIdentification);
         byte[] pdf = Snapshot().ToPdfBytes(options);
-        PdfDocument saved = PdfDocument.Load(pdf);
+        PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         Assert.Equal(3, saved.Inspect().XmpMetadata!.PdfAPart);
         Assert.Equal(conformance, saved.Inspect().XmpMetadata!.PdfAConformance);
         Assert.Equal(uaPart, saved.Inspect().XmpMetadata!.PdfUaPart);
@@ -59,7 +59,7 @@ public sealed class PdfInvoiceContainerTests {
     [Fact]
     public void HybridUa2IsRejectedBeforeRenderingAndPresentationUa2RemainsAvailable() {
         PdfInvoiceDocument snapshot = Snapshot();
-        PdfOptions options = Options().UsePdfUa(PdfComplianceProfile.PdfUa2);
+        PdfCreateOptions options = Options().UsePdfUa(PdfComplianceProfile.PdfUa2);
         NotSupportedException error = Assert.Throws<NotSupportedException>(() => snapshot.ToPdfBytes(options));
         foreach (string supported in new[] { "PDF/A-3a", "PDF/A-3b", "PDF/A-3u", "PDF/UA-1" })
             Assert.Contains(supported, error.Message);
@@ -68,7 +68,7 @@ public sealed class PdfInvoiceContainerTests {
         Assert.Null(options.ElectronicInvoiceMetadata);
 
         byte[] presentation = snapshot.ToPresentationPdfBytes(options);
-        PdfDocument saved = PdfDocument.Load(presentation);
+        PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(presentation));
         Assert.Equal(2, saved.Inspect().XmpMetadata!.PdfUaPart);
         Assert.Empty(saved.Attachments.Extract());
         Assert.Empty(saved.AssessCompliance(PdfComplianceProfile.PdfUa2).MissingRequirements);
@@ -82,7 +82,7 @@ public sealed class PdfInvoiceContainerTests {
     public void UnsupportedHybridContainerIsRejectedWithoutChangingPresentationOptions(
         PdfComplianceProfile archival, int part, string? conformance) {
         PdfInvoiceDocument snapshot = Snapshot();
-        PdfOptions options = Options().UsePdfA(archival);
+        PdfCreateOptions options = Options().UsePdfA(archival);
         if (archival == PdfComplianceProfile.PdfA4F) {
             options.AddEmbeddedFile("evidence.txt", new byte[] { 65 }, "text/plain", PdfAssociatedFileRelationship.Data)
                 .SetEmbeddedFileModificationDate("evidence.txt", DateTimeOffset.UtcNow);
@@ -95,7 +95,7 @@ public sealed class PdfInvoiceContainerTests {
         Assert.Null(options.ElectronicInvoiceMetadata);
 
         byte[] presentation = snapshot.ToPresentationPdfBytes(options);
-        PdfDocument saved = PdfDocument.Load(presentation);
+        PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(presentation));
         Assert.Equal(part, saved.Inspect().XmpMetadata!.PdfAPart);
         Assert.Equal(conformance, saved.Inspect().XmpMetadata!.PdfAConformance);
         Assert.DoesNotContain(saved.Attachments.Extract(), file => file.FileName == "factur-x.xml");
@@ -107,7 +107,7 @@ public sealed class PdfInvoiceContainerTests {
         // Metadata groundwork can represent an existing unsupported invoice container.
         // It must remain assessable without promoting general A-4f attachment support
         // to a valid Factur-X/ZUGFeRD invoice carrier.
-        PdfOptions options = Options().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4F)
+        PdfCreateOptions options = Options().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4F)
             .AddFacturXInvoiceXml(Snapshot().ToXmlBytes(), relationship: PdfAssociatedFileRelationship.Alternative)
             .SetEmbeddedFileModificationDate("factur-x.xml", DateTimeOffset.UtcNow);
         PdfDocument document = PdfDocument.Create(options);
@@ -117,7 +117,7 @@ public sealed class PdfInvoiceContainerTests {
             Assert.Contains(generated.MissingRequirements, requirement => requirement.Id == "pdfa-identification");
         }
         byte[] pdf = document.ToBytes();
-        PdfDocument saved = PdfDocument.Load(pdf);
+        PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         Assert.Empty(saved.AssessCompliance(PdfComplianceProfile.PdfA4F).MissingRequirements);
         foreach (PdfComplianceProfile profile in new[] { PdfComplianceProfile.FacturX, PdfComplianceProfile.Zugferd }) {
             PdfExternalValidationResult Result(PdfExternalValidatorKind kind, string name) =>
@@ -144,7 +144,7 @@ public sealed class PdfInvoiceContainerTests {
 
     [Fact]
     public void SavedInvoiceUa2DeclarationBlocksInvoiceProof() {
-        PdfOptions options = Options().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
+        PdfCreateOptions options = Options().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
             .ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa2)
             .AddFacturXInvoiceXml(Snapshot().ToXmlBytes(), relationship: PdfAssociatedFileRelationship.Alternative)
             .SetEmbeddedFileModificationDate("factur-x.xml", DateTimeOffset.UtcNow);
@@ -154,7 +154,7 @@ public sealed class PdfInvoiceContainerTests {
         PdfDocument document = PdfDocument.Create(options);
         document.Content.Paragraph(p => p.Text("Invoice UA declaration regression"));
         byte[] pdf = document.ToBytes();
-        PdfDocument saved = PdfDocument.Load(pdf);
+        PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         foreach (PdfComplianceProfile profile in new[] { PdfComplianceProfile.FacturX, PdfComplianceProfile.Zugferd }) {
             Assert.Contains(document.AssessCompliance(profile).MissingRequirements,
                 requirement => requirement.Id == "einvoice-pdfua-profile");
@@ -170,9 +170,9 @@ public sealed class PdfInvoiceContainerTests {
         new InvoiceXmlOptions(InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2,
             InvoiceSyntax.Cii, InvoiceProfile.En16931));
 
-    private static PdfOptions Options() {
+    private static PdfCreateOptions Options() {
         byte[] font = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
-        return new PdfOptions { IncludeStandardFontToUnicodeMaps = true }
+        return new PdfCreateOptions { IncludeStandardFontToUnicodeMaps = true }
             .EmbedStandardFont(PdfStandardFont.Helvetica, font, "OfficeIMO Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "OfficeIMO Source Serif");
     }

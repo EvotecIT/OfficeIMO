@@ -8,26 +8,6 @@ BeforeAll {
 
     . (Join-Path $PSScriptRoot 'TestHelpers.ps1')
 
-    function Test-OfficeLoadedMethod {
-        param(
-            [Parameter(Mandatory)]
-            [string] $TypeName,
-
-            [Parameter(Mandatory)]
-            [string] $MethodName
-        )
-
-        $type = [AppDomain]::CurrentDomain.GetAssemblies() |
-            ForEach-Object { $_.GetType($TypeName, $false) } |
-            Where-Object { $null -ne $_ } |
-            Select-Object -First 1
-        if ($null -eq $type) {
-            throw "Unable to find loaded type '$TypeName'."
-        }
-
-        @($type.GetMethods() | Where-Object Name -eq $MethodName).Count -gt 0
-    }
-
     function Add-TestWordParagraphStyle {
         param(
             [Parameter(Mandatory)]
@@ -133,7 +113,7 @@ Describe 'Word DSL surface' {
 
         Test-Path $path | Should -BeTrue
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $document.Sections.Count | Should -BeGreaterThan 0
             $document.Paragraphs.Count | Should -BeGreaterThan 0
@@ -202,7 +182,7 @@ Describe 'Word DSL surface' {
             Add-OfficeWordParagraph -Text 'After marker'
         }
 
-        $document = Get-OfficeWord -Path $path
+        $document = Open-OfficeWord -Path $path
         try {
             $marker = Find-OfficeWord -Document $document -Text 'Insertion marker' | Select-Object -First 1
             $marker | Should -Not -BeNullOrEmpty
@@ -240,13 +220,6 @@ Describe 'Word DSL surface' {
     }
 
     It 'round-trips encrypted Word documents through lifecycle cmdlets' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.Word.WordDocument' -MethodName 'LoadEncrypted')) {
-            (Get-Command New-OfficeWord).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command Save-OfficeWord).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command Get-OfficeWord).Parameters.Keys | Should -Contain 'Password'
-            return
-        }
-
         $path = Join-Path $TestDrive 'EncryptedWord.docx'
 
         New-OfficeWord -Path $path -Password 'secret' {
@@ -256,67 +229,67 @@ Describe 'Word DSL surface' {
         }
 
         { Get-ZipEntriesLocal -Path $path } | Should -Throw
-        $document = Get-OfficeWord -Path $path -Password 'secret' -ReadOnly
+        $document = Open-OfficeWord -Path $path -Password 'secret' -ReadOnly
         try {
             $document.Paragraphs.Text | Should -Contain 'Encrypted Word value'
         } finally {
             $document.Dispose()
         }
 
-        $document = Get-OfficeWord -Path $path -Password 'secret'
+        $document = Open-OfficeWord -Path $path -Password 'secret'
         try {
             { $document | Save-OfficeWord -Path $path -ErrorAction Stop } |
-                Should -Throw '*Provide -Password*'
+                Should -Not -Throw
             $document.AddParagraph('Updated encrypted Word value') | Out-Null
             $document | Save-OfficeWord -Password 'secret'
         } finally {
             $document | Close-OfficeWord
         }
 
-        $plainCopyPath = Join-Path $TestDrive 'EncryptedWordPlainCopy.docx'
-        $document = Get-OfficeWord -Path $path -Password 'secret'
+        $samePasswordCopyPath = Join-Path $TestDrive 'EncryptedWordSamePasswordCopy.docx'
+        $document = Open-OfficeWord -Path $path -Password 'secret'
         try {
-            $document | Save-OfficeWord -Path $plainCopyPath
-            $document.AddParagraph('Updated plain Word copy') | Out-Null
+            $document | Save-OfficeWord -Path $samePasswordCopyPath
+            $document.AddParagraph('Updated encrypted Word copy') | Out-Null
             $document | Save-OfficeWord
         } finally {
             $document | Close-OfficeWord
         }
 
-        { Get-ZipEntriesLocal -Path $plainCopyPath } | Should -Not -Throw
-        $plainCopy = Get-OfficeWord -Path $plainCopyPath -ReadOnly
+        { Get-ZipEntriesLocal -Path $samePasswordCopyPath } | Should -Throw
+        $samePasswordCopy = Open-OfficeWord -Path $samePasswordCopyPath -Password 'secret' -ReadOnly
         try {
-            $plainCopy.Paragraphs.Text | Should -Contain 'Updated plain Word copy'
+            $samePasswordCopy.Paragraphs.Text | Should -Contain 'Updated encrypted Word copy'
         } finally {
-            $plainCopy | Close-OfficeWord
+            $samePasswordCopy | Close-OfficeWord
         }
 
         $encryptedCopyPath = Join-Path $TestDrive 'EncryptedWordCopy.docx'
-        $document = Get-OfficeWord -Path $path -Password 'secret'
+        $document = Open-OfficeWord -Path $path -Password 'secret'
         try {
             $document | Save-OfficeWord -Path $encryptedCopyPath -Password 'copy-secret'
             $document.AddParagraph('Updated encrypted Word copy') | Out-Null
-            { $document | Save-OfficeWord -ErrorAction Stop } | Should -Throw '*Provide -Password*'
+            { $document | Save-OfficeWord -ErrorAction Stop } | Should -Not -Throw
             $document | Save-OfficeWord -Password 'copy-secret'
         } finally {
             $document | Close-OfficeWord
         }
 
-        $encryptedCopy = Get-OfficeWord -Path $encryptedCopyPath -Password 'copy-secret' -ReadOnly
+        $encryptedCopy = Open-OfficeWord -Path $encryptedCopyPath -Password 'copy-secret' -ReadOnly
         try {
             $encryptedCopy.Paragraphs.Text | Should -Contain 'Updated encrypted Word copy'
         } finally {
             $encryptedCopy | Close-OfficeWord
         }
 
-        $document = Get-OfficeWord -Path $path -Password 'secret' -ReadOnly
+        $document = Open-OfficeWord -Path $path -Password 'secret' -ReadOnly
         try {
             $document.Paragraphs.Text | Should -Contain 'Updated encrypted Word value'
         } finally {
             $document | Close-OfficeWord
         }
 
-        (Get-Command Get-OfficeWord).Parameters.Keys | Should -Not -Contain 'AutoSave'
+        (Get-Command Open-OfficeWord).Parameters.Keys | Should -Not -Contain 'AutoSave'
     }
 
     It 'runs the Word DSL against a cloned template document' {
@@ -329,11 +302,11 @@ Describe 'Word DSL surface' {
         } | Out-Null
         Add-TestWordParagraphStyle -Path $templatePath -StyleId $styleId
 
-        New-OfficeWord -TemplatePath $templatePath -Path $outputPath {
+        New-OfficeWord -Template $templatePath -Path $outputPath {
             WordParagraph -Text 'Generated appendix' -StyleId $styleId
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $outputPath -ReadOnly
+        $document = Open-OfficeWord -Path $outputPath -ReadOnly
         try {
             $document.Paragraphs.Text | Should -Contain 'Template fixed section'
             $document.Paragraphs.Text | Should -Contain 'Generated appendix'
@@ -357,16 +330,11 @@ Describe 'Word DSL surface' {
             WordParagraph -Text 'Existing report body'
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path {
+        Open-OfficeWord -Path $path {
             WordParagraph -Text 'Added after load'
         }
-        try {
-            $document | Save-OfficeWord | Out-Null
-        } finally {
-            Close-OfficeWord -Document $document
-        }
 
-        $saved = Get-OfficeWord -Path $path -ReadOnly
+        $saved = Open-OfficeWord -Path $path -ReadOnly
         try {
             $saved.Paragraphs.Text | Should -Contain 'Existing report body'
             $saved.Paragraphs.Text | Should -Contain 'Added after load'
@@ -397,13 +365,6 @@ Describe 'Word DSL surface' {
         }
 
         Test-Path $path | Should -BeTrue
-        (Get-Command WordNew).ResolvedCommandName | Should -Be 'New-OfficeWord'
-        (Get-Command WordCheckBox).ResolvedCommandName | Should -Be 'Add-OfficeWordCheckBox'
-        (Get-Command WordDatePicker).ResolvedCommandName | Should -Be 'Add-OfficeWordDatePicker'
-        (Get-Command WordDropDownList).ResolvedCommandName | Should -Be 'Add-OfficeWordDropDownList'
-        (Get-Command WordTableCondition).ResolvedCommandName | Should -Be 'Add-OfficeWordTableCondition'
-        (Get-Command WordTableOfContents).ResolvedCommandName | Should -Be 'Add-OfficeWordTableOfContents'
-        (Get-Command WordSection).ResolvedCommandName | Should -Be 'Add-OfficeWordSection'
     }
 
     It 'creates multiple continuous sections from a PowerShell-friendly break type' {
@@ -417,7 +378,7 @@ Describe 'Word DSL surface' {
             }
         }
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $document.Sections.Count | Should -Be 8
         } finally {
@@ -470,7 +431,7 @@ Describe 'Word DSL surface' {
             }
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $cellTexts = $table.Rows[1].Cells[0].Paragraphs |
@@ -536,7 +497,7 @@ Describe 'Word DSL surface' {
             }
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path
+        $document = Open-OfficeWord -Path $path
         try {
             ($document | Get-OfficeWordSection).Count | Should -BeGreaterThan 0
             ($document | Get-OfficeWordParagraph).Count | Should -BeGreaterThan 0
@@ -562,15 +523,15 @@ Describe 'Word DSL surface' {
             Add-OfficeWordTable -InputObject $rows -Style TableGrid -Layout Fixed
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $document.Tables.Count | Should -Be 3
             $document.Tables[0].LayoutMode.ToString() | Should -Be 'AutoFit'
-            $document.Tables[0].WidthType.ToString() | Should -Be 'Auto'
-            $document.Tables[0].Width | Should -Be 0
+            $document.Tables[0].Width.Kind.ToString() | Should -Be 'Auto'
+            $document.Tables[0].Width.LengthValue | Should -BeNullOrEmpty
             $document.Tables[1].LayoutMode.ToString() | Should -Be 'Fixed'
-            $document.Tables[1].WidthType.ToString() | Should -Be 'Pct'
-            $document.Tables[1].Width | Should -Be 5000
+            $document.Tables[1].Width.Kind.ToString() | Should -Be 'Percent'
+            $document.Tables[1].Width.PercentValue | Should -Be 100
             $document.Tables[2].LayoutMode.ToString() | Should -Be 'Fixed'
         } finally {
             $document.Dispose()
@@ -594,7 +555,7 @@ Describe 'Word DSL surface' {
             )
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.Rows[0].CellsCount | Should -Be 3
@@ -610,13 +571,9 @@ Describe 'Word DSL surface' {
     }
 
     It 'creates Word paragraphs and table cells from rich text runs with named colors' {
-        foreach ($name in 'WordNew', 'WordTextRun', 'WordTableCellSpec') {
-            Get-Command $name | Should -Not -BeNullOrEmpty
-        }
-
         $path = Join-Path $TestDrive 'DslRichTextRunsWord.docx'
 
-        WordNew -Path $path {
+        New-OfficeWord -Path $path {
             WordParagraph -Run @{
                 Text      = 'Status: ', 'Ready'
                 Color     = $null, 'SeaGreen'
@@ -625,7 +582,7 @@ Describe 'Word DSL surface' {
                 FontSize  = 12
             }
             WordParagraph {
-                WordText -Text 'Same ', 'formatting' -Color Navy -FontFamily Arial -FontSize 10
+                WordText -Text 'Same ', 'formatting' -Color Navy -Font Arial -Size 10
             }
             WordParagraph -Run @(
                 WordTextRun 'Highlight ' -BackgroundColor Yellow
@@ -658,7 +615,7 @@ Describe 'Word DSL surface' {
             }
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.Rows[0].Cells[0].ColumnSpan | Should -Be 2
@@ -696,8 +653,11 @@ Describe 'Word DSL surface' {
 
     It 'preserves half-point Word font sizes through text, rich runs, links, and style updates' {
         $path = Join-Path $TestDrive 'DslHalfPointWordFonts.docx'
-        WordNew -Path $path {
-            WordParagraph { WordText -Text 'DirectHalf' -FontSize 10.5 }
+        New-OfficeWord -Path $path {
+            WordParagraph {
+                WordText -Text 'DirectHalf' -Size 10.5
+                WordText -Text 'DirectUnit' -Size 14px -Font Arial -Strikethrough
+            }
             WordParagraph -Run @(
                 WordTextRun 'RichHalf' -FontSize 10.5
                 WordTextRun 'LinkHalf' -LinkUri 'https://example.org/half' -FontSize 10.5
@@ -709,17 +669,19 @@ Describe 'Word DSL surface' {
         $documentXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'word/document.xml'
         $namespaceManager = New-Object System.Xml.XmlNamespaceManager($documentXml.NameTable)
         $namespaceManager.AddNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main')
-        foreach ($text in 'DirectHalf', 'RichHalf', 'LinkHalf', 'StyledHalf') {
+        foreach ($text in 'DirectHalf', 'DirectUnit', 'RichHalf', 'LinkHalf', 'StyledHalf') {
             $documentXml.SelectSingleNode("//w:r[w:t='$text']/w:rPr/w:sz[@w:val='21']", $namespaceManager) |
                 Should -Not -BeNullOrEmpty
         }
+        $documentXml.SelectSingleNode('//w:r[w:t="DirectUnit"]/w:rPr/w:strike', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $documentXml.SelectSingleNode('//w:r[w:t="DirectUnit"]/w:rPr/w:rFonts[@w:ascii="Arial"]', $namespaceManager) | Should -Not -BeNullOrEmpty
     }
 
     It 'rejects mismatched columnar Word rich text formatting arrays' {
         $path = Join-Path $TestDrive 'DslRichTextRunsWordMismatch.docx'
 
         {
-            WordNew -Path $path {
+            New-OfficeWord -Path $path {
                 WordParagraph -Run @{
                     Text  = 'Red ', 'Green '
                     Color = 'Red', 'Green', 'Blue'
@@ -728,7 +690,7 @@ Describe 'Word DSL surface' {
         } | Should -Throw "*property 'Color'*match the Text count (2)*received 3 values*"
 
         {
-            WordNew -Path $path {
+            New-OfficeWord -Path $path {
                 WordParagraph -Run @{
                     Text  = 'Red ', 'Green '
                     Color = @()
@@ -740,7 +702,7 @@ Describe 'Word DSL surface' {
     It 'treats rich and styled Word table cells as structured without spans' {
         $path = Join-Path $TestDrive 'DslRichRunMixedObjectWordTable.docx'
 
-        WordNew -Path $path {
+        New-OfficeWord -Path $path {
             WordTable -Style TableGrid -InputObject @(
                 [pscustomobject]@{
                     Service = 'Entra'
@@ -756,7 +718,7 @@ Describe 'Word DSL surface' {
             )
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.Rows[0].Cells[0].Paragraphs[0].Text | Should -Be 'Service'
@@ -774,7 +736,7 @@ Describe 'Word DSL surface' {
     It 'keeps ordinary Run columns in normal Word tables' {
         $path = Join-Path $TestDrive 'DslOrdinaryRunColumnWordTable.docx'
 
-        WordNew -Path $path {
+        New-OfficeWord -Path $path {
             WordTable -Style TableGrid -InputObject @(
                 [pscustomobject]@{
                     Run = 'Nightly'
@@ -782,7 +744,7 @@ Describe 'Word DSL surface' {
             )
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.Rows[0].Cells[0].Paragraphs[0].Text | Should -Be 'Run'
@@ -809,7 +771,7 @@ Describe 'Word DSL surface' {
             WordTable -Style TableGrid -InputObject $rows
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.RowsCount | Should -Be 2
@@ -845,7 +807,7 @@ Describe 'Word DSL surface' {
             WordTable -Style TableGrid -InputObject $rows
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.RowsCount | Should -Be 3
@@ -878,7 +840,7 @@ Describe 'Word DSL surface' {
             WordTable -Style TableGrid -InputObject $rows
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.RowsCount | Should -Be 3
@@ -909,7 +871,7 @@ Describe 'Word DSL surface' {
             }
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.RowsCount | Should -Be 3
@@ -937,7 +899,7 @@ Describe 'Word DSL surface' {
             WordTable -Style TableGrid -InputObject $rows
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.RowsCount | Should -Be 3
@@ -973,7 +935,7 @@ Describe 'Word DSL surface' {
             )
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $texts = @($table.Rows | ForEach-Object {
@@ -1006,7 +968,7 @@ Describe 'Word DSL surface' {
             )
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.Rows[0].Cells[2].Paragraphs[0].Text | Should -Be 'Pinned'
@@ -1054,7 +1016,7 @@ Describe 'Word DSL surface' {
             }
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.Rows[0].Cells[0].ShadingFillColorHex | Should -Be 'ffeeee'
@@ -1074,10 +1036,10 @@ Describe 'Word DSL surface' {
 
         New-OfficeWord -Path $path {
             Add-OfficeWordParagraph -Text 'Revenue mix'
-            Add-OfficeWordChart -Type Pie -Data $rows -CategoryProperty Region -SeriesProperty Revenue -Title 'Regional Revenue Mix'
+            Add-OfficeWordChart -Type Pie -Data $rows -Category Region -Value Revenue -Title 'Regional Revenue Mix'
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $document.Charts.Count | Should -Be 1
             $document.Paragraphs.Where({ $_.IsChart }).Count | Should -Be 1
@@ -1097,7 +1059,7 @@ Describe 'Word DSL surface' {
             Add-OfficeWordTable -InputObject $rows -View Transpose -Style TableGrid
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.RowsCount | Should -Be 3
@@ -1126,7 +1088,7 @@ Describe 'Word DSL surface' {
             Add-OfficeWordTable -Data $rows -SkipHeader -Transpose -Style TableGrid
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $table.RowsCount | Should -Be 2
@@ -1146,16 +1108,16 @@ Describe 'Word DSL surface' {
             [PSCustomObject]@{ Month = 'Mar'; Sales = 15; Profit = 7 }
         )
 
-        $document = New-OfficeWord -Path $path -NoSave
+        $document = New-OfficeWord -Path $path
         try {
-            $chart = Add-OfficeWordChart -Document $document -Type Line -InputObject $rows -CategoryProperty Month -SeriesProperty Sales, Profit -Legend -XAxisTitle 'Month' -YAxisTitle 'Value' -Title 'Monthly Trend' -PassThru
+            $chart = Add-OfficeWordChart -Document $document -Type Line -InputObject $rows -Category Month -Value Sales, Profit -Legend -XAxisTitle 'Month' -YAxisTitle 'Value' -Title 'Monthly Trend' -PassThru
             $chart.Title | Should -Be 'Monthly Trend'
             Save-OfficeWord -Document $document | Out-Null
         } finally {
             Close-OfficeWord -Document $document
         }
 
-        $saved = Get-OfficeWord -Path $path -ReadOnly
+        $saved = Open-OfficeWord -Path $path -ReadOnly
         try {
             $saved.Charts.Count | Should -Be 1
             $saved.Paragraphs.Where({ $_.IsChart }).Count | Should -Be 1
@@ -1180,7 +1142,7 @@ Describe 'Word DSL surface' {
             }
         }
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $document.CoverPage | Should -Not -BeNullOrEmpty
             $document.CoverPageProperties.Abstract | Should -Be 'Executive summary'
@@ -1189,7 +1151,7 @@ Describe 'Word DSL surface' {
             $document.Sections[0].PageOrientation.ToString() | Should -Be 'Landscape'
             $document.Sections[0].Margins.Type.ToString() | Should -Be 'Narrow'
             $document.Sections[0].ColumnCount | Should -Be 2
-            $document.Sections[0].ColumnsSpace | Should -Be 720
+            $document.Sections[0].ColumnsSpace.ToTwips() | Should -Be 720
             $document.Sections[0].HasColumnSeparator | Should -BeTrue
             ($document.Paragraphs | Where-Object { $_.TabStops.Count -gt 0 }).Count | Should -BeGreaterThan 0
             $document.Equations.Count | Should -Be 1
@@ -1216,7 +1178,7 @@ Describe 'Word DSL surface' {
 
         Join-OfficeWordDocument -Path $basePath -AppendPath $appendPath -OutputPath $outputPath
 
-        $document = Get-OfficeWord -Path $outputPath -ReadOnly
+        $document = Open-OfficeWord -Path $outputPath -ReadOnly
         try {
             ($document.Paragraphs.Text -join "`n") | Should -Match 'Base report'
             ($document.Paragraphs.Text -join "`n") | Should -Match 'Appendix detail'
@@ -1240,10 +1202,10 @@ Describe 'Word DSL surface' {
             $table = Add-OfficeWordTable -InputObject $tableRows -Style 'GridTable1LightAccent1' -PassThru
             $paragraph = $table.Rows[1].Cells[1].AddParagraph()
 
-            Add-OfficeWordChart -Paragraph $paragraph -Type Pie -InputObject $chartRows -CategoryProperty Region -SeriesProperty Revenue -Title 'Regional Revenue Mix'
+            Add-OfficeWordChart -Paragraph $paragraph -Type Pie -InputObject $chartRows -Category Region -Value Revenue -Title 'Regional Revenue Mix'
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $cellCharts = $table.Rows[1].Cells[1].Paragraphs.Where({ $_.IsChart })
@@ -1269,7 +1231,7 @@ Describe 'Word DSL surface' {
 
         Test-Path $path | Should -BeTrue
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $document.Tables.Count | Should -Be 1
             $table = $document.Tables[0]
@@ -1312,7 +1274,7 @@ Describe 'Word DSL surface' {
 
         Test-Path $path | Should -BeTrue
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $document.StructuredDocumentTags.Count | Should -BeGreaterThan 0
             $document.CheckBoxes.Count | Should -BeGreaterThan 0
@@ -1334,7 +1296,7 @@ Describe 'Word DSL surface' {
             Add-OfficeWordParagraph -Text 'Scope' -Style Heading1
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path
+        $document = Open-OfficeWord -Path $path
         try {
             $document | Add-OfficeWordParagraph -Text 'Unsaved pipeline content' | Out-Null
             @($document | Get-OfficeWordParagraph | Where-Object Text -eq 'Unsaved pipeline content').Count | Should -Be 1
@@ -1385,9 +1347,10 @@ Describe 'Word DSL surface' {
 
             WordParagraph {
                 WordText 'Open '
-                WordHyperlink -Text 'Example' -Url 'https://example.org' -Styled -Tooltip 'External link'
+                $createdLink = WordText -Text 'Example' -Link 'https://example.org' -Tooltip 'External link' -NoHistory -Bold -Size 16px -Font Arial -Color Navy -PassThru
+                $createdLink.GetType().FullName | Should -Be 'OfficeIMO.Word.WordHyperLink'
                 WordText ' or jump to '
-                WordHyperlink -Text 'Summary' -Anchor 'Summary'
+                WordText -Text 'Summary' -Anchor 'Summary' -NoLinkStyle -Italic
             }
 
             WordParagraph {
@@ -1402,7 +1365,7 @@ Describe 'Word DSL surface' {
             )
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $document.HyperLinks.Count | Should -Be 4
             $document.BuiltinDocumentProperties.Title | Should -Be 'DSL document'
@@ -1420,6 +1383,19 @@ Describe 'Word DSL surface' {
         $hyperlinkTargets | Should -Contain 'https://example.org/run'
         ($links | Where-Object Text -eq 'Run link' | Select-Object -First 1).Tooltip | Should -Be 'Run tooltip'
         ($links | Where-Object Text -eq 'run anchor' | Select-Object -First 1).Anchor | Should -Be 'Summary'
+        $documentXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'word/document.xml'
+        $namespaceManager = New-Object System.Xml.XmlNamespaceManager($documentXml.NameTable)
+        $namespaceManager.AddNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main')
+        $external = $documentXml.SelectSingleNode('//w:hyperlink[.//w:t="Example"]', $namespaceManager)
+        [System.Xml.XmlConvert]::ToBoolean($external.GetAttribute('history', $namespaceManager.LookupNamespace('w'))) | Should -BeFalse
+        $external.SelectSingleNode('.//w:rStyle[@w:val="Hyperlink"]', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $external.SelectSingleNode('.//w:b', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $external.SelectSingleNode('.//w:sz[@w:val="24"]', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $external.SelectSingleNode('.//w:rFonts[@w:ascii="Arial"]', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $external.SelectSingleNode('.//w:color[translate(@w:val,"abcdef","ABCDEF")="000080"]', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $anchor = $documentXml.SelectSingleNode('//w:hyperlink[@w:anchor="Summary"][.//w:t="Summary"]', $namespaceManager)
+        $anchor.SelectSingleNode('.//w:rStyle', $namespaceManager) | Should -BeNullOrEmpty
+        $anchor.SelectSingleNode('.//w:i', $namespaceManager) | Should -Not -BeNullOrEmpty
     }
 
     It 'supports background colors and mail merge in the DSL' {
@@ -1446,7 +1422,7 @@ Describe 'Word DSL surface' {
             }
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $document.Background.Color | Should -Be 'ddeeff'
             $mergeFieldType = Get-TestPSWriteOfficeEnumValue -AssemblyName 'OfficeIMO.Word' -TypeName 'OfficeIMO.Word.WordFieldType' -Name 'MergeField'
@@ -1481,11 +1457,11 @@ Describe 'Word DSL surface' {
         New-OfficeWord -Path $path {
             WordParagraph {
                 WordText 'FY24 status'
-                WordHyperlink -Text 'Portal FY24' -Url 'https://old.example.com/FY24' -Tooltip 'FY24 link'
+                WordText -Text 'Portal FY24' -Link 'https://old.example.com/FY24' -Tooltip 'FY24 link'
             }
 
             WordParagraph {
-                WordHyperlink -Text 'Jump FY24' -Anchor 'FY24Summary' -Tooltip 'FY24 anchor'
+                WordText -Text 'Jump FY24' -Anchor 'FY24Summary' -Tooltip 'FY24 anchor'
             }
 
             WordParagraph {
@@ -1497,7 +1473,7 @@ Describe 'Word DSL surface' {
         $replacements = Update-OfficeWordText -Path $path -OldValue 'FY24' -NewValue 'FY25' -IncludeHyperlinkText -IncludeHyperlinkUri -IncludeHyperlinkAnchor -IncludeHyperlinkTooltip -PassThru
         $replacements | Should -BeGreaterThan 0
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             (Find-OfficeWord -Document $document -Text 'FY25').Count | Should -BeGreaterThan 0
             $document.HyperLinks[0].Text | Should -Be 'Portal FY25'
@@ -1518,11 +1494,11 @@ Describe 'Word DSL surface' {
 
         New-OfficeWord -Path $path {
             WordParagraph {
-                WordHyperlink -Text 'Relative FY24' -Url 'https://placeholder.invalid/FY24'
+                WordText -Text 'Relative FY24' -Link 'https://placeholder.invalid/FY24'
             }
         } | Out-Null
 
-        $editable = Get-OfficeWord -Path $path
+        $editable = Open-OfficeWord -Path $path
         try {
             $editable.HyperLinks[0].Uri = [Uri]::new('../reports/FY24.docx', [UriKind]::RelativeOrAbsolute)
             Save-OfficeWord -Document $editable | Out-Null
@@ -1533,7 +1509,7 @@ Describe 'Word DSL surface' {
         $replacements = Update-OfficeWordText -Path $path -OldValue 'FY24' -NewValue 'FY25' -IncludeHyperlinkUri -PassThru
         $replacements | Should -Be 2
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $document.HyperLinks[0].Text | Should -Be 'Relative FY25'
             $document.HyperLinks[0].Uri.OriginalString | Should -Be '../reports/FY25.docx'
@@ -1544,7 +1520,7 @@ Describe 'Word DSL surface' {
 
     It 'does not mutate live Word documents when text update uses WhatIf' {
         $path = Join-Path $TestDrive 'DslReplaceLiveWhatIf.docx'
-        $document = New-OfficeWord -Path $path -NoSave
+        $document = New-OfficeWord -Path $path
 
         try {
             $document.AddParagraph('FY24 live document') | Out-Null
@@ -1558,14 +1534,14 @@ Describe 'Word DSL surface' {
         }
     }
 
-    It 'does not mutate the tracked Word document when text update uses WhatIf' {
+    It 'does not mutate the selected live Word document when text update uses WhatIf' {
         $path = Join-Path $TestDrive 'DslReplaceTrackedWhatIf.docx'
-        $document = New-OfficeWord -Path $path -NoSave
+        $document = New-OfficeWord -Path $path
 
         try {
             $document.AddParagraph('FY24 tracked document') | Out-Null
 
-            Update-OfficeWordText -OldValue 'FY24' -NewValue 'FY25' -WhatIf -PassThru | Should -BeNullOrEmpty
+            Update-OfficeWordText -Document $document -OldValue 'FY24' -NewValue 'FY25' -WhatIf -PassThru | Should -BeNullOrEmpty
 
             (Find-OfficeWord -Document $document -Text 'FY24').Count | Should -Be 1
             (Find-OfficeWord -Document $document -Text 'FY25').Count | Should -Be 0
@@ -1574,21 +1550,23 @@ Describe 'Word DSL surface' {
         }
     }
 
-    It 'tracks current Word documents for update and close operations' {
+    It 'updates and saves only the explicitly selected live Word document' {
         $pathOne = Join-Path $TestDrive 'TrackedOne.docx'
         $pathTwo = Join-Path $TestDrive 'TrackedTwo.docx'
 
-        $docOne = New-OfficeWord -Path $pathOne -NoSave
-        $docTwo = New-OfficeWord -Path $pathTwo -NoSave
+        $docOne = New-OfficeWord -Path $pathOne
+        $docTwo = New-OfficeWord -Path $pathTwo
 
         try {
             $docOne.AddParagraph('First tracked document') | Out-Null
             $docTwo.AddParagraph('Second tracked FY24 document') | Out-Null
 
-            Update-OfficeWordText -OldValue 'FY24' -NewValue 'FY25' -PassThru | Should -Be 1
+            Update-OfficeWordText -Document $docTwo -OldValue 'FY24' -NewValue 'FY25' -PassThru | Should -Be 1
 
-            Close-OfficeWord -Save
-            Close-OfficeWord -All -Save
+            Save-OfficeWord -Document $docOne
+            Save-OfficeWord -Document $docTwo
+            Close-OfficeWord -Document $docTwo
+            Close-OfficeWord -Document $docOne
         } finally {
             foreach ($doc in @($docOne, $docTwo)) {
                 if ($null -ne $doc) {
@@ -1603,8 +1581,8 @@ Describe 'Word DSL surface' {
         Test-Path $pathOne | Should -BeTrue
         Test-Path $pathTwo | Should -BeTrue
 
-        $savedOne = Get-OfficeWord -Path $pathOne -ReadOnly
-        $savedTwo = Get-OfficeWord -Path $pathTwo -ReadOnly
+        $savedOne = Open-OfficeWord -Path $pathOne -ReadOnly
+        $savedTwo = Open-OfficeWord -Path $pathTwo -ReadOnly
         try {
             (Find-OfficeWord -Document $savedOne -Text 'First tracked document').Count | Should -Be 1
             (Find-OfficeWord -Document $savedTwo -Text 'FY25').Count | Should -Be 1
@@ -1616,7 +1594,7 @@ Describe 'Word DSL surface' {
 
     It 'does not fall back to the tracked document when -Document is null' {
         $path = Join-Path $TestDrive 'NullDocumentGuard.docx'
-        $doc = New-OfficeWord -Path $path -NoSave
+        $doc = New-OfficeWord -Path $path
 
         try {
             $nullDocument = $null
@@ -1633,7 +1611,7 @@ Describe 'Word DSL surface' {
             }
         }
 
-        $saved = Get-OfficeWord -Path $path -ReadOnly
+        $saved = Open-OfficeWord -Path $path -ReadOnly
         try {
             (Find-OfficeWord -Document $saved -Text 'Still tracked after null guard').Count | Should -Be 1
         } finally {
@@ -1690,18 +1668,18 @@ Describe 'Word DSL surface' {
                 Set-OfficeWordTableCell -ShadingFillColor '#DDEEFF' -Width 2400 -WidthType Dxa -WrapText $false -FitText $true -PassThru
 
             $cell.ShadingFillColorHex | Should -Be 'DDEEFF'
-            $cell.Width | Should -Be 2400
+            $cell.Width.LengthValue.ToTwips() | Should -Be 2400
             $cell.FitText | Should -BeTrue
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
             $cell = $table | Get-OfficeWordTableCell -Row 1 -Column 1
 
             $cell.ShadingFillColorHex | Should -Be 'DDEEFF'
-            $cell.Width | Should -Be 2400
-            $cell.WidthType.ToString() | Should -Be 'Dxa'
+            $cell.Width.LengthValue.ToTwips() | Should -Be 2400
+            $cell.Width.Kind.ToString() | Should -Be 'Length'
         } finally {
             $document.Dispose()
         }
@@ -1718,7 +1696,7 @@ Describe 'Word DSL surface' {
             WordTable -InputObject $rows -Style TableGrid
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path
+        $document = Open-OfficeWord -Path $path
         try {
             $table = Find-OfficeWordTable -Document $document -Text 'Risk register' | Select-Object -First 1
             $table | Should -Not -BeNullOrEmpty
@@ -1739,7 +1717,7 @@ Describe 'Word DSL surface' {
             }
         }
 
-        $saved = Get-OfficeWord -Path $path -ReadOnly
+        $saved = Open-OfficeWord -Path $path -ReadOnly
         try {
             $savedTable = Find-OfficeWordTable -Document $saved -Text 'Mitigation plan' | Select-Object -First 1
             $savedTable | Should -Not -BeNullOrEmpty
@@ -1763,7 +1741,7 @@ Describe 'Word DSL surface' {
                 Set-OfficeWordTableCell -Text 'Merged risk header' -MergeRight 1
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path
+        $document = Open-OfficeWord -Path $path
         try {
             $table = Find-OfficeWordTable -Document $document -Text 'Risk register' | Select-Object -First 1
             $table | Should -Not -BeNullOrEmpty
@@ -1783,7 +1761,7 @@ Describe 'Word DSL surface' {
             }
         }
 
-        $saved = Get-OfficeWord -Path $path -ReadOnly
+        $saved = Open-OfficeWord -Path $path -ReadOnly
         try {
             $savedTable = Find-OfficeWordTable -Document $saved -Text 'Mitigation plan' | Select-Object -First 1
             $savedTable | Should -Not -BeNullOrEmpty
@@ -1803,7 +1781,7 @@ Describe 'Word DSL surface' {
             }
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path
+        $document = Open-OfficeWord -Path $path
         try {
             $lists = @($document | Get-OfficeWordList)
             $lists.Count | Should -Be 1
@@ -1820,7 +1798,7 @@ Describe 'Word DSL surface' {
             }
         }
 
-        $saved = Get-OfficeWord -Path $path -ReadOnly
+        $saved = Open-OfficeWord -Path $path -ReadOnly
         try {
             (Find-OfficeWord -Document $saved -Text 'Final approval').Count | Should -Be 1
             $list = Find-OfficeWordList -Document $saved -Text 'Initial review' | Select-Object -First 1
@@ -1846,14 +1824,14 @@ Describe 'Word DSL surface' {
                 Should -Not -BeNullOrEmpty
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $styledParagraph = $document.Paragraphs | Where-Object Text -EQ 'Executive Summary' | Select-Object -First 1
             $styledParagraph.Style.ToString() | Should -Be 'Heading2'
             $styledParagraph.ParagraphAlignment.ToString() | Should -Be 'Center'
-            $styledParagraph.LineSpacingBeforePoints | Should -Be 6
-            $styledParagraph.LineSpacingAfterPoints | Should -Be 12
-            $styledParagraph.IndentationBeforePoints | Should -Be 18
+            $styledParagraph.LineSpacingBefore.ToPoints() | Should -Be 6
+            $styledParagraph.LineSpacingAfter.ToPoints() | Should -Be 12
+            $styledParagraph.IndentationBefore.ToPoints() | Should -Be 18
             $styledParagraph.KeepWithNext | Should -BeTrue
 
             $styledText = $document.Paragraphs |
@@ -1866,7 +1844,7 @@ Describe 'Word DSL surface' {
             $styledText.Italic | Should -BeTrue
             $styledText.Underline.ToString() | Should -Be 'Single'
             $styledText.ColorHex | Should -Be 'c00000'
-            $styledText.FontSize | Should -Be 14
+            $styledText.FontSize.ToPoints() | Should -Be 14
             $styledText.FontFamily | Should -Be 'Aptos'
             $styledText.Highlight.ToString() | Should -Be 'Yellow'
             $styledText.CapsStyle.ToString() | Should -Be 'SmallCaps'
@@ -1883,18 +1861,18 @@ Describe 'Word DSL surface' {
         New-OfficeWord -Path $path {
             WordParagraph -Text 'Report callouts'
             $textBox = WordTextBox -Text 'Service posture is stable' -WidthCentimeters 7 -HeightCentimeters 2 -HorizontalOffsetCentimeters 1 -VerticalOffsetCentimeters 1 -HorizontalAlignment Center -AutoFitToTextSize -PassThru
-            $textBox.WidthCentimeters | Should -BeGreaterThan 6.9
-            $textBox.HeightCentimeters | Should -BeGreaterThan 1.9
+            $textBox.Width.ToCentimeters() | Should -BeGreaterThan 6.9
+            $textBox.Height.ToCentimeters() | Should -BeGreaterThan 1.9
             $textBox.AutoFitToTextSize | Should -BeTrue
         } | Out-Null
 
-        $document = Get-OfficeWord -Path $path -ReadOnly
+        $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $textBoxes = @($document.TextBoxes)
             $textBoxes.Count | Should -Be 1
             $textBoxes[0].Paragraphs.Text -join "`n" | Should -Match 'Service posture is stable'
-            [Math]::Round($textBoxes[0].WidthCentimeters, 1) | Should -Be 7.0
-            [Math]::Round($textBoxes[0].HeightCentimeters, 1) | Should -Be 2.0
+            [Math]::Round($textBoxes[0].Width.ToCentimeters(), 1) | Should -Be 7.0
+            [Math]::Round($textBoxes[0].Height.ToCentimeters(), 1) | Should -Be 2.0
         } finally {
             $document.Dispose()
         }

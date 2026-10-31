@@ -215,10 +215,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double trailingHeight = 0D;
         var navigationDestinations = new List<HtmlRenderVisual>();
         bool collectingLeadingHeaders = true;
+        double freshRowCapacity = Math.Max(0D, _activePageGeometry.ContentHeight - style.VerticalInsets
+            - rowLayouts.Where(row => row.IsHeader || row.IsFooter).Sum(row => row.Height + verticalSpacing));
         IReadOnlyList<bool> canBreakAfterRows = ResolveRowBreakAvailability(rowLayouts, verticalSpacing,
             tableY + style.BorderTopWidth + style.PaddingTop + verticalSpacing,
-            Math.Max(0D, _activePageGeometry.ContentHeight - style.VerticalInsets
-                - rowLayouts.Where(row => row.IsHeader || row.IsFooter).Sum(row => row.Height + verticalSpacing)),
+            freshRowCapacity,
             out IReadOnlyList<bool> hasSpanningCellsAfterRows,
             out IReadOnlyList<HtmlRenderBreakRange> safeBreakRanges);
         foreach (HtmlRenderBreakRange range in safeBreakRanges) {
@@ -337,9 +338,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 && (rowIndex == 0 || !hasSpanningCellsAfterRows[rowIndex - 1])
                 && canBreakAfterRows[rowIndex]
                 && (rowIndex == 0 || canBreakAfterRows[rowIndex - 1]);
+            // A short row moves to the next page whole; only a tall row is cut between its lines.
             if (rowIndependent
                 && !row.Style.AvoidBreakInside
-                && row.GroupStyle?.AvoidBreakInside != true) {
+                && row.GroupStyle?.AvoidBreakInside != true
+                && IsTallTableRow(row, freshRowCapacity)) {
                 AddTableRowInternalBreakOffsets(breakOffsets, row, rowY);
             }
 

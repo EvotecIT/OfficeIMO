@@ -15,7 +15,7 @@ public sealed class ReaderIncrementalTests {
         string path = Path.Combine(Path.GetTempPath(), "reader-incremental-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (var workbook = ExcelDocument.Create(path)) {
-                var sheet = workbook.AddWorksheet("Data");
+                var sheet = workbook.AddSheet("Data");
                 sheet.Cell(1, 1, "Name");
                 for (int row = 2; row <= 20; row++) sheet.Cell(row, 1, "row " + row);
                 workbook.Save();

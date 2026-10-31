@@ -44,10 +44,10 @@ namespace OfficeIMO.PowerPoint {
                     new ApplicationNonVisualDrawingProperties()),
                 new GroupShapeProperties(
                     new A.TransformGroup(
-                        new A.Offset { X = bounds.Left, Y = bounds.Top },
-                        new A.Extents { Cx = bounds.Width, Cy = bounds.Height },
-                        new A.ChildOffset { X = bounds.Left, Y = bounds.Top },
-                        new A.ChildExtents { Cx = bounds.Width, Cy = bounds.Height }
+                        new A.Offset { X = bounds.Left.ToEmus(), Y = bounds.Top.ToEmus() },
+                        new A.Extents { Cx = bounds.Width.ToEmus(), Cy = bounds.Height.ToEmus() },
+                        new A.ChildOffset { X = bounds.Left.ToEmus(), Y = bounds.Top.ToEmus() },
+                        new A.ChildExtents { Cx = bounds.Width.ToEmus(), Cy = bounds.Height.ToEmus() }
                     )));
 
             OpenXmlElement firstElement = ordered[0].Element;

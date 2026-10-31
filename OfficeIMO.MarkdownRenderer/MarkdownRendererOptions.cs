@@ -21,7 +21,7 @@ public sealed class MarkdownRendererOptions {
     /// Markdown reader options used when parsing Markdown into OfficeIMO.Markdown's typed model.
     /// Defaults are biased for untrusted input (HTML disabled and file URLs blocked).
     /// </summary>
-    public MarkdownReaderOptions ReaderOptions { get; set; } = new MarkdownReaderOptions {
+    public MarkdownLoadOptions ReaderOptions { get; set; } = new MarkdownLoadOptions {
         HtmlBlocks = false,
         InlineHtml = false,
         DisallowFileUrls = true,
@@ -34,13 +34,13 @@ public sealed class MarkdownRendererOptions {
     /// <summary>
     /// HTML rendering options. These control the CSS preset and optional Prism support.
     /// </summary>
-    public HtmlOptions HtmlOptions { get; set; } = new HtmlOptions {
-        Kind = HtmlKind.Fragment,
-        Style = HtmlStyle.GithubAuto,
-        CssDelivery = CssDelivery.Inline,
-        AssetMode = AssetMode.Online,
+    public MarkdownHtmlExportOptions HtmlOptions { get; set; } = new MarkdownHtmlExportOptions {
+        Kind = MarkdownHtmlKind.Fragment,
+        Style = MarkdownHtmlStyle.GithubAuto,
+        CssDelivery = MarkdownCssDelivery.Inline,
+        AssetMode = MarkdownAssetMode.Online,
         BodyClass = "markdown-body",
-        RawHtmlHandling = RawHtmlHandling.Strip,
+        RawHtmlHandling = MarkdownRawHtmlHandling.Strip,
         ExternalLinksTargetBlank = true,
         ExternalLinksRel = "noopener noreferrer nofollow ugc",
         ExternalLinksReferrerPolicy = "no-referrer",
@@ -50,7 +50,7 @@ public sealed class MarkdownRendererOptions {
         ImagesLoadingLazy = true,
         ImagesDecodingAsync = true,
         ImagesReferrerPolicy = "no-referrer",
-        Prism = new PrismOptions { Enabled = true, Theme = PrismTheme.GithubAuto }
+        Prism = new MarkdownPrismOptions { Enabled = true, Theme = MarkdownPrismTheme.GithubAuto }
     };
 
     /// <summary>
@@ -303,7 +303,7 @@ public sealed class MarkdownRendererOptions {
     /// <summary>
     /// Optional AST-level document transforms applied by <see cref="MarkdownRenderer.RenderBodyHtml"/> after parsing
     /// and before HTML generation.
-    /// Prefer these for structural/content rewrites that should operate on <see cref="MarkdownDoc"/> instead of
+    /// Prefer these for structural/content rewrites that should operate on <see cref="MarkdownDocument"/> instead of
     /// raw markdown text or rendered HTML strings.
     /// Default: none.
     /// </summary>

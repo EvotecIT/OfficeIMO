@@ -11,12 +11,12 @@ Sets one or more PowerPoint theme colors.
 ## SYNTAX
 ### Single (Default)
 ```powershell
-Set-OfficePowerPointThemeColor -Color <PowerPointThemeColor> -Value <string> [-Presentation <PowerPointPresentation>] [-Master <int>] [-AllMasters] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointThemeColor -Color <PowerPointThemeColor> -Value <string> [-Presentation <PowerPointDocument>] [-Master <int>] [-AllMasters] [-PassThru] [<CommonParameters>]
 ```
 
 ### Multiple
 ```powershell
-Set-OfficePowerPointThemeColor -Colors <hashtable> [-Presentation <PowerPointPresentation>] [-Master <int>] [-AllMasters] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointThemeColor -Colors <hashtable> [-Presentation <PowerPointDocument>] [-Master <int>] [-AllMasters] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -124,7 +124,7 @@ Accept wildcard characters: False
 Presentation to update (optional inside New-OfficePowerPoint).
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: Single, Multiple
 Aliases: None
 Possible values:
@@ -157,11 +157,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## RELATED LINKS
 

@@ -53,7 +53,7 @@ public class WordImageWorkflowTests {
             Assert.True(result.Succeeded, result.Summary);
             Assert.Equal(original, File.ReadAllBytes(input));
             Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "WordImageOptimized");
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
             Assert.Equal(2, Directory.GetFiles(root).Length);
             if (format != "pdf") {
                 using WordDocument reopened = WordDocument.Load(output);
@@ -80,10 +80,10 @@ public class WordImageWorkflowTests {
             var analysis = await runner.RunAsync(new() { Operation = OfficeWorkflowOperation.AnalyzeWordImages, InputPath = input });
             Assert.True(analysis.Succeeded, analysis.Summary);
             Assert.Null(analysis.OutputPath);
-            var refused = await runner.RunAsync(new() { Operation = OfficeWorkflowOperation.OptimizeWordImages, InputPath = input, OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Fail });
+            var refused = await runner.RunAsync(new() { Operation = OfficeWorkflowOperation.OptimizeWordImages, InputPath = input, OutputPath = output, ConflictPolicy = OfficePublicationPolicy.Fail });
             Assert.False(refused.Succeeded);
             Assert.Equal("existing destination", File.ReadAllText(output));
-            var sourceOverwrite = await runner.RunAsync(new() { Operation = OfficeWorkflowOperation.OptimizeWordImages, InputPath = input, OutputPath = input, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace });
+            var sourceOverwrite = await runner.RunAsync(new() { Operation = OfficeWorkflowOperation.OptimizeWordImages, InputPath = input, OutputPath = input, ConflictPolicy = OfficePublicationPolicy.Replace });
             Assert.False(sourceOverwrite.Succeeded);
             Assert.Equal(original, File.ReadAllBytes(input));
             Assert.Equal(2, Directory.GetFiles(root).Length);
@@ -115,7 +115,7 @@ public class WordImageWorkflowTests {
             Quality = 98, Subsampling = OfficeJpegSubsampling.Y444,
             Metadata = new OfficeJpegMetadata(xmp: withMetadata ? System.Text.Encoding.UTF8.GetBytes("private image metadata") : null)
         }));
-        word.AddParagraph("Editable text").InsertImage(image, "image.jpg", 96, 48);
+        word.AddParagraph("Editable text").AddImage(image, "image.jpg", OfficeIMO.OfficeLength.Pixels(96), OfficeIMO.OfficeLength.Pixels(48));
         return word.ToBytes();
     }
     private static async Task InDirectory(Func<string, Task> action) {

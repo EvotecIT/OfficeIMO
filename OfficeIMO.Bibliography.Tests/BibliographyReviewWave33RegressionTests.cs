@@ -48,7 +48,7 @@ public sealed class BibliographyReviewWave33RegressionTests {
         var options = new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical };
 
         if (asynchronous) {
-            await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsync(stream, options, cancellation.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => document.SaveAsync(stream, options, cancellation.Token));
         } else {
             Assert.Throws<OperationCanceledException>(() => document.Save(stream, options, cancellation.Token));
         }

@@ -655,7 +655,7 @@ public sealed class WordOdtNotesConversionTests {
         source.AddParagraph("Anchor").AddFootNote("Note paragraph");
         var noteParagraphs = source.FootNotes[0].Paragraphs;
         Assert.NotNull(noteParagraphs);
-        noteParagraphs![0].LineSpacingAfterPoints = 8;
+        noteParagraphs![0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
@@ -782,7 +782,8 @@ public sealed class WordOdtNotesConversionTests {
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting");
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
     }
 
     [Fact]
@@ -933,8 +934,9 @@ public sealed class WordOdtNotesConversionTests {
             mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 1);
         Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "endnotes" &&
             mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 1);
-        Assert.DoesNotContain(toOdt.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" ||
-            mapping.Feature == "note-separators");
+        Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 2);
+        Assert.DoesNotContain(toOdt.Report.Mappings, mapping => mapping.Feature == "note-separators");
         Assert.DoesNotContain(toOdt.Report.Mappings, mapping => mapping.Feature == "source-footnotes" ||
             mapping.Feature == "source-endnotes");
 
@@ -955,8 +957,8 @@ public sealed class WordOdtNotesConversionTests {
         using WordDocument word = toWord.Value;
         Assert.Empty(word.ValidateDocument());
         using WordDocument saved = WordDocument.Load(new MemoryStream(word.ToBytes()));
-        WordParagraphSnapshot snapshot = Assert.Single(saved.CreateInspectionSnapshot().Sections
-            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        WordParagraphInfo snapshot = Assert.Single(saved.Inspect().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
         Assert.Equal("Footnote text", Assert.Single(snapshot.Runs, run => run.Footnote != null)
             .Footnote!.Paragraphs[0].Text);
         Assert.Equal("Endnote text", Assert.Single(snapshot.Runs, run => run.Endnote != null)

@@ -84,8 +84,7 @@ public sealed class SetOfficePdfFormCommand : PSWriteOffice.Cmdlets.OfficeMutati
             PdfDocument
                 .Load(inputPath, PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
                 .Forms.AppendRevision(fieldValues!, options)
-                .Save(outputPath)
-                .RequireSuccess();
+                .Save(outputPath);
             WritePassThru(new FileInfo(outputPath));
             return;
         }
@@ -116,7 +115,7 @@ public sealed class SetOfficePdfFormCommand : PSWriteOffice.Cmdlets.OfficeMutati
         }
 
         PdfCommandUtilities.EnsureDirectory(outputPath);
-        result.Save(outputPath).RequireSuccess();
+        result.Save(outputPath);
         WritePassThru(new FileInfo(outputPath));
     }
 

@@ -59,22 +59,38 @@ struct DocumentFacts: Decodable, Sendable {
     /// The page image's size at a scale: the page's size times the scale, each side rounded up, as the engine renders it.
     func pageImageSize(page number: Int, scale: Double) -> (width: Int, height: Int) {
         let size = pages[number - 1].displaySize
-        return (Int((size.width * scale).rounded(.up)), Int((size.height * scale).rounded(.up)))
+        let width = (size.width * scale).rounded(.up)
+        let height = (size.height * scale).rounded(.up)
+        guard scale.isFinite, scale > 0, width.isFinite, height.isFinite,
+              width >= 1, height >= 1, width <= Double(Int32.max), height <= Double(Int32.max) else {
+            return (0, 0)
+        }
+        return (Int(width), Int(height))
     }
 
     /// Pixels per point for a page filling width pixels, reduced to keep the image within the engine's budget. The
     /// engine rounds each side up to whole pixels, so the reduced width is checked the same way.
     func renderScale(page number: Int, fillingPixelWidth width: Double) -> Double {
         let size = pages[number - 1].displaySize
-        guard let maxRenderPixels, (width * (size.height * width / size.width).rounded(.up)) > Double(maxRenderPixels) else {
-            return width / size.width
+        let budget = Double(maxRenderPixels ?? 8_400_000)
+        guard width.isFinite, width > 0, size.width.isFinite, size.width > 0,
+              size.height.isFinite, size.height > 0, budget > 0 else { return 0 }
+        // Keep products out of the scale calculation. Even finite PDF coordinates can overflow their area.
+        var scale = min(width / size.width,
+                        budget.squareRoot() / size.width.squareRoot() / size.height.squareRoot(),
+                        budget / size.width, budget / size.height,
+                        Double(Int32.max) / size.width, Double(Int32.max) / size.height)
+        guard scale.isFinite, scale > 0 else { return 0 }
+        for _ in 0..<16 {
+            let pixelWidth = (size.width * scale).rounded(.up)
+            let pixelHeight = (size.height * scale).rounded(.up)
+            if pixelWidth.isFinite, pixelHeight.isFinite,
+               pixelWidth >= 1, pixelHeight >= 1,
+               pixelWidth <= Double(Int32.max), pixelHeight <= Double(Int32.max),
+               pixelHeight <= budget / pixelWidth { return scale }
+            scale *= 0.5
         }
-        var pixelWidth = (Double(maxRenderPixels) * size.width / size.height).squareRoot().rounded(.down)
-        while pixelWidth > 1, pixelWidth * (size.height * pixelWidth / size.width).rounded(.up) > Double(maxRenderPixels) {
-            pixelWidth -= 1
-        }
-        // Half a pixel inside, so rounding error cannot carry the width up to the next pixel.
-        return (pixelWidth - 0.5) / size.width
+        return 0
     }
 }
 
@@ -621,11 +637,19 @@ actor EngineDocument {
 /// A rendered rectangle of a page as an image over the engine's pixels, which it releases when discarded.
 private func regionImage(_ handle: officeimo_document, _ number: Int, _ scale: Double, _ x: Int, _ y: Int, _ width: Int,
                          _ height: Int, _ cancellation: officeimo_cancellation) throws -> CGImage {
+    guard let page = Int32(exactly: number), page > 0,
+          let left = Int32(exactly: x), left >= 0,
+          let top = Int32(exactly: y), top >= 0,
+          let pixelWidth = Int32(exactly: width), pixelWidth > 0,
+          let pixelHeight = Int32(exactly: height), pixelHeight > 0,
+          scale.isFinite, scale > 0 else {
+        throw EngineError(status: .failed, code: 1, message: "The page dimensions are outside the renderable range.")
+    }
     var pixels: UnsafeMutablePointer<UInt8>?
     var length = 0
     var error: UnsafeMutablePointer<CChar>?
-    try check(officeimo_document_render_region(handle, Int32(number), scale, Int32(x), Int32(y), Int32(width),
-                                                Int32(height), cancellation, &pixels, &length, &error), error)
+    try check(officeimo_document_render_region(handle, page, scale, left, top, pixelWidth,
+                                                pixelHeight, cancellation, &pixels, &length, &error), error)
     guard let pixels else { throw EngineError(status: .failed, code: 1, message: "The engine returned no pixels.") }
     // From here the provider owns the pixels and releases them when the image no longer needs them.
     guard let provider = CGDataProvider(dataInfo: nil, data: pixels, size: length, releaseData: { _, data, _ in

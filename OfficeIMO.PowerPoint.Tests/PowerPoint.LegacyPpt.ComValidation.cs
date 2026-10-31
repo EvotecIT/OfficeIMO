@@ -33,10 +33,10 @@ public sealed class PowerPointLegacyPptComValidationTests {
                     artifact.File + " source");
 
                 string converted = Path.Combine(root, fixtureName, fixtureName + ".pptx");
-                PowerPointPresentation.Convert(
+                PowerPointDocument.Convert(
                     source,
                     converted,
-                    new PowerPointPresentationConversionOptions {
+                    new PowerPointDocumentConversionOptions {
                         CompatibilityMode = OfficeCompatibilityMode.BestEffort,
                         LossPolicy = OfficeConversionLossPolicy.Allow
                     });
@@ -49,11 +49,11 @@ public sealed class PowerPointLegacyPptComValidationTests {
 
             string modernSource = Path.Combine(root, "officeimo-modern-source.pptx");
             string binaryDestination = Path.Combine(root, "officeimo-modern-to-binary.ppt");
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(modernSource)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(modernSource)) {
                 presentation.AddSlide().AddTextBox("OfficeIMO modern to binary");
                 presentation.Save();
             }
-            PowerPointPresentation.Convert(modernSource, binaryDestination).RequireNoLoss();
+            PowerPointDocument.Convert(modernSource, binaryDestination).RequireNoLoss();
             AssertPowerPointDesktopRenders(
                 binaryDestination,
                 Path.Combine(root, "officeimo-modern-to-binary-render"),

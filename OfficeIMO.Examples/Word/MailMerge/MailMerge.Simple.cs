@@ -9,11 +9,11 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "MailMergeSimple.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Dear ")
-                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"FirstName\"" })
+                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"FirstName\"" }).Paragraph
                     .AddText(",");
 
                 document.AddParagraph("Your order number ")
-                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"OrderId\"" })
+                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"OrderId\"" }).Paragraph
                     .AddText(" has been processed.");
 
                 var values = new Dictionary<string, string> {

@@ -1,4 +1,5 @@
 using System.Text;
+using System.IO.Compression;
 using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
@@ -54,7 +55,7 @@ public sealed class ExcelSpreadsheetXmlTests {
         using var saved = new MemoryStream(); document.Save(saved);
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal("Edited", reopened.Sheets[0].CellAt(4, 1).GetValue<string>());
-        using var reader = ExcelDocument.OpenDataReader(saved.ToArray(), new ExcelReadOptions { SheetName = "Data", A1Range = "E3:E3", HasHeaderRow = false, TreatDatesUsingNumberFormat = true });
+        using var reader = ExcelDocument.OpenReader(saved.ToArray(), new ExcelReaderOptions { SheetName = "Data", A1Range = "E3:E3", HasHeaderRow = false, TreatDatesUsingNumberFormat = true });
         Assert.True(reader.Read());
         Assert.Equal(new DateTime(2026, 10, 19, 12, 30, 0), reader.GetDateTime(0));
         Assert.Empty(reopened.ValidateOpenXml());
@@ -63,7 +64,7 @@ public sealed class ExcelSpreadsheetXmlTests {
     [Fact]
     public void Xml_export_reimports_cells_and_formula_references_without_evaluating_them() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("A & B");
+        var sheet = document.AddSheet("A & B");
         sheet.CellValue(2, 2, "00127"); sheet.CellValue(2, 3, false); sheet.CellValue(2, 4, 12.5);
         sheet.CellValue(4, 4, 42d); sheet.CellFormula(4, 4, "D2*2");
         var result = document.ExportSpreadsheetXml();
@@ -83,7 +84,7 @@ public sealed class ExcelSpreadsheetXmlTests {
     public void Xml_text_keeps_carriage_returns_through_export_import_and_package_save() {
         const string text = "A\rB\r\nC\nD";
         using var document = ExcelDocument.Create();
-        document.AddWorksheet("Data").CellValue(1, 1, text);
+        document.AddSheet("Data").CellValue(1, 1, text);
         byte[] xml = document.ExportSpreadsheetXml().Value;
         using var imported = ExcelDocument.ImportSpreadsheetXml(xml).Value;
         Assert.Equal(text, imported.Sheets[0].CellAt(1, 1).GetValue<string>());
@@ -96,7 +97,7 @@ public sealed class ExcelSpreadsheetXmlTests {
     [InlineData(false)]
     public void Xml_export_preserves_caches_and_never_invokes_save_calculation(bool evaluate) {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
+        var sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, 99d); sheet.CellFormula(1, 1, "EXPORTCALL()");
         int calls = 0;
         document.Calculation.RegisterCustomFunction("EXPORTCALL", (_, _) => { calls++; return ExcelFormulaValue.FromNumber(5d); });
@@ -117,11 +118,43 @@ public sealed class ExcelSpreadsheetXmlTests {
 
     [Fact]
     public void Xml_export_accepts_read_only_workbooks_and_does_not_require_saving_the_source() {
-        using var source = ExcelDocument.Create(); source.AddWorksheet("Data").CellValue(1, 1, "Read only");
+        using var source = ExcelDocument.Create(); source.AddSheet("Data").CellValue(1, 1, "Read only");
         using var document = ExcelDocument.Load(new MemoryStream(source.ToBytes()), new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
         byte[] output = document.ExportSpreadsheetXml().Value;
         using var imported = ExcelDocument.ImportSpreadsheetXml(output).Value;
         Assert.Equal("Read only", imported.Sheets[0].CellAt(1, 1).GetValue<string>());
+    }
+
+    [Fact]
+    public void Xml_export_preserves_source_part_limit_for_unused_shared_strings() {
+        using var source = ExcelDocument.Create();
+        source.AddSheet("Data").CellValue(1, 1, "safe");
+        using var package = new MemoryStream();
+        byte[] sourceBytes = source.ToBytes();
+        package.Write(sourceBytes, 0, sourceBytes.Length);
+        package.Position = 0;
+        using (var archive = new ZipArchive(package, ZipArchiveMode.Update, leaveOpen: true)) {
+            ZipArchiveEntry original = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/sharedStrings.xml"));
+            original.Delete();
+            using var text = new StreamWriter(archive.CreateEntry("xl/sharedStrings.xml").Open(), new UTF8Encoding(false));
+            text.Write("<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"2\" uniqueCount=\"2\"><si><t>safe</t></si><si><t>");
+            text.Write(new string('A', 12_000));
+            text.Write("</t></si></sst>");
+        }
+        using var document = ExcelDocument.Load(new MemoryStream(package.ToArray()), new ExcelLoadOptions {
+            AccessMode = DocumentAccessMode.ReadOnly,
+            OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = 4096 }
+        });
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.ExportSpreadsheetXml());
+        Assert.Contains("expanded XML", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Xml_export_checks_structure_before_materializing_package_parts() {
+        using var document = ExcelDocument.Create();
+        document.AddSheet("Data").CellValue(1, 1, "safe");
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.ExportSpreadsheetXml(new() { MaxXmlElements = 2 }));
+        Assert.Contains("MaxXmlElements", error.Message, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -176,6 +209,20 @@ public sealed class ExcelSpreadsheetXmlTests {
         Assert.Throws<OperationCanceledException>(() => ExcelDocument.ImportSpreadsheetXml(source, new() { CancellationToken = new CancellationToken(true) }));
         Assert.Throws<InvalidDataException>(() => document.ExportSpreadsheetXml(new() { MaxOutputBytes = 16 }));
         Assert.Throws<XmlException>(() => ExcelDocument.ImportSpreadsheetXml(Encoding.UTF8.GetBytes("<!DOCTYPE Workbook [<!ENTITY x SYSTEM 'file:///does-not-exist'>]><Workbook xmlns='" + Ss + "'>&x;</Workbook>")));
+    }
+
+    [Fact]
+    public void Defined_name_limit_and_case_insensitive_scope_uniqueness_apply_during_import() {
+        byte[] source = Workbook("<Names><NamedRange ss:Name='Rate' ss:RefersTo='=1'/></Names>" +
+            "<Worksheet ss:Name='Data'><Names><NamedRange ss:Name='Rate' ss:RefersTo='=2'/></Names></Worksheet>");
+        using var document = ExcelDocument.ImportSpreadsheetXml(source, new() { MaxNames = 2 }).Value;
+        Assert.Equal(2, document.OpenXmlDocument.WorkbookPart!.Workbook.DefinedNames!.ChildElements.Count);
+        Assert.Throws<InvalidDataException>(() => ExcelDocument.ImportSpreadsheetXml(source, new() { MaxNames = 1 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ExcelDocument.ImportSpreadsheetXml(source, new() { MaxNames = 0 }));
+
+        byte[] duplicate = Workbook("<Names><NamedRange ss:Name='Rate' ss:RefersTo='=1'/>" +
+            "<NamedRange ss:Name='rate' ss:RefersTo='=2'/></Names><Worksheet ss:Name='Data'/>");
+        Assert.Throws<InvalidDataException>(() => ExcelDocument.ImportSpreadsheetXml(duplicate));
     }
 
     [Theory]

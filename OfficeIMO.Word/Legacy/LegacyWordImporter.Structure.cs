@@ -8,6 +8,42 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Legacy;
 
 public static partial class LegacyWordImporter {
+    private static void ValidateProjectedRunningStories(LegacyWordModel model, OfficeLegacyImportLimits limits,
+        int bodyTextCharacters, CancellationToken cancellation) {
+        long projectedCharacters = bodyTextCharacters;
+        long projectedItems = 0;
+        long projectedResourceBytes = 0;
+        var costs = new Dictionary<LegacyWordHeaderFooter, (long Characters, long Items, long ResourceBytes)>();
+        foreach (LegacyWordSection section in Sections(model)) {
+            cancellation.ThrowIfCancellationRequested();
+            foreach (LegacyWordHeaderFooter story in section.HeadersAndFooters) {
+                cancellation.ThrowIfCancellationRequested();
+                if (!costs.TryGetValue(story, out var cost)) {
+                    long characters = 0, items = 1, resources = 0;
+                    foreach (LegacyWordParagraph paragraph in story.Paragraphs) {
+                        cancellation.ThrowIfCancellationRequested();
+                        items += 1 + paragraph.Runs.Count;
+                        foreach (LegacyWordRun run in paragraph.Runs) {
+                            characters += run.TextLength;
+                            resources += run.Image?.PngBytes.Length ?? 0;
+                        }
+                    }
+                    cost = (characters, items, resources);
+                    costs.Add(story, cost);
+                }
+                if (cost.Characters > limits.MaxTextCharacters - projectedCharacters)
+                    throw new InvalidDataException("Legacy word running-story projection exceeds the configured text-character limit.");
+                if (cost.Items > limits.MaxItems - projectedItems)
+                    throw new InvalidDataException("Legacy word running-story projection exceeds the configured item limit.");
+                if (cost.ResourceBytes > limits.MaxResourceBytes - projectedResourceBytes)
+                    throw new InvalidDataException("Legacy word running-story projection exceeds the configured resource-byte limit.");
+                projectedCharacters += cost.Characters;
+                projectedItems += cost.Items;
+                projectedResourceBytes += cost.ResourceBytes;
+            }
+        }
+    }
+
     private static IReadOnlyList<LegacyWordSection> Sections(LegacyWordModel model) {
         if (model.Sections.Count > 0) return model.Sections;
         var section = new LegacyWordSection();
@@ -26,12 +62,12 @@ public static partial class LegacyWordImporter {
             LegacyWordSection source = sections[index];
             WordSection target = index == 0 ? document.Sections[0] :
                 document.AddSection(source.StartsNewPage ? WordSectionBreakType.NextPage : WordSectionBreakType.Continuous);
-            if (source.WidthPoints.HasValue) target.PageSettings.Width = checked((uint)Twips(source.WidthPoints.Value));
-            if (source.HeightPoints.HasValue) target.PageSettings.Height = checked((uint)Twips(source.HeightPoints.Value));
-            if (source.LeftPoints.HasValue) target.Margins.Left = checked((uint)Twips(source.LeftPoints.Value));
-            if (source.RightPoints.HasValue) target.Margins.Right = checked((uint)Twips(source.RightPoints.Value));
-            if (source.TopPoints.HasValue) target.Margins.Top = Twips(source.TopPoints.Value);
-            if (source.BottomPoints.HasValue) target.Margins.Bottom = Twips(source.BottomPoints.Value);
+            if (source.WidthPoints.HasValue) target.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Twips(source.WidthPoints.Value))) / 20D);
+            if (source.HeightPoints.HasValue) target.PageSettings.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Twips(source.HeightPoints.Value))) / 20D);
+            if (source.LeftPoints.HasValue) target.Margins.Left = global::OfficeIMO.OfficeLength.Points((checked((uint)Twips(source.LeftPoints.Value))) / 20D);
+            if (source.RightPoints.HasValue) target.Margins.Right = global::OfficeIMO.OfficeLength.Points((checked((uint)Twips(source.RightPoints.Value))) / 20D);
+            if (source.TopPoints.HasValue) target.Margins.Top = global::OfficeIMO.OfficeLength.Points((Twips(source.TopPoints.Value)) / 20D);
+            if (source.BottomPoints.HasValue) target.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((Twips(source.BottomPoints.Value)) / 20D);
             WordList? list = null;
             foreach (LegacyWordBlock block in source.Blocks) {
                 cancellation.ThrowIfCancellationRequested();
@@ -65,8 +101,7 @@ public static partial class LegacyWordImporter {
                 LegacyWordTableCell sourceCell = source.Rows[row].Cells[column];
                 WordTableCell cell = table.Rows[row].Cells[column];
                 if (column < source.ColumnWidthsPoints.Count) {
-                    cell.WidthType = WordTableWidthUnit.Dxa;
-                    cell.Width = Twips(source.ColumnWidthsPoints[column]);
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(source.ColumnWidthsPoints[column]));
                 }
                 for (int paragraph = 0; paragraph < sourceCell.Paragraphs.Count; paragraph++) {
                     cancellation.ThrowIfCancellationRequested();
@@ -106,7 +141,7 @@ public static partial class LegacyWordImporter {
         IReadOnlyDictionary<string, LegacyWordStyle> recoveredStyles, CancellationToken cancellation) {
         if (index < 0 || index >= model.Notes.Count) throw new InvalidDataException("A recovered note anchor is outside the note collection.");
         LegacyWordNote note = model.Notes[index];
-        WordParagraph reference = note.Kind == LegacyWordNoteKind.Footnote ? anchor.AddFootNote(string.Empty) : anchor.AddEndNote(string.Empty);
+        WordParagraph reference = note.Kind == LegacyWordNoteKind.Footnote ? anchor.AddFootNote(string.Empty).Paragraph : anchor.AddEndNote(string.Empty).Paragraph;
         List<WordParagraph> paragraphs = (note.Kind == LegacyWordNoteKind.Footnote ? reference.FootNote!.Paragraphs : reference.EndNote!.Paragraphs)
             ?? throw new InvalidDataException("The projected note has no paragraphs.");
         WordParagraph target = paragraphs[0];

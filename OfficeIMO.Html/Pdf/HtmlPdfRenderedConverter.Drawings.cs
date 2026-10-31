@@ -89,8 +89,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     } else {
                         target.ActualText(
                             drawingGroup.ActualText,
-                            (visual.X + drawingGroup.ActualTextAnchorX * scaleX) * PointsPerCssPixel,
-                            (visual.Y + drawingGroup.ActualTextAnchorY * scaleY) * PointsPerCssPixel,
+                            global::OfficeIMO.OfficeLength.Points((visual.X + drawingGroup.ActualTextAnchorX * scaleX) * PointsPerCssPixel),
+                            global::OfficeIMO.OfficeLength.Points((visual.Y + drawingGroup.ActualTextAnchorY * scaleY) * PointsPerCssPixel),
                             addGroupPaint);
                     }
                     continue;
@@ -178,16 +178,16 @@ internal static partial class HtmlPdfRenderedConverter {
                     if (IsFragmentLink(link.Uri)) {
                         target.LinkToNamedDestination(
                             MapNamedDestination(DecodeFragmentName(link.Uri.Substring(1))),
-                            linkX,
-                            linkY,
-                            linkWidth,
-                            linkHeight,
+                            global::OfficeIMO.OfficeLength.Points(linkX),
+                            global::OfficeIMO.OfficeLength.Points(linkY),
+                            global::OfficeIMO.OfficeLength.Points(linkWidth),
+                            global::OfficeIMO.OfficeLength.Points(linkHeight),
                             link.AlternativeText);
                     } else {
                         OfficeShape linkArea = OfficeShape.Rectangle(linkWidth, linkHeight);
                         linkArea.FillColor = null;
                         linkArea.StrokeColor = null;
-                        target.Shape(linkArea, linkX, linkY, style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: link.Uri, linkContents: link.AlternativeText);
+                        target.Shape(linkArea, global::OfficeIMO.OfficeLength.Points(linkX), global::OfficeIMO.OfficeLength.Points(linkY), style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: link.Uri, linkContents: link.AlternativeText);
                     }
                     continue;
                 }
@@ -248,10 +248,10 @@ internal static partial class HtmlPdfRenderedConverter {
         if (fragmentLink) {
             canvas.LinkToNamedDestination(
                 MapNamedDestination(visual.LinkUri!.Substring(1)),
-                linkX,
-                linkY,
-                linkWidth,
-                linkHeight,
+                global::OfficeIMO.OfficeLength.Points(linkX),
+                global::OfficeIMO.OfficeLength.Points(linkY),
+                global::OfficeIMO.OfficeLength.Points(linkWidth),
+                global::OfficeIMO.OfficeLength.Points(linkHeight),
                 visual.Source);
         } else if (visual.LinkUri != null && !suppressLink) {
             // The HTML anchor covers the visible drawing viewport, including whitespace
@@ -259,7 +259,7 @@ internal static partial class HtmlPdfRenderedConverter {
             OfficeShape linkArea = OfficeShape.Rectangle(linkWidth, linkHeight);
             linkArea.FillColor = null;
             linkArea.StrokeColor = null;
-            canvas.Shape(linkArea, linkX, linkY, style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: visual.LinkUri, linkContents: visual.Source);
+            canvas.Shape(linkArea, global::OfficeIMO.OfficeLength.Points(linkX), global::OfficeIMO.OfficeLength.Points(linkY), style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: visual.LinkUri, linkContents: visual.Source);
         }
     }
 

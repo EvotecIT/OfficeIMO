@@ -330,10 +330,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildAnchor(PowerPointShape shape) {
-            int left = ToMasterUnits(shape.Left);
-            int top = ToMasterUnits(shape.Top);
-            int right = checked(left + ToMasterUnits(shape.Width));
-            int bottom = checked(top + ToMasterUnits(shape.Height));
+            int left = ToMasterUnits(shape.Left.ToEmus());
+            int top = ToMasterUnits(shape.Top.ToEmus());
+            int right = checked(left + ToMasterUnits(shape.Width.ToEmus()));
+            int bottom = checked(top + ToMasterUnits(shape.Height.ToEmus()));
             if (shape.Element.Parent is P.GroupShape) {
                 var childPayload = new byte[16];
                 WriteInt32(childPayload, 0, left);

@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitRows_LeavesHeightForNativeWrappedLabels(string text, double width, bool bold) {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.NativeWrapped." + width.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.SetColumnWidth(1, width);
+                var sheet = document.AddSheet("Data");
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(width));
                 sheet.CellValue(1, 1, text);
                 sheet.CellAt(1, 1).SetBold(bold);
                 sheet.CellValue(1, 2, "Neighbor");
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
             using (var reopened = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal(text, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
                 Assert.Equal("Neighbor", reopened.Sheets[0].CellAt(1, 2).GetValue<string>());
-                Assert.Equal(width, reopened.Sheets[0].GetColumnDefinitions().First(c => c.StartIndex == 1).Width);
+                Assert.Equal(width, (reopened.Sheets[0].GetColumnDefinitions().First(c => c.StartIndex == 1).Width?.CharacterCount));
             }
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 var rows = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Row>().ToList();

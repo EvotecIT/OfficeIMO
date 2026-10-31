@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfParagraphBuilder {
     private double _currentHorizontalTextScaling = 100D;
-    private double _currentCharacterSpacing;
+    private global::OfficeIMO.OfficeLength _currentCharacterSpacing;
 
     private PdfTextRun ApplyCurrentTextSpacing(PdfTextRun run) =>
         run.HorizontalTextScaling == _currentHorizontalTextScaling && run.CharacterSpacing == _currentCharacterSpacing
@@ -15,13 +15,10 @@ public sealed partial class PdfParagraphBuilder {
         return this;
     }
 
-    /// <summary>Sets additional advance after each rendered glyph, in page points, for subsequent text.</summary>
+    /// <summary>Sets additional advance after each rendered glyph, as a physical length, for subsequent text.</summary>
     /// <remarks>The spacing is independent of horizontal glyph scaling. Use zero to restore normal spacing.</remarks>
-    public PdfParagraphBuilder CharacterSpacing(double points) {
-        if (double.IsNaN(points) || double.IsInfinity(points)) {
-            throw new System.ArgumentOutOfRangeException(nameof(points), "Character spacing must be finite.");
-        }
-        _currentCharacterSpacing = points;
+    public PdfParagraphBuilder CharacterSpacing(global::OfficeIMO.OfficeLength spacing) {
+        _currentCharacterSpacing = spacing;
         return this;
     }
 }

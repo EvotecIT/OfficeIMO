@@ -18,13 +18,20 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Controls creation and persistence of a Word document.</summary>
-    public sealed class WordCreateOptions : DocumentCreateOptions {
+    public sealed partial class WordCreateOptions : DocumentCreateOptions {
         /// <summary>Controls the Open XML package type when no destination extension is available.</summary>
         public WordDocumentType DocumentType { get; set; } = WordDocumentType.Document;
     }
 
     /// <summary>Controls access, persistence, and package behavior when loading a Word document.</summary>
-    public sealed class WordLoadOptions : DocumentLoadOptions {
+    public sealed partial class WordLoadOptions : DocumentLoadOptions {
+        internal WordLoadOptions Snapshot() {
+            var copy = (WordLoadOptions)MemberwiseClone();
+            copy.PackageSecurity = PackageSecurity?.Snapshot();
+            copy.OpenSettings = OpenSettings?.Snapshot();
+            return copy;
+        }
+
         /// <summary>Default maximum complete source size (512 MiB).</summary>
         public const long DefaultMaxInputBytes = 512L * 1024L * 1024L;
 

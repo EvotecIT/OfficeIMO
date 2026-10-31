@@ -29,10 +29,10 @@ public sealed class HtmlPdfEmbeddedTextFeatureTests {
             + "')}p{margin:0;font:32px FeatureFont;" + features + "}</style><p>fi</p>";
         var options = new HtmlToPdfOptions { MaxOutlinedTextPathCommands = 1 };
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
 
-        Assert.Equal("fi", PdfCore.PdfReadDocument.Open(pdf).ExtractText().Trim());
+        Assert.Equal("fi", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Trim());
         Assert.Contains(cff ? "/FontFile3 " : "/FontFile2 ", Encoding.GetEncoding(28591).GetString(pdf), StringComparison.Ordinal);
         Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined);
     }
@@ -48,8 +48,8 @@ public sealed class HtmlPdfEmbeddedTextFeatureTests {
             + "font-feature-settings:'liga' 1;" + style + "}</style><p>fi</p>";
         var options = new HtmlToPdfOptions { MaxOutlinedTextPathCommands = 1 };
 
-        PdfCore.PdfDocumentConversionResult limited = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
-        Assert.Equal("fi", PdfCore.PdfReadDocument.Open(limited.ToBytes()).ExtractText().Trim());
+        PdfCore.PdfDocumentConversionResult limited = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
+        Assert.Equal("fi", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(limited.ToBytes())).ExtractText().Trim());
         Assert.Contains(limited.Report.Warnings, warning =>
             warning.Code == HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated
             && warning.LossKind == OfficeConversionLossKind.Approximation);
@@ -68,7 +68,7 @@ public sealed class HtmlPdfEmbeddedTextFeatureTests {
         var options = new HtmlToPdfOptions();
         options.Fonts.Add("ColorLigature", font);
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
         OfficeColor[] paints = DrawingTestTraversal.Elements(PdfCore.PdfDocument.Load(pdf).Render.Drawing(1))
             .OfType<OfficeDrawingShape>()
@@ -76,11 +76,11 @@ public sealed class HtmlPdfEmbeddedTextFeatureTests {
 
         Assert.Contains(palette == "dark" ? OfficeColor.Yellow : OfficeColor.Red, paints);
         Assert.Contains(palette == "dark" ? OfficeColor.FromRgb(0, 128, 0) : OfficeColor.Blue, paints);
-        Assert.Equal("fi", PdfCore.PdfReadDocument.Open(pdf).ExtractText().Trim());
+        Assert.Equal("fi", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Trim());
 
         options.MaxOutlinedTextPathCommands = 1;
-        PdfCore.PdfDocumentConversionResult limited = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
-        Assert.Equal("fi", PdfCore.PdfReadDocument.Open(limited.ToBytes()).ExtractText().Trim());
+        PdfCore.PdfDocumentConversionResult limited = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
+        Assert.Equal("fi", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(limited.ToBytes())).ExtractText().Trim());
         Assert.Contains(limited.Report.Warnings, warning =>
             warning.Code == HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated
             && warning.LossKind == OfficeConversionLossKind.Approximation);

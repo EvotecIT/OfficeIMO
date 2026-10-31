@@ -161,14 +161,14 @@ namespace OfficeIMO.Excel {
 
         private static bool TryFixedArrayBounds(string reference, out int top, out int left, out int bottom, out int right) {
             reference = reference.Replace("$", "");
-            if (A1.TryParseRange(reference, out top, out left, out bottom, out right)) return true;
+            if (ExcelA1.TryParseRange(reference, out top, out left, out bottom, out right)) return true;
             if (TryParseCellReference(reference, out top, out left)) { bottom = top; right = left; return true; }
             bottom = right = 0;
             return false;
         }
 
         private void WriteFixedArrayFormulaCache(Cell owner, FormulaArrayValue array) {
-            var (row, column) = A1.ParseCellRef(owner.CellReference!.Value!);
+            var (row, column) = ExcelA1.ParseCellRef(owner.CellReference!.Value!);
             for (int r = 0; r < array.Rows; r++) {
                 for (int c = 0; c < array.Columns; c++) {
                     Cell cell = r == 0 && c == 0 ? owner : GetCell(row + r, column + c);
@@ -269,7 +269,7 @@ namespace OfficeIMO.Excel {
                 array = ArrayError(rows < 0 || columns < 0 ? "#VALUE!" : "#CALC!");
                 return true;
             }
-            if (rows > A1.MaxRows || columns > A1.MaxColumns || rows * columns > MaxResolvedFormulaRangeCells) return false;
+            if (rows > ExcelA1.MaxRows || columns > ExcelA1.MaxColumns || rows * columns > MaxResolvedFormulaRangeCells) return false;
             var values = new FormulaArgumentValue[(int)(rows * columns)];
             for (int i = 0; i < values.Length; i++) {
                 double value = start + i * step;

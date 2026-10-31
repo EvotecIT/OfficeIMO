@@ -11,74 +11,16 @@ namespace OfficeIMO.Html.Pdf;
 /// First-party PDF to HTML conversion helpers for the bidirectional HTML/PDF bridge.
 /// </summary>
 public static partial class PdfHtmlConverterExtensions {
-    /// <summary>Renders an opened PDF as HTML.</summary>
-    public static string ToHtml(this PdfCore.PdfDocument document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options, cancellationToken)
-            .ToHtml(CreateRenderOptionsAfterPreselection(options, document), cancellationToken);
-    }
-
-    /// <summary>Renders an opened PDF, saves the HTML as UTF-8 without a byte-order mark, and returns conversion diagnostics.</summary>
-    public static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocument document, string path, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options, cancellationToken)
-            .SaveAsHtml(path, CreateRenderOptionsAfterPreselection(options, document), cancellationToken);
-    }
-
-    /// <summary>Renders an opened PDF, writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
-    public static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocument document, Stream stream, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options, cancellationToken)
-            .SaveAsHtml(stream, CreateRenderOptionsAfterPreselection(options, document), cancellationToken);
-    }
-
-    /// <summary>Renders an opened PDF, asynchronously saves the HTML, and returns conversion diagnostics.</summary>
-    public static async Task<OfficeOutputResult<PdfCore.PdfConversionReport>> SaveAsHtmlAsync(
-        this PdfCore.PdfDocument document,
-        string path,
-        PdfToHtmlOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfCore.PdfDocumentReadResult logical = ReadForHtml(document, options, cancellationToken);
-        return await logical.SaveAsHtmlAsync(
-            path,
-            CreateRenderOptionsAfterPreselection(options, document),
-            cancellationToken).ConfigureAwait(false);
-
-    }
-
-    /// <summary>Renders an opened PDF, asynchronously writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
-    public static async Task<OfficeOutputResult<PdfCore.PdfConversionReport>> SaveAsHtmlAsync(
-        this PdfCore.PdfDocument document,
-        Stream stream,
-        PdfToHtmlOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfCore.PdfDocumentReadResult logical = ReadForHtml(document, options, cancellationToken);
-        return await logical.SaveAsHtmlAsync(
-            stream,
-            CreateRenderOptionsAfterPreselection(options, document),
-            cancellationToken).ConfigureAwait(false);
-
-    }
-
     /// <summary>
     /// Renders an already loaded logical PDF model as HTML.
     /// </summary>
-    public static string ToHtml(this PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal static string ToHtml(this PdfCore.PdfDocumentReadResult document, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         return document.ToHtmlResult(options, cancellationToken).Value;
     }
 
     /// <summary>Renders a logical PDF document, saves the HTML as UTF-8 without a byte-order mark, and returns conversion diagnostics.</summary>
-    public static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocumentReadResult document, string path, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocumentReadResult document, string path, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfHtmlConversionResult result = document.ToHtmlResult(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -87,7 +29,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     /// <summary>Renders a logical PDF document, writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
-    public static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocumentReadResult document, Stream stream, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal static OfficeOutputResult<PdfCore.PdfConversionReport> SaveAsHtml(this PdfCore.PdfDocumentReadResult document, Stream stream, PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfHtmlConversionResult result = document.ToHtmlResult(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -96,7 +38,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     /// <summary>Renders a logical PDF document, asynchronously saves the HTML, and returns conversion diagnostics.</summary>
-    public static async Task<OfficeOutputResult<PdfCore.PdfConversionReport>> SaveAsHtmlAsync(
+    internal static async Task<OfficeOutputResult<PdfCore.PdfConversionReport>> SaveAsHtmlAsync(
         this PdfCore.PdfDocumentReadResult document,
         string path,
         PdfToHtmlOptions? options = null,
@@ -110,7 +52,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     /// <summary>Renders a logical PDF document, asynchronously writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
-    public static async Task<OfficeOutputResult<PdfCore.PdfConversionReport>> SaveAsHtmlAsync(
+    internal static async Task<OfficeOutputResult<PdfCore.PdfConversionReport>> SaveAsHtmlAsync(
         this PdfCore.PdfDocumentReadResult document,
         Stream stream,
         PdfToHtmlOptions? options = null,
@@ -146,11 +88,11 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfPageRange[] ranges = options is null
             ? Array.Empty<PdfCore.PdfPageRange>()
             : CopyPageRanges(options);
-        PdfCore.PdfReadOptions configured = options?.ReadOptions ?? PdfCore.PdfReadOptions.Default;
+        PdfCore.PdfLoadOptions configured = options?.ReadOptions ?? PdfCore.PdfLoadOptions.Default;
         PdfCore.PdfPageSelection? selection = ranges.Length == 0
             ? configured.PageSelection
             : PdfCore.PdfPageSelection.FromRanges(ranges);
-        return document.Read(PdfCore.PdfReadOptions.WithPageSelection(configured, selection), cancellationToken);
+        return document.Read(PdfCore.PdfLoadOptions.WithPageSelection(configured, selection), cancellationToken);
     }
 
     private static PdfToHtmlOptions CreateRenderOptionsAfterPreselection(PdfToHtmlOptions? options, PdfCore.PdfDocument document) {
@@ -550,7 +492,7 @@ public static partial class PdfHtmlConverterExtensions {
 
         AddWarning(
             options,
-            "AcroFormXfaDetected",
+            OfficeDiagnosticCodes.AcroFormXfaDetected,
             "AcroForm XFA packets are represented as inert review metadata; OfficeIMO.Html.Pdf does not render or fill XFA.",
             PdfCore.PdfConversionWarningSeverity.Warning);
         PdfCore.PdfAcroFormXfaInfo xfa = document.AcroFormXfa;
@@ -948,7 +890,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static void ReportHtmlImagePageRotationOmission(PdfCore.PdfLogicalImage image, PdfToHtmlOptions options) {
-        AddWarning(options, "ImagePageRotationNotSafelyEditable",
+        AddWarning(options, OfficeDiagnosticCodes.ImagePageRotationNotSafelyEditable,
             "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image",
             "The raw PDF image was not embedded because the rotated page would display its pixels in a different orientation in HTML.",
             PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission,
@@ -979,52 +921,52 @@ public static partial class PdfHtmlConverterExtensions {
         };
         switch (assessment.Disposition) {
             case PdfCore.PdfImagePlacementImportDisposition.SuppressInvisible:
-                AddWarning(options, "InvisibleImagePlacementSuppressed", source,
+                AddWarning(options, OfficeDiagnosticCodes.InvisibleImagePlacementSuppressed, source,
                     "A fully transparent PDF image placement was suppressed instead of exposing its raw image pixels.",
                     PdfCore.PdfConversionWarningSeverity.Information, OfficeConversionLossKind.None, details);
                 return;
             case PdfCore.PdfImagePlacementImportDisposition.SuppressOutsideVisibleArea:
-                AddWarning(options, "NonVisibleImagePlacementSuppressed", source,
+                AddWarning(options, OfficeDiagnosticCodes.NonVisibleImagePlacementSuppressed, source,
                     "A PDF image placement with no visible page intersection was suppressed instead of exposing its raw image pixels.",
                     PdfCore.PdfConversionWarningSeverity.Information, OfficeConversionLossKind.None, details);
                 return;
             case PdfCore.PdfImagePlacementImportDisposition.SuppressUnplaced:
-                AddWarning(options, "UnplacedImageResourceNotEmbedded", source,
+                AddWarning(options, OfficeDiagnosticCodes.UnplacedImageResourceNotEmbedded, source,
                     "An extracted image resource without a visible page placement was not embedded as raw pixels.",
                     PdfCore.PdfConversionWarningSeverity.Information, OfficeConversionLossKind.None, details);
                 return;
             case PdfCore.PdfImagePlacementImportDisposition.OmitClippedPixels:
-                AddWarning(options, "ImageClipNotSafelyEditable", source,
+                AddWarning(options, OfficeDiagnosticCodes.ImageClipNotSafelyEditable, source,
                     "The raw PDF image was not embedded because its clip hides source pixels that HTML could reveal.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
                 return;
             case PdfCore.PdfImagePlacementImportDisposition.OmitSoftMask:
-                AddWarning(options, "ImagePlacementSoftMaskNotSafelyEditable", source,
+                AddWarning(options, OfficeDiagnosticCodes.ImagePlacementSoftMaskNotSafelyEditable, source,
                     "The raw PDF image was not embedded because its placement soft mask cannot be reproduced safely in editable HTML.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
                 return;
             case PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedBlendMode:
-                AddWarning(options, "ImageUnsupportedBlendModeNotSafelyEditable", source,
+                AddWarning(options, OfficeDiagnosticCodes.ImageUnsupportedBlendModeNotSafelyEditable, source,
                     "The raw PDF image was not embedded because its unsupported blend mode cannot be reproduced safely in editable HTML.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
                 return;
             case PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedPaintEffect:
-                AddWarning(options, "ImagePaintEffectNotSafelyEditable", source,
+                AddWarning(options, OfficeDiagnosticCodes.ImagePaintEffectNotSafelyEditable, source,
                     "The raw PDF image was not embedded because its PDF paint effect cannot be reproduced safely in editable HTML.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
                 return;
             case PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedTransform:
-                AddWarning(options, "ImageTransformNotSafelyEditable", source,
+                AddWarning(options, OfficeDiagnosticCodes.ImageTransformNotSafelyEditable, source,
                     "The raw PDF image was not embedded because its rotation or shear cannot be reproduced safely in editable HTML.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
                 return;
             case PdfCore.PdfImagePlacementImportDisposition.OmitUnappliedDecode:
-                AddWarning(options, "ImageDecodeNotSafelyEditable", source,
+                AddWarning(options, OfficeDiagnosticCodes.ImageDecodeNotSafelyEditable, source,
                     "The raw PDF image was not embedded because its PDF decode mapping is not represented by the extracted JPEG 2000 payload.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
                 return;
             case PdfCore.PdfImagePlacementImportDisposition.OmitUnresolvedTransparencyMask:
-                AddWarning(options, "ImageTransparencyMaskNotResolved", source,
+                AddWarning(options, OfficeDiagnosticCodes.ImageTransparencyMaskNotResolved, source,
                     "The raw PDF image was not embedded because its unresolved transparency mask could hide pixels that HTML would reveal.",
                     PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Omission, details);
                 return;
@@ -1032,12 +974,12 @@ public static partial class PdfHtmlConverterExtensions {
 
         if (!imageEmbedded) return;
         if (assessment.HasNonDefaultOpacity) {
-            AddWarning(options, "ImageOpacityMapped", source,
+            AddWarning(options, OfficeDiagnosticCodes.ImageOpacityMapped, source,
                 "PDF image opacity was mapped to CSS opacity.",
                 PdfCore.PdfConversionWarningSeverity.Information, OfficeConversionLossKind.None, details);
         }
         if (assessment.HasNonNormalBlendMode) {
-            AddWarning(options, "ImageBlendModeApproximated", source,
+            AddWarning(options, OfficeDiagnosticCodes.ImageBlendModeApproximated, source,
                 "The PDF image blend mode was mapped to CSS mix-blend-mode; browser compositing can differ from PDF compositing.",
                 PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Approximation, details);
         }
@@ -1058,7 +1000,7 @@ public static partial class PdfHtmlConverterExtensions {
             !OfficeIMO.Drawing.OfficeImageInfo.IsBrowserPreviewSafeContentType(sourceImage.MimeType)) {
             AddWarning(
                 options,
-                "ImageDataUnavailable",
+                OfficeDiagnosticCodes.ImageDataUnavailable,
                 "An extracted PDF image was represented as a placeholder because it is not available in a browser-embeddable image file format.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Omission);
@@ -1068,7 +1010,7 @@ public static partial class PdfHtmlConverterExtensions {
         if (options.MaxEmbeddedImageBytes.HasValue && sourceImage.Bytes.LongLength > options.MaxEmbeddedImageBytes.Value) {
             AddWarning(
                 options,
-                "ImageDataTooLarge",
+                OfficeDiagnosticCodes.ImageDataTooLarge,
                 "An extracted PDF image was represented as a placeholder because it exceeds MaxEmbeddedImageBytes.",
                 PdfCore.PdfConversionWarningSeverity.Warning,
                 OfficeConversionLossKind.Omission);
@@ -1081,7 +1023,7 @@ public static partial class PdfHtmlConverterExtensions {
             if (dataUriCharacters > Math.Min(options.MaximumOutputCharacters.Value, remainingItemCharacters)) {
                 AddWarning(
                     options,
-                    "ImageDataTooLarge",
+                    OfficeDiagnosticCodes.ImageDataTooLarge,
                     "An extracted PDF image was represented as a placeholder because its data URI exceeds MaximumOutputCharacters.",
                     PdfCore.PdfConversionWarningSeverity.Warning,
                     OfficeConversionLossKind.Omission);

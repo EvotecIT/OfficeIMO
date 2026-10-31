@@ -8,14 +8,14 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <summary>Creates typed HTML rendering options for Export-OfficeDocumentPdf.</summary>
 /// <example><summary>Export HTML with local resources and a chosen font.</summary><prefix>PS&gt; </prefix>
 /// <code>$options = New-OfficeHtmlPdfOptions -FontFamily Arial -IncludeLocalResources
-/// Export-OfficeDocumentPdf -InputPath .\Report.html -Path .\Report.pdf -HtmlOptions $options</code></example>
+/// Export-OfficeDocumentPdf -InputPath .\Report.html -Path .\Report.pdf -MarkdownHtmlExportOptions $options</code></example>
 [Cmdlet(VerbsCommon.New, "OfficeHtmlPdfOptions")]
 [OutputType(typeof(HtmlToPdfOptions))]
 public sealed class NewOfficeHtmlPdfOptionsCommand : PSCmdlet {
     /// <summary>Existing options to clone before applying explicitly supplied values.</summary>
     [Parameter(ValueFromPipeline = true)] public HtmlToPdfOptions? Options { get; set; }
     /// <summary>Underlying PDF writer settings, cloned before use.</summary>
-    [Parameter] public PdfOptions? PdfOptions { get; set; }
+    [Parameter] public PdfCreateOptions? PdfOptions { get; set; }
     /// <summary>Default HTML font family.</summary>
     [Parameter] public string? FontFamily { get; set; }
     /// <summary>Uniform page margins in CSS pixels.</summary>

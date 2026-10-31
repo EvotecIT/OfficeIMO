@@ -51,9 +51,9 @@ public sealed class PdfLabelSheetComponent : IPdfComponent {
         content.Table(rows, style: new PdfTableStyle {
             HeaderRowCount = 0,
             RowStripeFill = null,
-            CellPaddingX = 10,
-            CellPaddingY = 10,
-            MinRowHeight = 54
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(10),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(10),
+            MinRowHeight = global::OfficeIMO.OfficeLength.Points(54)
         });
     }
 }

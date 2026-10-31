@@ -187,8 +187,8 @@ public sealed class DrawingVectorTextInkTests {
     [Theory]
     [InlineData(OfficeTextAlignment.Left, OfficeFontStyle.Regular, 90D)]
     [InlineData(OfficeTextAlignment.Center, OfficeFontStyle.Bold, 90D)]
-    [InlineData(OfficeTextAlignment.Right, OfficeFontStyle.Italic, 50D)]
-    [InlineData(OfficeTextAlignment.Right, OfficeFontStyle.Italic | OfficeFontStyle.Underline, 50D)]
+    [InlineData(OfficeTextAlignment.Right, OfficeFontStyle.Italic, 45D)]
+    [InlineData(OfficeTextAlignment.Right, OfficeFontStyle.Italic | OfficeFontStyle.Underline, 45D)]
     public void HorizontalTextInkMatchesActualPaint(OfficeTextAlignment alignment, OfficeFontStyle style, double width) {
         var drawing = new OfficeDrawing(120, 100).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A', '.'));
         drawing.AddText("AAAA", 10, 15, width, 60, new OfficeFontInfo("Ink", 25, style), alignment: alignment);
@@ -207,7 +207,7 @@ public sealed class DrawingVectorTextInkTests {
         Assert.InRange(Math.Abs(pixels.Min(p => p.Y) - ink.Min(b => b.Top)), 0, 2);
         Assert.InRange(Math.Abs(pixels.Max(p => p.X) + 1 - ink.Max(b => b.Right)), 0, 2);
         Assert.InRange(Math.Abs(pixels.Max(p => p.Y) + 1 - ink.Max(b => b.Bottom)), 0, 2);
-        if (width == 50D && style == OfficeFontStyle.Italic) {
+        if (width == 45D && style == OfficeFontStyle.Italic) {
             var ellipsis = new OfficeDrawing(120, 100).AddFont("Ink", ManagedTextShapingTestAssets.CreateFont('A', '.'));
             ellipsis.AddText("...", 10, 15, width, 60, new OfficeFontInfo("Ink", 25, style), alignment: alignment);
             Assert.Equal(ellipsis.ExportImage(OfficeImageExportFormat.Png).Bytes, drawing.ExportImage(OfficeImageExportFormat.Png).Bytes);

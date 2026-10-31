@@ -17,7 +17,7 @@ namespace OfficeIMO.Shared.Tests {
 
         [Fact]
         public void LoadFromMarkdown_NullMarkdown_ThrowsArgumentNullException() {
-            Assert.Throws<ArgumentNullException>(() => OfficeIMO.Markdown.MarkdownReader.Parse((string)null!));
+            Assert.Throws<ArgumentNullException>(() => OfficeIMO.Markdown.MarkdownDocument.Parse((string)null!));
         }
 
         [Fact]

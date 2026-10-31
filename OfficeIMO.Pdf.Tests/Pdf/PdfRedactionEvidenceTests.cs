@@ -218,7 +218,7 @@ public sealed class PdfRedactionEvidenceTests {
     public void ApplyWithEvidenceExpandsSourceTightLimitsForGeneratedOutput() {
         byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content
                 .Paragraph(paragraph => paragraph.Text("Retained source content"))),
-                new PdfOptions { CompressContentStreams = false })
+                new PdfCreateOptions { CompressContentStreams = false })
             .ToBytes();
         PdfStream[] sourceStreams = PdfSyntax.ParseObjects(source).Map.Values
             .Select(static item => item.Value)

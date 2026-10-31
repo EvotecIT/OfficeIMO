@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 /// <summary>
 /// Helpers for applying markdown transforms while preserving inline-code spans verbatim.
 /// </summary>
-public static class MarkdownInlineCode {
+internal static class MarkdownInlineCode {
     private static readonly Regex InlineCodeSpanRegex = new Regex(
         @"`[^`\r\n]*`",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);

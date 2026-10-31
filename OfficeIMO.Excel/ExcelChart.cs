@@ -107,10 +107,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the detected chart type.
         /// </summary>
-        public ExcelChartType ChartType {
+        public OfficeChartType ChartType {
             get {
                 C.PlotArea? plotArea = GetChart().GetFirstChild<C.PlotArea>();
-                return plotArea == null ? ExcelChartType.ColumnClustered : ExcelChartUtils.InferChartType(plotArea);
+                return plotArea == null ? OfficeChartType.ColumnClustered : ExcelChartUtils.InferChartType(plotArea);
             }
         }
 
@@ -152,34 +152,34 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Tries to create a dependency-free snapshot for rendering/export consumers.
         /// </summary>
-        public bool TryGetSnapshot(out ExcelChartSnapshot snapshot) =>
+        public bool TryGetSnapshot(out ExcelChartInfo snapshot) =>
             TryGetSnapshotCore(null, out snapshot);
 
-        internal bool TryGetSnapshot(ExcelWorksheetGeometryIndex geometry, out ExcelChartSnapshot snapshot) =>
+        internal bool TryGetSnapshot(ExcelWorksheetGeometryIndex geometry, out ExcelChartInfo snapshot) =>
             TryGetSnapshotCore(geometry, out snapshot);
 
-        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, out ExcelChartSnapshot snapshot) {
+        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, out ExcelChartInfo snapshot) {
             if (!TryGetData(out ExcelChartData data)) {
                 snapshot = null!;
                 return false;
             }
 
-            (int anchorWidthPixels, int anchorHeightPixels) = GetAnchorSizePixels(geometry);
             try {
+                (OfficeLength anchorWidth, OfficeLength anchorHeight) = GetAnchorSize(geometry);
                 var plot = GetChartPart().ChartSpace?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Chart>()?.PlotArea;
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plot, resolveSourceLinkedFormats: true);
                 var bubble = ReadBubbleImageSettings(plot, data);
-                snapshot = new ExcelChartSnapshot(
+                snapshot = new ExcelChartInfo(
                     Name,
                     Title,
                     ChartType,
                     data,
                     GetAnchorRow(),
                     GetAnchorColumn(),
-                    GetAnchorOffsetXPixels(),
-                    GetAnchorOffsetYPixels(),
-                    anchorWidthPixels,
-                    anchorHeightPixels,
+                    GetAnchorOffset(horizontal: true),
+                    GetAnchorOffset(horizontal: false),
+                    anchorWidth,
+                    anchorHeight,
                     CreateImageExportStyle(data.Categories.Count),
                     CreateImageExportLayout(),
                     CreateImageExportDiagnostics().Concat(bubble.Diagnostics).ToArray(),
@@ -292,14 +292,15 @@ namespace OfficeIMO.Excel {
 
             C.Title chartTitle = chart.GetFirstChild<C.Title>() ?? new C.Title();
             chartTitle.RemoveAllChildren<C.ChartText>();
-            chartTitle.Append(CreateChartText(title));
+            chartTitle.AddChild(CreateChartText(title), true);
             if (chartTitle.GetFirstChild<C.Layout>() == null) {
-                chartTitle.Append(new C.Layout());
+                chartTitle.AddChild(new C.Layout(), true);
             }
             chartTitle.RemoveAllChildren<C.Overlay>();
-            chartTitle.Append(new C.Overlay { Val = false });
+            chartTitle.AddChild(new C.Overlay { Val = false }, true);
 
             if (chart.GetFirstChild<C.Title>() == null) {
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.ApplyTitle(chartTitle, OfficeTheme.Default);
                 chart.InsertAt(chartTitle, 0);
             }
 
@@ -310,9 +311,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the chart title text style.
         /// </summary>
-        public ExcelChart SetTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null,
-            string? color = null, string? fontName = null) {
-            ValidateDataLabelTextStyle(fontSizePoints, color, fontName);
+        public ExcelChart SetTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
+            OfficeColor? color = null, string? fontName = null) {
+            ValidateDataLabelTextStyle(fontSize, color, fontName);
 
             C.Chart chart = GetChart();
             C.Title? title = chart.GetFirstChild<C.Title>();
@@ -325,7 +326,7 @@ namespace OfficeIMO.Excel {
                 return this;
             }
 
-            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSizePoints, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSize, bold, italic, color, fontName);
             Save();
             return this;
         }
@@ -350,13 +351,13 @@ namespace OfficeIMO.Excel {
             var legendPosition = legend.GetFirstChild<C.LegendPosition>() ?? new C.LegendPosition();
             legendPosition.Val = position.ToOpenXml();
             if (legendPosition.Parent == null) {
-                legend.Append(legendPosition);
+                legend.AddChild(legendPosition, true);
             }
             if (legend.GetFirstChild<C.Layout>() == null) {
-                legend.Append(new C.Layout());
+                legend.AddChild(new C.Layout(), true);
             }
             legend.RemoveAllChildren<C.Overlay>();
-            legend.Append(new C.Overlay { Val = overlay });
+            legend.AddChild(new C.Overlay { Val = overlay }, true);
 
             if (chart.GetFirstChild<C.Legend>() == null) {
                 C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -374,9 +375,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the legend text style.
         /// </summary>
-        public ExcelChart SetLegendTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null,
-            string? color = null, string? fontName = null) {
-            ValidateDataLabelTextStyle(fontSizePoints, color, fontName);
+        public ExcelChart SetLegendTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
+            OfficeColor? color = null, string? fontName = null) {
+            ValidateDataLabelTextStyle(fontSize, color, fontName);
 
             C.Chart chart = GetChart();
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
@@ -384,7 +385,7 @@ namespace OfficeIMO.Excel {
                 return this;
             }
 
-            ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSizePoints, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSize, bold, italic, color, fontName);
             Save();
             return this;
         }
@@ -458,16 +459,39 @@ namespace OfficeIMO.Excel {
             return ParseOneBasedMarker(marker?.ColumnId?.Text, 16384);
         }
 
-        private int GetAnchorOffsetXPixels() {
+        private OfficeLength GetAnchorOffset(bool horizontal) {
             Xdr.FromMarker? marker = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker
                 ?? _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker;
-            return EmuOffsetToPixels(ParseEmuOffset(marker?.ColumnOffset?.Text));
+            return OfficeLength.Emus(ParseEmuOffset(horizontal ? marker?.ColumnOffset?.Text : marker?.RowOffset?.Text));
         }
 
-        private int GetAnchorOffsetYPixels() {
-            Xdr.FromMarker? marker = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker
-                ?? _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker;
-            return EmuOffsetToPixels(ParseEmuOffset(marker?.RowOffset?.Text));
+        private (OfficeLength Width, OfficeLength Height) GetAnchorSize(ExcelWorksheetGeometryIndex? geometry) {
+            Xdr.TwoCellAnchor? twoCell = _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault();
+            if (twoCell?.FromMarker != null && twoCell.ToMarker != null) {
+                WorksheetPart? worksheet = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
+                ExcelWorksheetGeometryIndex index = geometry ?? ExcelWorksheetGeometryIndex.Create(worksheet);
+                return (GetTwoCellLength(twoCell, index, true), GetTwoCellLength(twoCell, index, false));
+            }
+            Xdr.Extent? extent = _frame.Ancestors<Xdr.AbsoluteAnchor>().FirstOrDefault()?.Extent
+                ?? _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.Extent;
+            return (extent?.Cx?.Value is long cx && cx > 0 ? OfficeLength.Emus(cx) : OfficeLength.Pixels(480),
+                extent?.Cy?.Value is long cy && cy > 0 ? OfficeLength.Emus(cy) : OfficeLength.Pixels(320));
+        }
+
+        private static OfficeLength GetTwoCellLength(Xdr.TwoCellAnchor anchor, ExcelWorksheetGeometryIndex geometry, bool horizontal) {
+            var start = anchor.FromMarker;
+            var end = anchor.ToMarker;
+            if (start == null || end == null) return OfficeLength.Pixels(horizontal ? 480 : 320);
+            int from = ParseZeroBasedMarker(horizontal ? start.ColumnId?.Text : start.RowId?.Text);
+            int to = ParseZeroBasedMarker(horizontal ? end.ColumnId?.Text : end.RowId?.Text);
+            if (!ExcelImageExportLimits.IsValidMarkerSpan(from, to, horizontal ? 16384 : 1048576))
+                return OfficeLength.Pixels(horizontal ? 480 : 320);
+            decimal emus = 0;
+            for (int index = from; index < to; index++)
+                emus += horizontal ? geometry.GetColumnLength(index + 1).ToEmus() : geometry.GetRowLength(index + 1).ToEmus();
+            emus += (decimal)ParseEmuOffset(horizontal ? end.ColumnOffset?.Text : end.RowOffset?.Text)
+                - ParseEmuOffset(horizontal ? start.ColumnOffset?.Text : start.RowOffset?.Text);
+            return OfficeLength.Emus(checked((long)Math.Max(1m, emus)));
         }
 
         private (int WidthPixels, int HeightPixels) GetAnchorSizePixels(ExcelWorksheetGeometryIndex? geometry = null) {

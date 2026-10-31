@@ -136,7 +136,7 @@ public partial class PdfPageFootnoteTests {
 
     private static PdfTableStyle LazyFootnoteTableStyle() {
         PdfTableStyle style = FootnoteTableStyle();
-        style.ColumnWidthPoints = new List<double?> { 220D };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D) };
         style.MinimumBodyRowsOnFirstPage = 0;
         style.MinimumBodyRowsOnLastPage = 0;
         style.AutoFitColumns = false;

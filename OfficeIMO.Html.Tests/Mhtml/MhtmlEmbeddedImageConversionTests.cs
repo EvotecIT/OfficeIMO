@@ -115,7 +115,7 @@ public sealed class MhtmlEmbeddedImageConversionTests {
         Assert.Contains("styles.css", print.Value.SourceHtml, StringComparison.Ordinal);
         Assert.Contains("Print navigation", archive.Html, StringComparison.Ordinal);
 
-        HtmlToWordResult word = print.Value.ToWordDocumentResult();
+        HtmlToWordResult word = print.Value.ConvertToWordWithEvidence();
         using var output = new MemoryStream();
         using (var document = word.RequireValue()) document.Save(output);
         using WordprocessingDocument saved = WordprocessingDocument.Open(
@@ -149,12 +149,12 @@ public sealed class MhtmlEmbeddedImageConversionTests {
 
         HtmlConversionDocument images = archive.CreateEmbeddedImageDocumentResult().RequireValue();
         HtmlVisibleContentResult visible = await images.CreateVisibleContentDocumentResultAsync(options);
-        HtmlToWordResult converted = visible.Value.ToWordDocumentResult();
+        HtmlToWordResult converted = visible.Value.ConvertToWordWithEvidence();
         using var document = converted.RequireValue();
 
         Assert.Equal(1, visible.AppliedStylesheetCount);
         Assert.Contains("max-width:210px", visible.Value.SourceHtml, StringComparison.Ordinal);
-        Assert.Equal(210D, Assert.Single(document.Images).Width!.Value, precision: 2);
+        Assert.Equal(210D, Assert.Single(document.Images).Width!.Value.ToPixels(), precision: 2);
         Assert.Contains(converted.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Source == "Site logo");
@@ -186,7 +186,7 @@ public sealed class MhtmlEmbeddedImageConversionTests {
         Assert.Contains("images/gallery.png", archive.HtmlDocument.SourceHtml, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/", archive.HtmlDocument.SourceHtml, StringComparison.Ordinal);
 
-        HtmlToWordResult word = prepared.Value.ToWordDocumentResult();
+        HtmlToWordResult word = prepared.Value.ConvertToWordWithEvidence();
         Assert.True(word.Report.Succeeded);
         using var packageBytes = new MemoryStream();
         using (var document = word.RequireValue()) document.Save(packageBytes);

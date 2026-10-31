@@ -19,7 +19,7 @@ public partial class Word {
         Assert.Empty(document.ValidateDocument());
         Assert.Single(document._wordprocessingDocument.MainDocumentPart!.HeaderParts
             .SelectMany(part => part.Header.Descendants<W.SdtRun>()));
-        var result = document.ToPdfDocumentResult(RunningDiagnosticScopeOptions());
+        var result = document.ConvertToPdfWithEvidence(RunningDiagnosticScopeOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var page = Assert.Single(pdf.GetPages());
         Assert.Contains("ACTIVE", page.Text);
@@ -27,7 +27,7 @@ public partial class Word {
         Assert.DoesNotContain("PREFIX", page.Text);
         Assert.Empty(page.GetImages());
         Assert.DoesNotContain(result.Warnings,
-            warning => warning.Code == "NativeHeaderFooterContentControlUnsupported");
+            warning => warning.Code == "native-header-footer-content-control-unsupported");
     }
 
     [Fact]
@@ -35,13 +35,13 @@ public partial class Word {
         using WordDocument source = CreateRunningDiagnosticScopeDocument(evenHeader: false, active: true);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         Assert.Empty(document.ValidateDocument());
-        var result = document.ToPdfDocumentResult(RunningDiagnosticScopeOptions());
+        var result = document.ConvertToPdfWithEvidence(RunningDiagnosticScopeOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var page = Assert.Single(pdf.GetPages());
         Assert.Contains("PREFIX", page.Text);
         Assert.Contains("BODY", page.Text);
         var warning = Assert.Single(result.Warnings,
-            item => item.Code == "NativeHeaderFooterContentControlUnsupported");
+            item => item.Code == "native-header-footer-content-control-unsupported");
         Assert.Equal("first header", warning.Source);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
@@ -88,7 +88,7 @@ public partial class Word {
         return document;
     }
 
-    private static WordToPdfOptions RunningDiagnosticScopeOptions() => new() {
+    private static WordPdfExportOptions RunningDiagnosticScopeOptions() => new() {
         IncludePageNumbers = false,
         ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
     };

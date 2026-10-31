@@ -33,7 +33,7 @@ public sealed class HtmlAllSeverityBatch16SecurityTests {
         equationAdjacent.FontFamily = hostileFont;
         equationAdjacent.AddEquation("<m:oMath xmlns:m='http://schemas.openxmlformats.org/officeDocument/2006/math'><m:r><m:t>x</m:t></m:r></m:oMath>");
 
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeFontStyles = true });
 
         Assert.DoesNotContain(";background-image:url", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("font-family:", html, StringComparison.OrdinalIgnoreCase);
@@ -50,7 +50,7 @@ public sealed class HtmlAllSeverityBatch16SecurityTests {
         document.AddParagraph("styled").SetStyleId("Collision");
 
         Exception? exception = Record.Exception(() =>
-            document.ToHtml(new WordToHtmlOptions { IncludeParagraphClasses = true }));
+            document.ToHtml(new WordHtmlExportOptions { IncludeParagraphClasses = true }));
 
         Assert.Null(exception);
     }
@@ -80,7 +80,7 @@ public sealed class HtmlAllSeverityBatch16SecurityTests {
         }
         cell._tableCell.Append(nested);
 
-        string html = document.ToHtml(new WordToHtmlOptions {
+        string html = document.ToHtml(new WordHtmlExportOptions {
             MaxDocumentElements = 100_000
         });
 
@@ -106,12 +106,12 @@ public sealed class HtmlAllSeverityBatch16SecurityTests {
         document.AddParagraph()._paragraph.Append(equation);
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
-            document.ToHtmlResult(new WordToHtmlOptions {
+            document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 MaxDocumentElements = 100_000,
                 MaxEquationNestingDepth = 64
             }));
 
-        Assert.Equal("WordEquationDepthLimitExceeded", exception.Code);
+        Assert.Equal("word-equation-depth-limit-exceeded", exception.Code);
         Assert.Equal("EquationOmml", exception.LimitSource);
     }
 }

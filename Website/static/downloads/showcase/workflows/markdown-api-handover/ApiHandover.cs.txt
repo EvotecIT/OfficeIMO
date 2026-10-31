@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Generates an API handover guide with request examples and a field contract table.</summary>
 internal static class ApiHandover {
     internal static void Create(string folder) {
-        MarkdownDoc document = MarkdownDoc.Create()
+        MarkdownDocument document = MarkdownDocument.Create()
             .H1("Request API handover")
             .P("A sample integration guide for the fictional Northwind request service.")
             .H2("Create a request")

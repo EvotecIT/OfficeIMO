@@ -8,14 +8,36 @@ namespace OfficeIMO.Core.Internal;
 
 /// <summary>Preserves PROJECT declarations and reads the standard obfuscated protection fields.</summary>
 internal static class OfficeVbaProjectText {
-    internal static OfficeVbaModuleKind GetModuleKind(string text, string name, ushort type) {
-        foreach (string line in Lines(text)) {
-            if (line.Equals("BaseClass=" + name, StringComparison.OrdinalIgnoreCase)) return OfficeVbaModuleKind.Designer;
-            if (line.StartsWith("Document=" + name + "/", StringComparison.OrdinalIgnoreCase)
-                || line.StartsWith("DocClass=" + name + "/", StringComparison.OrdinalIgnoreCase)
-                || line.Equals("DocModule=" + name, StringComparison.OrdinalIgnoreCase)) return OfficeVbaModuleKind.Document;
+    internal sealed class ModuleKindLookup {
+        private readonly Dictionary<string, OfficeVbaModuleKind> _kinds =
+            new Dictionary<string, OfficeVbaModuleKind>(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _knownNames;
+
+        internal ModuleKindLookup(string projectText, IEnumerable<string> moduleNames) {
+            _knownNames = new HashSet<string>(moduleNames, StringComparer.OrdinalIgnoreCase);
+            // The first matching declaration determines the kind, just as a line-by-line
+            // lookup did. Index once instead of splitting and scanning PROJECT per module.
+            foreach (string line in Lines(projectText)) {
+                if (line.StartsWith("BaseClass=", StringComparison.OrdinalIgnoreCase)) {
+                    Add(line.Substring("BaseClass=".Length), OfficeVbaModuleKind.Designer);
+                } else if (line.StartsWith("DocModule=", StringComparison.OrdinalIgnoreCase)) {
+                    Add(line.Substring("DocModule=".Length), OfficeVbaModuleKind.Document);
+                } else if (line.StartsWith("Document=", StringComparison.OrdinalIgnoreCase)
+                           || line.StartsWith("DocClass=", StringComparison.OrdinalIgnoreCase)) {
+                    int nameStart = line.IndexOf('=') + 1;
+                    int nameEnd = line.IndexOf('/', nameStart);
+                    if (nameEnd >= 0) Add(line.Substring(nameStart, nameEnd - nameStart), OfficeVbaModuleKind.Document);
+                }
+            }
         }
-        return type == 0x0021 ? OfficeVbaModuleKind.Standard : OfficeVbaModuleKind.Class;
+
+        internal OfficeVbaModuleKind Get(string name, ushort type) =>
+            _kinds.TryGetValue(name, out OfficeVbaModuleKind kind)
+                ? kind : type == 0x0021 ? OfficeVbaModuleKind.Standard : OfficeVbaModuleKind.Class;
+
+        private void Add(string name, OfficeVbaModuleKind kind) {
+            if (_knownNames.Contains(name) && !_kinds.ContainsKey(name)) _kinds.Add(name, kind);
+        }
     }
 
     internal static string Update(string original, IReadOnlyList<OfficeVbaModule> modules, IReadOnlyList<string> deletedNames) {
@@ -133,5 +155,14 @@ internal static class OfficeVbaProjectText {
         return line.Substring(start + 1, end - start - 1);
     }
 
-    private static IEnumerable<string> Lines(string text) => text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+    private static IEnumerable<string> Lines(string text) {
+        int start = 0;
+        for (int index = 0; index < text.Length; index++) {
+            if (text[index] != '\r' && text[index] != '\n') continue;
+            yield return text.Substring(start, index - start);
+            if (text[index] == '\r' && index + 1 < text.Length && text[index + 1] == '\n') index++;
+            start = index + 1;
+        }
+        yield return text.Substring(start);
+    }
 }

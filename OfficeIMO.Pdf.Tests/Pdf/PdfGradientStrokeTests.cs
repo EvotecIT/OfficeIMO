@@ -40,14 +40,14 @@ public sealed class PdfGradientStrokeTests {
     public void HeaderAndFooterUseTheSameNativeGradientStrokeProjection(bool footer) {
         OfficeShape shape = VerticalPath();
         shape.StrokeGradient = OfficeLinearGradient.Vertical(OfficeColor.Red, OfficeColor.Blue);
-        var document = PdfDocument.Create(new PdfOptions {
-            PageWidth = 200, PageHeight = 400, MarginTop = 140, MarginBottom = 140,
-            MarginLeft = 20, MarginRight = 20
+        var document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginTop = global::OfficeIMO.OfficeLength.Points(140), MarginBottom = global::OfficeIMO.OfficeLength.Points(140),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20)
         });
         byte[] bytes = document.Compose(compose => compose.Page(page => {
             if (footer) page.Footer(content => content.Shape(shape));
             else page.Header(content => content.Shape(shape));
-            page.Content(content => content.Spacer(20));
+            page.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(20)));
         })).ToBytes();
         string syntax = Encoding.ASCII.GetString(bytes);
         Assert.Contains("/ShadingType 2", syntax);
@@ -99,8 +99,8 @@ public sealed class PdfGradientStrokeTests {
         return shape;
     }
 
-    private static byte[] Export(OfficeShape shape) => PdfDocument.Create(new PdfOptions {
-        PageWidth = 120, PageHeight = 160, MarginTop = 0, MarginBottom = 0, MarginLeft = 0, MarginRight = 0
+    private static byte[] Export(OfficeShape shape) => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+        PageWidth = global::OfficeIMO.OfficeLength.Points(120), PageHeight = global::OfficeIMO.OfficeLength.Points(160), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0)
     }).Compose(c => c.Page(p => p.Content(content => content.Shape(shape)))).ToBytes();
 
     [Theory]
@@ -119,7 +119,7 @@ public sealed class PdfGradientStrokeTests {
         shape.StrokeOpacity=.5; shape.StrokeLineCap=OfficeStrokeLineCap.Round;
         shape.SetStrokeDashArray(new[]{6D,3D},2D);
         if(transformed)shape.Transform=OfficeTransform.Scale(1.2,.8);
-        byte[] bytes=PdfDocument.Create(new PdfOptions{PageWidth=120,PageHeight=80,MarginTop=0,MarginLeft=0,MarginRight=0,MarginBottom=0})
+        byte[] bytes=PdfDocument.Create(new PdfCreateOptions{ BackgroundColor = null,PageWidth=global::OfficeIMO.OfficeLength.Points(120),PageHeight=global::OfficeIMO.OfficeLength.Points(80),MarginTop=global::OfficeIMO.OfficeLength.Points(0),MarginLeft=global::OfficeIMO.OfficeLength.Points(0),MarginRight=global::OfficeIMO.OfficeLength.Points(0),MarginBottom=global::OfficeIMO.OfficeLength.Points(0)})
             .Compose(c=>c.Page(p=>p.Content(content=>content.Shape(shape)))).ToBytes();
         string syntax=Encoding.ASCII.GetString(bytes);
         Assert.Contains(radial ? "/ShadingType 3" : "/ShadingType 2",syntax);

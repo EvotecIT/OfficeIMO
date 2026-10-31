@@ -18,19 +18,19 @@ public partial class PdfPageFootnoteTests {
         var note = document.Content.DefineFootnote(body => {
             for (int index = 0; index < 9; index++) body.Text("OwnerNote" + index, style: Style());
         });
-        document.Content.Text("Host", style: Style()).Spacer(75D);
-        var reference = PdfTextRun.Normal("BodyReference", fontSize: 8, font: PdfStandardFont.Helvetica).WithFootnoteReference(note);
+        document.Content.Text("Host", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(75D));
+        var reference = PdfTextRun.Normal("BodyReference", fontSize: global::OfficeIMO.OfficeLength.Points(8), font: PdfStandardFont.Helvetica).WithFootnoteReference(note);
         if (owner == "heading") {
             // This is the existing converter-facing rich heading entry used by Word.
             document.Content.Heading(2, "BodyReference", paragraph => paragraph.Runs(new[] { reference }),
                 PdfAlign.Left, null, new PdfHeadingStyle {
-                    FontSize = 8, Font = PdfStandardFont.Helvetica, Bold = false,
-                    LineSpacing = PdfLineSpacing.Exactly(10), SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = false
+                    FontSize = global::OfficeIMO.OfficeLength.Points(8), Font = PdfStandardFont.Helvetica, Bold = false,
+                    LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = false
                 });
         } else if (owner == "list") {
             document.Content.RichNumbered(new[] { PdfListItem.Rich(new[] { reference }) }, style: new PdfListStyle {
-                FontSize = 8, MarkerFontSize = 8, MarkerFont = PdfStandardFont.Helvetica,
-                LineSpacing = PdfLineSpacing.Exactly(10), SpacingBefore = 0, SpacingAfter = 0, ItemSpacing = 0,
+                FontSize = global::OfficeIMO.OfficeLength.Points(8), MarkerFontSize = global::OfficeIMO.OfficeLength.Points(8), MarkerFont = PdfStandardFont.Helvetica,
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0),
                 KeepTogether = false, KeepWithNext = false
             });
         } else {

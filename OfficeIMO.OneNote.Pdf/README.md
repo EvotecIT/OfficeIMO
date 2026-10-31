@@ -27,7 +27,7 @@ using OfficeIMO.OneNote.Markdown;
 using OfficeIMO.Pdf;
 
 var options = new OneNoteToPdfOptions {
-    MarkdownOptions = new MarkdownToPdfOptions {
+    MarkdownOptions = new MarkdownPdfExportOptions {
         ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
     }
 };

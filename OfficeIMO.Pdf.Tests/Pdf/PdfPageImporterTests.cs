@@ -40,7 +40,7 @@ public class PdfPageImporterTests {
 
     [Fact]
     public void AppendPages_WithFlattenVisualAnnotationsOption_FlattensImportedSourceMarkupOnly() {
-        byte[] target = PdfDocument.Create(new PdfOptions {
+        byte[] target = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Meta(title: "Target", author: "OfficeIMO")
@@ -537,7 +537,7 @@ public class PdfPageImporterTests {
     }
 
     private static byte[] BuildAnnotatedPdf(string title, string pageText) {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Meta(title: title, author: "OfficeIMO")
@@ -546,9 +546,9 @@ public class PdfPageImporterTests {
                 "Import review note",
                 width: 150,
                 height: 44,
-                borderColor: new PdfColor(0.2D, 0.4D, 0.8D),
-                fillColor: new PdfColor(0.95D, 0.98D, 1D))
-            .HighlightAnnotation("Import highlight", width: 120, height: 14, color: new PdfColor(1D, 0.9D, 0.1D))
+                borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.4D, 0.8D),
+                fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95D, 0.98D, 1D))
+            .HighlightAnnotation("Import highlight", width: 120, height: 14, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D))
             .ToBytes();
     }
 

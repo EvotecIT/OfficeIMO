@@ -142,8 +142,8 @@ namespace OfficeIMO.Excel {
             string family = string.IsNullOrWhiteSpace(drawingObject.TextFontFamily)
                 ? "Calibri"
                 : drawingObject.TextFontFamily!;
-            double fontSize = drawingObject.TextFontSize.HasValue && drawingObject.TextFontSize.Value > 0D
-                ? Math.Max(1D, drawingObject.TextFontSize.Value * (96D / 72D) * scale)
+            double fontSize = drawingObject.TextFontSize.HasValue && drawingObject.TextFontSize.Value > OfficeLength.Zero
+                ? Math.Max(1D, drawingObject.TextFontSize.Value.ToPoints() * (96D / 72D) * scale)
                 : Math.Max(7D, Math.Min(11D * scale, textHeight * 0.55D));
             return new OfficeFontInfo(family, fontSize, drawingObject.TextFontStyle);
         }

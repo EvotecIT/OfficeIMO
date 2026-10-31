@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -17,15 +18,15 @@ public partial class Word {
     public void PdfSemanticImport_PreservesLogicalRunColorSizeAndFontStyle() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph
-                .Color(PdfCore.PdfColor.FromRgb(255, 0, 0))
-                .FontSize(14)
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
+                .FontSize(global::OfficeIMO.OfficeLength.Points(14))
                 .Bold("Bold red")
-                .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
-                .FontSize(9)
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
+                .FontSize(global::OfficeIMO.OfficeLength.Points(9))
                 .Italic(" italic blue"))
             .ToBytes();
 
-        using OfficeWordDocument imported = LoadSemanticPdf(pdf).ToWordDocument();
+        using OfficeWordDocument imported = (LoadSemanticPdf(pdf).ConvertToWordWithEvidence()).Value;
         using WordprocessingDocument package = WordprocessingDocument.Open(
             new MemoryStream(imported.ToBytes()),
             false);
@@ -53,9 +54,9 @@ public partial class Word {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph
                 .Text("\u2022 ")
-                .Color(PdfCore.PdfColor.FromRgb(255, 0, 0))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
                 .Bold("Bold red")
-                .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
                 .Italic(" italic blue"))
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
@@ -63,7 +64,7 @@ public partial class Word {
         Assert.Equal("Bold red italic blue", logicalItem.Text);
         Assert.Equal(logicalItem.Text, string.Concat(logicalItem.Runs.Select(run => run.Text)));
 
-        using OfficeWordDocument imported = logical.ToWordDocument();
+        using OfficeWordDocument imported = (logical.ConvertToWordWithEvidence()).Value;
         using WordprocessingDocument package = WordprocessingDocument.Open(
             new MemoryStream(imported.ToBytes()),
             false);
@@ -82,21 +83,21 @@ public partial class Word {
 
     [Fact]
     public void PdfSemanticImport_PreservesClassifiedHeaderFooterCaptionAndBottomText() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 320,
-                PageHeight = 450,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 42,
-                MarginBottom = 42,
-                DefaultFontSize = 11
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(450),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(42),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(42),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11)
             })
             .Header(header => header.AlignLeft().Text("Import header {page}/{pages}"))
             .Footer(footer => footer.AlignCenter().Text("Import footer {page}"))
             .Canvas(canvas => canvas
-                .Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 36D, 120D, 120D, 60D, alternativeText: "Data visualization")
-                .Text("Kort beskrivning", 36D, 184D, 120D, 18D, fontSize: 9D))
-            .Canvas(canvas => canvas.Text("1 Bottom annotation", 36D, 415D, 220D, 18D, fontSize: 7D))
+                .Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(60D), alternativeText: "Data visualization")
+                .Text("Kort beskrivning", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(184D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(9D)))
+            .Canvas(canvas => canvas.Text("1 Bottom annotation", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(415D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(7D)))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Second page body."))
             .PageBreak()
@@ -114,7 +115,7 @@ public partial class Word {
             block => block.Kind == PdfCore.PdfLogicalElementKind.TextBlock &&
                 block.Text.Contains("Bottom annotation", StringComparison.Ordinal));
 
-        using OfficeWordDocument imported = logical.ToWordDocument();
+        using OfficeWordDocument imported = (logical.ConvertToWordWithEvidence()).Value;
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(imported.ToBytes()), false);
         string importedText = string.Join("\n", GetPdfSemanticBody(package)
             .Elements<Paragraph>()
@@ -134,17 +135,17 @@ public partial class Word {
         byte[] textPdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("A clean second conversion."))
             .ToBytes();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult first = LoadSemanticPdf(imagePdf).ToWordDocumentResult(options);
+        PdfWordConversionResult first = LoadSemanticPdf(imagePdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument firstDocument = first.RequireValue();
-        Assert.Contains(first.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.Contains(first.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
 
-        PdfWordConversionResult second = LoadSemanticPdf(textPdf).ToWordDocumentResult(options);
+        PdfWordConversionResult second = LoadSemanticPdf(textPdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument secondDocument = second.RequireValue();
 
-        Assert.DoesNotContain(second.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.Contains(first.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(second.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.Contains(first.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
     }
 
     private static string ReadRunText(Run run) =>
@@ -152,15 +153,15 @@ public partial class Word {
 
     [Fact]
     public void PdfSemanticImport_SaveAsWord_ImportsEditableDocumentStructure() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "PDF semantic Word import", author: "OfficeIMO", subject: "Editable import", keywords: "pdf,word,semantic")
             .H1("PDF Semantic Import", linkUri: "https://example.com/pdf-semantic-import", linkContents: "PDF Semantic Import")
@@ -171,34 +172,34 @@ public partial class Word {
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Semantic import pixel")
             .PageBreak()
             .H1("Second Page")
-            .TextField("Approval", width: 120, value: "Ready")
+            .TextField("Approval", width: global::OfficeIMO.OfficeLength.Points(120), value: "Ready")
             .ToBytes();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         using var document = new MemoryStream();
         importedDocument.Save(document);
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfFormWidgetPlaceholder");
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfOutlineHierarchyNotReconstructed");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-form-widget-placeholder");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-uri-link-reconstructed");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-outline-hierarchy-not-reconstructed");
         Assert.Contains(conversion.Report.Warnings, warning =>
-            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Code == "pdf-vector-graphics-reconstructed-semantically" &&
             warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
             warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
             int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-link-annotation-not-reconstructed");
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
@@ -218,7 +219,10 @@ public partial class Word {
         Assert.Contains(body.Descendants<Text>(), text => text.Text == "Editable bullet item");
         Assert.Contains(body.Descendants<Text>(), text => text.Text == "Second Page");
         Assert.DoesNotContain(body.Descendants<Text>(), text => text.Text.Contains("[PDF image: page 1", StringComparison.Ordinal));
-        Assert.Contains(body.Descendants<Text>(), text => text.Text.Contains("[PDF form Tx: Approval = Ready]", StringComparison.Ordinal));
+        SdtRun approval = Assert.Single(body.Descendants<SdtRun>(), control =>
+            control.SdtProperties?.GetFirstChild<Tag>()?.Val?.Value == "Approval");
+        Assert.Equal("Approval", approval.SdtProperties?.GetFirstChild<SdtAlias>()?.Val?.Value);
+        Assert.Equal("Ready", string.Concat(approval.Descendants<Text>().Select(text => text.Text)));
         Assert.Equal(2, body.Descendants<SectionProperties>().Count());
 
         Paragraph heading = Assert.Single(body.Elements<Paragraph>(), paragraph => ReadParagraphText(paragraph) == "PDF Semantic Import");
@@ -241,29 +245,29 @@ public partial class Word {
     public void PdfSemanticImport_OmittedVectorArtworkIsReportedAsLoss() {
         var shape = OfficeShape.Rectangle(60D, 20D);
         shape.FillColor = OfficeColor.Blue;
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 240,
-                PageHeight = 160,
-                MarginTop = 20,
-                MarginBottom = 20,
-                MarginLeft = 20,
-                MarginRight = 20
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20)
             })
             .Table(new[] {
                 new[] { "Code", "Value" },
                 new[] { "A", "1" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 60D, 60D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
-            .Canvas(canvas => canvas.Shape(shape, 165D, 140D))
+            .Canvas(canvas => canvas.Shape(shape, global::OfficeIMO.OfficeLength.Points(165D), global::OfficeIMO.OfficeLength.Points(140D)))
             .ToBytes();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(new PdfToWordOptions());
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(new WordPdfImportOptions());
         using OfficeWordDocument importedDocument = conversion.Value;
 
         Assert.Contains(conversion.Report.Warnings, warning =>
-            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Code == "pdf-vector-graphics-reconstructed-semantically" &&
             warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
             warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
             int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
@@ -273,7 +277,7 @@ public partial class Word {
 
     [Fact]
     public void PdfSemanticImport_PureDetectedTableBordersAreRepresentedSemantics() {
-        byte[] pdf = PdfCore.PdfDocument.Create()
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions { BackgroundColor = null })
             .Table(new[] {
                 new[] { "Code", "Value" },
                 new[] { "A", "1" },
@@ -283,15 +287,15 @@ public partial class Word {
                 HeaderFill = null,
                 RowStripeFill = null,
                 FooterFill = null,
-                ColumnWidthPoints = new List<double?> { 60D, 60D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
             .ToBytes();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(new PdfToWordOptions());
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(new WordPdfImportOptions());
         using OfficeWordDocument importedDocument = conversion.Value;
 
         Assert.Contains(conversion.Report.Warnings, warning =>
-            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Code == "pdf-vector-graphics-reconstructed-semantically" &&
             warning.Severity == PdfCore.PdfConversionWarningSeverity.Information &&
             warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
             count == "0");
@@ -299,7 +303,7 @@ public partial class Word {
 
     [Fact]
     public void PdfSemanticImport_RotatedPureTableBordersAreRepresentedSemantics() {
-        byte[] source = PdfCore.PdfDocument.Create()
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions { BackgroundColor = null })
             .Table(new[] {
                 new[] { "Code", "Value" },
                 new[] { "A", "1" },
@@ -309,18 +313,18 @@ public partial class Word {
                 HeaderFill = null,
                 RowStripeFill = null,
                 FooterFill = null,
-                ColumnWidthPoints = new List<double?> { 60D, 60D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
             .ToBytes();
         byte[] rotated = PdfCore.PdfPageEditor.RotatePages(source, 90, 1);
 
         PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(rotated);
         Assert.Single(logical.Pages[0].Tables);
-        PdfWordConversionResult conversion = logical.ToWordDocumentResult(new PdfToWordOptions());
+        PdfWordConversionResult conversion = logical.ConvertToWordWithEvidence(new WordPdfImportOptions());
         using OfficeWordDocument importedDocument = conversion.Value;
 
         PdfCore.PdfConversionWarning warning = Assert.Single(conversion.Report.Warnings, warning =>
-            warning.Code == "PdfVectorGraphicsReconstructedSemantically");
+            warning.Code == "pdf-vector-graphics-reconstructed-semantically");
         Assert.Equal("0", warning.Details["UnrepresentedVectorPrimitiveCount"]);
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Information, warning.Severity);
     }
@@ -329,9 +333,9 @@ public partial class Word {
     public void PdfSemanticImport_VectorArtworkInsideDetectedTableIsReportedAsLoss() {
         var shape = OfficeShape.Rectangle(18D, 10D);
         shape.FillColor = OfficeColor.Blue;
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
             })
             .Table(new[] {
                 new[] { "Code", "Value" },
@@ -342,16 +346,16 @@ public partial class Word {
                 HeaderFill = null,
                 RowStripeFill = null,
                 FooterFill = null,
-                ColumnWidthPoints = new List<double?> { 60D, 60D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
-            .Canvas(canvas => canvas.Shape(shape, 80D, 115D))
+            .Canvas(canvas => canvas.Shape(shape, global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(115D)))
             .ToBytes();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(new PdfToWordOptions());
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(new WordPdfImportOptions());
         using OfficeWordDocument importedDocument = conversion.Value;
 
         Assert.Contains(conversion.Report.Warnings, warning =>
-            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Code == "pdf-vector-graphics-reconstructed-semantically" &&
             warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
             warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
             int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
@@ -363,9 +367,9 @@ public partial class Word {
         OfficeShape line = OfficeShape.Line(0D, 0D, 55D, 0D);
         line.StrokeColor = OfficeColor.Blue;
         line.StrokeWidth = 1D;
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
             })
             .Table(new[] {
                 new[] { "Code", "Value" },
@@ -376,16 +380,16 @@ public partial class Word {
                 HeaderFill = null,
                 RowStripeFill = null,
                 FooterFill = null,
-                ColumnWidthPoints = new List<double?> { 60D, 60D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
-            .Canvas(canvas => canvas.Shape(line, 50D, 115D))
+            .Canvas(canvas => canvas.Shape(line, global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(115D)))
             .ToBytes();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(new PdfToWordOptions());
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(new WordPdfImportOptions());
         using OfficeWordDocument importedDocument = conversion.Value;
 
         Assert.Contains(conversion.Report.Warnings, warning =>
-            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
+            warning.Code == "pdf-vector-graphics-reconstructed-semantically" &&
             warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning &&
             warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
             int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
@@ -395,26 +399,26 @@ public partial class Word {
 
     [Fact]
     public void PdfSemanticImport_PageRanges_ImportsOnlySelectedPages() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .H1("First Page Marker")
             .PageBreak()
             .H1("Second Page Marker")
             .Paragraph(paragraph => paragraph.Text("Only selected page body."))
             .ToBytes();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.LoadPageRanges(
             pdf,
             CreateSemanticLayoutOptions(),
             new[] { PdfCore.PdfPageRange.From(2, 2) });
 
-        PdfWordConversionResult conversion = logical.ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = logical.ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
@@ -428,13 +432,13 @@ public partial class Word {
 
     [Fact]
     public void PdfSemanticImport_LoadedDocumentPageRanges_ImportsOnlySelectedPages() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .H1("Loaded First Page Marker")
             .PageBreak()
@@ -446,7 +450,7 @@ public partial class Word {
             readDocument,
             CreateSemanticLayoutOptions(),
             new[] { PdfCore.PdfPageRange.From(2, 2) });
-        using OfficeWordDocument document = logical.ToWordDocument();
+        using OfficeWordDocument document = (logical.ConvertToWordWithEvidence()).Value;
 
         Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
         string text = string.Concat(body.Descendants<Text>().Select(item => item.Text));
@@ -457,25 +461,25 @@ public partial class Word {
 
     [Fact]
     public void PdfSemanticImport_UnsafeUriLinks_AreDiagnosticsNotActiveRelationships() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .H1("Unsafe Link", linkUri: "javascript:alert(1)", linkContents: "Unsafe Link")
             .Paragraph(paragraph => paragraph.Text("The unsafe PDF action remains inert in Word."))
             .ToBytes();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfUriLinkSkippedUnsafe");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-uri-link-skipped-unsafe");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-uri-link-reconstructed");
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
@@ -485,27 +489,27 @@ public partial class Word {
 
     [Fact]
     public void PdfSemanticImport_DisabledUriLinks_DoNotCreateActiveWordHyperlinks() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .H1("Disabled URI Link", linkUri: "https://example.com/disabled", linkContents: "Disabled URI Link")
             .ToBytes();
-        var options = new PdfToWordOptions {
+        var options = new WordPdfImportOptions {
             ImportUriLinks = false,
             ImportInternalLinks = true,
 
         };
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-uri-link-reconstructed");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Empty(package.MainDocumentPart!.HyperlinkRelationships);
@@ -515,13 +519,13 @@ public partial class Word {
 
     [Fact]
     public void PdfSemanticImport_InternalLinks_BecomeWordBookmarkHyperlinks() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 360,
-                PageHeight = 240,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 CreateOutlineFromHeadings = true
             })
             .H1("Jump to details", linkDestinationName: "Details", linkContents: "Heading jump metadata")
@@ -530,14 +534,14 @@ public partial class Word {
             .H2("Details")
             .Paragraph(paragraph => paragraph.Text("Destination content survives as editable Word text."))
             .ToBytes();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfInternalLinkReconstructed");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-internal-link-reconstructed");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-link-annotation-not-reconstructed");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Empty(package.MainDocumentPart!.HyperlinkRelationships);
@@ -559,13 +563,13 @@ public partial class Word {
         int expectedActionCount = annotation.AdditionalActions.Count + annotation.ChainedActions.Count;
         Assert.Equal(2, expectedActionCount);
 
-        PdfWordConversionResult conversion = logical.ToWordDocumentResult(new PdfToWordOptions());
+        PdfWordConversionResult conversion = logical.ConvertToWordWithEvidence(new WordPdfImportOptions());
         using OfficeWordDocument importedDocument = conversion.Value;
 
-        Assert.Contains(conversion.Report.Warnings, static warning => warning.Code == "PdfUriLinkReconstructed");
+        Assert.Contains(conversion.Report.Warnings, static warning => warning.Code == "pdf-uri-link-reconstructed");
         PdfCore.PdfConversionWarning warning = Assert.Single(
             conversion.Report.Warnings,
-            static item => item.Code == "PdfLinkActionsNotReconstructed");
+            static item => item.Code == "pdf-link-actions-not-reconstructed");
         Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.Equal(expectedActionCount.ToString(System.Globalization.CultureInfo.InvariantCulture), warning.Details["ActionCount"]);
         Assert.True(conversion.HasLoss);
@@ -574,30 +578,30 @@ public partial class Word {
 
     [Fact]
     public void PdfSemanticImport_DisabledImageImport_UsesEditablePlaceholder() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .H1("Image Placeholder Policy")
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Placeholder policy pixel")
             .ToBytes();
-        var options = new PdfToWordOptions {
+        var options = new WordPdfImportOptions {
             ImportImages = false,
             IncludeImagePlaceholders = true,
 
         };
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
         Assert.Contains(conversion.Report.Warnings, warning =>
-            warning.Code == "PdfImagePlaceholder" &&
+            warning.Code == "pdf-image-placeholder" &&
             warning.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(conversion.Report.HasLoss);
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
@@ -610,15 +614,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_RawDeviceRgbImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildRawDeviceRgbImagePdf();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -629,15 +633,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_FilterChainDeviceRgbImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildAsciiHexFlateDeviceRgbImagePdf();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -648,21 +652,21 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_DctImageStreamsWithUnresolvedSoftMask_AreNotEmbedded() {
         byte[] pdf = BuildDeviceRgbJpegSoftMaskImagePdf();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
         Assert.Contains(conversion.Report.Warnings, warning =>
-            warning.Code == "PdfImageTransparencyMaskNotResolved" &&
+            warning.Code == "pdf-image-transparency-mask-not-resolved" &&
             warning.LossKind == OfficeConversionLossKind.Omission &&
             warning.Details.TryGetValue("MaskKind", out string? maskKind) &&
             maskKind == "soft-mask");
         Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Empty(package.MainDocumentPart!.ImageParts);
@@ -673,15 +677,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_ColorKeyMaskedImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildDeviceRgbColorKeyMaskImagePdf();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -692,15 +696,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_DeviceCmykImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildRawDeviceCmykImagePdf();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -711,15 +715,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_DeviceCmykSoftMaskImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildDeviceCmykSoftMaskImagePdf();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -730,15 +734,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_IndexedImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildRawIndexedRgbImagePdf();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -749,15 +753,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_IndexedSoftMaskImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildIndexedSoftMaskImagePdf();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -768,15 +772,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_IndexedColorKeyMaskedImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildIndexedColorKeyMaskImagePdf();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -787,15 +791,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_ImageMaskStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildImageMaskPdf();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -806,15 +810,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_DecodeRemappedImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildRawDeviceGrayInvertedDecodeImagePdf();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -825,15 +829,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_IccBasedImageStreams_AreEmbeddedAsNativeWordImages() {
         byte[] pdf = BuildRawIccBasedRgbImagePdf();
-        var options = new PdfToWordOptions();
+        var options = new WordPdfImportOptions();
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ToWordDocumentResult(options);
+        PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options);
         using OfficeWordDocument importedDocument = conversion.Value;
         byte[] documentBytes = importedDocument.ToBytes();
 
-        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "PdfImageEmbeddingSkipped");
+        Assert.Contains(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
+        Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
         Assert.Single(package.MainDocumentPart!.ImageParts);
@@ -885,9 +889,9 @@ public partial class Word {
             .Paragraph(paragraph => paragraph.Text("Second visible line"))
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24)
             .ToBytes();
-        var options = new PdfToWordOptions { MaxImageTextOverlapComparisons = 1 };
+        var options = new WordPdfImportOptions { MaxImageTextOverlapComparisons = 1 };
 
-        Assert.Throws<IOException>(() => LoadSemanticPdf(pdf).ToWordDocumentResult(options));
+        Assert.Throws<IOException>(() => LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options));
     }
 
     [Fact]
@@ -900,9 +904,9 @@ public partial class Word {
             .Paragraph(paragraph => paragraph.Text("Second page text"))
             .Image(image, 24, 24)
             .ToBytes();
-        var options = new PdfToWordOptions { MaxImageTextOverlapComparisons = 1 };
+        var options = new WordPdfImportOptions { MaxImageTextOverlapComparisons = 1 };
 
-        Assert.Throws<IOException>(() => LoadSemanticPdf(pdf).ToWordDocumentResult(options));
+        Assert.Throws<IOException>(() => LoadSemanticPdf(pdf).ConvertToWordWithEvidence(options));
     }
 
     private static byte[] BuildRawDeviceRgbImagePdf() {

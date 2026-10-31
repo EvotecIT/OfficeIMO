@@ -25,16 +25,16 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(path)) {
                 WordShapeGroup group = document.AddParagraph().AddShapeGroup(new[] {
-                    new WordShapeGroupItem(WordShapeType.Chevron, 0, 0, 80, 40),
-                    new WordShapeGroupItem(WordShapeType.Chevron, 72, 0, 80, 40),
-                    new WordShapeGroupItem(WordShapeType.Chevron, 144, 0, 80, 40)
-                }, 24, 48);
-                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? packageLayout));
+                    new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(80), OfficeLength.Points(40)),
+                    new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(72), OfficeLength.Points(0), OfficeLength.Points(80), OfficeLength.Points(40)),
+                    new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(144), OfficeLength.Points(0), OfficeLength.Points(80), OfficeLength.Points(40))
+                }, OfficeLength.Points(24), OfficeLength.Points(48));
+                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutInfo? packageLayout));
                 Assert.NotNull(packageLayout);
-                Assert.Equal(224D, packageLayout.WidthPoints, 6);
-                Assert.Equal(40D, packageLayout.HeightPoints, 6);
-                Assert.Equal(24D, packageLayout.HorizontalOffsetPoints!.Value, 6);
-                Assert.Equal(48D, packageLayout.VerticalOffsetPoints!.Value, 6);
+                Assert.Equal(224D, packageLayout.Width.ToPoints(), 6);
+                Assert.Equal(40D, packageLayout.Height.ToPoints(), 6);
+                Assert.Equal(24D, packageLayout.HorizontalOffset!.Value.ToPoints(), 6);
+                Assert.Equal(48D, packageLayout.VerticalOffset!.Value.ToPoints(), 6);
                 document.Save();
             }
 

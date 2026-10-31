@@ -39,7 +39,7 @@ public partial class Word {
         document.AddParagraph("TARGET").AddBookmark("equation_target");
         string original = paragraph._paragraph.OuterXml;
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPages().SelectMany(page => page.Letters).ToArray();
         string visible = string.Concat(letters.Select(letter => letter.Value));
         int previous = -1;
@@ -61,12 +61,12 @@ public partial class Word {
         using WordDocument document = CreateJoinedParagraphDocument();
         WordParagraph paragraph;
         if (chart) {
-            WordChart drawing = document.AddChart("MIXEDCHART", false, 240, 150);
+            WordChart drawing = document.AddChart("MIXEDCHART",false,OfficeIMO.OfficeLength.Pixels(240),OfficeIMO.OfficeLength.Pixels(150));
             drawing.AddPie("FIRST", 4D); drawing.AddPie("SECOND", 2D);
             paragraph = document.Paragraphs.Last();
         } else {
             paragraph = document.AddParagraph("PREFIX");
-            paragraph.AddShape(WordShapeType.Rectangle, 36D, 20D, "#CCB399");
+            paragraph.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeLength.Points(20D), OfficeIMO.OfficeColor.Parse("#CCB399"));
             var rectangle = paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Vml.Rectangle>().Single();
             var picture = Assert.IsType<W.Picture>(rectangle.Parent);
             rectangle.Remove();
@@ -79,7 +79,7 @@ public partial class Word {
         paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
         paragraph.AddText("SUFFIX");
         Assert.Empty(document.ValidateDocument());
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
         byte[] bytes = result.Value.ToBytes();
         if (chart) {
             using var pdf = PdfDocument.Open(bytes);
@@ -99,12 +99,12 @@ public partial class Word {
         double Measure(double spacing) {
             using WordDocument document = CreateJoinedParagraphDocument();
             WordParagraph paragraph = document.AddParagraph("PREFIX");
-            paragraph.LineSpacingBeforePoints = before ? spacing : 0D;
-            paragraph.LineSpacingAfterPoints = before ? 0D : spacing;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(before ? spacing : 0D);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(before ? 0D : spacing);
             paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
             paragraph.AddText("SUFFIX");
-            document.AddParagraph("AFTER").LineSpacingBeforePoints = 0D;
-            var pdf = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+            document.AddParagraph("AFTER").LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+            var pdf = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             return Assert.Single(pdf.Pages.SelectMany(page => page.GetTextSpans()),
                 span => span.Text.Contains(before ? "PREFIX" : "AFTER")).Y;
         }
@@ -130,7 +130,7 @@ public partial class Word {
             document.AddParagraph("BODY");
         }
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         foreach (string token in equationOnlyPrefix ? new[] { "MATH", "BOX", "SUFFIX" } : new[] { "PREFIX", "MATH", "BOX", "SUFFIX" })
             Assert.Equal(1, visible.Split(new[] { token }, StringSplitOptions.None).Length - 1);
@@ -169,7 +169,7 @@ public partial class Word {
         }
         string before = paragraph._paragraph.OuterXml;
         Assert.Empty(document.ValidateDocument());
-        using var pdf = PdfDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         Assert.Equal(2, visible.Count(character => character == '1')); // Anchor and note-body label.
         Assert.Contains("NOTEBODY", visible);
@@ -183,12 +183,12 @@ public partial class Word {
         using WordDocument document = CreateJoinedParagraphDocument();
         WordParagraph paragraph = document.AddParagraph("PREFIX");
         paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
-        WordShape shape = drawingMl ? paragraph.AddShapeDrawing(WordShapeType.Rectangle, 36D, 20D)
-            : paragraph.AddShape(WordShapeType.Rectangle, 36D, 20D, "#CCB399");
+        WordShape shape = drawingMl ? paragraph.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeLength.Points(20D))
+            : paragraph.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeLength.Points(20D), OfficeIMO.OfficeColor.Parse("#CCB399"));
         shape.FillColorHex = "#CCB399";
         paragraph.AddText("SUFFIX");
         Assert.Empty(document.ValidateDocument());
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Contains("0.8 0.702 0.6 rg", PdfOperatorSearchText.From(bytes));
     }
 
@@ -201,10 +201,10 @@ public partial class Word {
         paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
         for (int index = 0; index < 2; index++) {
             using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-            paragraph.AddImage(image, "picture" + index + ".png", 16D, 32D);
+            paragraph.AddImage(image, "picture" + index + ".png", OfficeIMO.OfficeLength.Pixels(16D), OfficeIMO.OfficeLength.Pixels(32D));
         }
-        var options = new WordToPdfOptions { IncludePageNumbers = false, MaxImagesPerParagraph = limit };
-        if (limit <= 0) Assert.Throws<ArgumentOutOfRangeException>(() => document.ToPdfBytes(options));
-        else Assert.Throws<InvalidDataException>(() => document.ToPdfBytes(options));
+        var options = new WordPdfExportOptions { IncludePageNumbers = false, MaxImagesPerParagraph = limit };
+        if (limit <= 0) Assert.Throws<ArgumentOutOfRangeException>(() => document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        else Assert.Throws<InvalidDataException>(() => document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 }

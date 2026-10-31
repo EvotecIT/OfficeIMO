@@ -266,5 +266,63 @@ namespace OfficeIMO.PowerPoint {
 
             return PowerPointProcessConnectorStyle.ContinuousRail;
         }
+    
+        internal static List<PowerPointLogoItem> NormalizeLogoItems(IEnumerable<PowerPointLogoItem> logos) {
+            if (logos == null) {
+                throw new ArgumentNullException(nameof(logos));
+            }
+
+            List<PowerPointLogoItem> list = logos.Where(logo => logo != null).ToList();
+            if (list.Count == 0) {
+                throw new ArgumentException("At least one logo item is required.", nameof(logos));
+            }
+            if (list.Count > 24) {
+                throw new ArgumentOutOfRangeException(nameof(logos), "This composition supports up to 24 logo items.");
+            }
+
+            return list;
+        }
+
+        internal static List<PowerPointCoverageLocation> NormalizeLocations(IEnumerable<PowerPointCoverageLocation> locations) {
+            if (locations == null) {
+                throw new ArgumentNullException(nameof(locations));
+            }
+
+            List<PowerPointCoverageLocation> list = locations.Where(location => location != null).ToList();
+            if (list.Count == 0) {
+                throw new ArgumentException("At least one location is required.", nameof(locations));
+            }
+            if (list.Count > 24) {
+                throw new ArgumentOutOfRangeException(nameof(locations), "This composition supports up to 24 locations.");
+            }
+
+            foreach (PowerPointCoverageLocation location in list) {
+                if (location.X < 0 || location.X > 1) {
+                    throw new ArgumentOutOfRangeException(nameof(locations), "Location X must be between 0 and 1.");
+                }
+                if (location.Y < 0 || location.Y > 1) {
+                    throw new ArgumentOutOfRangeException(nameof(locations), "Location Y must be between 0 and 1.");
+                }
+            }
+
+            return list;
+        }
+
+        internal static List<PowerPointCapabilitySection> NormalizeCapabilitySections(
+            IEnumerable<PowerPointCapabilitySection> sections) {
+            if (sections == null) {
+                throw new ArgumentNullException(nameof(sections));
+            }
+
+            List<PowerPointCapabilitySection> list = sections.Where(section => section != null).ToList();
+            if (list.Count == 0) {
+                throw new ArgumentException("At least one capability section is required.", nameof(sections));
+            }
+            if (list.Count > 6) {
+                throw new ArgumentOutOfRangeException(nameof(sections), "This composition supports up to 6 sections.");
+            }
+
+            return list;
+        }
     }
 }

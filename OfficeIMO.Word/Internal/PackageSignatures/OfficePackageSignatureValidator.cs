@@ -122,11 +122,11 @@ namespace OfficeIMO.Word {
 
                 if (!options.ValidateCryptographicSignature) {
                     cryptographicStatus = WordSignatureValidationState.NotChecked;
-                    findings.Add(Finding("CryptographicValidationDisabled", cryptographicStatus,
+                    findings.Add(Finding("cryptographic-validation-disabled", cryptographicStatus,
                         "XML DSig signature-value validation was disabled by caller policy.", signaturePartInfo.Uri));
                 } else if (certificates.Count == 0) {
                     cryptographicStatus = WordSignatureValidationState.Unsupported;
-                    findings.Add(Finding("SignerCertificateMissing", cryptographicStatus,
+                    findings.Add(Finding("signer-certificate-missing", cryptographicStatus,
                         "No embedded, related, or caller-supplied X.509 signer certificate was found.", signaturePartInfo.Uri));
                 } else if (!ValidateSignedInfoPolicy(
                                signatureElement,
@@ -197,7 +197,7 @@ namespace OfficeIMO.Word {
                 } catch (InvalidDataException exception) {
                     timestampStatus = WordSignatureValidationState.Failed;
                     findings.Add(Finding(
-                        "TimestampResourceLimitExceeded",
+                        "timestamp-resource-limit-exceeded",
                         timestampStatus,
                         "Timestamp validation exceeds the configured resource limits: " + exception.Message,
                         signaturePartInfo.Uri));
@@ -246,7 +246,7 @@ namespace OfficeIMO.Word {
                     timestampResults.ToArray(),
                     findings.ToArray());
             } catch (InvalidDataException exception) {
-                findings.Add(Finding("SignatureResourceLimitExceeded", WordSignatureValidationState.Failed,
+                findings.Add(Finding("signature-resource-limit-exceeded", WordSignatureValidationState.Failed,
                     "The XML signature exceeds the configured validation resource limits: " + exception.Message, signaturePartInfo.Uri));
                 return new WordSignaturePartValidationResult(
                     signaturePartInfo,
@@ -259,7 +259,7 @@ namespace OfficeIMO.Word {
                     timestampResults.ToArray(),
                     findings.ToArray());
             } catch (Exception exception) when (IsValidationException(exception)) {
-                findings.Add(Finding("SignatureValidationFailed", WordSignatureValidationState.Failed,
+                findings.Add(Finding("signature-validation-failed", WordSignatureValidationState.Failed,
                     "The XML signature could not be validated: " + exception.Message, signaturePartInfo.Uri));
                 return new WordSignaturePartValidationResult(
                     signaturePartInfo,
@@ -338,7 +338,7 @@ namespace OfficeIMO.Word {
                     } catch (InvalidDataException) {
                         throw;
                     } catch (Exception exception) when (exception is IOException or CryptographicException or InvalidOperationException) {
-                        findings.Add(Finding("CertificateMalformed", WordSignatureValidationState.Failed,
+                        findings.Add(Finding("certificate-malformed", WordSignatureValidationState.Failed,
                             "The related signature certificate could not be read: " + exception.Message,
                             signaturePart.Uri.ToString()));
                     }
@@ -413,7 +413,7 @@ namespace OfficeIMO.Word {
                 certificateByteBudget.Reserve(certificateBytes.LongLength);
                 certificates.Add(LoadCertificate(certificateBytes));
             } catch (Exception exception) when (exception is FormatException or CryptographicException) {
-                findings.Add(Finding("CertificateMalformed", WordSignatureValidationState.Failed,
+                findings.Add(Finding("certificate-malformed", WordSignatureValidationState.Failed,
                     "The " + source + " value could not be decoded: " + exception.Message,
                     signaturePartUri));
             }
@@ -427,7 +427,7 @@ namespace OfficeIMO.Word {
                 .OfType<XmlElement>()
                 .FirstOrDefault();
             if (element == null) {
-                findings.Add(Finding("SignatureValueMissing", WordSignatureValidationState.Failed,
+                findings.Add(Finding("signature-value-missing", WordSignatureValidationState.Failed,
                     "The XML signature does not contain SignatureValue.", signaturePartUri));
                 return null;
             }
@@ -435,7 +435,7 @@ namespace OfficeIMO.Word {
                 Convert.FromBase64String(element.InnerText);
                 return element;
             } catch (FormatException exception) {
-                findings.Add(Finding("SignatureValueMalformed", WordSignatureValidationState.Failed,
+                findings.Add(Finding("signature-value-malformed", WordSignatureValidationState.Failed,
                     "SignatureValue is not valid base64: " + exception.Message, signaturePartUri));
                 return null;
             }
@@ -502,7 +502,7 @@ namespace OfficeIMO.Word {
             if (canonicalization != null &&
                 !SupportedSignedInfoCanonicalizationMethods.Contains(canonicalizationAlgorithm)) {
                 findings.Add(Finding(
-                    "UnsupportedSignedInfoCanonicalizationMethod",
+                    "unsupported-signed-info-canonicalization-method",
                     WordSignatureValidationState.Unsupported,
                     "SignedInfo canonicalization method '" + canonicalizationAlgorithm + "' is outside caller policy.",
                     signaturePartUri));
@@ -513,7 +513,7 @@ namespace OfficeIMO.Word {
                 string uri = reference.GetAttribute("URI");
                 if (uri.Length > 0 && uri[0] != '#') {
                     findings.Add(Finding(
-                        "ExternalSignedInfoReference",
+                        "external-signed-info-reference",
                         WordSignatureValidationState.Unsupported,
                         "SignedInfo reference '" + uri + "' is not a local fragment and was not dereferenced.",
                         signaturePartUri));
@@ -531,7 +531,7 @@ namespace OfficeIMO.Word {
                     string algorithm = transform.GetAttribute("Algorithm");
                     if (SupportedSignedInfoReferenceTransforms.Contains(algorithm)) continue;
                     findings.Add(Finding(
-                        "UnsupportedSignedInfoTransform",
+                        "unsupported-signed-info-transform",
                         WordSignatureValidationState.Unsupported,
                         "SignedInfo reference transform '" + algorithm + "' is outside caller policy.",
                         signaturePartUri));
@@ -586,7 +586,7 @@ namespace OfficeIMO.Word {
                 WordSignatureValidationState.NotChecked,
                 null,
                 Array.Empty<Rfc3161TimestampVerificationResult>(),
-                new[] { Finding("SignaturePartMalformed", WordSignatureValidationState.Failed, message, info.Uri) });
+                new[] { Finding("signature-part-malformed", WordSignatureValidationState.Failed, message, info.Uri) });
 
         internal static void ValidateOptions(WordSignatureValidationOptions options) {
             if (options.MaxSignatureParts <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureParts));

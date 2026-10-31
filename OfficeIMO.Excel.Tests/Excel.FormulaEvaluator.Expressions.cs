@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_PreservesBooleanCachesThroughSavedReadback() {
             string path = Path.Combine(_directoryWithFiles, "BooleanFormulaCaches.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Booleans");
+                var sheet = document.AddSheet("Booleans");
                 sheet.CellFormula(1, 1, "1=1");
                 sheet.CellFormula(2, 1, "AND(TRUE,TRUE)");
                 sheet.CellFormula(3, 1, "EXACT(\"a\",\"b\")");
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_ComposableScalarExpressions(string formula, string expected) {
             string path = Path.Combine(_directoryWithFiles, "ScalarExpressions.xlsx");
             using var document = ExcelDocument.Create(path);
-            var sheet = document.AddWorksheet("Expressions");
+            var sheet = document.AddSheet("Expressions");
             sheet.CellFormula(1, 1, formula);
             Assert.Equal(1, document.Calculate());
             Assert.Equal(expected, Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_ComposedReferencesAndBoundedSyntax() {
             using var document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "ScalarReferences.xlsx"));
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 3);
             sheet.CellFormula(1, 2, "(A1+SUM(A1,2))*2");
             sheet.CellFormula(1, 3, new string('(', 140) + "1" + new string(')', 140));

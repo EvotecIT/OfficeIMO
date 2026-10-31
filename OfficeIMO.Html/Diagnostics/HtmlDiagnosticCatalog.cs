@@ -51,20 +51,20 @@ public static class HtmlDiagnosticCatalog {
         [HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported] = RenderDefinition(HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported, "LayoutFidelity", HtmlDiagnosticSeverity.Warning, "An intrinsic box-size value used auto sizing or omitted a minimum or maximum constraint.", "Use the qualified horizontal normal-flow block/inline-block intrinsic width contract, or auto, absolute or percentage dimensions for other boxes. Intrinsic grid tracks have a separate contract."),
         [HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded] = RenderDefinition(HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded, "ResourceLimit", HtmlDiagnosticSeverity.Error, "Repeated CSS background images exceeded the configured operation-wide tile limit.", "Increase MaxBackgroundImageTiles only for trusted documents or use a larger background tile."),
         [HtmlRenderDiagnosticCodes.GradientStopLimitExceeded] = RenderDefinition(HtmlRenderDiagnosticCodes.GradientStopLimitExceeded, "ResourceLimit", HtmlDiagnosticSeverity.Error, "CSS gradients exceeded the configured color-stop limit.", "Increase MaxGradientStops only for trusted documents or reduce the number of gradient color stops."),
-        ["HtmlCommentSkipped"] = new HtmlDiagnosticDefinition(
-            "HtmlCommentSkipped",
+        [global::OfficeIMO.OfficeDiagnosticCodes.HtmlCommentSkipped] = new HtmlDiagnosticDefinition(
+            global::OfficeIMO.OfficeDiagnosticCodes.HtmlCommentSkipped,
             "ContentSimplification",
             HtmlDiagnosticSeverity.Info,
             "An HTML comment was omitted from generated document content.",
             "Enable HTML comment import when comments are part of the expected document contract, or keep comments as source-only metadata."),
-        ["ImageResourceRejectedByPolicy"] = new HtmlDiagnosticDefinition(
-            "ImageResourceRejectedByPolicy",
+        [global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy] = new HtmlDiagnosticDefinition(
+            global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy,
             "ResourcePolicy",
             HtmlDiagnosticSeverity.Warning,
             "An image candidate was rejected before loading because its URI is not allowed by policy.",
             "Allow the URI scheme or host for trusted inputs, embed the image as data URI, or provide a local resource resolver."),
-        ["StylesheetResourceRejectedByPolicy"] = new HtmlDiagnosticDefinition(
-            "StylesheetResourceRejectedByPolicy",
+        [global::OfficeIMO.OfficeDiagnosticCodes.StylesheetResourceRejectedByPolicy] = new HtmlDiagnosticDefinition(
+            global::OfficeIMO.OfficeDiagnosticCodes.StylesheetResourceRejectedByPolicy,
             "ResourcePolicy",
             HtmlDiagnosticSeverity.Warning,
             "A stylesheet was rejected before loading because its URI is not allowed by policy.",
@@ -101,8 +101,8 @@ public static class HtmlDiagnosticCatalog {
             HtmlDiagnosticSeverity.Warning,
             "A font dependency was rejected before loading because its URI is not allowed by policy.",
             "Use packaged fonts from trusted locations or allow approved font hosts in the URL policy."),
-        ["UnsupportedCssDeclaration"] = new HtmlDiagnosticDefinition(
-            "UnsupportedCssDeclaration",
+        [global::OfficeIMO.OfficeDiagnosticCodes.UnsupportedCssDeclaration] = new HtmlDiagnosticDefinition(
+            global::OfficeIMO.OfficeDiagnosticCodes.UnsupportedCssDeclaration,
             "CssFidelity",
             HtmlDiagnosticSeverity.Warning,
             "A CSS declaration could not be mapped to the target document model.",
@@ -207,7 +207,7 @@ public static class HtmlDiagnosticCatalog {
         [HtmlRenderDiagnosticCodes.PageBleedUnsupported] = RenderDefinition(HtmlRenderDiagnosticCodes.PageBleedUnsupported, "PrintProduction", HtmlDiagnosticSeverity.Warning, "An @page bleed declaration could not be mapped.", "Use auto or one non-negative absolute CSS length."),
         [HtmlRenderDiagnosticCodes.PageMarksUnsupported] = RenderDefinition(HtmlRenderDiagnosticCodes.PageMarksUnsupported, "PrintProduction", HtmlDiagnosticSeverity.Warning, "An @page marks declaration could not be mapped.", "Use none, crop, cross, or crop cross."),
         [HtmlRenderDiagnosticCodes.MathMlContentUnsupported] = RenderDefinition(HtmlRenderDiagnosticCodes.MathMlContentUnsupported, "LayoutFidelity", HtmlDiagnosticSeverity.Warning, "MathML content could not be represented by the bounded shared mathematical expression model.", "Use supported Presentation MathML rows, tokens, fractions, roots, scripts, limits, fences, matrices, enclosures, and annotations."),
-        [HtmlRenderDiagnosticCodes.MathMlSourceNormalized] = RenderDefinition(HtmlRenderDiagnosticCodes.MathMlSourceNormalized, "LayoutFidelity", HtmlDiagnosticSeverity.Warning, "The formula source uses current namespace-aware MathML rather than exact original markup.", "Use standalone XML MathML to retain original markup; edited or recovered content is serialized from the current DOM."),
+        [HtmlRenderDiagnosticCodes.MathMlSourceNormalized] = RenderDefinition(HtmlRenderDiagnosticCodes.MathMlSourceNormalized, "LayoutFidelity", HtmlDiagnosticSeverity.Info, "The formula source uses current namespace-aware MathML rather than exact original markup.", "Use standalone XML MathML to retain original markup; edited or recovered content is serialized from the current DOM."),
         [HtmlRenderDiagnosticCodes.MathMlSourceUnavailable] = RenderDefinition(HtmlRenderDiagnosticCodes.MathMlSourceUnavailable, "LayoutFidelity", HtmlDiagnosticSeverity.Warning, "The rendered formula has no recoverable MathML source within the configured limits.", "Use XML-representable MathML within the configured depth and node limits."),
         [HtmlRenderDiagnosticCodes.SvgContentUnsupported] = RenderDefinition(HtmlRenderDiagnosticCodes.SvgContentUnsupported, "ImageFidelity", HtmlDiagnosticSeverity.Warning, "SVG content could not be represented completely by the bounded shared drawing scene.", "Use supported primitives or paths, bounded local shape/group references, local linear/radial paint servers, user-space masks, simple vector filters or bounded routed blur/offset/matrix/over/separable-blend filters on non-text geometry, bounded inline foreign-object XHTML, standard blend modes, positioned tspan text, and affine transforms; dynamic filter graphs and external references require a caller-managed fallback."),
         [HtmlRenderDiagnosticCodes.SvgRasterFallback] = RenderDefinition(HtmlRenderDiagnosticCodes.SvgRasterFallback, "ImageFidelity", HtmlDiagnosticSeverity.Info, "A caller-supplied image codec rasterized SVG features outside the bounded shared vector scene.", "Keep the codec configured when visual fidelity matters more than searchable vector content, or simplify the SVG to the supported vector subset."),

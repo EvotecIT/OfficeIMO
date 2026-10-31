@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Specifies when a linked OLE cache is updated.</summary>
-    public enum LegacyPptOleUpdateMode : uint {
+    internal enum LegacyPptOleUpdateMode : uint {
         /// <summary>Update the linked cache whenever possible.</summary>
         Automatic = 1,
         /// <summary>Update the linked cache only on request.</summary>
@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>
     ///     Represents a linked OLE object and its exact native cache storage.
     /// </summary>
-    public sealed class LegacyPptLinkedOleObject {
+    internal sealed class LegacyPptLinkedOleObject {
         private readonly byte[] _storageBytes;
         private readonly byte[]? _metafileRecordBytes;
 

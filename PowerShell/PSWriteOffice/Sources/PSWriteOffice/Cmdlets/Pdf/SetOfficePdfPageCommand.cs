@@ -122,7 +122,7 @@ public sealed class SetOfficePdfPageCommand : PSWriteOffice.Cmdlets.OfficeMutati
         var readOptions = PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent);
 
         if (resizeOptions != null) {
-            PdfDocument.Load(inputPath, readOptions).Pages.Resize(resizeOptions, pages).Save(outputPath).RequireSuccess();
+            PdfDocument.Load(inputPath, readOptions).Pages.Resize(resizeOptions, pages).Save(outputPath);
             WritePassThru(new FileInfo(outputPath));
             return;
         }
@@ -141,8 +141,7 @@ public sealed class SetOfficePdfPageCommand : PSWriteOffice.Cmdlets.OfficeMutati
                     right,
                     top,
                     pages)
-                .Save(outputPath)
-                .RequireSuccess();
+                .Save(outputPath);
             WritePassThru(new FileInfo(outputPath));
             return;
         }
@@ -151,7 +150,7 @@ public sealed class SetOfficePdfPageCommand : PSWriteOffice.Cmdlets.OfficeMutati
         var result = string.IsNullOrWhiteSpace(PageRange)
             ? document.Pages.Rotate(Rotation)
             : document.Pages.Rotate(Rotation, PageRange!);
-        result.Save(outputPath).RequireSuccess();
+        result.Save(outputPath);
         WritePassThru(new FileInfo(outputPath));
     }
 

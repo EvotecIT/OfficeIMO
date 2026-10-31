@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Maps number format presets to Excel format codes.
     /// </summary>
-    public static class ExcelNumberFormats {
+    internal static class ExcelNumberFormats {
         /// <summary>Maximum decimal places accepted by preset number formats.</summary>
         public const int MaximumDecimalPlaces = 30;
 

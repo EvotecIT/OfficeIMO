@@ -4,11 +4,11 @@ using OfficeIMO.PowerPoint;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class PowerPointPresentationLifecycle {
+    public class PowerPointDocumentLifecycle {
         [Fact]
         public void SaveThrowsAfterDispose() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
-            PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            PowerPointDocument presentation = PowerPointDocument.Create(filePath);
 
             presentation.Dispose();
 

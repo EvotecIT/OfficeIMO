@@ -136,7 +136,7 @@ internal static class PdfPageImposer {
         int sheetCount = checked((int)((pageNumbers.LongLength + cellsPerSheet - 1L) / cellsPerSheet));
         if (sheetCount > options.MaxSheets) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, options.MaxSheets, sheetCount);
 
-        var blank = PdfDocument.Create(new PdfOptions { PageSize = options.SheetSize,
+        var blank = PdfDocument.CreateForImportedLayout(new PdfCreateOptions { PageSize = options.SheetSize,
             FileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(info.EffectiveVersion),
             MaxGeneratedOutputBytes = options.MaxOutputBytes });
         for (int index = 0; index < sheetCount; index++) {
@@ -145,7 +145,7 @@ internal static class PdfPageImposer {
                 OfficeShape marker = OfficeShape.Rectangle(1D, 1D);
                 marker.FillColor = OfficeColor.White;
                 marker.StrokeWidth = 0D;
-                canvas.Shape(marker, 0D, 0D);
+                canvas.Shape(marker, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D));
             });
         }
         byte[] blankSheets = blank.ToBytes();
@@ -157,8 +157,8 @@ internal static class PdfPageImposer {
             int slot = index % cellsPerSheet;
             int row = slot / options.Columns;
             int column = slot % options.Columns;
-            double x = options.Margin + column * (cellWidth + options.HorizontalGutter);
-            double y = options.SheetSize.Height - options.Margin - (row + 1) * cellHeight - row * options.VerticalGutter;
+            double x = options.Margin.ToPoints() + column * (cellWidth + options.HorizontalGutter.ToPoints());
+            double y = options.SheetSize.Height.ToPoints() - options.Margin.ToPoints() - (row + 1) * cellHeight - row * options.VerticalGutter.ToPoints();
             var cell = new PdfPageRectangle(x, y, x + cellWidth, y + cellHeight);
             placements.Add(new PdfImpositionPlacement(sourcePage, sheet, row, column, cell));
             overlays.Add(new PdfPageOverlayOptions {

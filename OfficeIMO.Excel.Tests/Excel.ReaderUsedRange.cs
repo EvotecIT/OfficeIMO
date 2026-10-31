@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorksheet("Data");
+                    var sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(1, 2, "Value");
                     sheet.CellValue(2, 1, "Alpha");
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    document.AddWorksheet("Data").CellValue(3, 2, "Value");
+                    document.AddSheet("Data").CellValue(3, 2, "Value");
                     document.Save();
                 }
 
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorksheet("Data");
+                    var sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(2, 1, "Alpha");
                     sheet.AddTable("A1:A2", hasHeader: true, name: "DataTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);

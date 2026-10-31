@@ -6,7 +6,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Helpers for shaping adjacent <c>Label: value</c> markdown lines into stable paragraph boundaries.
 /// </summary>
-public static class MarkdownDefinitionLines {
+internal static class MarkdownDefinitionLines {
     /// <summary>
     /// Inserts blank lines between adjacent simple definition-like lines while preserving fenced code blocks verbatim.
     /// </summary>

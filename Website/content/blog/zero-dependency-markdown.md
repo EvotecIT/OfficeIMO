@@ -28,7 +28,7 @@ Supported Markdown constructs map to typed public block and inline classes:
 using OfficeIMO.Markdown;
 
 string input = File.ReadAllText("README.md");
-MarkdownDoc doc = MarkdownReader.Parse(input);
+MarkdownDocument doc = MarkdownReader.Parse(input);
 
 foreach (var block in doc.TopLevelBlocks)
 {
@@ -59,7 +59,7 @@ Creating Markdown is just as clean:
 ```csharp
 using OfficeIMO.Markdown;
 
-var markdown = MarkdownDoc.Create()
+var markdown = MarkdownDocument.Create()
     .H2("Release Notes")
     .P("Version 1.4.0 ships with the following changes:")
     .Ul(ul => ul

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     /// <summary>
     /// Default installed multilingual family candidates used by document converters for CJK,
     /// Arabic, and other non-Latin generated PDF text.
@@ -17,14 +17,14 @@ public sealed partial class PdfOptions {
     /// </summary>
     /// <param name="features">Fallback groups to enable. The default enables document, monospace, symbol, and emoji fallbacks.</param>
     /// <returns>The current options for fluent chaining.</returns>
-    public PdfOptions UseTextFallbacks(PdfTextFallbackFeatures features = PdfTextFallbackFeatures.Default) {
+    public PdfCreateOptions UseTextFallbacks(PdfTextFallbackFeatures features = PdfTextFallbackFeatures.Default) {
         return UseTextFallbacks(
             features,
             new[] { PdfStandardFont.TimesRoman },
             allowSystemFontEmbedding: true);
     }
 
-    internal PdfOptions UseTextFallbacks(
+    internal PdfCreateOptions UseTextFallbacks(
         PdfTextFallbackFeatures features,
         IEnumerable<PdfStandardFont> reservedFontSlots,
         bool allowSystemFontEmbedding,
@@ -102,20 +102,18 @@ public sealed partial class PdfOptions {
         var candidates = new List<PdfEmbeddedFontFallbackCandidate>();
         var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (!string.IsNullOrEmpty(requiredText)) {
-            string remaining = requiredText!;
+            int coveredLength = 0;
+            int selectableLength = CountRequiredFallbackTextLength(requiredText!);
             foreach (string familyNames in new[] {
                          document ? DefaultDocumentFontFamilyFallback : string.Empty,
                          multilingual ? DefaultDocumentMultilingualFontFamilyFallback : string.Empty,
                          symbols ? DefaultDocumentSymbolAndEmojiFontFamilyFallback : string.Empty
                      }) {
-                if (remaining.Length == 0 || candidates.Count == 6) break;
+                if (coveredLength == selectableLength || candidates.Count == 6) break;
                 if (familyNames.Length == 0) continue;
-                remaining = AddCoverageDrivenInstalledCandidates(
-                    familyNames,
-                    remaining,
-                    6,
-                    candidates,
-                    registeredFamilies);
+                coveredLength = AddCoverageDrivenCandidates(
+                    EnumerateInstalledCandidates(familyNames, registeredFamilies),
+                    requiredText!, 6, candidates, coveredLength, selectableLength);
             }
             if (candidates.Count == 0) return false;
             RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(candidates));
@@ -174,28 +172,44 @@ public sealed partial class PdfOptions {
         }
     }
 
-    private static string AddCoverageDrivenInstalledCandidates(
+    private static IEnumerable<PdfEmbeddedFontFallbackCandidate> EnumerateInstalledCandidates(
         string familyNames,
+        HashSet<string> registeredFamilies) {
+        foreach (string familyName in EnumerateOfficeFontFamilyCandidates(familyNames)) {
+            if (!registeredFamilies.Add(familyName)) continue;
+            if (!PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfEmbeddedFontFamily? family) || family == null) continue;
+            yield return new PdfEmbeddedFontFallbackCandidate(family);
+        }
+    }
+
+    internal static int AddCoverageDrivenCandidates(
+        IEnumerable<PdfEmbeddedFontFallbackCandidate> available,
         string requiredText,
         int maximumCandidates,
         List<PdfEmbeddedFontFallbackCandidate> candidates,
-        HashSet<string> registeredFamilies) {
-        string remaining = requiredText;
-        foreach (string familyName in EnumerateOfficeFontFamilyCandidates(familyNames)) {
-            if (remaining.Length == 0 || candidates.Count == maximumCandidates) break;
-            if (!registeredFamilies.Add(familyName)) continue;
-            if (!PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfEmbeddedFontFamily? family) || family == null) continue;
-            var candidate = new PdfEmbeddedFontFallbackCandidate(family);
-            PdfTextFallbackPlan plan = PdfTextDiagnostics.PlanEmbeddedFontFallbackText(
-                remaining,
-                new[] { candidate },
-                "generated text fallback selection");
-            if (plan.Segments.Count == 0) continue;
+        int coveredLength,
+        int selectableLength) {
+        foreach (PdfEmbeddedFontFallbackCandidate candidate in available) {
+            if (coveredLength == selectableLength || candidates.Count == maximumCandidates) break;
             candidates.Add(candidate);
-            remaining = string.Concat(plan.Diagnostics.Select(diagnostic => diagnostic.Text));
+            PdfTextFallbackPlan plan = PdfTextDiagnostics.PlanEmbeddedFontFallbackText(
+                requiredText,
+                candidates,
+                "generated text fallback selection");
+            int nextCoveredLength = plan.Segments.Sum(segment => CountRequiredFallbackTextLength(segment.Text));
+            if (nextCoveredLength > coveredLength) {
+                coveredLength = nextCoveredLength;
+            } else {
+                candidates.RemoveAt(candidates.Count - 1);
+            }
         }
-        return remaining;
+        return coveredLength;
     }
+
+    private static int CountRequiredFallbackTextLength(string text) =>
+        OfficeIMO.Drawing.OfficeTextElements.Enumerate(text)
+            .Where(element => element.Any(ch => ch >= ' ' && ch != '\u007F' && !char.IsWhiteSpace(ch)))
+            .Sum(element => element.Count(ch => ch >= ' ' && ch != '\u007F'));
 
     /// <summary>
     /// Registers generated-text fallback fonts by resolving an Office-style comma/semicolon-separated system font family list.
@@ -204,7 +218,7 @@ public sealed partial class PdfOptions {
     /// <param name="familyNames">System font family candidates, for example <c>Segoe UI Emoji, Noto Emoji, DejaVu Sans</c>.</param>
     /// <param name="maxFallbackFonts">Maximum number of installed fallback font families to register.</param>
     /// <returns>The current options for fluent chaining.</returns>
-    public PdfOptions UseEmbeddedFontFallbacksFromSystem(string? familyNames, int maxFallbackFonts = 2) {
+    public PdfCreateOptions UseEmbeddedFontFallbacksFromSystem(string? familyNames, int maxFallbackFonts = 2) {
         TryRegisterEmbeddedFontFallbacksFromSystem(familyNames, maxFallbackFonts);
         return this;
     }

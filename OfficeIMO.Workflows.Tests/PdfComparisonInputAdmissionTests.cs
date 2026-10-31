@@ -16,7 +16,7 @@ namespace OfficeIMO.Workflows.Tests {
                 string expected = Path.Combine(root, "expected.pdf");
                 string actual = Path.Combine(root, "actual.pdf");
                 string output = Path.Combine(root, "report.html");
-                byte[] readable = PdfDocument.Create(document => document.Page(page => page.Size(150, 180))).ToBytes();
+                byte[] readable = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(180)))).ToBytes();
                 byte[] unreadable = encrypted
                     ? PdfDocument.Load(readable).Security.Encrypt(new("reader") { OwnerPassword = "owner" }).Pdf
                     : Encoding.ASCII.GetBytes("%PDF-1.7\nbroken");
@@ -35,7 +35,7 @@ namespace OfficeIMO.Workflows.Tests {
                     ComparisonExpectedPages = PdfPageSelector.Parse("1"),
                     ComparisonActualPages = PdfPageSelector.Parse("1"),
                     OutputPath = output,
-                    ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                    ConflictPolicy = OfficePublicationPolicy.Replace
                 });
 
                 Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -80,7 +80,7 @@ namespace OfficeIMO.Workflows.Tests {
                     ComparisonExpectedPages = selectActual == false ? PdfPageSelector.Parse("1") : null,
                     ComparisonActualPages = selectActual == true ? PdfPageSelector.Parse("1") : null,
                     OutputPath = output,
-                    ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                    ConflictPolicy = OfficePublicationPolicy.Replace
                 });
 
                 if (selectActual is null) {

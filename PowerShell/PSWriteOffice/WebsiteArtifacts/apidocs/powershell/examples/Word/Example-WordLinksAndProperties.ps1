@@ -9,9 +9,9 @@ New-OfficeWord -Path $Path {
 
     WordParagraph {
         WordText 'Visit '
-        WordHyperlink -Text 'Example.org' -Url 'https://example.org' -Styled -Tooltip 'External reference'
+        WordText -Text 'Example.org' -Link 'https://example.org'  -Tooltip 'External reference'
         WordText ' or jump to the '
-        WordHyperlink -Text 'Summary' -Anchor 'Summary'
+        WordText -Text 'Summary' -Anchor 'Summary'
         WordText '.'
     }
 

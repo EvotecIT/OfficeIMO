@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents a legacy PowerPoint shape rectangle in master units.</summary>
-    public readonly struct LegacyPptBounds {
+    internal readonly struct LegacyPptBounds {
         /// <summary>Creates a shape rectangle.</summary>
         public LegacyPptBounds(int left, int top, int width, int height) {
             Left = left;

@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Path to a saved DOCM or DOTM package.</param>
         /// <param name="options">Optional package, signature, CMS, trust, revocation, and timestamp policy.</param>
-        public static WordMacroProjectSignatureInfo InspectMacroProjectSignatures(
+        internal static WordMacroProjectSignatureInfo InspectMacroProjectSignatures(
             string filePath,
             WordMacroProjectSignatureInspectionOptions? options = null) =>
             WordMacroProjectSignatureInspector.Inspect(filePath, options);
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
         /// <param name="filePath">Path to a saved DOCM or DOTM package.</param>
         /// <param name="securityProvider">Cryptographic provider supplied by the optional OfficeIMO.Security package.</param>
         /// <param name="options">Optional package, signature, CMS, trust, revocation, and timestamp policy.</param>
-        public static WordMacroProjectSignatureInfo InspectMacroProjectSignatures(
+        internal static WordMacroProjectSignatureInfo InspectMacroProjectSignatures(
             string filePath,
             IOfficeSecurityProvider securityProvider,
             WordMacroProjectSignatureInspectionOptions? options = null) =>

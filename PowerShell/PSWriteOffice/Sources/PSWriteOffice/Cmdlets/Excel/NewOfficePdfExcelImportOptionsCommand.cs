@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Excel;
 using System.Globalization;
 using System.Management.Automation;
 using OfficeIMO.Excel;
@@ -13,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// ConvertTo-OfficePdfExcel -Path .\Tables.pdf -OutputPath .\Tables.xlsx -Options $options</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficePdfExcelImportOptions")]
-[OutputType(typeof(PdfTablesToExcelOptions))]
+[OutputType(typeof(ExcelPdfImportOptions))]
 public sealed class NewOfficePdfExcelImportOptionsCommand : PSCmdlet {
     /// <summary>Maximum body rows imported per detected table; zero means unlimited.</summary>
     [Parameter] [ValidateRange(0, int.MaxValue)] public int? MaxRows { get; set; }
@@ -50,7 +51,7 @@ public sealed class NewOfficePdfExcelImportOptionsCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new PdfTablesToExcelOptions();
+        var options = new ExcelPdfImportOptions();
         Apply(nameof(IncludeAutoFilter), value => options.IncludeAutoFilter = value);
         Apply(nameof(AutoFitColumns), value => options.AutoFitColumns = value);
         Apply(nameof(ConvertNumericColumns), value => options.ConvertNumericColumns = value);

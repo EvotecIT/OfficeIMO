@@ -11,7 +11,7 @@ Sets PowerPoint theme fonts.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficePowerPointThemeFonts [-Presentation <PowerPointPresentation>] [-MajorLatin <string>] [-MinorLatin <string>] [-MajorEastAsian <string>] [-MinorEastAsian <string>] [-MajorComplexScript <string>] [-MinorComplexScript <string>] [-Master <int>] [-AllMasters] [-ClearMissing] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointThemeFonts [-Presentation <PowerPointDocument>] [-MajorLatin <string>] [-MinorLatin <string>] [-MajorEastAsian <string>] [-MinorEastAsian <string>] [-MajorComplexScript <string>] [-MinorComplexScript <string>] [-Master <int>] [-AllMasters] [-ClearMissing] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -195,7 +195,7 @@ Accept wildcard characters: False
 Presentation to update (optional inside New-OfficePowerPoint).
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -212,11 +212,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## RELATED LINKS
 

@@ -85,13 +85,13 @@ public sealed partial class IWorkBoundaryTests {
             if (unreadableRange) Assert.Empty(reopened.Sheets[0].GetMergedRanges());
             else Assert.Equal("A4:B4", Assert.Single(reopened.Sheets[0].GetMergedRanges()).A1Range);
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointPresentationResult(options);
+            using var partial = source.ToPowerPointDocumentResult(options);
             Assert.False(partial.IsVisualFallback);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+            using PowerPointDocument reopened = PowerPointDocument.Load(saved);
             Assert.Equal("42", reopened.Slides[0].Tables.First().GetCell(0, 0).Text);
             Assert.Equal(unreadableRange ? 1 : 2, reopened.Slides[0].Tables.First().GetCell(3, 0).Merge.columns);
         }

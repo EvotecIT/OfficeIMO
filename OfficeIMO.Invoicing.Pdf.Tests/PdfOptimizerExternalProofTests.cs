@@ -41,13 +41,13 @@ public sealed class PdfOptimizerExternalProofTests {
                         refusals.Add(AssertRefused(directory, input, before, setting, options, "pdfa1-streams"));
                         continue;
                     }
-                    PdfOptimizationActionResult result = PdfDocument.Load(before).Optimization.Apply(options);
+                    PdfOptimizationActionResult result = PdfDocument.Load(new System.IO.MemoryStream(before)).Optimization.Apply(options);
                     byte[] after = result.Bytes;
                     // Persist returned bytes directly: another save must not repair or alter the candidate.
                     File.WriteAllBytes(Path.Combine(directory, output), after);
                     if (xml is not null) {
                         File.WriteAllBytes(Path.Combine(directory, Path.ChangeExtension(output, ".xml")), xml);
-                        Assert.Equal(xml, Assert.Single(PdfDocument.Load(after).Attachments.Extract()).Bytes);
+                        Assert.Equal(xml, Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(after)).Attachments.Extract()).Bytes);
                     }
                     Assert.Equal(before.LongLength, result.OriginalLengthBytes);
                     Assert.Equal(after.LongLength, result.OptimizedLengthBytes);
@@ -99,8 +99,8 @@ public sealed class PdfOptimizerExternalProofTests {
         Assert.False(File.Exists(absent), "Refusal output must be absent before invoking the optimizer.");
         byte[] sentinel = "Existing destination must survive optimizer refusal"u8.ToArray();
         File.WriteAllBytes(existing, sentinel);
-        Exception? missingError = Record.Exception(() => PdfDocument.Load(before).Optimization.Apply(options).ToDocument().Save(absent));
-        Exception? existingError = Record.Exception(() => PdfDocument.Load(before).Optimization.Apply(options).ToDocument().Save(existing));
+        Exception? missingError = Record.Exception(() => PdfDocument.Load(new System.IO.MemoryStream(before)).Optimization.Apply(options).ToDocument().Save(absent));
+        Exception? existingError = Record.Exception(() => PdfDocument.Load(new System.IO.MemoryStream(before)).Optimization.Apply(options).ToDocument().Save(existing));
         Assert.IsAssignableFrom<NotSupportedException>(missingError);
         Assert.IsAssignableFrom<NotSupportedException>(existingError);
         Assert.False(File.Exists(absent));
@@ -123,7 +123,7 @@ public sealed class PdfOptimizerExternalProofTests {
         if (source == "pdfa1b") return File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
             "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-pdfa1b-text.pdf"));
         byte[] font = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
-        var options = new PdfOptions { IncludeStandardFontToUnicodeMaps = true };
+        var options = new PdfCreateOptions { IncludeStandardFontToUnicodeMaps = true };
         options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "OfficeIMO Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "OfficeIMO Source Serif");
         switch (source) {

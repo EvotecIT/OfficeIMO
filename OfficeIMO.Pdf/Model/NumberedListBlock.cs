@@ -3,12 +3,12 @@ namespace OfficeIMO.Pdf;
 internal sealed class NumberedListBlock : PdfListBlock {
     public int StartNumber { get; }
 
-    public NumberedListBlock(System.Collections.Generic.IEnumerable<string> items, PdfAlign align, PdfColor? color, int startNumber, PdfListStyle? style = null)
+    public NumberedListBlock(System.Collections.Generic.IEnumerable<string> items, PdfAlign align, global::OfficeIMO.OfficeColor? color, int startNumber, PdfListStyle? style = null)
         : base(Validate(items, startNumber), align, color, style, "Numbered list") {
         StartNumber = startNumber;
     }
 
-    public NumberedListBlock(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align, PdfColor? color, int startNumber, PdfListStyle? style = null)
+    public NumberedListBlock(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align, global::OfficeIMO.OfficeColor? color, int startNumber, PdfListStyle? style = null)
         : base(Validate(items, startNumber), align, color, style, "Numbered list") {
         StartNumber = startNumber;
     }

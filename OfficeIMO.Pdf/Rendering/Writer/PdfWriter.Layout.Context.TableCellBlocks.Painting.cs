@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
             PdfCellVerticalAlign align = slice.StartLine == 0 && slice.CompletesCellRow
                 ? GetTableCellVerticalAlignment(geometry.Style, slice.Row, cell.Column) : PdfCellVerticalAlign.Top;
             double offset = align == PdfCellVerticalAlign.Middle ? unused / 2D : align == PdfCellVerticalAlign.Bottom ? unused : 0D;
-            double contentTop = top - padTop - offset + geometry.Style.RowBaselineOffset;
+            double contentTop = top - padTop - offset + geometry.Style.RowBaselineOffset.ToPoints();
             if (slice.StartLine == 0) AddTableCellNamedDestinationName(cell.NamedDestinationName, top);
             int? structure = RegisterStructureContainer(header ? "TH" : "TD", rowStructure,
                 header ? "Column" : string.Empty, cell.ColumnSpan, 1, logicalOrder: cell.Column);

@@ -37,7 +37,9 @@ public partial class VisioDocument {
         if (element.Element(ns + "Text") == null) {
             shape.Text = source.Text;
             shape.PreservedTextValue = source.PreservedTextValue;
-            shape.PreservedTextElement = source.PreservedTextElement == null ? null : new XElement(source.PreservedTextElement);
+            // Inherited text is immutable during loading and projection. Share its XML
+            // so a compact master cannot expand into a full tree for every instance.
+            shape.PreservedTextElement = source.PreservedTextElement;
             shape.HasInheritedText = true;
         }
         if (source.TextStyle != null) {

@@ -46,7 +46,7 @@ public sealed partial class HtmlRenderingTests {
         rendered.RequireNoLoss();
         Assert.Single(rendered.Pages);
         AssertAtomicLineLogicalTokens(rendered.Text, expected);
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         pdf.RequireNoLoss();
         byte[] bytes = pdf.ToBytes();
         PdfCore.PdfReadDocument saved = PdfCore.PdfReadDocument.Open(bytes);

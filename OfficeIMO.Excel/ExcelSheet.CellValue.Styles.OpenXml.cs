@@ -336,11 +336,11 @@ namespace OfficeIMO.Excel {
         private static void EnsureDefaultStylePrimitivesCore(Stylesheet stylesheet) {
             // Fonts
             if (stylesheet.Fonts == null || !stylesheet.Fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().Any()) {
-                stylesheet.Fonts = new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font(new FontSize { Val = 11D }, new FontName { Val = "Calibri" }));
+                stylesheet.Fonts = new Fonts(ExcelDocument.CreateDefaultFont());
             } else {
                 var defaultFont = stylesheet.Fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().First();
-                defaultFont.FontSize ??= new FontSize { Val = 11D };
-                defaultFont.FontName ??= new FontName { Val = "Calibri" };
+                defaultFont.FontSize ??= new FontSize { Val = OfficeTheme.Default.TypeScale.Body.ToPoints() };
+                defaultFont.FontName ??= new FontName { Val = OfficeTheme.Default.Fonts.Body.Family };
             }
             stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Count();
 

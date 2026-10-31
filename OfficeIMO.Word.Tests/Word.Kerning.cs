@@ -46,7 +46,7 @@ public partial class Word {
             paragraph.SetStyleId(styleId);
         }
 
-        using WordDocument reloaded = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Doc)));
+        using WordDocument reloaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         OpenXmlCompositeElement properties = paragraphMark
             ? reloaded.Paragraphs[0]._paragraphProperties!.GetFirstChild<ParagraphMarkRunProperties>()!
             : reloaded._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Elements<Style>()
@@ -72,25 +72,25 @@ public partial class Word {
     [InlineData(true, 1638D)]
     public void RunKerningThresholdPreservesNativeHalfPoints(bool nativeDoc, double threshold) {
         using WordDocument source = WordDocument.Create();
-        source.AddParagraph("AB").KerningMinimumFontSizePoints = threshold;
+        source.AddParagraph("AB").KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(threshold);
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(nativeDoc
-            ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
-        Assert.Equal(threshold, reloaded.Paragraphs[0].KerningMinimumFontSizePoints);
+            ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
+        Assert.Equal(threshold, reloaded.Paragraphs[0].KerningMinimumFontSize?.ToPoints());
     }
 
     [Fact]
     public void RunKerningThresholdCanReturnToInheritanceAndRejectsInvalidValuesAtomically() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("AB");
-        paragraph.KerningMinimumFontSizePoints = 1.25D;
-        Assert.Equal(1.5D, paragraph.KerningMinimumFontSizePoints);
+        paragraph.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1.25D);
+        Assert.Equal(1.5D, paragraph.KerningMinimumFontSize?.ToPoints());
         foreach (double invalid in new[] { -0.5D, 1638.5D, double.NaN, double.PositiveInfinity }) {
-            Assert.Throws<ArgumentOutOfRangeException>(() => paragraph.KerningMinimumFontSizePoints = invalid);
-            Assert.Equal(1.5D, paragraph.KerningMinimumFontSizePoints);
+            Assert.Throws<ArgumentOutOfRangeException>(() => paragraph.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(invalid));
+            Assert.Equal(1.5D, paragraph.KerningMinimumFontSize?.ToPoints());
         }
-        paragraph.KerningMinimumFontSizePoints = null;
+        paragraph.KerningMinimumFontSize = null;
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        Assert.Null(reloaded.Paragraphs[0].KerningMinimumFontSizePoints);
+        Assert.Null(reloaded.Paragraphs[0].KerningMinimumFontSize?.ToPoints());
     }
 
     [Theory]
@@ -99,21 +99,21 @@ public partial class Word {
     public void RunKerningThresholdTargetsTheHyperlinkWithoutChangingAdjacentText(bool nativeDoc) {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Prefix ");
-        paragraph.KerningMinimumFontSizePoints = 8D;
-        WordParagraph link = paragraph.AddHyperLink("AV", new Uri("https://example.com/kerning"));
-        link.KerningMinimumFontSizePoints = 1.5D;
-        Assert.Equal(1.5D, link.KerningMinimumFontSizePoints);
+        paragraph.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(8D);
+        WordParagraph link = paragraph.AddHyperLink("AV", new Uri("https://example.com/kerning")).Paragraph;
+        link.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1.5D);
+        Assert.Equal(1.5D, link.KerningMinimumFontSize?.ToPoints());
         Assert.Equal(16U, paragraph._paragraph.Elements<Run>()
             .First().RunProperties!.Kern!.Val!.Value);
 
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(nativeDoc
-            ? document.ToBytes(WordFileFormat.Doc) : document.ToBytes()));
+            ? document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : document.ToBytes()));
         WordParagraph reloadedLink = Assert.Single(reloaded.Paragraphs, item => item.IsHyperLink);
-        Assert.Equal(1.5D, reloadedLink.KerningMinimumFontSizePoints);
+        Assert.Equal(1.5D, reloadedLink.KerningMinimumFontSize?.ToPoints());
         Assert.Equal(new Uri("https://example.com/kerning"), reloadedLink.Hyperlink!.Uri);
-        Assert.Equal(8D, reloaded.Paragraphs.First(item => item.Text == "Prefix ").KerningMinimumFontSizePoints);
-        reloadedLink.KerningMinimumFontSizePoints = null;
-        Assert.Null(reloadedLink.KerningMinimumFontSizePoints);
+        Assert.Equal(8D, reloaded.Paragraphs.First(item => item.Text == "Prefix ").KerningMinimumFontSize?.ToPoints());
+        reloadedLink.KerningMinimumFontSize = null;
+        Assert.Null(reloadedLink.KerningMinimumFontSize?.ToPoints());
     }
 
     [Theory]
@@ -122,26 +122,26 @@ public partial class Word {
     public void RunKerningThresholdPreservesTablesAndSeparateStories(bool nativeDoc) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Body");
-        document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].AddText("Cell")
-            .KerningMinimumFontSizePoints = 0D;
-        document.HeaderDefaultOrCreate.AddParagraph("Header").KerningMinimumFontSizePoints = 1.5D;
-        document.FooterDefaultOrCreate.AddParagraph("Footer").KerningMinimumFontSizePoints = 13D;
-        document.AddParagraph("Reference").AddFootNote("Footnote").FootNote!.Paragraphs!
-            .Single(item => item.Text == "Footnote").KerningMinimumFontSizePoints = 7.5D;
-        document.AddParagraph("Reference").AddEndNote("Endnote").EndNote!.Paragraphs!
-            .Single(item => item.Text == "Endnote").KerningMinimumFontSizePoints = 9D;
+        document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].AddText("Cell")
+            .KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(0D);
+        document.HeaderDefaultOrCreate.AddParagraph("Header").KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1.5D);
+        document.FooterDefaultOrCreate.AddParagraph("Footer").KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(13D);
+        document.AddParagraph("Reference").AddFootNote("Footnote").Paragraph.FootNote!.Paragraphs!
+            .Single(item => item.Text == "Footnote").KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(7.5D);
+        document.AddParagraph("Reference").AddEndNote("Endnote").Paragraph.EndNote!.Paragraphs!
+            .Single(item => item.Text == "Endnote").KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(9D);
 
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(nativeDoc
-            ? document.ToBytes(WordFileFormat.Doc) : document.ToBytes()));
+            ? document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : document.ToBytes()));
         Assert.Equal(0D, reloaded.Tables[0].Rows[0].Cells[0].Paragraphs.Single(item => item.Text == "Cell")
-            .KerningMinimumFontSizePoints);
+            .KerningMinimumFontSize?.ToPoints());
         Assert.Equal(1.5D, reloaded.Sections[0].Header.Default!.Paragraphs.Single(item => item.Text == "Header")
-            .KerningMinimumFontSizePoints);
+            .KerningMinimumFontSize?.ToPoints());
         Assert.Equal(13D, reloaded.Sections[0].Footer.Default!.Paragraphs.Single(item => item.Text == "Footer")
-            .KerningMinimumFontSizePoints);
+            .KerningMinimumFontSize?.ToPoints());
         Assert.Equal(7.5D, Assert.Single(reloaded.FootNotes).Paragraphs!.Single(item => item.Text == "Footnote")
-            .KerningMinimumFontSizePoints);
+            .KerningMinimumFontSize?.ToPoints());
         Assert.Equal(9D, Assert.Single(reloaded.EndNotes).Paragraphs!.Single(item => item.Text == "Endnote")
-            .KerningMinimumFontSizePoints);
+            .KerningMinimumFontSize?.ToPoints());
     }
 }

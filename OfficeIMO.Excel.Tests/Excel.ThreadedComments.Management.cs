@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Review");
+                    ExcelSheet sheet = document.AddSheet("Review");
                     sheet.CellValue(2, 2, 1250d);
                     sheet.AddThreadedComment(new ExcelThreadedCommentOptions {
                         Address = "B2",
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                         firstReplyId);
                     sheet.ReplyToThreadedComment(rootId, "Second reply.", "Auditor", id: secondReplyId);
 
-                    IReadOnlyList<ExcelThreadedCommentSnapshot> initial = sheet.GetThreadedComments();
+                    IReadOnlyList<ExcelThreadedCommentInfo> initial = sheet.GetThreadedComments();
                     Assert.Equal(3, initial.Count);
                     Assert.Equal("Reviewer", sheet.GetThreadedComment(rootId)!.Author);
                     Assert.Equal(rootId, sheet.GetThreadedComment(firstReplyId)!.ParentId);
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
 
                 using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                     ExcelSheet sheet = document["Review"];
-                    ExcelThreadedCommentSnapshot persistedRoot = sheet.GetThreadedComment(rootId)!;
+                    ExcelThreadedCommentInfo persistedRoot = sheet.GetThreadedComment(rootId)!;
                     Assert.Equal("Variance confirmed.", persistedRoot.Text);
                     Assert.Equal("Senior Reviewer", persistedRoot.Author);
                     Assert.Equal(new DateTime(2026, 7, 16, 9, 0, 0, DateTimeKind.Utc), persistedRoot.Date);
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using ExcelDocument document = ExcelDocument.Create(filePath);
-                ExcelSheet sheet = document.AddWorksheet("Review");
+                ExcelSheet sheet = document.AddSheet("Review");
                 ExcelThreadedCommentResult root = sheet.AddThreadedComment(new ExcelThreadedCommentOptions {
                     Address = "C3",
                     Text = "Root",

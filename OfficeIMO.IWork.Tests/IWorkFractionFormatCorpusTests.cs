@@ -49,7 +49,7 @@ public sealed class IWorkFractionFormatCorpusTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
-        ExcelRangeVisualSnapshot snapshot = sheet.Range($"B1:B{manifest.RootElement.GetProperty("cases").GetArrayLength()}").CreateVisualSnapshot();
+        ExcelRangeVisualInfo snapshot = sheet.Range($"B1:B{manifest.RootElement.GetProperty("cases").GetArrayLength()}").CreateVisualSnapshot();
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             int row = expected.GetProperty("row").GetInt32();
             ExcelCellData cell = sheet.CellAt(row, 2).GetValue();

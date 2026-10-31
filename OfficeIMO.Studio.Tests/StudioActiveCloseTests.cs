@@ -64,7 +64,7 @@ public sealed class StudioActiveCloseTests {
                     Assert.False(File.Exists(Path.Combine(services.Paths.Root, "queued.pdf")));
                 } else {
                     Assert.Equal("Completed", job.Status);
-                    Assert.Equal(1, PdfDocument.Load(File.ReadAllBytes(job.OutputPath!)).Inspect().PageCount);
+                    Assert.Equal(1, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(job.OutputPath!))).Inspect().PageCount);
                 }
             } finally {
                 firstPermit.Dispose(); secondPermit.Dispose();
@@ -90,7 +90,7 @@ public sealed class StudioActiveCloseTests {
                 window.Show();
                 string source = Path.Combine(services.Paths.Root, "first.pdf");
                 string other = Path.Combine(services.Paths.Root, "second.pdf");
-                PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(source);
+                PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
                 File.Copy(source, other);
                 await window.TabHost.OpenDocumentAsync(source);
                 var firstTab = window.TabHost.SelectedTab!;
@@ -161,7 +161,7 @@ public sealed class StudioActiveCloseTests {
                 Assert.True(await closing.WaitAsync(TimeSpan.FromSeconds(5)));
                 Assert.False(document.CanCancelOperation);
                 Assert.Equal(bytes, File.ReadAllBytes(committed));
-                Assert.Equal(1, PdfDocument.Load(bytes).Inspect().PageCount);
+                Assert.Equal(1, PdfDocument.Load(new System.IO.MemoryStream(bytes)).Inspect().PageCount);
                 Assert.False(File.Exists(Path.Combine(root, "cancelled.pdf")));
                 Assert.Equal(new[] { "Completed", "Cancelled" }, conversion.Jobs.Select(job => job.Status));
                 Assert.Equal(new[] { "cancelled.html", "committed.html", "committed.pdf" },
@@ -177,11 +177,11 @@ public sealed class StudioActiveCloseTests {
         }, CancellationToken.None);
     }
 
-    private sealed class PauseSecondPublication : IOfficeWorkflowPublicationGuard {
+    private sealed class PauseSecondPublication : IOfficePublicationGuard {
         private int _calls;
         internal TaskCompletionSource Reached { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
+        public async Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
             if (Interlocked.Increment(ref _calls) == 2) {
                 Reached.TrySetResult();
                 // Simulate a guard completing asynchronous work before observing cancellation.

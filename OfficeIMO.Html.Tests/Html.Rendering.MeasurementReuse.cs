@@ -28,7 +28,7 @@ public sealed class HtmlMeasurementReuseTests {
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
 
-        byte[] bytes = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value is "A" or "X").ToArray();
         Assert.Equal("AAXAAXAAXAAX", string.Concat(letters.Select(letter => letter.Value)));
@@ -49,7 +49,7 @@ public sealed class HtmlMeasurementReuseTests {
             options.FontFamily = new PdfEmbeddedFontFamily("Measured",
                 ManagedTextShapingTestAssets.CreateFontWithScalarAdvances(
                     new Dictionary<int, ushort> { ['A'] = advance, ['X'] = advance }));
-            using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(options));
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(options)).ToBytes());
             var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value is "A" or "X").ToArray();
             Assert.Equal(3, letters.Length);
             Assert.Equal(advance * 20D * 0.75D * 2D / 1000D,

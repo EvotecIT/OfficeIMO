@@ -89,7 +89,7 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
     private func beginTyping(page: Int, field: FormField, widget: FormField.Widget) {
         guard editing?.field.name != field.name else { return }
         let control: UIView
-        if field.multiline {
+        if field.multiline && !field.password {
             let view = UITextView()
             view.text = field.text
             view.delegate = self
@@ -100,6 +100,7 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
             let text = UITextField()
             text.text = field.text
             text.delegate = self
+            // UIKit has no secure UITextView. Password wins over the PDF's multiline flag.
             text.isSecureTextEntry = field.password
             text.returnKeyType = .done
             text.clearButtonMode = .whileEditing

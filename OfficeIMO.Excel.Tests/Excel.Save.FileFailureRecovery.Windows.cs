@@ -11,13 +11,13 @@ namespace OfficeIMO.Tests {
             try {
                 string targetPath = Path.Combine(directory, "target.xlsx");
                 using (var existing = ExcelDocument.Create()) {
-                    existing.AddWorksheet("Original target").CellValue(1, 1, "Target before failure");
+                    existing.AddSheet("Original target").CellValue(1, 1, "Target before failure");
                     existing.Save(targetPath);
                 }
                 byte[] originalTarget = File.ReadAllBytes(targetPath);
 
                 using var document = ExcelDocument.Create();
-                ExcelSheet retainedSheet = document.AddWorksheet("Report");
+                ExcelSheet retainedSheet = document.AddSheet("Report");
                 retainedSheet.CellValue(1, 1, "Live before failure");
                 var retainedProperty = new ExcelCustomProperty("Property before failure");
                 document.SetCustomDocumentProperty("Review", retainedProperty);

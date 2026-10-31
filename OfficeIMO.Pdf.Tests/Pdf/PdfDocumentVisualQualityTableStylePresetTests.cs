@@ -15,40 +15,40 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void TableStyles_ExposeWordLikeGenericPresetsWithoutSemanticAlignment() {
-        var tableGrid = TableStyles.TableGrid();
-        var tableGridLight = TableStyles.TableGridLight();
-        var plainTable = TableStyles.PlainTable1();
-        var gridTable = TableStyles.GridTable1Light();
-        var listTable = TableStyles.ListTable1Light();
+        var tableGrid = PdfTableStyles.TableGrid();
+        var tableGridLight = PdfTableStyles.TableGridLight();
+        var plainTable = PdfTableStyles.PlainTable1();
+        var gridTable = PdfTableStyles.GridTable1Light();
+        var listTable = PdfTableStyles.ListTable1Light();
 
-        Assert.Equal(PdfColor.Black, tableGrid.BorderColor);
-        Assert.Equal(0.5, tableGrid.BorderWidth);
+        Assert.Equal(global::OfficeIMO.OfficeColor.Black, tableGrid.BorderColor);
+        Assert.Equal(0.5, tableGrid.BorderWidth.ToPoints());
         Assert.Null(tableGrid.HeaderFill);
         Assert.False(tableGrid.HeaderBold);
         Assert.Null(tableGrid.RowStripeFill);
 
-        Assert.Equal(PdfColor.FromRgb(191, 191, 191), tableGridLight.BorderColor);
-        Assert.Equal(0.5, tableGridLight.BorderWidth);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191), tableGridLight.BorderColor);
+        Assert.Equal(0.5, tableGridLight.BorderWidth.ToPoints());
         Assert.Null(tableGridLight.HeaderFill);
         Assert.Null(tableGridLight.RowStripeFill);
         Assert.NotEqual(tableGrid.BorderColor, tableGridLight.BorderColor);
 
         Assert.Null(plainTable.BorderColor);
-        Assert.Equal(0, plainTable.BorderWidth);
+        Assert.Equal(0, plainTable.BorderWidth.ToPoints());
         Assert.Null(plainTable.RowSeparatorColor);
         Assert.Null(plainTable.HeaderSeparatorColor);
 
-        Assert.Equal(PdfColor.FromRgb(217, 217, 217), gridTable.BorderColor);
-        Assert.Equal(PdfColor.FromRgb(127, 127, 127), gridTable.HeaderSeparatorColor);
-        Assert.Equal(0.8, gridTable.HeaderSeparatorWidth);
-        Assert.Equal(PdfColor.FromRgb(127, 127, 127), gridTable.FooterSeparatorColor);
-        Assert.Equal(0.8, gridTable.FooterSeparatorWidth);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(217, 217, 217), gridTable.BorderColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(127, 127, 127), gridTable.HeaderSeparatorColor);
+        Assert.Equal(0.8, gridTable.HeaderSeparatorWidth.ToPoints());
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(127, 127, 127), gridTable.FooterSeparatorColor);
+        Assert.Equal(0.8, gridTable.FooterSeparatorWidth.ToPoints());
 
         Assert.Null(listTable.BorderColor);
-        Assert.Equal(PdfColor.Black, listTable.HeaderSeparatorColor);
-        Assert.Equal(PdfColor.Black, listTable.FooterSeparatorColor);
-        Assert.Equal(0.8, listTable.FooterSeparatorWidth);
-        Assert.Equal(PdfColor.FromRgb(224, 224, 224), listTable.RowSeparatorColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.Black, listTable.HeaderSeparatorColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.Black, listTable.FooterSeparatorColor);
+        Assert.Equal(0.8, listTable.FooterSeparatorWidth.ToPoints());
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(224, 224, 224), listTable.RowSeparatorColor);
 
         Assert.False(tableGrid.RightAlignNumeric);
         Assert.False(tableGridLight.RightAlignNumeric);
@@ -56,9 +56,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.False(gridTable.RightAlignNumeric);
         Assert.False(listTable.RightAlignNumeric);
 
-        var independentGridTable = TableStyles.GridTable1Light();
-        gridTable.CellPaddingX = 20;
-        Assert.Equal(5, independentGridTable.CellPaddingX);
+        var independentGridTable = PdfTableStyles.GridTable1Light();
+        gridTable.CellPaddingX = global::OfficeIMO.OfficeLength.Points(20);
+        Assert.Equal(5, independentGridTable.CellPaddingX.ToPoints());
     }
 
     [Fact]
@@ -95,66 +95,66 @@ public partial class PdfDocumentVisualQualityTests {
             "ListTable1Light-Accent4",
             "ListTable1Light-Accent5",
             "ListTable1Light-Accent6"
-        }, TableStyles.SupportedWordStyleNames);
+        }, PdfTableStyles.SupportedWordStyleNames);
 
-        PdfTableStyle tableNormal = TableStyles.FromWordTableStyle("Table Normal");
-        PdfTableStyle tableGrid = TableStyles.FromWordTableStyle("Table Grid");
-        PdfTableStyle tableGridLight = TableStyles.FromWordTableStyle("Grid Table Light");
-        PdfTableStyle plainTable = TableStyles.FromWordTableStyle("plain_table_1");
-        bool resolvedGridLight = TableStyles.TryFromWordTableStyle("grid-table-1-light", out PdfTableStyle? gridLight);
-        PdfTableStyle gridLightAccent = TableStyles.FromWordTableStyle("GridTable1Light-Accent2");
-        PdfTableStyle listTable = TableStyles.FromWordTableStyle(" list table 1 light ");
-        PdfTableStyle listTableAccent = TableStyles.FromWordTableStyle("ListTable1LightAccent5");
+        PdfTableStyle tableNormal = PdfTableStyles.FromWordTableStyle("Table Normal");
+        PdfTableStyle tableGrid = PdfTableStyles.FromWordTableStyle("Table Grid");
+        PdfTableStyle tableGridLight = PdfTableStyles.FromWordTableStyle("Grid Table Light");
+        PdfTableStyle plainTable = PdfTableStyles.FromWordTableStyle("plain_table_1");
+        bool resolvedGridLight = PdfTableStyles.TryFromWordTableStyle("grid-table-1-light", out PdfTableStyle? gridLight);
+        PdfTableStyle gridLightAccent = PdfTableStyles.FromWordTableStyle("GridTable1Light-Accent2");
+        PdfTableStyle listTable = PdfTableStyles.FromWordTableStyle(" list table 1 light ");
+        PdfTableStyle listTableAccent = PdfTableStyles.FromWordTableStyle("ListTable1LightAccent5");
 
         Assert.Null(tableNormal.BorderColor);
-        Assert.Equal(PdfColor.Black, tableGrid.BorderColor);
-        Assert.Equal(PdfColor.FromRgb(191, 191, 191), tableGridLight.BorderColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.Black, tableGrid.BorderColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191), tableGridLight.BorderColor);
         Assert.Null(tableGridLight.HeaderSeparatorColor);
         Assert.Null(plainTable.BorderColor);
         Assert.True(resolvedGridLight);
         Assert.NotNull(gridLight);
-        Assert.Equal(PdfColor.FromRgb(217, 217, 217), gridLight!.BorderColor);
-        Assert.Equal(PdfColor.FromRgb(127, 127, 127), gridLight.FooterSeparatorColor);
-        Assert.Equal(PdfColor.FromRgb(247, 202, 172), gridLightAccent.BorderColor);
-        Assert.Equal(PdfColor.FromRgb(244, 176, 131), gridLightAccent.HeaderSeparatorColor);
-        Assert.Equal(PdfColor.FromRgb(224, 224, 224), listTable.RowSeparatorColor);
-        Assert.Equal(PdfColor.Black, listTable.FooterSeparatorColor);
-        Assert.Equal(PdfColor.FromRgb(222, 234, 246), listTableAccent.RowStripeFill);
-        Assert.Equal(PdfColor.FromRgb(224, 224, 224), listTableAccent.RowSeparatorColor);
-        Assert.Equal(PdfColor.FromRgb(156, 194, 229), listTableAccent.HeaderSeparatorColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(217, 217, 217), gridLight!.BorderColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(127, 127, 127), gridLight.FooterSeparatorColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(247, 202, 172), gridLightAccent.BorderColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(244, 176, 131), gridLightAccent.HeaderSeparatorColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(224, 224, 224), listTable.RowSeparatorColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.Black, listTable.FooterSeparatorColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(222, 234, 246), listTableAccent.RowStripeFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(224, 224, 224), listTableAccent.RowSeparatorColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(156, 194, 229), listTableAccent.HeaderSeparatorColor);
 
-        PdfTableStyle independentListTable = TableStyles.FromWordTableStyle("ListTable1Light");
-        listTable.CellPaddingX = 20;
-        Assert.Equal(4, independentListTable.CellPaddingX);
+        PdfTableStyle independentListTable = PdfTableStyles.FromWordTableStyle("ListTable1Light");
+        listTable.CellPaddingX = global::OfficeIMO.OfficeLength.Points(20);
+        Assert.Equal(4, independentListTable.CellPaddingX.ToPoints());
 
-        Assert.False(TableStyles.TryFromWordTableStyle("GridTable7Colorful", out PdfTableStyle? missingStyle));
+        Assert.False(PdfTableStyles.TryFromWordTableStyle("GridTable7Colorful", out PdfTableStyle? missingStyle));
         Assert.Null(missingStyle);
 
-        var exception = Assert.Throws<ArgumentException>(() => TableStyles.FromWordTableStyle("GridTable7Colorful"));
+        var exception = Assert.Throws<ArgumentException>(() => PdfTableStyles.FromWordTableStyle("GridTable7Colorful"));
         Assert.Equal("styleName", exception.ParamName);
         Assert.Contains("Unsupported Word table style 'GridTable7Colorful'.", exception.Message, StringComparison.Ordinal);
         Assert.Contains("Supported styles: TableNormal, TableGrid, TableGridLight, PlainTable1, GridTable1Light", exception.Message, StringComparison.Ordinal);
         Assert.Contains("GridTable1Light-Accent6", exception.Message, StringComparison.Ordinal);
         Assert.Contains("ListTable1Light-Accent6", exception.Message, StringComparison.Ordinal);
 
-        Assert.Throws<ArgumentNullException>(() => TableStyles.FromWordTableStyle(null!));
-        Assert.Throws<ArgumentNullException>(() => TableStyles.TryFromWordTableStyle(null!, out _));
+        Assert.Throws<ArgumentNullException>(() => PdfTableStyles.FromWordTableStyle(null!));
+        Assert.Throws<ArgumentNullException>(() => PdfTableStyles.TryFromWordTableStyle(null!, out _));
     }
 
     [Fact]
     public void TableStyles_ExposeCanonicalWordStyleNamesWithoutAliasSpellings() {
-        Assert.Contains("TableNormal", TableStyles.CanonicalWordStyleNames);
-        Assert.Contains("TableGridLight", TableStyles.CanonicalWordStyleNames);
-        Assert.Contains("GridTable1LightAccent6", TableStyles.CanonicalWordStyleNames);
-        Assert.Contains("ListTable1LightAccent6", TableStyles.CanonicalWordStyleNames);
-        Assert.DoesNotContain("GridTable1Light-Accent1", TableStyles.CanonicalWordStyleNames);
-        Assert.DoesNotContain("ListTable1Light-Accent1", TableStyles.CanonicalWordStyleNames);
-        Assert.DoesNotContain("GridTableLight", TableStyles.CanonicalWordStyleNames);
+        Assert.Contains("TableNormal", PdfTableStyles.CanonicalWordStyleNames);
+        Assert.Contains("TableGridLight", PdfTableStyles.CanonicalWordStyleNames);
+        Assert.Contains("GridTable1LightAccent6", PdfTableStyles.CanonicalWordStyleNames);
+        Assert.Contains("ListTable1LightAccent6", PdfTableStyles.CanonicalWordStyleNames);
+        Assert.DoesNotContain("GridTable1Light-Accent1", PdfTableStyles.CanonicalWordStyleNames);
+        Assert.DoesNotContain("ListTable1Light-Accent1", PdfTableStyles.CanonicalWordStyleNames);
+        Assert.DoesNotContain("GridTableLight", PdfTableStyles.CanonicalWordStyleNames);
 
-        Assert.Contains("GridTableLight", TableStyles.SupportedWordStyleNames);
-        Assert.Contains("GridTable1Light-Accent1", TableStyles.SupportedWordStyleNames);
-        Assert.Contains("ListTable1Light-Accent1", TableStyles.SupportedWordStyleNames);
-        Assert.Equal(TableStyles.CanonicalWordStyleNames.Count, TableStyles.CanonicalWordStyleNames.Distinct(StringComparer.Ordinal).Count());
+        Assert.Contains("GridTableLight", PdfTableStyles.SupportedWordStyleNames);
+        Assert.Contains("GridTable1Light-Accent1", PdfTableStyles.SupportedWordStyleNames);
+        Assert.Contains("ListTable1Light-Accent1", PdfTableStyles.SupportedWordStyleNames);
+        Assert.Equal(PdfTableStyles.CanonicalWordStyleNames.Count, PdfTableStyles.CanonicalWordStyleNames.Distinct(StringComparer.Ordinal).Count());
     }
 
     [Theory]
@@ -169,22 +169,22 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData("ListTable1Light-Accent5", "ListTable1LightAccent5")]
     [InlineData(" list table 1 light accent 3 ", "ListTable1LightAccent3")]
     public void TableStyles_NormalizeSupportedWordStyleNamesToCanonicalNames(string input, string expectedCanonicalName) {
-        Assert.True(TableStyles.TryGetCanonicalWordStyleName(input, out string? canonicalName));
+        Assert.True(PdfTableStyles.TryGetCanonicalWordStyleName(input, out string? canonicalName));
         Assert.Equal(expectedCanonicalName, canonicalName);
-        Assert.Equal(expectedCanonicalName, TableStyles.GetCanonicalWordStyleName(input));
+        Assert.Equal(expectedCanonicalName, PdfTableStyles.GetCanonicalWordStyleName(input));
     }
 
     [Fact]
     public void TableStyles_CanonicalWordStyleNameRejectsUnsupportedInputs() {
-        Assert.False(TableStyles.TryGetCanonicalWordStyleName("GridTable7Colorful", out string? missingStyle));
+        Assert.False(PdfTableStyles.TryGetCanonicalWordStyleName("GridTable7Colorful", out string? missingStyle));
         Assert.Null(missingStyle);
 
-        var exception = Assert.Throws<ArgumentException>(() => TableStyles.GetCanonicalWordStyleName("GridTable7Colorful"));
+        var exception = Assert.Throws<ArgumentException>(() => PdfTableStyles.GetCanonicalWordStyleName("GridTable7Colorful"));
         Assert.Equal("styleName", exception.ParamName);
         Assert.Contains("Unsupported Word table style 'GridTable7Colorful'.", exception.Message, StringComparison.Ordinal);
 
-        Assert.Throws<ArgumentNullException>(() => TableStyles.GetCanonicalWordStyleName(null!));
-        Assert.Throws<ArgumentNullException>(() => TableStyles.TryGetCanonicalWordStyleName(null!, out _));
+        Assert.Throws<ArgumentNullException>(() => PdfTableStyles.GetCanonicalWordStyleName(null!));
+        Assert.Throws<ArgumentNullException>(() => PdfTableStyles.TryGetCanonicalWordStyleName(null!, out _));
     }
 
     [Theory]
@@ -205,10 +205,10 @@ public partial class PdfDocumentVisualQualityTests {
         int paleR,
         int paleG,
         int paleB) {
-        PdfTableStyle grid = TableStyles.FromWordTableStyle("GridTable1Light-Accent" + accent.ToString(CultureInfo.InvariantCulture));
-        PdfTableStyle list = TableStyles.FromWordTableStyle("ListTable1LightAccent" + accent.ToString(CultureInfo.InvariantCulture));
+        PdfTableStyle grid = PdfTableStyles.FromWordTableStyle("GridTable1Light-Accent" + accent.ToString(CultureInfo.InvariantCulture));
+        PdfTableStyle list = PdfTableStyles.FromWordTableStyle("ListTable1LightAccent" + accent.ToString(CultureInfo.InvariantCulture));
 
-        PdfColor ExpectedRgb(int r, int g, int b) => PdfColor.FromRgb((byte)r, (byte)g, (byte)b);
+        global::OfficeIMO.OfficeColor ExpectedRgb(int r, int g, int b) => global::OfficeIMO.OfficeColor.FromRgb((byte)r, (byte)g, (byte)b);
 
         Assert.Equal(ExpectedRgb(lightR, lightG, lightB), grid.BorderColor);
         Assert.Equal(ExpectedRgb(strongR, strongG, strongB), grid.HeaderSeparatorColor);
@@ -221,10 +221,10 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TableStyles_WordLikePresetsRenderDistinctGridAndListGeometry() {
-        string plainContent = RenderTableStyleContent(TableStyles.PlainTable1());
-        string gridContent = RenderTableStyleContent(TableStyles.TableGrid());
-        string gridLightContent = RenderTableStyleContent(TableStyles.GridTable1Light());
-        string listContent = RenderTableStyleContent(TableStyles.ListTable1Light());
+        string plainContent = RenderTableStyleContent(PdfTableStyles.PlainTable1());
+        string gridContent = RenderTableStyleContent(PdfTableStyles.TableGrid());
+        string gridLightContent = RenderTableStyleContent(PdfTableStyles.GridTable1Light());
+        string listContent = RenderTableStyleContent(PdfTableStyles.ListTable1Light());
 
         Assert.DoesNotContain(" re S", plainContent);
         Assert.DoesNotContain(" l S", plainContent);
@@ -244,13 +244,13 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void WordLikeTablePresets_ProvideFooterSeparatorsForSummaryRows() {
-        PdfTableStyle gridLight = TableStyles.GridTable1Light();
-        PdfTableStyle listTable = TableStyles.ListTable1Light();
+        PdfTableStyle gridLight = PdfTableStyles.GridTable1Light();
+        PdfTableStyle listTable = PdfTableStyles.ListTable1Light();
 
-        Assert.Equal(PdfColor.FromRgb(127, 127, 127), gridLight.FooterSeparatorColor);
-        Assert.Equal(0.8, gridLight.FooterSeparatorWidth);
-        Assert.Equal(PdfColor.Black, listTable.FooterSeparatorColor);
-        Assert.Equal(0.8, listTable.FooterSeparatorWidth);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(127, 127, 127), gridLight.FooterSeparatorColor);
+        Assert.Equal(0.8, gridLight.FooterSeparatorWidth.ToPoints());
+        Assert.Equal(global::OfficeIMO.OfficeColor.Black, listTable.FooterSeparatorColor);
+        Assert.Equal(0.8, listTable.FooterSeparatorWidth.ToPoints());
     }
 
     [Fact]
@@ -258,43 +258,43 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTheme theme = PdfTheme.WordLike();
         PdfTableStyle style = theme.TableStyle!;
 
-        Assert.Equal(PdfColor.FromRgb(17, 24, 39), style.FooterSeparatorColor);
-        Assert.Equal(0.8, style.FooterSeparatorWidth);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 24, 39), style.FooterSeparatorColor);
+        Assert.Equal(0.8, style.FooterSeparatorWidth.ToPoints());
     }
 
     [Fact]
     public void TableStyles_DocumentPresetsExposeReusableVisualRhythm() {
-        PdfTableStyle technical = TableStyles.TechnicalDocument();
-        PdfTableStyle compact = TableStyles.Compact();
-        PdfTableStyle report = TableStyles.Report();
-        PdfTableStyle freshReport = TableStyles.Report();
+        PdfTableStyle technical = PdfTableStyles.TechnicalDocument();
+        PdfTableStyle compact = PdfTableStyles.Compact();
+        PdfTableStyle report = PdfTableStyles.Report();
+        PdfTableStyle freshReport = PdfTableStyles.Report();
 
-        Assert.Equal(PdfColor.FromRgb(15, 23, 42), technical.HeaderFill);
-        Assert.Equal(PdfColor.White, technical.HeaderTextColor);
-        Assert.Equal(PdfColor.FromRgb(226, 232, 240), technical.RowSeparatorColor);
-        Assert.Equal(9.75, technical.FontSize);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), technical.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.White, technical.HeaderTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(226, 232, 240), technical.RowSeparatorColor);
+        Assert.Equal(9.75, technical.FontSize?.ToPoints());
         Assert.Equal(1.2, technical.LineHeight);
-        Assert.Equal(6, technical.SpacingBefore);
+        Assert.Equal(6, technical.SpacingBefore.ToPoints());
         Assert.True(technical.AutoFitColumns);
 
         Assert.Null(compact.HeaderFill);
-        Assert.Equal(9, compact.FontSize);
+        Assert.Equal(9, compact.FontSize?.ToPoints());
         Assert.Equal(1.12, compact.LineHeight);
-        Assert.Equal(4, compact.CellPaddingX);
-        Assert.Equal(3, compact.CellPaddingY);
-        Assert.Equal(7, compact.SpacingAfter);
+        Assert.Equal(4, compact.CellPaddingX.ToPoints());
+        Assert.Equal(3, compact.CellPaddingY.ToPoints());
+        Assert.Equal(7, compact.SpacingAfter.ToPoints());
         Assert.True(compact.AutoFitColumns);
 
-        Assert.Equal(PdfColor.FromRgb(30, 64, 175), report.HeaderFill);
-        Assert.Equal(PdfColor.FromRgb(239, 246, 255), report.RowStripeFill);
-        Assert.Equal(PdfColor.FromRgb(191, 219, 254), report.BorderColor);
-        Assert.Equal(9.25, report.FontSize);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175), report.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), report.RowStripeFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(191, 219, 254), report.BorderColor);
+        Assert.Equal(9.25, report.FontSize?.ToPoints());
         Assert.Equal(1.18, report.LineHeight);
-        Assert.Equal(10, report.SpacingAfter);
+        Assert.Equal(10, report.SpacingAfter.ToPoints());
         Assert.True(report.AutoFitColumns);
 
-        report.HeaderFill = PdfColor.Black;
-        Assert.Equal(PdfColor.FromRgb(30, 64, 175), freshReport.HeaderFill);
+        report.HeaderFill = global::OfficeIMO.OfficeColor.Black;
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175), freshReport.HeaderFill);
     }
 
 

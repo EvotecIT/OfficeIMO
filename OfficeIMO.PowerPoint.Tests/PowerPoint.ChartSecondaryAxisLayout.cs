@@ -13,10 +13,10 @@ namespace OfficeIMO.Tests;
 public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [Fact]
     public void PrimarySourceLinkedAxisUsesGeneralWorkbookFormatInsteadOfCachedCode() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
-        var chart = slide.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 12d }) }));
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 12d }) }));
         var axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
         axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "$0.00";
         axis.GetFirstChild<C.NumberingFormat>()!.SourceLinked = true;
@@ -27,10 +27,10 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
     [Fact]
     public void CacheOnlySourceLinkedPrimaryFormatMustBeRenderable() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
-        var chart = slide.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 12d }) }));
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 12d }) }));
         var space = slide.SlidePart.ChartParts.Single().ChartSpace!;
         space.GetFirstChild<C.ExternalData>()!.Remove();
         C.NumberingFormat format = space.Descendants<C.ValueAxis>().Single().GetFirstChild<C.NumberingFormat>()!;
@@ -46,10 +46,10 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PrimarySourceLinkedAxisRejectsInheritedWorkbookStyles(bool columnStyle) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
-        var chart = slide.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 12d }) }));
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 12d }) }));
         var part = slide.SlidePart.ChartParts.Single();
         part.ChartSpace!.Descendants<C.ValueAxis>().Single().GetFirstChild<C.NumberingFormat>()!.SourceLinked = true;
         var package = part.GetPartsOfType<EmbeddedPackagePart>().Single();
@@ -88,17 +88,17 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
     [Fact]
     public void UpdateDataPreservesUnsupportedPrimaryAxisDisplayFormat() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
-        var chart = slide.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 12d }) }));
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 12d }) }));
         var axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
         axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "[Red]0";
         axis.GetFirstChild<C.NumberingFormat>()!.SourceLinked = false;
 
         Assert.False(chart.TryGetOfficeSnapshot(out _));
         chart.UpdateData(new OfficeChartData(new[] { "A" },
-            new[] { new OfficeChartSeries("Values", new[] { 24d }) }));
+            new[] { new OfficeSeries("Values", new[] { 24d }) }));
         Assert.Equal("[Red]0", axis.GetFirstChild<C.NumberingFormat>()!.FormatCode!.Value);
     }
 
@@ -114,12 +114,12 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData("eastAsianFont")]
     [InlineData("complexScriptFont")]
     public void SecondaryTitle_RejectsUnprojectedAppearance(string appearance) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
-        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
-            new OfficeChartSeries("Count", new[] { 100d }),
-            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
-                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeSeries("Count", new[] { 100d }),
+            new OfficeSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
         }));
         chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
         var title = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
@@ -145,12 +145,12 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
     [Fact]
     public void SecondaryAxisTitleDoesNotReplacePrimaryTitleWhenAxisElementsAreReordered() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
-        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
-            new OfficeChartSeries("Volume", new[] { 100d }),
-            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
-                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeSeries("Volume", new[] { 100d }),
+            new OfficeSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
         }));
         chart.SetValueAxisTitle("Volume");
         chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
@@ -168,12 +168,12 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData(false)]
     [InlineData(true)]
     public void UnsupportedNumericAxisFormatIsNotProjected(bool secondaryAxis) {
-        using var presentation = PowerPointPresentation.Create();
-        var chart = presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
+        using var presentation = PowerPointDocument.Create();
+        var chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] {
-                new OfficeChartSeries("Count", new[] { 100D }),
-                new OfficeChartSeries("Ratio", new[] { 10D }, null, null, null, true,
-                    renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+                new OfficeSeries("Count", new[] { 100D }),
+                new OfficeSeries("Ratio", new[] { 10D }, null, null, null, true,
+                    renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
             }));
         Assert.True(chart.TryGetOfficeSnapshot(out _));
         var axis = presentation.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
@@ -185,13 +185,13 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Area)]
-    public void ExplicitPrimaryBoundsClipCachedGeometry(OfficeChartKind kind) {
-        using var presentation = PowerPointPresentation.Create();
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Area)]
+    public void ExplicitPrimaryBoundsClipCachedGeometry(OfficeChartType kind) {
+        using var presentation = PowerPointDocument.Create();
         var chart = presentation.AddSlide().AddChart(kind,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Values", new[] { 0D, 20D })
+                new OfficeSeries("Values", new[] { 0D, 20D })
             }));
         Assert.True(chart.TryGetOfficeSnapshot(out _));
         var axis = presentation.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
@@ -209,12 +209,12 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData("paragraphs")]
     [InlineData("break")]
     public void SecondaryValueAxis_UnsupportedTitlePlacementRejectsSnapshot(string placement) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
-        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
-            new OfficeChartSeries("Count", new[] { 100d }),
-            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
-                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeSeries("Count", new[] { 100d }),
+            new OfficeSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
         }));
         chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
         var title = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
@@ -236,14 +236,14 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData("displayUnits")]
     [InlineData("deleted")]
     public void SecondaryValueAxis_UnsupportedProjectionPreservesNativeUpdates(string setting) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A" }, new[] {
-            new OfficeChartSeries("Count", new[] { 100d }),
-            new OfficeChartSeries("Ratio", new[] { 10d }, null, null, null, true,
-                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+            new OfficeSeries("Count", new[] { 100d }),
+            new OfficeSeries("Ratio", new[] { 10d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
         });
-        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered, data);
         var secondary = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
         if (setting == "deleted") secondary.AddChild(new C.Delete { Val = true }, true);
@@ -267,13 +267,13 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
     [Fact]
     public void SecondaryValueAxis_CacheOnlySourceLinkedFormatUsesCachedCode() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Count", new[] { 100d, 150d }),
-            new OfficeChartSeries("Ratio", new[] { 1d, 2d }, null, null, null, true,
-                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
-        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
+            new OfficeSeries("Count", new[] { 100d, 150d }),
+            new OfficeSeries("Ratio", new[] { 1d, 2d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered, data);
         var space = slide.SlidePart.ChartParts.Single().ChartSpace!;
         space.GetFirstChild<C.ExternalData>()?.Remove();
         var secondary = space.Descendants<C.ValueAxis>().Single(axis =>
@@ -288,11 +288,11 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PrimaryValueAxis_RejectsNonlinearOrReversedStaticProjection(bool reversed) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" },
-            new[] { new OfficeChartSeries("Values", new[] { 1d, 10d }) });
-        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
+            new[] { new OfficeSeries("Values", new[] { 1d, 10d }) });
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered, data);
         var axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
         if (reversed) axis.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
         else axis.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
@@ -306,11 +306,11 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
     [Fact]
     public void ScatterSnapshot_UsesBothReferencedNumericAxisScales() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
-        var chart = slide.AddChart(OfficeChartKind.Scatter,
+        var chart = slide.AddChart(OfficeChartType.Scatter,
             new OfficeChartData(new[] { "1", "3" }, new[] {
-                new OfficeChartSeries("Values", new[] { 2d, 4d }, new[] { 1d, 3d }) }));
+                new OfficeSeries("Values", new[] { 2d, 4d }, new[] { 1d, 3d }) }));
         var plot = slide.SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         C.AxisId[] references = plot.GetFirstChild<C.ScatterChart>()!.Elements<C.AxisId>().ToArray();
         C.ValueAxis horizontal = plot.Elements<C.ValueAxis>().Single(axis =>
@@ -334,13 +334,13 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
     [Fact]
     public void SecondaryValueAxis_SourceLinkedGeneralWorkbookUsesResolvedFormat() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Count", new[] { 100d, 150d }),
-            new OfficeChartSeries("Ratio", new[] { 1d, 2d }, null, null, null, true,
-                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
-        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
+            new OfficeSeries("Count", new[] { 100d, 150d }),
+            new OfficeSeries("Ratio", new[] { 1d, 2d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered, data);
         var secondary = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Right);
         secondary.NumberingFormat!.FormatCode = "$0.00";
@@ -357,11 +357,11 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void ScatterSnapshot_RejectsNonlinearOrReversedAxes(bool verticalAxis, bool reversed) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
-        var chart = slide.AddChart(OfficeChartKind.Scatter,
+        var chart = slide.AddChart(OfficeChartType.Scatter,
             new OfficeChartData(new[] { "1", "3" }, new[] {
-                new OfficeChartSeries("Values", new[] { 2d, 4d }, new[] { 1d, 3d }) }));
+                new OfficeSeries("Values", new[] { 2d, 4d }, new[] { 1d, 3d }) }));
         C.ValueAxis axis = slide.SlidePart.ChartParts.Single().ChartSpace!
             .Descendants<C.ValueAxis>().Single(item => item.AxisPosition?.Val?.Value ==
                 (verticalAxis ? C.AxisPositionValues.Left : C.AxisPositionValues.Bottom));
@@ -374,14 +374,14 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [Fact]
     public void SecondaryValueAxis_PersistsThroughUpdatesAndSnapshots() {
         using var bytes = new MemoryStream();
-        using var presentation = PowerPointPresentation.Create(bytes, new PowerPointCreateOptions());
+        using var presentation = PowerPointDocument.Create(bytes, new PowerPointCreateOptions());
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Volume", new[] { 100d, 150d }),
-            new OfficeChartSeries("Ratio", new[] { 1d, 2d }, null, null, null, true,
-                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+            new OfficeSeries("Volume", new[] { 100d, 150d }),
+            new OfficeSeries("Ratio", new[] { 1d, 2d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
         });
-        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered, data);
         chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 4, majorUnit: 1,
             minorUnit: 0.5, numberFormat: "0%", majorTickMark: OfficeChartAxisTickMark.Cross,
             minorTickMark: OfficeChartAxisTickMark.Outside).WithTitle("Secondary ratio"));
@@ -398,7 +398,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         Assert.Equal("Secondary ratio", snapshot.Layout.SecondaryValueAxis.Title);
         Assert.Empty(presentation.ValidateDocument());
         using var persistedBytes = new MemoryStream(presentation.ToBytes());
-        using var reopened = PowerPointPresentation.Load(persistedBytes);
+        using var reopened = PowerPointDocument.Load(persistedBytes);
         Assert.True(reopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out var persisted));
         Assert.Equal(0.5, persisted.Layout.SecondaryValueAxis!.MinorUnit);
         Assert.Equal(OfficeChartAxisTickMark.Cross, persisted.Layout.SecondaryValueAxis.MajorTickMark);

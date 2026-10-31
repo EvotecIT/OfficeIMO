@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel {
                         ?? Enumerable.Empty<OpenXmlElement>(),
                     budget).Count();
                 if (drawings > 0) impacts.Add(new ExcelMutationImpact("drawings", drawings, "Cell-anchored drawing columns will be remapped."));
-                string range = A1.ColumnIndexToLetters(firstColumn) + ":" + A1.ColumnIndexToLetters(last);
+                string range = ExcelA1.ColumnIndexToLetters(firstColumn) + ":" + ExcelA1.ColumnIndexToLetters(last);
                 return new ExcelStructuralMutationPlan(
                     this,
                     deleting ? ExcelStructuralMutationKind.DeleteColumns : ExcelStructuralMutationKind.InsertColumns,
@@ -117,7 +117,7 @@ namespace OfficeIMO.Excel {
                 int maximumUsedColumn = Math.Max(
                     Math.Max(maximumCellColumn, maximumDefinedColumn),
                     Math.Max(maximumPageBreakColumn, maximumDrawingColumn));
-                if (maximumUsedColumn >= firstColumn && (long)maximumUsedColumn + count > A1.MaxColumns) {
+                if (maximumUsedColumn >= firstColumn && (long)maximumUsedColumn + count > ExcelA1.MaxColumns) {
                     throw new InvalidOperationException("Column insertion would move worksheet content or column metadata beyond the Excel column limit.");
                 }
             }
@@ -166,8 +166,8 @@ namespace OfficeIMO.Excel {
                                 RemoveCellWithValueMetadataCleanup(cell);
                                 rowChanged = true;
                             } else if (column > lastColumn) {
-                                int cellRow = A1.ParseCellRef(reference!).Row;
-                                cell.CellReference = A1.CellReference(cellRow, column - count);
+                                int cellRow = ExcelA1.ParseCellRef(reference!).Row;
+                                cell.CellReference = ExcelA1.CellReference(cellRow, column - count);
                                 rowChanged = true;
                             }
                         }
@@ -177,8 +177,8 @@ namespace OfficeIMO.Excel {
                             string? reference = cell.CellReference?.Value;
                             int column = reference == null ? 0 : GetColumnIndex(reference);
                             if (column >= firstColumn) {
-                                int cellRow = A1.ParseCellRef(reference!).Row;
-                                cell.CellReference = A1.CellReference(cellRow, checked(column + count));
+                                int cellRow = ExcelA1.ParseCellRef(reference!).Row;
+                                cell.CellReference = ExcelA1.CellReference(cellRow, checked(column + count));
                                 rowChanged = true;
                             }
                         }
@@ -298,8 +298,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateStructuralColumnArguments(int firstColumn, int count) {
-            if (firstColumn < 1 || firstColumn > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(firstColumn));
-            if (count < 1 || (long)firstColumn + count - 1L > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(count));
+            if (firstColumn < 1 || firstColumn > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(firstColumn));
+            if (count < 1 || (long)firstColumn + count - 1L > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(count));
         }
     }
 }

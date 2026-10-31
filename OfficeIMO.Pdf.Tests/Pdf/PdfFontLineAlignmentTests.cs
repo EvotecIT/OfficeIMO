@@ -14,12 +14,12 @@ public sealed class PdfFontLineAlignmentTests {
     [InlineData("Baseline", 0D, 0D)]
     public void ExactLineAlignmentUsesEachRunDeviceMetrics(string alignmentName, double small, double large) {
         var alignment = (PdfFontLineAlignment)Enum.Parse(typeof(PdfFontLineAlignment), alignmentName);
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Device metrics", ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
         var doc = PdfDocument.Create(options);
-        doc.Paragraph(p => p.FontFamily("Device metrics").FontSize(8).Text("A")
-            .FontSize(16).Text("B"), style: new PdfParagraphStyle {
-                LineSpacing = PdfLineSpacing.Exactly(30).WithFixedLineBoxBaseline(24).WithFontAlignment(alignment, .12D)
+        doc.Paragraph(p => p.FontFamily("Device metrics").FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text("A")
+            .FontSize(global::OfficeIMO.OfficeLength.Points(16)).Text("B"), style: new PdfParagraphStyle {
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(30)).WithFixedLineBoxBaseline(24).WithFontAlignment(alignment, .12D)
             });
         using var pdf = PdfPigDocument.Open(doc.ToBytes());
         var letters = pdf.GetPage(1).Letters;

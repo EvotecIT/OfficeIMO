@@ -11,12 +11,12 @@ public partial class WordImage {
         long width, long height) {
         DW.Anchor? anchor = _Image.Anchor;
         if (anchor == null) return null;
-        double oldWidth = EmuWidth!.Value, oldHeight = EmuHeight!.Value;
-        double sourceWidth = oldWidth / VisibleCropFraction(CropLeft, CropRight);
-        double sourceHeight = oldHeight / VisibleCropFraction(CropTop, CropBottom);
-        double dx = ((left ?? 0D) - (CropLeft ?? 0D) - (right ?? 0D) + (CropRight ?? 0D))
+        double oldWidth = ((double?)Width?.ToEmus())!.Value, oldHeight = ((double?)Height?.ToEmus())!.Value;
+        double sourceWidth = oldWidth / VisibleCropFraction(CropLeftPercentage, CropRightPercentage);
+        double sourceHeight = oldHeight / VisibleCropFraction(CropTopPercentage, CropBottomPercentage);
+        double dx = ((left ?? 0D) - (CropLeftPercentage ?? 0D) - (right ?? 0D) + (CropRightPercentage ?? 0D))
             / CropPercentageUnits * sourceWidth / 2D;
-        double dy = ((top ?? 0D) - (CropTop ?? 0D) - (bottom ?? 0D) + (CropBottom ?? 0D))
+        double dy = ((top ?? 0D) - (CropTopPercentage ?? 0D) - (bottom ?? 0D) + (CropBottomPercentage ?? 0D))
             / CropPercentageUnits * sourceHeight / 2D;
         if (HorizontalFlip == true) dx = -dx;
         if (VerticalFlip == true) dy = -dy;
@@ -45,7 +45,7 @@ public partial class WordImage {
             : position.GetFirstChild<DW.VerticalAlignment>();
         if (offset != null) {
             if (alignment != null || !ReadPositionOffset(offset).HasValue) throw InvalidPhysicalCropAnchor();
-            return ReadPositionOffset(offset)!.Value;
+            return ReadPositionOffset(offset)!.Value.ToEmus();
         }
         if (alignment == null) throw InvalidPhysicalCropAnchor();
         string reference = position.GetAttribute("relativeFrom", string.Empty).Value ?? throw InvalidPhysicalCropAnchor();
@@ -75,8 +75,8 @@ public partial class WordImage {
         W.Settings? settings = _document._wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings;
         if (margins?.Gutter?.Value > 0 || settings?.GetFirstChild<W.MirrorMargins>() is { } mirrored && mirrored.Val?.Value != false)
             throw InvalidPhysicalCropAnchor();
-        double first = horizontal ? section.Margins.Left : section.Margins.Top ?? 0D;
-        double last = horizontal ? section.Margins.Right : section.Margins.Bottom ?? 0D;
+        double first = horizontal ? checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) : checked((int?)(section.Margins.Top?.ToTwips())) ?? 0D;
+        double last = horizontal ? checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips())) : checked((int?)(section.Margins.Bottom?.ToTwips())) ?? 0D;
         if (reference == "column" && horizontal) {
             W.Columns? columns = section._sectionProperties.GetFirstChild<W.Columns>();
             if (columns?.ColumnCount?.Value > 1 || columns?.ChildElements.Count > 1) throw InvalidPhysicalCropAnchor();

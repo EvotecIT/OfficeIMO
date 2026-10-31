@@ -25,8 +25,9 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Adds or replaces a <c>vbaProject.bin</c> payload.</summary>
-        public void AddMacro(byte[] data) {
+        public ExcelMacroProject AddMacro(byte[] data) {
             if (data == null || data.Length == 0) throw new ArgumentException("VBA project data cannot be empty.", nameof(data));
+            ExcelMacroProject? project = null;
             Locking.ExecuteWrite(EnsureLock(), () => {
                 WorkbookPart workbookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is missing.");
                 if (workbookPart.VbaProjectPart != null) {
@@ -37,19 +38,21 @@ namespace OfficeIMO.Excel {
                 OfficeOpenXmlPackagePayload.ReplaceBytes(part, data);
                 EnsureMacroEnabledDocumentType();
                 MarkPackageDirty();
+                project = new ExcelMacroProject(this, part);
             });
+            return project!;
         }
 
         /// <summary>Adds or replaces a VBA project from a file.</summary>
-        public void AddMacro(string filePath) {
+        public ExcelMacroProject AddMacro(string filePath) {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("VBA project path cannot be empty.", nameof(filePath));
             if (!File.Exists(filePath)) throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
-            AddMacro(File.ReadAllBytes(filePath));
+            return AddMacro(File.ReadAllBytes(filePath));
         }
 
         /// <summary>Adds or replaces a VBA project from a readable stream.</summary>
-        public void AddMacro(Stream stream, long? maxBytes = null) {
-            AddMacro(OfficeStreamReader.ReadAllBytes(stream, maxBytes));
+        public ExcelMacroProject AddMacro(Stream stream, long? maxBytes = null) {
+            return AddMacro(OfficeStreamReader.ReadAllBytes(stream, maxBytes));
         }
 
         /// <summary>Extracts the VBA project, or an empty array when no project exists.</summary>

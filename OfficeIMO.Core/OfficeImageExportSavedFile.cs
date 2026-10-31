@@ -6,7 +6,7 @@ using System.IO;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Metadata for an image result that was committed without retaining its payload.</summary>
-public sealed class OfficeImageExportSavedFile {
+internal sealed class OfficeImageExportSavedFile {
     private readonly ReadOnlyCollection<OfficeImageExportDiagnostic> _diagnostics;
 
     internal OfficeImageExportSavedFile(OfficeImageExportResult result, string path) {

@@ -11,8 +11,7 @@ public partial class Word {
     public void LegacyDoc_WordProducedCellBorderOverride_ClearsRowAttributes(string fixture, WordBorderStyle style) {
         using WordDocument document = WordDocument.Load(Path.Combine(AppContext.BaseDirectory, "Documents", fixture));
         AssertExplicitCellEdges(document);
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx,
-            new WordSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow })));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx,  LossPolicy = OfficeConversionLossPolicy.Allow })));
         AssertExplicitCellEdges(restored);
 
         void AssertExplicitCellEdges(WordDocument value) {
@@ -26,7 +25,7 @@ public partial class Word {
             foreach (var edge in edges) {
                 Assert.Equal(style, edge.Item1);
                 Assert.Null(edge.Item2);
-                Assert.Equal(style == WordBorderStyle.Nil ? (uint?)null : 4U, edge.Item3);
+                Assert.Equal(style == WordBorderStyle.Nil ? (global::OfficeIMO.OfficeLength?)null : global::OfficeIMO.OfficeLength.Points(0.5), edge.Item3);
                 Assert.Null(edge.Item4);
             }
         }
@@ -52,8 +51,7 @@ public partial class Word {
             // The first row still owns a visible shared edge above the borderless final row.
             Assert.Equal(WordBorderStyle.Single, table.Rows[1].Cells[0].Borders.TopStyle);
         }
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx,
-            new WordSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow })));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx,  LossPolicy = OfficeConversionLossPolicy.Allow })));
         Assert.Equal(table.Rows[changedRow].Cells[0].Borders.LeftStyle,
             restored.Tables[0].Rows[changedRow].Cells[0].Borders.LeftStyle);
         Assert.Equal(color, restored.Tables[0].Rows[changedRow].Cells[0].Borders.LeftColorHex);
@@ -71,8 +69,7 @@ public partial class Word {
         Assert.Equal(WordBorderStyle.Single, nested.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top).Style);
         Assert.Equal(style, nested.Rows[0].Cells[0].Borders.TopStyle);
         Assert.Equal(color, nested.Rows[0].Cells[0].Borders.TopColorHex);
-        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx,
-            new WordSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow })));
+        using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx,  LossPolicy = OfficeConversionLossPolicy.Allow })));
         var cell = Assert.Single(restored.Tables[0].Rows[0].Cells[0].NestedTables).Rows[0].Cells[0];
         Assert.Equal(style, cell.Borders.TopStyle);
         Assert.Equal(color, cell.Borders.TopColorHex);

@@ -11,10 +11,10 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("canvas")]
     public void Horizontal_image_fragments_preserve_the_full_box_and_intersect_existing_image_clip(string mode) {
         var source = PdfTableCell.WithImages(string.Empty, new[] { new PdfTableCellImage(
-            PdfPngTestImages.CreateRgbPng(2, 2), 36, 12,
+            PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(36), global::OfficeIMO.OfficeLength.Points(12),
             new PdfImageStyle { Align = PdfAlign.Center, ClipPath = OfficeIMO.Drawing.OfficeClipPath.Rectangle(36, 6) },
             linkUri: "https://example.com/") });
-        byte[] bytes = Render(mode, source.WithViewport(new PdfTableCellViewport(200, 24, 100, 24, offsetX: 100)), PdfCellVerticalAlign.Top);
+        byte[] bytes = Render(mode, source.WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), offsetX: global::OfficeIMO.OfficeLength.Points(100))), PdfCellVerticalAlign.Top);
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         var link = Assert.Single(pdf.GetPage(1).GetHyperlinks());
         Assert.InRange(link.Bounds.Left, 23.99, 24.01);
@@ -33,10 +33,10 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("canvas", true)]
     public void Cell_image_is_emitted_only_in_the_fragment_containing_its_full_cell_position(string mode, bool bottomAligned) {
         var source = PdfTableCell.WithImages(string.Empty, new[] {
-            new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), 12, 12, linkUri: "https://example.com/")
+            new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12), linkUri: "https://example.com/")
         });
-        var upper = source.WithViewport(new PdfTableCellViewport(100, 48, 100, 24));
-        var lower = source.WithViewport(new PdfTableCellViewport(100, 48, 100, 24, offsetY: 24));
+        var upper = source.WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(48), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24)));
+        var lower = source.WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(48), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), offsetY: global::OfficeIMO.OfficeLength.Points(24)));
         var align = bottomAligned ? PdfCellVerticalAlign.Bottom : PdfCellVerticalAlign.Top;
         using PdfPigDocument first = PdfPigDocument.Open(Render(mode, upper, align));
         using PdfPigDocument second = PdfPigDocument.Open(Render(mode, lower, align));
@@ -53,9 +53,9 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("canvas")]
     public void Partly_visible_cell_image_retains_full_size_and_clips_its_draw_and_link(string mode) {
         var source = PdfTableCell.WithImages(string.Empty, new[] {
-            new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), 36, 36, linkUri: "https://example.com/")
+            new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(36), global::OfficeIMO.OfficeLength.Points(36), linkUri: "https://example.com/")
         });
-        byte[] bytes = Render(mode, source.WithViewport(new PdfTableCellViewport(100, 48, 100, 24, offsetY: 24)), PdfCellVerticalAlign.Top);
+        byte[] bytes = Render(mode, source.WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(48), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), offsetY: global::OfficeIMO.OfficeLength.Points(24))), PdfCellVerticalAlign.Top);
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Single(pdf.GetPage(1).GetImages());
         var image = Assert.Single(PdfImageExtractor.ExtractImagePlacements(bytes));

@@ -1,7 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
-    public sealed partial class LegacyDocDocument {
+    internal sealed partial class LegacyDocDocument {
         private static IReadOnlyList<LegacyDocSection> ApplyDopNoteSettings(
             IReadOnlyList<LegacyDocSection> sections, byte[] tableStream, LegacyDocFib fib) {
             // Later formats use section note SPRMs. Keep tolerating the short DOPs

@@ -15,18 +15,18 @@ namespace OfficeIMO.Tests {
         public void Layout_setters_write_the_worksheet_part_at_the_document_save_only() {
             string path = Path.Combine(_directoryWithFiles, "LayoutPartSaves.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 for (int row = 1; row <= 40; row++) {
                     sheet.CellValue(row, 1, "Row " + row);
                     sheet.CellValue(row, 2, row);
                 }
                 Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());
 
-                for (int row = 2; row <= 40; row++) sheet.SetRowHeight(row, 30);
+                for (int row = 2; row <= 40; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
                 sheet.SetRowHidden(40, true);
-                sheet.SetColumnWidth(1, 32);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(32));
                 sheet.SetColumnHidden(3, true);
-                sheet.SetColumnWidths(new Dictionary<int, double> { [2] = 14 });
+                sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> { [2] = ExcelColumnWidth.Characters(14) });
                 sheet.SetOrientation(OfficePageOrientation.Landscape);
                 sheet.SetPaperSize(ExcelPaperSize.A4);
                 sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);
@@ -67,11 +67,11 @@ namespace OfficeIMO.Tests {
         public void Set_row_height_keeps_rows_in_order_for_any_access_pattern() {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
-                ExcelSheet sheet = document.AddWorksheet("Rows");
+                ExcelSheet sheet = document.AddSheet("Rows");
                 foreach (int row in new[] { 2, 5, 9 }) sheet.CellValue(row, 1, "Row " + row);
-                foreach (int row in new[] { 10, 3, 7, 1, 9, 4, 12, 6 }) sheet.SetRowHeight(row, 20 + row);
+                foreach (int row in new[] { 10, 3, 7, 1, 9, 4, 12, 6 }) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20 + row)));
                 sheet.InsertRows(4, 2);
-                foreach (int row in new[] { 4, 15, 8 }) sheet.SetRowHeight(row, 50 + row);
+                foreach (int row in new[] { 4, 15, 8 }) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(50 + row)));
                 document.Save(stream);
             }
 
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
                 using var stream = new MemoryStream();
                 int styleSaves;
                 using (var document = ExcelDocument.Create(stream)) {
-                    ExcelSheet sheet = document.AddWorksheet("Styled");
+                    ExcelSheet sheet = document.AddSheet("Styled");
                     for (int column = 1; column <= 3; column++) {
                         sheet.CellValue(1, column, "Header " + column);
                         sheet.CellAt(1, column).HeaderStyle();
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
                     } else {
                         for (int row = 2; row <= 60; row++) WriteRow(sheet, row);
                     }
-                    for (int column = 1; column <= 3; column++) sheet.WrapCells(1, 60, column);
+                    for (int column = 1; column <= 3; column++) sheet.WrapCells(1,60,column);
                     styleSaves = saves();
                     document.Save(stream);
                 }
@@ -149,8 +149,8 @@ namespace OfficeIMO.Tests {
         public void Batch_leaves_an_unstyled_stylesheet_alone_and_range_styling_joins_another_sheets_batch() {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
-                ExcelSheet data = document.AddWorksheet("Data");
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet data = document.AddSheet("Data");
+                ExcelSheet summary = document.AddSheet("Summary");
                 summary.CellValue(1, 1, "Total");
                 summary.CellValue(1, 2, 5);
                 // The workbook gets its styles part with the first styled cell.

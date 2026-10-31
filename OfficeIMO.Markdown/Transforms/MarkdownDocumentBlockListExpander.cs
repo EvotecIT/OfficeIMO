@@ -2,7 +2,7 @@ namespace OfficeIMO.Markdown;
 
 internal static class MarkdownDocumentBlockListExpander {
     public static void RewriteDocument(
-        MarkdownDoc document,
+        MarkdownDocument document,
         MarkdownDocumentTransformContext context,
         Func<IReadOnlyList<IMarkdownBlock>, MarkdownDocumentTransformContext, List<IMarkdownBlock>> blockListRewriter) {
         if (document == null) {

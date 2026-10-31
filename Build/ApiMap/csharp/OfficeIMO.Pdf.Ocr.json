@@ -1,0 +1,16 @@
+{
+  "package": "OfficeIMO.Pdf.Ocr",
+  "extraChanges": [
+    {
+      "category": "diagnostics",
+      "phase": "A",
+      "applied": "applied",
+      "files": [
+        "OfficeIMO.Pdf.Ocr/PdfOcrLogicalDocumentBuilder.cs"
+      ],
+      "note": "OCR word and line inference evidence uses the M1 catalog codes while retaining its geometry, confidence and provider hierarchy."
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions."
+}

@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
         private int ApplyTemplateRowsCore(int templateRow, IReadOnlyList<IReadOnlyDictionary<string, object?>> rowBindings, ExcelTemplateOptions options) {
             if (templateRow <= 0) throw new ArgumentOutOfRangeException(nameof(templateRow));
             if (rowBindings.Count == 0) return 0;
-            if ((long)templateRow + rowBindings.Count - 1L > A1.MaxRows) {
+            if ((long)templateRow + rowBindings.Count - 1L > ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(rowBindings), "Template row expansion must fit inside Excel's worksheet row limit.");
             }
 
@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel {
         private int ApplyTemplateOptionalRowsCore(int firstRow, int rowCount, bool include, IReadOnlyDictionary<string, object?>? bindings, ExcelTemplateOptions options) {
             if (firstRow <= 0) throw new ArgumentOutOfRangeException(nameof(firstRow));
             if (rowCount <= 0) throw new ArgumentOutOfRangeException(nameof(rowCount));
-            if ((long)firstRow + rowCount - 1L > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(rowCount), "Template optional row block must fit inside Excel's worksheet row limit.");
+            if ((long)firstRow + rowCount - 1L > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(rowCount), "Template optional row block must fit inside Excel's worksheet row limit.");
 
             int replacements = 0;
             WriteLockConditional(() => {
@@ -106,7 +106,7 @@ namespace OfficeIMO.Excel {
         private int ApplyTemplateCellsCore(IReadOnlyDictionary<string, object?> bindings, ExcelTemplateOptions options, int? rowFilter) {
             int replacements = 0;
             foreach (var cell in WorksheetRoot.Descendants<Cell>().ToList()) {
-                var reference = A1.ParseCellRef(cell.CellReference?.Value ?? string.Empty);
+                var reference = ExcelA1.ParseCellRef(cell.CellReference?.Value ?? string.Empty);
                 if (rowFilter.HasValue && reference.Row != rowFilter.Value) {
                     continue;
                 }

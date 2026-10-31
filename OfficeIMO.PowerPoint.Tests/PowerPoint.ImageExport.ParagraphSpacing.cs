@@ -10,21 +10,21 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
-        public void PowerPointSlide_ProjectsTextBoxParagraphSpacingInPdfTextSpans() {
+        public void PowerPointSlide_ProjectsTextBoxParagraphSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(220, 120);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(120));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint spaced first", 20, 20, 190, 80);
-            textBox.FontSize = 12;
-            textBox.SetTextMarginsPoints(0, 0, 0, 0);
+            PowerPointTextBox textBox = slide.AddTextBox("PowerPoint spaced first",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(190),global::OfficeIMO.OfficeLength.Points(80));
+            textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            textBox.SetTextMargins(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
             PowerPointParagraph second = textBox.AddParagraph("PowerPoint spaced second");
-            PowerPointSlideVisualSnapshot unspaced = slide.CreateVisualSnapshot();
-            textBox.Paragraphs[0].SetSpaceAfterPoints(18);
-            second.SetSpaceBeforePoints(6);
+            PowerPointSlideVisualInfo unspaced = slide.CreateVisualSnapshot();
+            textBox.Paragraphs[0].SetSpaceAfter(global::OfficeIMO.OfficeLength.Points(18));
+            second.SetSpaceBefore(global::OfficeIMO.OfficeLength.Points(6));
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
@@ -34,8 +34,8 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(220, image!.Width);
 
-            PdfTextSpan firstText = SingleText(snapshot, "PowerPoint spaced first");
-            PdfTextSpan secondText = SingleText(snapshot, "PowerPoint spaced second");
+            PowerPointTextSpanInfo firstText = SingleText(snapshot, "PowerPoint spaced first");
+            PowerPointTextSpanInfo secondText = SingleText(snapshot, "PowerPoint spaced second");
             double baselineGap = SingleText(unspaced, "PowerPoint spaced first").Y - SingleText(unspaced, "PowerPoint spaced second").Y;
             Assert.InRange(firstText.Y - secondText.Y - baselineGap, 23.9D, 24.1D);
 
@@ -45,19 +45,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ProjectsTextBoxLineSpacingInPdfTextSpans() {
+        public void PowerPointSlide_ProjectsTextBoxLineSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(220, 120);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(120));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint line spacing", 20, 20, 190, 80);
-            textBox.FontSize = 12;
-            textBox.SetTextMarginsPoints(0, 0, 0, 0);
-            textBox.Paragraphs[0].SetLineSpacingPoints(24);
+            PowerPointTextBox textBox = slide.AddTextBox("PowerPoint line spacing",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(190),global::OfficeIMO.OfficeLength.Points(80));
+            textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            textBox.SetTextMargins(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
+            textBox.Paragraphs[0].SetLineSpacing(global::OfficeIMO.OfficeLength.Points(24));
             textBox.AddParagraph("PowerPoint next line");
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
@@ -67,8 +67,8 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(120, image!.Height);
 
-            PdfTextSpan firstText = SingleText(snapshot, "PowerPoint line spacing");
-            PdfTextSpan secondText = SingleText(snapshot, "PowerPoint next line");
+            PowerPointTextSpanInfo firstText = SingleText(snapshot, "PowerPoint line spacing");
+            PowerPointTextSpanInfo secondText = SingleText(snapshot, "PowerPoint next line");
             Assert.InRange(firstText.Y - secondText.Y, 23.9D, 24.1D);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<svg", svgText, StringComparison.Ordinal);
         }
 
-        private static PdfTextSpan SingleText(PowerPointSlideVisualSnapshot snapshot, string text) {
+        private static PowerPointTextSpanInfo SingleText(PowerPointSlideVisualInfo snapshot, string text) {
             // PDF text can split a logical label across runs, font subsets, or wrapped lines.
             string combined = GetSnapshotPlainText(snapshot);
             Assert.Contains(text, combined, StringComparison.Ordinal);

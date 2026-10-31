@@ -15,7 +15,7 @@ public sealed class HtmlRenderConsumerTests {
     [Fact]
     public void OutputSurfaceMapsSelectedAndStitchedCoordinatesBackToTheirSources() {
         var options = new HtmlRenderOptions {
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false
         };
@@ -211,7 +211,7 @@ public sealed class HtmlRenderConsumerTests {
     [Fact]
     public void SvgArchiveIsDeterministicAndPreservesSelectedSurfaceEvidence() {
         var options = new HtmlRenderOptions {
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,
             BackgroundColor = OfficeColor.FromRgba(10, 20, 30, 200)

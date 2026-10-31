@@ -10,14 +10,14 @@ namespace OfficeIMO.Tests;
 public sealed partial class PdfReadLayoutSmokeTests {
     [Fact]
     public void PdfTextExtractor_ExtractStructuredByPage_DetectsGeneratedTableRows() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 320,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.Text("Structured table readback marker."))
             .Table(new[] {
@@ -25,10 +25,10 @@ public sealed partial class PdfReadLayoutSmokeTests {
                 new[] { "A-100", "Alpha,Inc", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new System.Collections.Generic.List<double?> { 70, 170, 60 },
+                ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -111,44 +111,44 @@ public sealed partial class PdfReadLayoutSmokeTests {
 
     [Fact]
     public void PdfTextExtractor_ExtractStructuredByPage_GroupsParagraphLines() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 260,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.Text("This structured paragraph should wrap across multiple nearby PDF text lines so wrappers can start from paragraph-like objects."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "P-100", "Paragraph table text", "2" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new System.Collections.Generic.List<double?> { 50, 100, 30 },
+                ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(30) },
                 HeaderRowCount = 1
             })
             .ToBytes();
 
-        StructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
+        PdfStructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }));
 
-        StructuredParagraph paragraph = Assert.Single(page.Paragraphs, item => item.Text.Contains("structured paragraph", StringComparison.Ordinal));
+        PdfStructuredParagraph paragraph = Assert.Single(page.Paragraphs, item => item.Text.Contains("structured paragraph", StringComparison.Ordinal));
         Assert.True(paragraph.Lines.Count > 1);
         Assert.Contains("structured paragraph", paragraph.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("P-100", paragraph.Text, StringComparison.Ordinal);
 
-        StructuredParagraphPage paragraphPage = Assert.Single(PdfTextExtractor.ExtractParagraphsByPage(bytes, new PdfTextLayoutOptions {
+        PdfStructuredParagraphPage paragraphPage = Assert.Single(PdfTextExtractor.ExtractParagraphsByPage(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }));
-        StructuredParagraph extractedParagraph = Assert.Single(paragraphPage.Paragraphs, item => item.Text.Contains("structured paragraph", StringComparison.Ordinal));
+        PdfStructuredParagraph extractedParagraph = Assert.Single(paragraphPage.Paragraphs, item => item.Text.Contains("structured paragraph", StringComparison.Ordinal));
         Assert.Equal(1, paragraphPage.PageNumber);
         Assert.True(extractedParagraph.Lines.Count > 1);
         Assert.DoesNotContain("P-100", extractedParagraph.Text, StringComparison.Ordinal);
 
         using var stream = new MemoryStream(bytes);
-        StructuredParagraphPage streamParagraphPage = Assert.Single(PdfTextExtractor.ExtractParagraphsByPage(stream, new PdfTextLayoutOptions {
+        PdfStructuredParagraphPage streamParagraphPage = Assert.Single(PdfTextExtractor.ExtractParagraphsByPage(stream, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }));
         Assert.Equal(1, streamParagraphPage.PageNumber);
@@ -157,23 +157,23 @@ public sealed partial class PdfReadLayoutSmokeTests {
 
     [Fact]
     public void PdfTextExtractor_ExtractStructuredByPage_DoesNotDuplicateFallbackTableRowsAsParagraphs() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 360,
-                PageHeight = 180,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultParagraphStyle = new PdfParagraphStyle {
-                    DefaultTabStopWidth = 160,
-                    SpacingAfter = 0
+                    DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(160),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 }
             })
             .Paragraph(p => p.Text("Fallback table row").Tab().Text("12345"))
             .ToBytes();
 
-        StructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
+        PdfStructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }));
 
@@ -185,38 +185,38 @@ public sealed partial class PdfReadLayoutSmokeTests {
 
     [Fact]
     public void PdfTextExtractor_ExtractStructuredByPage_DetectsHeadingLines() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 360,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Structured Heading")
             .Paragraph(p => p.Text("Body copy for heading detection."))
             .ToBytes();
 
-        StructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
+        PdfStructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }));
 
-        StructuredHeading heading = Assert.Single(page.Headings);
+        PdfStructuredHeading heading = Assert.Single(page.Headings);
         Assert.Equal("Structured Heading", heading.Text);
         Assert.Equal(1, heading.Level);
         Assert.True(heading.FontSize > page.Paragraphs[0].Lines[0].FontSize);
         Assert.DoesNotContain(page.Paragraphs, paragraph => paragraph.Text.Contains("Structured Heading", StringComparison.Ordinal));
 
-        StructuredHeadingPage headingPage = Assert.Single(PdfTextExtractor.ExtractHeadingsByPage(bytes, new PdfTextLayoutOptions {
+        PdfStructuredHeadingPage headingPage = Assert.Single(PdfTextExtractor.ExtractHeadingsByPage(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }));
-        StructuredHeading extractedHeading = Assert.Single(headingPage.Headings);
+        PdfStructuredHeading extractedHeading = Assert.Single(headingPage.Headings);
         Assert.Equal(1, headingPage.PageNumber);
         Assert.Equal("Structured Heading", extractedHeading.Text);
 
         using var stream = new MemoryStream(bytes);
-        StructuredHeadingPage streamHeadingPage = Assert.Single(PdfTextExtractor.ExtractHeadingsByPage(stream, new PdfTextLayoutOptions {
+        PdfStructuredHeadingPage streamHeadingPage = Assert.Single(PdfTextExtractor.ExtractHeadingsByPage(stream, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }));
         Assert.Equal(1, streamHeadingPage.PageNumber);
@@ -234,7 +234,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
             Directory.CreateDirectory(directory);
             File.WriteAllBytes(inputPath, bytes);
 
-            StructuredHeadingPage pathHeadingPage = Assert.Single(PdfTextExtractor.ExtractHeadingsByPageRanges(inputPath, new PdfTextLayoutOptions {
+            PdfStructuredHeadingPage pathHeadingPage = Assert.Single(PdfTextExtractor.ExtractHeadingsByPageRanges(inputPath, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             }, PdfPageRange.ParseMany("1")));
             Assert.Contains(pathHeadingPage.Headings, item => item.Text == "Structured Heading");
@@ -247,27 +247,27 @@ public sealed partial class PdfReadLayoutSmokeTests {
 
     [Fact]
     public void PdfTextExtractor_ExtractStructuredByPage_DetectsListItems() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 360,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Bullets(new[] { "First bullet", "Second bullet" })
             .Numbered(new[] { "First numbered", "Second numbered" }, startNumber: 3)
             .ToBytes();
 
-        StructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
+        PdfStructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }));
 
         Assert.Contains(page.ListNodes, item => item.Marker == "3" && item.Text == "First numbered" && item.Level == 1);
         Assert.Contains(page.ListNodes, item => item.Marker.Length > 0 && item.Text == "First bullet" && item.Level == 1);
 
-        StructuredListItemPage listPage = Assert.Single(PdfTextExtractor.ExtractListItemsByPage(bytes, new PdfTextLayoutOptions {
+        PdfStructuredListItemPage listPage = Assert.Single(PdfTextExtractor.ExtractListItemsByPage(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }));
         Assert.Equal(1, listPage.PageNumber);
@@ -275,7 +275,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
         Assert.Contains(listPage.ListItems, item => item.Marker == "4" && item.Text == "Second numbered");
 
         using var stream = new MemoryStream(bytes);
-        StructuredListItemPage streamListPage = Assert.Single(PdfTextExtractor.ExtractListItemsByPage(stream, new PdfTextLayoutOptions {
+        PdfStructuredListItemPage streamListPage = Assert.Single(PdfTextExtractor.ExtractListItemsByPage(stream, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }));
         Assert.Contains(streamListPage.ListItems, item => item.Text == "First bullet");
@@ -292,7 +292,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
             Directory.CreateDirectory(directory);
             File.WriteAllBytes(inputPath, bytes);
 
-            StructuredListItemPage pathListPage = Assert.Single(PdfTextExtractor.ExtractListItemsByPageRanges(inputPath, new PdfTextLayoutOptions {
+            PdfStructuredListItemPage pathListPage = Assert.Single(PdfTextExtractor.ExtractListItemsByPageRanges(inputPath, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             }, PdfPageRange.ParseMany("1")));
             Assert.Contains(pathListPage.ListItems, item => item.Marker == "3" && item.Text == "First numbered");

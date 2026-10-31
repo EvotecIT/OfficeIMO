@@ -38,7 +38,7 @@ public sealed class AddOfficeWordFootnoteCommand : PSCmdlet
         }
 
         var paragraph = ResolveParagraph();
-        var note = paragraph.AddFootNote(Text.Trim());
+        var note = paragraph.AddFootNote(Text.Trim()).Paragraph;
 
         if (PassThru.IsPresent)
         {

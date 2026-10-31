@@ -11,7 +11,7 @@ Creates discoverable Word-to-PDF conversion options for Export-OfficeDocumentPdf
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeWordPdfOptions [-PdfOptions <PdfOptions>] [-FontFamily <string>] [-PageSize <PageSize>] [-Orientation <OfficePageOrientation>] [-DefaultPageSize <WordPageSize>] [-DefaultOrientation <OfficePageOrientation>] [-MarginLeft <Double>] [-MarginTop <Double>] [-MarginRight <Double>] [-MarginBottom <Double>] [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-IncludePageNumbers] [-PageNumberFormat <string>] [-DefaultTableBorders] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
+New-OfficeWordPdfOptions [-PdfOptions <PdfCreateOptions>] [-FontFamily <string>] [-PageSize <PdfPageSize>] [-Orientation <OfficePageOrientation>] [-DefaultPageSize <WordPageSize>] [-DefaultOrientation <OfficePageOrientation>] [-MarginLeft <Double>] [-MarginTop <Double>] [-MarginRight <Double>] [-MarginBottom <Double>] [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-IncludePageNumbers] [-PageNumberFormat <string>] [-DefaultTableBorders] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -272,7 +272,7 @@ Accept wildcard characters: False
 PDF page size.
 
 ```yaml
-Type: PageSize
+Type: PdfPageSize
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -288,7 +288,7 @@ Accept wildcard characters: False
 Underlying low-level OfficeIMO PDF options.
 
 ```yaml
-Type: PdfOptions
+Type: PdfCreateOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -341,7 +341,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Word.Pdf.WordToPdfOptions`
+- `OfficeIMO.Word.Pdf.WordPdfExportOptions`
 
 ## RELATED LINKS
 

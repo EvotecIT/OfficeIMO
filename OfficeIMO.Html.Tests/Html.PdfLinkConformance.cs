@@ -14,14 +14,14 @@ public sealed class HtmlPdfLinkConformanceTests {
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "SourceSerif4-Regular.otf"));
         var options = new HtmlToPdfOptions {
             MathMlSourceModificationDate = new DateTimeOffset(2026, 10, 2, 0, 0, 0, TimeSpan.Zero),
-            PdfOptions = new PdfOptions()
+            PdfOptions = new PdfCreateOptions()
                 .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
                 .ConfigurePdfUaGroundwork()
                 .EmbedStandardFont(PdfStandardFont.Helvetica, font, "Source Serif")
                 .RequireCompliance(PdfComplianceProfile.PdfUa1)
         };
-        byte[] bytes = HtmlConversionDocument.Parse("<html lang='en'><title>Accessible links</title><body>" + body + "</body></html>")
-            .ToPdfBytes(options);
+        byte[] bytes = (HtmlConversionDocument.Parse("<html lang='en'><title>Accessible links</title><body>" + body + "</body></html>")
+            .ToPdf(options)).ToBytes();
         Assert.NotEmpty(PdfDocumentReadResult.Load(bytes).GetLinksByUri("https://example.test/details"));
         var tagged = PdfInspector.Inspect(bytes).TaggedContent!;
         Assert.Contains(tagged.StructureElements, element => element.StructureType == "Link" && element.ObjectReferenceCount > 0);

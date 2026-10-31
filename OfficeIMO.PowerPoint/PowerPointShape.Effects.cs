@@ -8,16 +8,18 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies a drop shadow to the shape.
         /// </summary>
-        public void SetShadow(string color, double blurPoints = 4, double distancePoints = 3,
+        public void SetShadow(string color, OfficeLength? blur = null, OfficeLength? distance = null,
             double angleDegrees = 45, int transparencyPercent = 35, bool rotateWithShape = false) {
+            OfficeLength resolvedBlur = blur ?? OfficeLength.Points(4);
+            OfficeLength resolvedDistance = distance ?? OfficeLength.Points(3);
             if (string.IsNullOrWhiteSpace(color)) {
                 throw new ArgumentException("Shadow color cannot be null or empty.", nameof(color));
             }
-            if (blurPoints < 0) {
-                throw new ArgumentOutOfRangeException(nameof(blurPoints));
+            if (resolvedBlur < OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(blur));
             }
-            if (distancePoints < 0) {
-                throw new ArgumentOutOfRangeException(nameof(distancePoints));
+            if (resolvedDistance < OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(distance));
             }
             if (transparencyPercent is < 0 or > 100) {
                 throw new ArgumentOutOfRangeException(nameof(transparencyPercent), "Transparency must be between 0 and 100.");
@@ -28,8 +30,8 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            shadow.BlurRadius = PowerPointUnits.FromPoints(blurPoints);
-            shadow.Distance = PowerPointUnits.FromPoints(distancePoints);
+            shadow.BlurRadius = resolvedBlur.ToEmus();
+            shadow.Distance = resolvedDistance.ToEmus();
             shadow.Direction = ToShadowAngle(angleDegrees);
             shadow.RotateWithShape = rotateWithShape;
 
@@ -58,12 +60,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies a glow effect to the shape.
         /// </summary>
-        public void SetGlow(string color, double radiusPoints = 4, int transparencyPercent = 30) {
+        public void SetGlow(string color, OfficeLength? radius = null, int transparencyPercent = 30) {
+            OfficeLength resolvedRadius = radius ?? OfficeLength.Points(4);
             if (string.IsNullOrWhiteSpace(color)) {
                 throw new ArgumentException("Glow color cannot be null or empty.", nameof(color));
             }
-            if (radiusPoints < 0) {
-                throw new ArgumentOutOfRangeException(nameof(radiusPoints));
+            if (resolvedRadius < OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(radius));
             }
             if (transparencyPercent is < 0 or > 100) {
                 throw new ArgumentOutOfRangeException(nameof(transparencyPercent), "Transparency must be between 0 and 100.");
@@ -74,7 +77,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            glow.Radius = PowerPointUnits.FromPoints(radiusPoints);
+            glow.Radius = resolvedRadius.ToEmus();
             RemoveGlowColors(glow);
 
             A.RgbColorModelHex rgb = new() { Val = color };
@@ -101,9 +104,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies a soft edges effect to the shape.
         /// </summary>
-        public void SetSoftEdges(double radiusPoints) {
-            if (radiusPoints < 0) {
-                throw new ArgumentOutOfRangeException(nameof(radiusPoints));
+        public void SetSoftEdges(OfficeLength radius) {
+            if (radius < OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(radius));
             }
 
             A.SoftEdge? softEdge = GetSoftEdge(create: true);
@@ -111,7 +114,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            softEdge.Radius = PowerPointUnits.FromPoints(radiusPoints);
+            softEdge.Radius = radius.ToEmus();
         }
 
         /// <summary>
@@ -132,9 +135,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies a blur effect to the shape.
         /// </summary>
-        public void SetBlur(double radiusPoints, bool grow = false) {
-            if (radiusPoints < 0) {
-                throw new ArgumentOutOfRangeException(nameof(radiusPoints));
+        public void SetBlur(OfficeLength radius, bool grow = false) {
+            if (radius < OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(radius));
             }
 
             A.Blur? blur = GetBlur(create: true);
@@ -142,7 +145,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            blur.Radius = PowerPointUnits.FromPoints(radiusPoints);
+            blur.Radius = radius.ToEmus();
             blur.Grow = grow;
         }
 
@@ -165,8 +168,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies a reflection effect to the shape.
         /// </summary>
         public void SetReflection(
-            double blurPoints = 4,
-            double distancePoints = 2,
+            OfficeLength? blur = null,
+            OfficeLength? distance = null,
             double directionDegrees = 270,
             double fadeDirectionDegrees = 90,
             int startOpacityPercent = 50,
@@ -175,11 +178,13 @@ namespace OfficeIMO.PowerPoint {
             int endPositionPercent = 100,
             PowerPointRectangleAlignment? alignment = null,
             bool rotateWithShape = false) {
-            if (blurPoints < 0) {
-                throw new ArgumentOutOfRangeException(nameof(blurPoints));
+            OfficeLength resolvedBlur = blur ?? OfficeLength.Points(4);
+            OfficeLength resolvedDistance = distance ?? OfficeLength.Points(2);
+            if (resolvedBlur < OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(blur));
             }
-            if (distancePoints < 0) {
-                throw new ArgumentOutOfRangeException(nameof(distancePoints));
+            if (resolvedDistance < OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(distance));
             }
             if (startOpacityPercent is < 0 or > 100) {
                 throw new ArgumentOutOfRangeException(nameof(startOpacityPercent), "Opacity must be between 0 and 100.");
@@ -199,8 +204,8 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            reflection.BlurRadius = PowerPointUnits.FromPoints(blurPoints);
-            reflection.Distance = PowerPointUnits.FromPoints(distancePoints);
+            reflection.BlurRadius = resolvedBlur.ToEmus();
+            reflection.Distance = resolvedDistance.ToEmus();
             reflection.Direction = ToShadowAngle(directionDegrees);
             reflection.FadeDirection = ToShadowAngle(fadeDirectionDegrees);
             reflection.StartOpacity = ToAlphaValue(startOpacityPercent);

@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         // Inspect before Word normalizes WebP or AVIF into an allocated RGBA frame and PNG.
-        private static void EnsureDecodedImageWithinLimits(Stream stream, HtmlToWordOptions options) {
+        private static void EnsureDecodedImageWithinLimits(Stream stream, WordHtmlImportOptions options) {
             if (!options.MaxDecodedImagePixels.HasValue) return;
             if (OfficeImageReader.TryIdentifyByContent(stream, null, out OfficeImageInfo info)
                 && info.Format is OfficeImageFormat.Webp or OfficeImageFormat.Avif

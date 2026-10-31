@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System;
@@ -12,9 +14,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordTable table = document.AddTable(2, 2);
 
-                table.ColumnWidth = new List<int> { 1440, 2880 };
-                table.ColumnWidthType = WordTableWidthUnit.Dxa;
-
+                table.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(72)), WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(144)) };
                 var cell1 = table.Rows[0].Cells[0];
                 cell1.AddParagraph("Red");
                 cell1.ShadingFillColorHex = "ff0000";

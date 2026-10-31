@@ -102,8 +102,8 @@ public sealed class HtmlPortableBrowserFontProfile {
     public OfficeFontFaceCollection CreateDrawingFonts() => FontPack.Fonts;
 
     /// <summary>Creates deterministic PDF writer options with embedded fonts and explicit substitutions.</summary>
-    public PdfOptions CreatePdfOptions(IOfficeTextShapingProvider? textShapingProvider = null) {
-        var options = new PdfOptions {
+    public PdfCreateOptions CreatePdfOptions(IOfficeTextShapingProvider? textShapingProvider = null) {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             HeaderFont = PdfStandardFont.Helvetica,
             FooterFont = PdfStandardFont.Helvetica,

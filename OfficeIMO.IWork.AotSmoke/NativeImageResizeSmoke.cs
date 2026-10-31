@@ -48,9 +48,9 @@ internal static class NativeImageResizeSmoke {
         var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadKeynote(); var before = original.ReadKeynote();
         Require(projection.Diagnostics.Count == 0 && projection.SourceDeclarationIssues.Count == 0
             && projection.SourceReferenceIssues.Count == 0 && projection.Slides.Count == 3, "Resized source has incomplete declarations.");
-        using var result = source.ToPowerPointPresentationResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToPowerPointDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
+        using var saved = PowerPointDocument.Load(output);
         Require(saved.Slides.Count == 3 && !saved.ValidateDocument().Any(), "Resized source failed saved PowerPoint reconstruction.");
         for (int index = 0; index < 3; index++) {
             var image = projection.Slides[index].Images.Single(); var expected = before.Slides[index].Images.Single();
@@ -62,8 +62,8 @@ internal static class NativeImageResizeSmoke {
                 && frame.WidthPoints == (index == 1 ? 360 : index == 2 && edited ? 421 : 420) && frame.HeightPoints == (index == 1 ? 180 : 168),
                 "Resized source lost image pixels, description, stacking or final geometry.");
             Require(picture.GetImageBytes().SequenceEqual(image.GetBytes()) && picture.AltText == image.AccessibilityDescription
-                && picture.Left == frame.LeftPoints * 12700 && picture.Top == frame.TopPoints * 12700
-                && picture.Width == frame.WidthPoints * 12700 && picture.Height == frame.HeightPoints * 12700,
+                && picture.Left.ToEmus() == frame.LeftPoints * 12700 && picture.Top.ToEmus() == frame.TopPoints * 12700
+                && picture.Width.ToEmus() == frame.WidthPoints * 12700 && picture.Height.ToEmus() == frame.HeightPoints * 12700,
                 "Saved PowerPoint lost resized image content or geometry.");
         }
     }

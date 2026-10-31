@@ -4,6 +4,7 @@ import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../../OfficeIMO.JavaScript/", import.meta.url));
+const compilerVersion = JSON.parse(await readFile(join(root, "node_modules/typescript/package.json"), "utf8")).version;
 const output = process.argv[2] && resolve(process.argv[2]), canopy = process.argv[3] && resolve(process.argv[3]);
 const canopyArchive = process.argv[4] && resolve(process.argv[4]);
 if (!output || !canopy || !process.env.npm_execpath) throw new Error("Use npm run test:canopy-types -- <packed-evidence-directory> <CanopyX-repository> [CanopyX-npm-archive].");
@@ -45,7 +46,7 @@ await writeFile(join(folder, "tsconfig.json"), JSON.stringify({ compilerOptions:
   ...(canopyArchive ? {} : { paths: { "@evotecit/canopyx/reporting": [join(canopy, "JavaScript", "grid.d.ts")] } })
 }, files: ["consumer.mts"] }, null, 2) + "\n");
 run([join(root, "node_modules/typescript/bin/tsc"), "-p", "tsconfig.json"]);
-await writeFile(join(output, "canopy-types.json"), JSON.stringify({ passed: true, compiler: "5.9.3", declarationSource: canopy, archive,
+await writeFile(join(output, "canopy-types.json"), JSON.stringify({ passed: true, compiler: compilerVersion, declarationSource: canopy, archive,
   nativeArchive: canopyArchive ?? null, nativeEntry: "@evotecit/canopyx/reporting", packages,
   contracts: ["offset capture", "cursor capture", "host callback capture", "cancellation", "host progress", "packed optional entry"], runtimeDependencies: 0 }, null, 2) + "\n");
 console.log("Actual CanopyX offset/cursor captures and export host callback compile against the installed OfficeIMO archive.");

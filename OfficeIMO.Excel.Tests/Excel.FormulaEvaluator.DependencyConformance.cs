@@ -96,8 +96,8 @@ namespace OfficeIMO.Tests {
             var worker = new System.Threading.Thread(() => {
                 try {
                     using var document = ExcelDocument.Create();
-                    var first = document.AddWorksheet("First");
-                    var second = crossSheet ? document.AddWorksheet("Second") : first;
+                    var first = document.AddSheet("First");
+                    var second = crossSheet ? document.AddSheet("Second") : first;
                     const int cells = 30;
                     int nesting = parentheses ? 70 : 50;
                     for (int row = 1; row <= cells; row++) {

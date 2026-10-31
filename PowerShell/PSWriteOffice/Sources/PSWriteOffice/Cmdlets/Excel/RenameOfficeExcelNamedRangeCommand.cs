@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Rename a named range and keep the workbook reusable.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$workbook = Get-OfficeExcel -Path .\Report.xlsx
+///   <code>$workbook = Open-OfficeExcel -Path .\Report.xlsx
 /// $renamed = $workbook | Rename-OfficeExcelNamedRange -Name RevenueRange -NewName Revenue_Current -PassThru
 /// Save-OfficeExcel -Document $workbook</code>
 ///   <para>Renames the defined name through OfficeIMO validation before saving the workbook.</para>

@@ -117,7 +117,7 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
                         actualCount++;
                         if (fill.GradientStopCount > 0) {
                             workbook.AddDiagnostic(new XlsbImportDiagnostic(
-                                "XLSB-STYLE-GRADIENT-PRESERVED",
+                                "xlsb-style-gradient-preserved",
                                 XlsbImportDiagnosticSeverity.Warning,
                                 "Preserved an XLSB gradient fill whose stop collection is not yet projected into the editable Open XML style model.",
                                 partName,

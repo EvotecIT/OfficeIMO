@@ -90,7 +90,7 @@ public sealed class IWorkPagesRichNumberedItemNativeExportTests {
         foreach (JsonElement scenario in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             foreach (string producer in new[] { "nativePdf", "officeimoPdf" }) {
                 if (!scenario.TryGetProperty(producer, out JsonElement artifact)) continue;
-                PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(Artifact(manifest.RootElement, artifact.GetString()!)));
+                PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Artifact(manifest.RootElement, artifact.GetString()!))));
                 var page = Assert.Single(pdf.Pages); string text = Compact(page.ExtractText()); int previous = -1;
                 foreach (JsonElement item in scenario.GetProperty("expectedItems").EnumerateArray()) {
                     string wanted = Compact(item.GetProperty("number").GetInt32().ToString(System.Globalization.CultureInfo.InvariantCulture)

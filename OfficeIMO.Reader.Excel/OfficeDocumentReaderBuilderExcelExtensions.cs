@@ -72,11 +72,11 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
                 new ReaderFormatQualification(".slk", "sylk-stored-values", ReaderFormatSupport.ReadConvert,
                     preservation: new[] { "Cell coordinates, explicit blanks, text, finite numbers, booleans and valid stored formula values" },
                     limitations: new[] { "Formula expressions and shared/matrix/table behavior and formatting are omitted with loss reports; error markers become literal text", "SYLK character escapes other than line breaks and the historical SCALC3 string dialect are rejected", "No source-format writing or source expression evaluation" },
-                    evidence: new[] { "OfficeIMO.Excel/README.md#profile-coverage", "OfficeIMO.LegacyImport.Tests/TextSpreadsheetImportTests.cs", "OfficeIMO.LegacyImport.Tests/Fixtures/TextSpreadsheets/README.md" }),
+                    evidence: new[] { "Docs/officeimo.excel-guide.md#profile-coverage", "OfficeIMO.LegacyImport.Tests/TextSpreadsheetImportTests.cs", "OfficeIMO.LegacyImport.Tests/Fixtures/TextSpreadsheets/README.md" }),
                 new ReaderFormatQualification(".dif", "dif-row-values", ReaderFormatSupport.ReadConvert,
                     preservation: new[] { "Source row order, text, finite numbers and booleans" },
                     limitations: new[] { "DIF contains stored values, without formulas or source formatting", "Error markers become literal text with loss reports", "Unsupported topics and dimension mismatches are reported; no source-format writing" },
-                    evidence: new[] { "OfficeIMO.Excel/README.md#profile-coverage", "OfficeIMO.LegacyImport.Tests/TextSpreadsheetImportTests.cs", "OfficeIMO.LegacyImport.Tests/Fixtures/TextSpreadsheets/README.md" })
+                    evidence: new[] { "Docs/officeimo.excel-guide.md#profile-coverage", "OfficeIMO.LegacyImport.Tests/TextSpreadsheetImportTests.cs", "OfficeIMO.LegacyImport.Tests/Fixtures/TextSpreadsheets/README.md" })
             },
             ReadDocumentPath = (path, readerOptions, token) => LegacySpreadsheetReaderAdapter.ReadDocument(path, readerOptions, configured, configuredImport, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => LegacySpreadsheetReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, configuredImport, token),

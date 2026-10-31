@@ -33,7 +33,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(font.Measure("BB", 20D), first.TextAdvanceWidth!.Value, 6);
         Assert.Equal(font.Measure("0", 20D) * 3D, shifted.X - first.X, 6);
-        byte[] pdf = document.ToPdfBytes(options);
+        byte[] pdf = (document.ToPdf(options)).ToBytes();
         Assert.Contains("BB", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Equal(1, PdfCore.PdfFontInspector.Inspect(PdfCore.PdfReadDocument.Open(pdf)).EmbeddedFontCount);
     }

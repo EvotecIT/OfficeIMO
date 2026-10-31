@@ -128,6 +128,22 @@ public sealed class MboxStoreReaderTests {
     }
 
     [Fact]
+    public void BulkMboxReadHashesTheArchiveOnlyAtItsBoundaries() {
+        byte[] pair = CreateMailboxBytes();
+        byte[] archive = new byte[pair.Length * 10];
+        for (int index = 0; index < 10; index++) Buffer.BlockCopy(pair, 0, archive, index * pair.Length, pair.Length);
+        using var stream = new CountingReadStream(archive);
+        using EmailStoreSession session = EmailStoreSession.Open(stream, "bulk.mbox");
+        stream.BytesRead = 0;
+
+        EmailStoreReadResult result = session.ReadAll();
+
+        Assert.Equal(20, Assert.Single(result.Store.Folders).Items.Count);
+        Assert.True(stream.BytesRead < archive.Length * 8L,
+            $"Bulk read consumed {stream.BytesRead} bytes from a {archive.Length}-byte archive.");
+    }
+
+    [Fact]
     public void MboxStoreCanExportThroughTheSharedSessionBoundary() {
         string destination = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".mbox");
         try {
@@ -287,6 +303,23 @@ public sealed class MboxStoreReaderTests {
                 throw new InvalidOperationException("The mbox reader requested an aggregate-sized buffer.");
             }
             return base.Read(buffer, offset, count);
+        }
+    }
+
+    private sealed class CountingReadStream : MemoryStream {
+        internal CountingReadStream(byte[] bytes) : base(bytes, writable: false) { }
+        internal long BytesRead { get; set; }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            BytesRead += read;
+            return read;
+        }
+
+        public override int ReadByte() {
+            int value = base.ReadByte();
+            if (value >= 0) BytesRead++;
+            return value;
         }
     }
 

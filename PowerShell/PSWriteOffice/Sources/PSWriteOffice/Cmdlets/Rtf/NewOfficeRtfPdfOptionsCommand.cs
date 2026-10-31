@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Rtf;
 public sealed class NewOfficeRtfPdfOptionsCommand : PSCmdlet {
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>
     [Parameter]
-    public OfficeIMO.Pdf.PdfOptions? PdfOptions { get; set; }
+    public OfficeIMO.Pdf.PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Include text marked hidden.</summary>
     [Parameter]

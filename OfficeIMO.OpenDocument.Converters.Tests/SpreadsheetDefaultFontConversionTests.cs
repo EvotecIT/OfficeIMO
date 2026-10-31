@@ -15,7 +15,7 @@ public sealed class SpreadsheetDefaultFontConversionTests {
     [InlineData("14pt", 14D)]
     public void RelativeDefaultFontSizesUseTheOpenDocumentCascade(string lexical, double expectedPoints) {
         using var original = ExcelDocument.Create();
-        original.AddWorksheet("Default font").CellValue(1, 1, "Visible cell");
+        original.AddSheet("Default font").CellValue(1, 1, "Visible cell");
         OdsDocument source = original.ToOpenDocument();
         source.Styles.GetOrCreateDefault(OdfStyleFamily.TableCell).FontSize = OdfLength.Parse(lexical);
         using var serialized = new MemoryStream();
@@ -27,16 +27,16 @@ public sealed class SpreadsheetDefaultFontConversionTests {
 
         Font font = imported.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<Font>().First();
         Assert.Equal(expectedPoints, font.FontSize!.Val!.Value, 6);
-        Assert.Equal("Visible cell", imported.CreateInspectionSnapshot().Worksheets[0].Cells.Single().Value);
+        Assert.Equal("Visible cell", imported.Inspect().Worksheets[0].Cells.Single().Value);
     }
 
     [Fact]
     public void WorkbookColumnFontSurvivesSavedOdsRoundTripIndependentlyOfCellFonts() {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Metrics");
+        var sheet = workbook.AddSheet("Metrics");
         sheet.CellValue(1, 1, "Visible cell");
         sheet.CellFontName(1, 1, "Cell Face");
-        sheet.SetColumnWidth(1, 24);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(24));
         Font font = workbook.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<Font>().First();
         font.FontName = new FontName { Val = "Column Face" };
         font.FontSize = new FontSize { Val = 14D };
@@ -60,7 +60,7 @@ public sealed class SpreadsheetDefaultFontConversionTests {
         Assert.Equal(14D, restored.FontSize!.Val!.Value);
         Assert.NotNull(restored.Bold);
         Assert.NotNull(restored.Italic);
-        var cellStyle = roundTrip.CreateInspectionSnapshot().Worksheets[0].Cells.Single().Style!;
+        var cellStyle = roundTrip.Inspect().Worksheets[0].Cells.Single().Style!;
         Assert.Equal("Cell Face", cellStyle.FontName);
         Assert.False(cellStyle.Bold);
         Assert.False(cellStyle.Italic);

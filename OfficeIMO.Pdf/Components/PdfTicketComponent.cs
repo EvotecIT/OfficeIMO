@@ -50,10 +50,10 @@ public sealed class PdfTicketComponent : IPdfComponent {
             if (details.Count > 0) panel.Table(details, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null });
             if (!string.IsNullOrWhiteSpace(Instructions)) panel.Paragraph(paragraph => paragraph.Text(Instructions!));
         }, new PdfPanelStyle {
-            BorderColor = new PdfColor(0.15, 0.15, 0.15),
-            BorderWidth = 1.2,
-            PaddingX = 16,
-            PaddingY = 14,
+            BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.15, 0.15, 0.15),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(1.2),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(16),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(14),
             KeepTogether = true
         });
     }

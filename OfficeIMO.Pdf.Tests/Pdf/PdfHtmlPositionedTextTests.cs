@@ -13,7 +13,7 @@ public sealed class PdfHtmlPositionedTextTests {
     public void PositionedTextPreservesNativeBaselinesSizesAndColors() {
         var source = PdfDocument.Create().Paragraph(p => p.Text("Original text"));
         var stamped = PdfDocument.Load(source.ToBytes()).Stamp.TextWatermark("Review", new PdfTextStampOptions {
-            X = 210, Y = 430, FontSize = 22, RotationDegrees = 0, Color = PdfColor.FromRgb(12, 34, 56)
+            X = global::OfficeIMO.OfficeLength.Points(210), Y = global::OfficeIMO.OfficeLength.Points(430), FontSize = global::OfficeIMO.OfficeLength.Points(22), RotationDegrees = 0, Color = global::OfficeIMO.OfficeColor.FromRgb(12, 34, 56)
         });
         var document = PdfDocument.Load(stamped.ToBytes()).Read();
         var result = document.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
@@ -28,6 +28,6 @@ public sealed class PdfHtmlPositionedTextTests {
         Assert.Equal("rgb(12,34,56)", (string?)text.Attribute("fill"));
         Assert.Equal(document.Pages[0].TextBlocks.SelectMany(b => b.Spans).Distinct().Count(s => s.IsVisible && s.Text.Length > 0),
             svg.Descendants(ns + "text").Count());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PositionedFontSubstitution");
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == OfficeDiagnosticCodes.PositionedFontSubstitution);
     }
 }

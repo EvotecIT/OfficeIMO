@@ -33,7 +33,7 @@ namespace OfficeIMO.Examples.Word {
                         "0th This paragraph started with some other text and was overwritten and made bold.";
 
                     // lets add image to paragraph
-                    paragraph.AddImage(file, 22, 22);
+                    paragraph.AddImage(file, OfficeIMO.OfficeLength.Pixels(22), OfficeIMO.OfficeLength.Pixels(22));
                     var paragraphImage = Guard.NotNull(paragraph.Image, "Paragraph should contain the inserted image.");
                     //paragraphImage.WrapText = true; // WrapSideValues.Both;
 
@@ -43,7 +43,7 @@ namespace OfficeIMO.Examples.Word {
                     document.AddParagraph("This adds another picture with 500x500");
 
                     WordParagraph paragraph2 = document.AddParagraph();
-                    paragraph2.AddImage(file, 500, 500);
+                    paragraph2.AddImage(file, OfficeIMO.OfficeLength.Pixels(500), OfficeIMO.OfficeLength.Pixels(500));
                     var paragraph2Image = Guard.NotNull(paragraph2.Image, "Paragraph should contain the large image.");
                     //paragraph2Image.BlackWhiteMode = WordImageBlackWhiteMode.GrayWhite;
                     paragraph2Image.Rotation = 180;
@@ -53,7 +53,7 @@ namespace OfficeIMO.Examples.Word {
                     document.AddParagraph("This adds another picture with 100x100");
 
                     WordParagraph paragraph3 = document.AddParagraph();
-                    paragraph3.AddImage(file, 100, 100);
+                    paragraph3.AddImage(file, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
 
                     // we add paragraph with an image
                     WordParagraph paragraph4 = document.AddParagraph();
@@ -62,18 +62,18 @@ namespace OfficeIMO.Examples.Word {
                     var paragraph4Image = Guard.NotNull(paragraph4.Image, "Paragraph should contain the default-sized image.");
 
                     // we can get the height of the image from paragraph
-                    Console.WriteLine("This document has image, which has height of: " + paragraph4Image.Height + " pixels (I think) ;-)");
+                    Console.WriteLine("This document has image, which has height of: " + (paragraph4Image.Height?.ToPixels()) + " pixels (I think) ;-)");
 
                     // we can also overwrite height later on
-                    paragraph4Image.Height = 50;
-                    paragraph4Image.Width = 50;
+                    paragraph4Image.Height = OfficeIMO.OfficeLength.Pixels(50);
+                    paragraph4Image.Width = OfficeIMO.OfficeLength.Pixels(50);
                     // this doesn't work
                     paragraph4Image.HorizontalFlip = true;
 
                     // or we can get any image and overwrite it's size
                     var firstImage = Guard.GetRequiredItem(document.Images, 0, "Document should contain at least one image.");
-                    firstImage.Height = 200;
-                    firstImage.Width = 200;
+                    firstImage.Height = OfficeIMO.OfficeLength.Pixels(200);
+                    firstImage.Width = OfficeIMO.OfficeLength.Pixels(200);
                 }
 
                 document.Save();
