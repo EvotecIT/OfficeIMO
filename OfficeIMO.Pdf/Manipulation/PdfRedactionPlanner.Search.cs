@@ -30,6 +30,8 @@ internal static partial class PdfRedactionPlanner {
         Regex[] expressions = search.RegularExpressions.Select(pattern => new Regex(pattern, search.RegexOptions, search.RegexTimeout)).ToArray();
         if (search.LiteralText.Count == 0 && expressions.Length == 0 && search.FormFieldNames.Count == 0 && search.LogicalElementKinds.Count == 0) throw new ArgumentException("At least one redaction search criterion is required.", nameof(search));
 
+        // Redaction searches every painted glyph, including headers and footers omitted by reading defaults.
+        readOptions = PdfLoadOptions.WithArtifactText(readOptions);
         PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions, search.CancellationToken);
         if (search.PageNumbers.Any(page => page < 1 || page > readDocument.Pages.Count)) throw new ArgumentOutOfRangeException(nameof(search), "Search pages must identify existing one-based pages.");
         if (search.TextSelection == PdfRedactionTextSelection.MatchedGlyphs)

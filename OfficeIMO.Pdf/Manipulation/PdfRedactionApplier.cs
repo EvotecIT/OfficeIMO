@@ -306,7 +306,7 @@ internal static partial class PdfRedactionApplier {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
         }
 
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, effectiveOptions.CancellationToken);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(readOptions), effectiveOptions.CancellationToken);
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         if (mutationOperation == PdfMutationOperation.Redact) NormalizeUndefinedRedactionReferences(objects, effectiveOptions.CancellationToken);
         Dictionary<int, PdfStream> sourceStreams = document.Objects

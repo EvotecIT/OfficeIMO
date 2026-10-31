@@ -12,6 +12,7 @@ internal static partial class PdfRedactionApplier {
         PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         PdfRedactionSearchCriteria[] criteria = GetSearchCriteria(plan);
         if (criteria.Length == 0) return Array.Empty<PdfRedactionVerificationIssue>();
+        readOptions = PdfLoadOptions.WithArtifactText(readOptions);
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         var issues = new List<PdfRedactionVerificationIssue>();
         Inspect(document, pdf, historical: false);
@@ -30,6 +31,18 @@ internal static partial class PdfRedactionApplier {
         void Inspect(PdfReadDocument current, byte[] bytes, bool historical) {
             HashSet<PdfObject> excluded = FindExcludedSearchObjects(current.Objects, current.Pages.Select(static page => page.ObjectNumber).ToArray(), criteria, cancellationToken);
             HashSet<int> contentStreams = GetPageContentStreamNumbers(current.Objects);
+            if (plan.IsSearchDriven) {
+                for (int index = 0; index < current.Pages.Count; index++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    PdfRedactionSearchCriteria[] pageCriteria = criteria.Where(criterion => criterion.CoversAllPages || criterion.PageNumbers.Contains(index + 1)).ToArray();
+                    if (pageCriteria.Length == 0) continue;
+                    PdfReadPage page = current.Pages[index];
+                    if (pageCriteria.Any(criterion => criterion.Matches(page.ExtractText(cancellationToken))) ||
+                        page.GetTextSpansIncludingHiddenOptionalContent().Any(span => pageCriteria.Any(criterion => criterion.Matches(span.Text))))
+                        issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "Page:" + (index + 1).ToString(CultureInfo.InvariantCulture),
+                            "A saved page still paints searched text."));
+                }
+            }
             var visited = new HashSet<PdfObject>();
             var containerBudget = new PdfDecodedStreamBudget(current.ReadOptions.Limits);
             foreach (PdfIndirectObject item in current.Objects.Values) {

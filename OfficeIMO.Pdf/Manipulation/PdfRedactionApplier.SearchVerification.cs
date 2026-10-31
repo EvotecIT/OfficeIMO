@@ -21,6 +21,7 @@ internal static partial class PdfRedactionApplier {
             .Select(static criterion => ParseLogicalKind(criterion)).ToArray();
         if (literals.Length == 0 && regexes.Length == 0 && kinds.Length == 0) return;
 
+        readOptions = PdfLoadOptions.WithArtifactText(readOptions);
         PdfLoadOptions outputOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, source, output, generatedGrowth);
         PdfReadDocument rewritten = PdfReadDocument.Open(output, outputOptions, cancellationToken);
         PdfDocumentReadResult? rewrittenLogical = literals.Length > 0 || regexes.Length > 0 || kinds.Length > 0

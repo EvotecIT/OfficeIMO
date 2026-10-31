@@ -7,13 +7,15 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfRedactionApplierTests {
-    private byte[] BuildWordHybridRedactionFixture(bool collision) {
+    private byte[] BuildWordHybridRedactionFixture(bool collision, Dictionary<int, string>? sourceObjects = null) {
         string raw = Encoding.ASCII.GetString(BuildFormResidueSource("TU"));
-        var objects = Regex.Matches(raw, @"(?s)(\d+) 0 obj\s*\n(.*?)\nendobj").Cast<Match>()
+        var objects = sourceObjects ?? Regex.Matches(raw, @"(?s)(\d+) 0 obj\s*\n(.*?)\nendobj").Cast<Match>()
             .ToDictionary(match => int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture), static match => match.Groups[2].Value);
-        objects[1] = objects[1].Replace("/Type /Catalog", "/Type /Catalog /MarkInfo << /Marked true >> /StructTreeRoot 20 0 R");
-        objects[20] = "<< /Type /StructTreeRoot /K [29 0 R] /ParentTree << /Nums [] >> >>";
-        objects[29] = "<< /Type /StructElem /S /Document /P 20 0 R /K [] >>";
+        if (sourceObjects is null) {
+            objects[1] = objects[1].Replace("/Type /Catalog", "/Type /Catalog /MarkInfo << /Marked true >> /StructTreeRoot 20 0 R");
+            objects[20] = "<< /Type /StructTreeRoot /K [29 0 R] /ParentTree << /Nums [] >> >>";
+            objects[29] = "<< /Type /StructElem /S /Document /P 20 0 R /K [] >>";
+        }
         objects[28] = "<< /Producer (Synthetic Word hybrid) >>";
         for (int number = 1; number < 45; number++) {
             if (!objects.ContainsKey(number)) objects.Add(number, "<< /Value (public) >>");

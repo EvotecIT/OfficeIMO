@@ -2262,6 +2262,8 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 `Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
 
+Redaction search, matching, and verification include artifact text, including painted headers and footers, regardless of `PdfLoadOptions.IncludeArtifactText`. Ordinary reading still omits artifacts by default. Page limits also apply to artifact text. Unsupported glyph mappings produce a blocked plan rather than verified removal.
+
 Use `PdfRedactionSearchOptions.PageNumbers` to restrict candidate discovery to selected one-based pages. An empty set searches all pages. By default, search marks complete matching logical text blocks, so present the resulting areas for review rather than assuming that only the matched substring will be removed.
 
 Set `TextSelection` to `MatchedGlyphs` to select only the encoded glyphs belonging

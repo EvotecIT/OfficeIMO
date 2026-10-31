@@ -73,6 +73,7 @@ internal static partial class PdfRedactionPlanner {
                 PdfRedactionPlan.ComputeSourceSha256(pdf));
         }
 
+        options = PdfLoadOptions.WithArtifactText(options);
         PdfReadDocument readDocument = PdfReadDocument.Open(pdf, options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<IReadOnlyList<PdfRedactionTextObjectScope>> reviewedTextObjectScopes = PdfRedactionPlan.CaptureReviewedTextObjectScopes(readDocument, areaArray);
