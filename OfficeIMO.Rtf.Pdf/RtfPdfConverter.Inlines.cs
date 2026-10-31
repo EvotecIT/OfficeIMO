@@ -13,7 +13,7 @@ internal static partial class RtfPdfConverter {
         PdfCore.PdfAlign align = RtfPdfMapping.ToPdfAlign(document.GetParagraphFormatting(paragraph).Alignment);
         List<PdfCore.PdfTextRun> pendingRuns = new List<PdfCore.PdfTextRun>();
         bool emitted = false;
-        AppendListMarker(paragraph, pendingRuns, state, options);
+        AppendListMarker(document, paragraph, pendingRuns, state, options);
 
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
@@ -146,7 +146,7 @@ internal static partial class RtfPdfConverter {
 
     private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null, PdfInlineProjectionContext context = PdfInlineProjectionContext.Text) {
         RecordParagraphFrameDiagnostic(document, paragraph, options, "Paragraph/Frame");
-        AppendListMarker(paragraph, runs, state, options);
+        AppendListMarker(document, paragraph, runs, state, options);
         for (int inlineIndex = 0; inlineIndex < paragraph.Inlines.Count; inlineIndex++) {
             IRtfInline inline = paragraph.Inlines[inlineIndex];
             switch (inline) {
@@ -303,13 +303,22 @@ internal static partial class RtfPdfConverter {
         AppendPlainText(text, runs, state);
     }
 
-    private static void AppendListMarker(RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, PdfRenderState state, RtfToPdfOptions options) {
+    private static void AppendListMarker(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, PdfRenderState state, RtfToPdfOptions options) {
         RtfListMarker? marker = state.NextListMarker(paragraph);
         if (marker == null) return;
         if (!marker.IsNumberFormatSupported) AddConversionWarning(options, "ListNumberFormatFlattened", "Paragraph/List", "The requested numbering format was represented by decimal marker text.", RtfConversionAction.Flattened);
         if (marker.Formatting.Level.PictureIndex.HasValue) AddConversionWarning(options, "ListPictureFlattened", "Paragraph/List", "The picture bullet was represented by its text marker.", RtfConversionAction.Flattened);
-        if (marker.Text.Length > 0) {
+        if (marker.Text.Length == 0) return;
+        // The marker shares the line with the text, so it takes the text's face and size for one line box.
+        RtfRun? firstRun = paragraph.Inlines.OfType<RtfRun>().FirstOrDefault(run => !string.IsNullOrEmpty(run.Text));
+        if (firstRun == null) {
             runs.Add(state.CreateDefaultRun(marker.Text + marker.Separator));
+            return;
         }
+        RtfRun text = document.Styles.Count > 0 || firstRun.UseDefaultCharacterFormatting
+            ? document.GetRunFormatting(paragraph, firstRun) : firstRun;
+        runs.Add(new PdfCore.PdfTextRun(marker.Text + marker.Separator,
+            fontSize: text.FontSize.HasValue ? OfficeLength.Points(text.FontSize.Value) : null,
+            font: state.ResolveFont(text.FontId, bold: false, italic: false), fontFamily: state.ResolveFontFamily(text.FontId)));
     }
 }

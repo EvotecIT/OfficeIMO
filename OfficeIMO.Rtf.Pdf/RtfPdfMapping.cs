@@ -109,7 +109,10 @@ internal static class RtfPdfMapping {
         }
 
         foreach (RtfTabStop tabStop in tabStops) {
-            pdfStyle.AddTabStop(global::OfficeIMO.OfficeLength.Points(TwipsToPoints(tabStop.PositionTwips)), ToPdfTabAlignment(tabStop.Alignment), ToPdfTabLeader(tabStop.Leader));
+            // RTF measures tab stops from the margin and the PDF paragraph from its text frame, after the left indent.
+            double position = TwipsToPoints(tabStop.PositionTwips) - leftIndentPoints;
+            if (position <= 0D) continue;
+            pdfStyle.AddTabStop(global::OfficeIMO.OfficeLength.Points(position), ToPdfTabAlignment(tabStop.Alignment), ToPdfTabLeader(tabStop.Leader));
         }
 
         pdfStyle.KeepTogether = keepTogether;
@@ -150,7 +153,13 @@ internal static class RtfPdfMapping {
             BorderColor = null,
             BorderWidth = global::OfficeIMO.OfficeLength.Points(0D),
             CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D),
-            CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D)
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D),
+            // RTF states its own fills and emphasis, so the PDF table defaults add none.
+            HeaderFill = null,
+            FooterFill = null,
+            HeaderBold = false,
+            FooterBold = false,
+            RowStripeFill = null
         };
         int headerRowCount = GetRenderableHeaderRowCount(table);
         style.HeaderRowCount = headerRowCount;
