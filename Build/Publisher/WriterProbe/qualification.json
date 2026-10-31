@@ -20197,5 +20197,219 @@
       "The public mutation is an in-memory and bounded existing-source operation; public template-free PUB saving remains unavailable.",
       "New template-free crop specimen is the closed PNG profile, not arbitrary model/native generation or all JPEG authoring coverage."
     ]
+  },
+  "sharedImageAuthoring": {
+    "schema": "officeimo.publisher.shared-image-authoring-qualification.v1",
+    "sourceCommit": "aede3e41d1b2eeccb8b8d3c56b1c227c617c05c0",
+    "sourceFileHashBasis": "SHA-256 of canonical Git blob bytes at sourceCommit.",
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeImagePagesControl.ps1",
+        "sha256": "93ea7d8017c83699ec3a0f30f184d9f3f65b12620e7b1adbbe73ec93ffdc874d"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "6a762238666c3b01c70a3a8bebe4df5265c7422a1c4da80540bf6e2e35a227cb"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "7db2d3802309203e6e11165805a6f534d6bf60abb7f7d84350ef784aa5ca6171"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "a2205848aafcdbe24a21bb890a2d321b8e836f671cd4f9d8fe0f9ca08f1e46f1"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateCases.cs",
+        "sha256": "2d049e07720c6d1a5b1f3c81a4d30d89c9cc908cbff8b3520141c50155076ee5"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateImagePages.cs",
+        "sha256": "f558062b7b02d81c44b340ab1d7ece6b53d2892e633cc02ba00777327924a16a"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateOfficeArt.cs",
+        "sha256": "420119c57c162beb450687a7a8d0edb8f12c485c8ad7253a2ccb1bef248ddfa8"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidatePublicationSpec.cs",
+        "sha256": "733cd4d28e096dc1c4ad559939a9d2b809b1724f8938c8f6c1ac86a8590250c6"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/Program.cs",
+        "sha256": "0eb8edb6ba8a6a6e6c9dfb29863160457c17c2f1208f9e1adfa74bc7dcbfb429"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherNativeImageWritingTests.cs",
+        "sha256": "57871896777d8f8e152ebc9368c61fc8513fc3c4ba90f3fbc6562e787282ea9a"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherPictureCreationTests.cs",
+        "sha256": "883b3a2da2f2335d78a15f6b54dc26e2df792c1f116cdec701fecdc0610e520f"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherSharedPictureTests.cs",
+        "sha256": "30d3755a91e316a6b50b32374ac6e5f75ad5d2119b5f26695a67df1f21b793a4"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherContentsSourceWriter.cs",
+        "sha256": "b6eec7210885c28314092ecd684d0a773197d1d9ec69ec124e016f70804ce053"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherModelState.Pictures.cs",
+        "sha256": "3736c8256bed3240c0398071af14f41a9305dffe460ee87f737e4ec046441614"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPublicationState.Pictures.cs",
+        "sha256": "94f6011503467fa902487a6c40a3fdc0868642992053001f485363f81a594e8c"
+      },
+      {
+        "path": "OfficeIMO.Publisher/PublisherDocument.Pictures.cs",
+        "sha256": "2e522e70ec190a075b84a08495b5bf511544bd2049ff41e4ae99ba8279a2baf8"
+      }
+    ],
+    "publicContract": {
+      "api": "AddPicture(uint,int,double,double,double,double,CancellationToken)",
+      "assetIdentity": "Existing document image ID reuses one asset without advancing the image allocator. Byte-array overload creates a distinct asset per call, including equal bytes.",
+      "eligibility": "Single static PNG/JPEG with normal encoded orientation; qualified page placement and existing object/scene limits apply.",
+      "placement": "Independent uncropped rectangular picture; crop, bounds, paint and selected replacement remain placement-local. Old snapshots remain unchanged.",
+      "lifetime": "Native source assets remain retained. Superseded edit-owned assets are released only after their last placement is replaced.",
+      "atomicity": "Failed identity, owner, geometry, content, limit, cancellation or projection does not commit state or consume identifiers."
+    },
+    "nativeCreation": {
+      "profile": "Internal shared-image-pages, three placements on first and last of three physical pages, empty middle page.",
+      "sha256": "473e11570b6dfa83f92f9e8c2a6c0dececf1c0fc869c021a7860f35002d04d74",
+      "bytes": 8192,
+      "imageIndices": [
+        1,
+        1,
+        2
+      ],
+      "referenceCounts": [
+        2,
+        1
+      ],
+      "delayedBlipOffsets": [
+        0,
+        240
+      ],
+      "assetBinding": "One delayed BLIP/FBSE per explicit model asset ID; equal bytes do not merge distinct IDs."
+    },
+    "cases": [
+      {
+        "name": "created",
+        "sha256": "473e11570b6dfa83f92f9e8c2a6c0dececf1c0fc869c021a7860f35002d04d74",
+        "nativeOperations": 7,
+        "nativePixelPairs": 6,
+        "publicReloads": 2
+      },
+      {
+        "name": "replaced-created",
+        "sha256": "601eb5d6eaf9aa7b03fefae77c0b1dbd84caf0f87ad8eb85672793b04b0e775f",
+        "nativeOperations": 7,
+        "nativePixelPairs": 6,
+        "publicReloads": 2
+      },
+      {
+        "name": "replaced-normalized",
+        "sha256": "df6b8e77f3c9c920721d7275859855378a49628a170212d89e1c3bf697bb1679",
+        "nativeOperations": 7,
+        "nativePixelPairs": 6,
+        "publicReloads": 2
+      },
+      {
+        "name": "replaced-control",
+        "sha256": "955820ff6aad0fb1ab1b3d5ef49f6b3d15a91ba776a669fce8481f3a836b1e28",
+        "nativeOperations": 7,
+        "nativePixelPairs": 6,
+        "publicReloads": 2
+      }
+    ],
+    "nativeFullFiles": 4,
+    "nativeOperations": 28,
+    "independentNativePagePixelPairs": 24,
+    "pixelComparisonDpi": 144,
+    "publicReloads": 8,
+    "managedPdfSvgPages": 24,
+    "previousCreationProfilesByteIdentical": 16,
+    "rawPreservation": {
+      "sourceEditFiles": 3,
+      "referenceCountsBefore": [
+        2,
+        1
+      ],
+      "referenceCountsAfter": [
+        1,
+        1,
+        1
+      ],
+      "retained": "Original image entries/payload prefix, other picture leaves/anchors/properties, unrelated Contents chunks, logical streams and compound metadata. Only stale summary thumbnail invalidated.",
+      "equalBytesDistinctAssets": true
+    },
+    "normalizedSourceSave": {
+      "fixture": "NormalizedSharedPictures",
+      "observed": "Native resave removes local filename0x3A and embedded marker3 while leaving resolved ordinary picture/image bindings and older filename resource chunks.",
+      "save": "Append fresh owned filename resource/directory slot and explicit embedded marker; retain orphan resources. Existing malformed/duplicate marker, resource, descriptor and counter checks remain strict.",
+      "regression": "New native fixture row fails before the Contents guard fix and passes after it."
+    },
+    "fixtures": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/SharedImagePages/provenance.json",
+        "sha256": "770fbae77b5aa3e7e119f53b2ae104cd69b3240470ecc7c11dd51e0b38b2a918"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/SharedImagePagesReplacement/provenance.json",
+        "sha256": "6a592280e7282ca31210ebec2afc66def77f7eb3d814281bb445db5e4f112670"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/NormalizedSharedPictures/provenance.json",
+        "sha256": "27c77ccee997fd47bd3f9954c136e12545a53e547ac67e61e6039f77681691aa"
+      }
+    ],
+    "tests": {
+      "frameworks": {
+        "net10.0": 894,
+        "net8.0": 894,
+        "net472": 894
+      },
+      "readerNet10": 95,
+      "focused": 26,
+      "contracts": [
+        "Shared_asset_placements_keep_independent_crop_geometry_and_selected_replacement_ownership",
+        "Reusing_native_asset_keeps_source_bytes_and_failed_admission_does_not_reserve_identifiers",
+        "Creation_rejects_static_projection_loss_without_narrowing_existing_replacement_support",
+        "Picture_copy_edits_retain_object_limits_and_failed_addition_does_not_reserve_an_asset",
+        "Native_image_saves_replace_one_placement_and_retain_source_assets_including_after_repeated_edits"
+      ]
+    },
+    "sourcePowerShell": {
+      "runtime": "net8.0 / PowerShell7",
+      "pdfCount": 4,
+      "pageCount": 12,
+      "managedPixelPairs": 12,
+      "actualOwnerAssemblyBound": true
+    },
+    "validation": {
+      "unsigned": true,
+      "publisherPdfAndReaderPublisherNetstandard20Builds": true,
+      "sourcePowerShellBuild": true,
+      "probeNoIncrementalBuild": true,
+      "nativeProducer": "Microsoft Publisher16.0.20527.20088",
+      "automationSecurity": 3,
+      "ps7AndPs51SyntaxFiles": 4
+    },
+    "reproduction": [
+      "Build the isolated WriterProbe and create shared-image-pages from the two ImagePagesCropped source PNGs.",
+      "Produce SharedImagePages and SharedImagePagesReplacement through New-NativeComparisonCorpus.ps1.",
+      "Use public ReplacePictureImage/ToPubBytesResult with explicit Allow on the generated file, native-resaved copy and independent native control.",
+      "Run isolated Validate/Full on all four files; compare initial/resaved PDFs and public reloads with stage-matched native controls.",
+      "Inspect raw FBSE counts, shape bindings, delayed payloads and unrelated source records; run Publisher tests on all maintained frameworks."
+    ],
+    "limits": [
+      "Closed visible untransformed three-placement/two-PNG profile; broader shared-asset/producer/effect profiles remain unqualified.",
+      "Generic public template-free native saving, repair-free opening, master-content creation, mixed object ordering and linked stories remain unqualified.",
+      "Managed/native image interpolation and crop-layout parity remain separate limits.",
+      "Native resave may normalize/deduplicate equal-content active image slots; reload IDs remain document-scoped."
+    ]
   }
 }
