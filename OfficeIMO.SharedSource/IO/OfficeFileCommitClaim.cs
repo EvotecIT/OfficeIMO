@@ -131,12 +131,20 @@ namespace OfficeIMO.Core.Internal.IO {
             if (stream == null) return;
             stream.Dispose();
             if (_windowsClaimPath != null && _windowsClaimMarker != null) {
-                try {
-                    using (var ownedClaim = new FileStream(_windowsClaimPath, FileMode.Open, FileAccess.Read, FileShare.Delete)) {
-                        if (HasClaimMarker(ownedClaim, _windowsClaimMarker)) File.Delete(_windowsClaimPath);
+                for (int attempt = 0; ; attempt++) {
+                    try {
+                        using (var ownedClaim = new FileStream(_windowsClaimPath, FileMode.Open, FileAccess.Read, FileShare.Delete)) {
+                            if (HasClaimMarker(ownedClaim, _windowsClaimMarker)) File.Delete(_windowsClaimPath);
+                        }
+                        break;
+                    } catch (IOException exception) when (attempt < 9 && IsSharingContention(exception)) {
+                        // A competing publisher can briefly open the released claim to verify
+                        // contention. Let that probe close before checking and deleting our marker.
+                        Thread.Sleep(1);
+                    } catch {
+                        // Best-effort cleanup must not hide the publication failure.
+                        break;
                     }
-                } catch {
-                    // Best-effort cleanup must not hide the publication failure.
                 }
             }
         }
