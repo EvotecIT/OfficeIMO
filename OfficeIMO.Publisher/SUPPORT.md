@@ -20,6 +20,13 @@ The generation signature does not establish qualification for every Publisher
 release or object type. Independent producer files exercise real native storage;
 they are not produced by an OfficeIMO writer.
 
+The exact combined writer specimen has a calibrated observation of selected native
+diagnostic paths: its three opens produce no GK diagnostic or consent/message
+request, while a signature-invalid native control produces a severity-4 rejection.
+The [qualification record](../Build/Publisher/WriterProbe/qualification.json)
+separates this result from repair-free acceptance, which still lacks a repair-positive
+control and complete recovery-path coverage.
+
 The opt-in [native writer probe](../Build/Publisher/WriterProbe/README.md)
 separately qualifies source-free closed specimens. Its two-image page profile
 retains distinct embedded PNGs and their page bindings through native resave;

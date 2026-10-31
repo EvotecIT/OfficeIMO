@@ -558,8 +558,15 @@ isolated byte-identical copy:
 `Inspect` stops after open and inventory; `Resave` also saves and reopens;
 `Full` includes both PDF exports. Partial stages prove only their listed
 operations. A completed Full report does not establish that Publisher performed
-no repair: repair status remains unassessed unless a separate native UI
-observation supplies that evidence. Compare the original and reopened native
+no repair: that needs direct native UI evidence or an independently qualified
+repair-path observation. The qualification record's `observations.diagnosticObservation`
+captures six selected diagnostic/consent sites for the exact combined candidate.
+A native blank preserves its inventories and both 144 dpi page comparisons under
+capture; a one-byte signature-invalid copy produces a severity-4 diagnostic and
+native rejection. The combined candidate produces no selected diagnostic or message
+request during its initial open, writable open or resave reopen. This calibrates
+diagnostic capture, but repair-positive controls and other recovery paths remain
+unqualified, so PUB00 stays open. Compare the original and reopened native
 text, styles, geometry and image pixels against explicit expectations.
 OfficeIMO read/render success establishes only the managed result. Evidence for
 these bounded cases does not qualify arbitrary Publisher features or a public

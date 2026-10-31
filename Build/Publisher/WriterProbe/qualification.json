@@ -104,7 +104,85 @@
       "initial",
       "resaved"
     ],
-    "repair": "Unassessed: successful COM operations do not expose native repair; UI capture was unavailable."
+    "repair": "Unassessed: a calibrated selected-path trace observes no GK diagnostic or consent path on the exact candidate; repair-positive coverage and other recovery paths remain unqualified.",
+    "diagnosticObservation": {
+      "scope": "Capture-only observation of six decoded MSPUB sites during the exact candidate's three native opens; not universal repair-free acceptance.",
+      "runnerSourceCommit": "75830206019f6370c8b73039c2d62255c3666f67",
+      "nativeExecutable": {
+        "name": "MSPUB.EXE",
+        "version": "16.0.20527.20088",
+        "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+      },
+      "observationRuntime": "Existing isolated Python 3.13.15 / Frida 17.19.0; not a product dependency.",
+      "method": "Current native-operation scripts with bounded five-second pre/post Open gates. Unchanged COM calls, arguments and macro security 3. Exact PID, creation time, worker ancestry, image hash and instruction prefixes checked before attachment. Per-phase hook readiness, explicit drain acknowledgement, paired same-thread load/validation intervals and canonical process closure required.",
+      "sites": [
+        { "rva": "0x93544", "role": "Normal load entry/return" },
+        { "rva": "0x93849", "role": "Completed maximum-severity reset" },
+        { "rva": "0x82FF4", "role": "Validation wrapper entry/return and continuation DWORD" },
+        { "rva": "0x191266", "role": "Validation-consent branch entry" },
+        { "rva": "0x85379C", "role": "GK diagnostic entry/return" },
+        { "rva": "0x23F840", "role": "Generic numeric-message request/return" }
+      ],
+      "nativeBlankCompatibility": {
+        "inputSha256": "3fa503f65bc861c4184685a6fcfb0d52dee10708b49cd68c1024f39cd3083efe",
+        "uninstrumentedAndInstrumentedOperations": 7,
+        "initialAndResavedInventoriesEqual": true,
+        "equalNativePagePairsAt144Dpi": 2,
+        "capturedOpenPhases": 3,
+        "eventsPerPhaseIncludingReadyAndDrain": 7,
+        "diagnostics": 0,
+        "genericMessageRequests": 0,
+        "proofSha256": "302f35bcd873db025c11305514d9ecb85426faef3433bcf7c33ee239c4c7f0f0",
+        "traceSha256": "22a866084a81a60df69f18272e3b816956025fb2b16b9a72c2bcd12f797d9cb5"
+      },
+      "diagnosticPositiveControl": {
+        "inputSha256": "9872449157c4bd5b3388c4fd4394726b679f1b7d7d4255598add0a1bf43048fd",
+        "mutation": "Disposable native-blank copy only: Quill/QuillSub/CONTENTS offset 0 (file offset 14848), signature byte 0x43 to 0x42; exactly one file byte changed.",
+        "stage": "Inspect",
+        "outcome": "Expected native rejection with one correlated severity-4 diagnostic; no successful ordinary-operation claim.",
+        "maximumSeverityBeforeAfter": [0, 4],
+        "strictFailureBeforeAfter": [0, 1],
+        "diagnosticCountBeforeAfter": [0, 1],
+        "validationReturn": "0x80040065",
+        "traceSha256": "7fd9c501a2941e90af8376c1af1e6b837fa341558c338a1526a8feba62d70956",
+        "repairPositive": false
+      },
+      "exactCombinedCandidate": {
+        "inputSha256": "37e0e91a36c900f2b1a7c73fe3cb606b477464787e60a70375d8985ebd520bcf",
+        "phases": ["OpenCandidateReadOnly", "OpenSnapshotWritable", "ReopenNativeResave"],
+        "ordinaryOperations": 7,
+        "eventsPerPhaseIncludingReadyAndDrain": 7,
+        "diagnostics": 0,
+        "validationConsentBranchEntries": 0,
+        "genericMessageRequestsIncluding66C2": 0,
+        "validationRawEdx": 65536026,
+        "validatorSelectorAfter": 10,
+        "validationReturnEachPhase": 0,
+        "continuationBeforeAndAfterEachPhase": 0,
+        "maximumSeverityAfterValidationEachPhase": 0,
+        "strictFailureAfterValidationEachPhase": 0,
+        "diagnosticCountAfterValidationEachPhase": 0,
+        "equalUninstrumentedNativePagePairsAt144Dpi": 2,
+        "sourceUnchanged": true,
+        "recordedWorkerAndNativeProcessesClosed": true,
+        "traceSha256": "c7e54d93a2dd94255ba26c55dbb1968a1fa21d301d9da73ce53faa3556b58bd5"
+      },
+      "observerFingerprints": {
+        "host": "50e8b183f0ef0c92f2c43ffa0ed984fd28f3d97654adc518149e29331370af8c",
+        "processIdentity": "b807b28654921e188f8b7fe074dbd8a741c199adbe5b69da630dce5565c8684e",
+        "hooks": "ab04a8bc3d03d1f8b3f70aa20beac59d1ca7f98938fa93ac003022a56b21323c",
+        "replayGenerator": "d1d76c26c445be4e6dbf7e4fbdc7d7529123e2f24dfdd0f4267fb3547cfc86f3",
+        "34ScriptReplayManifest": "daba1c8273b1c0436a079ec06a93f0639411fc9e766963633fd90cf03d9e858e"
+      },
+      "combinedProofSha256": "b10f80e4490d1582292d31115f8c8d79a9c358165a0fc494aef2de11ce41f3d6",
+      "limits": [
+        "Diagnostic severity/count and continuation are sampled native state, not a universal repair receipt.",
+        "The damaged signature calibrates a strict rejection, not a successful repair or consent path.",
+        "No independently qualified repair-positive control, complete companion-module/alternate-loader coverage or proof against silent normalization is available.",
+        "The exact candidate remains internal; PUB00 repair-free opening and the generic public native writer remain unqualified."
+      ],
+      "canClosePUB00": false
+    }
   },
   "nativeArtifacts": [
     {
