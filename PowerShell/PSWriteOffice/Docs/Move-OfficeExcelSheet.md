@@ -6,82 +6,50 @@ schema: 2.0.0
 ---
 # Move-OfficeExcelSheet
 ## SYNOPSIS
-Moves a worksheet to a new workbook position.
+Moves a worksheet to a one-based workbook position.
 
 ## SYNTAX
-### Context (Default)
+### Default (Default)
 ```powershell
-Move-OfficeExcelSheet -Index <int> [-Sheet <string>] [-SheetIndex <Int32>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Path
-```powershell
-Move-OfficeExcelSheet [-Path] <string> -Index <int> [-Sheet <string>] [-SheetIndex <Int32>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Move-OfficeExcelSheet -Document <ExcelDocument> -Index <int> [-Sheet <string>] [-SheetIndex <Int32>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Move-OfficeExcelSheet -Position <int> [-Sheet <OfficeSheetSelector>] [-PassThru] [-Document <ExcelDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Moves a worksheet to a new workbook position.
+Uses the explicit or enclosing live workbook. Save it explicitly to persist the new order.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $proof = @(
-    Move-OfficeExcelSheet -Path .\Report.xlsx -Sheet Summary -Index 0
-    Get-OfficeExcelSummary -Path .\Report.xlsx -IncludeSheets |
-        Select-Object -ExpandProperty Sheets |
-        Select-Object -First 3 -Property Index, Name
-)
-$proof
+$book | Move-OfficeExcelSheet -Sheet Summary -Position 1
+            Save-OfficeExcel -Document $book
 ```
 
-Moves Summary to the first worksheet tab and reads back the first sheets from workbook summary.
 
 ## PARAMETERS
 
 ### -Document
-Workbook to update outside the DSL context.
+Gets or sets an explicit live document; omission uses the enclosing content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Index
-Zero-based destination tab index.
-
-```yaml
-Type: Int32
-Parameter Sets: Context, Path, Document
-Aliases: TargetIndex
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -PassThru
-Emit the moved worksheet.
+Gets or sets whether to return the moved native worksheet.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -92,44 +60,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Path
-Workbook path to update.
+### -Position
+Gets or sets the one-based destination position.
 
 ```yaml
-Type: String
-Parameter Sets: Path
-Aliases: InputPath, FilePath
+Type: Int32
+Parameter Sets: Default
+Aliases: None
 Possible values:
 
 Required: True
-Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Sheet
-Worksheet name to move. Defaults to the current sheet inside an ExcelSheet block.
-
-```yaml
-Type: String
-Parameter Sets: Context, Path, Document
-Aliases: WorksheetName
-Possible values:
-
-Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SheetIndex
-Worksheet index to move when using a workbook object or path.
+### -Sheet
+Gets or sets a worksheet name, one-based position or native worksheet.
 
 ```yaml
-Type: Int32
-Parameter Sets: Context, Path, Document
+Type: OfficeSheetSelector
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -149,7 +101,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.Excel.ExcelSheet`
 
 ## RELATED LINKS
 

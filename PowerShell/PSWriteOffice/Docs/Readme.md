@@ -686,7 +686,7 @@ Converts a Word document to HTML.
 Converts a Word document to Markdown.
 
 ### [Copy-OfficeExcelSheet](Copy-OfficeExcelSheet.md)
-Copies a worksheet within a workbook or from another workbook.
+Copies selected worksheets within a workbook or from another workbook.
 
 ### [Copy-OfficeExcelWorkbook](Copy-OfficeExcelWorkbook.md)
 Copies a workbook package while preserving package parts.
@@ -1165,12 +1165,6 @@ Explicitly calculates a schedule and optionally applies its dates.
 ### [Invoke-OfficeWordMailMerge](Invoke-OfficeWordMailMerge.md)
 Executes a simple mail merge against MERGEFIELD values in a Word document.
 
-### [Join-OfficeExcelSheet](Join-OfficeExcelSheet.md)
-Appends or merges rows from one worksheet into another.
-
-### [Join-OfficeExcelWorkbook](Join-OfficeExcelWorkbook.md)
-Merges worksheets from one or more workbooks into a target workbook.
-
 ### [Join-OfficePdf](Join-OfficePdf.md)
 Joins multiple PDF files into a single PDF.
 
@@ -1180,8 +1174,11 @@ Appends one or more Word documents into a base Word document.
 ### [Merge-OfficeDocument](Merge-OfficeDocument.md)
 Combines documents of the same native format in input order.
 
+### [Merge-OfficeExcelSheet](Merge-OfficeExcelSheet.md)
+Appends worksheet rows or merges a source range into a target worksheet.
+
 ### [Move-OfficeExcelSheet](Move-OfficeExcelSheet.md)
-Moves a worksheet to a new workbook position.
+Moves a worksheet to a one-based workbook position.
 
 ### [Move-OfficePdfPage](Move-OfficePdfPage.md)
 Moves selected pages before another page and writes a new PDF.
