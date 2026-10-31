@@ -32,6 +32,7 @@ dotnet $probe create text-pages ./candidate-text-pages.pub 3
 dotnet $probe create object-pages ./candidate-object-pages.pub ./picture.png
 dotnet $probe create image-pages ./candidate-image-pages.pub ./first.png ./last.png
 dotnet $probe create named-image-pages ./candidate-named-images.pub ./first.png ./last.png
+dotnet $probe create cropped-image-pages ./candidate-cropped-images.pub ./first.png ./last.png
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create styled-text ./candidate-styled-text.pub
 dotnet $probe create shape ./candidate-shape.pub
@@ -294,6 +295,7 @@ The current drawing specification supports one picture per publication.
 | `object-pages` | Builds three pages with an empty applied master through the public authoring model. A red rectangle without outline is on the first page, the middle page is empty, and an uncropped picture is on the last page. The rectangle has no stored story. Image path required. |
 | `image-pages` | Builds three pages with an empty applied master through the public authoring model. Two distinct uncropped PNG assets are on the first and last pages; the middle page is empty. Two image paths required. |
 | `named-image-pages` | Uses the same public model as `image-pages`, with owned native filename resources and complete OfficeArt basename properties for subsequent image replacement. Two image paths required. |
+| `cropped-image-pages` | Uses the named-image model and public `SetPictureCrop` on the first picture, with distinct left/top/right/bottom fractions `0.25/0.125/0.0625/0.1875`. The shared OfficeArt encoder owns the native values. Two PNG paths required for this qualified specimen. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
 | `shape` | Solid red rectangle at `(72,72)`, size `288×108`, with a CR-only story. |
@@ -458,8 +460,23 @@ leaving old resource chunks in place. Native source saving appends a fresh owned
 resource for the qualified embedded-picture profile and preserves those older
 chunks. Native resave can retire unused image slots, which the reader keeps
 inert. The independent native controls can deduplicate image IDs; their final
-painted content is the comparison contract. Shared-asset authoring, crop edits,
+painted content is the comparison contract. Shared-asset authoring, broader crop profiles,
 generic model serialization and repair-free acceptance remain unqualified.
+
+The `pictureCropEditing` record qualifies public crop set/clear, combined crop
+with PNG replacement and resized bounds, an existing JPEG crop, and the internal
+`cropped-image-pages` creation profile. Five files match independent native
+references across 24 initial/resaved page pairs at 144 dpi; ten public reloads
+retain encoded fractions, assets and other placements. All fifteen preceding
+creation profiles remain byte-identical.
+
+The model uses source-edge fractions rather than automation points. Native
+16.16 rounding is reported separately, and output whose rounded source area
+collapses is refused. The source writer inserts or overrides all four local
+crop fields, including zero values when clearing, and composes them with the
+existing image and bounds edits. This does not qualify transformed/custom-mask
+crop edits, native image-sampling parity, repair-free opening or a public native
+creation API.
 
 Successful native opening, usable text ranges, saving, reopening and PDF export
 are separate observations. Retain the candidate SHA-256, application version,

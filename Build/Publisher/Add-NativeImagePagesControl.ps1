@@ -19,11 +19,15 @@ function Add-NativeImagePagesControl {
     Replaces the last picture with the first PNG while retaining both bounds.
     .PARAMETER ReplacementJpegPath
     Unused output path for a JPEG that replaces the last picture after its PNG replacement.
+    .PARAMETER Cropped
+    Applies the independently specified four-edge source crop to the first picture.
+    .PARAMETER CropLast
+    Applies that crop to the final JPEG placement after native replacement.
     .OUTPUTS
     The physical page count.
     #>
     param($Document, $FirstPage, [string]$ImagePath, [string]$SecondImagePath, [switch]$Edited, [switch]$ReplaceLast,
-        [string]$ReplacementJpegPath)
+        [string]$ReplacementJpegPath, [switch]$Cropped, [switch]$CropLast)
 
     $middle = $Document.Pages.Add(1, 1)
     $objects.Add($middle)
@@ -34,6 +38,15 @@ function Add-NativeImagePagesControl {
     $first = $FirstPage.Shapes.AddPicture($ImagePath, 0, -1, 72, 144, 96, 96)
     $first.Name = 'FirstPageImage'
     $objects.Add($first)
+    if ($Cropped) {
+        $crop = Get-NativePictureCropBasis $ImagePath
+        $format = $first.PictureFormat
+        $objects.Add($format)
+        $first.LockAspectRatio = 0
+        $format.CropLeft = $crop.points[0]; $format.CropTop = $crop.points[1]
+        $format.CropRight = $crop.points[2]; $format.CropBottom = $crop.points[3]
+        $first.Left = 72; $first.Top = 144; $first.Width = 96; $first.Height = 96
+    }
     $expectedShapes.Add([pscustomobject]@{ name = 'FirstPageImage'; kind = 'Image'; left = 72; top = 144; width = 96; height = 96 })
     $bounds = if ($Edited) { @(252, 180, 144, 72) } else { @(216, 144, 192, 96) }
     $second = $last.Shapes.AddPicture($SecondImagePath, 0, -1, $bounds[0], $bounds[1], $bounds[2], $bounds[3])
@@ -48,10 +61,11 @@ function Add-NativeImagePagesControl {
             $format.Replace($ReplacementJpegPath, 1)
         }
         $second.LockAspectRatio = 0
-        $format.CropLeft = 0
-        $format.CropTop = 0
-        $format.CropRight = 0
-        $format.CropBottom = 0
+        $points = if ($CropLast) { (Get-NativePictureCropBasis $ReplacementJpegPath).points } else { @(0, 0, 0, 0) }
+        $format.CropLeft = $points[0]
+        $format.CropTop = $points[1]
+        $format.CropRight = $points[2]
+        $format.CropBottom = $points[3]
         $second.Left = $bounds[0]
         $second.Top = $bounds[1]
         $second.Width = $bounds[2]

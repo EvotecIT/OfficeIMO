@@ -3,6 +3,9 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherModelState {
+    internal PublisherModelState SetPictureCrop(uint pictureId, OfficeImageSourceCrop crop) =>
+        WithPublication(_publication.SetCrop(_publication.EditablePicture(pictureId), crop));
+
     internal PublisherModelState SetPictureBounds(uint pictureId, double x, double y, double width, double height) {
         PublisherPicture picture = _publication.EditablePicture(pictureId);
         return WithPublication(_publication.SetBounds(picture, x, y, width, height));

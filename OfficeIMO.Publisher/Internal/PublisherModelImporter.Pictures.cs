@@ -49,7 +49,7 @@ internal static partial class PublisherModelImporter {
         if (shape.Type is not (1 or 75) || OfficeArtCustomPathProjector.HasPath(shape.Properties))
             return "Nonrectangular and custom-clipped pictures are inspection-only.";
         if (!crop.HasVisibleSourceArea || new[] { picture.CropFromLeft, picture.CropFromTop, picture.CropFromRight, picture.CropFromBottom }
-            .Any(value => value.HasValue && (value.Value < 0 || value.Value > 1)))
+            .Any(value => value.HasValue && (value.Value < 0 || value.Value >= 1)))
             return "The native crop needs fallback handling and is not qualified for picture edits.";
         OfficeArtPictureEffectProjector effects = OfficeArtPictureEffectProjector.Create(picture, _ => null);
         if (picture.HasPictureEffect || effects.HasProjection || effects.Limits != OfficeArtPictureEffectLimit.None)

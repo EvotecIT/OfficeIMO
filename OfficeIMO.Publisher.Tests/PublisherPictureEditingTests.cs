@@ -96,6 +96,7 @@ public sealed class PublisherPictureEditingTests {
     [InlineData("unresolved")]
     [InlineData("no-anchor")]
     [InlineData("invalid-crop")]
+    [InlineData("full-edge-crop")]
     public void Unsupported_picture_edits_are_explicit_and_leave_readable_state_unchanged(string restriction) {
         PublisherDocument document = PublisherPictureEditingFixture.Create(restriction: restriction);
         PublisherPicture picture = document.Pages[0].Pictures.Single(item => item.Id == 101);
@@ -104,6 +105,7 @@ public sealed class PublisherPictureEditingTests {
             && diagnostic.Location == "Contents/object/101" && diagnostic.Message == picture.EditLimitation);
         var pages = document.Pages; var images = document.Images; string before = document.ToSvg();
         Assert.Throws<NotSupportedException>(() => document.SetPictureBounds(101, 10, 10, 50, 50));
+        Assert.Throws<NotSupportedException>(() => document.SetPictureCrop(101, default));
         Assert.Throws<NotSupportedException>(() => document.ReplacePictureImage(101, PublisherPictureEditingFixture.Image(OfficeColor.Black)));
         Assert.Same(pages, document.Pages); Assert.Same(images, document.Images); Assert.Equal(before, document.ToSvg());
         Assert.NotNull(Painted(document.Pages[0], 102));

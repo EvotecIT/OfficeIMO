@@ -29,7 +29,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
+    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -75,11 +75,11 @@ if ($Operation -eq 'Validate') {
     . (Join-Path $PSScriptRoot 'Get-NativeValidationArtifactNames.ps1')
     $reservedArtifacts = Get-NativeValidationArtifactNames -Stage $Stage |
         ForEach-Object { Join-Path $output $_ }
-} elseif ($Case -in @('Image', 'ObjectPages', 'ObjectPagesEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')) {
+} elseif ($Case -in @('Image', 'ObjectPages', 'ObjectPagesEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')) {
     $reservedArtifacts += Join-Path $output ($stem + '.png')
-    if ($Case -in @('PictureReplacement', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement')) {
+    if ($Case -in @('PictureReplacement', 'PictureCropFractionsReplacement', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped')) {
         $reservedArtifacts += Join-Path $output ($stem + '-replacement.png')
-        if ($Case -eq 'ImagePagesJpegReplacement') { $reservedArtifacts += Join-Path $output ($stem + '-replacement.jpg') }
+        if ($Case -in @('ImagePagesJpegReplacement', 'ImagePagesJpegCropped')) { $reservedArtifacts += Join-Path $output ($stem + '-replacement.jpg') }
     }
 }
 foreach ($path in @($reservedArtifacts) + @($ReceiptPath, $failurePath, $cleanupPath)) {
@@ -131,6 +131,7 @@ if ($Case -in @('TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs'))
 $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeComparisonLayout.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeComparisonPictures.ps1')
+. (Join-Path $PSScriptRoot 'Get-NativePictureCropBasis.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeObjectPagesControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeImagePagesControl.ps1')
 . (Join-Path $PSScriptRoot 'New-NativeReplacementImage.ps1')
@@ -768,11 +769,11 @@ try {
             $layout = Add-NativeComparisonLayout -Case $Case -Document $document -FirstPage $page
             $pageCount = $layout.pages
         }
-        { $_ -in @('ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement') } {
+        { $_ -in @('ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped') } {
             $picturePath = Join-Path $output ($stem + '.png')
             $replacementPath = Join-Path $output ($stem + '-replacement.png')
-            $jpegPath = if ($Case -eq 'ImagePagesJpegReplacement') { Join-Path $output ($stem + '-replacement.jpg') } else { $null }
-            $pageCount = Add-NativeImagePagesControl -Document $document -FirstPage $page -ImagePath $picturePath -SecondImagePath $replacementPath -Edited:($Case -eq 'ImagePagesEdited') -ReplaceLast:($Case -eq 'ImagePagesReplacement') -ReplacementJpegPath $jpegPath
+            $jpegPath = if ($Case -in @('ImagePagesJpegReplacement', 'ImagePagesJpegCropped')) { Join-Path $output ($stem + '-replacement.jpg') } else { $null }
+            $pageCount = Add-NativeImagePagesControl -Document $document -FirstPage $page -ImagePath $picturePath -SecondImagePath $replacementPath -Edited:($Case -eq 'ImagePagesEdited') -ReplaceLast:($Case -eq 'ImagePagesReplacement') -ReplacementJpegPath $jpegPath -Cropped:($Case -eq 'ImagePagesCropped') -CropLast:($Case -eq 'ImagePagesJpegCropped')
         }
         'PictureOwnership' {
             $picturePath = Join-Path $output ($stem + '.png')
@@ -786,6 +787,20 @@ try {
             New-ReferencePicture $picturePath
             New-NativeReplacementImage $replacementPath
             $layout = Add-NativeComparisonPictures -Document $document -FirstPage $page -PicturePath $picturePath -ReplacementPath $replacementPath
+            $pageCount = $layout.pages
+        }
+        'PictureCropFractionsReplacement' {
+            $picturePath = Join-Path $output ($stem + '.png')
+            $replacementPath = Join-Path $output ($stem + '-replacement.png')
+            New-ReferencePicture $picturePath
+            New-NativeReplacementImage $replacementPath
+            $layout = Add-NativeComparisonPictures -Document $document -FirstPage $page -PicturePath $picturePath -ReplacementPath $replacementPath -FractionalCrop -PhysicalBounds @(84, 132, 120, 84)
+            $pageCount = $layout.pages
+        }
+        'PictureCropFractions' {
+            $picturePath = Join-Path $output ($stem + '.png')
+            New-ReferencePicture $picturePath
+            $layout = Add-NativeComparisonPictures -Document $document -FirstPage $page -PicturePath $picturePath -FractionalCrop
             $pageCount = $layout.pages
         }
         'PictureCropped' {
@@ -859,8 +874,9 @@ try {
         $contract.expected.masterAssignments = $layout.masterAssignments
         $contract.expected.panelWidthPoints = $layout.panelWidthPoints
     }
-    if ($Case -in @('PictureOwnership', 'PictureReplacement', 'PictureCropped')) {
+    if ($Case -in @('PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')) {
         $contract.nativePictureObservations = $layout.pictureObservations
+        if ($Case -in @('PictureCropFractions', 'PictureCropFractionsReplacement')) { $contract.expected.sourceCropBasis = $layout.sourceCropBasis }
         $contract.expected.pictureDuplication = [pscustomobject]@{
             sourceName = 'PhysicalPictureOriginal'
             duplicateName = 'PhysicalPictureDuplicate'
@@ -868,27 +884,31 @@ try {
             nativeImageStoreSharing = 'Unassessed'
         }
     }
-    if ($Case -in @('ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement')) {
+    if ($Case -in @('ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped')) {
         $contract.files.secondSourceImage = [ordered]@{
             name = [IO.Path]::GetFileName($replacementPath)
             sha256 = (Get-FileHash -LiteralPath $replacementPath -Algorithm SHA256).Hash.ToLowerInvariant()
         }
     }
-    if ($Case -in @('PictureReplacement', 'ImagePagesReplacement', 'ImagePagesJpegReplacement')) {
-        $replacementAsset = if ($Case -eq 'PictureReplacement') { $replacementPath }
+    if ($Case -in @('PictureReplacement', 'PictureCropFractionsReplacement', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped')) {
+        $replacementAsset = if ($Case -in @('PictureReplacement', 'PictureCropFractionsReplacement')) { $replacementPath }
             elseif ($Case -eq 'ImagePagesReplacement') { $picturePath }
             else { $jpegPath }
         $contract.expected.pictureReplacement = [pscustomobject]@{
-            targetName = if ($Case -eq 'PictureReplacement') { 'PhysicalPictureOriginal' } else { 'LastPageImage' }
+            targetName = if ($Case -in @('PictureReplacement', 'PictureCropFractionsReplacement')) { 'PhysicalPictureOriginal' } else { 'LastPageImage' }
             method = 'PictureFormat.Replace'
             insertAs = 'Embedded'
-            framePolicy = 'Restore authored bounds and zero crop after replacement.'
+            framePolicy = if ($Case -in @('PictureCropFractionsReplacement', 'ImagePagesJpegCropped')) {
+                'Restore authored bounds and apply the declared source crop after replacement.'
+            } else { 'Restore authored bounds and zero crop after replacement.' }
         }
         $contract.files.replacementImage = [ordered]@{
             name = [IO.Path]::GetFileName($replacementAsset)
             sha256 = (Get-FileHash -LiteralPath $replacementAsset -Algorithm SHA256).Hash.ToLowerInvariant()
         }
     }
+    if ($Case -eq 'ImagePagesCropped') { $contract.expected.firstPictureCropFractions = @(0.25, 0.125, 0.0625, 0.1875) }
+    if ($Case -eq 'ImagePagesJpegCropped') { $contract.expected.lastPictureCropFractions = @(0.25, 0.125, 0.0625, 0.1875) }
     $sourceImage = Join-Path $output ($stem + '.png')
     if (Test-Path -LiteralPath $sourceImage) {
         $contract.files.sourceImage = [ordered]@{ name = [IO.Path]::GetFileName($sourceImage); sha256 = (Get-FileHash -LiteralPath $sourceImage -Algorithm SHA256).Hash.ToLowerInvariant() }

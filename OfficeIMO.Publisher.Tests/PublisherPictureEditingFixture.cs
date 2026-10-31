@@ -34,6 +34,10 @@ internal static class PublisherPictureEditingFixture {
                 if (restriction == "reflected") flags = 0x40;
                 if (restriction == "unresolved") properties[0] = new OfficeArtProperty(0, 0x4104, 999);
                 if (restriction == "invalid-crop") properties.Add(new OfficeArtProperty(2, 0x0103, 65536));
+                if (restriction == "full-edge-crop") {
+                    properties[1] = new OfficeArtProperty(1, 0x0102, 0);
+                    properties.Add(new OfficeArtProperty(2, 0x0103, 65536));
+                }
             }
             var shape = new PublisherEscherShape(item.Id, restriction == "nonrectangular" && item.Id == 101 ? 3 : 75, flags, properties) {
                 Bounds = restriction == "no-anchor" && item.Id == 101 ? null : new PublisherNativeRectangle(

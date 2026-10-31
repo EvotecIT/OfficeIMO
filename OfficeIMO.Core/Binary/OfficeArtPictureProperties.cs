@@ -8,6 +8,17 @@ namespace OfficeIMO.Drawing.Binary;
 /// Decodes OfficeArt picture-frame properties that can be shared by binary Office consumers.
 /// </summary>
 public sealed class OfficeArtPictureProperties {
+    /// <summary>Encodes a visible source crop using the native signed 16.16 edge fractions.</summary>
+    internal static IReadOnlyList<OfficeArtProperty> EncodeCrop(OfficeImageSourceCrop crop, out OfficeImageSourceCrop encoded) {
+        if (!crop.HasVisibleSourceArea) throw new ArgumentException("The crop must leave a visible source area.", nameof(crop));
+        uint Fixed(double fraction) => checked((uint)Math.Round(fraction * 65536D, MidpointRounding.AwayFromZero));
+        uint left = Fixed(crop.Left), top = Fixed(crop.Top), right = Fixed(crop.Right), bottom = Fixed(crop.Bottom);
+        // Rounding must not turn a positive semantic area into a collapsed native area.
+        encoded = OfficeImageSourceCrop.FromStrictFractions(left / 65536D, top / 65536D, right / 65536D, bottom / 65536D);
+        return new[] { new OfficeArtProperty(0, 0x0100, top), new OfficeArtProperty(1, 0x0101, bottom),
+            new OfficeArtProperty(2, 0x0102, left), new OfficeArtProperty(3, 0x0103, right) };
+    }
+
     private OfficeArtPictureProperties(IReadOnlyList<OfficeArtProperty> properties) {
         Properties = properties?.ToArray() ?? Array.Empty<OfficeArtProperty>();
         CropFromTopRaw = GetSignedValue(0x0100);

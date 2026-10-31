@@ -74,7 +74,8 @@ still consume the image-processing byte budget.
 | Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions | Widest available interval per horizontal band; side selection, tight/through outlines and native font metrics can differ |
 | Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images, source crop and supported custom-path masks | WMF/EMF use a supplied application codec or reported placeholder; native custom-mask appearance remains unqualified |
 | Placed-picture model | `PublisherPage.Pictures` separates page/master ownership, stable object IDs, asset references, page-point bounds, transforms and normalized crop from embedded bytes; unsupported placements expose an edit limitation | Unresolved image references can remain unresolved; inspection does not qualify native save-back or editable effects |
-| Picture creation | `AddPicture` appends an owned static PNG/JPEG asset and uncropped rectangular placement on a qualified document/master page, with explicit point bounds, no fill/outline/effects/transform or story/wrap references; shared object and separate image allocators, current exports | Non-normal EXIF orientation, animated PNG, other formats and invalid content reject creation. No automatic DPI sizing, crop/effect authoring, asset sharing API, external links or native PUB records; existing replacement eligibility remains unchanged |
+| Picture creation | `AddPicture` appends an owned static PNG/JPEG asset and uncropped rectangular placement on a qualified document/master page, with explicit point bounds, no fill/outline/effects/transform or story/wrap references; shared object and separate image allocators, current exports | Non-normal EXIF orientation, animated PNG, other formats and invalid content reject creation. No automatic DPI sizing, effect authoring, asset sharing API, external links or public native PUB creation; the crop API applies to eligible authored and imported placements |
+| Picture crop editing | `SetPictureCrop` sets normalized source-edge fractions through the shared `OfficeImageSourceCrop` type; updates current drawing/export scenes while preserving frame, image, identity, paint, other placements and old snapshots | Positive visible area is required. Native source save rounds to signed 16.16 values and reports approximation; rounded collapse refuses output. Outsets, custom masks, effects and transformed/grouped placements remain outside the crop-edit profile |
 | Picture controls | Source-RGB transparency keys, encoded-RGB brightness/contrast, preserve-grays tone handling, BT.709 grayscale and a 50-percent two-color threshold; original assets remain available | Color space, effect ordering and native Publisher pixels remain unqualified; recoloring and extended color controls are unassessed; invalid tone values or unresolved keys report omission |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
 | Editable vector artwork | `PublisherPage.Shapes` records owner, stable ID, point bounds and placement availability; bounds and solid-paint edits for supported basic geometry; shared text-frame placement and current wrap obstacles | Grouped, transformed, hidden, custom-path, gradient, effected and unresolved artwork is inspection-only; detached editable descriptors do not establish native writable support |
@@ -403,6 +404,21 @@ byte-identical. Source-built PSWriteOffice converts five edited publications
 through `publisher-pdf`, with twelve reopened output pages. Native column
 balancing, managed/native rendering parity, repair-free opening and broader
 producer/profile coverage remain unqualified.
+
+Crop source saving can set or clear all four edge fractions, including local
+zero overrides, and combine them with image replacement and bounds changes.
+`PUB_NATIVE_PICTURE_CROP_UNQUALIFIED` keeps native acceptance conservative for
+each operation; `PUB_NATIVE_PICTURE_CROP_QUANTIZED` reports nonexact rounding.
+The `pictureCropEditing` qualification record covers PNG set/clear, combined
+replacement/resizing, existing JPEG crop, and the internal source-free cropped
+image specimen. Five files match independent native references across 24
+initial/resaved page pairs at 144 dpi. Public reloads preserve the exact encoded
+fractions and active image bytes; other placements and native records remain
+retained. Source fractions are independent of automation crop points, which
+depend on encoded DPI and native rounding. A native edge at or beyond one is
+inspection-only even if managed display can clamp it. This does not establish
+general managed/native image sampling or crop-layout parity, repair-free opening
+or public template-free native saving.
 
 Existing editable rectangular picture placements can save a replacement PNG or
 JPEG through `ReplacePictureImage`. The native writer retains original image

@@ -3,6 +3,13 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherPublicationState {
+    internal PublisherPublicationState SetCrop(PublisherPicture picture, OfficeImageSourceCrop crop) {
+        var pictures = Pictures.ToDictionary(item => item.Key, item => item.Value);
+        pictures[picture.Id] = picture.WithCrop(crop);
+        return new PublisherPublicationState(Pages, ObjectOwners, pictures, Images, Text, TableStoryReferences,
+            _sourceImageIds, NextImageId, NextObjectId, Shapes, Tables);
+    }
+
     internal PublisherPageState PicturePage(uint pageId, double x, double y, double width, double height) {
         PublisherPageState? page = Pages.SingleOrDefault(item => item.Id == pageId);
         if (page == null) throw new ArgumentOutOfRangeException(nameof(pageId), "The publication has no such page.");

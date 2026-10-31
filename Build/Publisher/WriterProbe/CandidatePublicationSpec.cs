@@ -13,7 +13,7 @@ internal sealed record CandidatePlacement(double Left, double Top, double Width,
 
 internal sealed record CandidateObjectSpec(CandidateObjectKind Kind, CandidatePlacement Placement,
     CandidateStorySpec? Story = null, byte[]? Image = null, int PageIndex = 0, double? ColumnSpacing = null,
-    OfficeShape? Paint = null, string? ImageName = null) {
+    OfficeShape? Paint = null, string? ImageName = null, OfficeImageSourceCrop Crop = default) {
     internal uint NativeKind => Kind == CandidateObjectKind.Picture ? 0x20U : 1U;
 }
 

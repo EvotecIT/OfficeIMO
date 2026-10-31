@@ -19,6 +19,10 @@ function Add-NativeComparisonPictures {
     duplication. The other physical placement and master retain the first image.
     .PARAMETER Cropped
     Applies explicit nonzero source-image crop to the original physical placement.
+    .PARAMETER FractionalCrop
+    Authors all four source-edge fractions through native point setters using the PNG dimensions and encoded DPI.
+    .PARAMETER PhysicalBounds
+    Optional explicit integer-point left/top/width/height for the original physical picture.
     .OUTPUTS
     Authored page/master assignments and observed crop/link values for each picture.
     #>
@@ -27,7 +31,9 @@ function Add-NativeComparisonPictures {
         $FirstPage,
         [string] $PicturePath,
         [string] $ReplacementPath,
-        [switch] $Cropped
+        [switch] $Cropped,
+        [switch] $FractionalCrop,
+        [int[]] $PhysicalBounds
     )
 
     Set-NativePhase 'PictureOwnership-AddSecondPage'
@@ -40,6 +46,13 @@ function Add-NativeComparisonPictures {
         throw 'The picture control requires one single-page default master.'
     }
 
+    $fractionalPoints = $null
+    $cropBasis = $null
+    if ($FractionalCrop) {
+        $cropSource = if ($ReplacementPath) { $ReplacementPath } else { $PicturePath }
+        $cropBasis = Get-NativePictureCropBasis $cropSource
+        $fractionalPoints = $cropBasis.points
+    }
     $assignments = [Collections.Generic.List[object]]::new()
     $pages = @($FirstPage, $second)
     for ($index = 0; $index -lt $pages.Count; $index++) {
@@ -100,6 +113,11 @@ function Add-NativeComparisonPictures {
     )
     $pictureObservations = [Collections.Generic.List[object]]::new()
     foreach ($placement in $placements) {
+        if ($PhysicalBounds -and $placement.name -eq 'PhysicalPictureOriginal') {
+            if ($PhysicalBounds.Count -ne 4) { throw 'Physical picture bounds require left/top/width/height.' }
+            $placement.left = $PhysicalBounds[0]; $placement.top = $PhysicalBounds[1]
+            $placement.width = $PhysicalBounds[2]; $placement.height = $PhysicalBounds[3]
+        }
         Set-NativePhase ('PictureOwnership-Place-' + $placement.name)
         $shape = $placement.shape
         $shape.Name = $placement.name
@@ -110,13 +128,14 @@ function Add-NativeComparisonPictures {
             Set-NativePhase 'PictureOwnership-ReplacePhysicalPicture'
             $format.Replace($ReplacementPath, 1) # pbPictureInsertAsEmbedded
         }
-        $croppedTarget = $Cropped -and $placement.name -eq 'PhysicalPictureOriginal'
-        if (($ReplacementPath -or $Cropped) -and $placement.name -eq 'PhysicalPictureOriginal') {
+        $croppedTarget = ($Cropped -or $FractionalCrop) -and $placement.name -eq 'PhysicalPictureOriginal'
+        if (($ReplacementPath -or $Cropped -or $FractionalCrop) -and $placement.name -eq 'PhysicalPictureOriginal') {
             $shape.LockAspectRatio = 0
         }
         # Numeric crop values are points relative to the original image size.
         # Zero deliberately qualifies the uncropped rectangular edit profile.
-        $wantedCrop = if ($croppedTarget) { @(6, 3, 0, 3) } else { @(0, 0, 0, 0) }
+        $wantedCrop = if ($croppedTarget -and $FractionalCrop) { $fractionalPoints }
+            elseif ($croppedTarget) { @(6, 3, 0, 3) } else { @(0, 0, 0, 0) }
         $format.CropLeft = [double]$wantedCrop[0]
         $format.CropTop = [double]$wantedCrop[1]
         $format.CropRight = [double]$wantedCrop[2]
@@ -182,5 +201,6 @@ function Add-NativeComparisonPictures {
         panelWidthPoints = $null
         masterAssignments = $assignments.ToArray()
         pictureObservations = $pictureObservations.ToArray()
+        sourceCropBasis = $cropBasis
     }
 }

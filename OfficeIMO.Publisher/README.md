@@ -354,8 +354,19 @@ placement is inspection-only, with the same reason in the read report.
 var picture = publication.Pages[0].Pictures.First(item => item.CanEdit);
 publication.ReplacePictureImage(picture.Id, File.ReadAllBytes("replacement.png"));
 publication.SetPictureBounds(picture.Id, 72, 216, 144, 96);
+publication.SetPictureCrop(picture.Id,
+    OfficeImageSourceCrop.FromStrictFractions(0.25, 0.125, 0.0625, 0.1875));
 File.WriteAllText("picture-edited.svg", publication.ToSvg());
 ```
+
+`SetPictureCrop` uses normalized source-edge fractions in left/top/right/bottom
+order, independently of the frame's point dimensions and image DPI. Use the
+shared `OfficeImageSourceCrop` type from `OfficeIMO.Drawing`; the crop must leave
+positive visible width and height. It preserves the image, frame, paint, identity
+and neighboring placements. Use `default` to clear the crop. Native source saving
+rounds fractions to the nearest 16.16 value and reports approximation without
+changing the requested in-memory crop. A rounded crop that collapses the visible
+source area refuses native output, including with an explicit loss allowance.
 
 Picture edits support visible, resolved, untransformed top-level rectangular
 PNG/JPEG placements with qualified crop and simple paint. Replacement validates

@@ -1,6 +1,17 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Publisher;
 
 public sealed partial class PublisherDocument {
+    /// <summary>Sets normalized source-edge crop fractions on one supported picture without changing its frame or embedded image.</summary>
+    /// <remarks>The crop must leave positive visible width and height. Retains identity, ownership, image bytes, bounds, paint and drawing order; other placements and old snapshots remain unchanged. Failed validation, cancellation or projection is atomic. Native source saving rounds to signed 16.16 fractions and reports approximation; a crop whose rounded area collapses refuses native output.</remarks>
+    public void SetPictureCrop(uint pictureId, OfficeImageSourceCrop crop, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!crop.HasVisibleSourceArea) throw new ArgumentOutOfRangeException(nameof(crop), "The crop must leave a visible source area.");
+        var model = _model ?? throw new NotSupportedException("This publication has no editable model.");
+        Commit(model.SetPictureCrop(pictureId, crop).Project(cancellationToken), cancellationToken);
+    }
+
     /// <summary>Appends an owned static PNG or JPEG picture to a qualified document or master page and returns its committed immutable snapshot. Bounds use page-local points and positive finite dimensions.</summary>
     /// <remarks>The detected content must have one static frame and normal encoded orientation. Bytes are copied; each call creates a separate embedded asset. The picture is uncropped, has no fill or outline, effects, transform, story or wrap references, and is appended in drawing order. Negative offsets allow clipped bleed. Existing picture edits remain available. Validation, limits, cancellation or projection failure consumes neither the object nor image identifier and leaves the publication unchanged. This is in-memory authoring, without native PUB saving.</remarks>
     public PublisherPicture AddPicture(uint pageId, byte[] bytes, double x, double y, double width, double height,

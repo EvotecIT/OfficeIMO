@@ -80,6 +80,9 @@ internal static class CandidateOfficeArt {
                 properties.Add((0x8D, checked((uint)(item.Source.ColumnSpacing.Value * 12700))));
         }
         if (imageIndex.HasValue) properties.Add((0x4104, imageIndex.Value)); // Native BLIP-ID flag.
+        if (item.Source.Crop.HasCrop)
+            properties.AddRange(OfficeArtPictureProperties.EncodeCrop(item.Source.Crop, out _)
+                .Select(property => (property.RawOperationId, property.Value)));
         byte[] fopt = Bytes(writer => {
             foreach (var property in properties.OrderBy(property => property.Id & 0x3FFF)) {
                 writer.Write(property.Id); writer.Write(property.Value);

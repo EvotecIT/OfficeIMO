@@ -58,6 +58,15 @@ picture moves and shrinks in the edited state; the first remains unchanged.
 They qualify native image-store indices and delayed offsets in the template-free
 probe, public reload and bounds editing. Both synthetic PNGs are retained with
 each native control.
+PictureCropFractions and PictureCropFractionsReplacement author distinct
+left/top/right/bottom fractions `0.25/0.125/0.0625/0.1875` on the original physical
+picture, retaining its duplicate and master. The replacement case uses a wide
+PNG and bounds `(84,132,120,84)`. ImagePagesCropped applies the same crop to the
+first picture of the three-page specimen; ImagePagesJpegCropped applies it to the
+last JPEG. Their native point setters use source dimensions and encoded DPI;
+saved OfficeArt fractions and native page pixels qualify the actual result.
+The crop edit tests and native references also cover clearing the crop back to
+PictureOwnership, all four native fields, retained image bytes and other placements.
 ImagePagesReplacement replaces the last picture with the first PNG while keeping
 its wide frame. ImagePagesJpegReplacement then replaces that picture with a
 distinct synthetic JPEG. Their contracts identify the actual target and final

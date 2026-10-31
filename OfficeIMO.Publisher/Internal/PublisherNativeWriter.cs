@@ -70,6 +70,14 @@ internal sealed partial class PublisherNativeWriter {
         byte[] output = source.Rewrite(streams, maximumBytes, token);
         token.ThrowIfCancellationRequested();
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        if (writer._hasPictureCrop)
+            diagnostics.Add(Finding("PUB_NATIVE_PICTURE_CROP_UNQUALIFIED",
+                "Selected picture source-edge crops changed through native 16.16 properties. Bounds, image assets, other placements and unrelated records are retained. Native rendering, repair-free opening and opaque semantic preservation remain unassessed.",
+                OfficeConversionLossKind.Unassessed, "Escher"));
+        foreach (uint id in writer._quantizedPictureCrops)
+            diagnostics.Add(Finding("PUB_NATIVE_PICTURE_CROP_QUANTIZED",
+                "Source-edge crop fractions were rounded to the nearest native 16.16 value; the in-memory requested crop is unchanged.",
+                OfficeConversionLossKind.Approximation, "Escher/object/" + id));
         if (writer._hasFrameLayout)
             diagnostics.Add(Finding("PUB_NATIVE_FRAME_LAYOUT_UNQUALIFIED",
                 "Source frame columns, full intercolumn gap, insets or vertical alignment changed. Native shape tables and chunk-directory offsets are rewritten while unrelated records are retained. Repair-free opening, native layout and opaque semantic preservation remain unassessed.",

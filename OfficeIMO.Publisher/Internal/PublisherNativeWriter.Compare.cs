@@ -162,11 +162,12 @@ internal sealed partial class PublisherNativeWriter {
     private void ComparePicture(PublisherPicture a, PublisherPicture b) {
         _token.ThrowIfCancellationRequested();
         if (ReferenceEquals(a, b)) return;
-        if (a.Id != b.Id || a.PageId != b.PageId || a.ImageId != b.ImageId && !_pictureNames.ContainsKey(a.Id) || !a.Crop.Equals(b.Crop)
+        if (a.Id != b.Id || a.PageId != b.PageId || a.ImageId != b.ImageId && !_pictureNames.ContainsKey(a.Id)
             || a.HasPlacement != b.HasPlacement || a.CanEdit != b.CanEdit || a.EditLimitation != b.EditLimitation || a.IsAuthored != b.IsAuthored
             || !a.CanEdit || !ShapeEqual(PublisherShapeGeometry.Resize(a.CreatePaint(), b.Width, b.Height), b.CreatePaint())) {
-            Reject("Contents/object/" + a.Id, "Picture asset binding, crop, paint or unsupported placement changed."); return;
+            Reject("Contents/object/" + a.Id, "Picture asset binding, paint or unsupported placement changed."); return;
         }
+        PictureCrop(a, b);
         if (SameBounds(a.X, a.Y, a.Width, a.Height, b.X, b.Y, b.Width, b.Height) && a.PageTransform == b.PageTransform) return;
         if (b.PageTransform != OfficeTransform.Translate(b.X, b.Y)) {
             Reject("Contents/object/" + a.Id, "The picture has no qualified untransformed native bounds edit."); return;
