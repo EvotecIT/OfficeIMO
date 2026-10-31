@@ -81,6 +81,8 @@ for (int i = 0; i < pages.Count; i++) pages[i].Save($"Review-pack-{i + 1}.pdf");
 
 Page operations return a new document; the source file is never changed in place. Page numbers and ranges are 1-based.
 
+`Pages.Insert`, `Pages.Append` and `Pages.Prepend` retain ordinary AcroForm fields. Incoming name collisions use suffixes such as `Shared_source2`; hierarchical fields keep their parent and sibling relationships. General merge keeps only the primary form by default; choose `Forms = PdfMergeStructureMode.Combine` to retain incoming fields. See the [page composition guide](../Docs/officeimo.pdf-guide.md#merge-reorder-delete-duplicate-move-and-rotate) for form, action and signature restrictions.
+
 ## Fill a form
 
 ```csharp

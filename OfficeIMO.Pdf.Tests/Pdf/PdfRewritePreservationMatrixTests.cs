@@ -55,7 +55,7 @@ public class PdfRewritePreservationMatrixTests {
 
         PdfRewritePreservationMatrixEntry formsBlockedEntry = Assert.Single(report.Entries, entry => entry.Id == "forms-full-rewrite-blocked");
         Assert.Equal(PdfRewritePreservationMatrixClassification.Blocked, formsBlockedEntry.ActualClassification);
-        Assert.Contains("PDF form fields are not supported for rewriting", formsBlockedEntry.FailureMessage, StringComparison.Ordinal);
+        Assert.Contains("FullRewrite.Forms", formsBlockedEntry.FailureMessage, StringComparison.Ordinal);
 
         PdfRewritePreservationMatrixEntry taggedBlockedEntry = Assert.Single(report.Entries, entry => entry.Id == "tagged-full-rewrite-blocked");
         Assert.Equal(PdfRewritePreservationMatrixClassification.Blocked, taggedBlockedEntry.ActualClassification);

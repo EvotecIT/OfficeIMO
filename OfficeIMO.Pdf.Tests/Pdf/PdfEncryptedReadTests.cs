@@ -135,12 +135,17 @@ public class PdfEncryptedReadTests {
     }
 
     [Fact]
-    public void StandardPasswordEncryptedFormPdf_ExtractBlocksDecryptedFormMarkers() {
+    public void StandardPasswordEncryptedFormPdf_ExtractPreservesLiveFieldsAndEncryption() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
 
-        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfLoadOptions { Password = "open" }, 1));
-
-        Assert.Contains("FullRewrite.Forms", exception.Plan.BlockerCodes);
+        var options = new PdfLoadOptions { Password = "open" };
+        byte[] page = PdfPageExtractor.ExtractPages(pdf, options, 1);
+        PdfDocumentInfo info = PdfInspector.Inspect(page, options);
+        Assert.True(info.Security.HasEncryption);
+        PdfFormField field = Assert.Single(info.FormFields);
+        Assert.Equal("Name", field.Name);
+        Assert.Equal("Ada", field.Value);
+        Assert.Equal(1, Assert.Single(field.Widgets).PageNumber);
     }
 
 

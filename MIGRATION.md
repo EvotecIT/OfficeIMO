@@ -3710,6 +3710,19 @@ explicitly. Calls that set `UseLayoutPagination = true` also need this selection
 The Word package keeps its PDF-independent field refresh based on explicit breaks.
 
 
+## PDF AcroForm collision names
+
+PDF merge with `Forms = Combine` and page import rename colliding field namespaces
+with underscore suffixes: `Shared_source2`, then `Shared_source2_2`, instead of
+`Shared.source2` and `Shared.source2.2`. Periods separate actual parent and child
+field names. Hierarchical collisions rename the shared parent once, preserving
+siblings such as `Parent_source2.First` and `Parent_source2.Second`.
+Update field-name lookups or saved form-data mappings that depend on the old
+suffixes; merge reports list the resulting names. To retain fields from documents
+containing periods in a single partial field name, regenerate them from their
+original sources before composing them again. `Forms = KeepPrimary` remains
+the general merge default. Attachment and destination naming is unchanged.
+
 ## PowerShell Excel image URLs
 
 `Add-OfficeExcelImage -Url` and `Add-OfficeExcelImageFromUrl -Url` now accept

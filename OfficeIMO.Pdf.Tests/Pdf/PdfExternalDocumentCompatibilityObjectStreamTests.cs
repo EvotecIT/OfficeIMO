@@ -65,7 +65,7 @@ public partial class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
-    public void RewritePreflight_DetectsCompressedObjectStreamFormMarkers() {
+    public void RewritePreflight_DetectsCompressedFormsAndSplitPreservesThem() {
         byte[] pdf = BuildExternalObjectStreamPdf(includeAcroForm: true);
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
@@ -77,7 +77,12 @@ public partial class PdfExternalDocumentCompatibilityTests {
         Assert.False(preflight.CanRewrite);
         Assert.True(preflight.HasRewriteBlocker(PdfRewriteBlockerKind.Forms));
 
-        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfPageExtractor.SplitPages(pdf));
-        Assert.Contains("FullRewrite.Forms", exception.Plan.BlockerCodes);
+        byte[] output = Assert.Single(PdfPageExtractor.SplitPages(pdf));
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(output).FormFields);
+        Assert.Equal("HiddenField", field.Name);
+        Assert.Equal("value", field.Value);
+        using var independent = UglyToad.PdfPig.PdfDocument.Open(output);
+        Assert.True(independent.TryGetForm(out var form));
+        Assert.Single(form.Fields);
     }
 }

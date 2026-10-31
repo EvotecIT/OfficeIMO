@@ -70,7 +70,7 @@ public sealed partial class PdfTaggedMergeTests {
         } };
         byte[] output = PdfDocument.MergeToBytes(options, TaggedForm("first"), TaggedForm("second"));
         var read = PdfReadDocument.Open(output);
-        Assert.Equal(new[] { "Name", "Name.source2" }, read.FormFields.Select(field => field.Name).OrderBy(name => name));
+        Assert.Equal(new[] { "Name", "Name_source2" }, read.FormFields.Select(field => field.Name).OrderBy(name => name));
         var tags = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(output).TaggedContent);
         Assert.Equal(2, tags.StructureElements.Count(element => element.StructureType == "Form"));
         var catalog = (PdfDictionary)read.Objects[read.Security.RootObjectNumber!.Value].Value;

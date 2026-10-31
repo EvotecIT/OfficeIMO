@@ -1903,6 +1903,22 @@ stay plain: adding them does not create accessibility tags. A primary document
 that declares PDF/UA rejects untagged additions. Validate the saved result against
 the intended profile and review its reading and navigation behavior.
 
+`Pages.Insert`, `Pages.Append`, and `Pages.Prepend` keep ordinary AcroForm fields
+live, including when the same source is imported repeatedly. Existing names stay
+unchanged; incoming collisions receive deterministic suffixes such as
+`Shared_source2` and `Shared_source2_2`. Hierarchical fields keep their real parent
+dictionaries; a colliding namespace is renamed once, so siblings remain together
+(for example, `Parent_source2.First` and `Parent_source2.Second`).
+Extraction and page organization retain surviving widgets and prune removed pages
+from field trees and calculation order. Form appearances, default resources and
+`NeedAppearances` are retained.
+
+General `Merge` keeps its historical `Forms = KeepPrimary` default, which removes
+incoming fields and widgets. Choose `Forms = PdfMergeStructureMode.Combine` to
+retain fields from every source. Tagged-form page import, XFA page rewrites, and
+renaming colliding fields with actions are refused. Signatures, DocMDP and usage
+rights retain their rewrite restrictions.
+
 When combining tagged forms, choose `Forms = PdfMergeStructureMode.Combine` and
 `FormFieldCollisions = PdfMergeCollisionMode.RenameIncoming` in `PdfMergePolicy`.
 Policies that discard tagged widgets are rejected so their accessibility links

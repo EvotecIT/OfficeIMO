@@ -150,6 +150,27 @@ public sealed class StudioNativeEngineTests : IDisposable {
     }
 
     [Fact]
+    public async Task Form_pages_import_through_the_workspace_as_one_undoable_change() {
+        string source = CreateFormPdf();
+        using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, default);
+        Assert.True(workspace.CanMutatePages);
+        Assert.True(workspace.CanImportPages);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(source, null, default);
+        var facts = await document.GetInfoAsync(default);
+        Assert.True(facts.CanMutatePages && facts.CanImportPages && facts.CanExtractPages);
+        await document.ImportPagesAsync(new StudioNativeImportRequest(
+            [new StudioNativeImportSource(source), new StudioNativeImportSource(source)], 1), default);
+        Assert.Equal(3, (await document.GetInfoAsync(default)).Pages.Count);
+        await document.ReorderPagesAsync([3, 1, 2], default);
+        string output = Path.Combine(_root, "imported-forms.pdf");
+        await document.SaveCopyAsync(output, default);
+        Assert.Equal(12, PdfDocument.Load(output).Inspect().FormFields.Count);
+        await document.UndoAsync(default);
+        await document.UndoAsync(default);
+        Assert.Single((await document.GetInfoAsync(default)).Pages);
+    }
+
+    [Fact]
     public async Task Pages_from_other_PDFs_are_inserted_as_one_undoable_change() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300, 310), null, default);
         string first = CreatePagesOfWidthsAt("first.pdf", 400, 410, 420);
@@ -496,6 +517,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         using StudioNativeDocument reopened = await StudioNativeDocument.OpenAsync(signed, null, default);
         var facts = await reopened.GetInfoAsync(default);
         Assert.False(facts.CanMutatePages);
+        Assert.False(facts.CanImportPages);
         Assert.True(facts.CanRotatePages);
         await reopened.RotatePagesAsync([1], 90, default);
         Assert.Equal(90, (await reopened.GetInfoAsync(default)).Pages[0].Rotation);
