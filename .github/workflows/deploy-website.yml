@@ -17,7 +17,7 @@ on:
       - "global.json"
       - "Docs/Compatibility/generated/**"
       - "Build/CompatibilityCatalog/**"
-      - ".github/workflows/deploy-website.yml"
+      # Workflow-only repairs are validated on PRs; deploy them explicitly.
   pull_request:
     branches: [master]
     paths:
@@ -78,9 +78,11 @@ jobs:
       packages: read
       pages: write
       id-token: write
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@2e5374485f28c4927f571525ef80652e5fd3af82
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@2c29156fc471bc8d1d5b80035084866ceb44e2c8
     with:
       website_root: Website
+      # Match PR validation for cold API-reference social-card generation.
+      build_timeout_minutes: 120
       source_ref: ${{ github.sha }}
       pipeline_config: Website/pipeline.json
       site_output_path: Website/_site
