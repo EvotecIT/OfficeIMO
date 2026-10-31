@@ -64,22 +64,27 @@ public sealed class AddOfficePowerPointParagraphCommand : OfficeCmdlet {
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var scope = PowerPointContentScope.Current;
-        if (scope == null) { InvalidArgument(new ArgumentException("Invoke PowerPointParagraph inside PowerPointSlide or PowerPointColumn."), Text); return; }
-        var body = scope.CreateTextBody();
+        var textScope = PowerPointTextScope.Current;
+        if (scope == null && textScope?.Box == null) { InvalidArgument(new ArgumentException("Invoke PowerPointParagraph inside a slide, column or text-box content block."), Text); return; }
+        var body = textScope?.Box == null ? scope!.CreateTextBody() : null;
         try {
-            var paragraph = body.Box.AddParagraph(Content == null ? Text : string.Empty);
+            var paragraph = body != null ? body.Box.AddParagraph() : textScope!.StartParagraph();
+            paragraph.Text = Content == null ? Text : string.Empty;
             if (Alignment.HasValue) paragraph.Alignment = PowerPointTextFormatting.Alignment(Alignment.Value);
             if (SpacingBefore.HasValue) paragraph.SpaceBefore = SpacingBefore.Value;
             if (SpacingAfter.HasValue) paragraph.SpaceAfter = SpacingAfter.Value;
             if (Content != null) {
                 paragraph.ClearInlineContent();
-                using (OfficeDocumentContext.Push(new PowerPointTextScope(scope, paragraph))) Content.Invoke();
-            } else foreach (var run in paragraph.Runs)
-                PowerPointTextFormatting.Apply(run, scope, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size);
-            scope.Blocks.Add(new PowerPointLayoutText(Text) { NativeBody = body });
+                var inline = body != null ? new PowerPointTextScope(scope!, paragraph) : new PowerPointTextScope(textScope!, paragraph);
+                using (OfficeDocumentContext.Push(inline)) Content.Invoke();
+            } else foreach (var run in paragraph.Runs) {
+                if (body != null) PowerPointTextFormatting.Apply(run, scope!, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size);
+                else PowerPointTextFormatting.Apply(run, textScope!, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size);
+            }
+            if (body != null) scope!.Blocks.Add(new PowerPointLayoutText(Text) { NativeBody = body });
             if (PassThru) WriteObject(paragraph);
         } catch {
-            scope.DiscardTextBody(body);
+            if (body != null) scope!.DiscardTextBody(body);
             throw;
         }
     }

@@ -9,15 +9,37 @@ namespace PSWriteOffice.Services.PowerPoint;
 /// <summary>Keeps inline and list-item binding within the current slide or column and document.</summary>
 internal sealed class PowerPointTextScope {
     internal PowerPointTextScope(PowerPointContentScope owner, PowerPointParagraph? paragraph = null, PowerPointTextBox? list = null) {
-        Owner = owner; Paragraph = paragraph; List = list;
+        Owner = owner; Document = owner.Document; TargetSlide = owner.NativeSlide; Paragraph = paragraph; List = list;
     }
-    internal PowerPointContentScope Owner { get; }
+    internal PowerPointTextScope(PowerPointDocument document, PowerPointTextBox box) {
+        Document = document; Box = box; TargetSlide = box.OwnerSlide;
+    }
+    internal PowerPointTextScope(PowerPointTextScope parent, PowerPointParagraph paragraph) {
+        Owner = parent.Owner; Document = parent.Document; TargetSlide = parent.TargetSlide; Paragraph = paragraph;
+    }
+    internal PowerPointContentScope? Owner { get; }
+    internal PowerPointDocument Document { get; }
+    internal PowerPointSlide? TargetSlide { get; }
+    internal OfficeTheme Theme => TargetSlide?.AuthoringTheme ?? Document.LayoutTheme.Theme;
     internal PowerPointParagraph? Paragraph { get; }
     internal PowerPointTextBox? List { get; }
+    internal PowerPointTextBox? Box { get; }
+    private PowerPointParagraph? _boxParagraph;
+    private bool _boxWritten;
+
+    internal PowerPointParagraph StartParagraph() {
+        if (Box == null) throw new InvalidOperationException("This text scope does not own a text box.");
+        _boxParagraph = !_boxWritten && Box.Paragraphs.Count > 0 ? Box.Paragraphs[0] : Box.AddParagraph();
+        _boxWritten = true;
+        return _boxParagraph;
+    }
+
+    internal PowerPointParagraph TextParagraph() => Paragraph ?? _boxParagraph ?? StartParagraph();
     internal static PowerPointTextScope? Current {
         get {
             var scope = OfficeDocumentContext.Find<PowerPointTextScope>();
-            return ReferenceEquals(scope?.Owner, PowerPointContentScope.Current) ? scope : null;
+            return scope != null && ReferenceEquals(scope.Document, OfficeDocumentContext.Find<PowerPointDocument>()) &&
+                (scope.Owner == null || ReferenceEquals(scope.Owner, PowerPointContentScope.Current)) ? scope : null;
         }
     }
 }
@@ -26,14 +48,24 @@ internal sealed class PowerPointTextScope {
 internal static class PowerPointTextFormatting {
     internal static void Apply(PowerPointTextRun run, PowerPointContentScope scope, bool bold, bool italic,
         bool strikethrough, PowerPointUnderlineStyle? underline, OfficeColor? color, OfficeColor? highlight,
-        string? font, OfficeLength? size, string? link = null) {
+        string? font, OfficeLength? size, string? link = null) =>
+        Apply(run, scope.Document, scope.NativeSlide.AuthoringTheme, bold, italic, strikethrough, underline, color, highlight, font, size, link);
+
+    internal static void Apply(PowerPointTextRun run, PowerPointTextScope scope, bool bold, bool italic,
+        bool strikethrough, PowerPointUnderlineStyle? underline, OfficeColor? color, OfficeColor? highlight,
+        string? font, OfficeLength? size, string? link = null) =>
+        Apply(run, scope.Document, scope.Theme, bold, italic, strikethrough, underline, color, highlight, font, size, link);
+
+    private static void Apply(PowerPointTextRun run, PowerPointDocument document, OfficeTheme theme, bool bold, bool italic,
+        bool strikethrough, PowerPointUnderlineStyle? underline, OfficeColor? color, OfficeColor? highlight,
+        string? font, OfficeLength? size, string? link) {
         if (bold) run.Bold = true;
         if (italic) run.Italic = true;
         if (strikethrough) run.Strikethrough = true;
         if (underline.HasValue) run.UnderlineStyle = underline;
-        var theme = new PowerPointLayoutContext(scope.Document, scope.Document.LayoutTheme);
-        if (color.HasValue) run.Color = theme.ResolveColor(color);
-        if (highlight.HasValue) run.HighlightColor = theme.ResolveColor(highlight);
+        var context = new PowerPointLayoutContext(document, PowerPointLayoutTheme.From(theme));
+        if (color.HasValue) run.Color = context.ResolveColor(color);
+        if (highlight.HasValue) run.HighlightColor = context.ResolveColor(highlight);
         if (font != null) run.FontName = font;
         if (size.HasValue) run.FontSize = size.Value;
         if (link != null) run.SetHyperlink(link);

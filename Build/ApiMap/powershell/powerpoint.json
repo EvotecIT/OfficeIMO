@@ -908,7 +908,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Text",
@@ -1039,7 +1039,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Content",
@@ -1143,7 +1143,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Items",
@@ -1232,7 +1232,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Content",
@@ -1462,7 +1462,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "InputObject",
@@ -1600,7 +1600,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Rows",
@@ -1701,7 +1701,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "InputObject",
@@ -1789,7 +1789,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Type",
@@ -1885,7 +1885,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Path",
@@ -1969,7 +1969,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "X",
@@ -2108,7 +2108,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Text",
@@ -2634,7 +2634,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Text",
@@ -2704,7 +2704,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Content",
@@ -2796,7 +2796,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Type",
@@ -2904,7 +2904,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Type",
@@ -2949,7 +2949,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Type",
@@ -3169,7 +3169,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Alignment",
@@ -3213,7 +3213,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Distribute",
@@ -3275,7 +3275,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Grid",
@@ -4049,7 +4049,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "IncludeEmpty",
@@ -4095,7 +4095,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Index",
@@ -4134,7 +4134,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Text",
@@ -4185,7 +4185,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Pattern",
@@ -4493,7 +4493,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "OldValue",
@@ -4560,7 +4560,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Document",
@@ -4591,7 +4591,7 @@
               "type": "PowerPointSlideSelector",
               "mandatory": false,
               "pipeline": "value",
-              "notes": "A slide object, or a 1-based slide number in -Document. Optional inside a slide block, where the current slide is used."
+              "notes": "A slide object, or a 1-based slide number in the enclosing document. Optional inside a slide block, where the current slide is used."
             },
             {
               "name": "Document",
@@ -6001,7 +6001,7 @@
         "Run": "Content"
       },
       "hint": "PowerPointTextBox -X 2cm -Y 4cm -Width 10cm { PowerPointText 'Status: ' -Bold; PowerPointText 'On track' -Color Success }",
-      "reason": "Kept for deliberate placement. Styled text uses a content block of PptParagraph/PptText; -Run hashtables are removed. Integer points become OfficeLength."
+      "reason": "Kept for deliberate placement. Styled text uses a content block of PowerPointParagraph/PowerPointText; -Run hashtables are removed. Integer points become OfficeLength."
     },
     {
       "old": "Add-OfficePowerPointVisual",

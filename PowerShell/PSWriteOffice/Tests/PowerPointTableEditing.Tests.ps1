@@ -122,10 +122,10 @@ Describe 'PowerPointTableEditing workflows' {
         $presentation = New-OfficePowerPoint -Path $path
         try {
             $slide = $presentation.AddSlide(0, 1)
-            $textBox = Add-OfficePowerPointTextBox -Slide $slide -Run @(
-                New-OfficeTextRun 'Status: '
-                New-OfficeTextRun 'Ready' -Color SeaGreen -Bold
-            ) -X 80 -Y 80 -Width 300 -Height 50 -PassThru
+            $textBox = PowerPointTextBox -Slide $slide -Content {
+                PowerPointText 'Status: '
+                PowerPointText 'Ready' -Color SeaGreen -Bold
+            } -X 80 -Y 80 -Width 300 -Height 50 -PassThru
             $textBox.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointTextBox'
             $textBox.Text | Should -Be 'Status: Ready'
             $textBox = $textBox | Set-OfficePowerPointShapeText -Run @(
@@ -242,10 +242,11 @@ Describe 'PowerPointTableEditing workflows' {
             ) } | Should -Throw
             $table.GetCell(1, 1).Text | Should -Be 'Plain'
 
-            $baselineTextBox = Add-OfficePowerPointTextBox -Slide $slide -Run @(
-                New-OfficeTextRun 'x'
-                New-OfficeTextRun '2' -Kind Superscript
-            ) -X 360 -Y 80 -Width 120 -Height 50 -PassThru
+            $baselineTextBox = PowerPointTextBox -Slide $slide -Content {
+                PowerPointText 'x'
+                $exponent = PowerPointText '2' -PassThru
+                $null = $exponent.SetSuperscript()
+            } -X 360 -Y 80 -Width 120 -Height 50 -PassThru
             $baselineTextBox.Text | Should -Be 'x2'
 
             $baselineTable = Add-OfficePowerPointTable -Slide $slide -InputObject @(
@@ -324,7 +325,7 @@ Describe 'PowerPointTableEditing workflows' {
         }
     }
 
-    It 'validates PowerPoint text box runs before creating the shape' {
+    It 'removes a PowerPoint text box when its rich content fails' {
         $path = Join-Path $TestDrive 'PowerPointTextBoxRunValidation.pptx'
         $presentation = New-OfficePowerPoint -Path $path
         try {
@@ -332,10 +333,11 @@ Describe 'PowerPointTableEditing workflows' {
             @($slide.TextBoxes).Count | Should -Be 0
 
             {
-                Add-OfficePowerPointTextBox -Slide $slide -Run @(
-                    New-OfficeTextRun 'jump' -LinkDestinationName Summary
-                ) -ErrorAction Stop
-            } | Should -Throw '*named PDF/Word destinations*'
+                PowerPointTextBox -Slide $slide -Content {
+                    PowerPointText 'Partial text'
+                    throw 'manual-box-content-failed'
+                } -ErrorAction Stop
+            } | Should -Throw '*manual-box-content-failed*'
 
             @($slide.TextBoxes).Count | Should -Be 0
         } finally {

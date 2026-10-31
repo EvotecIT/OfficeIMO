@@ -38,7 +38,7 @@ Describe 'PowerPointShapeEditing workflows' {
 
         $slide = $presentation.AddSlide(0, 1)
         Set-OfficePowerPointSlide -Slide $slide -Title 'Status Update'
-        $shape = Add-OfficePowerPointShape -Slide $slide -ShapeType Rectangle -X 40 -Y 40 -Width 200 -Height 80 -FillColor '#DDEEFF' -OutlineColor '#1F4E79' -OutlineWidth 1 -PassThru
+        $shape = Add-OfficePowerPointShape -Slide $slide -Type Rectangle -X 40 -Y 40 -Width 200 -Height 80 -FillColor '#DDEEFF' -OutlineColor '#1F4E79' -OutlineWidth 1 -PassThru
 
         $rows = @(
             [PSCustomObject]@{ Item = 'Alpha'; Qty = 10 }
@@ -162,9 +162,9 @@ Describe 'PowerPointShapeEditing workflows' {
         $presentation = New-OfficePowerPoint -Path $path
         try {
             $slide = $presentation.AddSlide(0, 1)
-            $shape1 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.One' -ShapeType Rectangle -X 40 -Y 80 -Width 80 -Height 40 -PassThru
-            $shape2 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.Two' -ShapeType Rectangle -X 180 -Y 140 -Width 80 -Height 40 -PassThru
-            $shape3 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.Three' -ShapeType Rectangle -X 320 -Y 200 -Width 80 -Height 40 -PassThru
+            $shape1 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.One' -Type Rectangle -X 40 -Y 80 -Width 80 -Height 40 -PassThru
+            $shape2 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.Two' -Type Rectangle -X 180 -Y 140 -Width 80 -Height 40 -PassThru
+            $shape3 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.Three' -Type Rectangle -X 320 -Y 200 -Width 80 -Height 40 -PassThru
 
             @($shape1, $shape2, $shape3) | Set-OfficePowerPointShapeLayout -Slide $slide -Align Top
             $shape1.Top.ToPoints() | Should -Be $shape2.Top.ToPoints()

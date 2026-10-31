@@ -88,11 +88,11 @@ PptNew -Path $pptPath {
     PptSlideSize -Preset Screen16x9
     PptSlide {
         PptTitle -Title 'Rich text runs'
-        PptTextBox -Run @(
-            PptTextRun 'Status: '
-            PptTextRun 'Ready' -Color SeaGreen -Bold
-            PptTextRun ' with named colors' -Color Navy -Italic
-        ) -X 70 -Y 115 -Width 560 -Height 54
+        PowerPointTextBox -Content {
+            PowerPointText 'Status: '
+            PowerPointText 'Ready' -Color SeaGreen -Bold
+            PowerPointText ' with named colors' -Color Navy -Italic
+        } -X 70 -Y 115 -Width 560 -Height 54
         PptTable -InputObject @(
             , @(
                 @{

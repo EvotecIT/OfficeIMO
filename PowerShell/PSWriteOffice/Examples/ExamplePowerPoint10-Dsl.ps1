@@ -10,7 +10,7 @@ $data = @(
 New-OfficePowerPoint -Path $path {
     PptSlide {
         PptTitle -Title 'Status Update'
-        PptTextBox -Text 'Generated with PSWriteOffice' -X 80 -Y 150 -Width 360 -Height 60
+        PowerPointTextBox -Text 'Generated with PSWriteOffice' -X 80 -Y 150 -Width 360 -Height 60
         PptBullets -Bullets 'Wins','Risks','Next Steps' -X 430 -Y 150 -Width 260 -Height 200
         PptNotes -Text 'Keep this under five minutes.'
     }

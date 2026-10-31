@@ -7,7 +7,7 @@ $presentation = New-OfficePowerPoint -Path $path -NoSave
 $slide1 = Add-OfficePowerPointSlide -Presentation $presentation -Layout 1 -PassThru
 Set-OfficePowerPointSlideTitle -Slide $slide1 -Title 'Status Update'
 Add-OfficePowerPointTextBox -Slide $slide1 -Text 'Generated with PSWriteOffice' -X 80 -Y 150 -Width 320 -Height 40
-Add-OfficePowerPointShape -Slide $slide1 -ShapeType Rectangle -X 80 -Y 210 -Width 320 -Height 120 -FillColor '#DDEEFF' -OutlineColor '#4472C4' -OutlineWidth 1
+Add-OfficePowerPointShape -Slide $slide1 -Type Rectangle -X 80 -Y 210 -Width 320 -Height 120 -FillColor '#DDEEFF' -OutlineColor '#4472C4' -OutlineWidth 1
 
 $slide2 = Add-OfficePowerPointSlide -Presentation $presentation -Layout 1 -PassThru
 Set-OfficePowerPointSlideTitle -Slide $slide2 -Title 'Next Steps'

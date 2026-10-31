@@ -63,6 +63,8 @@ internal sealed class PowerPointContentScope : IDisposable {
         Blocks.Add(block);
     }
 
+    internal void TrackFixedFigure(PowerPointShape figure) => _figures.Add(figure);
+
     internal void AcceptColumn(PowerPointContentScope column, string? title) {
         // Validate before transferring ownership; a rejected column rolls back its own native frames and notes.
         var block = new PowerPointLayoutColumn(title, column.Blocks);

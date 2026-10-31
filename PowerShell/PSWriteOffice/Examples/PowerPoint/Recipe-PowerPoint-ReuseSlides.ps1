@@ -4,14 +4,14 @@ $targetPath = '.\PowerPoint-Combined-Deck.pptx'
 PptNew -Path $sourcePath {
     PptSlide {
         PptTitle -Title 'Reusable Architecture'
-        PptTextBox -Text 'Shared platform diagram' -X 80 -Y 150 -Width 500 -Height 80
+        PowerPointTextBox -Text 'Shared platform diagram' -X 80 -Y 150 -Width 500 -Height 80
     }
 }
 
 PptNew -Path $targetPath {
     PptSlide {
         PptTitle -Title 'Customer Briefing'
-        PptTextBox -Text 'Prepared for review' -X 80 -Y 150 -Width 500 -Height 80
+        PowerPointTextBox -Text 'Prepared for review' -X 80 -Y 150 -Width 500 -Height 80
     }
 }
 

@@ -60,9 +60,9 @@ public sealed class AddOfficePowerPointListItemCommand : OfficeCmdlet {
             item.Level = Level - 1;
             if (Content != null) {
                 item.ClearInlineContent();
-                using (OfficeDocumentContext.Push(new PowerPointTextScope(scope.Owner, item))) Content.Invoke();
+                using (OfficeDocumentContext.Push(new PowerPointTextScope(scope, item))) Content.Invoke();
             } else foreach (var run in item.Runs)
-                PowerPointTextFormatting.Apply(run, scope.Owner, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size);
+                PowerPointTextFormatting.Apply(run, scope, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size);
             if (PassThru) WriteObject(item);
         } catch {
             PowerPointTextRun.DiscardContent(item.Paragraph, item.OwnerPart as DocumentFormat.OpenXml.Packaging.OpenXmlPart);

@@ -14,7 +14,7 @@ $data = @(
 )
 
 Add-OfficePowerPointTable -Slide $slide -Data $data -X 60 -Y 140 -Width 420 -Height 200
-Add-OfficePowerPointShape -Slide $slide -ShapeType Ellipse -X 520 -Y 140 -Width 140 -Height 140 -FillColor '#FFE699' -OutlineColor '#C65911' -OutlineWidth 1
+Add-OfficePowerPointShape -Slide $slide -Type Ellipse -X 520 -Y 140 -Width 140 -Height 140 -FillColor '#FFE699' -OutlineColor '#C65911' -OutlineWidth 1
 Add-OfficePowerPointTextBox -Slide $slide -Text 'Highlights' -X 530 -Y 300 -Width 120 -Height 40
 
 Save-OfficePowerPoint -Presentation $presentation
