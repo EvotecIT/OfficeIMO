@@ -4,7 +4,7 @@ $services = @(
     [pscustomobject]@{ Service = 'Messaging'; Owner = 'Collaboration'; Status = 'Review' }
 )
 
-WordNew -Path $path {
+New-OfficeWord -Path $path {
     WordSection {
         WordParagraph -Text 'Service Readiness' -Style Heading1
         WordParagraph -Text 'Review the Messaging service before publication.'

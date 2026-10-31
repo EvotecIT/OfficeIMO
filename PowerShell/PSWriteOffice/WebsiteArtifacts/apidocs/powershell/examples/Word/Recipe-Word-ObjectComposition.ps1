@@ -4,7 +4,7 @@ $findings = @(
     [pscustomobject]@{ Finding = 'Missing evidence link'; Owner = 'Operations'; Status = 'Resolved' }
 )
 
-$document = New-OfficeWord -Path $path -NoSave
+$document = New-OfficeWord -Path $path
 $heading = $document | Add-OfficeWordParagraph -Text 'Access review' -Style Heading1 -PassThru
 $heading | Add-OfficeWordText -Text ' — weekly summary' -Color '#475569'
 

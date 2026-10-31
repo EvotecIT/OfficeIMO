@@ -4,7 +4,7 @@ $rows = @(
     [pscustomobject]@{ Service = 'Messaging'; Status = 'Draft'; Owner = 'Collaboration' }
 )
 
-ExcelNew -Path $path {
+New-OfficeExcel -Path $path {
     ExcelSheet 'Readiness' {
         ExcelTable -Data $rows -Name 'Readiness' -AutoFit
     }

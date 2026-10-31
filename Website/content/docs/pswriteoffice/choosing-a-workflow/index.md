@@ -24,7 +24,7 @@ This path works well for scheduled reports, build artifacts, exports, invoices, 
 
 ## Build incrementally with document objects
 
-Use `New-OfficeWord`, `New-OfficeExcel`, `New-OfficePowerPoint`, or `New-OfficeMarkdown` with `-NoSave` when normal loops and conditions need a live target. Add content through explicit `-Document`, `-Worksheet`, `-Presentation`, `-Slide`, or pipeline targets, then save once. This is also the natural migration path for scripts that previously held a PSWriteWord or PSWriteExcel document variable.
+Use `New-OfficeWord`, `New-OfficeExcel`, or `New-OfficePowerPoint` with `-NoSave` when normal loops and conditions need a live target. For Markdown, use `New-OfficeMarkdown` without a content block. Add content through explicit `-Document`, `-Worksheet`, `-Presentation`, `-Slide`, or pipeline targets, then save once. This is also the natural migration path for scripts that previously held a PSWriteWord or PSWriteExcel document variable.
 
 ## Load and change an existing file
 

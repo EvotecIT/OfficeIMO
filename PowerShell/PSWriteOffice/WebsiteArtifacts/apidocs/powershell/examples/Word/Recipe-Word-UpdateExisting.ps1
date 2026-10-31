@@ -1,5 +1,5 @@
 $path = '.\Word-Updated-In-Place.docx'
-WordNew -Path $path {
+New-OfficeWord -Path $path {
     WordSection {
         WordParagraph -Text 'FY24 Service Review' -Style Heading1
         WordParagraph {

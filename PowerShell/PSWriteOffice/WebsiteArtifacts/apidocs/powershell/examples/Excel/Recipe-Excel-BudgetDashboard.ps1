@@ -10,7 +10,7 @@ $forecastVariance = ($budget | Measure-Object -Property Variance -Sum).Sum
 $overspend = @($budget | Where-Object Variance -gt 0 | Select-Object -ExpandProperty Department)
 $decision = if ($overspend.Count) { 'Decision: review overspend in ' + ($overspend -join ', ') + '.' } else { 'Decision: confirm the forecast remains within budget.' }
 
-ExcelNew -Path $path -EvaluateFormulas {
+New-OfficeExcel -Path $path -SaveOptions @{ EvaluateFormulas = $true } {
     ExcelSheet 'Dashboard' {
         ExcelGridlines -Hide
         ExcelColumn -ColumnName A -Width 38

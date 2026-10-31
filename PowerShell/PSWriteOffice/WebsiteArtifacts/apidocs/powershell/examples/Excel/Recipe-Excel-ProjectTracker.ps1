@@ -6,7 +6,7 @@ $tasks = @(
     [pscustomobject]@{ Task = 'Publish runbook'; Owner = 'Support'; Status = 'Not started'; Progress = 0; Due = '2026-09-08' }
 )
 
-ExcelNew -Path $path {
+New-OfficeExcel -Path $path {
     ExcelSheet 'Tracker' {
         ExcelTable -Data $tasks -Name 'ProjectTasks' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
         ExcelFreeze -TopRows 1

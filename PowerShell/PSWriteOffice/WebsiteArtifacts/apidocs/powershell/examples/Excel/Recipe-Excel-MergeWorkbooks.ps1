@@ -1,13 +1,13 @@
 $target = '.\Excel-Consolidated.xlsx'
 $source = '.\Excel-Regional-Source.xlsx'
 
-ExcelNew -Path $target {
+New-OfficeExcel -Path $target {
     ExcelSheet 'Summary' {
         ExcelCell -Address A1 -Value 'Consolidated service report'
     }
 }
 
-ExcelNew -Path $source {
+New-OfficeExcel -Path $source {
     ExcelSheet 'North' {
         ExcelCell -Address A1 -Value 'North region'
         ExcelCell -Address B1 -Value 42

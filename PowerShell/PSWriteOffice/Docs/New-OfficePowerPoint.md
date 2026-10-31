@@ -167,7 +167,7 @@ Accept wildcard characters: False
 ```
 
 ### -Theme
-Built-in theme name, theme object, or PowerPoint template path. Defaults to Modern.
+Built-in theme, theme object or a Word, Excel or PowerPoint document/template whose visual theme is read. Defaults to Modern.
 
 ```yaml
 Type: OfficeThemeInput

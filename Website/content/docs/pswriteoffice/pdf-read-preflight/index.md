@@ -16,6 +16,6 @@ $pages = Get-OfficePdfText -Path '.\Input.pdf' -ByPage
 
 Use `-AsTextBlock` when coordinates are needed for redaction or layout work. The read family also exposes images, fonts, attachments, form fields, annotations, signatures, interactions, optimization information, compliance, diagnostics, and rewrite-preservation evidence.
 
-The [inspect-and-preflight recipe](https://github.com/EvotecIT/OfficeIMO/blob/81258967c9d550f9e8388a1ff5deffa6f8289298/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-InspectAndPreflight.ps1) creates a two-page PDF, reads its metadata and text page by page, and runs the PDF preflight command.
+The [inspect-and-preflight recipe](https://github.com/EvotecIT/OfficeIMO/blob/ec163b78db938a65d26dfc30bec8ca132635ccec/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-InspectAndPreflight.ps1) creates a two-page PDF, reads its metadata and text page by page, and runs the PDF preflight command.
 
 Encrypted files require the correct password. `-IgnorePermissionRestrictions` is an explicit post-authentication policy choice; it does not discover or bypass a missing password.

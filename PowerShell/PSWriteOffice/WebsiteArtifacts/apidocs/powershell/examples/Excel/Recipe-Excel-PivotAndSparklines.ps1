@@ -6,7 +6,7 @@ $sales = @(
     [pscustomobject]@{ Region = 'South'; Month = 'Feb'; Revenue = 104; Feb = 109; Mar = 118 }
 )
 
-ExcelNew -Path $path {
+New-OfficeExcel -Path $path {
     ExcelSheet 'Sales' {
         ExcelTable -Data $sales -Name 'Sales' -AutoFit
         ExcelPivotTable -SourceRange 'A1:C5' -DestinationCell 'G2' -Name 'RevenueByRegion' -RowField Region -ColumnField Month -DataField Revenue
