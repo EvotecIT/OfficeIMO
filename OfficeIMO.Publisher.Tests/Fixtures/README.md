@@ -74,6 +74,14 @@ bold text, red 12-point italic text and black 12-point regular text. Documented 
 deleting/reordering/duplicating paragraphs and include equivalent templates,
 middle-run-only edits and opaque language differences confined to the middle
 run. The table uses fitting first/final cells and unchanged neighbors.
+TextFormattingTopology and TableFormattingTopology each provide sixteen native
+pages with retained three-run text and independently authored formatting/count
+changes. The controls include emphasis, size, colors, fonts, double underline,
+paragraph alignment/spacing/indentation and English/French middle-run metadata.
+Native word ranges change visible runs while retaining CR typing. Destination
+style collisions distinguish text correspondence from borrowing another native
+paragraph's metadata. The Consolas/green final state also compares an edit of the
+earlier mixed-run source whose font/color pools lack those entries.
 TextStories has three separate stories, with an empty
 paragraph inside its middle story. TextFormattingPages retains 96 paragraphs,
 including overflow beyond its sole text frame, across two native paragraph-formatting

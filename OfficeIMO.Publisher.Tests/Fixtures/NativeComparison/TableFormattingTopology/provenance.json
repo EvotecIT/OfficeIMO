@@ -1,0 +1,53 @@
+{
+  "schema": "officeimo.publisher.native-retained-text-formatting-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableFormattingTopology",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tableformattingtopology.json",
+      "sha256": "7b87a0346e757cd6405d015c0a6cd214af7d60fa686c32dcad6ae38738097579"
+    },
+    {
+      "name": "native-tableformattingtopology.pdf",
+      "sha256": "af50db5a3982516ebaa7d2c8603f95878b5bdfbc026441fa391a8d9937dffb44"
+    },
+    {
+      "name": "native-tableformattingtopology.pub",
+      "sha256": "4d701c93741e420c12efd4669d7ecb20086eb4130aa69629b331fae47aecddc6"
+    }
+  ],
+  "license": "MIT",
+  "documentPages": 16,
+  "profiles": [
+    "Baseline",
+    "DropEmphasis",
+    "ReorderSizes",
+    "DuplicateColors",
+    "OnlyFinal",
+    "OnlyFirstLayout",
+    "Combined",
+    "DestinationFormatCollision",
+    "AmbiguousTextLanguage",
+    "RetainedEnglishWithFinalFormat",
+    "RetainedFrenchWithFinalFormat",
+    "EquivalentSource",
+    "EquivalentFormatting",
+    "FirstRunOnly",
+    "ParagraphOnly",
+    "ResourceGrowth"
+  ],
+  "scope": "Independent native retained-text formatting/count final states, three styled runs, exact visible-run versus CR typing, paragraph layout, output-style/native-language collisions, equivalent templates and font/color resource growth. Fitting first/final table cells retain neighbors; general reflow and broader producer profiles remain unqualified."
+}

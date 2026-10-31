@@ -215,8 +215,8 @@ corresponding nonempty run and agree on complete paragraph/run definitions and
 the destination CR. Empty or unsupported
 matching source bodies remain ambiguity barriers. Equal visible formatting does
 not choose between conflicting opaque native definitions. Count-changing
-formatting rewrites, run splitting/merging and filling nonuniform empty source
-paragraphs remain outside this profile.
+edits preserving neither text nor complete formatting, run splitting/merging and
+filling nonuniform empty source paragraphs remain outside this profile.
 A newly authored empty final paragraph is refused when its requested typing
 cannot be represented safely. A zero-paragraph story remains unsupported
 for native saving; in-memory clearing and rendering remain available.
@@ -265,6 +265,26 @@ initial/resaved page comparisons match independent final states, and 480
 neighboring-page comparisons remain unchanged. Native resave checks effective
 formatting and language at every run and CR boundary. Empty, merged or split
 replacement runs and conflicting middle-run native definitions refuse output.
+
+The `sourceEditing.retainedTextFormatting` record qualifies character and
+paragraph formatting changes during nonuniform count changes when ordered run
+text is retained. Selection resolves exact references and complete values first,
+then retained text and fields outside the formatting codecs' editable contract,
+then unchanged complete formatting for text replacement. A found but ambiguous
+text match refuses output without trying a different paragraph's requested style.
+All matching native templates must agree on complete paragraph/run definitions
+and the qualified CR role. Existing character and paragraph codecs apply the
+requested fields; destination CR bytes remain unchanged by visible-run styling.
+
+Twenty-six native outputs cover emphasis, size, font family, RGB color, double
+underline, alignment, before/after spacing and indentation while deleting,
+reordering or duplicating paragraphs. Sixteen-page ordinary/table controls include
+opaque language collisions and equivalent source templates. Separate cases use
+the earlier mixed-run source without Consolas or green, proving font/color pool
+growth while preserving existing resource entries. Fifty-two selected-page and
+768 neighboring-page initial/resaved comparisons match independent native final
+states. These fitting controls do not qualify broader producer/style profiles,
+general table reflow, explicit nonempty-CR styling or repair-free opening.
 
 When ranges no longer fit the original allocation, the codec can append aligned
 formatting pages and directory pages, relocate enlarged BTE indexes and resources,

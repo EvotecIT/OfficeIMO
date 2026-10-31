@@ -21,7 +21,7 @@ internal static partial class PublisherQuillParagraphWriter {
         if (before.Paragraphs.Count != after.Paragraphs.Count) {
             if (TryPlanTopology(data, context, binding, before, after, outputTextOffset, token, pc, pp, resources, typingStyles)) return true;
             pc.Clear(); pp.Clear();
-            return TryPlanRetention(data, binding, before, after, outputTextOffset, token, pc, pp);
+            return TryPlanRetention(data, context, binding, before, after, outputTextOffset, token, pc, pp, resources);
         }
         PublisherQuillStyleUse[] characters = binding.Uses.Where(use => use.Tag == "FDPC").ToArray();
         PublisherQuillStyleUse[] paragraphs = binding.Uses.Where(use => use.Tag == "FDPP").ToArray();

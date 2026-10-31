@@ -79,12 +79,16 @@ paragraphs with different formatting can also be retained, deleted, reordered or
 duplicated without changing their content or formatting. Pass the original
 paragraph snapshots to identify the exact native source; copied values require
 unambiguous native definitions. Retained empty paragraphs keep their own complete
-native CR typing in interior and final positions. Nonuniform count changes
-can also include text replacements with the same ordered, nonempty runs when
-complete paragraph/run formatting stays unchanged and all matching native
-templates agree for every run. Each source run must have a uniform complete native
-definition. Empty or unsupported matching source bodies, conflicting opaque
-metadata and simultaneous formatting changes refuse this replacement path. A changed story
+native CR typing in interior and final positions. Nonuniform count changes can
+also use retained ordered run text to select a native template for supported
+character and paragraph formatting changes. Exact snapshots and complete values
+resolve first, followed by retained text, then unchanged complete formatting for
+text replacement. An ambiguous retained-text match refuses output even when
+another source paragraph matches the requested style. All matching templates
+must agree on complete native definitions, with one uniform nonempty definition
+per ordered run. Visible-run formatting leaves destination CR typing intact.
+Requests preserving neither text nor complete formatting, empty replacement runs
+and unsupported source definitions refuse output. A changed story
 can use one existing frame or a complete resolved chain of ordinary, visible,
 untransformed document-page frames. Native links, ownership and frame identities
 remain fixed. Known chained Quill layouts are supported; formatting and directory
@@ -439,9 +443,10 @@ within a cell without changing their text or formatting. Original paragraph
 snapshots select their exact native definitions; copied values require
 unambiguous definitions within that cell. Retained empty paragraphs keep their
 own complete native CR definition in interior and final positions. Count-changing
-text replacement also requires unchanged complete paragraph/run formatting and
-ordered run count, with a uniform nonempty native definition for each run and
-agreement among all matching templates on those definitions and the destination CR. Unknown
+text replacement uses unchanged complete paragraph/run formatting; formatting
+changes use retained ordered run text. Both require a uniform nonempty native
+definition per run and agreement among matching templates, including the
+destination CR role. Matching stays within the edited cell. Unknown
 native partition records, arbitrary count-changing rewrites of nonuniform cell
 definitions and unsupported typing encodings refuse output. Publisher can expand rows when text
 wraps or exceeds a cell, so retained stored bounds do not guarantee fixed native

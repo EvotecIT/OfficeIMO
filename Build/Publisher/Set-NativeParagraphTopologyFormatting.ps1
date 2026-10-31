@@ -17,9 +17,16 @@ function Set-NativeParagraphTopologyFormatting {
             2 { $format.Alignment = 2; $format.SpaceBefore = 5; $format.SpaceAfter = 2 }
             3 { $format.Alignment = 0; $format.LeftIndent = 18; $format.FirstLineIndent = 6; $format.SpaceBefore = 7; $format.SpaceAfter = 4 }
         }
+        if ($Profile.ContainsKey('ParagraphOverrides') -and $Profile.ParagraphOverrides.ContainsKey($paragraph)) {
+            $override = $Profile.ParagraphOverrides[$paragraph]
+            foreach ($name in 'Alignment', 'SpaceBefore', 'SpaceAfter', 'LeftIndent', 'FirstLineIndent') {
+                if ($override.ContainsKey($name)) { $format.$name = $override[$name] }
+            }
+        }
         if ($Profile.ContainsKey('FrenchParagraph') -and $paragraph -eq $Profile.FrenchParagraph) { $range.LanguageID = 1036 }
         $runFormatting = if ($Profile.ContainsKey('MixedRuns')) {
-            @(Set-NativeMixedRunFormatting -ParagraphRange $range -FrenchMiddle:($Profile.ContainsKey('FrenchRunParagraph') -and $paragraph -eq $Profile.FrenchRunParagraph))
+            $overrides = if ($Profile.ContainsKey('RunOverrides') -and $Profile.RunOverrides.ContainsKey($paragraph)) { $Profile.RunOverrides[$paragraph] } else { @{} }
+            @(Set-NativeMixedRunFormatting -ParagraphRange $range -FrenchMiddle:($Profile.ContainsKey('FrenchRunParagraph') -and @($Profile.FrenchRunParagraph) -contains $paragraph) -Overrides $overrides)
         } else { $null }
         [pscustomobject]@{
             sourceOrdinal = $Profile.Order[$paragraph]

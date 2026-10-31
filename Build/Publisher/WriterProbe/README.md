@@ -476,6 +476,22 @@ native controls. Native resaving preserves effective styles and language at
 every run/CR boundary. Run splitting/merging, empty-source refill and simultaneous
 formatting rewrites remain outside this profile.
 
+The `sourceEditing.retainedTextFormatting` record qualifies formatting changes
+during nonuniform count changes through retained ordered run text. Exact
+references/values take priority, then retained text, then unchanged formatting
+for text replacement. Ambiguous text cannot fall back to another paragraph's
+native definition merely because its style matches the request. Existing
+character and paragraph codecs rewrite only supported fields; destination CR
+typing, opaque metadata and per-cell boundaries remain retained.
+
+Twenty-six native outputs cover size/emphasis/color/font/double underline and
+paragraph layout alongside deletion/reorder/duplication, including destination
+style collisions, hidden language ambiguity and source font/color pool growth.
+Fifty-two selected-page and 768 neighboring-page stage comparisons match
+independent native controls. Requests preserving neither run text nor complete
+formatting, run splitting/merging and empty-source refill remain outside this
+profile; broader native layout and repair-free opening remain unassessed.
+
 The `sourceEditing.tableTrackGeometry` record covers saved table endpoints and
 native row-growth controls. The reader recovers laid-out tracks from cumulative
 coordinates, retaining reported nominal fallback for incomplete axes. Independent

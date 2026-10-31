@@ -1,6 +1,6 @@
 # Each profile is authored independently, rather than mutating the baseline.
 function Get-NativeParagraphTopologyProfiles {
-    param([switch] $EmptyParagraphs, [switch] $SizeWitnesses, [switch] $UniformEmpty, [switch] $TextReplacements, [switch] $MixedRuns)
+    param([switch] $EmptyParagraphs, [switch] $SizeWitnesses, [switch] $UniformEmpty, [switch] $TextReplacements, [switch] $MixedRuns, [switch] $FormattingChanges)
     $texts = @('First native paragraph', 'Second native paragraph', 'Third native paragraph', 'Final native paragraph')
     $profiles = @(
         @{ Name = 'Baseline'; Order = @(0, 1, 2, 3) },
@@ -11,7 +11,9 @@ function Get-NativeParagraphTopologyProfiles {
         @{ Name = 'Duplicate'; Order = @(0, 1, 1, 2, 3) },
         @{ Name = 'AmbiguousLanguage'; Order = @(0, 0, 3); FrenchParagraph = 1 }
     )
-    if ($MixedRuns) {
+    if ($FormattingChanges) {
+        $profiles = @(Get-NativeFormattingTopologyProfiles)
+    } elseif ($MixedRuns) {
         $profiles = @(Get-NativeMixedRunTextProfiles)
     } elseif ($TextReplacements) {
         $profiles = @(

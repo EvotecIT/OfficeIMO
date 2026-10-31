@@ -1,0 +1,53 @@
+{
+  "schema": "officeimo.publisher.native-retained-text-formatting-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TextFormattingTopology",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-textformattingtopology.json",
+      "sha256": "7febf92eb4d293c0cd481829d624e878e9fe38d77f8a6e73615884b1bd87a42f"
+    },
+    {
+      "name": "native-textformattingtopology.pdf",
+      "sha256": "7ca2e19e9793154c4d8cdb54bb12a815fc98bf84eb14cd76f951d4c8447bd362"
+    },
+    {
+      "name": "native-textformattingtopology.pub",
+      "sha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b"
+    }
+  ],
+  "license": "MIT",
+  "documentPages": 16,
+  "profiles": [
+    "Baseline",
+    "DropEmphasis",
+    "ReorderSizes",
+    "DuplicateColors",
+    "OnlyFinal",
+    "OnlyFirstLayout",
+    "Combined",
+    "DestinationFormatCollision",
+    "AmbiguousTextLanguage",
+    "RetainedEnglishWithFinalFormat",
+    "RetainedFrenchWithFinalFormat",
+    "EquivalentSource",
+    "EquivalentFormatting",
+    "FirstRunOnly",
+    "ParagraphOnly",
+    "ResourceGrowth"
+  ],
+  "scope": "Independent native retained-text formatting/count final states, three styled runs, exact visible-run versus CR typing, paragraph layout, output-style/native-language collisions, equivalent templates and font/color resource growth. Fitting first/final table cells retain neighbors; general reflow and broader producer profiles remain unqualified."
+}

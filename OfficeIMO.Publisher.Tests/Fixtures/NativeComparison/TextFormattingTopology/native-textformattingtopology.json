@@ -1,0 +1,2359 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TextFormattingTopology",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 16,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "First beta tail\rSecond gamma end\rThird delta finish\rFinal epsilon close",
+      "First beta tail\rThird delta finish\rFinal epsilon close",
+      "Final epsilon close\rSecond gamma end\rFirst beta tail",
+      "First beta tail\rSecond gamma end\rSecond gamma end\rThird delta finish\rFinal epsilon close",
+      "Final epsilon close",
+      "First beta tail",
+      "Third delta finish\rFirst beta tail\rFinal epsilon close",
+      "First beta tail\rFinal epsilon close",
+      "First beta tail\rFirst beta tail\rFinal epsilon close",
+      "First beta tail\rFinal epsilon close",
+      "First beta tail\rFinal epsilon close",
+      "First beta tail\rFirst beta tail\rFinal epsilon close",
+      "First beta tail\rFinal epsilon close",
+      "First beta tail\rThird delta finish\rFinal epsilon close",
+      "First beta tail\rThird delta finish\rFinal epsilon close",
+      "Third delta finish\rFirst beta tail\rFinal epsilon close"
+    ],
+    "shapes": [
+      {
+        "name": "Baseline",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 1,
+              "text": "Second gamma end\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": -2,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Second ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "gamma ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1036
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 2,
+              "text": "Third delta finish\r",
+              "alignment": 2,
+              "spaceBefore": 5.0,
+              "spaceAfter": 2.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Third ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "delta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "DropEmphasis",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            0,
+            2,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": 0,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": 0,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 2,
+              "text": "Third delta finish\r",
+              "alignment": 2,
+              "spaceBefore": 5.0,
+              "spaceAfter": 2.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Third ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "delta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "ReorderSizes",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            3,
+            1,
+            0
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 16.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 10.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                },
+                {
+                  "word": 3,
+                  "text": "close",
+                  "size": 18.0,
+                  "bold": 0,
+                  "italic": 0,
+                  "rgb": 0,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 1,
+              "text": "Second gamma end\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": -2,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Second ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "gamma ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1036
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "DuplicateColors",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            0,
+            1,
+            1,
+            2,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 1,
+              "text": "Second gamma end\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": -2,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Second ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 32768,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "gamma ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 16711680,
+                  "languageId": 1036
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 1,
+              "text": "Second gamma end\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": -2,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Second ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "gamma ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1036
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 2,
+              "text": "Third delta finish\r",
+              "alignment": 2,
+              "spaceBefore": 5.0,
+              "spaceAfter": 2.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Third ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "delta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "OnlyFinal",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 14.0,
+                  "bold": 0,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": 0,
+                  "rgb": 255,
+                  "languageId": 1033
+                },
+                {
+                  "word": 3,
+                  "text": "close",
+                  "size": 18.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 32768,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "OnlyFirstLayout",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            0
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 1,
+              "spaceBefore": 4.0,
+              "spaceAfter": 9.0,
+              "leftIndent": 12.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "Combined",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            2,
+            0,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 2,
+              "text": "Third delta finish\r",
+              "alignment": 0,
+              "spaceBefore": 5.0,
+              "spaceAfter": 11.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Third ",
+                  "size": 16.0,
+                  "bold": 0,
+                  "italic": 0,
+                  "rgb": 32768,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "delta ",
+                  "size": 10.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "DestinationFormatCollision",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            0,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "AmbiguousTextLanguage",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            0,
+            0,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": -2,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1036
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "RetainedEnglishWithFinalFormat",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            0,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 16.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "RetainedFrenchWithFinalFormat",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            0,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": -2,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1036
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 16.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "EquivalentSource",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            0,
+            0,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "EquivalentFormatting",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            0,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": 0,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "FirstRunOnly",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            0,
+            2,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 18.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 2,
+              "text": "Third delta finish\r",
+              "alignment": 2,
+              "spaceBefore": 5.0,
+              "spaceAfter": 2.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Third ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "delta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "ParagraphOnly",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            0,
+            2,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 11.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 2,
+              "text": "Third delta finish\r",
+              "alignment": 2,
+              "spaceBefore": 5.0,
+              "spaceAfter": 2.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Third ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "delta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      },
+      {
+        "name": "ResourceGrowth",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            2,
+            0,
+            3
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 2,
+              "text": "Third delta finish\r",
+              "alignment": 0,
+              "spaceBefore": 5.0,
+              "spaceAfter": 11.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Third ",
+                  "size": 16.0,
+                  "bold": 0,
+                  "italic": 0,
+                  "rgb": 32768,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "delta ",
+                  "size": 10.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 0,
+              "text": "First beta tail\r",
+              "alignment": 0,
+              "spaceBefore": 0.0,
+              "spaceAfter": 3.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "First ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "beta ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            },
+            {
+              "sourceOrdinal": 3,
+              "text": "Final epsilon close\r",
+              "alignment": 0,
+              "spaceBefore": 7.0,
+              "spaceAfter": 4.0,
+              "leftIndent": 18.0,
+              "firstLineIndent": 6.0,
+              "languageId": 1033,
+              "textStyle": "Normal",
+              "mixedRuns": [
+                {
+                  "word": 1,
+                  "text": "Final ",
+                  "size": 14.0,
+                  "bold": -1,
+                  "italic": 0,
+                  "rgb": 16711680,
+                  "languageId": 1033
+                },
+                {
+                  "word": 2,
+                  "text": "epsilon ",
+                  "size": 12.0,
+                  "bold": 0,
+                  "italic": -1,
+                  "rgb": 255,
+                  "languageId": 1033
+                }
+              ]
+            }
+          ],
+          "typingStyles": null
+        }
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Baseline",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First beta tail\rSecond gamma end\rThird delta finish\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554726,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "DropEmphasis",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First beta tail\rThird delta finish\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "pageId": 33554730,
+      "pageIndex": 3,
+      "pageNumber": "3",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "ReorderSizes",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "Final epsilon close\rSecond gamma end\rFirst beta tail\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "pageId": 33554734,
+      "pageIndex": 4,
+      "pageNumber": "4",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "DuplicateColors",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First beta tail\rSecond gamma end\rSecond gamma end\rThird delta finish\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "pageId": 33554738,
+      "pageIndex": 5,
+      "pageNumber": "5",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "OnlyFinal",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "Final epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "pageId": 33554742,
+      "pageIndex": 6,
+      "pageNumber": "6",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "OnlyFirstLayout",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First beta tail\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "pageId": 33554746,
+      "pageIndex": 7,
+      "pageNumber": "7",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Combined",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "Third delta finish\rFirst beta tail\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "pageId": 33554750,
+      "pageIndex": 8,
+      "pageNumber": "8",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "DestinationFormatCollision",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First beta tail\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "pageId": 33554754,
+      "pageIndex": 9,
+      "pageNumber": "9",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "AmbiguousTextLanguage",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First beta tail\rFirst beta tail\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "pageId": 33554758,
+      "pageIndex": 10,
+      "pageNumber": "10",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "RetainedEnglishWithFinalFormat",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First beta tail\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "pageId": 33554762,
+      "pageIndex": 11,
+      "pageNumber": "11",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "RetainedFrenchWithFinalFormat",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First beta tail\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "pageId": 33554766,
+      "pageIndex": 12,
+      "pageNumber": "12",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "EquivalentSource",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First beta tail\rFirst beta tail\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "pageId": 33554770,
+      "pageIndex": 13,
+      "pageNumber": "13",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "EquivalentFormatting",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First beta tail\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "pageId": 33554774,
+      "pageIndex": 14,
+      "pageNumber": "14",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "FirstRunOnly",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First beta tail\rThird delta finish\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "pageId": 33554778,
+      "pageIndex": 15,
+      "pageNumber": "15",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "ParagraphOnly",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First beta tail\rThird delta finish\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "pageId": 33554782,
+      "pageIndex": 16,
+      "pageNumber": "16",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "ResourceGrowth",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "Third delta finish\rFirst beta tail\rFinal epsilon close\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-textformattingtopology.pub",
+      "sha256": "d5db8dd0bb36df5b2ce2b17a3e1474253e2fcad49d9ed99b11d06ca39b48dc6b"
+    },
+    "reference": {
+      "name": "native-textformattingtopology.pdf",
+      "sha256": "7ca2e19e9793154c4d8cdb54bb12a815fc98bf84eb14cd76f951d4c8447bd362"
+    }
+  }
+}
