@@ -14548,6 +14548,880 @@
         "Native repair-free opening, general opaque preservation and managed/native rendering parity remain unassessed.",
         "Source-built PS7 conversion and PS5.1 syntax are not packaged installation or native lifecycle cmdlet qualification."
       ]
+    },
+    "emptyParagraphRetention": {
+      "scope": "Retained empty native paragraphs in ordinary stories and fixed first/final table cells, including uniform-source mixtures with authored text; Western font-style recovery.",
+      "codecCommit": "71afd9367727f2043bcec43555dcb12b14f5ec3d",
+      "sources": [
+        {
+          "path": "Build/Publisher/Add-NativeEmptyParagraphTypingStyles.ps1",
+          "sha256": "3deb9b993d0511ea759c9ebcd554ea9117feb9c711fd3774a0737f735d2a9f3b"
+        },
+        {
+          "path": "Build/Publisher/Add-NativeParagraphTopologyControl.ps1",
+          "sha256": "4dcb0506ffcd6487378e1815fd55f9f02928a18d4d41a82d7638b3b46c72efd3"
+        },
+        {
+          "path": "Build/Publisher/Add-NativeTableParagraphTopologyControl.ps1",
+          "sha256": "0f91e5eb7075496e97b205a3937685e4d804b1f1519f112cb9b1cb8657a3b099"
+        },
+        {
+          "path": "Build/Publisher/Get-NativeParagraphTopologyProfiles.ps1",
+          "sha256": "5a30b739739eb51393825c18e9fbad7acc1b7792b38fd7832d4f5d6408501acd"
+        },
+        {
+          "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+          "sha256": "da6b267c55752df6c116e1fd567a8681416570363b9eb0ff3a5fec7e524f29f0"
+        },
+        {
+          "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+          "sha256": "17ccb235c942e17d08201b39f31a27906eed8e46587682a59f36334b81ba4e13"
+        },
+        {
+          "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+          "sha256": "a42f1955979e38d2baa80a35471037dcfea7b2300a014b1b381bd11d357bae9c"
+        },
+        {
+          "path": "Build/Publisher/Set-NativeParagraphTopologyFormatting.ps1",
+          "sha256": "9780603a7626ef9ab69c62577dc5aa679cd06f9b911bbe81ff02cc2b1573be32"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherEmptyParagraphRetentionWritingTests.cs",
+          "sha256": "6ee028faa97148aa50d5d05179918f59d0de18e62f20e70410c46445f9485008"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Retention.cs",
+          "sha256": "a343768b2296d69e6397abd7478f21972b5e925e3405f484a0b4b3a437c2cbac"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Topology.cs",
+          "sha256": "57c5e2474ed792cc892d235f2173acd36c48df2c675fb861155b946bc3639807"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillStyleReader.Catalog.cs",
+          "sha256": "21eb1baf243b2dd56d638fea53db2750e4624fe1c002f6ddb1dc411b03b1706b"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillStyleReader.cs",
+          "sha256": "d7ac8d9f030f347952e74dada1774c4b8a8afb728174f27abecb1fe1d5e77b6a"
+        },
+        {
+          "path": "OfficeIMO.Publisher/PublisherDocument.Editing.cs",
+          "sha256": "75c76a2c5a816e6a6515a511db0327a5e092f376c830114a52ff3bbc0f53b029"
+        },
+        {
+          "path": "OfficeIMO.Publisher/PublisherDocument.Tables.cs",
+          "sha256": "55e4ff6e67c1ea65c6bcd8ed9cb48ad1af2bebc0ecf757a8427dab1cc72fb11b"
+        }
+      ],
+      "controls": [
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableNonuniformEmptyParagraphs/provenance.json",
+          "sha256": "5b42c0ebd175b6461e7945480fe4d016d753bdec06240640dda9b69cc4dde75c"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableUniformEmptyParagraphs/provenance.json",
+          "sha256": "d4ddbf40f0bd2c882c1349f35768c35ef76bffa61ec8d1dc64846597c07c10a7"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextNonuniformEmptyParagraphs/provenance.json",
+          "sha256": "39043295a5f9ef582963fb96bcd5dd536faa5a4a03f837ab99fd12f2e166e8d0"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextUniformEmptyParagraphs/provenance.json",
+          "sha256": "4d184c075d467580dc4b6622aa9cc2aa4c0c6d591a9bb1cd276963e9186e91bb"
+        }
+      ],
+      "nativeApplication": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "automationSecurity": 3
+      },
+      "contract": [
+        "Original immutable paragraphs select their complete native CR and paragraph definitions. Empty CR definitions follow their selected paragraph into interior or final positions.",
+        "Detached equal values require agreement of complete native CR definitions; opaque language differences remain significant. Ambiguous copied values refuse output even when other output paragraphs are newly authored.",
+        "Uniform source count changes resolve retained empties individually; nonuniform retention does not rewrite retained text or formatting. Nonempty CR role rules are unchanged.",
+        "Complete story text, per-cell TCD endpoints and formatting positions update together. Neighboring stories/cells, native tracks and unrelated storage remain retained.",
+        "Complete STSH Western size/bold/italic fields use snapshot defaults; direct FDPC fields inherit selected style values. RTL size/bold/italic fields do not overwrite Western values."
+      ],
+      "cases": [
+        {
+          "kind": "ordinary",
+          "mode": "drop-first",
+          "candidateSha256": "0fa659d4e2bda42a74fab310ca129967e9e57ad619bcb3184b765f861de42930",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 1,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 1,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "ordinary",
+          "mode": "drop-middle",
+          "candidateSha256": "f0d20a845702063cac955440c8d1d2822ee775ad5193248b052991db1556af8c",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 2,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 2,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "ordinary",
+          "mode": "drop-final",
+          "candidateSha256": "dbc8b6fc7df2e3af2db6aea5c77a084d5c933d4f124c045e50501001520c6893",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 3,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 3,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "ordinary",
+          "mode": "reorder",
+          "candidateSha256": "87eb682d6e17dbe38db1016ac8ba305b12fc8243f6f4d3d929877b17e2218cb2",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 4,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 4,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "ordinary",
+          "mode": "duplicate",
+          "candidateSha256": "66cf05f69039f781ecf04c82deeae8dd9dce76896a35629fec43735ee47a6154",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 5,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 5,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "ordinary",
+          "mode": "detached",
+          "candidateSha256": "87eb682d6e17dbe38db1016ac8ba305b12fc8243f6f4d3d929877b17e2218cb2",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 4,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 4,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "ordinary",
+          "mode": "language-0",
+          "candidateSha256": "12221766ab916a99f830888443a935d8540d60070d918c6afaa59d6ce328325c",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": []
+        },
+        {
+          "kind": "ordinary",
+          "mode": "language-1",
+          "candidateSha256": "aa12867ca8ae903f4de1e84b188f954d64ac08ab046eefa8ce327503bc983407",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": []
+        },
+        {
+          "kind": "ordinary",
+          "mode": "interior-last",
+          "candidateSha256": "07f5e309a086dec6c4e77aa20316234899b3cbc1ef4c2e064fbfa9e962f04c31",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 7,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 7,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "ordinary",
+          "mode": "only-final",
+          "candidateSha256": "77d8e69452c6eee6b95ceffc802b58ca8abf1285ed60498b7d0f374138ffe7fd",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 8,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 8,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "ordinary",
+          "mode": "two-empty",
+          "candidateSha256": "72d3a276365dfcfaae652c622edec9a970f3fc68b1f5b99183f037597ea74911",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 9,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 9,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "ordinary",
+          "mode": "empty-language-0",
+          "candidateSha256": "f2f6a8c06fbd776c625fad4aa0aa55bbd4553c4a2e5ebdf4997f5d685ca1df9d",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 9,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 9,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "ordinary",
+          "mode": "empty-language-1",
+          "candidateSha256": "c8982870043074c8cc18650ade1e68c1ed4ce2505deae9526eebf702afed91f2",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": false,
+          "nativeOperations": 7,
+          "pages": 16,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 9,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 9,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "cell",
+          "mode": "drop-first",
+          "candidateSha256": "bc2c218dea165a3e35966f683766acf550a92374dab3a5ea5ab3a053c7ce9c34",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 1,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 1,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "cell",
+          "mode": "drop-middle",
+          "candidateSha256": "bf0986e73f6e0d356806df70e3a396ceb7e2fe4eec5e0260fb8eb1d0340c1f7d",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 2,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 2,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "cell",
+          "mode": "drop-final",
+          "candidateSha256": "d6ebf96b6d31265e2088b508300f7465d4877c03211cce872003b18f1e840e00",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 3,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 3,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "cell",
+          "mode": "reorder",
+          "candidateSha256": "e1b34a129b01554b2fc9b184c386605c0b39c934af4079223dd425dbde2afbbe",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 4,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 4,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "cell",
+          "mode": "duplicate",
+          "candidateSha256": "8e9fbda230cb2d611e984532f92466c859373007c0d208f60a51a86fc09c43bc",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 5,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 5,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "cell",
+          "mode": "detached",
+          "candidateSha256": "e1b34a129b01554b2fc9b184c386605c0b39c934af4079223dd425dbde2afbbe",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 4,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 4,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "cell",
+          "mode": "language-0",
+          "candidateSha256": "8cf9c53fad77c29a36b43c6adf36e6b8035275733224c70afe42adc94702003e",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": []
+        },
+        {
+          "kind": "cell",
+          "mode": "language-1",
+          "candidateSha256": "807ae5b5ccb9cb4fa1e0d01e99eb3b1c7848a56c84d213f7851c3f170bfced1c",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": []
+        },
+        {
+          "kind": "cell",
+          "mode": "interior-last",
+          "candidateSha256": "871c23d678f0909e1389456345a8d4320c0a904da71d9146ee3fd1579591f243",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 7,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 7,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "cell",
+          "mode": "only-final",
+          "candidateSha256": "20cf4828a6adecdf226d67b00ea6810d4426f34300d9b1a150c5e6b0fa2012ad",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 8,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 8,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "cell",
+          "mode": "two-empty",
+          "candidateSha256": "f1cea4084e048eeee919d3650c311e5271976962afb372959a373b5ad0ae71fd",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 9,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 9,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "cell",
+          "mode": "empty-language-0",
+          "candidateSha256": "135a70a9f8ad65658172617794d36c83fa372e36a2b335f0394be6dc8178819a",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 9,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 9,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "cell",
+          "mode": "empty-language-1",
+          "candidateSha256": "6d49f4691bddc21e5ded88d37fd54e598161eb818feb3c45be2fd974a9881d77",
+          "retainedDefinitions": true,
+          "emptyTypingAndOpaqueCR": true,
+          "cellOwnership": true,
+          "nativeOperations": 7,
+          "pages": 11,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 9,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 9,
+              "pixelAndSpanIdentical": true
+            }
+          ]
+        },
+        {
+          "kind": "ordinary",
+          "mode": "english",
+          "sourceSha256": "2ee5731ff64e6fcbc7cb5b6066c96068f62fa1a4af272e528199c8c51a56f4d9",
+          "candidateSha256": "3e7fc339ccc9b5aff4e546b5f22c43a480b5351df44e19b156ac74f475fbb81b",
+          "selectedCRExact": true,
+          "nativeLanguagePreserved": true,
+          "stageMatchedPixelsAndSpans": 2
+        },
+        {
+          "kind": "ordinary",
+          "mode": "french",
+          "sourceSha256": "2ee5731ff64e6fcbc7cb5b6066c96068f62fa1a4af272e528199c8c51a56f4d9",
+          "candidateSha256": "17bdd9857960f5a9b59a1a845b7f29dd21d72712b390228b39c8dd5f4e5957de",
+          "selectedCRExact": true,
+          "nativeLanguagePreserved": true,
+          "stageMatchedPixelsAndSpans": 2
+        },
+        {
+          "kind": "ordinary",
+          "mode": "mixed-final",
+          "sourceSha256": "2ee5731ff64e6fcbc7cb5b6066c96068f62fa1a4af272e528199c8c51a56f4d9",
+          "candidateSha256": "a374dc00708a7b6802492a1d6d95cd9a26c1edc013cd2e99c313f141e67584ad",
+          "selectedCRExact": true,
+          "nativeLanguagePreserved": true,
+          "stageMatchedPixelsAndSpans": 2
+        },
+        {
+          "kind": "ordinary",
+          "mode": "mixed-interior",
+          "sourceSha256": "2ee5731ff64e6fcbc7cb5b6066c96068f62fa1a4af272e528199c8c51a56f4d9",
+          "candidateSha256": "5302ece461d5ad869f445cbf142675239eb047c76c3215480a3fe469c1807004",
+          "selectedCRExact": true,
+          "nativeLanguagePreserved": true,
+          "stageMatchedPixelsAndSpans": 2
+        },
+        {
+          "kind": "cell",
+          "mode": "english",
+          "sourceSha256": "47c509b68a11bec470f7bbebccfcad42f39a68468919b9baeaa522c8c74ecb78",
+          "candidateSha256": "64ba5984081ef44bbc16f09fc1c4901888c0918771d857b738ad5cb93565d5e8",
+          "selectedCRExact": true,
+          "nativeLanguagePreserved": true,
+          "stageMatchedPixelsAndSpans": 2
+        },
+        {
+          "kind": "cell",
+          "mode": "french",
+          "sourceSha256": "47c509b68a11bec470f7bbebccfcad42f39a68468919b9baeaa522c8c74ecb78",
+          "candidateSha256": "57a5139195fc7eccf57899cdd763ba6e35a0da8275541058d79203759499d73f",
+          "selectedCRExact": true,
+          "nativeLanguagePreserved": true,
+          "stageMatchedPixelsAndSpans": 2
+        },
+        {
+          "kind": "cell",
+          "mode": "mixed-final",
+          "sourceSha256": "47c509b68a11bec470f7bbebccfcad42f39a68468919b9baeaa522c8c74ecb78",
+          "candidateSha256": "997f6e80b7796b4730afdde9d8585d4fcbf90d47666a91afc3464aa0915c728f",
+          "selectedCRExact": true,
+          "nativeLanguagePreserved": true,
+          "stageMatchedPixelsAndSpans": 2
+        },
+        {
+          "kind": "cell",
+          "mode": "mixed-interior",
+          "sourceSha256": "47c509b68a11bec470f7bbebccfcad42f39a68468919b9baeaa522c8c74ecb78",
+          "candidateSha256": "c01ab83c8e9fabe358519e46f36cdb3076e120a4812d09f145d7cf93548944a0",
+          "selectedCRExact": true,
+          "nativeLanguagePreserved": true,
+          "stageMatchedPixelsAndSpans": 2
+        }
+      ],
+      "fontWitnesses": {
+        "status": "PASS",
+        "scope": "Native font getters and integer EMU fields establish nominal point values. PDF corroboration compares nearest point; actual PDF emission values are retained, not used as a fitted geometry rule.",
+        "cases": [
+          {
+            "page": 11,
+            "declared": {
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "rgb": 0
+            },
+            "selector": 37,
+            "rawFields": {
+              "39": "392218f00100"
+            },
+            "nativeSpans": [
+              {
+                "text": "Native style size witness ",
+                "size": 12.0,
+                "font": "ArialMT",
+                "flags": 0
+              }
+            ]
+          },
+          {
+            "page": 12,
+            "declared": {
+              "FontSize": 10,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "rgb": 0
+            },
+            "selector": 36,
+            "rawFields": {
+              "0C": "0c2218f00100",
+              "39": "392218f00100"
+            },
+            "nativeSpans": [
+              {
+                "text": "Native style size witness ",
+                "size": 9.960000038146973,
+                "font": "ArialMT",
+                "flags": 0
+              }
+            ]
+          },
+          {
+            "page": 13,
+            "declared": {
+              "FontSize": 14,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "rgb": 0
+            },
+            "selector": 38,
+            "rawFields": {
+              "0C": "0c2288b60200",
+              "37": "370a",
+              "38": "380a",
+              "39": "392218f00100"
+            },
+            "nativeSpans": [
+              {
+                "text": "Native style size witness ",
+                "size": 14.039999961853027,
+                "font": "ArialMT",
+                "flags": 0
+              }
+            ]
+          },
+          {
+            "page": 14,
+            "declared": {
+              "FontSize": 12,
+              "FontFamily": "Arial",
+              "Bold": true,
+              "Italic": true,
+              "rgb": 0
+            },
+            "selector": 39,
+            "rawFields": {
+              "02": "020a",
+              "03": "030a",
+              "39": "39227cbe0100"
+            },
+            "nativeSpans": [
+              {
+                "text": "Native style size witness ",
+                "size": 12.0,
+                "font": "Arial-BoldItalicMT",
+                "flags": 18
+              }
+            ]
+          },
+          {
+            "page": 15,
+            "declared": {
+              "FontSize": 14,
+              "FontFamily": "Arial",
+              "Bold": false,
+              "Italic": false,
+              "rgb": 0
+            },
+            "selector": 0,
+            "rawFields": {
+              "0C": "0c2288b60200",
+              "37": "370a",
+              "38": "380a",
+              "39": "39227cbe0100"
+            },
+            "nativeSpans": [
+              {
+                "text": "Native style size witness",
+                "size": 14.039999961853027,
+                "font": "ArialMT",
+                "flags": 0
+              },
+              {
+                "text": " ",
+                "size": 14.039999961853027,
+                "font": "Calibri",
+                "flags": 0
+              }
+            ]
+          }
+        ]
+      },
+      "validation": {
+        "publisherTests": {
+          "net10.0": 731,
+          "net8.0": 731,
+          "net472": 731
+        },
+        "focusedCases": 49,
+        "readerTests": 95,
+        "nativePublicReloads": 68,
+        "nativeEditedFiles": 34,
+        "selectedNativeStagePairs": 60,
+        "earlierByteIdenticalSaves": 134,
+        "sourceBuiltPowerShell": {
+          "runtime": "7.6.9",
+          "route": "publisher-pdf",
+          "cases": 27,
+          "pages": 367,
+          "actualPublisherOwnerBound": true,
+          "completeTextRetained": true,
+          "unicodeFallbacks": true
+        },
+        "nativeControlSyntax": [
+          "PowerShell7",
+          "WindowsPowerShell5.1"
+        ],
+        "compatibilityBuilds": [
+          "Publisher.Pdf netstandard2.0",
+          "Reader.Publisher netstandard2.0",
+          "WriterProbe",
+          "PSWriteOffice net8.0"
+        ]
+      },
+      "regressionTests": [
+        "Retained_empty_paragraphs_keep_their_own_native_typing_and_layout_across_count_changes",
+        "Copied_empty_paragraphs_with_distinct_opaque_CR_definitions_refuse_both_destination_roles",
+        "Uniform_empty_paragraphs_resolve_native_identity_before_the_topology_shortcut",
+        "Native_western_font_attributes_use_snapshot_defaults_and_remain_distinct_from_RTL_attributes"
+      ],
+      "limits": [
+        "Arbitrary count-changing text/formatting rewrites from nonuniform sources, zero-paragraph native stories and unsupported native encodings remain refused.",
+        "Fitting control tables do not qualify general native row reflow or arbitrary producer/style profiles.",
+        "Mixed-script font selection/rendering, native repair-free opening, general opaque preservation and managed/native layout parity remain unassessed.",
+        "Source-built PS7 conversion and PS5.1 syntax do not establish packaged installation or native lifecycle cmdlet support."
+      ]
     }
   },
   "characterReading": {
