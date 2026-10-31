@@ -195,8 +195,8 @@ height: global::OfficeIMO.OfficeLength.Points(190D),
             OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { serial },
                 new[] { new OfficeSeries("Actual", new[] { 1200D }) }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+            width: OfficeLength.Points(320D),
+            height: OfficeLength.Points(190D),
             layout: new OfficeChartLayout(categoryAxisNumberFormat: format,
                 showLegend: false, showValueAxisLabels: false)));
 

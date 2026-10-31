@@ -31,8 +31,8 @@ internal static class PdfQualityCorpusWorker {
         PdfDocumentReadResult? logical = null;
 
         Run(checks, "open-and-inspect", () => {
-            using var input = new MemoryStream(bytes, writable: false);
-            document = CorpusPdfInput.Load(input);
+
+            document = CorpusPdfInput.Load(bytes);
             info = document.Inspect();
             metrics.PageCount = info.Pages.Count;
             metrics.AttachmentCount = info.AttachmentCount;

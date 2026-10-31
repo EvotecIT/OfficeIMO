@@ -395,7 +395,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
 
     [Fact]
     public void EmptyMasterAndLayoutDoNotTriggerStrictLoss() {
-        using PowerPointDocument powerPoint = OdpPresentation.Create().ToPowerPointPresentation();
+        using PowerPointDocument powerPoint = OdpPresentation.Create().ToPowerPointDocument();
         powerPoint.AddSlide(PowerPointSlideLayoutType.Blank);
         OdfConversionResult<OdpPresentation> fromPowerPoint = powerPoint.ToOpenDocumentResult();
         Assert.DoesNotContain(fromPowerPoint.Report.Mappings, mapping => mapping.Feature == "masters-layouts");
@@ -447,7 +447,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
 
     [Fact]
     public void EmptyMasterTextStyleContainersDoNotReportLossForOrdinaryText() {
-        using PowerPointDocument source = OdpPresentation.Create().ToPowerPointPresentation();
+        using PowerPointDocument source = OdpPresentation.Create().ToPowerPointDocument();
         source.AddSlide(PowerPointSlideLayoutType.Blank)
             .AddTextBox("Ordinary text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
 

@@ -77,8 +77,8 @@ internal static class ScanQualityCorpus {
             }
             return result;
         }, engine.Capabilities);
-        using var sourceInput = new MemoryStream(input, writable: false);
-        using PdfDocument document = CorpusPdfInput.Load(sourceInput);
+
+        using PdfDocument document = CorpusPdfInput.Load(input);
         PdfSearchableOcrReview review = await document.PrepareSearchableOcrAsync(recording, new PdfOcrMergeOptions {
             Dpi = 300, MinimumConfidence = 0, DetectOrientation = cleanup, ProviderTimeout = TimeSpan.FromSeconds(35),
             ScanProcessing = cleanup ? new OfficeScanProcessingOptions() : null
@@ -88,13 +88,13 @@ internal static class ScanQualityCorpus {
         await File.WriteAllBytesAsync(Path.Combine(output, id + ".pdf"), searchable, token);
         await File.WriteAllTextAsync(Path.Combine(output, id + "-provider.txt"), providerText, token);
         await File.WriteAllTextAsync(Path.Combine(output, id + "-extracted.txt"), review.Ocr.Text, token);
-        using var readbackInput = new MemoryStream(searchable, writable: false);
-        using var readbackDocument = CorpusPdfInput.Load(readbackInput);
+
+        using var readbackDocument = CorpusPdfInput.Load(searchable);
         string roundTrip = readbackDocument.Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured }).Text;
         await File.WriteAllTextAsync(Path.Combine(output, id + "-roundtrip.txt"), roundTrip, token);
         byte[] Render(byte[] bytes) {
-            using var rasterInput = new MemoryStream(bytes, writable: false);
-            using var rasterDocument = CorpusPdfInput.Load(rasterInput);
+
+            using var rasterDocument = CorpusPdfInput.Load(bytes);
             return rasterDocument.Render.Pages(PdfPageSelection.From(new PdfPageRange(1, 1)),
                 new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72, ContinueOnError = false })[0].Bytes
                 ?? throw new InvalidOperationException("The preserved page did not render.");

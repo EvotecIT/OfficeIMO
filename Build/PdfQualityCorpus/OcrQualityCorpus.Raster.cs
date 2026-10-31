@@ -21,8 +21,8 @@ internal static partial class OcrQualityCorpus {
         OfficeRasterImage? image;
         if (label.File.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) {
             var region = label.Region;
-            using var input = new MemoryStream(bytes, writable: false);
-            using var document = CorpusPdfInput.Load(input);
+
+            using var document = CorpusPdfInput.Load(bytes);
             PdfScanPreview preview = await document.PreviewScanAsync(label.Page, new PdfOcrMergeOptions {
                 Dpi = 300, ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(new PdfPageRange(label.Page, label.Page)) },
                 Regions = region == null ? Array.Empty<PdfOcrPageRegion>() : new[] {

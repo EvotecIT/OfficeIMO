@@ -15,7 +15,7 @@ public sealed class DrawingChartThemeMarkerTests {
         OfficeColor ink = OfficeColor.Parse("#55AA77");
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Sales", null,
             OfficeChartType.Line, new OfficeChartData(values.Select((_, index) => index.ToString()),
-                new[] { new OfficeSeries("Sales", values) }), 320, 240,
+                new[] { new OfficeSeries("Sales", values) }), OfficeLength.Points(320), OfficeLength.Points(240),
             new OfficeChartStyle(palette: new[] { ink }), new OfficeChartLayout(showLegend: false)));
         Assert.Equal(threeIslands ? 3 : 1, drawing.Shapes.Count(shape => shape.Shape.FillColor == ink));
     }
@@ -33,7 +33,7 @@ public sealed class DrawingChartThemeMarkerTests {
             : new OfficeSeries("Sales", values).WithLegendVisibility(true);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Sales", null,
             OfficeChartType.Line, new OfficeChartData(Enumerable.Range(1, count).Select(value => value.ToString()),
-                new[] { series }), 320, 240, new OfficeChartStyle(palette: new[] { ink }),
+                new[] { series }), OfficeLength.Points(320), OfficeLength.Points(240), new OfficeChartStyle(palette: new[] { ink }),
             new OfficeChartLayout(showLegend: false)));
 
         Assert.Equal(expected, drawing.Shapes.Count(shape => shape.Shape.FillColor == ink));

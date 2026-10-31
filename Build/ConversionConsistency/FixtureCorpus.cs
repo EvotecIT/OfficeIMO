@@ -19,9 +19,9 @@ internal static partial class FixtureCorpus {
             for (int page = 1; page <= 2; page++) {
                 if (page > 1) word.AddPageBreak();
                 var heading = word.AddParagraph("SERVICE REVIEW " + page);
-                heading.FontFamily = family; heading.FontSize = 18;
+                heading.FontFamily = family; heading.FontSize = OfficeLength.Points(18);
                 var body = word.AddParagraph("Availability 99.95 percent. Reviewed actions: 12. Completed actions: 9.");
-                body.FontFamily = family; body.FontSize = 12;
+                body.FontFamily = family; body.FontSize = OfficeLength.Points(12);
             }
             word.Save(Path.Combine(output, "service-review.docx"));
             word.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.odt"));
@@ -54,9 +54,9 @@ internal static partial class FixtureCorpus {
             for (int page = 1; page <= 2; page++) {
                 var slide = presentation.AddSlide();
                 var heading = slide.AddTextBox("SERVICE REVIEW " + page,global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(30));
-                heading.FontName = family; heading.FontSize = 18;
+                heading.FontName = family; heading.FontSize = OfficeLength.Points(18);
                 var body = slide.AddTextBox("Completed actions: 9 of 12",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(66),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(30));
-                body.FontName = family; body.FontSize = 12;
+                body.FontName = family; body.FontSize = OfficeLength.Points(12);
             }
             presentation.Save(Path.Combine(output, "service-review.pptx"));
             presentation.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.odp"));

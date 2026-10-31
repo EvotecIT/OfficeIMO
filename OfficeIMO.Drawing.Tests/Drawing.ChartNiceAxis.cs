@@ -12,7 +12,7 @@ public sealed class DrawingChartNiceAxisTests {
         return OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Axis", null, kind,
             new OfficeChartData(categories, series.Select((values, index) => new OfficeSeries("S" + index, values)).ToArray()),
-            widthPoints: 360D, heightPoints: 240D, layout: layout ?? new OfficeChartLayout(showLegend: false)));
+            width: OfficeLength.Points(360D), height: OfficeLength.Points(240D), layout: layout ?? new OfficeChartLayout(showLegend: false)));
     }
 
     private static List<string> Texts(OfficeDrawing drawing) => drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
@@ -113,7 +113,7 @@ public sealed class DrawingChartNiceAxisTests {
         var series = new OfficeSeries("Sales", new[] { 3D, 5D, 7D, 9D })
             .WithTrendline(new OfficeChartTrendline(OfficeChartTrendlineType.Linear, displayEquation: true, displayRSquared: true));
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Trend", null, OfficeChartType.ColumnClustered,
-            new OfficeChartData(new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { series }), 360D, 240D,
+            new OfficeChartData(new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { series }), OfficeLength.Points(360D), OfficeLength.Points(240D),
             layout: new OfficeChartLayout(showLegend: false)));
         Assert.Contains(Texts(drawing), text => text == "y = 2x + 1   R\u00B2 = 1");
     }

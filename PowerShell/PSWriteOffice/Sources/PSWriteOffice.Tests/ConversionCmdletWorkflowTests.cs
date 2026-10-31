@@ -279,7 +279,7 @@ public sealed class ConversionCmdletWorkflowTests {
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
             shell.AddScript("""
-                Convert-OfficeDocument -LiteralPath $sourceDirectory -To Pdf -OutputDirectory $destination -Options $wordSettings, @{ PageSize = 'A4' } -ErrorAction Stop
+                Convert-OfficeDocument -LiteralPath $sourceDirectory -To Pdf -OutputDirectory $destination -Options $wordSettings, @{ PageSize = 'A4' } -AutoRename -ErrorAction Stop
                 """);
             var output = shell.Invoke();
             Assert.Empty(shell.Streams.Error);

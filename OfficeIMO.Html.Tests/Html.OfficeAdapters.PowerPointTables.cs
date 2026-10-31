@@ -33,7 +33,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
     }
 
     [Fact]
-    public void PowerPointHtml_MovesTallGenericRoleTableToAVisibleSlide() {
+    public void PowerPointHtml_KeepsTallGenericRoleTableRowsVisible() {
         const string html = """
             <main>
               <p>Introductory text before the definitions.</p>
@@ -51,12 +51,16 @@ public class HtmlOfficeAdaptersPowerPointTables {
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
             .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
-        PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
-
-        Assert.Contains(presentation.Slides.Skip(1), slide => slide.Tables.Contains(table));
-        Assert.Equal(30D, table.Top.ToPoints(), 3);
-        Assert.Equal("Surface water", table.GetCell(5, 0).Text);
-        Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= presentation.SlideSize.Height.ToPoints() - 30D);
+        PowerPointTable[] tables = presentation.Slides.SelectMany(slide => slide.Tables).ToArray();
+        Assert.NotEmpty(tables);
+        Assert.All(tables, table => {
+            Assert.Equal("Term", table.GetCell(0, 0).Text);
+            Assert.Equal("Definition", table.GetCell(0, 1).Text);
+            Assert.True(table.Top.ToPoints() >= 30D);
+            Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= presentation.SlideSize.Height.ToPoints() - 30D);
+        });
+        Assert.Equal(new[] { "Safely managed", "Basic", "Limited", "Unimproved", "Surface water" },
+            tables.SelectMany(table => Enumerable.Range(1, table.Rows - 1).Select(row => table.GetCell(row, 0).Text)));
     }
 
     [Fact]

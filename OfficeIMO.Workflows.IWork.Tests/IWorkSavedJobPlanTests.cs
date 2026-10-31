@@ -46,7 +46,7 @@ public sealed class IWorkSavedJobPlanTests {
             job.ConversionOptions.RegisteredSettings = new IWorkWorkflowSettings { ConversionOptions = new IWorkConversionOptions { AllowPartialEditableReconstruction = true } };
             OfficeBatchSummary result = (await OfficeConverter.ConvertAsync(job)).Summary;
             Assert.Equal(1, result.Completed); Assert.Equal(0, result.Failed); Assert.Null(result.FailureSummary);
-            Assert.True(File.Exists(Path.Combine(output, "source." + kind + "." + target)));
+            Assert.True(File.Exists(Path.Combine(output, "source." + target)));
         } finally { if (Directory.Exists(root)) Directory.Delete(root, recursive: true); }
     }
 }

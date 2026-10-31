@@ -178,7 +178,11 @@ namespace OfficeIMO.Tests {
 
             using var document = markdown.ToWord();
             WordTable table = Assert.Single(document.Tables);
-            var widths = table.Rows[0].Cells.Select(cell => cell.Width ?? 0).ToArray();
+            var widths = table.Rows[0].Cells.Select(cell => {
+                WordTableWidth width = Assert.IsType<WordTableWidth>(cell.Width);
+                Assert.Equal(WordTableWidthKind.Percent, width.Kind);
+                return width.PercentValue!.Value;
+            }).ToArray();
 
             Assert.True(widths[2] > widths[0] * 2, string.Join(",", widths));
             Assert.True(widths[2] > widths[1] * 2, string.Join(",", widths));

@@ -19,7 +19,7 @@ internal static partial class FixtureCorpus {
             var slide = presentation.AddSlide();
             var box = slide.AddTextBox("GROUP" + (index + 1),global::OfficeIMO.OfficeLength.Points(60),global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
             box.FontName = family;
-            box.FontSize = 14;
+            box.FontSize = OfficeLength.Points(14);
             box.Paragraphs[0].Runs[0].Underline = true;
             var bar = slide.AddRectangle(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(10));
             bar.FillColor = "10B981";

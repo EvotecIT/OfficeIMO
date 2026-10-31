@@ -15,8 +15,8 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(1, 1, "Seed");
         sheet.AddImage(OfficeLength.Pixels(12), OfficeLength.Pixels(7), OnePixelPng);
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions { Profile = OfficeHtmlConversionProfile.ExcelSemanticTables });
-        html = html.Replace("data-officeimo-x-emu=\"114300\"", "data-officeimo-x-emu=\"9223372036854775807\"", StringComparison.Ordinal)
-            .Replace("data-officeimo-y-emu=\"66675\"", "data-officeimo-y-emu=\"-9223372036854775808\"", StringComparison.Ordinal);
+        html = html.Replace("data-officeimo-x-emu=\"114300\"", "data-officeimo-x-emu=\"9223372036854775807\"")
+            .Replace("data-officeimo-y-emu=\"66675\"", "data-officeimo-y-emu=\"-9223372036854775808\"");
         var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using var imported = result.Value;
         var image = Assert.Single(Assert.Single(imported.Sheets).Images);

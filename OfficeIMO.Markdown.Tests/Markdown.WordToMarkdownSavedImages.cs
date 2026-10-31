@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             try {
                 using var word = WordDocument.Create();
                 byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
-                using (var source = new MemoryStream(png)) word.AddParagraph().AddImage(source, "chart.png", width: 32, height: 32);
+                using (var source = new MemoryStream(png)) word.AddParagraph().AddImage(source, "chart.png", width: OfficeLength.Pixels(32), height: OfficeLength.Pixels(32));
                 string output = Path.Combine(directory, "report.md");
 
                 word.SaveAsMarkdown(output);

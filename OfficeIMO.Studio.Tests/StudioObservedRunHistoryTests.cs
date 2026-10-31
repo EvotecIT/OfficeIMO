@@ -39,7 +39,7 @@ public sealed class StudioObservedRunHistoryTests {
             var guard = new PausedPdfPublicationGuard();
             Task<OfficeBatchReport> execution = OfficeConverter.ConvertAsync(OfficeBatchOptions.Load(jobPath) with {
                 ReportPath = reportPath, PublicationGuard = guard
-            }, cancellationToken: cancellation.Token);
+            }, progress: null, cancellationToken: cancellation.Token);
             StudioApplicationServices? observingServices = null;
             MainWindow? window = null;
             try {

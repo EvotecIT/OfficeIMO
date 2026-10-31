@@ -1,7 +1,7 @@
 using OfficeIMO.Excel;
 
 using var document = ExcelDocument.Create("report.xlsx");
-var sheet = document.AddSheet("Data");
+var sheet = document.AddWorksheet("Data");
 
 sheet.CellValue(1, 1, "Name");
 sheet.CellValue(1, 2, "Value");

@@ -22,7 +22,7 @@ public sealed class XpsPdfNavigationTests {
         sourceMarkup.Elements().Single().SetAttributeValue("FixedPage.NavigateUri", "/" + target.PartName + "#first");
         source.ReplaceMarkup(sourceMarkup);
 
-        var first = PdfReadDocument.Open(doc.ToPdf());
+        using var first = PdfDocument.Load(new MemoryStream(doc.ToPdf()));
         string firstDestination = Assert.Single(first.Pages[0].GetLinkAnnotations()).DestinationName!;
         Assert.Contains(first.NamedDestinations, destination => destination.Name == firstDestination && destination.PageNumber == 2);
 
@@ -33,7 +33,7 @@ public sealed class XpsPdfNavigationTests {
         sourceMarkup.Elements().Single().SetAttributeValue("FixedPage.NavigateUri", "/" + target.PartName + "#second");
         source.ReplaceMarkup(sourceMarkup);
 
-        var second = PdfReadDocument.Open(doc.ToPdf());
+        using var second = PdfDocument.Load(new MemoryStream(doc.ToPdf()));
         string secondDestination = Assert.Single(second.Pages[0].GetLinkAnnotations()).DestinationName!;
         Assert.NotEqual(firstDestination, secondDestination);
         Assert.Contains(second.NamedDestinations, destination => destination.Name == secondDestination && destination.PageNumber == 2);

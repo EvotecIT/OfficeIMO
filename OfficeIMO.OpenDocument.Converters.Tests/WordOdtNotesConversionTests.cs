@@ -782,7 +782,8 @@ public sealed class WordOdtNotesConversionTests {
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-reference-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting");
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated);
     }
 
     [Fact]
@@ -933,8 +934,9 @@ public sealed class WordOdtNotesConversionTests {
             mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 1);
         Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "endnotes" &&
             mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 1);
-        Assert.DoesNotContain(toOdt.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" ||
-            mapping.Feature == "note-separators");
+        Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 2);
+        Assert.DoesNotContain(toOdt.Report.Mappings, mapping => mapping.Feature == "note-separators");
         Assert.DoesNotContain(toOdt.Report.Mappings, mapping => mapping.Feature == "source-footnotes" ||
             mapping.Feature == "source-endnotes");
 
