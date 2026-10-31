@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfRedactionApplierTests {
     public static IEnumerable<object[]> CompressedRedactionCases() {
         foreach (PdfRedactionTextSelection selection in new[] { PdfRedactionTextSelection.MatchedGlyphs, PdfRedactionTextSelection.LogicalBlocks })
-            foreach (string variant in new[] { "TextChoice", "EscapedTypes", "HarmlessNames", "EscapedTypesDuplicate", "CompactStreamDelimiter", "XrefOnly", "NoMatch", "NamesOnly", "DuplicateContainer", "ExcludedPage", "UnindexedSecret", "ByteRange", "Sig", "SigFlags", "DocMDP", "UR3", "XFA", "AA", "NamesJavaScript", "OpenAction", "Name", "Extends", "WinningRevision", "TruncatedClassicTable", "MalformedHistoryTrailer", "MissingCompressedPredecessor" })
+            foreach (string variant in new[] { "TextChoice", "EscapedTypes", "HarmlessNames", "EscapedTypesDuplicate", "CompactStreamDelimiter", "XrefOnly", "NoMatch", "NamesOnly", "DuplicateContainer", "ExcludedPage", "UnindexedSecret", "ByteRange", "Sig", "SigFlags", "DocMDP", "UR3", "XFA", "AA", "NamesJavaScript", "OpenAction", "Name", "Extends", "WinningRevision", "TruncatedClassicTable", "MalformedHistoryTrailer", "MissingCompressedPredecessor", "WordHybrid", "WordReferenceCollision", "ReferenceMissing", "ReferenceFree", "ReferenceNull", "ReferenceLive", "ReferenceNoMatch", "RetainedContainer", "ReferenceGenerationMismatch" })
                 yield return new object[] { selection, variant };
     }
 
@@ -19,11 +19,12 @@ public partial class PdfRedactionApplierTests {
     public void SearchNormalizesProvenCompressedObjectsAndRefusesUnprovenSources(PdfRedactionTextSelection selection, string variant) {
         byte[] input = BuildCompressedRedactionFixture(variant);
         PdfDocument source = PdfDocument.Load(input);
+        if (variant.StartsWith("Word", StringComparison.Ordinal)) AssertWordHybridOffsets(input);
         if (variant == "Extends") Assert.Equal("plain", source.Reader.FormFields().Single(static field => field.Name == "Text").Value);
         var options = new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret");
         if (variant == "ExcludedPage") options.PageNumbers.Add(1);
         PdfRedactionPlan plan = source.Redactions.Search(options);
-        bool accepted = variant is "TextChoice" or "EscapedTypes" or "HarmlessNames" or "CompactStreamDelimiter" or "XrefOnly" or "NoMatch" or "NamesOnly" or "ExcludedPage" or "Extends" or "WinningRevision";
+        bool accepted = variant is "TextChoice" or "EscapedTypes" or "HarmlessNames" or "CompactStreamDelimiter" or "XrefOnly" or "NoMatch" or "NamesOnly" or "ExcludedPage" or "Extends" or "WinningRevision" or "WordHybrid" or "WordReferenceCollision" or "ReferenceMissing" or "ReferenceFree" or "ReferenceNull" or "ReferenceLive" or "ReferenceNoMatch";
         if (!accepted) {
             if (variant is "ByteRange" or "Sig" or "SigFlags" or "DocMDP" or "UR3" or "AA" or "NamesJavaScript" or "OpenAction") {
                 PdfMutationPlan gate = PdfMutationPlanner.Plan(input, PdfMutationOperation.Redact);
@@ -34,7 +35,10 @@ public partial class PdfRedactionApplierTests {
                 if (variant == "UR3") Assert.True(gate.Preflight.Probe.Security.HasUsageRights);
                 if (variant is "AA" or "NamesJavaScript" or "OpenAction") Assert.Contains("FullRewrite.ActiveContent", gate.BlockerCodes);
             }
-            Assert.NotNull(Record.Exception(() => source.Redactions.ApplyWithEvidence(plan)));
+            if (variant is "RetainedContainer" or "ReferenceGenerationMismatch") {
+                Assert.False(PdfMutationPlanner.Plan(input, PdfMutationOperation.Redact).CanExecute);
+                Assert.Throws<PdfMutationBlockedException>(() => source.Redactions.ApplyWithEvidence(plan));
+            } else Assert.NotNull(Record.Exception(() => source.Redactions.ApplyWithEvidence(plan)));
             Assert.NotNull(Record.Exception(() => source.Redactions.Apply(plan)));
             if (plan.Areas.Count > 0) Assert.NotNull(Record.Exception(() => source.Redactions.Apply(plan.Areas)));
             Assert.Equal(input, source.ToBytes());
@@ -55,6 +59,8 @@ public partial class PdfRedactionApplierTests {
         string decoded = DecodeSavedResidueBytes(output);
         Assert.DoesNotMatch(@"/Type\s*/(?:ObjStm|XRef)\b", decoded);
         Assert.DoesNotContain("/Prev", decoded, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Extends", decoded, StringComparison.Ordinal);
+        if (variant.StartsWith("Reference", StringComparison.Ordinal) || variant == "WordReferenceCollision") AssertSavedReferenceTarget(output, variant == "ReferenceLive");
         using var reader = UglyToad.PdfPig.PdfDocument.Open(output);
         Assert.Equal(variant == "ExcludedPage" ? 2 : 1, reader.NumberOfPages);
         if (variant == "ExcludedPage") Assert.Contains("secret", reader.GetPage(2).Text, StringComparison.Ordinal);
@@ -71,10 +77,11 @@ public partial class PdfRedactionApplierTests {
     }
 
     private byte[] BuildCompressedRedactionFixture(string variant) {
-        string holder = variant == "Name" ? "Name" : variant == "ExcludedPage" ? "ExcludedPage" : variant is "NoMatch" or "NamesOnly" or "HarmlessNames" or "DuplicateContainer" or "EscapedTypesDuplicate" or "UnindexedSecret" or "MalformedHistoryTrailer" ? "SyntaxNames" : "TU";
+        if (variant is "WordHybrid" or "WordReferenceCollision") return BuildWordHybridRedactionFixture(variant == "WordReferenceCollision");
+        string holder = variant == "Name" ? "Name" : variant == "ExcludedPage" ? "ExcludedPage" : variant is "NoMatch" or "NamesOnly" or "HarmlessNames" or "DuplicateContainer" or "EscapedTypesDuplicate" or "UnindexedSecret" or "MalformedHistoryTrailer" or "ReferenceNoMatch" ? "SyntaxNames" : "TU";
         string raw = Encoding.ASCII.GetString(BuildFormResidueSource(holder));
         // These names are harmless; keep the empty-search fixture free of the requested spelling.
-        if (variant is "NoMatch" or "HarmlessNames" or "DuplicateContainer" or "EscapedTypesDuplicate" or "UnindexedSecret" or "MalformedHistoryTrailer") raw = raw.Replace("secret", "public");
+        if (variant is "NoMatch" or "HarmlessNames" or "DuplicateContainer" or "EscapedTypesDuplicate" or "UnindexedSecret" or "MalformedHistoryTrailer" or "ReferenceNoMatch") raw = raw.Replace("secret", "public");
         string catalog = variant switch {
             "DocMDP" => "/Perms << /DocMDP 20 0 R >>",
             "UR3" => "/Perms << /UR3 20 0 R >>",
@@ -100,7 +107,15 @@ public partial class PdfRedactionApplierTests {
             string hex = string.Concat(Encoding.ASCII.GetBytes(previous).Select(static value => value.ToString("X2", CultureInfo.InvariantCulture))) + ">";
             objects.Add(99, "<< /Type /ObjStm /N 1 /First 5 /Filter /ASCIIHexDecode /Length " + hex.Length + " >>\nstream\n" + hex + "\nendstream");
         }
+        if (variant.StartsWith("Reference", StringComparison.Ordinal)) {
+            objects[1] = objects[1].Replace("/Type /Catalog", "/Type /Catalog /PrivateData 30 0 R");
+            objects[30] = "<< /Missing 710 " + (variant == "ReferenceGenerationMismatch" ? "1" : "0") + " R >>";
+            if (variant == "ReferenceFree") objects[711] = "<< /Value (unreachable) >>";
+            if (variant == "ReferenceNull") objects[710] = "null";
+            if (variant is "ReferenceLive" or "ReferenceGenerationMismatch") objects[710] = "<< /Value (kept live value) >>";
+        }
         int container = objects.Keys.Max() + 1, xref = container + 1;
+        if (variant == "RetainedContainer") objects[1] = objects[1].Replace("/Type /Catalog", "/Type /Catalog /PrivateData " + container + " 0 R");
         int[] packed = variant is "XrefOnly" or "TruncatedClassicTable" or "MalformedHistoryTrailer" ? Array.Empty<int>() : objects.Keys.Where(number => !objects[number].Contains("\nstream\n", StringComparison.Ordinal)).ToArray();
         var header = new StringBuilder();
         var body = new StringBuilder();

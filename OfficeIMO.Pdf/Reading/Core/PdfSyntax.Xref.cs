@@ -197,6 +197,7 @@ internal static partial class PdfSyntax {
         // arrays, and only the observed entries become a retained managed array.
         using var entryBuilder = new PdfPooledValueBuilder<(int ObjectNumber, int Offset, int Generation, bool InUse)>(
             PdfCollectionSizing.BoundedInitialCapacity((sectionEnd - position) / 20, 256));
+        bool hasEmptySubsection = false;
         while (TryReadXrefLine(text, ref position, sectionEnd, out int lineStart, out int lineEnd, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(text.Substring(lineStart, lineEnd - lineStart))) continue;
@@ -206,7 +207,7 @@ internal static partial class PdfSyntax {
                 !TryParseXrefInteger(text, firstStart, firstLength, out int firstObjectNumber) ||
                 !TryParseXrefInteger(text, countStart, countLength, out int count) ||
                 firstObjectNumber < 0 ||
-                count <= 0 ||
+                count < 0 ||
                 count > 1_000_000 ||
                 requireComplete && (long)firstObjectNumber + count > int.MaxValue) {
                 if (requireComplete) return false;
@@ -214,6 +215,7 @@ internal static partial class PdfSyntax {
             }
 
             if (requireComplete && TryReadXrefToken(text, ref tokenPosition, lineEnd, out _, out _, cancellationToken)) return false;
+            hasEmptySubsection |= count == 0;
             for (int i = 0; i < count; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!TryReadXrefLine(text, ref position, sectionEnd, out lineStart, out lineEnd, cancellationToken)) {
@@ -242,7 +244,8 @@ internal static partial class PdfSyntax {
         }
 
         entries = entryBuilder.ToArray();
-        if (entries.Length == 0) {
+        // An empty section can still own a hybrid supplement and a predecessor.
+        if (entries.Length == 0 && !hasEmptySubsection) {
             return false;
         }
 

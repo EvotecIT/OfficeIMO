@@ -44,7 +44,7 @@ internal static partial class PdfRedactionApplier {
             throw new InvalidOperationException("The reviewed redaction plan belongs to different source PDF bytes.");
         }
         if (plan.Areas.Count == 0) {
-            _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Redact, readOptions, cancellationToken: effectiveOptions.CancellationToken);
+            PdfMutationPlan mutationPlan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Redact, readOptions, cancellationToken: effectiveOptions.CancellationToken);
             generatedGrowth = default;
             appliedImageMatches = Array.Empty<PdfRedactionMatch>();
             IReadOnlyList<PdfRedactionVerificationIssue> residue = FindSearchResidue(pdf, plan, readOptions, effectiveOptions.CancellationToken);
@@ -53,9 +53,10 @@ internal static partial class PdfRedactionApplier {
             if (!PdfSyntax.RequiresRedactionNormalization(unchanged) || unchanged.Security.HasEncryption) return (byte[])pdf.Clone();
             var (normalized, trailer) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, effectiveOptions.CancellationToken);
             int catalog = FindCatalogObjectNumber(normalized, trailer);
+            NormalizeUndefinedRedactionReferences(normalized, effectiveOptions.CancellationToken);
             PdfObjectGraphPruner.PruneUnreachableObjects(normalized, catalog, effectiveOptions.CancellationToken);
-            byte[] classic = RewriteAllObjects(normalized, catalog, unchanged.UncheckedMetadata, pdf, GetSearchCriteria(plan), effectiveOptions.CancellationToken);
-            RequireClassicRedactionOutput(classic, readOptions, effectiveOptions.CancellationToken);
+            byte[] classic = RewriteAllObjects(normalized, catalog, unchanged.UncheckedMetadata, pdf, mutationPlan, GetSearchCriteria(plan), effectiveOptions.CancellationToken);
+            RequireClassicRedactionOutput(classic, readOptions, mutationPlan, effectiveOptions.CancellationToken);
             return classic;
         }
         string[] fieldNames = plan.Areas.Select(static area => area.OriginalLabel).Where(static label => label?.StartsWith("field:", StringComparison.Ordinal) == true).Select(static label => label!.Substring("field:".Length)).Distinct(StringComparer.Ordinal).ToArray();
@@ -260,12 +261,13 @@ internal static partial class PdfRedactionApplier {
         Guard.NotNull(areas, nameof(areas));
         PdfRedactionApplyOptions effectiveOptions = applyOptions ?? new PdfRedactionApplyOptions();
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
+        PdfMutationPlan? mutationPlan = null;
         if (mutationOperation == PdfMutationOperation.ModifyPageContent &&
             (mutationScope == RedactionMutationScope.Text || mutationScope == RedactionMutationScope.Images) &&
             !paintMarks) {
             PdfMutationPlanner.RequireCatalogPreservingPageContentRewrite(pdf, readOptions, effectiveOptions.CancellationToken);
         } else {
-            _ = PdfMutationPlanner.RequireFullRewrite(pdf, mutationOperation, readOptions, cancellationToken: effectiveOptions.CancellationToken);
+            mutationPlan = PdfMutationPlanner.RequireFullRewrite(pdf, mutationOperation, readOptions, cancellationToken: effectiveOptions.CancellationToken);
         }
 
         var capturedAreas = new List<PdfRedactionArea>();
@@ -306,6 +308,7 @@ internal static partial class PdfRedactionApplier {
 
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, effectiveOptions.CancellationToken);
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
+        if (mutationOperation == PdfMutationOperation.Redact) NormalizeUndefinedRedactionReferences(objects, effectiveOptions.CancellationToken);
         Dictionary<int, PdfStream> sourceStreams = document.Objects
             .Where(static item => item.Value.Value is PdfStream)
             .ToDictionary(static item => item.Key, static item => (PdfStream)item.Value.Value);
@@ -339,9 +342,9 @@ internal static partial class PdfRedactionApplier {
         generatedGrowth = BuildGeneratedOutputGrowth(objects, sourceStreams, document.Objects, sourceStreamIdentities, mutation.GeneratedPageContentBytes);
         appliedImageMatches = mutation.AppliedImageMatches;
         PdfMetadata metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 || searchedMetadata.Info ? new PdfMetadata() : document.UncheckedMetadata;
-        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf, textSearch, effectiveOptions.CancellationToken);
+        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf, mutationPlan, textSearch, effectiveOptions.CancellationToken);
         if (mutationOperation == PdfMutationOperation.Redact && !document.Security.HasEncryption && PdfSyntax.RequiresRedactionNormalization(document))
-            RequireClassicRedactionOutput(rewritten, readOptions, effectiveOptions.CancellationToken);
+            RequireClassicRedactionOutput(rewritten, readOptions, mutationPlan!, effectiveOptions.CancellationToken);
         return sourceEncryption?.Protect(rewritten,
             generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, rewritten, generatedGrowth),
             cancellationToken: effectiveOptions.CancellationToken) ?? rewritten;
@@ -1199,41 +1202,6 @@ internal static partial class PdfRedactionApplier {
 
     private static bool SameReference(PdfReference left, PdfReference right) =>
         left.ObjectNumber == right.ObjectNumber && left.Generation == right.Generation;
-
-    private static byte[] RewriteAllObjects(
-        Dictionary<int, PdfIndirectObject> objects,
-        int catalogObjectNumber,
-        PdfMetadata metadata,
-        byte[] sourcePdf,
-        PdfRedactionSearchCriteria[]? searchCriteria = null,
-        System.Threading.CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        int[] sourceIds = objects.Keys.OrderBy(id => id).ToArray();
-        var numberMap = new Dictionary<int, int>(sourceIds.Length);
-        for (int i = 0; i < sourceIds.Length; i++) {
-            if ((i & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
-            numberMap[sourceIds[i]] = i + 1;
-        }
-
-        var context = new PdfPageExtractor.SerializationContext(numberMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects);
-        var rewritten = new List<byte[]>(sourceIds.Length + 1);
-        foreach (int sourceId in sourceIds) {
-            cancellationToken.ThrowIfCancellationRequested();
-            rewritten.Add(PdfPageExtractor.SerializeIndirectObject(numberMap[sourceId], objects[sourceId].Value, context));
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        int infoId = rewritten.Count + 1;
-        PdfDictionary info = PdfInfoDictionaryBuilder.BuildDictionary(metadata);
-        // Generated producer metadata must not reintroduce a short searched value either.
-        foreach (string key in info.Items.Keys.ToArray()) {
-            if (info.Items[key] is PdfStringObj text && searchCriteria?.Any(criterion => criterion.Matches(text.Value)) == true) info.Items.Remove(key);
-        }
-        rewritten.Add(PdfPageExtractor.SerializeIndirectObject(infoId, info, context));
-
-        PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
-        return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion, cancellationToken);
-    }
 
     private static int FindCatalogObjectNumber(Dictionary<int, PdfIndirectObject> objects, string? trailerRaw) {
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);

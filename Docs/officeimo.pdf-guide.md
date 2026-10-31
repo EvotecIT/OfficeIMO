@@ -2331,10 +2331,12 @@ are removed too.
 Unsigned, unencrypted PDFs with object streams or cross-reference streams normalize to
 classic output when the winning entries across the complete xref chain agree with the
 reader's live objects. This includes hybrid, linearized and incremental PDFs. Tables,
-their `/XRefStm` supplements and `/Prev` sections are checked in lookup order; free
-entries cannot resurrect older objects. `/Extends` is a collection hint and does not
-choose a member's value. The rewrite drops containers, hint data and old revisions,
-and an empty search still normalizes an admitted source. Every retained container
+their `/XRefStm` supplements and `/Prev` sections are checked in lookup order, including
+empty newest sections used by Word. Newer compressed entries win over older free rows.
+`/Extends` is a collection hint and does not choose a member's value. The rewrite drops
+containers, hint data and old revisions, and an empty search still normalizes an admitted source. References to free or missing
+objects are written as null. A live reference to a compression container, or a reference
+whose generation disagrees with a live target, refuses the rewrite. Every retained container
 member is inspected, including unindexed members. A disagreement, incomplete graph,
 or retained historical match refuses the result; compressed encryption stays refused.
 Signature, usage-rights, dynamic-XFA and active-content refusals also apply to compressed

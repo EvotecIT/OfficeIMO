@@ -8,7 +8,7 @@ internal static partial class PdfSyntax {
     /// entry, including deletion, agrees with the objects materialized by the reader.
     /// </summary>
     internal static bool CanNormalizeRedactionObjectGraph(byte[] pdf, PdfReadDocument document, CancellationToken cancellationToken) {
-        if (document.RepairReport.HasIncompleteObjectCoverage) return false;
+        if (document.RepairReport.HasIncompleteObjectCoverage || !CanSerializeRedactionObjectGraph(document, cancellationToken)) return false;
         if (!RequiresRedactionNormalization(document)) return true;
         if (document.Security.HasEncryption && HasCompressedRedactionStructures(document)) return false;
         var objects = document.Objects;
@@ -31,6 +31,26 @@ internal static partial class PdfSyntax {
         // Every in-use entry must have materialized; missing members cannot silently disappear.
         return entries.Values.All(entry => entry.Type == 0 || objects.ContainsKey(entry.ObjectNumber));
     }
+    /// <summary>Only live document objects can survive; structural containers cannot be copied as document data.</summary>
+    private static bool CanSerializeRedactionObjectGraph(PdfReadDocument document, CancellationToken cancellationToken) {
+        PdfDictionary? catalog = FindCatalog(document.Objects, document.TrailerRaw, cancellationToken: cancellationToken);
+        if (catalog is null) return false;
+        var collector = new PdfPageExtractor.ObjectCollector(document.Objects, undefinedReferencesAreNull: true, cancellationToken: cancellationToken);
+        try {
+            collector.CollectObjectGraph(catalog);
+        } catch (InvalidOperationException) {
+            // Generation disagreement is not a proven undefined reference.
+            return false;
+        }
+        foreach (int number in collector.ObjectIds) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfObject value = document.Objects[number].Value;
+            if (value is PdfStream stream && stream.Dictionary.Get<PdfName>("Type")?.Name is "ObjStm" or "XRef" ||
+                value is PdfDictionary dictionary && dictionary.Items.ContainsKey("Linearized")) return false;
+        }
+        return true;
+    }
+
     /// <summary>Uses decoded types: ordinary resource names are not structural containers.</summary>
     internal static bool HasCompressedRedactionStructures(PdfReadDocument document) =>
         document.Objects.Values.Any(static item => item.Value is PdfStream stream &&
