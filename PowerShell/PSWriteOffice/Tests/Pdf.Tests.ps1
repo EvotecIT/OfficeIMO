@@ -161,9 +161,8 @@ Describe 'PDF cmdlets' {
         { Get-OfficePdfText -Path $newPath -Password 'wrong' } | Should -Throw
 
         $savedPath = Join-Path $TestDrive 'saved-encrypted.pdf'
-        $doc = New-OfficePdf {
-            PdfParagraph 'Saved encrypted PDF text'
-        }
+        $doc = New-OfficePdf
+        PdfParagraph -Document $doc 'Saved encrypted PDF text'
 
         $doc | Save-OfficePdf -Path $savedPath -Password 'open' -OwnerPassword 'owner' | Out-Null
 
@@ -185,13 +184,12 @@ Describe 'PDF cmdlets' {
     }
 
     It 'rejects document page composition and deferred context pass-through clearly' {
-        $document = New-OfficePdf {
-            PdfParagraph 'Existing document content'
-        }
+        $document = New-OfficePdf
+        PdfParagraph -Document $document 'Existing document content'
 
         { $document | PdfPageSetup -Margin 36 } |
             Should -Throw '*cannot update an already-built PdfDocument*'
-        { New-OfficePdf { PdfParagraph 'First' -PassThru | PdfParagraph 'Second' } } |
+        { New-OfficePdf -Path (Join-Path $TestDrive 'deferred-pass-through.pdf') { PdfParagraph 'First' -PassThru | PdfParagraph 'Second' } } |
             Should -Throw '*cannot emit a PdfDocument before New-OfficePdf finishes composition*'
     }
 
@@ -345,13 +343,13 @@ Describe 'PDF cmdlets' {
     }
 
     It 'renders rich text runs and named colors in PDF text and table cells' {
-        foreach ($name in 'PdfNew', 'TextRun', 'PdfTextRun', 'PdfTableCell') {
+        foreach ($name in 'New-OfficePdf', 'TextRun', 'PdfTextRun', 'PdfTableCell') {
             Get-Command $name | Should -Not -BeNullOrEmpty
         }
 
         $path = Join-Path $TestDrive 'rich-run-table.pdf'
 
-        PdfNew -Path $path {
+        New-OfficePdf -Path $path {
             PdfText -Run @{
                 Text  = 'Status: ', 'Ready'
                 Color = $null, 'SeaGreen'
@@ -396,7 +394,7 @@ Describe 'PDF cmdlets' {
         $path = Join-Path $TestDrive 'rich-run-table-link.pdf'
 
         {
-            PdfNew -Path $path {
+            New-OfficePdf -Path $path {
                 PdfTable -InputObject @(
                     , @(
                         PdfTableCell -Run @(
@@ -411,7 +409,7 @@ Describe 'PDF cmdlets' {
     It 'treats rich and styled PDF table cells as structured without spans' {
         $path = Join-Path $TestDrive 'rich-run-mixed-object-table.pdf'
 
-        PdfNew -Path $path {
+        New-OfficePdf -Path $path {
             PdfTable -InputObject @(
                 [pscustomobject]@{
                     Service = 'Entra'
@@ -439,7 +437,7 @@ Describe 'PDF cmdlets' {
     It 'keeps ordinary style-named columns in PDF object tables' {
         $path = Join-Path $TestDrive 'ordinary-style-named-table.pdf'
 
-        PdfNew -Path $path {
+        New-OfficePdf -Path $path {
             PdfTable -InputObject @(
                 [pscustomobject]@{
                     Text     = 'Task'
@@ -633,9 +631,8 @@ Describe 'PDF cmdlets' {
 
     It 'adds piped PDF table rows to a supplied document' {
         $path = Join-Path $TestDrive 'piped-rows-supplied-document.pdf'
-        $doc = New-OfficePdf {
-            PdfHeading 'Pipeline rows'
-        }
+        $doc = New-OfficePdf
+        PdfHeading -Document $doc 'Pipeline rows'
         $rows = @(
             [pscustomobject]@{ Name = 'Alpha'; Value = 1 }
             [pscustomobject]@{ Name = 'Beta'; Value = 2 }
@@ -653,12 +650,10 @@ Describe 'PDF cmdlets' {
     It 'adds explicit PDF table rows to each piped document' {
         $path1 = Join-Path $TestDrive 'piped-document-one.pdf'
         $path2 = Join-Path $TestDrive 'piped-document-two.pdf'
-        $doc1 = New-OfficePdf {
-            PdfHeading 'First document'
-        }
-        $doc2 = New-OfficePdf {
-            PdfHeading 'Second document'
-        }
+        $doc1 = New-OfficePdf
+        PdfHeading -Document $doc1 'First document'
+        $doc2 = New-OfficePdf
+        PdfHeading -Document $doc2 'Second document'
         $rows = @(
             [pscustomobject]@{ Name = 'Alpha'; Value = 1 }
             [pscustomobject]@{ Name = 'Beta'; Value = 2 }

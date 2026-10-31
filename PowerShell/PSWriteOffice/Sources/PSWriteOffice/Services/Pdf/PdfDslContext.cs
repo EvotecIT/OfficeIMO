@@ -9,20 +9,19 @@ internal sealed class PdfDslContext : IDisposable
 {
     private static readonly System.Threading.AsyncLocal<PdfDslContext?> Current = new();
     private readonly PdfDslContext? _previous;
+    private readonly PdfDocument _document;
     private readonly List<Action<PdfContentBuilder>> _contentActions = new();
     private readonly List<Action<PdfPageBuilder>> _pageActions = new();
-    private readonly List<Func<PdfDocument, PdfDocument>> _documentActions = new();
+    private readonly List<Action<PdfDocument>> _documentActions = new();
 
-    private PdfDslContext(PdfCreateOptions options)
+    private PdfDslContext(PdfDocument document)
     {
-        Options = options ?? throw new ArgumentNullException(nameof(options));
+        _document = document ?? throw new ArgumentNullException(nameof(document));
         _previous = Current.Value;
         Current.Value = this;
     }
 
-    public PdfCreateOptions Options { get; }
-
-    public static PdfDslContext Enter(PdfCreateOptions options) => new(options);
+    public static PdfDslContext Enter(PdfDocument document) => new(document);
 
     public static PdfDslContext Require(PSCmdlet cmdlet)
     {
@@ -36,19 +35,18 @@ internal sealed class PdfDslContext : IDisposable
     public void ConfigurePage(Action<PdfPageBuilder> action)
         => _pageActions.Add(action ?? throw new ArgumentNullException(nameof(action)));
 
+    public void ConfigureOptions(Action<PdfCreateOptions> action)
+        => _document.Compose(compose => compose.Settings(action));
+
     public void ConfigureDocument(Action<PdfDocument> action)
     {
         if (action == null) throw new ArgumentNullException(nameof(action));
-        _documentActions.Add(document =>
-        {
-            action(document);
-            return document;
-        });
+        _documentActions.Add(action);
     }
 
-    public PdfDocument Build()
+    public void Apply()
     {
-        var document = PdfDocument.Create(compose =>
+        _document.Compose(compose =>
         {
             if (_pageActions.Count == 0)
             {
@@ -65,14 +63,12 @@ internal sealed class PdfDslContext : IDisposable
 
                 page.Content(content => content.Item(ApplyContent));
             });
-        }, Options);
+        });
 
         foreach (var action in _documentActions)
         {
-            document = action(document);
+            action(_document);
         }
-
-        return document;
     }
 
     private void ApplyContent(PdfContentBuilder content)

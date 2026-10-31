@@ -14,7 +14,9 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <example>
 ///   <summary>Build a PDF in memory and save it later.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$pdf = New-OfficePdf { PdfHeading 'Queued report'; PdfParagraph 'Generated in memory.' }
+///   <code>$pdf = New-OfficePdf
+/// Add-OfficePdfHeading -Document $pdf -Text 'Queued report'
+/// Add-OfficePdfParagraph -Document $pdf -Text 'Generated in memory.'
 /// $pdf | Save-OfficePdf -Path .\QueuedReport.pdf</code>
 ///   <para>Creates a PDF document object first, then saves it to disk.</para>
 /// </example>
@@ -39,6 +41,10 @@ public sealed class SaveOfficePdfCommand : PSCmdlet {
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
+    /// <summary>Explicitly accept fidelity findings from native PDF serialization.</summary>
+    [Parameter]
+    public SwitchParameter AllowLoss { get; set; }
+
     /// <summary>Password required to open the generated PDF.</summary>
     [Parameter]
     [Alias("UserPassword")]
@@ -62,7 +68,7 @@ public sealed class SaveOfficePdfCommand : PSCmdlet {
 
         PdfCommandUtilities.EnsureDirectory(fullPath);
         var document = PdfCommandUtilities.ApplyEncryption(Document, Password, OwnerPassword, Permission);
-        document.Save(fullPath);
+        document.Save(fullPath, new PdfSaveOptions { AllowLoss = AllowLoss.IsPresent });
 
         if (Open.IsPresent) {
             FileOpenService.Open(fullPath);

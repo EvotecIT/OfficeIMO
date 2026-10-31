@@ -99,9 +99,8 @@ Describe 'PDF readback and compliance cmdlets' {
         $pdfPath = Join-Path $TestDrive 'explicit-attachment.pdf'
         $attachmentPath = Join-Path $TestDrive 'explicit-payload.txt'
         Set-Content -Path $attachmentPath -Value 'Explicit attachment payload' -NoNewline
-        $document = New-OfficePdf {
-            PdfParagraph 'Explicit attachment document'
-        }
+        $document = New-OfficePdf
+        PdfParagraph -Document $document 'Explicit attachment document'
 
         $updated = $document | PdfAttachment -Path $attachmentPath -Name 'explicit-payload.txt' -PassThru
         $updated | Save-OfficePdf -Path $pdfPath | Out-Null
@@ -111,12 +110,11 @@ Describe 'PDF readback and compliance cmdlets' {
     }
 
     It 'reports generated PDF compliance readiness' {
-        $document = New-OfficePdf {
-            PdfMetadata -Title 'Compliance Draft'
-            PdfCompliance -Profile PdfUa1 -Groundwork
-            PdfHeading 'Compliance Draft'
-            PdfParagraph 'This document can be assessed before saving.'
-        }
+        $document = New-OfficePdf
+        PdfMetadata -Document $document -Title 'Compliance Draft'
+        PdfCompliance -Document $document -Profile PdfUa1 -Groundwork
+        PdfHeading -Document $document 'Compliance Draft'
+        PdfParagraph -Document $document 'This document can be assessed before saving.'
 
         $report = $document | Get-OfficePdfCompliance -Profile PdfUa1
         $report.Profile | Should -Be 'PdfUa1'
@@ -125,11 +123,10 @@ Describe 'PDF readback and compliance cmdlets' {
     }
 
     It 'requires artifact-bound external validator evidence for compliance claims' {
-        $document = New-OfficePdf {
-            PdfMetadata -Title 'Compliance Proof Draft'
-            PdfCompliance -Profile PdfA3B -Groundwork
-            PdfParagraph 'Compliance proof combines readiness with external validation evidence.'
-        }
+        $document = New-OfficePdf
+        PdfMetadata -Document $document -Title 'Compliance Proof Draft'
+        PdfCompliance -Document $document -Profile PdfA3B -Groundwork
+        PdfParagraph -Document $document 'Compliance proof combines readiness with external validation evidence.'
 
         $proof = $document | Get-OfficePdfCompliance -Profile PdfA3B -Proof
 

@@ -161,11 +161,16 @@ internal static class PdfCommandUtilities
         return null;
     }
 
-    internal static void ConfigureOptions(PSCmdlet cmdlet, Action<PdfCreateOptions> action)
+    internal static void ConfigureOptions(PSCmdlet cmdlet, Action<PdfCreateOptions> action, PdfDocument? document = null)
     {
+        if (document != null)
+        {
+            document.Compose(compose => compose.Settings(action));
+            return;
+        }
         RejectDeferredPassThru(cmdlet);
         var context = PdfDslContext.Require(cmdlet);
-        action(context.Options);
+        context.ConfigureOptions(action);
     }
 
     private static void RejectDeferredPassThru(PSCmdlet cmdlet)

@@ -63,7 +63,7 @@ New-OfficeExcel -Path $excelPath {
     }
 }
 
-PdfNew -Path $pdfPath {
+New-OfficePdf -Path $pdfPath {
     PdfHeading 'Rich text runs'
     PdfText -Run @(
         PdfTextRun 'Status: '

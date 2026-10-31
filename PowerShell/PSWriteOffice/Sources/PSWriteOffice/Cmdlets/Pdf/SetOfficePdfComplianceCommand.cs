@@ -20,6 +20,10 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [Alias("PdfCompliance")]
 public sealed class SetOfficePdfComplianceCommand : PSCmdlet
 {
+    /// <summary>Live generated PDF; omission uses the enclosing creation block.</summary>
+    [Parameter(ValueFromPipeline = true), ValidateNotNull]
+    public PdfDocument? Document { get; set; }
+
     /// <summary>Requested generated PDF compliance profile.</summary>
     [Parameter(Mandatory = true)]
     public PdfComplianceProfile Profile { get; set; }
@@ -40,7 +44,7 @@ public sealed class SetOfficePdfComplianceCommand : PSCmdlet
         {
             if (Groundwork.IsPresent) ApplyGroundwork(options);
             else options.RequireCompliance(Profile);
-        });
+        }, Document);
     }
 
     private void ApplyGroundwork(PdfCreateOptions options)

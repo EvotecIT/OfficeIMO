@@ -148,9 +148,10 @@
             },
             {
               "name": "OpenActionTop",
-              "type": "OfficeLength",
+              "type": "double",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native PDF coordinate in the target page's /UserUnit space; not converted to physical points."
             },
             {
               "name": "DisplayDocTitle",
@@ -209,10 +210,17 @@
             },
             {
               "name": "Permission",
-              "type": "PdfPermission",
+              "type": "PdfStandardPermissions",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Flags enum; replaces the raw int."
+              "notes": "Typed native Standard security permissions. OwnerPassword alone creates permissions-only protection; readers can open without a password."
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Explicitly accept fidelity findings from native PDF serialization; otherwise the native save rejects loss."
             }
           ]
         },
@@ -337,9 +345,10 @@
             },
             {
               "name": "OpenActionTop",
-              "type": "OfficeLength",
+              "type": "double",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native PDF coordinate in the target page's /UserUnit space; not converted to physical points."
             },
             {
               "name": "DisplayDocTitle",
@@ -398,16 +407,16 @@
             },
             {
               "name": "Permission",
-              "type": "PdfPermission",
+              "type": "PdfStandardPermissions",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Flags enum; replaces the raw int."
+              "notes": "Typed native Standard security permissions. OwnerPassword alone creates permissions-only protection; readers can open without a password."
             }
           ]
         }
       ],
       "shouldProcess": true,
-      "notes": "G3: leaving out the content block keeps the document open and returns it (replaces -NoSave); with a block -Path is required and the file is saved and closed when the block ends. If the block throws, nothing is saved and a partial file is removed. Native save fails on content loss unless -AllowLoss (G4, on Save-OfficePdf). -Font and -Size set the default body font and text size; -FontFamily is merged into -Font and -FontSize becomes -Size, as on every text command. -Alignment parameters take the shared OfficeAlignment.",
+      "notes": "G3: leaving out the content block keeps the document open and returns it (replaces -NoSave); with a block -Path is required and the file is saved and closed when the block ends. If the block throws, nothing is saved and a partial file is removed. Native save fails on content loss unless -AllowLoss (G4, on Save-OfficePdf). -Font and -Size set the default body font and text size; -FontFamily is merged into -Font and -FontSize becomes -Size, as on every text command. -Alignment parameters take the shared OfficeAlignment. Uses the shared native lifecycle: without Content it returns the live document and writes nothing, retaining an optional associated path. A content block requires Path and publishes only after successful completion; Force is required to replace an existing destination. Native PDF coordinates remain numeric in the target page /UserUnit space.",
       "examples": [
         {
           "title": "Create a one-page PDF",

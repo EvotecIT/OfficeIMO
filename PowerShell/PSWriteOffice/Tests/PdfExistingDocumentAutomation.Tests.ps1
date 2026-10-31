@@ -98,7 +98,7 @@ Describe 'Authenticated PDF automation' {
 
     It 'ignores usage restrictions only after valid password authentication' {
         $path = Join-Path $TestDrive 'restricted.pdf'
-        New-OfficePdf -Path $path -Password 'open' -OwnerPassword 'owner' -Permission -3904 {
+        New-OfficePdf -Path $path -Password 'open' -OwnerPassword 'owner' -Permission None {
             PdfParagraph 'Authenticated restricted text'
         } | Out-Null
 
@@ -114,10 +114,10 @@ Describe 'Authenticated PDF automation' {
         $first = Join-Path $TestDrive 'restricted-one.pdf'
         $second = Join-Path $TestDrive 'restricted-two.pdf'
         $output = Join-Path $TestDrive 'restricted-merged.pdf'
-        New-OfficePdf -Path $first -Password 'open-one' -OwnerPassword 'owner-one' -Permission -3904 {
+        New-OfficePdf -Path $first -Password 'open-one' -OwnerPassword 'owner-one' -Permission None {
             PdfParagraph 'Restricted source one'
         } | Out-Null
-        New-OfficePdf -Path $second -Password 'open-two' -OwnerPassword 'owner-two' -Permission -3904 {
+        New-OfficePdf -Path $second -Password 'open-two' -OwnerPassword 'owner-two' -Permission None {
             PdfParagraph 'Restricted source two'
         } | Out-Null
 
@@ -148,7 +148,7 @@ Describe 'Authenticated PDF automation' {
         $removed = Join-Path $TestDrive 'restricted-pages-removed.pdf'
         $rotated = Join-Path $TestDrive 'restricted-pages-rotated.pdf'
         $boxed = Join-Path $TestDrive 'restricted-pages-boxed.pdf'
-        New-OfficePdf -Path $source -Password 'open' -OwnerPassword 'owner' -Permission -3904 {
+        New-OfficePdf -Path $source -Password 'open' -OwnerPassword 'owner' -Permission None {
             PdfParagraph 'Restricted page one'
             PdfPageBreak
             PdfParagraph 'Restricted page two'
@@ -184,7 +184,7 @@ Describe 'Authenticated PDF automation' {
         $filledAndFlat = Join-Path $TestDrive 'restricted-form-filled-flat.pdf'
         $incremental = Join-Path $TestDrive 'restricted-form-incremental.pdf'
         $imported = Join-Path $TestDrive 'restricted-form-imported.pdf'
-        New-OfficePdf -Path $source -Password 'open' -OwnerPassword 'owner' -Permission -3904 {
+        New-OfficePdf -Path $source -Password 'open' -OwnerPassword 'owner' -Permission None {
             PdfParagraph 'Restricted form'
             PdfFormField -Name Name -Type Text -Value Ada
         } | Out-Null
@@ -217,7 +217,7 @@ Describe 'Authenticated PDF automation' {
         $source = Join-Path $TestDrive 'restricted-rewrite.pdf'
         $metadata = Join-Path $TestDrive 'restricted-metadata.pdf'
         $sanitized = Join-Path $TestDrive 'restricted-sanitized.pdf'
-        New-OfficePdf -Path $source -Password 'open' -OwnerPassword 'owner' -Permission -3904 {
+        New-OfficePdf -Path $source -Password 'open' -OwnerPassword 'owner' -Permission None {
             PdfParagraph 'Restricted rewrite source'
         } | Out-Null
 
@@ -238,10 +238,10 @@ Describe 'Authenticated PDF automation' {
     It 'proves rewrites between independently authenticated document instances' {
         $reference = Join-Path $TestDrive 'restricted-proof-reference.pdf'
         $difference = Join-Path $TestDrive 'restricted-proof-difference.pdf'
-        New-OfficePdf -Path $reference -Password 'reference-open' -OwnerPassword 'reference-owner' -Permission -3904 {
+        New-OfficePdf -Path $reference -Password 'reference-open' -OwnerPassword 'reference-owner' -Permission None {
             PdfParagraph 'Restricted rewrite proof'
         } | Out-Null
-        New-OfficePdf -Path $difference -Password 'difference-open' -OwnerPassword 'difference-owner' -Permission -3904 {
+        New-OfficePdf -Path $difference -Password 'difference-open' -OwnerPassword 'difference-owner' -Permission None {
             PdfParagraph 'Restricted rewrite proof'
         } | Out-Null
 
