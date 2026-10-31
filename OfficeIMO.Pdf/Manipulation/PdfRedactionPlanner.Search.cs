@@ -109,7 +109,7 @@ internal static partial class PdfRedactionPlanner {
             }
         }
         PdfRedactionSearchCriteria? textCriteria = AddAnnotationOnlyAreas(readDocument, search,
-            PdfRedactionSearchCriteria.Create(search.LiteralText, expressions, search.PageNumbers.Count == 0, search.PageNumbers.ToArray()), areas, keys);
+            PdfRedactionSearchCriteria.Create(search.LiteralText, expressions, search.MatchCase, search.PageNumbers.Count == 0, search.PageNumbers.ToArray()), areas, keys);
         var requestedFields = new HashSet<string>(search.FormFieldNames, StringComparer.Ordinal);
         foreach (PdfLogicalFormWidget widget in logical.FormWidgets) {
             search.CancellationToken.ThrowIfCancellationRequested();
@@ -120,7 +120,7 @@ internal static partial class PdfRedactionPlanner {
             // Earlier areas were made before the affected fields were known.
             for (int index = 0; index < areas.Count; index++) areas[index] = areas[index].WithSearchCriteria(textCriteria);
         }
-        if (areas.Count == 0) return new PdfRedactionPlan(PdfInspector.Preflight(pdf, readOptions, search.CancellationToken), Array.Empty<PdfRedactionArea>(), Array.Empty<PdfRedactionMatch>(), NoMatchFindings(pdf, readDocument, search).Concat(selectionFindings).ToArray(), DescribeCriteria(search), PdfRedactionPlan.ComputeSourceSha256(pdf), PdfRedactionPlan.CapturePageIdentities(readDocument, Array.Empty<PdfRedactionArea>()), searchPageNumbers: search.PageNumbers.ToArray());
+        if (areas.Count == 0) return new PdfRedactionPlan(PdfInspector.Preflight(pdf, readOptions, search.CancellationToken), Array.Empty<PdfRedactionArea>(), Array.Empty<PdfRedactionMatch>(), NoMatchFindings(pdf, readDocument, search).Concat(selectionFindings).ToArray(), DescribeCriteria(search), PdfRedactionPlan.ComputeSourceSha256(pdf), PdfRedactionPlan.CapturePageIdentities(readDocument, Array.Empty<PdfRedactionArea>()), searchMatchCase: search.MatchCase, searchRegexOptions: search.RegexOptions, searchRegexTimeout: search.RegexTimeout, searchPageNumbers: search.PageNumbers.ToArray());
         PdfRedactionPlan planned = Plan(pdf, areas.Select(area => area.WithSearchCriteria(textCriteria)), layoutOptions, readOptions, search.CancellationToken);
         search.CancellationToken.ThrowIfCancellationRequested();
         return new PdfRedactionPlan(planned.Preflight, planned.Areas, planned.Matches, planned.Findings.Concat(selectionFindings).ToArray(), DescribeCriteria(search), planned.SourceSha256, planned.PageIdentities, planned.ReviewedTextObjectScopes, search.MatchCase, search.RegexOptions, search.RegexTimeout);
@@ -173,7 +173,7 @@ internal static partial class PdfRedactionPlanner {
         PdfRedactionSearchOptions search) {
         var plan = new PdfRedactionPlan(PdfInspector.Preflight(pdf, document.ReadOptions, search.CancellationToken),
             Array.Empty<PdfRedactionArea>(), Array.Empty<PdfRedactionMatch>(), Array.Empty<PdfDiagnosticFinding>(), DescribeCriteria(search),
-            PdfRedactionPlan.ComputeSourceSha256(pdf), searchRegexOptions: search.RegexOptions, searchRegexTimeout: search.RegexTimeout,
+            PdfRedactionPlan.ComputeSourceSha256(pdf), searchMatchCase: search.MatchCase, searchRegexOptions: search.RegexOptions, searchRegexTimeout: search.RegexTimeout,
             searchPageNumbers: search.PageNumbers.ToArray());
         return PdfRedactionApplier.FindSearchResidue(pdf, plan, document.ReadOptions, search.CancellationToken).Count > 0
             ? new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, "redaction-search-unplanned-residue", "The PDF holds searched text outside live search matches. No verified result can be returned.") }

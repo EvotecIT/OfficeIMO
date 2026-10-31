@@ -2280,6 +2280,8 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 Redaction search, matching, and verification include artifact text, including painted headers and footers, regardless of `PdfLoadOptions.IncludeArtifactText`. Ordinary reading still omits artifacts by default. Page limits also apply to artifact text. Unsupported glyph mappings produce a blocked plan rather than verified removal.
 
+`MatchCase` applies to every copy a search reaches, including alternate text, annotations, form values and metadata, so a copy in different case stays when `MatchCase` is true.
+
 Use `PdfRedactionSearchOptions.PageNumbers` to restrict candidate discovery to selected one-based pages. An empty set searches all pages. By default, search marks complete matching logical text blocks, so present the resulting areas for review rather than assuming that only the matched substring will be removed.
 
 Set `TextSelection` to `MatchedGlyphs` to select only the encoded glyphs belonging

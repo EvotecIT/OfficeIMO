@@ -95,7 +95,7 @@ internal static partial class PdfRedactionApplier {
             plan.RequestedSearchCriteria.Where(static value => value.StartsWith("literal:", StringComparison.Ordinal)).Select(static value => value.Substring(8)),
             plan.RequestedSearchCriteria.Where(static value => value.StartsWith("regex:", StringComparison.Ordinal))
                 .Select(value => new Regex(value.Substring(6), plan.SearchRegexOptions, plan.SearchRegexTimeout)),
-            plan.SearchPageNumbers.Count == 0, plan.SearchPageNumbers);
+            plan.SearchMatchCase, plan.SearchPageNumbers.Count == 0, plan.SearchPageNumbers);
         return requested is null ? Array.Empty<PdfRedactionSearchCriteria>() : new[] { requested };
     }
 
