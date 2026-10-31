@@ -2,19 +2,21 @@
   "package": "OfficeIMO.Pdf",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 167,
+    "changes": 176,
     "byAction": {
-      "change": 38,
-      "internalize": 22,
-      "keep": 10,
-      "merge": 48,
+      "change": 46,
+      "internalize": 21,
+      "keep": 11,
+      "merge": 49,
       "move": 3,
       "remove": 15,
       "rename": 31
     },
     "byCategory": {
       "authoring": 4,
-      "conversion": 15,
+      "behavior": 4,
+      "conversion": 16,
+      "geometry": 4,
       "lifecycle": 85,
       "naming": 21,
       "options": 4,
@@ -3053,6 +3055,46 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Mixed-unit saved-widget geometry, omitted defaults and the shared choice-field model pass the net10.0 native regression suite. Framework and AOT qualification remain part of the final gates."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRedactionMatch.Text",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfRedactionMatch.Text",
+      "reason": "Search-driven TextBlock matches now return null instead of retaining text containing the searched value. Use the plan geometry, search criteria and verification report; FormField matches expose the field name, never its value.",
+      "file": "OfficeIMO.Pdf/Manipulation/PdfRedactionMatch.cs",
+      "category": "behavior",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocumentRedactions.Search(PdfRedactionSearchOptions)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocumentRedactions.Search(PdfRedactionSearchOptions)",
+      "reason": "Whole-block search refuses edits that would remove an unselected glyph. A matching form field name also refuses the plan with redaction-search-field-name-unsupported. Inspect IsReviewable and Findings before applying; a successful search does not guarantee an applicable plan.",
+      "file": "OfficeIMO.Pdf/Manipulation/PdfRedactionPlanner.cs",
+      "category": "behavior",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocumentRedactions.Apply(IEnumerable<PdfRedactionArea>)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocumentRedactions.Apply(IEnumerable<PdfRedactionArea>)",
+      "reason": "Area-based removal now throws InvalidOperationException when logical content or its inspection plan cannot be read safely, instead of proceeding without complete image and annotation matches. Keep the source and handle the refusal; no partially redacted result is returned.",
+      "file": "OfficeIMO.Pdf/Manipulation/PdfRedactionApplier.cs",
+      "category": "behavior",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRedactionMatchKind",
+      "kind": "enum",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfRedactionMatchKind",
+      "reason": "FormField = 4 identifies form-value redaction. Update exhaustive match-kind switches; filling values, alternate field labels, widget contents, metadata and historical revisions must not retain the searched text in a verified output.",
+      "file": "OfficeIMO.Pdf/Manipulation/PdfRedactionMatch.cs",
+      "category": "behavior",
+      "applied": "applied"
     }
   ],
   "packageMoves": [
@@ -6011,6 +6053,7 @@
     "PdfContentBuilder.Table<T>(IEnumerable<T> rows); Table<T>(IEnumerable<T> rows, OfficeTableOptions? options); PdfTableOptions adds Align, Style and bounded Projection controls",
     "PdfCreateOptions.Theme : OfficeTheme?",
     "PdfTheme.FromOfficeTheme(OfficeTheme)",
-    "PdfSaveOptions.Encryption : PdfStandardEncryptionOptions? applies output-only security after native loss validation"
+    "PdfSaveOptions.Encryption : PdfStandardEncryptionOptions? applies output-only security after native loss validation",
+    "PdfRedactionMatchKind.FormField = 4 identifies cleared form values; match Text exposes only the field name."
   ]
 }

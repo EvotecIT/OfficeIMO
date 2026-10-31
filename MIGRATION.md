@@ -2987,7 +2987,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Pdf
 
 <details>
-<summary>172 changes</summary>
+<summary>176 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3159,6 +3159,10 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Visibility | `OfficeIMO.Pdf.PdfRewritePreservationMatrix` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Pdf.PdfStandardFontMapper` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Pdf.PdfTextPreflight` | Internal | &mdash; | Use the documented document, options and result APIs. |
+| behavior | `OfficeIMO.Pdf.PdfDocumentRedactions.Apply(IEnumerable<PdfRedactionArea>)` | Changed | `OfficeIMO.Pdf.PdfDocumentRedactions.Apply(IEnumerable<PdfRedactionArea>)` | Area-based removal now throws InvalidOperationException when logical content or its inspection plan cannot be read safely, instead of proceeding without complete image and annotation matches. Keep the source and handle the refusal; no partially redacted result is returned. |
+| behavior | `OfficeIMO.Pdf.PdfDocumentRedactions.Search(PdfRedactionSearchOptions)` | Changed | `OfficeIMO.Pdf.PdfDocumentRedactions.Search(PdfRedactionSearchOptions)` | Whole-block search refuses edits that would remove an unselected glyph. A matching form field name also refuses the plan with redaction-search-field-name-unsupported. Inspect IsReviewable and Findings before applying; a successful search does not guarantee an applicable plan. |
+| behavior | `OfficeIMO.Pdf.PdfRedactionMatch.Text` | Changed | `OfficeIMO.Pdf.PdfRedactionMatch.Text` | Search-driven TextBlock matches now return null instead of retaining text containing the searched value. Use the plan geometry, search criteria and verification report; FormField matches expose the field name, never its value. |
+| behavior | `OfficeIMO.Pdf.PdfRedactionMatchKind` | Changed | `OfficeIMO.Pdf.PdfRedactionMatchKind` | FormField = 4 identifies form-value redaction. Update exhaustive match-kind switches; filling values, alternate field labels, widget contents, metadata and historical revisions must not retain the searched text in a verified output. |
 | geometry | `OfficeIMO.Pdf.PdfContentBuilder.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfContentBuilder.TextField(... OfficeLength geometry ...)` | Require explicit physical units for width, height, fontSize, spacingBefore, spacingAfter. Omitted defaults preserve native point dimensions. |
 | geometry | `OfficeIMO.Pdf.PdfPageCanvas.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfPageCanvas.TextField(... OfficeLength geometry ...)` | Require explicit physical units for x, y, width, height, fontSize. Omitted defaults preserve native point dimensions. |
 | geometry | `OfficeIMO.Pdf.PdfTableCellFormField.TextField(... double geometry ...)` | Changed | `OfficeIMO.Pdf.PdfTableCellFormField.TextField(... OfficeLength geometry ...)` | Require explicit physical units for width, height, fontSize. Omitted defaults preserve native point dimensions. |
