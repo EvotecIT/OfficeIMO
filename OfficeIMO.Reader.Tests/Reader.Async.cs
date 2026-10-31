@@ -179,7 +179,9 @@ public sealed class ReaderAsyncTests {
                     MaxDocuments = 5
                 });
 
-            Task started = await Task.WhenAny(twoStarted.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+            // File admission can wait for I/O completions on a busy .NET Framework runner; this is a deadlock watchdog, not a latency budget.
+            Task started = await Task.WhenAny(twoStarted.Task, batch, Task.Delay(TimeSpan.FromSeconds(30)));
+            if (ReferenceEquals(started, batch)) await batch;
             Assert.Same(twoStarted.Task, started);
             Assert.Equal(2, maximumActive);
             release.TrySetResult(true);
