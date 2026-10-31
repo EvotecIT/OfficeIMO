@@ -89,7 +89,7 @@ still consume the image-processing byte budget.
 | Primitive creation | Rectangle, rounded rectangle, ellipse and nondegenerate line descriptors append to qualified document/master pages; shared publication allocator and current SVG/PDF scenes | No native records; unsupported geometry/effects are rejected; new shapes have no story or wrap references |
 | In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no table topology/styling changes or arbitrary relinking. Native saving accepts only the separate source-edit profile; old references remain snapshots |
 | Table creation | Empty unmerged borderless grids on qualified document/master pages; copied positive finite tracks, one new complete story, shared table/story identifier allocation and current SVG/PDF/Reader projection | No merged-cell authoring, cell decoration or native PUB records; text/model/projection limits and transactional failure behavior apply |
-| Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages and centered single-page masters; explicit qualified direct master assignment or clearing; immutable native-source/page provenance | No resize, deletion, reorder, object moves, paired-master creation or master inheritance; unassessed backgrounds and registrations reject assignment; these changes cannot be saved as native PUB |
+| Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages, centered single masters and atomic left/right master pairs; typed master-side metadata; explicit qualified direct assignment or clearing; immutable native-source/page provenance | No resize, deletion, reorder, object moves, automatic parity selection or master inheritance; unassessed backgrounds and registrations reject assignment; these topology changes cannot be saved as native PUB |
 | Ordinary text creation | `AddTextFrame` creates a complete independent styled story and resolved one-frame chain on a qualified document/master page; one column, zero gap/insets, top alignment, no paint/transform/wrap; existing continuation API handles document-page chains | Authored ordinary stories have no implicit final terminator; full overflow is retained. Frame/story IDs reserve atomically; master-owned stories cannot continue across physical pages; no native text records are authored |
 | Text-frame layout edits | `SetTextFrameLayout` replaces equal-width columns/full intercolumn gap, Core padding and Top/Center/Bottom alignment on qualified resolved document/master frames, including mixed text artwork. Imported frames can use the bounded native source-save profile; snapshots expose operation-specific eligibility | No table stories/aliases, grouped/transformed/unresolved placement, native balancing, distributed alignment or vertical writing. Unqualified native layout overrides remain read-only for this operation; bounds/read behavior stays separate. Native saving requires exact distances and safely editable local properties/chunk-directory records; fidelity remains Unassessed |
 | Continuation-frame creation | Append an ordinary untransformed text frame to a resolved non-table story's tail on an existing document page; one complete styled story, current links/ranges/overflow, copied columns/padding/alignment, no fill/outline, and shared SVG/PDF/Reader projection | The source chain must contain ordinary visible untransformed document-page frames; master chains, ambiguous links and non-tail insertion are rejected; this is in-memory model creation, not native PUB creation |
@@ -449,8 +449,23 @@ image store counts the two logical placements, not the four rendered occurrences
 Generated and source-edited master text, rectangle bounds/fill and image content
 match independent native controls before and after resave. Replacing the master
 image updates its applied appearances while retaining the page-owned placement's
-original asset. Multiple/paired master authoring, master inheritance and generic
-public native creation remain unqualified.
+original asset. Master inheritance and generic public native creation remain
+unqualified.
+
+The `multipleMasterCreation` record covers two centered master definitions and a
+centered definition beside an authored left/right pair, each with three explicitly
+assigned physical pages. Native page-role counts, object owners, individual master
+geometry and side-aware anchors are generated from the public model. Each definition
+owns its marker once; physical pages retain their own text frames. Creation and
+master/physical text-frame bounds edits, with master text growth, match independent
+native controls on generated, native-resaved and independently authored sources
+before and after native resave. Repeated public source saves retain sides, direct
+assignments, story identities and unaffected streams. Managed PDF is pixel-stable
+across these saves and agrees with the source-built PowerShell route. Its measured
+text-origin differences from native output reach 0.07 pt horizontally and 1.38 pt
+vertically; native/managed pixel parity is not established. This closed profile does not
+qualify native page/master topology changes, inheritance, automatic side selection,
+repair-free opening or generic public native creation.
 
 The `linkedStoryCreation` record covers source-free creation of one story shared
 by three frames flowing through pages 1, 3 and 2, beside an independent story.

@@ -33,7 +33,10 @@ internal static partial class PublisherModelImporter {
                 page.Master, registrationX, source.Height / 2, qualified, page.Background.GetValueOrDefault() != 0,
                 ordered.TryGetValue(page.Id, out List<uint>? ids) ? ids : Array.Empty<uint>(),
                 new PublisherFrameEditRange(registrationX + int.MinValue / 12700D, source.Height / 2 + int.MinValue / 12700D,
-                    registrationX + int.MaxValue / 12700D, source.Height / 2 + int.MaxValue / 12700D));
+                    registrationX + int.MaxValue / 12700D, source.Height / 2 + int.MaxValue / 12700D),
+                masterSide: !page.IsMaster || !qualified ? null : page.NativeLayout switch {
+                    0 => PublisherMasterPageSide.Left, 1 => PublisherMasterPageSide.Right, _ => PublisherMasterPageSide.Single
+                });
         }).ToArray();
         var pageMap = pages.ToDictionary(page => page.Id);
         var pictures = new Dictionary<uint, PublisherPicture>();

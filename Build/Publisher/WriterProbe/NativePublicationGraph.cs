@@ -8,20 +8,22 @@ namespace OfficeIMO.Publisher.WriterProbe;
 /// The role boundaries follow recovered native rules; native opening remains unqualified.
 /// </summary>
 internal static class NativePublicationGraph {
-    internal const ushort MasterPageCount = 1;
     internal const ushort SpecialPageBoundary = 5;
     internal const uint DrawingId = 1;
     internal const uint RootShapeId = DrawingId << 10;
 
     // Native enumeration admits M..N-S inclusive: physical = N-S-M+1.
+    internal static ushort GetMasterPageCount(CandidatePublicationSpec specification) => checked((ushort)specification.MasterDefinitions.Count);
     internal static ushort GetOrderedPageCount(CandidatePublicationSpec specification) =>
-        checked((ushort)(specification.PhysicalPageCount + MasterPageCount + SpecialPageBoundary - 1));
+        checked((ushort)(specification.PhysicalPageCount + GetMasterPageCount(specification) + SpecialPageBoundary - 1));
 
     internal static Graph Create(CandidatePublicationSpec specification, uint documentId) {
         ushort orderedPageCount = GetOrderedPageCount(specification);
+        ushort masterCount = GetMasterPageCount(specification);
+        if (masterCount == 0 || specification.PageMasters != null && specification.PageMasters.Count != specification.PhysicalPageCount)
+            throw new ArgumentException("The specimen requires master definitions and one assignment per physical page.");
         uint width = specification.WidthEmu, height = specification.HeightEmu;
         uint firstPageId = documentId + 1;
-        uint masterId = firstPageId;
         uint firstObjectId = firstPageId + orderedPageCount;
         var objects = new List<ObjectBinding>();
         var stories = new List<StoryBinding>();
@@ -37,13 +39,18 @@ internal static class NativePublicationGraph {
                     storyBindings.Add(source.Story, story);
                 }
             }
-            uint ownerPageId = firstPageId + (source.OnMaster ? 0 : checked((uint)(MasterPageCount + source.PageIndex)));
-            objects.Add(new ObjectBinding(source, firstObjectId + (uint)index, RootShapeId + (uint)index + 1, story, ownerPageId));
+            if (source.PageIndex < 0 || source.PageIndex >= (source.OnMaster ? masterCount : specification.PhysicalPageCount))
+                throw new ArgumentException("An object owner is outside the authored page definitions.");
+            uint ownerPageId = firstPageId + checked((uint)(source.OnMaster ? source.PageIndex : masterCount + source.PageIndex));
+            double originX = source.OnMaster ? specification.MasterDefinitions[source.PageIndex].Side switch {
+                PublisherMasterPageSide.Left => 0, PublisherMasterPageSide.Right => width, _ => width / 2D
+            } : width / 2D;
+            objects.Add(new ObjectBinding(source, firstObjectId + (uint)index, RootShapeId + (uint)index + 1, story, ownerPageId, originX));
         }
         uint quillDocumentId = firstObjectId + (uint)objects.Count;
         uint printBlockId = quillDocumentId + 3;
         uint masterGeometryId = printBlockId + 1;
-        uint colorSchemeId = masterGeometryId + 1;
+        uint colorSchemeId = masterGeometryId + masterCount;
         ObjectBinding[] namedPictures = objects.Where(item => item.Source.ImageName != null).ToArray();
         var pictureResources = namedPictures.Select((item, index) => (item.Id, ResourceId: colorSchemeId + 1 + (uint)index))
             .ToDictionary(pair => pair.Id, pair => pair.ResourceId);
@@ -56,22 +63,34 @@ internal static class NativePublicationGraph {
             Variable(0x12, 0x88, Scalar(1, 0x20, width), Scalar(2, 0x20, height)),
             Scalar(0x20, 0x70, quillDocumentId),
             Scalar(0x22, 0x70, colorSchemeId),
-            ShortScalar(0x2C, 0x18, SpecialPageBoundary), ShortScalar(0x2D, 0x18, MasterPageCount));
+            ShortScalar(0x2C, 0x18, SpecialPageBoundary), ShortScalar(0x2D, 0x18, masterCount));
         var chunks = new List<NativeRecord> { new(0x44, null, document) };
         for (int index = 0; index < orderedPageCount; index++) {
-            bool isMaster = index < MasterPageCount;
+            bool isMaster = index < masterCount;
+            CandidateMasterSpec? master = isMaster ? specification.MasterDefinitions[index] : null;
             ObjectBinding[] pageObjects = objects.Where(item => item.OwnerPageId == firstPageId + (uint)index).ToArray();
             var fields = new List<byte[]> {
                 Scalar(1, 0x20, (uint)pageObjects.Length),
                 Variable(2, 0xA0, pageObjects.Select(item => Scalar(0, 0x70, item.Id)).ToArray())
             };
-            if (isMaster) fields.Add(Scalar(3, 0x70, masterGeometryId));
-            if (!isMaster) fields.Add(Scalar(0x0D, 0x68, masterId));
-            fields.Add(Variable(0x0E, 0xC0, Encoding.Unicode.GetBytes(isMaster ? "A\0" : "\0")));
-            fields.Add(Variable(0x0F, 0xC0, Encoding.Unicode.GetBytes(isMaster ? "Master Page A\0" : "\0")));
-            // Observed page-kind trait: 3 on the named master, 5 on the other
-            // native blank descriptors. No broader semantic meaning is assumed.
-            fields.Add(Scalar(0x10, 0x20, isMaster ? 3U : 5U));
+            if (isMaster) fields.Add(Scalar(3, 0x70, masterGeometryId + (uint)index));
+            if (!isMaster) {
+                int physicalIndex = index - masterCount;
+                int? assigned = physicalIndex < specification.PhysicalPageCount && specification.PageMasters != null
+                    ? specification.PageMasters[physicalIndex] : 0;
+                if (assigned.HasValue) {
+                    if (assigned.Value < 0 || assigned.Value >= masterCount) throw new ArgumentException("An applied master is outside the definitions.");
+                    fields.Add(Scalar(0x0D, 0x68, firstPageId + (uint)assigned.Value));
+                }
+            }
+            fields.Add(Variable(0x0E, 0xC0, Encoding.Unicode.GetBytes((master?.Code ?? string.Empty) + "\0")));
+            fields.Add(Variable(0x0F, 0xC0, Encoding.Unicode.GetBytes((master?.Name ?? string.Empty) + "\0")));
+            // Qualified native master registrations: left 0, right 1, centered 3.
+            // Physical/utility descriptors retain the existing observed code 5.
+            fields.Add(Scalar(0x10, 0x20, master?.Side switch {
+                PublisherMasterPageSide.Left => 0U, PublisherMasterPageSide.Right => 1U,
+                PublisherMasterPageSide.Single => 3U, _ => 5U
+            }));
             chunks.Add(new NativeRecord(0x43, documentId, Chunk(fields.ToArray())));
         }
         foreach (ObjectBinding item in objects) {
@@ -109,7 +128,8 @@ internal static class NativePublicationGraph {
         // supplies that row; its fields use the native decoder's defaults.
         chunks.Add(new NativeRecord(0x4B, documentId, Chunk(Scalar(1, 0x20, 1),
             Variable(2, 0x90, Variable(0, 0x88)))));
-        chunks.Add(new NativeRecord(0x4C, masterId, CandidateMasterGeometry.Create(width, height)));
+        for (int index = 0; index < masterCount; index++)
+            chunks.Add(new NativeRecord(0x4C, firstPageId + (uint)index, CandidateMasterGeometry.Create(width, height)));
         chunks.Add(new NativeRecord(0x5C, documentId, CandidateColorScheme.CreateDefault()));
         foreach (ObjectBinding picture in namedPictures)
             chunks.Add(new NativeRecord(0x66, picture.Id, Chunk(Variable(3, 0xC0,
@@ -121,7 +141,7 @@ internal static class NativePublicationGraph {
 
     internal sealed record Graph(CandidatePublicationSpec Source, IReadOnlyList<NativeRecord> Chunks,
         IReadOnlyList<ObjectBinding> Objects, IReadOnlyList<StoryBinding> Stories);
-    internal sealed record ObjectBinding(CandidateObjectSpec Source, uint Id, uint Spid, StoryBinding? Story, uint OwnerPageId);
+    internal sealed record ObjectBinding(CandidateObjectSpec Source, uint Id, uint Spid, StoryBinding? Story, uint OwnerPageId, double HorizontalOriginEmu);
     internal sealed record StoryBinding(CandidateStorySpec Source, uint Key, uint LayoutId);
     internal sealed record NativeRecord(uint Kind, uint? Parent, byte[] Bytes);
 

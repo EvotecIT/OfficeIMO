@@ -15,6 +15,15 @@ internal sealed partial class PublisherModelState {
     internal PublisherModelState SetPageMaster(uint pageId, uint? masterId) =>
         WithPublication(_publication.SetPageMaster(pageId, masterId));
 
+    internal PublisherModelState AddMasterPagePair(string name, CancellationToken token, out uint leftId, out uint rightId) {
+        token.ThrowIfCancellationRequested();
+        if ((long)_publication.Pages.Count + 2 > _decoded.Options.MaximumPages) throw new InvalidDataException("Publisher page limit exceeded.");
+        PublisherStoryEditor.ValidatePageName(name, _decoded.Options);
+        if (_publication.Pages.Sum(page => (long)page.Name.Length) + 2L * name.Length > _decoded.Options.Limits.MaxTextCharacters)
+            throw new ArgumentException("Publication page names exceed the configured character limit.", nameof(name));
+        return WithPublication(_publication.AddMasterPagePair(name, out leftId, out rightId));
+    }
+
     internal PublisherModelState AddTextFrame(uint pageId, double x, double y, double width, double height,
         IReadOnlyList<OfficeRichTextParagraph> paragraphs, CancellationToken token, out uint id) {
         token.ThrowIfCancellationRequested();

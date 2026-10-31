@@ -36,6 +36,10 @@ dotnet $probe create cropped-image-pages ./candidate-cropped-images.pub ./first.
 dotnet $probe create shared-image-pages ./candidate-shared-images.pub ./first.png ./last.png
 dotnet $probe create mixed-object-pages ./candidate-mixed-objects.pub ./image.png
 dotnet $probe create master-content ./candidate-master-content.pub ./image.png
+
+dotnet $probe create multiple-masters ./candidate-multiple-masters.pub
+
+dotnet $probe create paired-masters ./candidate-paired-masters.pub
 dotnet $probe create linked-story ./candidate-linked-story.pub
 dotnet $probe create linked-story-overflow ./candidate-linked-overflow.pub
 dotnet $probe create table ./candidate-table.pub
@@ -473,8 +477,20 @@ store counts two logical placements rather than four rendered appearances.
 Independent `MasterContent` controls retain master/foreground layering. Master
 text, rectangle bounds/fill and image replacement can be saved on generated,
 native-resaved and native-authored sources; the page-owned image remains on its
-original asset. Multiple/paired masters, inheritance and generic model serialization
-remain unqualified.
+original asset. Inheritance and generic model serialization remain unqualified.
+
+The `multipleMasterCreation` record qualifies multiple centered masters and a
+centered master beside a left/right pair. `AddMasterPagePair` supplies both typed
+definitions atomically; the probe derives owner indices and direct assignments
+from the public pages. The native graph generates each master's geometry record
+and uses its side registration for OfficeArt anchors. Master and page text-frame
+edits save from generated, native-resaved and native-authored sources and match
+independent `MultipleMastersEdited` and `TwoPageMasterEdited` controls. All 28
+earlier source-free profiles remain byte-identical. Managed save/reload pixels are
+stable, but native/managed text origins differ by up to 0.07 pt horizontally and
+1.38 pt vertically; this does not establish native/managed pixel parity. Master inheritance, automatic
+parity selection, repair-free opening and generic public native creation remain
+unqualified.
 
 The `linkedStoryCreation` record qualifies a three-frame story whose chain order
 differs from physical page order. Frame catalog rows are ordered by story and

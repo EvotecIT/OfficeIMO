@@ -35,9 +35,9 @@ internal static class Program {
                     rootClassId = CandidateWriter.PublicationClassId,
                     pageGraph = new {
                         orderedReferences = NativePublicationGraph.GetOrderedPageCount(specification),
-                        dpgMaster = NativePublicationGraph.MasterPageCount,
+                        dpgMaster = NativePublicationGraph.GetMasterPageCount(specification),
                         dpgSpecial = NativePublicationGraph.SpecialPageBoundary,
-                        firstPhysicalIndex = NativePublicationGraph.MasterPageCount,
+                        firstPhysicalIndex = NativePublicationGraph.GetMasterPageCount(specification),
                         lastPhysicalIndex = NativePublicationGraph.GetOrderedPageCount(specification) - NativePublicationGraph.SpecialPageBoundary
                     },
                     output = Path.GetFullPath(args[2]),

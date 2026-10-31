@@ -138,7 +138,7 @@ internal sealed partial class PublisherNativeWriter {
     private bool PagesEqual() => _baseline.Pages.Count == _current.Pages.Count
         && _baseline.Pages.Zip(_current.Pages, (a, b) => ReferenceEquals(a, b)
             || a.Id == b.Id && a.Name == b.Name && a.IsMaster == b.IsMaster && a.HasNativeOrigin == b.HasNativeOrigin
-            && a.Width == b.Width && a.Height == b.Height && a.MasterPageId == b.MasterPageId
+            && a.Width == b.Width && a.Height == b.Height && a.MasterPageId == b.MasterPageId && a.MasterSide == b.MasterSide
             && a.RegistrationX == b.RegistrationX && a.RegistrationY == b.RegistrationY
             && a.SupportsPlacementEditing == b.SupportsPlacementEditing && a.HasUnassessedBackground == b.HasUnassessedBackground
             && a.FrameEditRange == b.FrameEditRange && a.ObjectIds.SequenceEqual(b.ObjectIds)).All(value => value);

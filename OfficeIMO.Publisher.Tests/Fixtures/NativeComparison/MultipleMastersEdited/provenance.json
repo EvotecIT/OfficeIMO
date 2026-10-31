@@ -1,0 +1,34 @@
+{
+  "schema": "officeimo.publisher.native-master-edit-fixture.v1",
+  "reproduction": "New-NativeComparisonCorpus -Case MultipleMastersEdited -OutputDirectory <empty-directory>",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-multiplemastersedited.json",
+      "sha256": "9afbc26d90bf1139f3d9e03b1ef30c902e56c07d0e99eb29a89f3a239e1fef71"
+    },
+    {
+      "name": "native-multiplemastersedited.pdf",
+      "sha256": "f9b439babc4f69426b94dd3b1c599ff60d56826ad98ead55c1b7f555de08a291"
+    },
+    {
+      "name": "native-multiplemastersedited.pub",
+      "sha256": "480571e2d6045f9d5525f93a6b25604a0d5fcf7920346d5fb4705b28b12358c2"
+    }
+  ],
+  "observed": "Independent native master marker text appended with updated; master and physical frames moved6pt horizontally and12pt vertically; sides and direct assignments retained.",
+  "limits": "Synthetic master text/bounds reference only; repair-free opening and broader page/master editing remain unqualified."
+}

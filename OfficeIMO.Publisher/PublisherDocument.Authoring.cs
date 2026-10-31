@@ -21,7 +21,7 @@ public sealed partial class PublisherDocument {
         AddPageCore(false, string.Empty, masterPageId, cancellationToken);
 
     /// <summary>Appends an empty centered single-page master at the publication's existing size, returning its committed immutable snapshot. The name must contain non-control text.</summary>
-    /// <remarks>The master has no inherited master. Populate it through supported shape, table and ordinary text-frame operations, then assign it to document pages. Paired-master creation and native PUB saving are not provided.</remarks>
+    /// <remarks>The master has no inherited master. Populate it through supported shape, table and ordinary text-frame operations, then assign it to document pages. Use AddMasterPagePair for a left/right pair. Native PUB saving is not provided.</remarks>
     public PublisherPage AddMasterPage(string name, CancellationToken cancellationToken = default) {
         if (name == null) throw new ArgumentNullException(nameof(name));
         cancellationToken.ThrowIfCancellationRequested();

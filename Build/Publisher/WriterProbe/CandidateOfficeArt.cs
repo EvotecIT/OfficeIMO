@@ -113,14 +113,14 @@ internal static class CandidateOfficeArt {
                     [0x105] = new(0, 0xC105, checked((uint)text.Length), text.Length, complexData: text)
                 }, out propertyCount) ?? throw new InvalidDataException("The picture filename could not be encoded.");
         }
-        uint Coord(double points, uint pageSize) => unchecked((uint)(int)(points * 12700 - pageSize / 2D));
+        uint Coord(double points, double origin) => unchecked((uint)(int)(points * 12700 - origin));
         return Art(15, 0xF004,
             Art((ushort)(((item.Source.Kind == CandidateObjectKind.Picture ? 75 : isTable ? 201 : isTextBox ? 202 : 1) << 4) | 2), 0xF00A,
                 Bytes(writer => { writer.Write(item.Spid); writer.Write(0xA00U); })),
             Art((ushort)((propertyCount << 4) | 3), 0xF00B, fopt),
-            Art(0, 0xF010, Client((0x2001, Coord(item.Source.Placement.Left, width)), (0x2002, Coord(item.Source.Placement.Top, height)),
-                (0x2003, Coord(item.Source.Placement.Left + item.Source.Placement.Width, width)),
-                (0x2004, Coord(item.Source.Placement.Top + item.Source.Placement.Height, height)))),
+            Art(0, 0xF010, Client((0x2001, Coord(item.Source.Placement.Left, item.HorizontalOriginEmu)), (0x2002, Coord(item.Source.Placement.Top, height / 2D)),
+                (0x2003, Coord(item.Source.Placement.Left + item.Source.Placement.Width, item.HorizontalOriginEmu)),
+                (0x2004, Coord(item.Source.Placement.Top + item.Source.Placement.Height, height / 2D)))),
             Art(0, 0xF011, Client((0x6801, item.Id))),
             // Publisher's native text-bearing shapes carry this ClientTextbox
             // OPL with their story key and the observed client record header.

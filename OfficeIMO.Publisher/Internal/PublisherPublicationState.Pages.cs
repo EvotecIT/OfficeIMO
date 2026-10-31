@@ -17,8 +17,22 @@ internal sealed partial class PublisherPublicationState {
         pageId = NextObjectId;
         PublisherPageState basis = Pages.First(page => !page.IsMaster);
         var page = new PublisherPageState(pageId, name, isMaster, Width, Height, masterId, Width / 2, Height / 2,
-            true, false, Array.Empty<uint>(), basis.FrameEditRange, false);
+            true, false, Array.Empty<uint>(), basis.FrameEditRange, false, isMaster ? PublisherMasterPageSide.Single : null);
         return WithPages(Pages.Concat(new[] { page }), pageId == uint.MaxValue ? 0 : pageId + 1);
+    }
+
+    internal PublisherPublicationState AddMasterPagePair(string name, out uint leftId, out uint rightId) {
+        if (NextObjectId == 0 || NextObjectId == uint.MaxValue)
+            throw new InvalidOperationException("Two publication page identifiers are required for a master pair.");
+        leftId = NextObjectId;
+        rightId = leftId + 1;
+        PublisherPageState Member(uint id, PublisherMasterPageSide side, double origin) =>
+            new(id, name, true, Width, Height, null, origin, Height / 2, true, false, Array.Empty<uint>(),
+                new PublisherFrameEditRange(origin + int.MinValue / 12700D, Height / 2 + int.MinValue / 12700D,
+                    origin + int.MaxValue / 12700D, Height / 2 + int.MaxValue / 12700D), false, side);
+        return WithPages(Pages.Concat(new[] {
+            Member(leftId, PublisherMasterPageSide.Left, 0), Member(rightId, PublisherMasterPageSide.Right, Width)
+        }), rightId == uint.MaxValue ? 0 : rightId + 1);
     }
 
     internal PublisherPublicationState SetPageMaster(uint pageId, uint? masterId) {

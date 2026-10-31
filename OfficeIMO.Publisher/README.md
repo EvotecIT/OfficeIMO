@@ -193,12 +193,26 @@ document page without a master or native source. Its optional `PublisherReadOpti
 is copied and bounds authoring and projection as well as native reading.
 `AddPage` appends at the existing publication size; omitting its master ID creates
 a page without a master. `AddMasterPage` creates a centered single-page definition
-with a nonempty name. `SetPageMaster(pageId, null)` clears an assignment. Direct
+with a nonempty name. `AddMasterPagePair` atomically appends named left and right
+definitions and returns `(Left, Right)`. `PublisherPage.MasterSide` distinguishes
+single, left and right master definitions; it is null on document pages or
+unqualified native layouts. `SetPageMaster(pageId, null)` clears an assignment. Direct
 qualified imported masters, including separately recovered left and right members,
 retain their exact registration. Master content remains owned once in `MasterPages`
 and renders on each assigned physical page. Nested masters, unassessed backgrounds
 and unsupported registrations reject assignment. Page resizing, deletion, reordering,
-object moves and paired-master creation are not provided.
+and object moves are not provided.
+
+Pair members use the native definition registration. Applying a left member shifts
+its content right by half the publication width; applying a right member shifts it
+left by half the width. Assign either definition explicitly; page parity does not
+choose a member automatically:
+
+```csharp
+var pair = newsletter.AddMasterPagePair("Running headers");
+newsletter.SetPageMaster(firstPage.Id, pair.Right.Id);
+var leftPage = newsletter.AddPage(pair.Left.Id);
+```
 
 `AddTextFrame` creates a complete independent ordinary story and a frame on a
 qualified document or master page. It uses one column, zero gap and padding, top
@@ -211,7 +225,7 @@ stories cannot be linked across physical pages. All story content remains availa
 in `TextStories`, including overflow.
 
 Pages, masters, objects and stories share one publication identifier allocator;
-creating a frame/story pair reserves both IDs atomically. Assets retain their own
+creating a frame/story pair or two-page master reserves both IDs atomically. Assets retain their own
 image IDs. Failed validation, limits, cancellation or projection leave the document
 and allocator unchanged. Returned objects are immutable snapshots; fetch current
 objects after later edits. `HasNativeSource` distinguishes a loaded document from

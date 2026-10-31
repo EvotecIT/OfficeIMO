@@ -2,16 +2,22 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
-/// <summary>Ordered physical pages, one master and their semantic objects, before native identities are assigned.</summary>
+/// <summary>Ordered physical pages, master definitions and their semantic objects, before native identities are assigned.</summary>
 internal sealed record CandidatePublicationSpec(uint WidthEmu, uint HeightEmu, IReadOnlyList<CandidateObjectSpec> Objects,
-    int PhysicalPageCount = 1);
+    int PhysicalPageCount = 1, IReadOnlyList<CandidateMasterSpec>? Masters = null, IReadOnlyList<int?>? PageMasters = null) {
+    private static readonly CandidateMasterSpec[] DefaultMasters = { new("A", "Master Page A", PublisherMasterPageSide.Single) };
+    internal IReadOnlyList<CandidateMasterSpec> MasterDefinitions => Masters ?? DefaultMasters;
+}
+
+/// <summary>A named native master definition; left/right members retain their individual content and geometry.</summary>
+internal sealed record CandidateMasterSpec(string Code, string Name, PublisherMasterPageSide Side);
 
 internal enum CandidateObjectKind { TextBox, Rectangle, Picture, Table }
 
 /// <summary>Placement in page points; the drawing codec alone converts it to native coordinates.</summary>
 internal sealed record CandidatePlacement(double Left, double Top, double Width, double Height);
 
-/// <summary>One owned object; PageIndex selects a physical page unless OnMaster selects the single master.</summary>
+/// <summary>One owned object; PageIndex selects a physical page or, when OnMaster is true, its master definition.</summary>
 internal sealed record CandidateObjectSpec(CandidateObjectKind Kind, CandidatePlacement Placement,
     CandidateStorySpec? Story = null, byte[]? Image = null, int PageIndex = 0, double? ColumnSpacing = null,
     OfficeShape? Paint = null, string? ImageName = null, OfficeImageSourceCrop Crop = default, int? ImageId = null,

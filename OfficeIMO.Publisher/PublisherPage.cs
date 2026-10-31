@@ -7,10 +7,11 @@ public sealed class PublisherPage {
     private readonly OfficeDrawing _drawing;
     internal PublisherPage(uint id, string name, uint? masterPageId, double width, double height, OfficeDrawing drawing,
         IReadOnlyList<PublisherTextFrame> textFrames, IReadOnlyList<PublisherTable> tables, IReadOnlyList<PublisherPicture> pictures,
-        IReadOnlyList<PublisherShape> shapes, bool hasNativeOrigin = true) {
+        IReadOnlyList<PublisherShape> shapes, bool hasNativeOrigin = true, PublisherMasterPageSide? masterSide = null) {
         Id = id; Name = name; MasterPageId = masterPageId; _drawing = drawing;
         Width = width; Height = height;
         HasNativeOrigin = hasNativeOrigin;
+        MasterSide = masterSide;
         TextFrames = Array.AsReadOnly(textFrames.ToArray());
         Tables = Array.AsReadOnly(tables.ToArray());
         Pictures = Array.AsReadOnly(pictures.ToArray());
@@ -24,6 +25,8 @@ public sealed class PublisherPage {
     public string Name { get; }
     /// <summary>Current applied master page identifier, or null when no master is assigned.</summary>
     public uint? MasterPageId { get; }
+    /// <summary>Registration of this master definition; null for document pages or an unqualified native master layout. Applied positions can differ from definition coordinates for left/right masters.</summary>
+    public PublisherMasterPageSide? MasterSide { get; }
     /// <summary>Creates a detached drawing snapshot, including the applied master. Changes to this copy do not edit the publication.</summary>
     public OfficeDrawing CreateDrawing() => _drawing.Clone();
     /// <summary>Current text frames owned by this page, including authored continuation frames. Frames inherited from a master are listed on that master page.</summary>

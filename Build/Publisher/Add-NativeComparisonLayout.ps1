@@ -8,7 +8,7 @@ function Add-NativeComparisonLayout {
     Returns the declared layout and master assignments, which the worker verifies
     against native observations before saving. No existing publication is opened.
     .PARAMETER Case
-    Brochure, MultipleMasters or TwoPageMaster.
+    Brochure, MultipleMasters, TwoPageMaster or the edited master variants.
     .PARAMETER Document
     The task-owned, newly created Microsoft Publisher publication.
     .PARAMETER FirstPage
@@ -17,12 +17,17 @@ function Add-NativeComparisonLayout {
     The authored page count, panel width and native master assignment IDs.
     #>
     param(
-        [ValidateSet('Brochure', 'MultipleMasters', 'TwoPageMaster')]
+        [ValidateSet('Brochure', 'MultipleMasters', 'TwoPageMaster', 'MultipleMastersEdited', 'TwoPageMasterEdited')]
         [string] $Case,
         $Document,
         $FirstPage
     )
 
+    $edited = $Case.EndsWith('Edited', [StringComparison]::Ordinal)
+    $baseCase = $Case -replace 'Edited$', ''
+    $moveX = if ($edited) { 6 } else { 0 }
+    $moveY = if ($edited) { 12 } else { 0 }
+    $suffix = if ($edited) { ' updated' } else { '' }
     if ($Case -eq 'Brochure') {
         Set-NativePhase 'Brochure-AddSecondPage'
         $second = $Document.Pages.Add(1, 1)
@@ -64,14 +69,14 @@ function Add-NativeComparisonLayout {
         throw 'The master control requires the new publication to have one single-page default master.'
     }
 
-    if ($Case -eq 'MultipleMasters') {
+    if ($baseCase -eq 'MultipleMasters') {
         Set-NativePhase 'MultipleMasters-AddAlternateMaster'
         $alternateMaster = $Document.MasterPages.Add($false, 'B', 'Comparison Master B')
         $objects.Add($alternateMaster)
         Set-NativePhase 'MultipleMasters-AddAlphaMarker'
-        $null = Add-TextFrame $defaultMaster 'MasterAlphaMarker' 'Master Alpha' 18 24 252 24 10
+        $null = Add-TextFrame $defaultMaster 'MasterAlphaMarker' ('Master Alpha' + $suffix) (18 + $moveX) (24 + $moveY) 252 24 10
         Set-NativePhase 'MultipleMasters-AddBetaMarker'
-        $null = Add-TextFrame $alternateMaster 'MasterBetaMarker' 'Master Beta' 342 24 252 24 10
+        $null = Add-TextFrame $alternateMaster 'MasterBetaMarker' ('Master Beta' + $suffix) (342 + $moveX) (24 + $moveY) 252 24 10
         $assignedMasters = @($defaultMaster, $alternateMaster, $defaultMaster)
     } else {
         $beforeIds = @([int]$defaultMaster.PageID)
@@ -96,11 +101,11 @@ function Add-NativeComparisonLayout {
             throw 'Publisher did not create two distinct members of a native two-page master.'
         }
         Set-NativePhase 'TwoPageMaster-AddDefaultMarker'
-        $null = Add-TextFrame $defaultMaster 'DefaultMasterMarker' 'Default master' 18 24 252 24 10
+        $null = Add-TextFrame $defaultMaster 'DefaultMasterMarker' ('Default master' + $suffix) (18 + $moveX) (24 + $moveY) 252 24 10
         Set-NativePhase 'TwoPageMaster-AddLeftMarker'
-        $null = Add-TextFrame $newMasters[0] 'LeftMasterMarker' 'Paired master left' 18 24 252 24 10
+        $null = Add-TextFrame $newMasters[0] 'LeftMasterMarker' ('Paired master left' + $suffix) (18 + $moveX) (24 + $moveY) 252 24 10
         Set-NativePhase 'TwoPageMaster-AddRightMarker'
-        $null = Add-TextFrame $newMasters[1] 'RightMasterMarker' 'Paired master right' 342 24 252 24 10
+        $null = Add-TextFrame $newMasters[1] 'RightMasterMarker' ('Paired master right' + $suffix) (342 + $moveX) (24 + $moveY) 252 24 10
         $assignedMasters = @($defaultMaster, $newMasters[0], $newMasters[1])
     }
 
@@ -109,7 +114,7 @@ function Add-NativeComparisonLayout {
         Set-NativePhase ($Case + '-AssignPhysicalMaster-' + ($index + 1))
         $physicalPages[$index].Master = $assignedMasters[$index]
         Set-NativePhase ($Case + '-AddPhysicalText-' + ($index + 1))
-        $null = Add-TextFrame $physicalPages[$index] ('PageIdentity' + ($index + 1)) ($Case + ' page ' + ($index + 1)) 72 96 468 48 16
+        $null = Add-TextFrame $physicalPages[$index] ('PageIdentity' + ($index + 1)) ($baseCase + ' page ' + ($index + 1)) (72 + $moveX) (96 + $moveY) 468 48 16
         $assignments.Add([pscustomobject]@{
             pageIndex = $index + 1
             masterPageId = [int]$assignedMasters[$index].PageID

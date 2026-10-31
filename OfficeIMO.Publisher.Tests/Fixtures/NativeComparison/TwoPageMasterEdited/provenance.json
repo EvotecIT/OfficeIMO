@@ -1,0 +1,34 @@
+{
+  "schema": "officeimo.publisher.native-master-edit-fixture.v1",
+  "reproduction": "New-NativeComparisonCorpus -Case TwoPageMasterEdited -OutputDirectory <empty-directory>",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-twopagemasteredited.json",
+      "sha256": "36dedf628564c4ebf83932d5232d19c2a699f9d6666267bc7538ecbf048e6237"
+    },
+    {
+      "name": "native-twopagemasteredited.pdf",
+      "sha256": "dc3c10786f2cf9e0f94c4f9e8cc7ea9892215b691ae95369dd494c67c3ba2f40"
+    },
+    {
+      "name": "native-twopagemasteredited.pub",
+      "sha256": "c4ade9336f22ef5f404007deb65c21c2e32c0f259822b8afcdfde07446b88a3f"
+    }
+  ],
+  "observed": "Independent native master marker text appended with updated; master and physical frames moved6pt horizontally and12pt vertically; sides and direct assignments retained.",
+  "limits": "Synthetic master text/bounds reference only; repair-free opening and broader page/master editing remain unqualified."
+}
