@@ -162,4 +162,10 @@
     <Target>M:OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.TrySaveAsPdfAsync(OfficeIMO.PowerPoint.PowerPointPresentation,System.String,OfficeIMO.PowerPoint.Pdf.PowerPointPdfSaveOptions,System.Threading.CancellationToken)</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <!-- 3.6 public conversion diagnostics use OfficeDiagnostic; the native warning carrier is internal. -->
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportWarning</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>

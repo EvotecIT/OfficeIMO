@@ -87,4 +87,10 @@
     <Target>M:OfficeIMO.Word.Pdf.WordPdfConverterExtensions.TrySaveAsPdfAsync(OfficeIMO.Word.WordDocument,System.String,OfficeIMO.Word.Pdf.WordPdfSaveOptions,System.Threading.CancellationToken)</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <!-- 3.6 public conversion diagnostics use OfficeDiagnostic; the native warning carrier is internal. -->
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Word.Pdf.PdfExportWarning</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>
