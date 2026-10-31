@@ -2554,14 +2554,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/GetOfficeEpubChapterCommand.cs#L18"
     },
     {
-      "name": "Get-OfficeExcel",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelCommand.cs",
-      "sourceLine": 20,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelCommand.cs#L20"
-    },
-    {
       "name": "Get-OfficeExcelComment",
       "kind": "Cmdlet",
       "aliases": [
@@ -4164,6 +4156,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/OpenOfficeEpubCommand.cs",
       "sourceLine": 15,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/OpenOfficeEpubCommand.cs#L15"
+    },
+    {
+      "name": "Open-OfficeExcel",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/OpenOfficeExcelCommand.cs",
+      "sourceLine": 28,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/OpenOfficeExcelCommand.cs#L28"
     },
     {
       "name": "Open-OfficeMarkdown",
