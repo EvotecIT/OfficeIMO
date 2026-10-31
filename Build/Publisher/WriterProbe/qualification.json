@@ -19503,5 +19503,278 @@
       "One model-created asset per picture. FBSE reference count1 is deliberate; shared-asset reference counts and byte deduplication are not qualified.",
       "Generated-file picture replacement, crops, arbitrary mixed object order and public template-free native saving remain open."
     ]
+  },
+  "namedImageReplacement": {
+    "schema": "officeimo.publisher.named-image-replacement.v1",
+    "sourceCommit": "543e0d7bfd8ca566cace6eab4a1a6dc63987756f",
+    "scope": "Closed three-page named-image creation profile and last-picture replacement, subsequent managed save/reload replacement, and replacement after native resave. Modern Contents/Quill/OfficeArt generation only.",
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeImagePagesControl.ps1",
+        "sha256": "6689e678c75f5e870453d513932b949a40bb04296e43a71c9fb82813c81a99cf"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "b41043ab598e619a94e9b546621c3899c3f69f8c655dcf321906928351c97f25"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "4471e71ab76bae0320dffdc77a94beda40e63ae7827152de2a448c0c8fe45a31"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "19c4c35dc5a3c274c96ba56f24e2d02dfdda2db9182ba94d4cdc839d80f9bd1f"
+      },
+      {
+        "path": "Build/Publisher/New-NativeReplacementJpeg.ps1",
+        "sha256": "ce6483bf1cdf30df79484f6e289d66415c91286b128ee9b76a5174bd44db59d5"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateCases.cs",
+        "sha256": "e46b361bf88a58915c3a1c13406e50b680dec188e9d152b446a48afff538f831"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateImagePages.cs",
+        "sha256": "aab86a00f97b81c54f0b650bf468a992daf2228fcdb9bad8e237fc1a2faa03f2"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateOfficeArt.cs",
+        "sha256": "d435e79a5a405e6e548412220bb11933e6e7d6bd69c5d51149d7e8524ddaa085"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidatePublicationSpec.cs",
+        "sha256": "d1732d0ac5a8dfc615021e4a51192371e932b32f4e01072fe1b7e0aea682bb3b"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/NativePublicationGraph.cs",
+        "sha256": "d7a7f142581131ba89af18e5bac55000c57e50eecebd7bd122a99133134836ce"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/Program.cs",
+        "sha256": "c98a9fd90efac2c858bd77c0140132615e8e0b8a2d0a33d703c415acf6ad1a54"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/README.md",
+        "sha256": "461e15fc976e50a8c354ae8899bbcbb0aaa26bdece32377c113d86732ccb6dbc"
+      },
+      {
+        "path": "Docs/ROADMAP.md",
+        "sha256": "78ce99b04466ad09da2a994aeafd81134d952a78b57d4cea704c10498655490c"
+      },
+      {
+        "path": "OfficeIMO.Core/Binary/OfficeArtBlipStoreEntryWriter.cs",
+        "sha256": "a66659acc434b6561d87fb152bc986de62c42742312085c40f09906d82ec013d"
+      },
+      {
+        "path": "OfficeIMO.Core/Binary/OfficeArtPropertyTableEditor.cs",
+        "sha256": "d4f4b29061a85b8f0d6816ba8db13ba409699d0f642c626ca81af56b95b3cc89"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/README.md",
+        "sha256": "29b15b05cd8e73571d75cca6c8ec671131d0b1248d7e924198061b5d5e0ad1dc"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherNativeImageWritingTests.cs",
+        "sha256": "ab186d2a1248c6e4f28ebae5e3078239a13bb3b1e9e6e005fe2d7cc403051afb"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherContentsSourceWriter.cs",
+        "sha256": "84b1405756313a22b88118de8fb5587e1b1dfc00c451f91b484b903ba572c000"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherOplWriter.cs",
+        "sha256": "77f6da8f7a78ca234e34ee47452e717b1423c21a6178a966f547ae0e21949100"
+      },
+      {
+        "path": "OfficeIMO.Publisher/README.md",
+        "sha256": "3f805e5789af3b0e4740b8175cab05dfff4eb3129e1ace663c590600032f6e84"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "sha256": "0be5a42394cfff34f82e06c60eef9ad1d54b1fb212156d33c69f384e0a4b61c2"
+      }
+    ],
+    "cases": [
+      {
+        "name": "candidate",
+        "candidateSha256": "c7fca152e66f2902e606a32f7b604af85ae91d6bd56d822eaabfcd0bafe671b3",
+        "nativeOperations": 7,
+        "independentPixelPairs": 6,
+        "publicReloads": 2,
+        "lastImageId": 2,
+        "lastImageSha256": "98e64eb0771135ce8a3672978263e86118439752c2625a7cdb64f3347d1e58d8",
+        "sourceAssets": 2
+      },
+      {
+        "name": "replaced",
+        "candidateSha256": "e344442ed0c52de924e4966a89b5000f882d325e33bc89c1628f18ffc6b50468",
+        "nativeOperations": 7,
+        "independentPixelPairs": 6,
+        "publicReloads": 2,
+        "lastImageId": 3,
+        "lastImageSha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483",
+        "sourceAssets": 3
+      },
+      {
+        "name": "jpeg-replaced",
+        "candidateSha256": "dbb204bf9758d5c3c157030abae57b8fd2649f8f8f3b367263f5b0f5e8dfe75b",
+        "nativeOperations": 7,
+        "independentPixelPairs": 6,
+        "publicReloads": 2,
+        "lastImageId": 4,
+        "lastImageSha256": "bab7333dbb8fbc68ed2067e1d870d2359863750ab85c6f52a10f5a550589c50f",
+        "sourceAssets": 4
+      },
+      {
+        "name": "native-jpeg-replaced",
+        "candidateSha256": "9a8478e88d30fd821ab72162d78f51728dca862beb9643a97ba82caddd083d5e",
+        "nativeOperations": 7,
+        "independentPixelPairs": 6,
+        "publicReloads": 2,
+        "lastImageId": 4,
+        "lastImageSha256": "bab7333dbb8fbc68ed2067e1d870d2359863750ab85c6f52a10f5a550589c50f",
+        "sourceAssets": 3
+      }
+    ],
+    "nativeFullFiles": 4,
+    "nativeOperations": 28,
+    "independentNativePagePixelPairs": 24,
+    "pixelComparisonDpi": 144,
+    "publicReloads": 8,
+    "managedPdfSvgPages": 24,
+    "previousCandidateByteIdentical": 14,
+    "namedCandidateSha256": "c7fca152e66f2902e606a32f7b604af85ae91d6bd56d822eaabfcd0bafe671b3",
+    "nativeSourceRepair": {
+      "problem": "Publisher resave can omit an embedded picture local filename reference while retaining older owned filename resources.",
+      "admittedProfile": "Picture kind0x20, one marker3/type8, no0x3A reference, complete qualified OfficeArt image binding/basename, valid source allocation counters and image store.",
+      "behavior": "Append a fresh picture-owned0x66 filename resource and minimal typed directory slot through the canonical OPL/Contents writers. Preserve orphaned resources; never select one heuristically.",
+      "strictness": "Existing malformed, ambiguous or incorrectly typed references and descriptors still refuse output. Default loss policy still requires explicit Allow for unassessed edits."
+    },
+    "rawPreservation": {
+      "cases": [
+        {
+          "input": "candidate.pub",
+          "output": "replaced.pub",
+          "changedStreams": [
+            "Contents",
+            "Escher/EscherDelayStm",
+            "Escher/EscherStm"
+          ],
+          "unaffectedNativeChunks": 18,
+          "newFilenameResource": 275,
+          "filename": "Image3.png",
+          "firstPictureBytesUnchanged": true,
+          "otherPropertiesAndBoundsUnchanged": true,
+          "priorImageEntriesPreservedExceptOneReferenceDecrement": true,
+          "delayPrefixPreserved": true,
+          "newImageBytes": 215,
+          "freshResourceWithoutPriorReference": false
+        },
+        {
+          "input": "replaced.pub",
+          "output": "jpeg-replaced.pub",
+          "changedStreams": [
+            "Contents",
+            "Escher/EscherDelayStm",
+            "Escher/EscherStm"
+          ],
+          "unaffectedNativeChunks": 19,
+          "newFilenameResource": 276,
+          "filename": "Image4.jpg",
+          "firstPictureBytesUnchanged": true,
+          "otherPropertiesAndBoundsUnchanged": true,
+          "priorImageEntriesPreservedExceptOneReferenceDecrement": true,
+          "delayPrefixPreserved": true,
+          "newImageBytes": 974,
+          "freshResourceWithoutPriorReference": false
+        },
+        {
+          "input": "native-resaved.pub",
+          "output": "native-jpeg-replaced.pub",
+          "changedStreams": [
+            "\u0005SummaryInformation",
+            "Contents",
+            "Escher/EscherDelayStm",
+            "Escher/EscherStm"
+          ],
+          "unaffectedNativeChunks": 23,
+          "newFilenameResource": 282,
+          "filename": "Image4.jpg",
+          "firstPictureBytesUnchanged": true,
+          "otherPropertiesAndBoundsUnchanged": true,
+          "priorImageEntriesPreservedExceptOneReferenceDecrement": true,
+          "delayPrefixPreserved": true,
+          "newImageBytes": 974,
+          "freshResourceWithoutPriorReference": true
+        }
+      ],
+      "compoundMetadataPreserved": true,
+      "unrelatedStreamsAndChunksPreserved": true,
+      "summaryMetadata": "Only the stale optional thumbnail is removed from SummaryInformation; all other raw properties are equal.",
+      "assets": "Prior delayed bytes and source entries remain identical except one required reference decrement; appended payloads are exact PNG/JPEG inputs. First picture bytes and other placement/paint properties are unchanged."
+    },
+    "nativeAssetRetirement": "Native resave retires unused slots2 then3 while retaining active image indices/payloads. Independent native controls can deduplicate asset IDs; matching painted content does not imply numeric identity.",
+    "fixtures": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePages/provenance.json",
+        "sha256": "64d75bc73205ec4a52b273bb949be1debcd9c93f7ef53c340e2abb3bd66ded15"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesEdited/provenance.json",
+        "sha256": "6cf0c6f8ffdecef400b0b3c90fe75e02932053ac3f9c2c4ebe37f3b441826055"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesReplacement/provenance.json",
+        "sha256": "4e7955bdea28f767e629e503bdfae80c128ecb8fd7d3b577076ab67e163ca2ba"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesJpegReplacement/provenance.json",
+        "sha256": "673905035136e8633ca8970bb581b3b72ddb849490c7058e0ab1eac158246448"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/NormalizedPictureNames/provenance.json",
+        "sha256": "58501d605a700a01130e43ec5f4c4792003b0e18675fc9b6d028474e9c451451"
+      }
+    ],
+    "controlContractCorrection": "Baseline ImagePages/Edited record the original second source image without claiming replacement. Replacement controls name LastPageImage and hash the actual final PNG/JPEG. All4controls regenerated: native inventories unchanged,12native page pixel pairs unchanged, source-image bytes unchanged and provenance refreshed.",
+    "regression": {
+      "name": "Native_resaved_picture_without_a_filename_reference_can_be_replaced_again",
+      "before": "Exact new regression failed at native Contents preparation; public consumer reported the same refusal.",
+      "after": "Public replacement/save/reload/replacement preserves selected/neighbor geometry, original assets, new JPEG payload and unrelated streams; separately qualified thumbnail invalidation is excluded.",
+      "publisherTests": {
+        "net10.0": 883,
+        "net8.0": 883,
+        "net472": 883
+      },
+      "readerTests": 95,
+      "standardBuilds": [
+        "OfficeIMO.Publisher.Pdf netstandard2.0",
+        "OfficeIMO.Reader.Publisher netstandard2.0"
+      ]
+    },
+    "sourcePowerShell": {
+      "route": "publisher-pdf",
+      "sourceBuild": "Integrated PSWriteOffice net8.0, unsigned",
+      "pdfs": 4,
+      "pages": 12,
+      "exactPngPixelsAndJpegPayloads": true,
+      "actualOwnerAssemblyBound": true
+    },
+    "validation": {
+      "probeBuild": "Final unsigned Release no-incremental, zero warnings/errors. Named candidate and earlier PNG/JPEG saved outputs remain byte-identical after the production fix.",
+      "syntax": "Changed native scripts parse in PowerShell7 and Windows PowerShell5.1; no PowerShell5.1 COM retry.",
+      "review": "One independent read-only review and one targeted confirmation; no remaining findings. Actual native render comparison inspected.",
+      "newProductionDependencies": false,
+      "newPublicApi": false
+    },
+    "reproduction": "Create named-image-pages using the retained ImagePages PNGs. Replace the last picture with the first PNG and save with explicit Allow. Validate Full against ImagePagesReplacement. Reopen the managed output and replace with the retained JPEG, then validate against ImagePagesJpegReplacement. Separately replace that JPEG into the Publisher-resaved PNG result and validate/reload again. Compare each initial/resaved page at144dpi and exact payload/binding/opaque-source invariants.",
+    "limits": [
+      "Closed named-image profile; arbitrary sharing, crops, object order and public native authoring remain open.",
+      "Managed/native image interpolation differs; no managed/native image pixel parity claim.",
+      "Repair-free opening remains unassessed.",
+      "Native controls can deduplicate asset IDs; generated and independently native-authored models need not have identical numeric asset identities.",
+      "Unused source assets are preserved by managed save, while Publisher may retire their slots during native resave.",
+      "Earlier97/98/2000 generation lifecycle support remains separate."
+    ]
   }
 }
