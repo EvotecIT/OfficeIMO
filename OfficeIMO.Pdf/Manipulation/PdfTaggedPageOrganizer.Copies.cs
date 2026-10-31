@@ -140,15 +140,28 @@ internal static partial class PdfTaggedPageOrganizer {
         if (!catalog.Items.TryGetValue("AcroForm", out var value) || PdfObjectLookup.Resolve(objects, value) is not PdfDictionary form ||
             !form.Items.TryGetValue("Fields", out var fieldsValue) || PdfObjectLookup.Resolve(objects, fieldsValue) is not PdfArray fields) return;
         var names = new HashSet<string>(fields.Items.Select(item => (PdfObjectLookup.Resolve(objects, item) as PdfDictionary)?.Get<PdfStringObj>("T")?.Value ?? string.Empty), StringComparer.Ordinal);
+        // An unnamed nonterminal adds nothing to the qualified name, so its named descendants carry the copy suffix.
+        void RenameCopiedField(PdfReference field, HashSet<int> visited) {
+            token.ThrowIfCancellationRequested();
+            if (!visited.Add(field.ObjectNumber) || PdfObjectLookup.Resolve(objects, field) is not PdfDictionary definition)
+                throw new InvalidOperationException("Copying a cyclic form field hierarchy is not supported.");
+            if (definition.Get<PdfStringObj>("T") is PdfStringObj name && name.Value.Length > 0) {
+                string copiedName = name.Value + "_copy" + (-copiedPage).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                while (!names.Add(copiedName)) copiedName += "_";
+                definition.Items["T"] = new PdfStringObj(copiedName, true);
+                return;
+            }
+            PdfReference[] children = definition.Items.TryGetValue("Kids", out var kids) && PdfObjectLookup.Resolve(objects, kids) is PdfArray array
+                ? array.Items.OfType<PdfReference>().ToArray() : Array.Empty<PdfReference>();
+            if (children.Length == 0) throw new InvalidOperationException("Copying an unnamed form field is not supported.");
+            foreach (PdfReference child in children) RenameCopiedField(child, visited);
+        }
+
         foreach (var original in fields.Items.ToArray()) {
             if (original is not PdfReference root || !copies.TryGetValue(root.ObjectNumber, out int number)) continue;
             var reference = new PdfReference(number, 0);
             if (!Retain(reference, new HashSet<int>())) continue;
-            var dictionary = (PdfDictionary)objects[number].Value;
-            if (dictionary.Get<PdfStringObj>("T") is not PdfStringObj name) throw new InvalidOperationException("Copying an unnamed form field is not supported.");
-            string copiedName = name.Value + "_copy" + (-copiedPage).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            while (!names.Add(copiedName)) copiedName += "_";
-            dictionary.Items["T"] = new PdfStringObj(copiedName, true);
+            RenameCopiedField(reference, new HashSet<int>());
             fields.Items.Add(reference);
             if (form.Items.TryGetValue("CO", out var order) && PdfObjectLookup.Resolve(objects, order) is PdfArray calculations) {
                 var retained = new HashSet<int>();

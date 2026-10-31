@@ -192,6 +192,17 @@ public sealed class PdfFormPageRewriteTests {
         Assert.Contains("indirect AcroForm field roots", error.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void RepeatedPageCopiesFieldsUnderUnnamedRoot() {
+        byte[] source = Encoding.ASCII.GetBytes(Encoding.ASCII.GetString(CreateHierarchicalForm()).Replace("/T (Parent) ", "            "));
+        PdfDocument repeated = PdfDocument.Load(source).Pages.Extract(1, 1);
+        Assert.Equal(new[] { "First", "First_copy0", "Second", "Second_copy0" },
+            repeated.Inspect().FormFieldNames.OrderBy(name => name, StringComparer.Ordinal).ToArray());
+        using PdfPigDocument independent = PdfPigDocument.Open(repeated.ToBytes());
+        Assert.True(independent.TryGetForm(out var form));
+        Assert.Equal(2, form.Fields.Count);
+    }
+
     private static byte[] CreateHierarchicalForm(string firstChildParent = "/Parent 6 0 R ", string fields = "6 0 R") => BuildRawPdf(
         "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
         "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
