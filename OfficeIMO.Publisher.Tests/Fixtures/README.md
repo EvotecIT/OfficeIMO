@@ -88,6 +88,12 @@ and language observations. Both controls record whole-cell text and the document
 before and after editing. Original TableLabel authoring uses fresh whole-cell
 ranges. These controls qualify the separately recorded empty-typing source saves;
 they do not establish general language metadata editing or renderer parity.
+TableCellParagraphs supplies four independently authored profiles on one page:
+baseline, first-cell two paragraphs, final-cell three paragraphs and all-cell
+two paragraphs. Fresh whole-cell styling keeps definitions uniform within each
+cell while the top row remains bold and the bottom row regular. Its PUB, PDF,
+native contract and provenance support separate cell paragraph-count save-back
+qualification; they do not qualify fixed native heights for arbitrary overflow.
 
 Newsletter adds a two-page linked story
 and a picture. TableLabel adds a custom page size, styled 2-by-2 table, picture

@@ -413,8 +413,12 @@ Clearing through an empty paragraph collection retains the final paragraph's
 formatting and leaves typing unspecified. Native saving retains that cell's CR
 typing; supply an empty styled run when a particular typing style is required.
 Native source saving supports qualified fixed cell partitions and supported
-text formatting. Unknown native partition records, changed per-cell paragraph
-counts and unsupported typing encodings refuse output.
+text formatting. Paragraph counts can change when source definitions are uniform
+within the edited cell; neighboring cells may have different styles. Unknown
+native partition records, count changes from nonuniform cell definitions and
+unsupported typing encodings refuse output. Publisher can expand rows when text
+wraps or exceeds a cell, so retained stored bounds do not guarantee fixed native
+rendered heights.
 These native limits are separate from in-memory cell editing.
 
 `SetTableBounds` uses positive finite frame dimensions and proportionally scales

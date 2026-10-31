@@ -288,8 +288,10 @@ coverage also remain unassessed; changed native image output reports
 `PUB_NATIVE_IMAGE_REPLACEMENT_UNQUALIFIED`.
 
 Native table-cell text saving retains existing tables, tracks, merged ownership,
-cell order, bounds and paint. Each cell retains its paragraph count and final
-terminator convention. Supported run/paragraph formatting uses the same Quill
+cell order, stored bounds and paint. Each cell retains its final terminator
+convention. Paragraph counts can change when projected and raw source definitions
+are uniform within that cell; neighboring cells may have different styles.
+Supported run/paragraph formatting uses the same Quill
 writer as ordinary stories; cell partitions use separately validated `TCD `
 records. Their descriptor uses flag 1 and secondary kind `PLC `; the payload
 has the fixed cell count, retained header and story-relative UTF-16 endpoints.
@@ -300,7 +302,8 @@ locations are rewritten together. Ordinary stories in table-bearing documents
 can also change length without changing relative cell ownership.
 
 Unknown partition headers/descriptors, unresolved or conflicting ownership,
-table stories also used by ordinary frames and changed per-cell paragraph counts
+table stories also used by ordinary frames and count changes from nonuniform
+definitions within the edited cell
 refuse edited output. Table creation,
 bounds/grid changes, cell merges and table styling have no native save profile.
 These limits apply with `Allow`; unchanged content still returns an exact copy.
@@ -332,8 +335,8 @@ Clearing a cell with an empty paragraph collection keeps one empty paragraph and
 the final paragraph's alignment, spacing, margins, indents and tabs. Other cells
 and the final terminator convention remain retained. Supported uniform-source
 paragraph-count changes can also end in an empty paragraph. Removing every
-paragraph from a native story remains unsupported, and cell paragraph-count or
-grid changes still have no native save profile. Unsupported CR encodings remain
+paragraph from a native story remains unsupported, and table grid changes still
+have no native save profile. Unsupported CR encodings remain
 refused when an explicit typing change would require rewriting them.
 
 The `sourceEditing.emptyTyping` qualification record covers fifteen public saves
@@ -350,6 +353,30 @@ language setter changes field `0x12`; the exact role of body-only `0x3E` remains
 unassessed. Source-built PSWriteOffice converts all fifteen specimens through
 `publisher-pdf` with Unicode fallback settings. Repair-free opening, broader
 producer coverage and exact managed/native rendering parity remain unqualified.
+
+The `sourceEditing.cellParagraphs` qualification record covers eleven public
+saves over twenty-two native document-page states: first/final/all-cell growth,
+native multi-paragraph shrinkage, balanced count changes, a paragraph moved
+between cells without changing the complete styled story, empty typing and
+visible refill, preceding-story edits and re-editing a native resave. Each cell's
+formatting is planned from its own source ranges, including its final CR.
+Independent decoding verifies cell endpoints, paragraph definitions, effective
+typing and unrelated storage. The fitting specimens retain native geometry and
+have identical initial/resaved PDF pixels and spans; 103 earlier saves remain
+byte-identical. Four independently authored native table profiles supply the
+multi-paragraph controls.
+Source-built PSWriteOffice converts all eleven specimens through `publisher-pdf`
+with Unicode fallback settings and recovers each nonempty cell paragraph.
+These results do not qualify arbitrary text fitting:
+Publisher can expand rows when new text wraps or exceeds a cell, even though the
+stored grid is retained. A separate wrapped-text cohort records changed native
+heights and resave rendering; fixed rendered heights and overflow layout remain
+unqualified.
+
+Clearing a native whole-frame `TextRange.Text` to an empty string saves one CR,
+with the story and frame retained. This control does not establish a zero-length
+or zero-paragraph native story encoding; removing all semantic paragraphs still
+refuses native output.
 
 Two independent reading controls cover 17 whole-frame profiles over five pages,
 including indexed arrays with two tabs and left/center/right tabbed lines. The

@@ -406,3 +406,14 @@ the resulting visible font, style and color. Independent early/fresh-range
 controls distinguish a body's style from its CR's defaults. Zero-paragraph
 stories, cell-count changes and broader native/rendering qualification remain
 separate limits in the package support contract.
+
+The `sourceEditing.cellParagraphs` record covers fixed-grid cell paragraph-count
+changes through the canonical per-cell Quill planner. Eleven public specimens
+qualify first/final/all growth, shrinkage, balanced boundaries, empty typing and
+refill, combined ordinary-story edits and native re-editing. A boundary-only
+case moves a paragraph between cells while leaving the complete styled story
+unchanged. Independent TCD/formatting/storage checks and fitting native PDFs
+establish those profiles; a retained wrapped-text cohort separately records
+Publisher's row expansion and changed resave rendering. The native empty-string
+mutation control saves a retained CR, not a zero-paragraph story. Native repair,
+general overflow layout and broader producer profiles remain unassessed.

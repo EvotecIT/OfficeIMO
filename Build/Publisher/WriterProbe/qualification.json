@@ -13087,6 +13087,327 @@
         "Repair-free opening, generic opaque semantics, additional producer profiles and exact managed/native rendering parity remain unqualified.",
         "Source-built PS7 conversions and PS5.1 syntax do not establish packaged installation or native lifecycle cmdlets."
       ]
+    },
+    "cellParagraphs": {
+      "scope": "Native existing-table paragraph-count changes with fixed cell/grid ownership and uniform definitions within each edited cell; no general native overflow-layout qualification.",
+      "codecCommit": "2316c25f1722994942515b49eb490d27cd504808",
+      "sources": [
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+          "sha256": "24ca5d0e8307e44993b70fd3ac193eefd5dfbe4ac79d7fec0dd038ff5622a4ea",
+          "gitBlobSha256": "24ca5d0e8307e44993b70fd3ac193eefd5dfbe4ac79d7fec0dd038ff5622a4ea"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+          "sha256": "120d6d35c794c201ee8aba6eedb1a46de0d2ce99c53d3d95890ec9a22827147b",
+          "gitBlobSha256": "120d6d35c794c201ee8aba6eedb1a46de0d2ce99c53d3d95890ec9a22827147b"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillStoriesWriter.cs",
+          "sha256": "b47fc4cfcc5f7236a9ec1fabc2162ecca399f8ec881fdd3d9da30fc846307d52",
+          "gitBlobSha256": "b47fc4cfcc5f7236a9ec1fabc2162ecca399f8ec881fdd3d9da30fc846307d52"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillTableTextWriter.cs",
+          "sha256": "e4d62c72eb775626a5cc7d1725508aaccf6ace896dac35b1c3e0ed5ba6e547ae",
+          "gitBlobSha256": "e4d62c72eb775626a5cc7d1725508aaccf6ace896dac35b1c3e0ed5ba6e547ae"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/PublisherDocument.Tables.cs",
+          "sha256": "896e546cd3a8de3b684c748be8ac222304419ab545992c4cb0680509df3fb734",
+          "gitBlobSha256": "896e546cd3a8de3b684c748be8ac222304419ab545992c4cb0680509df3fb734"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherTableParagraphWritingTests.cs",
+          "sha256": "fe2184a551287ba8d29ab66f591446971637dd3647afcc139161f11d8c774277",
+          "gitBlobSha256": "fe2184a551287ba8d29ab66f591446971637dd3647afcc139161f11d8c774277"
+        },
+        {
+          "path": "../../../Build/Publisher/Add-NativeTableControl.ps1",
+          "sha256": "edd229e67013d76f646abb331df2551b3d4f66045858b112c4365d1b8b784183",
+          "gitBlobSha256": "edd229e67013d76f646abb331df2551b3d4f66045858b112c4365d1b8b784183"
+        },
+        {
+          "path": "../../../Build/Publisher/Invoke-NativePublisherOperation.ps1",
+          "sha256": "a9fafd4511e93977d5b8ecd055ce772680a0bf000e4c6c7ec02dab720fe34a35",
+          "gitBlobSha256": "5dbca1ffae348067dcf3d38ff01023d00b5589445ef5d4d3b8fcf46d4557905c"
+        },
+        {
+          "path": "../../../Build/Publisher/Invoke-NativeComparisonCase.ps1",
+          "sha256": "a88cff39542021f79c40bfa0bdac852532f4ee52b1db1483cf05e33dbc0eb3bb",
+          "gitBlobSha256": "589b28092868bda47ffa4499de63af4f49ee4f36731d9f3ec4e2637cc9de49bf"
+        },
+        {
+          "path": "../../../Build/Publisher/New-NativeComparisonCorpus.ps1",
+          "sha256": "d96336d3cb05004b9e5eac5f6ef19b807e1e377b89c1ff7c4581d3a294a2d680",
+          "gitBlobSha256": "38fd1814de73324273126e09a5819830321f31d9621f562859ad2c0f954f0765"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellParagraphs/native-tablecellparagraphs.json",
+          "sha256": "bee6fdfa31a214970e0df27837ad691fa9eb46c6f92687cea33cc6a8c35be712",
+          "gitBlobSha256": "0591f876e1538e9f0c59f26727832bb88a9518a8e218bc99ad6fb2a5596beabc"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellParagraphs/native-tablecellparagraphs.pdf",
+          "sha256": "5803e171143c360741aa032418f0b97995df5036a60222c888530c6e21c9b6b8",
+          "gitBlobSha256": "5803e171143c360741aa032418f0b97995df5036a60222c888530c6e21c9b6b8"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellParagraphs/native-tablecellparagraphs.pub",
+          "sha256": "c7fab6abeda15e24c465359ef909725155bf1e3cc56b074b79efe33269797482",
+          "gitBlobSha256": "c7fab6abeda15e24c465359ef909725155bf1e3cc56b074b79efe33269797482"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellParagraphs/provenance.json",
+          "sha256": "422dba2248a5f3abb129fc8ef662b7d40d6e7a788e7f175158d6c54d4a6f2fae",
+          "gitBlobSha256": "7129e27ee21ac731dc67c224b258b0d4909299d8926f29cd98e37081d5089731"
+        }
+      ],
+      "nativeProducer": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "automationSecurity": 3
+      },
+      "nativeApplication": {
+        "version": "16.0.20527.20088",
+        "file": "MSPUB.EXE",
+        "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+      },
+      "nativeFontFiles": [
+        {
+          "version": null,
+          "lastWriteTimeUtc": "2026-06-01T06:35:11.0374904Z",
+          "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+          "file": "arial.ttf"
+        },
+        {
+          "version": null,
+          "lastWriteTimeUtc": "2026-06-01T06:35:11.0364901Z",
+          "sha256": "e8f4e3baf6cc35fed6fcce3a540e8b39e8f6cda1d22a28f2ec8f526fef7a43f5",
+          "file": "arialbd.ttf"
+        },
+        {
+          "version": null,
+          "lastWriteTimeUtc": "2026-02-11T05:19:19.1589041Z",
+          "sha256": "57e93ff143572bcc092c1f56202d43ddc07bb119aa104c6d7af163470fb551f6",
+          "file": "calibri.ttf"
+        },
+        {
+          "version": null,
+          "lastWriteTimeUtc": "2026-06-01T06:35:11.0654904Z",
+          "sha256": "931c5de5c70401d9324d5014c123802b4fb753000360ceb2f56c589403cd58c5",
+          "file": "times.ttf"
+        },
+        {
+          "version": null,
+          "lastWriteTimeUtc": "2026-06-01T06:35:11.0794825Z",
+          "sha256": "e7f7a88b65188328aea58670f955022e23c712f55679524729da1e4e03c49d88",
+          "file": "timesi.ttf"
+        },
+        {
+          "version": null,
+          "lastWriteTimeUtc": "2026-06-01T06:35:11.0764890Z",
+          "sha256": "3a29d114cb5229e8dbda5bef6c69be4a210a13b7277de4d66e9fc86963226f6c",
+          "file": "timesbi.ttf"
+        }
+      ],
+      "controls": {
+        "fixture": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellParagraphs/provenance.json",
+        "profiles": 4,
+        "pages": 1,
+        "rangeCapture": "FreshWholeCell"
+      },
+      "contract": [
+        "Plan each cell using its exact source-bound paragraph and character ranges; preserve neighboring styles, cell order, grid, tracks, stored bounds and paint.",
+        "Count changes require uniform projected and direct source definitions within the edited cell, including qualified intermediate CRs; final CR typing remains separately retained.",
+        "Update relative TCD endpoints and Quill lengths/formatting/index/directory allocation together.",
+        "Changed cell boundaries trigger save preparation, original style dependencies and per-cell admission even when the complete styled story remains equal.",
+        "Empty paragraphs retain the original CR when no runs are supplied, or apply the explicit empty-run style against actual native inheritance."
+      ],
+      "nativeCases": [
+        {
+          "name": "first",
+          "sourceSha256": "0c16849655cb00915b075b931237206ac87cb08a71928b3a72ca9a2b3352a729",
+          "candidateSha256": "868bf5209add117b4b18ceadf9cc7e96f3223d5cd4c956a83b5c16fb332c9d7b",
+          "nativeResavedSha256": "26951be7fc8f0cbe3a9b5b50e032273256671c4a4dddf1f2cd22bb7a721dd892",
+          "pages": 1,
+          "states": 2
+        },
+        {
+          "name": "final",
+          "sourceSha256": "0c16849655cb00915b075b931237206ac87cb08a71928b3a72ca9a2b3352a729",
+          "candidateSha256": "1bd411507a1edf0a532bd62c20de4c4f5979ef9dae1771023b276d4a19a9c29d",
+          "nativeResavedSha256": "c5de7cccc2aebebd1929d1059f92e143af99028ffd68b64e3bbb52a925ec4730",
+          "pages": 1,
+          "states": 2
+        },
+        {
+          "name": "all",
+          "sourceSha256": "0c16849655cb00915b075b931237206ac87cb08a71928b3a72ca9a2b3352a729",
+          "candidateSha256": "87987f2f0826858f681679f7d54806a6ad91519e9fac7ce1a66e5d74723b45b6",
+          "nativeResavedSha256": "d731e65ae481d13dfa9cb871981eeb6bdf3a081e68be33f16a307b386bdf4487",
+          "pages": 1,
+          "states": 2
+        },
+        {
+          "name": "empty-default",
+          "sourceSha256": "c7fab6abeda15e24c465359ef909725155bf1e3cc56b074b79efe33269797482",
+          "candidateSha256": "0578d074913c573afeb0c305c51b6b8d3ad450f083cd5796773d155c049c24cb",
+          "nativeResavedSha256": "415ad98e8c2fe10fe5004e4d42c572182950e0a8a216ee64c0bd18e7032791c4",
+          "pages": 1,
+          "states": 2
+        },
+        {
+          "name": "empty-typed",
+          "sourceSha256": "c7fab6abeda15e24c465359ef909725155bf1e3cc56b074b79efe33269797482",
+          "candidateSha256": "188e0694ced3373e0101a8ca961184a9f5933f0cca275765a222736fbad2e052",
+          "nativeResavedSha256": "f0998a834d395bfc5a198540aa31b367a2ba4e8b2166a175a2984782880657d6",
+          "pages": 1,
+          "states": 2
+        },
+        {
+          "name": "shrink",
+          "sourceSha256": "c7fab6abeda15e24c465359ef909725155bf1e3cc56b074b79efe33269797482",
+          "candidateSha256": "69243bfbc65f2d6e6d5400011b424fb4620cff444f853b3940b75bada7b949de",
+          "nativeResavedSha256": "b7227084878d86cba5860f783c980d3c6febfc415406b556d6ca27cc8a0ee1f7",
+          "pages": 1,
+          "states": 2
+        },
+        {
+          "name": "balanced",
+          "sourceSha256": "c7fab6abeda15e24c465359ef909725155bf1e3cc56b074b79efe33269797482",
+          "candidateSha256": "53ed5a2ff35f74ee32b0460de6d9b825d963de3cc0118924ff9342a5f5b9b7ed",
+          "nativeResavedSha256": "5a0c2163db9e294c99cebc0965eb4d609783c1cb6d11019b7ccf5f9cfda6eb10",
+          "pages": 1,
+          "states": 2
+        },
+        {
+          "name": "combined",
+          "sourceSha256": "0c16849655cb00915b075b931237206ac87cb08a71928b3a72ca9a2b3352a729",
+          "candidateSha256": "e8632b4b1b35e593dfea6fb517aa55c4561018a7abb09c4c3307485fac551c25",
+          "nativeResavedSha256": "c5a9dbb4e3febf0a405747fd79bd2a7c0439a56addd13a09b1ab91194b292f99",
+          "pages": 1,
+          "states": 2
+        },
+        {
+          "name": "reedit",
+          "sourceSha256": "26951be7fc8f0cbe3a9b5b50e032273256671c4a4dddf1f2cd22bb7a721dd892",
+          "candidateSha256": "002c4513d5964e8b5c844b6726de350790d81ee79e192a25e7e3fe48b50b2879",
+          "nativeResavedSha256": "2018c9738fb0e69a802b3836f0e3ce0c7a72cc9e46d98873f9ae08ca90aa7e6b",
+          "pages": 1,
+          "states": 2
+        },
+        {
+          "name": "refill",
+          "sourceSha256": "f0998a834d395bfc5a198540aa31b367a2ba4e8b2166a175a2984782880657d6",
+          "candidateSha256": "eaf0489715573b3b24f6702cfae67b642a7a89ccca159e843864dce99100cceb",
+          "nativeResavedSha256": "6974314f9d3de959485f1e72cd3f4da813c88b170ba6f860e438128c00516509",
+          "pages": 1,
+          "states": 2
+        },
+        {
+          "name": "boundary-only",
+          "sourceSha256": "c7fab6abeda15e24c465359ef909725155bf1e3cc56b074b79efe33269797482",
+          "candidateSha256": "26348d9460c6f9ee67cfd314b0b11f5991d4a41fe65034956ae91f26c9415da7",
+          "nativeResavedSha256": "8d1752f354102c15e75e224f6f1e70d077f741a146505e25c1f7e8646f7cabfe",
+          "pages": 1,
+          "states": 2
+        }
+      ],
+      "preservation": [
+        "Complete stories and cell partitions before and after native resave; unchanged aggregate story in the boundary-only case.",
+        "Exact candidate paragraph definitions, retained unspecified CR typing, unrelated explicit-typing OPL fields and existing font/color prefixes.",
+        "Unrelated Quill payloads/logical streams/compound metadata; cached preview invalidation remains separately reported.",
+        "All fitting native initial/resaved PDF pixels and spans match, and table/frame bounds remain equal.",
+        "Visible refill in the actual target cell retains Times New Roman, bold/italic and blue after native save/reopen.",
+        "All eleven final candidates reproduce byte-identically and current public canonical models match both initial and native-resaved files."
+      ],
+      "wholeStoryClear": {
+        "sourceFixture": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+        "requested": "",
+        "observedBeforeSave": "",
+        "reopenedText": "\r",
+        "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+        "nativeResavedSha256": "6befbc335668b8bd680142a8fb12198f548364aaa81e4452520f3d2c3949129e",
+        "beforeStories": [
+          {
+            "id": 2,
+            "start": 0,
+            "length": 15,
+            "text": "Publisher text\r"
+          }
+        ],
+        "afterStories": [
+          {
+            "id": 2,
+            "start": 0,
+            "length": 1,
+            "text": "\r"
+          }
+        ],
+        "conclusion": "Native empty-string assignment retains one CR and story/frame identity; it does not establish zero-paragraph native encoding."
+      },
+      "validation": {
+        "publisherTests": {
+          "net10.0": 657,
+          "net8.0": 657,
+          "net472": 657
+        },
+        "readerTests": 95,
+        "standard2Builds": [
+          "OfficeIMO.Publisher.Pdf",
+          "OfficeIMO.Reader.Publisher"
+        ],
+        "writerProbeBuild": true,
+        "sourceBuiltPowerShell": {
+          "runtime": "7.6.9",
+          "route": "publisher-pdf",
+          "cases": 11,
+          "reopenedPages": 11,
+          "retainedParagraphTextRecovered": true,
+          "actualPublisherAssemblyBound": true,
+          "unicodeFallbacks": true
+        },
+        "nativeControlSyntax": [
+          "PowerShell7",
+          "WindowsPowerShell5.1"
+        ]
+      },
+      "previousSaveEquivalence": {
+        "cases": 103,
+        "byteIdentical": true,
+        "groups": {
+          "character": 24,
+          "linkedStories": 7,
+          "paragraphTopology": 11,
+          "paragraphFormatting": 21,
+          "frameLayout": 11,
+          "imageReplacement": 8,
+          "tableText": 6,
+          "emptyTyping": 15
+        }
+      },
+      "regressionTests": [
+        "Paragraph_growth_retains_each_cells_text_style_and_table_ownership",
+        "Native_multiparagraph_cells_can_shrink_without_changing_neighbors_or_table_grid",
+        "Moving_a_paragraph_between_cells_remaps_native_partitions_when_the_complete_styled_story_is_unchanged",
+        "Appended_empty_cell_paragraphs_retain_or_explicitly_set_the_final_CR_typing",
+        "Nonuniform_definitions_within_the_changed_cell_still_refuse_paragraph_count_changes"
+      ],
+      "reproduction": {
+        "control": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableCellParagraphs",
+        "native": "pwsh -NoProfile -File Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -InputPath <candidate.pub> -OutputDirectory <empty-directory>",
+        "clear": "Add -NativeEditText \"\" to Full validation of the one-page, one-unlinked-frame Text fixture."
+      },
+      "limits": [
+        "All changed output remains Unassessed and blocks by default; Allow does not bypass unsupported edits.",
+        "Nonuniform definitions within the edited cell, zero-paragraph whole stories, table geometry/grid/merge/styling changes and ambiguous ownership remain refused.",
+        "A separate nine-case wrapped-text cohort retains native row expansion, changed resave PDF rendering and complete raw text/partitions; fitting profiles do not establish fixed native heights for arbitrary text.",
+        "TableLabel logical page geometry differs from its native six-label A4 PDF print layout; native font-size quantization remains separate from declared styles.",
+        "Repair-free opening, general opaque preservation, additional producer profiles and exact managed/native rendering remain unqualified.",
+        "Source-built PS7 conversion and PS5.1 syntax do not establish packaged installation or native lifecycle cmdlets."
+      ]
     }
   },
   "characterReading": {
