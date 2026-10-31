@@ -19776,5 +19776,426 @@
       "Unused source assets are preserved by managed save, while Publisher may retire their slots during native resave.",
       "Earlier97/98/2000 generation lifecycle support remains separate."
     ]
+  },
+  "pictureCropEditing": {
+    "schema": "officeimo.publisher.picture-crop-editing.v1",
+    "sourceCommit": "e3f35d20f3769f582791d606f3d28c0de7118afe",
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeComparisonPictures.ps1",
+        "sha256": "d9cc947900bc618f94c3c4abdfe394a9c9bfaa403bed6e416018ed5a13798419"
+      },
+      {
+        "path": "Build/Publisher/Add-NativeImagePagesControl.ps1",
+        "sha256": "055030323f60b72272c1ae77628766bd47c39bb2101be3cf4ea41967b8fcb935"
+      },
+      {
+        "path": "Build/Publisher/Get-NativePictureCropBasis.ps1",
+        "sha256": "c57ebc760f7b9fd23ff56d051f3c8596e60fe4874c953ae671c20d624612d9bf"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "f2d441eaabeb6b91bd550fa20f7148cf0bf5277ea09e8da404803352c4b6da66"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "1536dd85f62877d0b9a36819827fb4bc5751e4baf8ecc09ce5bc643dde8807e8"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "33268cc71adfec4f74c085a38e241f7a9e0fbcab605ae906b1f9c1dd5d315203"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateCases.cs",
+        "sha256": "1b1537aa038ce352981db3b00337d87b9ae2ce5497c957d5e69e67db047adb6e"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateImagePages.cs",
+        "sha256": "9937d169aec4c11907229ac129a41a12cfb5afce38dd2d53cbb9653258821c01"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateOfficeArt.cs",
+        "sha256": "9d76681fe54dc03b67e7712edcd2a5ae79e9e17a0269feb59da4e3a0d0d3641b"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidatePublicationSpec.cs",
+        "sha256": "39f2f9c62c7086cd5f9a2a53aed40468a87699988422ad8797464fd1cf267d30"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/Program.cs",
+        "sha256": "d4c81534de6fcbca1408fbdc2e190442e6ffe6ddf49a45dabdacdc55d36e11ec"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/README.md",
+        "sha256": "3ad354778cb74bcc8684f39fe8dabacf4c448d405a16180bb44ed1df49538287"
+      },
+      {
+        "path": "Docs/ROADMAP.md",
+        "sha256": "41938aa37eccbb748fd60d87c82bf3589f0425f49fbda9e51176aad0ee69bb96"
+      },
+      {
+        "path": "OfficeIMO.Core/Binary/OfficeArtPictureProperties.cs",
+        "sha256": "7ffddeea792ab8368fd9dd3da8146f89466883a6d1be7388092430eb6beaf304"
+      },
+      {
+        "path": "OfficeIMO.Core/Binary/OfficeArtPropertyTableEditor.cs",
+        "sha256": "d4f4b29061a85b8f0d6816ba8db13ba409699d0f642c626ca81af56b95b3cc89"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeImageSourceCrop.cs",
+        "sha256": "73760c9f8f1fa931cdab26fbb59243ceba42326d4ae8c35237d70f8e58d7506a"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/README.md",
+        "sha256": "26aefb9b5ef85e6b2767c2c9408a6cb8cc549d3a99d4f63dd230ef48aee2b622"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherPictureCropTests.cs",
+        "sha256": "629c2224c08b381b7420ca596c42568378faece44366f76b6e155cc4a50ee2ba"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherPictureEditingFixture.cs",
+        "sha256": "929c6ba1124e01ac57f2e472bc3aae8c5bd059d729bd6bc865c09b45d2c1873e"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherPictureEditingTests.cs",
+        "sha256": "dd19f29f2e2abe935b019fde0b4bc897ecf4c5d47c5d9a562b8faf2c34aab5fd"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherModelImporter.Pictures.cs",
+        "sha256": "41ac31759cda9916df0aaac82dae78d983d4829245ca8b226c28d051d8f714e4"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherModelState.Pictures.cs",
+        "sha256": "550f0e46397fa635df4e8c8ce8bff8539318d6f3ce87a4549819e3f2b23fed9c"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+        "sha256": "c52abc998e581a83a378c67b51965ea6dfce60fcf33738337f6b5f64764f97d0"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Pictures.cs",
+        "sha256": "6e1c74d16c0467b420a41ede378cd237a349834a8989b3865aa87eb49aada746"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+        "sha256": "c1caead6f9604a42e759b32343cd96be971f23cee0db5a1aca71f850b3486c16"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPublicationState.Pictures.cs",
+        "sha256": "f345e11f73e735653b7523fdbdf2b9f280d98e8cd9c344b01500eaad7c2aecfc"
+      },
+      {
+        "path": "OfficeIMO.Publisher/PublisherDocument.Pictures.cs",
+        "sha256": "354d09642079acd3c12cb36f3d6e0657cac4ea3c945a90a55c97e791b8c97bf4"
+      },
+      {
+        "path": "OfficeIMO.Publisher/PublisherPicture.cs",
+        "sha256": "c5d902827e952d9e7f31d9e027e276e6d80e8fdc17b5410f1c384d13f620536c"
+      },
+      {
+        "path": "OfficeIMO.Publisher/README.md",
+        "sha256": "30521c63903e5e15296e29eca83e3f4909fafc8a61d6fa1b2a7e4abcb27fa23a"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "sha256": "835b1d9cbaf63ff625399690fd067c8333977888e1648c3e446911339cbf2a41"
+      }
+    ],
+    "publicContract": {
+      "api": "SetPictureCrop(uint,OfficeImageSourceCrop,CancellationToken)",
+      "model": "Normalized left/top/right/bottom source fractions; strictly positive visible area; candidate projection/commit retains frame, image, identity, paint, ownership/order, other placements and old snapshots.",
+      "nativeEncoding": "Core OfficeArtPictureProperties owns signed16.16 edge encoding: top0x100,bottom0x101,left0x102,right0x103. Rounds to nearest with midpoint away from zero; all4localfields override retained/inherited values when clearing.",
+      "precision": "PUB_NATIVE_PICTURE_CROP_QUANTIZED reports approximation while requested model remains unchanged. Native output refuses if rounding collapses the visible source area. Default strict save policy is unchanged.",
+      "eligibility": "Visible resolved untransformed rectangular PNG/JPEG placements only; raw native crop edges at or beyond1 require display fallback and remain inspection-only."
+    },
+    "cases": [
+      {
+        "name": "set",
+        "sha256": "259e4a863efbee0cfb33bc6331413918d35b3515143c933b5042ec40cab9461d",
+        "pages": 2,
+        "target": 298,
+        "imageSha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483",
+        "crop": [
+          0.25,
+          0.125,
+          0.0625,
+          0.1875
+        ],
+        "bounds": [
+          72,
+          144,
+          96,
+          96
+        ],
+        "nativeOperations": 7,
+        "independentPixelPairs": 4,
+        "publicReloads": 2
+      },
+      {
+        "name": "clear",
+        "sha256": "dd8442a791344b68ca1d6781a758d5005820a46e1bdf7fb145905ccc8d179ac5",
+        "pages": 2,
+        "target": 298,
+        "imageSha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483",
+        "crop": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "bounds": [
+          72,
+          144,
+          96,
+          96
+        ],
+        "nativeOperations": 7,
+        "independentPixelPairs": 4,
+        "publicReloads": 2
+      },
+      {
+        "name": "combined",
+        "sha256": "13fce699a4d61e43a313e204163236a0fae9a8daf16255ec21702d418c2f0aa4",
+        "pages": 2,
+        "target": 298,
+        "imageSha256": "98e64eb0771135ce8a3672978263e86118439752c2625a7cdb64f3347d1e58d8",
+        "crop": [
+          0.25,
+          0.125,
+          0.0625,
+          0.1875
+        ],
+        "bounds": [
+          84,
+          132,
+          120,
+          84
+        ],
+        "nativeOperations": 7,
+        "independentPixelPairs": 4,
+        "publicReloads": 2
+      },
+      {
+        "name": "created",
+        "sha256": "0c581beb2613f7a575acb2a11890a22781409a87d2d1d51706cddb369d2badfe",
+        "pages": 3,
+        "target": 265,
+        "imageSha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483",
+        "crop": [
+          0.25,
+          0.125,
+          0.0625,
+          0.1875
+        ],
+        "bounds": [
+          72,
+          144,
+          96,
+          96
+        ],
+        "nativeOperations": 7,
+        "independentPixelPairs": 6,
+        "publicReloads": 2
+      },
+      {
+        "name": "jpeg",
+        "sha256": "ce8a782f2b5cbe9a537ce2336037201d83bf5580035c2c13a559053ae6f851b2",
+        "pages": 3,
+        "target": 301,
+        "imageSha256": "bab7333dbb8fbc68ed2067e1d870d2359863750ab85c6f52a10f5a550589c50f",
+        "crop": [
+          0.25,
+          0.125,
+          0.0625,
+          0.1875
+        ],
+        "bounds": [
+          216,
+          144,
+          192,
+          96
+        ],
+        "nativeOperations": 7,
+        "independentPixelPairs": 6,
+        "publicReloads": 2
+      }
+    ],
+    "nativeFullFiles": 5,
+    "nativeOperations": 35,
+    "independentNativePagePixelPairs": 24,
+    "pixelComparisonDpi": 144,
+    "publicReloads": 10,
+    "managedPdfSvgPages": 24,
+    "previousCreationProfilesByteIdentical": 15,
+    "allFourDistinctFractions": [
+      0.25,
+      0.125,
+      0.0625,
+      0.1875
+    ],
+    "rawCropValues": {
+      "0x100": 8192,
+      "0x101": 12288,
+      "0x102": 16384,
+      "0x103": 4096
+    },
+    "rawPreservation": {
+      "cases": [
+        {
+          "name": "set",
+          "sourceSha256": "d2b49025a8b0e9f4f893e97497d190d7f173ba16d851c212f5338c222b2f1309",
+          "outputSha256": "259e4a863efbee0cfb33bc6331413918d35b3515143c933b5042ec40cab9461d",
+          "changedStreams": [
+            "\u0005SummaryInformation",
+            "Escher/EscherStm"
+          ],
+          "untouchedPictureLeaves": 2,
+          "unrelatedContentsChunks": 42,
+          "compoundMetadataPreserved": true,
+          "sourceImageBytesPreserved": true,
+          "unrelatedPicturePropertiesPreserved": true,
+          "onlyCropRowsChanged": true,
+          "cropRawValues": {
+            "256": 8192,
+            "257": 12288,
+            "258": 16384,
+            "259": 4096
+          }
+        },
+        {
+          "name": "clear",
+          "sourceSha256": "e837962f47f806492fba0c5063e6ab21c606f3d734cce7d67d0e1a77fd9dbe2c",
+          "outputSha256": "dd8442a791344b68ca1d6781a758d5005820a46e1bdf7fb145905ccc8d179ac5",
+          "changedStreams": [
+            "\u0005SummaryInformation",
+            "Escher/EscherStm"
+          ],
+          "untouchedPictureLeaves": 2,
+          "unrelatedContentsChunks": 42,
+          "compoundMetadataPreserved": true,
+          "sourceImageBytesPreserved": true,
+          "unrelatedPicturePropertiesPreserved": true,
+          "onlyCropRowsChanged": true,
+          "cropRawValues": {
+            "256": 0,
+            "257": 0,
+            "258": 0,
+            "259": 0
+          }
+        },
+        {
+          "name": "combined",
+          "sourceSha256": "d2b49025a8b0e9f4f893e97497d190d7f173ba16d851c212f5338c222b2f1309",
+          "outputSha256": "13fce699a4d61e43a313e204163236a0fae9a8daf16255ec21702d418c2f0aa4",
+          "changedStreams": [
+            "\u0005SummaryInformation",
+            "Contents",
+            "Escher/EscherDelayStm",
+            "Escher/EscherStm"
+          ],
+          "untouchedPictureLeaves": 2,
+          "unrelatedContentsChunks": 41,
+          "compoundMetadataPreserved": true,
+          "sourceImageBytesPreserved": true,
+          "unrelatedPicturePropertiesPreserved": true,
+          "onlyCropRowsChanged": false,
+          "cropRawValues": {
+            "256": 8192,
+            "257": 12288,
+            "258": 16384,
+            "259": 4096
+          }
+        },
+        {
+          "name": "jpeg",
+          "sourceSha256": "db5245810dd84bb408fdd6b72491d66301a7b7e6f9d78e2ec86bb841a4897909",
+          "outputSha256": "ce8a782f2b5cbe9a537ce2336037201d83bf5580035c2c13a559053ae6f851b2",
+          "changedStreams": [
+            "\u0005SummaryInformation",
+            "Escher/EscherStm"
+          ],
+          "untouchedPictureLeaves": 1,
+          "unrelatedContentsChunks": 43,
+          "compoundMetadataPreserved": true,
+          "sourceImageBytesPreserved": true,
+          "unrelatedPicturePropertiesPreserved": true,
+          "onlyCropRowsChanged": true,
+          "cropRawValues": {
+            "256": 8192,
+            "257": 12288,
+            "258": 16384,
+            "259": 4096
+          }
+        }
+      ],
+      "cropOnly": "Contents,image stores,image payloads,other picture leaves,noncrop properties,anchors and compound metadata unchanged.",
+      "combined": "Crop rows compose with new image binding/filename and bounds. Other native chunks/placements and prior delayed payload bytes remain unchanged; old image reference count decrements once.",
+      "summaryMetadata": "Only stale thumbnail PID17 is removed; all other raw properties are equal."
+    },
+    "nativeControlUnits": "Automation setters use image-space points. Controls derive points from image dimensions/encoded DPI, then independently inspect saved16.16 fractions and native pixels. The retained6/3point control encodes16382/8191 rather than exactquarters; no universal point/fraction identity or OriginalWidth/Height probe is assumed.",
+    "fixtures": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/PictureCropFractions/provenance.json",
+        "sha256": "76611da1fc53082ef397ae598d71a65780520a6df39f01354bd95fb276a4a895"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/PictureCropFractionsReplacement/provenance.json",
+        "sha256": "9074cb16112bd6e358fea9c1bdb36d63f09ac0ed6d50334026dadd9ede6930f4"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesCropped/provenance.json",
+        "sha256": "b33a33019fc44817904e991b5b38e2da5fc64cd5ec4cab7fca23b87dbdc937b2"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesJpegCropped/provenance.json",
+        "sha256": "810b470a9a27a2f3b4f842b0a37081a63d83b02268806f8bea50bba52c46d058"
+      }
+    ],
+    "tests": {
+      "publisher": {
+        "net10.0": 891,
+        "net8.0": 891,
+        "net472": 891
+      },
+      "reader": 95,
+      "focusedPictureTests": 35,
+      "standardBuilds": [
+        "OfficeIMO.Publisher.Pdf netstandard2.0",
+        "OfficeIMO.Reader.Publisher netstandard2.0"
+      ],
+      "regressions": [
+        "Native_crop_saves_retain_other_placements_assets_and_the_selected_frame_contract (set,clear,replace-and-resize)",
+        "Source_free_crop_updates_the_scene_without_mutating_assets_neighbors_or_old_snapshots",
+        "Invalid_crop_unknown_identity_and_cancellation_preserve_the_current_state",
+        "Native_crop_quantization_is_reported_without_changing_the_requested_model",
+        "Native_crop_rounding_that_collapses_the_visible_area_refuses_output",
+        "Unsupported_picture_edits_are_explicit_and_leave_readable_state_unchanged (full-edge-crop added)"
+      ],
+      "mutationControls": "Omitting source crop preparation fails the native reload assertions; widening full-edge eligibility fails the new boundary row. Final distinct-edge controls fail as expected, restored sources pass."
+    },
+    "sourcePowerShell": {
+      "sourceBuild": "Integrated unsigned PSWriteOffice net8.0",
+      "route": "publisher-pdf",
+      "pdfs": 5,
+      "pages": 12,
+      "managedPixelPairs": 12,
+      "actualOwnerAssemblyBound": true
+    },
+    "validation": {
+      "probeBuild": "Final unsigned Release no-incremental build,zero warnings/errors. New cropped specimen uses the public model/setter and shared encoder; all15previous creation profiles byte-identical.",
+      "nativeScriptSyntax": "Six changed scripts parse in PowerShell7 and Windows PowerShell5.1; no PowerShell5.1 COM retry.",
+      "review": "One independent read-only pass and one targeted confirmation; no production findings. Cropped replacement receipt wording corrected,2controls regenerated with native inventories,5pagepixels and source image bytes unchanged. Raw preservation,actual native render sheet,and current docs inspected. Maintained qualification record added and bindings verified before closeout.",
+      "newProductionDependency": false,
+      "newPublicCoreApi": false
+    },
+    "reproduction": "Build the source and opt-in probe. Set/clear crop on retained PictureOwnership/PictureCropped placements; combine with replacement and resized bounds; crop the retained JPEG placement; save with explicit Allow. Create cropped-image-pages from the retained PNGs through the public authoring model. Validate each Native Full output against its independent control before and after native resave,public reloads and exact raw preservation. Inspect quantization/refusal through the public source-save results.",
+    "limits": [
+      "Closed visible untransformed rectangular PNG/JPEG profile; general masks, effects, orientation and transformed/grouped pictures remain inspection-only.",
+      "Managed and native image interpolation/precise crop geometry remain distinct limits; PS parity is against the managed engine.",
+      "Repair-free opening, generic model serialization and public template-free native saving remain unqualified.",
+      "The public mutation is an in-memory and bounded existing-source operation; public template-free PUB saving remains unavailable.",
+      "New template-free crop specimen is the closed PNG profile, not arbitrary model/native generation or all JPEG authoring coverage."
+    ]
   }
 }
