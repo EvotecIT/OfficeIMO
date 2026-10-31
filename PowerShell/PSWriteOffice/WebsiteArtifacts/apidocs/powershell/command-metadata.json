@@ -5057,34 +5057,12 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/SetOfficePdfThemeCommand.cs#L25"
     },
     {
-      "name": "Set-OfficePowerPointLayoutPlaceholderBounds",
+      "name": "Set-OfficePowerPointLayoutPlaceholder",
       "kind": "Cmdlet",
-      "aliases": [
-        "PptLayoutPlaceholderBounds"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointLayoutPlaceholderBoundsCommand.cs",
-      "sourceLine": 29,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointLayoutPlaceholderBoundsCommand.cs#L29"
-    },
-    {
-      "name": "Set-OfficePowerPointLayoutPlaceholderTextMargins",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptLayoutPlaceholderMargins"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointLayoutPlaceholderTextMarginsCommand.cs",
-      "sourceLine": 29,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointLayoutPlaceholderTextMarginsCommand.cs#L29"
-    },
-    {
-      "name": "Set-OfficePowerPointLayoutPlaceholderTextStyle",
-      "kind": "Cmdlet",
-      "aliases": [
-        "PptLayoutPlaceholderTextStyle"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointLayoutPlaceholderTextStyleCommand.cs",
-      "sourceLine": 31,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointLayoutPlaceholderTextStyleCommand.cs#L31"
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointLayoutPlaceholderCommand.cs",
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointLayoutPlaceholderCommand.cs#L18"
     },
     {
       "name": "Set-OfficePowerPointNotes",

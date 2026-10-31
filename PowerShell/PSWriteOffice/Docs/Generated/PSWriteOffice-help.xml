@@ -210568,757 +210568,28 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Set-OfficePowerPointLayoutPlaceholderBounds</command:name>
+      <command:name>Set-OfficePowerPointLayoutPlaceholder</command:name>
       <command:verb>Set</command:verb>
-      <command:noun>OfficePowerPointLayoutPlaceholderBounds</command:noun>
+      <command:noun>OfficePowerPointLayoutPlaceholder</command:noun>
       <maml:description>
-        <maml:para>Sets layout placeholder bounds for a slide layout.</maml:para>
+        <maml:para>Updates a template layout placeholder's geometry, text margins and text style.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Sets layout placeholder bounds for a slide layout.</maml:para>
+      <maml:para>Omitted properties keep their current values. Master and layout positions start at one.
+Numbers mean points; text margins use one, two or four values in CSS order.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
-        <maml:name>Set-OfficePowerPointLayoutPlaceholderBounds</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>CreateIfMissing</maml:name>
-          <maml:description>
-            <maml:para>Create the placeholder if it is missing.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Height</maml:name>
-          <maml:description>
-            <maml:para>Height in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Index</maml:name>
-          <maml:description>
-            <maml:para>Optional placeholder index.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">UInt32</command:parameterValue>
-          <dev:type>
-            <maml:name>UInt32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Layout</maml:name>
-          <maml:description>
-            <maml:para>Layout index within the master.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Left</maml:name>
-          <maml:description>
-            <maml:para>Left position in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Master</maml:name>
-          <maml:description>
-            <maml:para>Slide master index.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the placeholder textbox after update.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Type">
-          <maml:name>PlaceholderType</maml:name>
-          <maml:description>
-            <maml:para>Placeholder type to target.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">PowerPointPlaceholderType</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Title</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Body</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CenteredTitle</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SubTitle</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">DateAndTime</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SlideNumber</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Footer</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Header</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">ClipArt</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Diagram</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Media</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SlideImage</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>PowerPointPlaceholderType</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
-          <maml:description>
-            <maml:para>Presentation to update (optional inside DSL).</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Top</maml:name>
-          <maml:description>
-            <maml:para>Top position in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Width</maml:name>
-          <maml:description>
-            <maml:para>Width in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>CreateIfMissing</maml:name>
-        <maml:description>
-          <maml:para>Create the placeholder if it is missing.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Height</maml:name>
-        <maml:description>
-          <maml:para>Height in points.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Index</maml:name>
-        <maml:description>
-          <maml:para>Optional placeholder index.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">UInt32</command:parameterValue>
-        <dev:type>
-          <maml:name>UInt32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Layout</maml:name>
-        <maml:description>
-          <maml:para>Layout index within the master.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Left</maml:name>
-        <maml:description>
-          <maml:para>Left position in points.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Master</maml:name>
-        <maml:description>
-          <maml:para>Slide master index.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>PassThru</maml:name>
-        <maml:description>
-          <maml:para>Emit the placeholder textbox after update.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Type">
-        <maml:name>PlaceholderType</maml:name>
-        <maml:description>
-          <maml:para>Placeholder type to target.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">PowerPointPlaceholderType</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">Title</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Body</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">CenteredTitle</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">SubTitle</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">DateAndTime</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">SlideNumber</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Footer</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Header</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">ClipArt</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Diagram</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Media</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">SlideImage</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>PowerPointPlaceholderType</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Presentation</maml:name>
-        <maml:description>
-          <maml:para>Presentation to update (optional inside DSL).</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>PowerPointDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Top</maml:name>
-        <maml:description>
-          <maml:para>Top position in points.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Width</maml:name>
-        <maml:description>
-          <maml:para>Width in points.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointDocument</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointTextBox</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Update title placeholder bounds.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Set-OfficePowerPointLayoutPlaceholderBounds -Presentation $ppt -Master 0 -Layout 1 -PlaceholderType Title -Left 40 -Top 20 -Width 500 -Height 120</dev:code>
-        <dev:remarks>
-          <maml:para>Moves/resizes the Title placeholder on the layout.</maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Update placeholder bounds inside the DSL.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePowerPoint -Path .\deck.pptx {
-                $layout = Get-OfficePowerPointLayout | Select-Object -First 1
-                Set-OfficePowerPointLayoutPlaceholderBounds -Master $layout.MasterIndex -Layout $layout.LayoutIndex -PlaceholderType Title -Left 40 -Top 20 -Width 500 -Height 120
-              }</dev:code>
-        <dev:remarks>
-          <maml:para>Uses the DSL context to resolve the presentation.</maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
-      <command:name>Set-OfficePowerPointLayoutPlaceholderTextMargins</command:name>
-      <command:verb>Set</command:verb>
-      <command:noun>OfficePowerPointLayoutPlaceholderTextMargins</command:noun>
-      <maml:description>
-        <maml:para>Sets layout placeholder text margins for a slide layout (points).</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Sets layout placeholder text margins for a slide layout (points).</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
-        <maml:name>Set-OfficePowerPointLayoutPlaceholderTextMargins</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Bottom</maml:name>
-          <maml:description>
-            <maml:para>Bottom margin in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>CreateIfMissing</maml:name>
-          <maml:description>
-            <maml:para>Create the placeholder if it is missing.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Index</maml:name>
-          <maml:description>
-            <maml:para>Optional placeholder index.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">UInt32</command:parameterValue>
-          <dev:type>
-            <maml:name>UInt32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Layout</maml:name>
-          <maml:description>
-            <maml:para>Layout index within the master.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Left</maml:name>
-          <maml:description>
-            <maml:para>Left margin in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Master</maml:name>
-          <maml:description>
-            <maml:para>Slide master index.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the placeholder textbox after update.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Type">
-          <maml:name>PlaceholderType</maml:name>
-          <maml:description>
-            <maml:para>Placeholder type to target.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">PowerPointPlaceholderType</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Title</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Body</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CenteredTitle</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SubTitle</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">DateAndTime</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SlideNumber</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Footer</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Header</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">ClipArt</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Diagram</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Media</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">SlideImage</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>PowerPointPlaceholderType</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
-          <maml:description>
-            <maml:para>Presentation to update (optional inside DSL).</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Right</maml:name>
-          <maml:description>
-            <maml:para>Right margin in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Top</maml:name>
-          <maml:description>
-            <maml:para>Top margin in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Bottom</maml:name>
-        <maml:description>
-          <maml:para>Bottom margin in points.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>CreateIfMissing</maml:name>
-        <maml:description>
-          <maml:para>Create the placeholder if it is missing.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Index</maml:name>
-        <maml:description>
-          <maml:para>Optional placeholder index.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">UInt32</command:parameterValue>
-        <dev:type>
-          <maml:name>UInt32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Layout</maml:name>
-        <maml:description>
-          <maml:para>Layout index within the master.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Left</maml:name>
-        <maml:description>
-          <maml:para>Left margin in points.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Master</maml:name>
-        <maml:description>
-          <maml:para>Slide master index.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>PassThru</maml:name>
-        <maml:description>
-          <maml:para>Emit the placeholder textbox after update.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Type">
-        <maml:name>PlaceholderType</maml:name>
-        <maml:description>
-          <maml:para>Placeholder type to target.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">PowerPointPlaceholderType</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">Title</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Body</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">CenteredTitle</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">SubTitle</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">DateAndTime</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">SlideNumber</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Footer</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Header</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">ClipArt</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Diagram</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Media</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">SlideImage</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>PowerPointPlaceholderType</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Presentation</maml:name>
-        <maml:description>
-          <maml:para>Presentation to update (optional inside DSL).</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>PowerPointDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Right</maml:name>
-        <maml:description>
-          <maml:para>Right margin in points.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Top</maml:name>
-        <maml:description>
-          <maml:para>Top margin in points.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointDocument</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointTextBox</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Update layout placeholder text margins.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Set-OfficePowerPointLayoutPlaceholderTextMargins -Presentation $ppt -Master 0 -Layout 1 -PlaceholderType Title -Left 12 -Top 8 -Right 12 -Bottom 8</dev:code>
-        <dev:remarks>
-          <maml:para>Updates the text margins on the layout placeholder.</maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Update margins inside the DSL.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePowerPoint -Path .\deck.pptx {
-                $layout = Get-OfficePowerPointLayout | Select-Object -First 1
-                Set-OfficePowerPointLayoutPlaceholderTextMargins -Master $layout.MasterIndex -Layout $layout.LayoutIndex -PlaceholderType Title -Left 12 -Top 8 -Right 12 -Bottom 8
-              }</dev:code>
-        <dev:remarks>
-          <maml:para>Uses the DSL context to resolve the presentation.</maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
-      <command:name>Set-OfficePowerPointLayoutPlaceholderTextStyle</command:name>
-      <command:verb>Set</command:verb>
-      <command:noun>OfficePowerPointLayoutPlaceholderTextStyle</command:noun>
-      <maml:description>
-        <maml:para>Sets layout placeholder text style and bullet/numbering settings.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Sets layout placeholder text style and bullet/numbering settings.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
-        <maml:name>Set-OfficePowerPointLayoutPlaceholderTextStyle</maml:name>
+        <maml:name>Set-OfficePowerPointLayoutPlaceholder</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Bold</maml:name>
           <maml:description>
-            <maml:para>Apply bold formatting.</maml:para>
+            <maml:para>Gets or sets bold formatting; an explicitly false switch clears it.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -211326,7 +210597,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>BulletChar</maml:name>
           <maml:description>
-            <maml:para>Optional bullet character (ignored when -Numbering is supplied).</maml:para>
+            <maml:para>Gets or sets a single bullet character, exclusive with Numbering.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -211338,11 +210609,11 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Color</maml:name>
           <maml:description>
-            <maml:para>Text color. Named colors and hexadecimal values are accepted.</maml:para>
+            <maml:para>Gets or sets text color, resolving theme roles against the selected master.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>OfficeColor</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -211350,7 +210621,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>CreateIfMissing</maml:name>
           <maml:description>
-            <maml:para>Create the placeholder if it is missing.</maml:para>
+            <maml:para>Gets or sets whether to create a missing placeholder.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -211359,10 +210630,22 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>FontName</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Font name (Latin).</maml:para>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Font</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the Latin font family.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -211372,25 +210655,25 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>FontSize</maml:name>
+          <maml:name>Height</maml:name>
           <maml:description>
-            <maml:para>Font size in points.</maml:para>
+            <maml:para>Gets or sets the positive placeholder height.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Int32</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>HighlightColor</maml:name>
+          <maml:name>Highlight</maml:name>
           <maml:description>
-            <maml:para>Highlight color. Named colors and hexadecimal values are accepted.</maml:para>
+            <maml:para>Gets or sets the highlight color.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>OfficeColor</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -211398,7 +210681,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Index</maml:name>
           <maml:description>
-            <maml:para>Optional placeholder index.</maml:para>
+            <maml:para>Gets or sets the optional native placeholder index.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">UInt32</command:parameterValue>
           <dev:type>
@@ -211410,23 +210693,11 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Italic</maml:name>
           <maml:description>
-            <maml:para>Apply italic formatting.</maml:para>
+            <maml:para>Gets or sets italic formatting; an explicitly false switch clears it.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Layout</maml:name>
-          <maml:description>
-            <maml:para>Layout index within the master.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -211434,7 +210705,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Level</maml:name>
           <maml:description>
-            <maml:para>Paragraph level (0-8) to set before applying style.</maml:para>
+            <maml:para>Gets or sets the zero-based paragraph indentation level.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -211446,7 +210717,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Master</maml:name>
           <maml:description>
-            <maml:para>Slide master index.</maml:para>
+            <maml:para>Gets or sets the one-based master position, defaulting to the first or to the layout metadata's master.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -211458,7 +210729,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Numbering</maml:name>
           <maml:description>
-            <maml:para>Optional numbering scheme name (e.g. ArabicPeriod, RomanUpper).</maml:para>
+            <maml:para>Gets or sets the native numbering scheme, exclusive with BulletChar.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">PowerPointNumberingScheme</command:parameterValue>
           <command:parameterValueGroup>
@@ -211513,7 +210784,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the placeholder textbox after update.</maml:para>
+            <maml:para>Gets or sets whether to emit the updated native text box.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -211522,10 +210793,65 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Type">
-          <maml:name>PlaceholderType</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Size</maml:name>
           <maml:description>
-            <maml:para>Placeholder type to target.</maml:para>
+            <maml:para>Gets or sets the font size, from one through 4000 points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Style</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a native text preset.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Title</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Subtitle</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Body</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Caption</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Emphasis</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>TemplateLayout</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a layout name, one-based position, native type or returned layout metadata.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">PowerPointLayoutSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointLayoutSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>TextMargin</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets margins: all; vertical,horizontal; or top,right,bottom,left.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength[]</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Type</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the placeholder type.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">PowerPointPlaceholderType</command:parameterValue>
           <command:parameterValueGroup>
@@ -211552,45 +210878,70 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
-          <maml:description>
-            <maml:para>Presentation to update (optional inside DSL).</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointDocument</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Style</maml:name>
-          <maml:description>
-            <maml:para>Named style preset (Title, Subtitle, Body, Caption, Emphasis).</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Title</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Subtitle</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Body</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Caption</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Emphasis</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Underline</maml:name>
           <maml:description>
-            <maml:para>Apply underline formatting.</maml:para>
+            <maml:para>Gets or sets the native underline style; None removes underlining.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointUnderlineStyle</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Words</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Single</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Heavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Dotted</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">HeavyDotted</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Dash</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DashHeavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DashLong</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DashLongHeavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DotDash</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DotDashHeavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DotDotDash</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DotDotDashHeavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Wavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">WavyHeavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">WavyDouble</command:parameterValue>
+          </command:parameterValueGroup>
           <dev:type>
-            <maml:name>Boolean</maml:name>
+            <maml:name>PowerPointUnderlineStyle</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Width</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the positive placeholder width.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>X</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the left position; negative positions are allowed.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Y</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the top position; negative positions are allowed.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -211601,11 +210952,11 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Bold</maml:name>
         <maml:description>
-          <maml:para>Apply bold formatting.</maml:para>
+          <maml:para>Gets or sets bold formatting; an explicitly false switch clears it.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -211613,7 +210964,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>BulletChar</maml:name>
         <maml:description>
-          <maml:para>Optional bullet character (ignored when -Numbering is supplied).</maml:para>
+          <maml:para>Gets or sets a single bullet character, exclusive with Numbering.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -211625,11 +210976,11 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Color</maml:name>
         <maml:description>
-          <maml:para>Text color. Named colors and hexadecimal values are accepted.</maml:para>
+          <maml:para>Gets or sets text color, resolving theme roles against the selected master.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>OfficeColor</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -211637,7 +210988,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>CreateIfMissing</maml:name>
         <maml:description>
-          <maml:para>Create the placeholder if it is missing.</maml:para>
+          <maml:para>Gets or sets whether to create a missing placeholder.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -211646,10 +210997,22 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>FontName</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
         <maml:description>
-          <maml:para>Font name (Latin).</maml:para>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>PowerPointDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Font</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the Latin font family.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -211659,25 +211022,25 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>FontSize</maml:name>
+        <maml:name>Height</maml:name>
         <maml:description>
-          <maml:para>Font size in points.</maml:para>
+          <maml:para>Gets or sets the positive placeholder height.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Int32</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>HighlightColor</maml:name>
+        <maml:name>Highlight</maml:name>
         <maml:description>
-          <maml:para>Highlight color. Named colors and hexadecimal values are accepted.</maml:para>
+          <maml:para>Gets or sets the highlight color.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>OfficeColor</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -211685,7 +211048,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Index</maml:name>
         <maml:description>
-          <maml:para>Optional placeholder index.</maml:para>
+          <maml:para>Gets or sets the optional native placeholder index.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">UInt32</command:parameterValue>
         <dev:type>
@@ -211697,23 +211060,11 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Italic</maml:name>
         <maml:description>
-          <maml:para>Apply italic formatting.</maml:para>
+          <maml:para>Gets or sets italic formatting; an explicitly false switch clears it.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
-          <maml:name>Boolean</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Layout</maml:name>
-        <maml:description>
-          <maml:para>Layout index within the master.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -211721,7 +211072,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Level</maml:name>
         <maml:description>
-          <maml:para>Paragraph level (0-8) to set before applying style.</maml:para>
+          <maml:para>Gets or sets the zero-based paragraph indentation level.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -211733,7 +211084,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Master</maml:name>
         <maml:description>
-          <maml:para>Slide master index.</maml:para>
+          <maml:para>Gets or sets the one-based master position, defaulting to the first or to the layout metadata's master.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -211745,7 +211096,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Numbering</maml:name>
         <maml:description>
-          <maml:para>Optional numbering scheme name (e.g. ArabicPeriod, RomanUpper).</maml:para>
+          <maml:para>Gets or sets the native numbering scheme, exclusive with BulletChar.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">PowerPointNumberingScheme</command:parameterValue>
         <command:parameterValueGroup>
@@ -211800,7 +211151,7 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the placeholder textbox after update.</maml:para>
+          <maml:para>Gets or sets whether to emit the updated native text box.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -211809,10 +211160,65 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Type">
-        <maml:name>PlaceholderType</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Size</maml:name>
         <maml:description>
-          <maml:para>Placeholder type to target.</maml:para>
+          <maml:para>Gets or sets the font size, from one through 4000 points.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeLength</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Style</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets a native text preset.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Title</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Subtitle</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Body</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Caption</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Emphasis</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>TemplateLayout</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets a layout name, one-based position, native type or returned layout metadata.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">PowerPointLayoutSelector</command:parameterValue>
+        <dev:type>
+          <maml:name>PowerPointLayoutSelector</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>TextMargin</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets margins: all; vertical,horizontal; or top,right,bottom,left.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeLength[]</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeLength[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Type</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the placeholder type.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">PowerPointPlaceholderType</command:parameterValue>
         <command:parameterValueGroup>
@@ -211839,45 +211245,70 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Presentation</maml:name>
-        <maml:description>
-          <maml:para>Presentation to update (optional inside DSL).</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>PowerPointDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Style</maml:name>
-        <maml:description>
-          <maml:para>Named style preset (Title, Subtitle, Body, Caption, Emphasis).</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">Title</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Subtitle</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Body</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Caption</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Emphasis</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Underline</maml:name>
         <maml:description>
-          <maml:para>Apply underline formatting.</maml:para>
+          <maml:para>Gets or sets the native underline style; None removes underlining.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PowerPointUnderlineStyle</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Words</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Single</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Heavy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Dotted</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">HeavyDotted</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Dash</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">DashHeavy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">DashLong</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">DashLongHeavy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">DotDash</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">DotDashHeavy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">DotDotDash</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">DotDotDashHeavy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Wavy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">WavyHeavy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">WavyDouble</command:parameterValue>
+        </command:parameterValueGroup>
         <dev:type>
-          <maml:name>Boolean</maml:name>
+          <maml:name>PowerPointUnderlineStyle</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Width</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the positive placeholder width.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeLength</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>X</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the left position; negative positions are allowed.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeLength</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Y</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the top position; negative positions are allowed.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -211904,26 +211335,10 @@ Apply a theme near the start of a New-OfficePdf script block so later content in
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Apply a title preset style.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Set-OfficePowerPointLayoutPlaceholderTextStyle -Presentation $ppt -Master 0 -Layout 1 -PlaceholderType Title -Style Title</dev:code>
+        <maml:title>Adjust a template title area and style.</maml:title>
+        <dev:code>Set-OfficePowerPointLayoutPlaceholder -Document $deck -TemplateLayout 'Title and Content' -Type Title -X 2cm -Width 24cm -TextMargin 6pt,8pt -Size 32pt -Bold</dev:code>
         <dev:remarks>
-          <maml:para>Applies the Title preset to the layout placeholder.</maml:para>
-        </dev:remarks>
-      </command:example>
-      <command:example>
-        <maml:title>Apply a style inside the DSL.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePowerPoint -Path .\deck.pptx {
-                $layout = Get-OfficePowerPointLayout | Select-Object -First 1
-                Set-OfficePowerPointLayoutPlaceholderTextStyle -Master $layout.MasterIndex -Layout $layout.LayoutIndex -PlaceholderType Title -Style Title -FontSize 36 -Bold $true
-              }</dev:code>
-        <dev:remarks>
-          <maml:para>Uses the DSL context to resolve the presentation.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
