@@ -2302,6 +2302,11 @@ removed, and the output is refused if either those entries or a Form XObject tha
 page paints still hold it. Whole-block areas are rectangles, so they also remove text
 from a neighbouring line that the rectangle reaches.
 
+Rewriting a repeated image or form paints a scrubbed copy, so the original entry is
+dropped from any resources that no longer paint it. A placement outside the reviewed
+areas keeps the original. If unpainted content still holds a reviewed image, `Apply(plan)`
+refuses the output and `VerifyAppliedPlan` reports it.
+
 `TextAndUnderlay` still removes image pixels and intersecting vector paths across the
 whole mark, so scanned ink under a match is erased, including descenders, while
 neighbouring OCR text stays. `TextOnly` keeps the image, and refuses when other text

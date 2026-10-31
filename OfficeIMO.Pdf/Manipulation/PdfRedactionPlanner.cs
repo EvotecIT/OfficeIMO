@@ -156,6 +156,17 @@ internal static partial class PdfRedactionPlanner {
             }
         }
 
+        var imageFingerprints = new Dictionary<int, string?>();
+        foreach (PdfRedactionMatch match in matches) {
+            if (match.Kind != PdfRedactionMatchKind.ImagePlacement || match.ObjectNumber is not int imageObject) continue;
+            if (!imageFingerprints.TryGetValue(imageObject, out string? fingerprint)) {
+                fingerprint = readDocument.Objects.TryGetValue(imageObject, out PdfIndirectObject? indirect) && indirect.Value is PdfStream image
+                    ? PdfRedactionPlan.ComputeSourceSha256(image.Data) : null;
+                imageFingerprints.Add(imageObject, fingerprint);
+            }
+            match.ImageDataSha256 = fingerprint;
+        }
+
         findings.Add(new PdfDiagnosticFinding(
             PdfDiagnosticSeverity.Info,
             "redaction-plan-only",

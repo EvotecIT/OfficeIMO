@@ -383,7 +383,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             PdfRedactionVerificationReport report = PdfDocument.Load(orphaned).Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
 
-            Assert.Contains(report.Issues, issue => issue.Feature == "SearchedTextOutsidePageContent" && issue.Marker == "OrphanedFormXObject");
+            Assert.Contains(report.Issues, issue => issue.Feature == "RedactedContentOutsidePageContent" && issue.Marker == "OrphanedFormXObject");
         }
 
         [Fact]
@@ -397,7 +397,137 @@ namespace OfficeIMO.Tests.Pdf {
             PdfDocument tagged = PdfDocument.Load(BuildTaggedSource());
             PdfRedactionPlan plan = tagged.Redactions.Search(PreciseOptions().AddLiteral("secret"));
             PdfRedactionVerificationReport report = tagged.Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
-            Assert.Contains(report.Issues, issue => issue.Feature == "SearchedTextOutsidePageContent" && issue.Marker == "AlternateText");
+            Assert.Contains(report.Issues, issue => issue.Feature == "RedactedContentOutsidePageContent" && issue.Marker == "AlternateText");
+        }
+
+        // Two placements of one form, each drawing the same marked image.
+        private byte[] BuildRepeatedImageFormSource(string? pageContent = null) {
+            const int width = 40, height = 40;
+            byte[] pixels = Enumerable.Repeat((byte)0x5A, width * height).ToArray();
+            const string form = "q 100 0 0 100 0 0 cm /Im1 Do Q";
+            return BuildPdf(new[] {
+                "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+                "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+                "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> /XObject << /Fm1 6 0 R >> >> >>\nendobj",
+                "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+                BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes(pageContent ?? "q 1 0 0 1 100 600 cm /Fm1 Do Q q 1 0 0 1 100 300 cm /Fm1 Do Q")),
+                "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /XObject << /Im1 7 0 R >> >> /Length " + form.Length + " >>\nstream\n" + form + "\nendstream\nendobj",
+                "7 0 obj\n<< /Type /XObject /Subtype /Image /Width " + width + " /Height " + height + " /ColorSpace /DeviceGray /BitsPerComponent 8 /Length " + pixels.Length +
+                    " >>\nstream\n" + PdfEncoding.Latin1GetString(pixels) + "\nendstream\nendobj"
+            }, rootObjectNumber: 1);
+        }
+
+        private static int CountUntouchedImagePixels(byte[] pdf) {
+            Dictionary<int, PdfIndirectObject> objects = PdfReadDocument.Open(pdf).Objects;
+            return objects.Values.Select(static item => item.Value).OfType<PdfStream>()
+                .Where(static stream => stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image")
+                .Select(stream => OfficeIMO.Pdf.Filters.StreamDecoder.DecodeRequired(stream, objects, int.MaxValue))
+                .Count(static data => data.All(static value => value == 0x5A));
+        }
+
+        [Fact]
+        public void RedactingEveryPlacementOfARepeatedImageFormLeavesNoOriginalPixels() {
+            byte[] bytes = BuildRepeatedImageFormSource();
+            Assert.Equal(1, CountUntouchedImagePixels(bytes));
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Plan(new[] {
+                new PdfRedactionArea(1, 120, 620, 40, 40), new PdfRedactionArea(1, 120, 320, 40, 40)
+            });
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.Equal(0, CountUntouchedImagePixels(result.Pdf));
+        }
+
+        [Fact]
+        public void RedactingOnePlacementKeepsTheOtherPaintedFromTheOriginalImage() {
+            byte[] bytes = BuildRepeatedImageFormSource();
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(source.Redactions.Plan(new[] { new PdfRedactionArea(1, 120, 620, 40, 40) }));
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.Equal(1, CountUntouchedImagePixels(result.Pdf));
+            Assert.Equal(2, PdfReadDocument.Open(result.Pdf).Pages[0].GetImagePlacements().Count);
+        }
+
+        [Fact]
+        public void VerifierFlagsAFormNothingPaintsThatHoldsTheRedactedImage() {
+            PdfDocument source = PdfDocument.Load(BuildRepeatedImageFormSource());
+            PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 120, 620, 40, 40) });
+            PdfDocument orphaned = PdfDocument.Load(BuildRepeatedImageFormSource("q Q"));
+
+            PdfRedactionVerificationReport report = orphaned.Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
+
+            Assert.Contains(report.Issues, issue => issue.Feature == "RedactedContentOutsidePageContent" && issue.Marker == "OrphanedImageData");
+        }
+
+        [Fact]
+        public void TextOnlyPlanDoesNotTreatItsKeptImageAsALeftover() {
+            PdfDocument source = PdfDocument.Load(BuildRepeatedImageFormSource());
+            PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 120, 620, 40, 40, null, PdfRedactionContentScope.TextOnly) });
+            PdfDocument unpainted = PdfDocument.Load(BuildRepeatedImageFormSource("q Q"));
+            PdfRedactionVerificationReport report = unpainted.Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
+            Assert.DoesNotContain(report.Issues, issue => issue.Marker == "OrphanedImageData");
+        }
+
+        [Fact]
+        public void RedactingAnImagePaintedTwiceDirectlyLeavesNoOriginalPixels() {
+            byte[] bytes = BuildRepeatedImageFormSource("q 100 0 0 100 100 600 cm /Im1 Do Q q 100 0 0 100 100 300 cm /Im1 Do Q")
+                ;
+            bytes = PdfEncoding.Latin1GetBytes(PdfEncoding.Latin1GetString(bytes).Replace("/XObject << /Fm1 6 0 R >> >> >>", "/XObject << /Im1 7 0 R >> >> >>"));
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 120, 620, 40, 40), new PdfRedactionArea(1, 120, 320, 40, 40) });
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.Equal(0, CountUntouchedImagePixels(result.Pdf));
+        }
+
+        [Fact]
+        public void RedactingANestedRepeatedImageFormLeavesNoOriginalPixels() {
+            const int size = 40;
+            byte[] pixels = Enumerable.Repeat((byte)0x5A, size * size).ToArray();
+            const string inner = "q 100 0 0 100 0 0 cm /Im1 Do Q", outer = "q 1 0 0 1 0 0 cm /In1 Do Q q 1 0 0 1 200 0 cm /In1 Do Q";
+            byte[] bytes = BuildPdf(new[] {
+                "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+                "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+                "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /XObject << /Fm1 6 0 R >> >> >>\nendobj",
+                "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+                BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes("q 1 0 0 1 100 600 cm /Fm1 Do Q")),
+                "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 400 100] /Resources << /XObject << /In1 8 0 R >> >> /Length " + outer.Length + " >>\nstream\n" + outer + "\nendstream\nendobj",
+                "7 0 obj\n<< /Type /XObject /Subtype /Image /Width " + size + " /Height " + size + " /ColorSpace /DeviceGray /BitsPerComponent 8 /Length " + pixels.Length + " >>\nstream\n" + PdfEncoding.Latin1GetString(pixels) + "\nendstream\nendobj",
+                "8 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /XObject << /Im1 7 0 R >> >> /Length " + inner.Length + " >>\nstream\n" + inner + "\nendstream\nendobj"
+            }, rootObjectNumber: 1);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 120, 620, 40, 40), new PdfRedactionArea(1, 320, 620, 40, 40) });
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.Equal(0, CountUntouchedImagePixels(result.Pdf));
+        }
+
+        [Fact]
+        public void RedactingAFormSharedByTwoPagesLeavesNoOriginalPixels() {
+            const int size = 40;
+            byte[] pixels = Enumerable.Repeat((byte)0x5A, size * size).ToArray();
+            const string form = "q 100 0 0 100 0 0 cm /Im1 Do Q";
+            byte[] content = System.Text.Encoding.ASCII.GetBytes("q 1 0 0 1 100 600 cm /Fm1 Do Q");
+            byte[] bytes = BuildPdf(new[] {
+                "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+                "2 0 obj\n<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+                "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /XObject << /Fm1 6 0 R >> >> >>\nendobj",
+                "4 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /XObject << /Fm1 6 0 R >> >> >>\nendobj",
+                BuildStreamObject(5, content),
+                "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /XObject << /Im1 7 0 R >> >> /Length " + form.Length + " >>\nstream\n" + form + "\nendstream\nendobj",
+                "7 0 obj\n<< /Type /XObject /Subtype /Image /Width " + size + " /Height " + size + " /ColorSpace /DeviceGray /BitsPerComponent 8 /Length " + pixels.Length + " >>\nstream\n" + PdfEncoding.Latin1GetString(pixels) + "\nendstream\nendobj"
+            }, rootObjectNumber: 1);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 120, 620, 40, 40), new PdfRedactionArea(2, 120, 620, 40, 40) });
+            PdfRedactionApplyResult both = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(both.Evidence.IsVerified, both.Evidence.Summary);
+            Assert.Equal(0, CountUntouchedImagePixels(both.Pdf));
+
+            PdfRedactionApplyResult one = source.Redactions.ApplyWithEvidence(source.Redactions.Plan(new[] { new PdfRedactionArea(1, 120, 620, 40, 40) }));
+            Assert.True(one.Evidence.IsVerified, one.Evidence.Summary);
+            Assert.Equal(1, CountUntouchedImagePixels(one.Pdf));
         }
 
         private byte[] BuildTaggedSource() => BuildPdf(new[] {

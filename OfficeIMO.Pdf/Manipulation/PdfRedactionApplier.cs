@@ -69,7 +69,7 @@ internal static partial class PdfRedactionApplier {
             generatedGrowth: out generatedGrowth,
             appliedImageMatches: out appliedImageMatches);
         VerifySearchedTextRemoved(output, pdf, plan, layoutOptions, readOptions, generatedGrowth, effectiveOptions.CancellationToken);
-        PdfRedactionVerificationIssue[] outsidePages = FindSearchedTextOutsidePageContent(output, plan.Areas,
+        PdfRedactionVerificationIssue[] outsidePages = FindRedactedContentOutsidePages(output, plan,
             PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth), effectiveOptions.CancellationToken).ToArray();
         if (outsidePages.Length > 0) throw new InvalidOperationException(string.Join(" ", outsidePages.Select(static issue => issue.Message)));
         if (plan.Areas.Any(static area => area.RequiresGlyphRewrite)) {
@@ -289,6 +289,11 @@ internal static partial class PdfRedactionApplier {
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
         cleanupChanged = RemoveAlternateTextHoldingMatches(objects, areaArray) || cleanupChanged;
+        if (mutationScope == RedactionMutationScope.All) {
+            cleanupChanged = RemoveUnpaintedRedactedImages(objects, plan.Matches
+                .Where(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement && match.RequiresRemoval)
+                .Select(static match => match.ObjectNumber).OfType<int>(), limits, sourceStreamIdentities) || cleanupChanged;
+        }
         if (!mutation.HasChanges && !cleanupChanged) {
             generatedGrowth = default;
             appliedImageMatches = mutation.AppliedImageMatches;
