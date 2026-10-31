@@ -28,7 +28,7 @@ internal static class PublisherStoryEditor {
                 ValidateRun(run, value);
                 values.Add(new OfficeRichTextRun(value, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline,
                     run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle,
-                    run.Baseline, run.ParagraphIndent));
+                    run.Baseline, run.ParagraphIndent) { LanguageId = run.LanguageId });
             }
             if (paragraph.Label != null) {
                 OfficeRichTextRun label = paragraph.Label.Run;

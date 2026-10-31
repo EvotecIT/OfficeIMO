@@ -8,10 +8,12 @@ function Add-NativeFrameCreationControl {
     Its first physical page.
     .PARAMETER Edited
     Applies a common replacement layout to all six frames.
+    .PARAMETER LanguageId
+    Optional explicit native language identifier for the complete text range.
     .OUTPUTS
     The physical page count.
     #>
-    param($Document, $FirstPage, [switch]$Edited)
+    param($Document, $FirstPage, [switch]$Edited, [Nullable[int]]$LanguageId)
 
     $second = $Document.Pages.Add(1, 1)
     $objects.Add($second)
@@ -34,6 +36,7 @@ function Add-NativeFrameCreationControl {
         $paragraph = $frame.TextRange.ParagraphFormat
         $objects.Add($frame)
         $objects.Add($paragraph)
+        if ($null -ne $LanguageId) { $frame.TextRange.LanguageID = [int]$LanguageId }
         $paragraph.SpaceBefore = 0
         $paragraph.SpaceAfter = 0
         $paragraph.SetLineSpacing(4, 18)

@@ -4,7 +4,7 @@ namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Projects public column, inset and vertical-alignment authoring into the native creation specimen.</summary>
 internal static class CandidateFrameLayout {
-    internal static CandidatePublicationSpec Create(bool edited) {
+    internal static CandidatePublicationSpec Create(bool edited, uint? languageId = null) {
         PublisherDocument document = PublisherDocument.Create(612, 792);
         document.AddPage();
         var layouts = new[] {
@@ -20,7 +20,7 @@ internal static class CandidateFrameLayout {
             string text = index is 3 or 4 ? "Short native body." : string.Concat(Enumerable.Repeat("One two three four five six seven eight nine ten. ", 12)).TrimEnd();
             PublisherTextFrame frame = document.AddTextFrame(document.Pages[index / 3].Id,
                 54, 54 + index % 3 * 228, 504, 180, new[] { new OfficeRichTextParagraph(new[] {
-                    new OfficeRichTextRun(text, 12, OfficeColor.Black, fontFamily: "Arial")
+                    new OfficeRichTextRun(text, 12, OfficeColor.Black, fontFamily: "Arial").WithLanguageId(languageId)
                 }, lineHeight: 18) });
             document.SetTextFrameLayout(frame.Id, edited ? 2 : layout.Columns, edited ? 14 : layout.Gap,
                 edited ? new OfficeTextPadding(9, 3, 15, 6) : layout.Padding,

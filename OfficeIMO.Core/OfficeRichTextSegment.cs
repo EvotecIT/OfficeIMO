@@ -4,6 +4,8 @@ namespace OfficeIMO.Drawing;
 /// Describes one measured rich text segment on a laid-out line.
 /// </summary>
 public sealed class OfficeRichTextSegment {
+    /// <summary>Optional language identifier retained from the source run. Layout does not add language-specific hyphenation.</summary>
+    public uint? LanguageId { get; internal set; }
     // Native document adapters keep annotations attached through wrapping and shrinking.
     internal string? LinkUri { get; set; }
     internal string? LinkDestinationName { get; set; }

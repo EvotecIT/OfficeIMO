@@ -131,7 +131,7 @@ internal sealed class PublisherQuillTextReader {
             Font = paragraph.LabelFont, Size = paragraph.LabelSize > 0 ? paragraph.LabelSize : text.FontSize, Color = null
         }, paragraph);
         (string marker, bool useTextFont) = OfficeTextListMarkerNormalizer.Normalize(native, label.FontFamily);
-        label = new OfficeRichTextRun(marker, label.FontSize, text.Color, fontFamily: useTextFont ? text.FontFamily : label.FontFamily);
+        label = new OfficeRichTextRun(marker, label.FontSize, text.Color, fontFamily: useTextFont ? text.FontFamily : label.FontFamily) { LanguageId = useTextFont ? text.LanguageId : label.LanguageId };
         double first = paragraph.Margins.Left + paragraph.Indent.FirstLineOffset;
         return OfficeTextParagraphLabel.AtPosition(label, first, textPosition: paragraph.LabelTextPosition
             ?? paragraph.Margins.Left + paragraph.Indent.ContinuationLineOffset);

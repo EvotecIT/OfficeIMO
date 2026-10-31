@@ -95,10 +95,25 @@ internal static partial class PublisherQuillParagraphWriter {
                     }
                 }
             }
+            // Visual correspondence selects the native template; explicit
+            // language requests still need the character writer on copied bodies.
+            bool languageChanged = !resegment && template.Paragraph.Runs.Count == paragraph.Runs.Count
+                && template.Paragraph.Runs.Zip(paragraph.Runs, PublisherQuillCharacterStyleWriter.HasLanguageChange).Any(value => value);
+            if (languageChanged && (template.Length != 0 || replaceText)) {
+                if (template.ReplacementSpans != null) reformat = true;
+                else if (!replaceText) resegment = true;
+                else return false;
+            }
             // The CR is an empty paragraph's only character definition. It must
             // travel with that paragraph, including its typing and opaque fields.
             byte[]? terminator = template.Length == 0 ? template.Terminator : last ? final : template.InteriorTerminator;
             if (terminator == null) return false;
+            if (paragraph.Runs.Count > 0 && template.Paragraph.Runs.Count > 0
+                && paragraph.Runs[paragraph.Runs.Count - 1].LanguageId is uint language
+                && template.Paragraph.Runs[template.Paragraph.Runs.Count - 1].LanguageId != language) {
+                terminator = PublisherQuillCharacterStyleWriter.RewriteLanguage(terminator, language, context);
+                if (terminator == null) return false;
+            }
             byte[] definition = template.Definition;
             if (reformat || resegment) {
                 byte[]? rewritten = PublisherQuillParagraphStyleWriter.Rewrite(data, template.DefinitionSpan, template.Paragraph, paragraph, context);

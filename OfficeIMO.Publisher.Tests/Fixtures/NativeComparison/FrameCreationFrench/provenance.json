@@ -1,0 +1,34 @@
+{
+  "schema": "officeimo.publisher.native-frame-language-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case FrameCreationFrench",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-framecreationfrench.json",
+      "sha256": "3d36a2c50a8e2ed6d6ff9c562d4156b90e010c7812807831f0041e60f85382bb"
+    },
+    {
+      "name": "native-framecreationfrench.pdf",
+      "sha256": "938f1399ea6db29c158cd90ad4587478b70e9cc600398202b05b1e9240d5accc"
+    },
+    {
+      "name": "native-framecreationfrench.pub",
+      "sha256": "3f65155d8f196cd51fe2922fedf5bdadca512c7d4fb7b9b842081d4cb7674dc5"
+    }
+  ],
+  "observed": "Six ordinary frames on two pages with explicit native TextRange.LanguageID1036; columns, gaps, insets, alignment, Arial12 and18pt lines follow FrameCreation.",
+  "limits": "English-word synthetic control isolates the native language setting; broader French typography/scripts, managed hyphenation and repair-free opening remain unqualified."
+}

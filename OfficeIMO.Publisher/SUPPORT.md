@@ -493,9 +493,23 @@ three-page linked-story controls. Adding only property `0x3E` retains the
 baseline differences; its semantic role remains opaque. Existing native French
 controls write `0x12=1036`, including ranges without `0x3E`. The experiment uses
 ordered native character fields and changes no process-global hyphenation
-option. The current text model and writer specimens do not yet expose this
-language value. Broader languages/scripts, paragraph-terminator defaults,
-managed hyphenation and column balancing require separate qualification.
+option. The shared run model exposes this value through
+`LanguageId` and `WithLanguageId(uint?)`; native style inheritance fills recovered
+run values, and an explicit source edit rewrites only the qualified primary
+scalar. An unspecified replacement retains imported language tokens. Unknown
+scalar encodings remain opaque and explicit edits refuse them. The opaque
+companion field is preserved. Shared copies, tint/scale, flow and measured
+segments retain the annotation without adding managed hyphenation.
+
+The `runLanguageLifecycle` record qualifies public English/French set, reset and
+unspecified saves on generated, normalized and independent ordinary-frame
+sources. Twelve files complete 84 native operations; all 52 initial/resaved page
+pairs match independent references at 144 dpi, and 136 native getters retain
+the intended language. Three source-free public-model specimens cover columns,
+linked frames and terminal overflow. Existing unspecified-language creation
+profiles retain their byte identity. Native clearing of imported overrides,
+broader languages/scripts, paragraph-terminator defaults, managed hyphenation,
+column balancing and repair-free opening require separate qualification.
 
 Crop source saving can set or clear all four edge fractions, including local
 zero overrides, and combine them with image replacement and bounds changes.

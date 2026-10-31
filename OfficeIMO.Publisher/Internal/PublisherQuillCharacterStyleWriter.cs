@@ -7,7 +7,7 @@ internal static partial class PublisherQuillCharacterStyleWriter {
     internal static byte[]? Rewrite(PublisherBinaryData source, PublisherQuillSourceSpan span,
         OfficeRichTextRun before, OfficeRichTextRun after, PublisherParseContext context, PublisherQuillWriteResources? resources = null) {
         bool size = before.FontSize != after.FontSize, bold = before.Bold != after.Bold;
-        if (!size && !bold && !HasExtendedChanges(before, after)) {
+        if (!size && !bold && !HasExtendedChanges(before, after) && !HasLanguageChange(before, after)) {
             var copy = new byte[span.Length];
             Buffer.BlockCopy(source.Bytes, span.Offset, copy, 0, span.Length);
             return copy;

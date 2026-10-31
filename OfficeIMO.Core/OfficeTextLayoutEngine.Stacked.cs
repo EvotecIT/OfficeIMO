@@ -290,7 +290,7 @@ public static partial class OfficeTextLayoutEngine {
                     run.BackgroundColor,
                     run.UnderlineStyle,
                     run.StrikethroughStyle,
-                    run.Baseline)
+                    run.Baseline) { LanguageId = run.LanguageId }
             }, lineHeight));
         }
 
@@ -369,7 +369,7 @@ public static partial class OfficeTextLayoutEngine {
                     run.BackgroundColor,
                     run.UnderlineStyle,
                     run.StrikethroughStyle,
-                    run.Baseline));
+                    run.Baseline) { LanguageId = run.LanguageId });
             }
         }
 

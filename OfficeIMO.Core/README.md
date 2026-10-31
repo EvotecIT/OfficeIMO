@@ -1224,6 +1224,14 @@ those bounds to the local origin.
 
 ### Render paragraphs with independent formatting
 
+`OfficeRichTextRun.WithLanguageId(uint?)` carries an optional 16-bit native Windows
+language identifier, for example `run.WithLanguageId(1033)` for English (United
+States). Copies, text casing, drawing tint/scale, flow and measured segments retain
+it; differently tagged runs remain separate segments. Null leaves the annotation
+unspecified. Document adapters define its native effect; this does not enable
+language-specific hyphenation in shared layout. Publisher preserves an imported
+language override when a replacement leaves its language unspecified.
+
 `AddRichTextParagraphs` keeps paragraph alignment, margins, indentation and line spacing in one text frame. SVG, raster and PDF measure the paragraphs at render time with the drawing's configured fonts.
 
 ```csharp

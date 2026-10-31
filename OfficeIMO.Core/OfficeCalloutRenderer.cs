@@ -465,7 +465,7 @@ public static class OfficeCalloutRenderer {
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
                 run.Baseline,
-                run.ParagraphIndent?.Scale(scale)));
+                run.ParagraphIndent?.Scale(scale)) { LanguageId = run.LanguageId });
         }
 
         return scaled.AsReadOnly();

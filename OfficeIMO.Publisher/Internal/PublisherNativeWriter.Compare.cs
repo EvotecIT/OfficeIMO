@@ -128,7 +128,8 @@ internal sealed partial class PublisherNativeWriter {
             for (int index = 0; index < b.Runs.Count; index++) {
                 if (b.Runs[index].Text.Length == 0
                     || !RunPreservedFormattingEqual(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])) return false;
-                extended |= PublisherQuillCharacterStyleWriter.HasExtendedChanges(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index]);
+                extended |= PublisherQuillCharacterStyleWriter.HasExtendedChanges(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])
+                    || PublisherQuillCharacterStyleWriter.HasLanguageChange(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index]);
             }
         }
         return true;

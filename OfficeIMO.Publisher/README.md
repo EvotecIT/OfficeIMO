@@ -277,6 +277,14 @@ publication.SetTextFrameBounds(frame.Id, 72, 72, 360, 108);
 File.WriteAllText("edited.svg", publication.ToSvg());
 ```
 
+`OfficeRichTextRun.WithLanguageId(1033)` tags a run as English (United States);
+`1036` selects French. Native source saves can set this value while retaining
+unrelated native formatting. An unspecified language leaves an imported override
+intact; it does not clear it. Language IDs are 16-bit Windows identifiers, and
+shared managed layout does not perform language-specific hyphenation. Paragraph
+and drawing copies retain the annotation. See the [qualified language
+profile](SUPPORT.md) for native creation/editing coverage and limits.
+
 `ReplaceStoryParagraphs` replaces a complete non-table story. It derives `Text`
 from the supplied paragraphs, normalizes carriage returns to newlines, and
 retains the source's final paragraph-terminator convention, including after

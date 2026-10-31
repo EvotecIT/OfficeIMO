@@ -20,7 +20,8 @@ internal static class QuillCharacterFormatting {
             if (index == paragraph.Runs.Count - 1) characters++; // Native paragraph terminator follows the last run's style.
             byte[] font = Variable(0x24, 0x8A, FontSelectorIds.Select(id => Variable(id, 0x88, ShortScalar(0, 0x18, 0))).ToArray());
             byte[] style = Chunk(Marker(2, run.Bold ? (byte)0x0A : (byte)0x02),
-                Scalar(0x0C, 0x22, checked((uint)Math.Round(run.FontSize * 12700))), font);
+                Scalar(0x0C, 0x22, checked((uint)Math.Round(run.FontSize * 12700))),
+                run.LanguageId.HasValue ? Scalar(0x12, 0x22, run.LanguageId.Value) : Array.Empty<byte>(), font);
             ranges.Add(new PublisherQuillFormattingRange(checked(absoluteTextStart + characters * 2), style));
         }
         return ranges;

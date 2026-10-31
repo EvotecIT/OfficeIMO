@@ -2,10 +2,10 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
 
-/// <summary>Compares the complete editable text contract, independently of retained native definitions.</summary>
+/// <summary>Compares projected text and visual style templates; explicit language requests are separate from opaque source correspondence.</summary>
 internal static class PublisherTextComparison {
     internal static IEqualityComparer<OfficeRichTextParagraph> Paragraphs { get; } = new ParagraphComparer();
-    /// <summary>Matches complete editable paragraph/run formatting while allowing run text to change.</summary>
+    /// <summary>Matches editable visual formatting while allowing run text to change. Native language and other source-token differences are checked by template correspondence.</summary>
     internal static IEqualityComparer<OfficeRichTextParagraph> ParagraphFormats { get; } = new ParagraphComparer(includeText: false);
     /// <summary>Matches retained run text and fields the native formatting codecs cannot rewrite.</summary>
     internal static IEqualityComparer<OfficeRichTextParagraph> ParagraphTexts { get; } = new ParagraphComparer(includeFormatting: false);
@@ -13,7 +13,9 @@ internal static class PublisherTextComparison {
     internal static IEqualityComparer<OfficeRichTextParagraph> ParagraphContent { get; } = new ContentComparer();
     internal static bool StoryEqual(PublisherTextStory a, PublisherTextStory b) => ReferenceEquals(a, b)
         || a.Id == b.Id && a.Text == b.Text && a.HasFinalParagraphTerminator == b.HasFinalParagraphTerminator
-        && a.Paragraphs.Count == b.Paragraphs.Count && a.Paragraphs.Zip(b.Paragraphs, ParagraphEqual).All(value => value);
+        && a.Paragraphs.Count == b.Paragraphs.Count && a.Paragraphs.Zip(b.Paragraphs, (before, after) =>
+            ParagraphEqual(before, after) && !before.Runs.Zip(after.Runs, PublisherQuillCharacterStyleWriter.HasLanguageChange).Any(value => value)
+            && (before.Label == null || after.Label == null || !PublisherQuillCharacterStyleWriter.HasLanguageChange(before.Label.Run, after.Label.Run))).All(value => value);
     internal static bool ParagraphEqual(OfficeRichTextParagraph a, OfficeRichTextParagraph b) => ReferenceEquals(a, b)
         || ParagraphFormattingEqual(a, b)
         && a.Runs.Count == b.Runs.Count && a.Runs.Zip(b.Runs, RunEqual).All(value => value);

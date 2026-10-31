@@ -137,10 +137,22 @@ public sealed class OfficeRichTextRun {
     /// <summary>Optional first-line and continuation offsets for the paragraph beginning at this run.</summary>
     public OfficeTextParagraphIndent? ParagraphIndent { get; }
 
+    /// <summary>Optional Windows language identifier for native document adapters. Null leaves language unspecified; it does not request removal of an imported override. Shared layout does not perform language-specific hyphenation.</summary>
+    public uint? LanguageId { get; internal set; }
+
+    /// <summary>Creates a copy with an explicit 16-bit language identifier, or an unspecified language when null. All text, styling and annotations are retained.</summary>
+    public OfficeRichTextRun WithLanguageId(uint? languageId) {
+        if (languageId > ushort.MaxValue) throw new System.ArgumentOutOfRangeException(nameof(languageId));
+        return new OfficeRichTextRun(Text, FontSize, Color, Bold, Italic, Underline, FontFamily, Strikethrough,
+            BackgroundColor, UnderlineStyle, StrikethroughStyle, Baseline, ParagraphIndent) {
+            LanguageId = languageId, LinkUri = LinkUri, LinkDestinationName = LinkDestinationName
+        };
+    }
+
     /// <summary>Creates a styled copy that starts a paragraph with its own indentation.</summary>
     public OfficeRichTextRun WithParagraphIndent(OfficeTextParagraphIndent paragraphIndent) =>
         new OfficeRichTextRun(Text, FontSize, Color, Bold, Italic, Underline, FontFamily, Strikethrough,
-            BackgroundColor, UnderlineStyle, StrikethroughStyle, Baseline, paragraphIndent) { LinkUri = LinkUri, LinkDestinationName = LinkDestinationName };
+            BackgroundColor, UnderlineStyle, StrikethroughStyle, Baseline, paragraphIndent) { LanguageId = LanguageId, LinkUri = LinkUri, LinkDestinationName = LinkDestinationName };
 
     /// <summary>Creates a copy with transformed text casing while preserving all drawing styles.</summary>
     public OfficeRichTextRun WithTextCase(OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) =>
@@ -157,5 +169,5 @@ public sealed class OfficeRichTextRun {
             UnderlineStyle,
             StrikethroughStyle,
             Baseline,
-            ParagraphIndent) { LinkUri = LinkUri, LinkDestinationName = LinkDestinationName };
+            ParagraphIndent) { LanguageId = LanguageId, LinkUri = LinkUri, LinkDestinationName = LinkDestinationName };
 }

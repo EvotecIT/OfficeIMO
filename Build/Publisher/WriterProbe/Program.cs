@@ -65,6 +65,7 @@ internal static class Program {
             Console.Error.WriteLine("create <linked-story|linked-story-overflow> <candidate.pub>");
             Console.Error.WriteLine("create <table|table-edited> <candidate.pub>");
             Console.Error.WriteLine("create <frame-layout|frame-layout-edited> <candidate.pub>");
+            Console.Error.WriteLine("create <frame-layout-language|linked-story-language|linked-story-language-overflow> <candidate.pub>");
             Console.Error.WriteLine("create <image-pages|named-image-pages|cropped-image-pages|shared-image-pages> <candidate.pub> <first-image-path> <last-image-path>");
             return 2;
         } catch (Exception exception) {

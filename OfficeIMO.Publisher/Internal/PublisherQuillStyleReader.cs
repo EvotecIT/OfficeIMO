@@ -91,6 +91,10 @@ internal sealed partial class PublisherQuillStyleReader {
                 case 0x02: result.Bold = field.Type != 0x02; break;
                 case 0x03: result.Italic = field.Type != 0x02; break;
                 case 0x10: result.Strikethrough = field.Type != 0x02; break;
+                case 0x12:
+                    if (field.Type == 0x22 && field.Value <= ushort.MaxValue) result.LanguageId = field.Value;
+                    else _context.Add("PUB_TEXT_LANGUAGE_UNASSESSED", "The native character language token is outside the qualified 16-bit scalar profile and remains opaque.", OfficeConversionLossKind.Unassessed, "Quill/language");
+                    break;
                 case 0x1E: result.UnderlineStyle = ReadUnderline(field.Value); break;
                 case 0x0C: case 0x39:
                     if (field.Value == 0 || field.Value > 12700 * 1000) throw new InvalidDataException("Invalid Publisher font size.");

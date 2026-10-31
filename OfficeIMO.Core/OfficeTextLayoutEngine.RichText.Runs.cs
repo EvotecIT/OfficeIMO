@@ -38,7 +38,7 @@ public static partial class OfficeTextLayoutEngine {
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
                 run.Baseline,
-                run.ParagraphIndent) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
+                run.ParagraphIndent) { LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
             remainingCharacters -= Math.Min(remainingCharacters, run.Text?.Length ?? 0);
             processedRuns = i + 1;
         }
@@ -70,7 +70,7 @@ public static partial class OfficeTextLayoutEngine {
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
                 run.Baseline,
-                factor > 0D ? run.ParagraphIndent?.Scale(factor) : null) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
+                factor > 0D ? run.ParagraphIndent?.Scale(factor) : null) { LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
         }
 
         return scaled;
@@ -295,7 +295,7 @@ public static partial class OfficeTextLayoutEngine {
             // A separate empty segment advances every renderer without painting a tab glyph,
             // and prevents kerning or run merging across the tab boundary.
             _segments.Add(new OfficeRichTextSegment(string.Empty, width, run.FontSize, run.Color, false, false, false,
-                run.FontFamily, baseline: run.Baseline));
+                run.FontFamily, baseline: run.Baseline) { LanguageId = run.LanguageId });
             Width += width;
         }
 
@@ -327,6 +327,7 @@ public static partial class OfficeTextLayoutEngine {
         internal static bool CanMerge(OfficeRichTextSegment segment, OfficeRichTextRun run) =>
             segment.Text.Length > 0 && segment.LinkUri == run.LinkUri &&
             segment.LinkDestinationName == run.LinkDestinationName &&
+            segment.LanguageId == run.LanguageId &&
             segment.FontSize == run.FontSize &&
             segment.Color.Equals(run.Color) &&
             segment.Bold == run.Bold &&
@@ -340,6 +341,6 @@ public static partial class OfficeTextLayoutEngine {
             string.Equals(segment.FontFamily, run.FontFamily, StringComparison.Ordinal);
 
         internal static OfficeRichTextSegment CreateSegment(OfficeRichTextRun run, string text, double width) =>
-            new OfficeRichTextSegment(text, width, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
+            new OfficeRichTextSegment(text, width, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) { LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
     }
 }
