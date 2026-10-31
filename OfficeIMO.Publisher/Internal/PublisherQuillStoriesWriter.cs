@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
 
@@ -7,6 +8,7 @@ internal static class PublisherQuillStoriesWriter {
     internal static byte[]? TryRewrite(byte[] source, IReadOnlyList<PublisherQuillStoryStyles> bindings,
         IReadOnlyDictionary<uint, PublisherTextStory> before, IReadOnlyDictionary<uint, PublisherTextStory> after,
         IReadOnlyDictionary<uint, PublisherTableStory> beforeTables, IReadOnlyDictionary<uint, PublisherTableStory> afterTables,
+        IReadOnlyList<OfficeColor?> palette,
         OfficeLegacyImportLimits limits, long maximumBytes, CancellationToken token) {
         var context = new PublisherParseContext(new PublisherReadOptions { Limits = limits }, token);
         PublisherQuillSourceLayout? layout = PublisherQuillSourceLayout.TryRead(source, context);
@@ -18,6 +20,11 @@ internal static class PublisherQuillStoriesWriter {
             || data.U32(ids.Offset + 4) != count || lengths.Length != 22 + count * 8
             || data.U32(lengths.Offset) != count || data.U32(lengths.Offset + 4) != 8 || data.U32(lengths.Offset + 8) != 255) return null;
         if (!PublisherQuillTableTextWriter.TryPlan(layout, before, after, beforeTables, afterTables, token, out var tableChunks)) return null;
+        // Empty styled runs must be compared with the actual inherited CR,
+        // which can differ from the preceding visible body's style.
+        PublisherQuillStyles? typingStyles = after.Values.Any(story => story.Paragraphs.Any(paragraph =>
+            paragraph.Runs.Count == 1 && paragraph.Runs[0].Text.Length == 0))
+            ? new PublisherQuillStyleReader(data, context, layout.Chunks, palette, text).Read() : null;
         var pc = new List<PublisherQuillFormattingRange>(); var pp = new List<PublisherQuillFormattingRange>();
         var replacement = new StringBuilder(); int originalStart = 0;
         PublisherQuillStoryStyles[] ordered = bindings.OrderBy(binding => binding.StoryOrdinal).ToArray();
@@ -32,7 +39,7 @@ internal static class PublisherQuillStoriesWriter {
                 || binding.TextByteOffset != text.Offset + originalStart * 2 || data.U32(lengths.Offset + 12 + ordinal * 4) != binding.NativeLength
                 || !data.Utf16(binding.TextByteOffset, binding.NativeLength * 2).Equals(prior.Text.Replace('\n', '\r'), StringComparison.Ordinal)) return null;
             int outputStart = checked(text.Offset + replacement.Length * 2);
-            if (!PublisherQuillParagraphWriter.TryPlan(data, context, binding, prior, current, outputStart, token, out var storyPc, out var storyPp, resources)) return null;
+            if (!PublisherQuillParagraphWriter.TryPlan(data, context, binding, prior, current, outputStart, token, out var storyPc, out var storyPp, resources, typingStyles)) return null;
             pc.AddRange(storyPc); pp.AddRange(storyPp);
             replacement.Append(current.Text.Replace('\n', '\r')); originalStart = checked(originalStart + binding.NativeLength);
         }

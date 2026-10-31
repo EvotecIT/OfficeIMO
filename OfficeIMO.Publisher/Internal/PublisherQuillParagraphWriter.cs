@@ -15,10 +15,11 @@ internal static partial class PublisherQuillParagraphWriter {
 
     internal static bool TryPlan(PublisherBinaryData data, PublisherParseContext context, PublisherQuillStoryStyles binding,
         PublisherTextStory before, PublisherTextStory after, int outputTextOffset, CancellationToken token,
-        out List<PublisherQuillFormattingRange> pc, out List<PublisherQuillFormattingRange> pp, PublisherQuillWriteResources? resources = null) {
+        out List<PublisherQuillFormattingRange> pc, out List<PublisherQuillFormattingRange> pp, PublisherQuillWriteResources? resources = null,
+        PublisherQuillStyles? typingStyles = null) {
         pc = new(); pp = new();
         if (before.Paragraphs.Count != after.Paragraphs.Count)
-            return TryPlanTopology(data, context, binding, before, after, outputTextOffset, token, pc, pp, resources);
+            return TryPlanTopology(data, context, binding, before, after, outputTextOffset, token, pc, pp, resources, typingStyles);
         PublisherQuillStyleUse[] characters = binding.Uses.Where(use => use.Tag == "FDPC").ToArray();
         PublisherQuillStyleUse[] paragraphs = binding.Uses.Where(use => use.Tag == "FDPP").ToArray();
         if (paragraphs.Length != before.Paragraphs.Count) return false;
@@ -42,20 +43,27 @@ internal static partial class PublisherQuillParagraphWriter {
             if (cr == null) return false;
             // Removing all visible text must not silently substitute a different
             // native typing style for the requested empty paragraph's run.
-            if (newRuns.Count == 1 && newRuns[0].Text.Length == 0
+            if (typingStyles == null && newRuns.Count == 1 && newRuns[0].Text.Length == 0
                 && !Copy(cr.Value.DirectDefinition).SequenceEqual(Copy(uses[uses.Count - 1].DirectDefinition))) return false;
             for (int index = 0; index < newRuns.Count; index++) {
                 token.ThrowIfCancellationRequested();
+                if (newRuns[index].Text.Length == 0) continue;
                 int original = oldRuns.Count == 1 ? 0 : index;
                 byte[]? style = PublisherQuillCharacterStyleWriter.Rewrite(data, uses[original].DirectDefinition,
                     oldRuns[original], newRuns[index], context, resources);
                 if (style == null) return false;
-                if (newRuns[index].Text.Length == 0) continue;
                 position = checked(position + newRuns[index].Text.Length * 2);
                 AppendRange(pc, position, style);
             }
-            byte[]? terminator = PublisherQuillCharacterStyleWriter.Rewrite(data, cr.Value.DirectDefinition,
-                oldRuns[oldRuns.Count - 1], newRuns[newRuns.Count - 1], context, resources);
+            byte[]? terminator;
+            if (newRuns.Count == 0) terminator = Copy(cr.Value.DirectDefinition);
+            else {
+                OfficeRichTextRun originalTyping = oldRuns[oldRuns.Count - 1];
+                if (newRuns.Count == 1 && newRuns[0].Text.Length == 0 && typingStyles != null)
+                    originalTyping = typingStyles.Run(string.Empty, typingStyles.CharacterAt(oldCursor)?.Style, typingStyles.ParagraphAt(oldCursor));
+                terminator = PublisherQuillCharacterStyleWriter.Rewrite(data, cr.Value.DirectDefinition,
+                    originalTyping, newRuns[newRuns.Count - 1], context, resources);
+            }
             if (terminator == null) return false;
             position = checked(position + 2);
             AppendRange(pc, position, terminator);

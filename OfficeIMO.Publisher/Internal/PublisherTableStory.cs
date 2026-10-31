@@ -19,10 +19,14 @@ internal sealed class PublisherTableStory {
     internal PublisherTableStory Replace(int index, IReadOnlyList<OfficeRichTextParagraph> paragraphs,
         PublisherReadOptions options, CancellationToken token) {
         PublisherTextStory original = Segments[index];
-        // Clearing a terminated cell retains an empty paragraph and its boundary.
+        // Clearing retains the final paragraph's formatting and cell boundary.
         // Otherwise the following cell would become part of this cell's paragraph.
-        if (paragraphs.Count == 0)
-            paragraphs = new[] { new OfficeRichTextParagraph(Array.Empty<OfficeRichTextRun>()) };
+        if (paragraphs.Count == 0) {
+            OfficeRichTextParagraph? retained = original.Paragraphs.LastOrDefault();
+            paragraphs = new[] { retained == null ? new OfficeRichTextParagraph(Array.Empty<OfficeRichTextRun>())
+                : new OfficeRichTextParagraph(Array.Empty<OfficeRichTextRun>(), retained.Alignment, retained.LineHeight,
+                    retained.Margins, retained.Indent, retained.LineHeightFactor).WithTabStops(retained.TabStops) };
+        }
         PublisherTextStory replacement = PublisherStoryEditor.Replace(original, paragraphs, options, token);
         var segments = Segments.ToArray(); segments[index] = replacement;
         return new PublisherTableStory(segments);

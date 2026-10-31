@@ -443,13 +443,18 @@ public sealed class PublisherNativeWritingTests {
     }
 
     [Fact]
-    public void Making_a_paragraph_empty_with_a_distinct_native_CR_style_refuses_bytes() {
+    public void Making_a_paragraph_empty_preserves_requested_typing_style_and_native_boundaries() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TextParagraphs/native-textparagraphs.pub"));
         ReplaceParagraphs(document, new[] { "First paragraph", "", "" }, new[] { 12D, 12D, 12D }, new[] { false, false, false });
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
-        Assert.False(prepared.IsPrepared);
-        Assert.Contains(prepared.FidelityDiagnostics, item => item.Location == "Quill" && item.LossKind == OfficeConversionLossKind.Failure);
-        Assert.Equal("First paragraph\n\n\n", document.TextStories[0].Text);
+        Assert.True(prepared.IsPrepared);
+        PublisherDocument saved = PublisherDocument.Load(prepared.CopyBytes());
+        Assert.Equal("First paragraph\n\n\n", saved.TextStories[0].Text);
+        Assert.Equal(3, saved.TextStories[0].Paragraphs.Count);
+        Assert.All(saved.TextStories[0].Paragraphs, paragraph => {
+            OfficeRichTextRun run = Assert.Single(paragraph.Runs);
+            Assert.Equal(12, run.FontSize); Assert.False(run.Bold);
+        });
     }
 
     [Fact]

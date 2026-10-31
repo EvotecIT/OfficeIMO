@@ -1,0 +1,37 @@
+{
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableCellTyping",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tablecelltyping.json",
+      "sha256": "e0b9c96913d373d645c35ae3b6a1d32465a39e1842b917ff0f00508e818445c1"
+    },
+    {
+      "name": "native-tablecelltyping.pdf",
+      "sha256": "8e295b912a43584644a8b315efff0ed42edc5f60722c9f709d329f7cf270ae54"
+    },
+    {
+      "name": "native-tablecelltyping.pub",
+      "sha256": "bfb4a2165fabe5e1f58dd334c760f78396e79263b49a17443eda7ac67b4875bb"
+    }
+  ],
+  "license": "MIT",
+  "profiles": 9,
+  "rangeCapture": "FreshWholeCell",
+  "documentPages": 3,
+  "schema": "officeimo.publisher.native-cell-typing-fixture.v1",
+  "scope": "Independent synthetic native production; file identities include timestamps. The historical early-range leaf/case name is retained; the current EarlyRange command reproduces normalized styles, endpoints and language observations."
+}

@@ -4,7 +4,8 @@ internal static partial class PublisherQuillParagraphWriter {
     /// <summary>Count changes repeat unambiguous source definitions; projected equality alone does not establish native equivalence.</summary>
     private static bool TryPlanTopology(PublisherBinaryData data, PublisherParseContext context, PublisherQuillStoryStyles binding,
         PublisherTextStory before, PublisherTextStory after, int outputTextOffset, CancellationToken token,
-        List<PublisherQuillFormattingRange> pc, List<PublisherQuillFormattingRange> pp, PublisherQuillWriteResources? resources) {
+        List<PublisherQuillFormattingRange> pc, List<PublisherQuillFormattingRange> pp, PublisherQuillWriteResources? resources,
+        PublisherQuillStyles? typingStyles) {
         var paragraphs = binding.Uses.Where(use => use.Tag == "FDPP").ToArray();
         var characters = binding.Uses.Where(use => use.Tag == "FDPC").ToArray();
         if (paragraphs.Length != before.Paragraphs.Count || paragraphs.Length == 0 || after.Paragraphs.Count == 0) return false;
@@ -32,16 +33,25 @@ internal static partial class PublisherQuillParagraphWriter {
         for (int i = 0; i < after.Paragraphs.Count; i++) {
             token.ThrowIfCancellationRequested(); var runs = after.Paragraphs[i].Runs;
             bool last = i + 1 == after.Paragraphs.Count;
-            if (runs.Count == 0 || last && runs.All(run => run.Text.Length == 0)
+            if (typingStyles == null && last && runs.Count == 1 && runs[0].Text.Length == 0
                 && !Copy(final.Value.DirectDefinition).SequenceEqual(bodyBytes)) return false;
             foreach (var run in runs) {
+                if (run.Text.Length == 0) continue;
                 byte[]? style = PublisherQuillCharacterStyleWriter.Rewrite(data, body.Value.DirectDefinition, originalRun, run, context, resources);
                 if (style == null) return false;
-                if (run.Text.Length == 0) continue;
                 position = checked(position + run.Text.Length * 2); AppendRange(pc, position, style);
             }
-            byte[]? terminator = PublisherQuillCharacterStyleWriter.Rewrite(data,
-                last ? final.Value.DirectDefinition : body.Value.DirectDefinition, originalRun, runs[runs.Count - 1], context, resources);
+            PublisherQuillSourceSpan ending = last ? final.Value.DirectDefinition : body.Value.DirectDefinition;
+            byte[]? terminator;
+            if (runs.Count == 0) terminator = Copy(ending);
+            else {
+                var originalTyping = originalRun;
+                if (last && runs.Count == 1 && runs[0].Text.Length == 0 && typingStyles != null) {
+                    int finalPosition = binding.NativeStart + binding.NativeLength - 1;
+                    originalTyping = typingStyles.Run(string.Empty, typingStyles.CharacterAt(finalPosition)?.Style, typingStyles.ParagraphAt(finalPosition));
+                }
+                terminator = PublisherQuillCharacterStyleWriter.Rewrite(data, ending, originalTyping, runs[runs.Count - 1], context, resources);
+            }
             if (terminator == null) return false;
             position = checked(position + 2); AppendRange(pc, position, terminator);
             byte[]? definition = PublisherQuillParagraphStyleWriter.Rewrite(data, paragraphs[0].DirectDefinition,

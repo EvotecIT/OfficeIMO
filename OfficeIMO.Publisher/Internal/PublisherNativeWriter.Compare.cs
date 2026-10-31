@@ -54,7 +54,8 @@ internal sealed partial class PublisherNativeWriter {
             if (_quillBytes != null) return true;
         }
         _quillBytes = PublisherQuillStoriesWriter.TryRewrite(_imported.NativeSource!.QuillBytes, _imported.Styles.Stories,
-            _baseline.Text.Stories, _current.Text.Stories, _baseline.Text.TableStories, _current.Text.TableStories, _sourceLimits, _maximumBytes, _token);
+            _baseline.Text.Stories, _current.Text.Stories, _baseline.Text.TableStories, _current.Text.TableStories,
+            _imported.Contents.Palette, _sourceLimits, _maximumBytes, _token);
         return _quillBytes != null;
     }
 
@@ -85,11 +86,16 @@ internal sealed partial class PublisherNativeWriter {
             || !RunFormattingEqual(before.Paragraphs[0].Runs[0], paragraph.Runs[0]))) return false;
         for (int paragraph = 0; paragraph < after.Paragraphs.Count; paragraph++) {
             OfficeRichTextParagraph a = before.Paragraphs[reshape ? 0 : paragraph], b = after.Paragraphs[paragraph];
-            if (a.Runs.Count < 1 || b.Runs.Count < 1 || a.Runs.Count != 1 && a.Runs.Count != b.Runs.Count
+            bool empty = b.Runs.Count == 0 || b.Runs.Count == 1 && b.Runs[0].Text.Length == 0;
+            if (a.Runs.Count < 1 || !empty && a.Runs.Count != 1 && a.Runs.Count != b.Runs.Count
                 || a.Label != null || b.Label != null) return false;
-            extended |= PublisherQuillParagraphStyleWriter.HasChanges(a, b);
+            extended |= empty || PublisherQuillParagraphStyleWriter.HasChanges(a, b);
+            if (empty) {
+                if (b.Runs.Count == 1 && !RunPreservedFormattingEqual(a.Runs[a.Runs.Count - 1], b.Runs[0])) return false;
+                continue;
+            }
             for (int index = 0; index < b.Runs.Count; index++) {
-                if (b.Runs[index].Text.Length == 0 && (!reshape && before.Paragraphs.Count == 1 || b.Runs.Count != 1)
+                if (b.Runs[index].Text.Length == 0
                     || !RunPreservedFormattingEqual(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])) return false;
                 extended |= PublisherQuillCharacterStyleWriter.HasExtendedChanges(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index]);
             }

@@ -28,7 +28,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableCellTyping', 'TableCellTypingEarlyRange', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -133,6 +133,7 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeCharacterAttributeControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeParagraphFormatControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeFrameLayoutControl.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativeTableControl.ps1')
 . (Join-Path $PSScriptRoot 'Write-NativePublisherPhaseReceipt.ps1')
 
 function Set-NativePhase {
@@ -678,40 +679,8 @@ try {
                 throw 'Publisher did not establish reciprocal newsletter frame links.'
             }
         }
-        'TableLabel' {
-            # Unicode escapes keep the maintained script parseable with PS5.1's default file encoding.
-            $multilingual = 'Za' + [char]0x017C + [char]0x00F3 + [char]0x0142 + [char]0x0107 + ' g' + [char]0x0119 + [char]0x015B + 'l' + [char]0x0105 + ' ja' + [char]0x017A + [char]0x0144 + ' / ' + [char]0x0391 + [char]0x03BB + [char]0x03C6 + [char]0x03B1
-            $null = Add-TextFrame $page 'LabelTitle' $multilingual 18 12 252 42 12
-            $table = $page.Shapes.AddTable(2, 2, 18, 66, 180, 72)
-            $table.Name = 'LabelTable'
-            $objects.Add($table)
-            $values = @('Item', 'Count', 'Alpha', '2')
-            for ($row = 1; $row -le 2; $row++) {
-                for ($column = 1; $column -le 2; $column++) {
-                    $cell = $table.Table.Cells($row, $column, $row, $column).Item(1)
-                    $objects.Add($cell)
-                    $cell.TextRange.Text = $values[($row - 1) * 2 + $column - 1]
-                    $cell.TextRange.Font.Name = 'Arial'
-                    $cell.TextRange.Font.Size = 10
-                    $cell.TextRange.Font.Color.RGB = 0
-                    if ($row -eq 1) {
-                        $cell.Fill.ForeColor.RGB = 15790320
-                        $cell.TextRange.Font.Bold = -1
-                    } else {
-                        $cell.Fill.ForeColor.RGB = 16777215
-                    }
-                }
-            }
-            $expectedShapes.Add([pscustomobject]@{ name = 'LabelTable'; kind = 'Table'; rows = 2; columns = 2; cells = $values; left = 18; top = 66; width = 180; height = 72 })
-            foreach ($value in $values) {
-                $expectedText.Add($value)
-            }
-            $picturePath = Join-Path $output ($stem + '.png')
-            New-ReferencePicture $picturePath
-            $image = $page.Shapes.AddPicture($picturePath, 0, -1, 216, 72, 54, 54)
-            $image.Name = 'LabelImage'
-            $objects.Add($image)
-            $expectedShapes.Add([pscustomobject]@{ name = 'LabelImage'; kind = 'Image'; left = 216; top = 72; width = 54; height = 54 })
+        { $_ -in @('TableLabel', 'TableCellTyping', 'TableCellTypingEarlyRange') } {
+            $pageCount = Add-NativeTableControl -Publication $document -FirstPage $page -Case $Case -PicturePath (Join-Path $output ($stem + '.png'))
         }
         { $_ -in @('Brochure', 'MultipleMasters', 'TwoPageMaster') } {
             $layout = Add-NativeComparisonLayout -Case $Case -Document $document -FirstPage $page
