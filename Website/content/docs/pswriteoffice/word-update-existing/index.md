@@ -23,7 +23,7 @@ Use `-WhatIf` before a broad replacement. `Find-OfficeWord` can count the old an
 
 For structural work, open an editable document and pipe the specific object to commands such as `Set-OfficeWordParagraph`, `Set-OfficeWordText`, `Set-OfficeWordTableCell`, `Set-OfficeWordImage`, or `Set-OfficeWordDocumentProperty`. Save or close with `-Save` only after all changes succeed.
 
-The [update-existing recipe](https://github.com/EvotecIT/OfficeIMO/blob/0840ac4e61b4ab7b5c5711d70ea706208e291d1e/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-UpdateExisting.ps1) demonstrates link-aware replacement. [Example-WordModifyExistingObjects.ps1](https://github.com/EvotecIT/OfficeIMO/blob/0840ac4e61b4ab7b5c5711d70ea706208e291d1e/PowerShell/PSWriteOffice/Examples/Word/Example-WordModifyExistingObjects.ps1) shows object-level changes.
+The [update-existing recipe](https://github.com/EvotecIT/OfficeIMO/blob/910aa3ec38e156f1c6b029aca3f6ea5a8cc1fa44/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-UpdateExisting.ps1) demonstrates link-aware replacement. [Example-WordModifyExistingObjects.ps1](https://github.com/EvotecIT/OfficeIMO/blob/910aa3ec38e156f1c6b029aca3f6ea5a8cc1fa44/PowerShell/PSWriteOffice/Examples/Word/Example-WordModifyExistingObjects.ps1) shows object-level changes.
 
 ## Preserve intent
 

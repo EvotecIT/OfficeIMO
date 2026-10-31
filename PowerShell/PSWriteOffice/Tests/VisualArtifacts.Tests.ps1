@@ -345,7 +345,8 @@ Describe 'ChartForgeX visual artifacts' {
             $visual | Add-OfficePdfVisual -Align Center
         } | Out-Null
 
-        $document = New-OfficePdf -Content { PdfParagraph 'Existing document' }
+        $document = New-OfficePdf
+        PdfParagraph -Document $document 'Existing document'
         $updated = $visual | Add-OfficePdfVisual -Document $document -PassThru
         [object]::ReferenceEquals($updated, $document) | Should -BeTrue
         $pipelineUpdated = $document | Add-OfficePdfVisual -InputObject $visual -PassThru

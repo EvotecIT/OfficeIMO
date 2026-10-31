@@ -16,7 +16,7 @@ Import-OfficeExcelDelimitedText -Path '.\Report.xlsx' `
     -CultureName 'en-US' -SheetName Sales
 ```
 
-The [delimited-import recipe](https://github.com/EvotecIT/OfficeIMO/blob/0840ac4e61b4ab7b5c5711d70ea706208e291d1e/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ImportDelimited.ps1) imports an existing semicolon-delimited file into a named worksheet.
+The [delimited-import recipe](https://github.com/EvotecIT/OfficeIMO/blob/910aa3ec38e156f1c6b029aca3f6ea5a8cc1fa44/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ImportDelimited.ps1) imports an existing semicolon-delimited file into a named worksheet.
 
 ## Publish the useful part
 

@@ -10,7 +10,7 @@ BeforeAll {
 Describe 'PDF reverse conversion workflows' {
     BeforeEach {
         $pdfPath = Join-Path $TestDrive 'source.pdf'
-        New-OfficePdf -Path $pdfPath {
+        New-OfficePdf -Path $pdfPath -Force {
             Add-OfficePdfHeading -Text 'Quarterly results' -Level 1
             Add-OfficePdfParagraph -Text 'Revenue improved in the current quarter.'
             Add-OfficePdfTable -InputObject @(

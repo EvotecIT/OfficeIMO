@@ -64820,6 +64820,73 @@ cells. This keeps existing-document editing simple without forcing callers back 
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Close-OfficePdf</command:name>
+      <command:verb>Close</command:verb>
+      <command:noun>OfficePdf</command:noun>
+      <maml:description>
+        <maml:para>Completes a live PDF document's lifetime without saving.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Completes a live PDF document's lifetime without saving.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="__AllParameterSets">
+        <maml:name>Close-OfficePdf</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Live PDF document to close.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">PdfDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>PdfDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Live PDF document to close.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">PdfDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>PdfDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>OfficeIMO.Pdf.PdfDocument</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues />
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Finish using a PDF without writing pending changes.</maml:title>
+        <dev:code>$pdf | Close-OfficePdf</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Close-OfficePowerPoint</command:name>
       <command:verb>Close</command:verb>
       <command:noun>OfficePowerPoint</command:noun>
@@ -161156,22 +161223,31 @@ document for Document input. Native merge options determine which content is imp
       <command:verb>New</command:verb>
       <command:noun>OfficePdf</command:noun>
       <maml:description>
-        <maml:para>Creates a PDF document using the OfficeIMO.Pdf composition engine.</maml:para>
+        <maml:para>Creates a live PDF document or atomically saves a completed composition block.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>New-OfficePdf starts a generated PDF document and optionally executes a PSWriteOffice PDF DSL script block.
-The DSL commands are thin adapters over OfficeIMO.Pdf and support document metadata, page setup, headers, footers,
-themes, styled text, tables, panels, row layouts, form fields, attachments, compliance settings, and save/open behavior.
-Use -NoSave or omit -Path when a document object should be returned for further pipeline operations.</maml:para>
+      <maml:para>Without Content no file is written and the native document keeps its optional associated path. A completed block saves and closes; Force is required to replace an existing file.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="Path">
+      <command:syntaxItem parameterSetName="__AllParameterSets">
         <maml:name>New-OfficePdf</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>BoldFontPath</maml:name>
           <maml:description>
-            <maml:para>Optional bold TrueType font path used when -FontFamily is provided.</maml:para>
+            <maml:para>Optional bold face used with FontPath.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -161183,7 +161259,7 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>BoldItalicFontPath</maml:name>
           <maml:description>
-            <maml:para>Optional bold italic TrueType font path used when -FontFamily is provided.</maml:para>
+            <maml:para>Optional bold italic face used with FontPath.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -161204,10 +161280,10 @@ Use -NoSave or omit -Path when a document object should be returned for further 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
           <maml:name>Content</maml:name>
           <maml:description>
-            <maml:para>DSL script block describing generated PDF content.</maml:para>
+            <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
           <dev:type>
@@ -161224,44 +161300,6 @@ Use -NoSave or omit -Path when a document object should be returned for further 
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
             <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>DefaultFont</maml:name>
-          <maml:description>
-            <maml:para>Default standard PDF font for generated text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfStandardFont</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Helvetica</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">HelveticaOblique</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">HelveticaBold</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">HelveticaBoldOblique</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TimesRoman</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TimesItalic</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TimesBold</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TimesBoldItalic</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Courier</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CourierOblique</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CourierBold</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CourierBoldOblique</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>PdfStandardFont</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>DefaultFontSize</maml:name>
-          <maml:description>
-            <maml:para>Default generated text font size in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -161322,13 +161360,37 @@ Use -NoSave or omit -Path when a document object should be returned for further 
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>FontFamily</maml:name>
+          <maml:name>Font</maml:name>
           <maml:description>
-            <maml:para>Embedded TrueType font family name for generated text.</maml:para>
+            <maml:para>Body font family; inherited heading defaults follow the document font.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>FontPath</maml:name>
+          <maml:description>
+            <maml:para>Regular embedded font file; requires the Font family name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Force</maml:name>
+          <maml:description>
+            <maml:para>Allow a completed content block to replace an existing destination.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -161384,35 +161446,11 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>ItalicFontPath</maml:name>
           <maml:description>
-            <maml:para>Optional italic TrueType font path used when -FontFamily is provided.</maml:para>
+            <maml:para>Optional italic face used with FontPath.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoSave</maml:name>
-          <maml:description>
-            <maml:para>Skip saving even when -Path is provided.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-          <maml:name>Open</maml:name>
-          <maml:description>
-            <maml:para>Open the PDF after saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -161454,7 +161492,7 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>OpenActionTop</maml:name>
           <maml:description>
-            <maml:para>Optional open-action top coordinate.</maml:para>
+            <maml:para>Optional open-action top coordinate in the page's native UserUnit space.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
           <dev:type>
@@ -161480,9 +161518,9 @@ Use -NoSave or omit -Path when a document object should be returned for further 
           <maml:description>
             <maml:para>Optional owner password for the generated encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -161542,7 +161580,7 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the generated document or saved file for chaining.</maml:para>
+            <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -161551,22 +161589,22 @@ Use -NoSave or omit -Path when a document object should be returned for further 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="UserPassword">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Password</maml:name>
           <maml:description>
             <maml:para>Password required to open the generated PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
           <maml:name>Path</maml:name>
           <maml:description>
-            <maml:para>Optional destination PDF path.</maml:para>
+            <maml:para>Optional associated destination; required with a content block.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -161575,26 +161613,50 @@ Use -NoSave or omit -Path when a document object should be returned for further 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Permissions">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Permission</maml:name>
           <maml:description>
-            <maml:para>Raw PDF Standard security permission bit mask. Defaults to allowing all standard operations.</maml:para>
+            <maml:para>Operations allowed to readers; defaults to all Standard security permissions.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfStandardPermissions</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Print</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ModifyContents</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CopyContents</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ModifyAnnotations</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FillForms</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Accessibility</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AssembleDocument</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">HighQualityPrint</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
+          </command:parameterValueGroup>
           <dev:type>
-            <maml:name>Int32</maml:name>
+            <maml:name>PdfStandardPermissions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="FontPath">
-          <maml:name>RegularFontPath</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
           <maml:description>
-            <maml:para>Regular TrueType font path used when -FontFamily is provided.</maml:para>
+            <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Size</maml:name>
+          <maml:description>
+            <maml:para>Default body font size. A bare number means points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -161602,457 +161664,11 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Theme</maml:name>
           <maml:description>
-            <maml:para>Built-in OfficeIMO.Pdf theme applied before the DSL content runs.</maml:para>
+            <maml:para>Built-in theme, theme object or document/template whose visual theme is read.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficePdfThemePreset</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">WordLike</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TechnicalDocument</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Compact</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Report</command:parameterValue>
-          </command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">OfficeThemeInput</command:parameterValue>
           <dev:type>
-            <maml:name>OfficePdfThemePreset</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Content">
-        <maml:name>New-OfficePdf</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>BoldFontPath</maml:name>
-          <maml:description>
-            <maml:para>Optional bold TrueType font path used when -FontFamily is provided.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>BoldItalicFontPath</maml:name>
-          <maml:description>
-            <maml:para>Optional bold italic TrueType font path used when -FontFamily is provided.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>CenterWindow</maml:name>
-          <maml:description>
-            <maml:para>Request PDF viewers to center the document window on screen.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-          <maml:name>Content</maml:name>
-          <maml:description>
-            <maml:para>DSL script block describing generated PDF content.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
-          <dev:type>
-            <maml:name>ScriptBlock</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>CreateOutlineFromHeadings</maml:name>
-          <maml:description>
-            <maml:para>Create PDF outline/bookmark entries from heading elements.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>DefaultFont</maml:name>
-          <maml:description>
-            <maml:para>Default standard PDF font for generated text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfStandardFont</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Helvetica</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">HelveticaOblique</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">HelveticaBold</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">HelveticaBoldOblique</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TimesRoman</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TimesItalic</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TimesBold</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TimesBoldItalic</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Courier</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CourierOblique</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CourierBold</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">CourierBoldOblique</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>PdfStandardFont</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>DefaultFontSize</maml:name>
-          <maml:description>
-            <maml:para>Default generated text font size in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>DisplayDocTitle</maml:name>
-          <maml:description>
-            <maml:para>Request PDF viewers to display the document title instead of the file name.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>FileVersion</maml:name>
-          <maml:description>
-            <maml:para>PDF file header version emitted by OfficeIMO.Pdf.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfFileVersion</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Pdf14</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Pdf15</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Pdf16</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Pdf17</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Pdf20</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>PdfFileVersion</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>FitWindow</maml:name>
-          <maml:description>
-            <maml:para>Request PDF viewers to fit the document window to the first displayed page.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>FlattenVisualAnnotations</maml:name>
-          <maml:description>
-            <maml:para>Flatten generated FreeText and Highlight annotations into static page content.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>FontFamily</maml:name>
-          <maml:description>
-            <maml:para>Embedded TrueType font family name for generated text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>HideMenubar</maml:name>
-          <maml:description>
-            <maml:para>Request PDF viewers to hide the menu bar.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>HideToolbar</maml:name>
-          <maml:description>
-            <maml:para>Request PDF viewers to hide the toolbar.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>HideWindowUI</maml:name>
-          <maml:description>
-            <maml:para>Request PDF viewers to hide user-interface elements.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludePageLabels</maml:name>
-          <maml:description>
-            <maml:para>Emit generated catalog page labels.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ItalicFontPath</maml:name>
-          <maml:description>
-            <maml:para>Optional italic TrueType font path used when -FontFamily is provided.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoSave</maml:name>
-          <maml:description>
-            <maml:para>Skip saving even when -Path is provided.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-          <maml:name>Open</maml:name>
-          <maml:description>
-            <maml:para>Open the PDF after saving.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>OpenActionMode</maml:name>
-          <maml:description>
-            <maml:para>Open-action destination mode.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfOpenActionDestinationMode</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">Xyz</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Fit</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">FitHorizontal</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">FitVertical</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">FitRectangle</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">FitBoundingBox</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">FitBoundingBoxHorizontal</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">FitBoundingBoxVertical</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>PdfOpenActionDestinationMode</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>OpenActionPage</maml:name>
-          <maml:description>
-            <maml:para>Initial one-based page shown by PDF viewers that honor open actions.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>OpenActionTop</maml:name>
-          <maml:description>
-            <maml:para>Optional open-action top coordinate.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>OutlineExpansionLevel</maml:name>
-          <maml:description>
-            <maml:para>Initial outline expansion level when heading outlines are created.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>OwnerPassword</maml:name>
-          <maml:description>
-            <maml:para>Optional owner password for the generated encrypted PDF.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PageLabelPrefix</maml:name>
-          <maml:description>
-            <maml:para>Optional generated page-label prefix.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PageLayout</maml:name>
-          <maml:description>
-            <maml:para>Catalog page layout hint emitted for generated PDFs.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfCatalogPageLayout</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">SinglePage</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">OneColumn</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TwoColumnLeft</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TwoColumnRight</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TwoPageLeft</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TwoPageRight</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>PdfCatalogPageLayout</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PageMode</maml:name>
-          <maml:description>
-            <maml:para>Catalog page mode hint emitted for generated PDFs.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfCatalogPageMode</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">UseNone</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">UseOutlines</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">UseThumbs</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">FullScreen</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">UseOC</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">UseAttachments</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>PdfCatalogPageMode</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the generated document or saved file for chaining.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="UserPassword">
-          <maml:name>Password</maml:name>
-          <maml:description>
-            <maml:para>Password required to open the generated PDF.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Permissions">
-          <maml:name>Permission</maml:name>
-          <maml:description>
-            <maml:para>Raw PDF Standard security permission bit mask. Defaults to allowing all standard operations.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-          <dev:type>
-            <maml:name>Int32</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="FontPath">
-          <maml:name>RegularFontPath</maml:name>
-          <maml:description>
-            <maml:para>Regular TrueType font path used when -FontFamily is provided.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Theme</maml:name>
-          <maml:description>
-            <maml:para>Built-in OfficeIMO.Pdf theme applied before the DSL content runs.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">OfficePdfThemePreset</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">WordLike</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">TechnicalDocument</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Compact</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Report</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>OfficePdfThemePreset</maml:name>
+            <maml:name>OfficeThemeInput</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -162061,9 +161677,21 @@ Use -NoSave or omit -Path when a document object should be returned for further 
     </command:syntax>
     <command:parameters>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowLoss</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>BoldFontPath</maml:name>
         <maml:description>
-          <maml:para>Optional bold TrueType font path used when -FontFamily is provided.</maml:para>
+          <maml:para>Optional bold face used with FontPath.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -162075,7 +161703,7 @@ Use -NoSave or omit -Path when a document object should be returned for further 
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>BoldItalicFontPath</maml:name>
         <maml:description>
-          <maml:para>Optional bold italic TrueType font path used when -FontFamily is provided.</maml:para>
+          <maml:para>Optional bold italic face used with FontPath.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -162096,10 +161724,10 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
         <maml:name>Content</maml:name>
         <maml:description>
-          <maml:para>DSL script block describing generated PDF content.</maml:para>
+          <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
         <dev:type>
@@ -162116,44 +161744,6 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>DefaultFont</maml:name>
-        <maml:description>
-          <maml:para>Default standard PDF font for generated text.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfStandardFont</command:parameterValue>
-        <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">Helvetica</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">HelveticaOblique</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">HelveticaBold</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">HelveticaBoldOblique</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">TimesRoman</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">TimesItalic</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">TimesBold</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">TimesBoldItalic</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Courier</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">CourierOblique</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">CourierBold</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">CourierBoldOblique</command:parameterValue>
-        </command:parameterValueGroup>
-        <dev:type>
-          <maml:name>PdfStandardFont</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>DefaultFontSize</maml:name>
-        <maml:description>
-          <maml:para>Default generated text font size in points.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-        <dev:type>
-          <maml:name>Double</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -162214,13 +161804,37 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>FontFamily</maml:name>
+        <maml:name>Font</maml:name>
         <maml:description>
-          <maml:para>Embedded TrueType font family name for generated text.</maml:para>
+          <maml:para>Body font family; inherited heading defaults follow the document font.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>FontPath</maml:name>
+        <maml:description>
+          <maml:para>Regular embedded font file; requires the Font family name.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Force</maml:name>
+        <maml:description>
+          <maml:para>Allow a completed content block to replace an existing destination.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -162276,35 +161890,11 @@ Use -NoSave or omit -Path when a document object should be returned for further 
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>ItalicFontPath</maml:name>
         <maml:description>
-          <maml:para>Optional italic TrueType font path used when -FontFamily is provided.</maml:para>
+          <maml:para>Optional italic face used with FontPath.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NoSave</maml:name>
-        <maml:description>
-          <maml:para>Skip saving even when -Path is provided.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
-        <maml:name>Open</maml:name>
-        <maml:description>
-          <maml:para>Open the PDF after saving.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -162346,7 +161936,7 @@ Use -NoSave or omit -Path when a document object should be returned for further 
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>OpenActionTop</maml:name>
         <maml:description>
-          <maml:para>Optional open-action top coordinate.</maml:para>
+          <maml:para>Optional open-action top coordinate in the page's native UserUnit space.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
         <dev:type>
@@ -162372,9 +161962,9 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <maml:description>
           <maml:para>Optional owner password for the generated encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -162434,7 +162024,7 @@ Use -NoSave or omit -Path when a document object should be returned for further 
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the generated document or saved file for chaining.</maml:para>
+          <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -162443,46 +162033,22 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="UserPassword">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Password</maml:name>
         <maml:description>
           <maml:para>Password required to open the generated PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="FilePath">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>Optional destination PDF path.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Permissions">
-        <maml:name>Permission</maml:name>
-        <maml:description>
-          <maml:para>Raw PDF Standard security permission bit mask. Defaults to allowing all standard operations.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
-        <dev:type>
-          <maml:name>Int32</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="FontPath">
-        <maml:name>RegularFontPath</maml:name>
-        <maml:description>
-          <maml:para>Regular TrueType font path used when -FontFamily is provided.</maml:para>
+          <maml:para>Optional associated destination; required with a content block.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -162492,19 +162058,61 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Theme</maml:name>
+        <maml:name>Permission</maml:name>
         <maml:description>
-          <maml:para>Built-in OfficeIMO.Pdf theme applied before the DSL content runs.</maml:para>
+          <maml:para>Operations allowed to readers; defaults to all Standard security permissions.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">OfficePdfThemePreset</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfStandardPermissions</command:parameterValue>
         <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">WordLike</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">TechnicalDocument</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Compact</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Report</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Print</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ModifyContents</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">CopyContents</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ModifyAnnotations</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">FillForms</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Accessibility</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">AssembleDocument</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">HighQualityPrint</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">All</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>OfficePdfThemePreset</maml:name>
+          <maml:name>PdfStandardPermissions</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Show</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Size</maml:name>
+        <maml:description>
+          <maml:para>Default body font size. A bare number means points.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeLength</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Theme</maml:name>
+        <maml:description>
+          <maml:para>Built-in theme, theme object or document/template whose visual theme is read.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeThemeInput</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeThemeInput</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -162536,39 +162144,22 @@ Use -NoSave or omit -Path when a document object should be returned for further 
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Create a PDF report.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePdf -Path .\Report.pdf { PdfHeading 'Report'; PdfParagraph 'Generated by PSWriteOffice' } -Open</dev:code>
+        <maml:title>Create a themed PDF report.</maml:title>
+        <dev:code>New-OfficePdf -Path ./Report.pdf -Theme Modern -PassThru {
+                PdfHeading 'Service review'
+                PdfParagraph 'All services are available.'
+            }</dev:code>
         <dev:remarks>
-          <maml:para>Builds a PDF and opens it after saving.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>Create a polished report with theme, metadata, and layout.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePdf -Path .\ServiceReview.pdf {
-                PdfTheme Report
-                PdfMetadata -Title 'Service Review' -Author 'PSWriteOffice'
-                PdfPageSetup -PageSize A4 -Margin 42
-                PdfHeader 'Service Review'
-                PdfFooter 'Page {page}/{pages}'
-                PdfHeading 'Service Review'
-                PdfText -Run @(
-                  @{ Text = 'Generated with ' }
-                  @{ Text = 'rich inline text'; Bold = $true; Color = '#0F766E' }
-                  @{ Text = ' and OfficeIMO.Pdf layout.' }
-                )
-                PdfRow -Column @(
-                  @{ Width = 40; Content = @(@{ Type = 'Panel'; Text = 'Left summary' }) }
-                  @{ Width = 60; Content = @(@{ Type = 'Paragraph'; Text = 'Right details' }) }
-                )
-              }</dev:code>
+        <maml:title>Create a live document and save it explicitly.</maml:title>
+        <dev:code>$pdf = New-OfficePdf -Theme Classic -Size 11pt
+            Add-OfficePdfParagraph -Document $pdf -Text 'Reviewed and approved'
+            Save-OfficePdf -Document $pdf -Path ./Review.pdf</dev:code>
         <dev:remarks>
-          <maml:para>Shows the preferred high-level PDF report authoring shape.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -184470,6 +184061,18 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
         <maml:name>Save-OfficePdf</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Explicitly accept fidelity findings from native PDF serialization.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Document</maml:name>
           <maml:description>
@@ -184557,6 +184160,18 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowLoss</maml:name>
+        <maml:description>
+          <maml:para>Explicitly accept fidelity findings from native PDF serialization.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>Document</maml:name>
         <maml:description>
@@ -184667,7 +184282,9 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$pdf = New-OfficePdf { PdfHeading 'Queued report'; PdfParagraph 'Generated in memory.' }
+        <dev:code>$pdf = New-OfficePdf
+            Add-OfficePdfHeading -Document $pdf -Text 'Queued report'
+            Add-OfficePdfParagraph -Document $pdf -Text 'Generated in memory.'
             $pdf | Save-OfficePdf -Path .\QueuedReport.pdf</dev:code>
         <dev:remarks>
           <maml:para>Creates a PDF document object first, then saves it to disk.</maml:para>
@@ -206927,6 +206544,18 @@ Use low opacity for watermark-like page texture and -Clear to remove a previousl
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
         <maml:name>Set-OfficePdfCompliance</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Live generated PDF; omission uses the enclosing creation block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PdfDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>PdfDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Groundwork</maml:name>
           <maml:description>
@@ -206984,6 +206613,18 @@ Use low opacity for watermark-like page texture and -Clear to remove a previousl
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Live generated PDF; omission uses the enclosing creation block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">PdfDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>PdfDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Groundwork</maml:name>
         <maml:description>
@@ -207042,7 +206683,7 @@ Use low opacity for watermark-like page texture and -Clear to remove a previousl
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>None</maml:name>
+          <maml:name>OfficeIMO.Pdf.PdfDocument</maml:name>
         </dev:type>
       </command:inputType>
     </command:inputTypes>

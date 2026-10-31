@@ -24,4 +24,4 @@ Split-OfficePdf -Path '.\Pack.pdf' -OutputDirectory '.\Pages' `
     -PagesPerDocument 1 -Prefix page -PadIndex -IndexWidth 3
 ```
 
-Use `Copy-OfficePdfPage`, `Move-OfficePdfPage`, and `Remove-OfficePdfPage` for targeted page assembly. The [merge-and-split recipe](https://github.com/EvotecIT/OfficeIMO/blob/0840ac4e61b4ab7b5c5711d70ea706208e291d1e/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-MergeAndSplit.ps1) creates two small inputs, combines them, and splits the result into one-page files.
+Use `Copy-OfficePdfPage`, `Move-OfficePdfPage`, and `Remove-OfficePdfPage` for targeted page assembly. The [merge-and-split recipe](https://github.com/EvotecIT/OfficeIMO/blob/910aa3ec38e156f1c6b029aca3f6ea5a8cc1fa44/PowerShell/PSWriteOffice/Examples/Pdf/Recipe-Pdf-MergeAndSplit.ps1) creates two small inputs, combines them, and splits the result into one-page files.

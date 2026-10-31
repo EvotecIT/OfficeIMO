@@ -50,9 +50,9 @@ Describe 'OfficeIMO 3.4.4 integration' {
         $source = Join-Path $TestDrive 'bounded-source.pdf'
         New-OfficePdf -Path $source { PdfParagraph 'Original' } | Out-Null
 
-        { New-OfficePdf { PdfImage -Path $image -Width 20 -Height 20 } -ErrorAction Stop } |
+        { New-OfficePdf -Path (Join-Path $TestDrive 'oversized-inline.pdf') { PdfImage -Path $image -Width 20 -Height 20 } -ErrorAction Stop } |
             Should -Throw '*Encoded image input*exceeds*byte limit*'
-        { New-OfficePdf { Set-OfficePdfBackgroundImage -Path $image } -ErrorAction Stop } |
+        { New-OfficePdf -Path (Join-Path $TestDrive 'oversized-background.pdf') { Set-OfficePdfBackgroundImage -Path $image } -ErrorAction Stop } |
             Should -Throw '*Encoded image input*exceeds*byte limit*'
         { New-OfficePdfTableCellImage -Path $image -Width 20 -Height 20 -ErrorAction Stop } |
             Should -Throw '*Encoded image input*exceeds*byte limit*'
