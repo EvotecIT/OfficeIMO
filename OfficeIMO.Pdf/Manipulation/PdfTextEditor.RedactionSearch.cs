@@ -355,7 +355,7 @@ internal static partial class PdfTextEditor {
         "A precise search area would remove an unselected glyph. Use reviewed geometry or complete-block selection instead.";
 
     private const string GlyphMappingMessage =
-        "This text can't be traced to exact characters in the file, so it can't be removed on its own. Select the whole block or draw the area by hand.";
+        "This text can't be traced to exact characters in the file, so search can't remove it safely. Draw the area by hand to redact it.";
 
     private sealed class MatchedGlyphDraft {
         internal MatchedGlyphDraft(int page, double left, double bottom, double right, double top, string label, bool isHiddenOnly) {

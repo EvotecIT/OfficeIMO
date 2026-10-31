@@ -107,6 +107,7 @@ internal static partial class PdfRedactionPlanner {
             }
         }
         PdfRedactionSearchCriteria? textCriteria = PdfRedactionSearchCriteria.Create(search.LiteralText, expressions);
+        AddAnnotationOnlyAreas(readDocument, search, textCriteria, areas, keys);
         var requestedFields = new HashSet<string>(search.FormFieldNames, StringComparer.Ordinal);
         foreach (PdfLogicalFormWidget widget in logical.FormWidgets) {
             search.CancellationToken.ThrowIfCancellationRequested();
@@ -117,6 +118,27 @@ internal static partial class PdfRedactionPlanner {
         PdfRedactionPlan planned = Plan(pdf, areas.Select(area => area.WithSearchCriteria(textCriteria)), layoutOptions, readOptions, search.CancellationToken);
         search.CancellationToken.ThrowIfCancellationRequested();
         return new PdfRedactionPlan(planned.Preflight, planned.Areas, planned.Matches, planned.Findings.Concat(selectionFindings).ToArray(), DescribeCriteria(search), planned.SourceSha256, planned.PageIdentities, planned.ReviewedTextObjectScopes, search.MatchCase, search.RegexOptions, search.RegexTimeout);
+    }
+
+    // A note on a page with no text match can still hold the searched word. The area gives that page a place
+    // in the plan, so the annotation is listed for review, without painting anything or touching page content.
+    private static void AddAnnotationOnlyAreas(PdfReadDocument document, PdfRedactionSearchOptions search, PdfRedactionSearchCriteria? criteria,
+        List<PdfRedactionArea> areas, HashSet<string> keys) {
+        if (criteria is null) return;
+        var searched = new[] { criteria };
+        for (int pageNumber = 1; pageNumber <= document.Pages.Count; pageNumber++) {
+            search.CancellationToken.ThrowIfCancellationRequested();
+            if (search.PageNumbers.Count > 0 && !search.PageNumbers.Contains(pageNumber) || areas.Any(area => area.PageNumber == pageNumber)) continue;
+            PdfReadPage page = document.Pages[pageNumber - 1];
+            PdfAnnotation? carrier = page.GetAnnotationsForContentSafety()
+                .FirstOrDefault(annotation => PdfRedactionApplier.CarriesSearchedText(document.Objects, page.ObjectNumber, annotation, searched));
+            if (carrier is null) continue;
+            bool hasRectangle = carrier.HasReadableRectangle && carrier.Width > 0D && carrier.Height > 0D;
+            AddArea(areas, keys, new PdfRedactionArea(pageNumber, hasRectangle ? carrier.X1 : 0D, hasRectangle ? carrier.Y1 : 0D,
+                hasRectangle ? carrier.Width : 1D, hasRectangle ? carrier.Height : 1D, "annotation", PdfRedactionContentScope.TextOnly)
+                .WithGlyphSelection(new PdfRedactionGlyphSelection(Array.Empty<PdfRedactionSelectedGlyph>(), isHiddenOnly: true, isCompleteBlock: true))
+                .WithSearchCriteria(criteria), search.MaximumCandidates, PdfRedactionContentScope.TextOnly);
+        }
     }
 
     private static string? MatchText(PdfLogicalTextBlock block, PdfRedactionSearchOptions search, Regex[] expressions, StringComparison comparison, PdfRedactionSearchWorkBudget workBudget) {

@@ -2305,8 +2305,9 @@ a Form XObject that no page paints still hold it.
 A search mark keeps its full height, but only image pixels follow that rectangle.
 Vector paths and annotations are removed when they overlap the matched glyphs, so a
 table rule or link on the next line stays. Annotations holding the searched text in
-their contents or appearance go wherever they sit on a reviewed page, except form
-widgets, whose values belong to the field. Unpainted forms holding the searched text
+their contents or appearance go on every searched page, even one with no text match,
+and appear in the plan as annotation matches. Such a page paints no mark. Form widgets
+are left out, because their values belong to the field. Unpainted forms holding the searched text
 are removed too.
 
 Whole-block search removes the block's own glyphs and marks its full rectangle, so a

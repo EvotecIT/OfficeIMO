@@ -25,7 +25,7 @@ internal sealed class PdfRedactionGlyphSelection {
 
     internal int Count => _glyphs.Length;
 
-    /// <summary>True when every selected glyph is in a hidden layer, so nothing visible needs a mark or underlay removal.</summary>
+    /// <summary>True when nothing visible is selected, because every glyph is in a hidden layer or there are none, so no mark or underlay removal is needed.</summary>
     internal bool IsHiddenOnly { get; }
 
     internal bool Contains(double x, double y, IReadOnlyList<byte> encodedBytes) {

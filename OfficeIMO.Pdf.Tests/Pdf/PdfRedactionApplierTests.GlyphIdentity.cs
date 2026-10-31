@@ -819,6 +819,77 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains("/Other", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
         }
 
+        // Page 1 has the text. Page 2 has a note, page 3 an appearance, page 4 a widget and a harmless note.
+        private byte[] BuildAnnotatedPages() {
+            const string appearance = "BT /F1 12 Tf 0 0 Td (Stamp secret words) Tj ET";
+            const string blank = "BT /F1 12 Tf 72 720 Td (Plain page) Tj ET";
+            string Page(int number, int contents, string annots) => number + " 0 obj\n<< /Type /Page /Parent 2 0 R /Contents " + contents + " 0 R /Annots [" + annots + "] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj";
+            return BuildPdf(new[] {
+                "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+                "2 0 obj\n<< /Type /Pages /Count 4 /Kids [3 0 R 6 0 R 7 0 R 8 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+                Page(3, 5, string.Empty),
+                "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+                BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes(TwoLines)),
+                Page(6, 9, "10 0 R"), Page(7, 9, "11 0 R"), Page(8, 9, "13 0 R 14 0 R"),
+                BuildStreamObject(9, System.Text.Encoding.ASCII.GetBytes(blank)),
+                "10 0 obj\n<< /Type /Annot /Subtype /Text /Rect [400 100 420 120] /Contents (About the secret plan) >>\nendobj",
+                "11 0 obj\n<< /Type /Annot /Subtype /Stamp /Rect [400 200 500 220] /AP << /N 12 0 R >> >>\nendobj",
+                "12 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Resources << /Font << /F1 4 0 R >> >> /Length " + appearance.Length + " >>\nstream\n" + appearance + "\nendstream\nendobj",
+                "13 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Tx /T (Field) /V (secret value) /Rect [100 100 200 120] >>\nendobj",
+                "14 0 obj\n<< /Type /Annot /Subtype /Text /Rect [400 300 420 320] /Contents (Harmless remark) >>\nendobj"
+            }, rootObjectNumber: 1);
+        }
+
+        [Theory]
+        [InlineData(PdfRedactionTextSelection.MatchedGlyphs)]
+        [InlineData(PdfRedactionTextSelection.LogicalBlocks)]
+        public void AnnotationsOnPagesWithoutATextMatchAreReportedAndRemoved(PdfRedactionTextSelection selection) {
+            byte[] bytes = BuildAnnotatedPages();
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            Assert.Equal(new[] { 2, 3 }, plan.Matches.Where(static match => match.Kind == PdfRedactionMatchKind.Annotation).Select(static match => match.PageNumber).OrderBy(static page => page));
+            Assert.DoesNotContain(plan.Areas, area => area.PageNumber == 4);
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string raw = PdfEncoding.Latin1GetString(result.Pdf);
+            Assert.DoesNotContain("secret plan", raw, StringComparison.Ordinal);
+            Assert.DoesNotContain("Stamp secret", raw + DecodeAllStreams(result.Pdf), StringComparison.Ordinal);
+            Assert.Contains("Harmless remark", raw, StringComparison.Ordinal);
+            Assert.Contains("secret value", raw, StringComparison.Ordinal);
+            Assert.Equal(3, Regex.Matches(result.ToDocument().Read().Text, "Plain page").Count);
+            Assert.Single(PdfReadDocument.Open(result.Pdf).Pages[0].GetIdentityVisualPrimitives());
+            Assert.Empty(PdfReadDocument.Open(result.Pdf).Pages[1].GetIdentityVisualPrimitives());
+        }
+
+        [Fact]
+        public void PageLimitedSearchLeavesAnnotationsOnOtherPages() {
+            PdfDocument source = PdfDocument.Load(BuildAnnotatedPages());
+            PdfRedactionSearchOptions options = PreciseOptions().AddLiteral("secret");
+            options.PageNumbers.Add(1);
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(source.Redactions.Search(options));
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.Contains("secret plan", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void VerifierFlagsAnAnnotationLeftOnAPageWithoutATextMatch() {
+            byte[] bytes = BuildAnnotatedPages();
+            PdfRedactionPlan plan = PdfDocument.Load(bytes).Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            PdfRedactionVerificationReport report = PdfDocument.Load(bytes).Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
+            Assert.Contains(report.Issues, issue => issue.Marker == "AnnotationText" );
+        }
+
+        [Fact]
+        public void MappingRefusalNoLongerPointsAtBlockSelection() {
+            byte[] bytes = BuildTextContentRedactionSource("BT /F1 12 Tf 13.8 TL 72 720 Td /Span << /ActualText (hidden secret words) >> BDC (X) Tj EMC T* (Kept next line) Tj ET");
+            PdfRedactionPlan plan = PdfDocument.Load(bytes).Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("secret"));
+            PdfDiagnosticFinding finding = Assert.Single(plan.Findings, static item => item.Code == "redaction-search-glyph-mapping-unsupported");
+            Assert.DoesNotContain("block", finding.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
         private byte[] BuildTaggedSource() => BuildPdf(new[] {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",

@@ -377,7 +377,10 @@ internal static partial class PdfRedactionApplier {
     /// <summary>True when an annotation holds the searched text in its contents or appearance, wherever it sits on the page.</summary>
     /// <remarks>Form widgets are left out: their values belong to the form field, not to page text.</remarks>
     internal static bool CarriesSearchedText(Dictionary<int, PdfIndirectObject> objects, int pageObjectNumber, PdfAnnotation annotation, IEnumerable<PdfRedactionArea> areas) {
-        PdfRedactionSearchCriteria[] criteria = GetSearchCriteria(areas);
+        return CarriesSearchedText(objects, pageObjectNumber, annotation, GetSearchCriteria(areas));
+    }
+
+    internal static bool CarriesSearchedText(Dictionary<int, PdfIndirectObject> objects, int pageObjectNumber, PdfAnnotation annotation, PdfRedactionSearchCriteria[] criteria) {
         if (criteria.Length == 0 || string.Equals(annotation.Subtype, "Widget", StringComparison.Ordinal)) return false;
         if (annotation.Contents is string contents && criteria.Any(criterion => criterion.Matches(contents))) return true;
         return annotation.ObjectNumber is int number && objects.TryGetValue(number, out PdfIndirectObject? indirect) && indirect.Value is PdfDictionary dictionary &&
