@@ -44,7 +44,7 @@ param(
     [ValidateSet('Corpus', 'Validate')]
     [string] $Operation = 'Corpus',
 
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
     [string] $Case = 'Blank',
 
     [string] $InputPath,
@@ -107,7 +107,7 @@ $artifactNames = @(Get-NativeValidationArtifactNames -Stage $Stage)
 if ($Operation -eq 'Corpus') {
     $stem = 'native-' + $Case.ToLowerInvariant()
     $artifactNames = @(($stem + '.pub'), ($stem + '.pdf'), ($stem + '.json'))
-    if ($Case -in @('Image', 'Newsletter', 'TableLabel', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')) {
+    if ($Case -in @('Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')) {
         $artifactNames += $stem + '.png'
         if ($Case -eq 'PictureReplacement') {
             $artifactNames += $stem + '-replacement.png'

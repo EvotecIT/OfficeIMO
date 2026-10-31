@@ -29,7 +29,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -75,7 +75,7 @@ if ($Operation -eq 'Validate') {
     . (Join-Path $PSScriptRoot 'Get-NativeValidationArtifactNames.ps1')
     $reservedArtifacts = Get-NativeValidationArtifactNames -Stage $Stage |
         ForEach-Object { Join-Path $output $_ }
-} elseif ($Case -in @('Image', 'Newsletter', 'TableLabel', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')) {
+} elseif ($Case -in @('Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')) {
     $reservedArtifacts += Join-Path $output ($stem + '.png')
     if ($Case -eq 'PictureReplacement') {
         $reservedArtifacts += Join-Path $output ($stem + '-replacement.png')
@@ -120,7 +120,7 @@ $expectedText = [Collections.Generic.List[string]]::new()
 $width = 612
 $height = 792
 $pageCount = 1
-if ($Case -eq 'TableLabel') {
+if ($Case -in @('TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs')) {
     $width = 288
     $height = 216
 } elseif ($Case -eq 'Brochure') {
@@ -135,6 +135,7 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeParagraphFormatControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeFrameLayoutControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeTableControl.ps1')
+. (Join-Path $PSScriptRoot 'Get-NativeTableGeometry.ps1')
 . (Join-Path $PSScriptRoot 'Write-NativePublisherPhaseReceipt.ps1')
 
 function Set-NativePhase {
@@ -213,6 +214,7 @@ function Get-NativeShapeInventory {
         $previousLink = $false
         $frameLayout = $null
         $picture = $null
+        $tableGeometry = $null
         if ($shape.HasTextFrame -eq -1) {
             $frame = $shape.TextFrame
             $range = $frame.TextRange
@@ -245,6 +247,7 @@ function Get-NativeShapeInventory {
                 }
             }
         }
+        if ($shape.Type -eq 18) { $tableGeometry = Get-NativeTableGeometry $shape }
         $nativeShapes.Add([pscustomobject]@{
             name = [string]$shape.Name
             type = [int]$shape.Type
@@ -258,6 +261,7 @@ function Get-NativeShapeInventory {
             previousLink = $previousLink
             frameLayout = $frameLayout
             picture = $picture
+            tableGeometry = $tableGeometry
         })
     }
     return $nativeShapes.ToArray()
@@ -680,7 +684,7 @@ try {
                 throw 'Publisher did not establish reciprocal newsletter frame links.'
             }
         }
-        { $_ -in @('TableLabel', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs') } {
+        { $_ -in @('TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs') } {
             $pageCount = Add-NativeTableControl -Publication $document -FirstPage $page -Case $Case -PicturePath (Join-Path $output ($stem + '.png'))
         }
         { $_ -in @('Brochure', 'MultipleMasters', 'TwoPageMaster') } {

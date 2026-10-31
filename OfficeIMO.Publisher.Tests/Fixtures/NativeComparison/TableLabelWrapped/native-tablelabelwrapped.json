@@ -1,0 +1,183 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TableLabelWrapped",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 1,
+    "widthPoints": 288,
+    "heightPoints": 216,
+    "text": [
+      "Zażółć gęślą jaźń / Αλφα",
+      "Cell 0 paragraph 1\rCell 0 paragraph 2",
+      "Count",
+      "Alpha",
+      "2"
+    ],
+    "shapes": [
+      {
+        "name": "LabelTitle",
+        "kind": "TextFrame",
+        "left": 18.0,
+        "top": 12.0,
+        "width": 252.0,
+        "height": 42.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "LabelTable",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "Cell 0 paragraph 1\rCell 0 paragraph 2",
+          "Count",
+          "Alpha",
+          "2"
+        ],
+        "left": 18,
+        "top": 66,
+        "width": 180,
+        "height": 72
+      },
+      {
+        "name": "LabelImage",
+        "kind": "Image",
+        "left": 216,
+        "top": 72,
+        "width": 54,
+        "height": 54
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "LabelTitle",
+          "type": 17,
+          "left": 18.0,
+          "top": 12.0,
+          "width": 252.0,
+          "height": 42.0,
+          "text": "Zażółć gęślą jaźń / Αλφα\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "LabelTable",
+          "type": 18,
+          "left": 18.0,
+          "top": 66.0,
+          "width": 180.0,
+          "height": 97.20055389404297,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              61.2005500793457,
+              36.0
+            ],
+            "columnWidthsPoints": [
+              90.0,
+              90.0
+            ]
+          }
+        },
+        {
+          "name": "LabelImage",
+          "type": 13,
+          "left": 216.0,
+          "top": 72.0,
+          "width": 54.0,
+          "height": 54.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": {
+            "fileName": "native-tablelabelwrapped.png",
+            "isLinked": false,
+            "cropPoints": {
+              "left": 0.0,
+              "top": 0.0,
+              "right": 0.0,
+              "bottom": 0.0
+            }
+          },
+          "tableGeometry": null
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-tablelabelwrapped.pub",
+      "sha256": "37bba9e47e1af3a758a233cad7d7b269b81028b963dbfdf6d423b891eca75479"
+    },
+    "reference": {
+      "name": "native-tablelabelwrapped.pdf",
+      "sha256": "6f065eb1c937bef572e946454d89cfa80dbb24ea572b1deb6559bb1242ddd7b0"
+    },
+    "sourceImage": {
+      "name": "native-tablelabelwrapped.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    }
+  }
+}

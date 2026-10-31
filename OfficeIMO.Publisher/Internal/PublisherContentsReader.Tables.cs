@@ -14,14 +14,17 @@ internal sealed partial class PublisherContentsReader {
         if (rows == 0 || columns == 0 || gridSize > _context.Options.Limits.MaxItems)
             throw new InvalidDataException("Publisher table grid exceeds the configured item limit or is empty.");
         var sizes = new List<double>();
+        var ends = new List<uint?>();
         foreach (PublisherBlock entry in _blocks.Children(dimensions.Value)) {
             if (entry.Id != 0 || entry.Type != 0x88) continue;
-            PublisherBlock size = Field(_blocks.Children(entry), 2) ?? throw new InvalidDataException("Publisher table track size is missing.");
+            IReadOnlyList<PublisherBlock> values = _blocks.Children(entry);
+            PublisherBlock size = Field(values, 2) ?? throw new InvalidDataException("Publisher table track size is missing.");
             if (size.Value == 0 || size.Value > int.MaxValue) throw new InvalidDataException("Invalid Publisher table track size.");
             sizes.Add(size.Value / 12700D);
+            ends.Add(Field(values, 1)?.Value);
         }
         if (sizes.Count != rows.Value + columns.Value) throw new InvalidDataException("Publisher table track count does not match its grid.");
-        var result = new PublisherSourceTable(sizes.Take((int)columns.Value).ToArray(), sizes.Skip((int)columns.Value).ToArray());
+        var result = new PublisherSourceTable(Tracks(0, (int)columns.Value), Tracks((int)columns.Value, (int)rows.Value));
         IReadOnlyList<PublisherBlock> fields = _blocks.Chunk(cells.Offset, cells.End);
         PublisherBlock array = Field(fields, 2) ?? throw new InvalidDataException("Publisher table cells are missing.");
         var occupied = new HashSet<long>();
@@ -46,6 +49,32 @@ internal sealed partial class PublisherContentsReader {
         if (occupied.Count != gridSize) _context.Add("PUB_TABLE_GRID_INCOMPLETE", "Some table grid positions have no recovered cell definition.",
             OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Chunk.Id));
         return result;
+
+        double[] Tracks(int start, int count) {
+            bool complete = true; uint prior = 0;
+            for (int i = start; i < start + count; i++) {
+                _context.Token.ThrowIfCancellationRequested();
+                uint? end = ends[i];
+                if (!end.HasValue) { complete = false; continue; }
+                if (end.Value <= prior || end.Value > int.MaxValue)
+                    throw new InvalidDataException("Invalid Publisher table track endpoint order or extent.");
+                prior = end.Value;
+            }
+            if (!complete) {
+                _context.Add("PUB_TABLE_TRACK_POSITIONS_UNASSESSED", "Saved table track endpoints are incomplete. Nominal sizes are retained for this axis; laid-out cell positions are unassessed.",
+                    OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(source.Chunk.Id));
+                return sizes.Skip(start).Take(count).ToArray();
+            }
+            // 01 stores cumulative laid-out ends; 02 retains nominal sizes even
+            // when text expands a row. Each axis starts at its own zero.
+            var tracks = new double[count]; prior = 0;
+            for (int i = 0; i < count; i++) {
+                _context.Token.ThrowIfCancellationRequested();
+                uint end = ends[start + i]!.Value;
+                tracks[i] = (end - prior) / 12700D; prior = end;
+            }
+            return tracks;
+        }
     }
 }
 

@@ -1,11 +1,17 @@
 # Synthetic table/cell controls; native access stays in the bounded corpus worker.
 function Add-NativeTableControl {
     param($Publication, $FirstPage, [string] $Case, [string] $PicturePath)
-    if ($Case -eq 'TableLabel') {
+    $labelCase = $Case -in @('TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs')
+    if ($labelCase) {
         # Escapes retain PS5.1 syntax/encoding compatibility.
         $multilingual = 'Za' + [char]0x017C + [char]0x00F3 + [char]0x0142 + [char]0x0107 + ' g' + [char]0x0119 + [char]0x015B + 'l' + [char]0x0105 + ' ja' + [char]0x017A + [char]0x0144 + ' / ' + [char]0x0391 + [char]0x03BB + [char]0x03C6 + [char]0x03B1
         $null = Add-TextFrame $FirstPage 'LabelTitle' $multilingual 18 12 252 42 12
         $profiles = @(@{ Name = 'LabelTable' })
+        if ($Case -eq 'TableLabelWrapped') {
+            $profiles[0].Text = @{ '0' = "Cell 0 paragraph 1`rCell 0 paragraph 2" }
+        } elseif ($Case -eq 'TableLabelShortParagraphs') {
+            $profiles[0].Text = @{ '0' = "C0 P1`rC0 P2" }
+        }
     } elseif ($Case -eq 'TableCellParagraphs') {
         $profiles = @(
             @{ Name = 'Baseline' },
@@ -33,7 +39,7 @@ function Add-NativeTableControl {
         if ($index -gt 0 -and $index % 4 -eq 0) {
             $owner = $Publication.Pages.Add(1, $pages); $objects.Add($owner); $pages++
         }
-        if ($Case -eq 'TableLabel') {
+        if ($labelCase) {
             $left = 18; $top = 66; $width = 180; $height = 72
         } else {
             $left = 72; $top = 64 + ($index % 4) * 176; $width = 360; $height = 104
@@ -67,7 +73,7 @@ function Add-NativeTableControl {
                     if ($Case -eq 'TableCellTypingEarlyRange') { $range.Font.Bold = -1 } else { $cell.TextRange.Font.Bold = -1 }
                 }
                 else { $cell.Fill.ForeColor.RGB = 16777215 }
-                if ($Case -ne 'TableLabel') {
+                if (!$labelCase) {
                     if ($Case -ne 'TableCellTypingEarlyRange') { $range = $cell.TextRange; $objects.Add($range) }
                     if ($cellIndex -eq 0 -and $profile.ContainsKey('Language')) { $range.LanguageID = [int]$profile.Language }
                     if ($cellIndex -eq 0 -and $profile.ContainsKey('Styled')) {
@@ -93,7 +99,7 @@ function Add-NativeTableControl {
             }
         }
         $expected = [pscustomobject]@{ name = $profile.Name; kind = 'Table'; rows = 2; columns = 2; cells = $values; left = $left; top = $top; width = $width; height = $height }
-        if ($Case -ne 'TableLabel') {
+        if (!$labelCase) {
             $expected | Add-Member -NotePropertyName cellTyping -NotePropertyValue ([pscustomobject]@{
                 profile = $profile; observed = $observed.ToArray(); rangeCapture = $(if ($Case -eq 'TableCellTypingEarlyRange') { 'BeforeText' } else { 'FreshWholeCell' })
             })
@@ -101,7 +107,7 @@ function Add-NativeTableControl {
         $expectedShapes.Add($expected)
         foreach ($value in $values) { if ($value.Length -gt 0) { $expectedText.Add($value) } }
     }
-    if ($Case -eq 'TableLabel') {
+    if ($labelCase) {
         New-ReferencePicture $PicturePath
         $image = $FirstPage.Shapes.AddPicture($PicturePath, 0, -1, 216, 72, 54, 54)
         $image.Name = 'LabelImage'; $objects.Add($image)

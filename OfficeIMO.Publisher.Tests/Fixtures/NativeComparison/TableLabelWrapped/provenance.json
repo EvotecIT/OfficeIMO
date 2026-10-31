@@ -1,0 +1,34 @@
+{
+  "schema": "officeimo.publisher.native-label-layout-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableLabelWrapped",
+  "scope": "Independent synthetic native label production. Requested table tracks are90/90 columns and36/36 nominal rows; native observed laid-out row heights are recorded separately. File identities include native timestamps.",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "sha256": "ca736ecbb8b0633650433ed9fd9e200656036cc51a5543089869779b812043e0",
+      "name": "native-tablelabelwrapped.json"
+    },
+    {
+      "sha256": "6f065eb1c937bef572e946454d89cfa80dbb24ea572b1deb6559bb1242ddd7b0",
+      "name": "native-tablelabelwrapped.pdf"
+    },
+    {
+      "sha256": "37bba9e47e1af3a758a233cad7d7b269b81028b963dbfdf6d423b891eca75479",
+      "name": "native-tablelabelwrapped.pub"
+    }
+  ]
+}

@@ -32,9 +32,9 @@ public sealed class PublisherTable {
     public bool HasPlacement { get; }
     /// <summary>Maps table-local points into page-local points, including object and enclosing-group rotation/reflection.</summary>
     public OfficeTransform PageTransform { get; }
-    /// <summary>Current column widths in points, in grid order.</summary>
+    /// <summary>Current column widths in points, in grid order. Imported tracks use saved layout endpoints when available.</summary>
     public IReadOnlyList<double> ColumnWidths { get; }
-    /// <summary>Current row heights in points, in grid order.</summary>
+    /// <summary>Current row heights in points, in grid order. Imported tracks use saved layout endpoints when available; no native reflow is performed.</summary>
     public IReadOnlyList<double> RowHeights { get; }
     /// <summary>Number of current grid columns.</summary>
     public int ColumnCount => ColumnWidths.Count;
