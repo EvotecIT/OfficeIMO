@@ -30,18 +30,22 @@
     {
       "name": "Add-OfficeEpubChapter",
       "kind": "Cmdlet",
-      "aliases": [],
+      "aliases": [
+        "EpubChapter"
+      ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/AddOfficeEpubChapterCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/AddOfficeEpubChapterCommand.cs#L18"
+      "sourceLine": 20,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/AddOfficeEpubChapterCommand.cs#L20"
     },
     {
       "name": "Add-OfficeEpubResource",
       "kind": "Cmdlet",
-      "aliases": [],
+      "aliases": [
+        "EpubResource"
+      ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/AddOfficeEpubResourceCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/AddOfficeEpubResourceCommand.cs#L18"
+      "sourceLine": 20,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/AddOfficeEpubResourceCommand.cs#L20"
     },
     {
       "name": "Add-OfficeExcelAutoFilter",
@@ -1685,6 +1689,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Access/CloseOfficeAccessCommand.cs#L17"
     },
     {
+      "name": "Close-OfficeEpub",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/CloseOfficeEpubCommand.cs",
+      "sourceLine": 10,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/CloseOfficeEpubCommand.cs#L10"
+    },
+    {
       "name": "Close-OfficeExcel",
       "kind": "Cmdlet",
       "aliases": [],
@@ -2534,20 +2546,12 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailMailboxCommand.cs#L16"
     },
     {
-      "name": "Get-OfficeEpub",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/GetOfficeEpubCommand.cs",
-      "sourceLine": 17,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/GetOfficeEpubCommand.cs#L17"
-    },
-    {
       "name": "Get-OfficeEpubChapter",
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/GetOfficeEpubChapterCommand.cs",
-      "sourceLine": 17,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/GetOfficeEpubChapterCommand.cs#L17"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/GetOfficeEpubChapterCommand.cs#L18"
     },
     {
       "name": "Get-OfficeExcel",
@@ -3741,8 +3745,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/NewOfficeEpubCommand.cs",
-      "sourceLine": 17,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/NewOfficeEpubCommand.cs#L17"
+      "sourceLine": 20,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/NewOfficeEpubCommand.cs#L20"
     },
     {
       "name": "New-OfficeExcel",
@@ -4154,6 +4158,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordTableCellCommand.cs#L18"
     },
     {
+      "name": "Open-OfficeEpub",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/OpenOfficeEpubCommand.cs",
+      "sourceLine": 15,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/OpenOfficeEpubCommand.cs#L15"
+    },
+    {
       "name": "Open-OfficeMarkdown",
       "kind": "Cmdlet",
       "aliases": [],
@@ -4371,8 +4383,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/SaveOfficeEpubCommand.cs",
-      "sourceLine": 17,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/SaveOfficeEpubCommand.cs#L17"
+      "sourceLine": 15,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/SaveOfficeEpubCommand.cs#L15"
     },
     {
       "name": "Save-OfficeExcel",
@@ -4485,8 +4497,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/SetOfficeEpubMetadataCommand.cs",
-      "sourceLine": 17,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/SetOfficeEpubMetadataCommand.cs#L17"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Epub/SetOfficeEpubMetadataCommand.cs#L18"
     },
     {
       "name": "Set-OfficeExcelActiveSheet",

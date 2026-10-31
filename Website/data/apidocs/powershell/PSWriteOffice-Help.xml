@@ -550,6 +550,18 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">EpubPublication</command:parameterValue>
+          <dev:type>
+            <maml:name>EpubPublication</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Id</maml:name>
           <maml:description>
@@ -570,18 +582,6 @@
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
             <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Publication</maml:name>
-          <maml:description>
-            <maml:para>Live editable publication.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
-          <dev:type>
-            <maml:name>EpubPublication</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -625,6 +625,18 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">EpubPublication</command:parameterValue>
+          <dev:type>
+            <maml:name>EpubPublication</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Id</maml:name>
           <maml:description>
@@ -645,18 +657,6 @@
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
             <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Publication</maml:name>
-          <maml:description>
-            <maml:para>Live editable publication.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
-          <dev:type>
-            <maml:name>EpubPublication</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -700,6 +700,18 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">EpubPublication</command:parameterValue>
+          <dev:type>
+            <maml:name>EpubPublication</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Id</maml:name>
           <maml:description>
@@ -736,18 +748,6 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Publication</maml:name>
-          <maml:description>
-            <maml:para>Live editable publication.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
-          <dev:type>
-            <maml:name>EpubPublication</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
           <maml:name>Title</maml:name>
           <maml:description>
@@ -771,6 +771,18 @@
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">EpubPublication</command:parameterValue>
+        <dev:type>
+          <maml:name>EpubPublication</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -807,18 +819,6 @@
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Publication</maml:name>
-        <maml:description>
-          <maml:para>Live editable publication.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
-        <dev:type>
-          <maml:name>EpubPublication</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -917,6 +917,18 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">EpubPublication</command:parameterValue>
+          <dev:type>
+            <maml:name>EpubPublication</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Id</maml:name>
           <maml:description>
@@ -977,18 +989,6 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Publication</maml:name>
-          <maml:description>
-            <maml:para>Live editable publication.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
-          <dev:type>
-            <maml:name>EpubPublication</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
@@ -1000,6 +1000,18 @@
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">EpubPublication</command:parameterValue>
+        <dev:type>
+          <maml:name>EpubPublication</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -1060,18 +1072,6 @@
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Publication</maml:name>
-        <maml:description>
-          <maml:para>Live editable publication.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
-        <dev:type>
-          <maml:name>EpubPublication</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -64618,6 +64618,73 @@ cells. This keeps existing-document editing simple without forcing callers back 
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Close-OfficeEpub</command:name>
+      <command:verb>Close</command:verb>
+      <command:noun>OfficeEpub</command:noun>
+      <maml:description>
+        <maml:para>Completes an EPUB publication's lifecycle without saving.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Completes an EPUB publication's lifecycle without saving.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="__AllParameterSets">
+        <maml:name>Close-OfficeEpub</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Live publication to close without saving.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
+          <dev:type>
+            <maml:name>EpubPublication</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Live publication to close without saving.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
+        <dev:type>
+          <maml:name>EpubPublication</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>OfficeIMO.Epub.EpubPublication</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues />
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Close a live publication after an explicit save.</maml:title>
+        <dev:code>Close-OfficeEpub -Document $book</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Close-OfficeExcel</command:name>
       <command:verb>Close</command:verb>
       <command:noun>OfficeExcel</command:noun>
@@ -114107,79 +114174,6 @@ expressions.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Get-OfficeEpub</command:name>
-      <command:verb>Get</command:verb>
-      <command:noun>OfficeEpub</command:noun>
-      <maml:description>
-        <maml:para>Loads a publication for package-preserving inspection or editing.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Loads a publication for package-preserving inspection or editing.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
-        <maml:name>Get-OfficeEpub</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue, ByPropertyName)" position="0" aliases="FullName,FilePath,LiteralPath">
-          <maml:name>Path</maml:name>
-          <maml:description>
-            <maml:para>Literal EPUB path.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue, ByPropertyName)" position="0" aliases="FullName,FilePath,LiteralPath">
-        <maml:name>Path</maml:name>
-        <maml:description>
-          <maml:para>Literal EPUB path.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>System.String</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.Epub.EpubPublication</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Loads a publication for package-preserving inspection or editing.</maml:title>
-        <dev:code>Get-Item ./book.epub | Get-OfficeEpub</dev:code>
-        <dev:remarks>
-          <maml:para></maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
       <command:name>Get-OfficeEpubChapter</command:name>
       <command:verb>Get</command:verb>
       <command:noun>OfficeEpubChapter</command:noun>
@@ -114193,12 +114187,12 @@ expressions.</maml:para>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
         <maml:name>Get-OfficeEpubChapter</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Publication</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Live editable publication.</maml:para>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">EpubPublication</command:parameterValue>
           <dev:type>
             <maml:name>EpubPublication</maml:name>
             <maml:uri />
@@ -114208,12 +114202,12 @@ expressions.</maml:para>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Publication</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
         <maml:description>
-          <maml:para>Live editable publication.</maml:para>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">EpubPublication</command:parameterValue>
         <dev:type>
           <maml:name>EpubPublication</maml:name>
           <maml:uri />
@@ -153793,15 +153787,27 @@ document for Document input. Native merge options determine which content is imp
       <command:verb>New</command:verb>
       <command:noun>OfficeEpub</command:noun>
       <maml:description>
-        <maml:para>Creates an EPUB publication with native navigation and metadata.</maml:para>
+        <maml:para>Creates a live EPUB publication or saves a completed chapter/resource block.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Creates an EPUB publication with native navigation and metadata.</maml:para>
+      <maml:para>Without a block no file is written. A completed block saves atomically and requires Force to replace an existing destination.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
         <maml:name>New-OfficeEpub</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Author</maml:name>
           <maml:description>
@@ -153810,6 +153816,30 @@ document for Document input. Native merge options determine which content is imp
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>Content</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
+          <dev:type>
+            <maml:name>ScriptBlock</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Force</maml:name>
+          <maml:description>
+            <maml:para>Allow a completed content block to replace an existing destination.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -153838,7 +153868,43 @@ document for Document input. Native merge options determine which content is imp
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>Optional associated destination; required with a content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Title</maml:name>
           <maml:description>
             <maml:para>Publication title.</maml:para>
@@ -153870,6 +153936,18 @@ document for Document input. Native merge options determine which content is imp
     </command:syntax>
     <command:parameters>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowLoss</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Author</maml:name>
         <maml:description>
           <maml:para>Primary author.</maml:para>
@@ -153877,6 +153955,30 @@ document for Document input. Native merge options determine which content is imp
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+        <maml:name>Content</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
+        <dev:type>
+          <maml:name>ScriptBlock</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Force</maml:name>
+        <maml:description>
+          <maml:para>Allow a completed content block to replace an existing destination.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -153905,7 +154007,43 @@ document for Document input. Native merge options determine which content is imp
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>PassThru</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>Optional associated destination; required with a content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Show</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Title</maml:name>
         <maml:description>
           <maml:para>Publication title.</maml:para>
@@ -153947,6 +154085,11 @@ document for Document input. Native merge options determine which content is imp
           <maml:name>OfficeIMO.Epub.EpubPublication</maml:name>
         </dev:type>
       </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.IO.FileInfo</maml:name>
+        </dev:type>
+      </command:returnValue>
     </command:returnValues>
     <maml:alertSet>
       <maml:alert>
@@ -153955,8 +154098,19 @@ document for Document input. Native merge options determine which content is imp
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Creates an EPUB publication with native navigation and metadata.</maml:title>
-        <dev:code>$book = New-OfficeEpub -Title Operations -Language en -Author Example</dev:code>
+        <maml:title>Create a handbook and save its completed content.</maml:title>
+        <dev:code>New-OfficeEpub -Path ./Operations.epub -Title Operations -Author Example {
+                EpubChapter -Title Opening -Text 'Safety and care'
+            }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Create a live publication and save it explicitly.</maml:title>
+        <dev:code>$book = New-OfficeEpub -Path ./Operations.epub -Title Operations
+            $book | Add-OfficeEpubChapter -Title Opening -Text 'Safety and care'
+            Save-OfficeEpub -Document $book</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -174268,6 +174422,262 @@ Use -NoSave or omit -Path when a document object should be returned for further 
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Open-OfficeEpub</command:name>
+      <command:verb>Open</command:verb>
+      <command:noun>OfficeEpub</command:noun>
+      <maml:description>
+        <maml:para>Opens an EPUB publication, optionally saving an editing block atomically.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Opens an EPUB publication, optionally saving an editing block atomically.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Path">
+        <maml:name>Open-OfficeEpub</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>Content</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
+          <dev:type>
+            <maml:name>ScriptBlock</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>EPUB source with FileSystem wildcard expansion.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPath">
+        <maml:name>Open-OfficeEpub</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>AllowLoss</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+          <maml:name>Content</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
+          <dev:type>
+            <maml:name>ScriptBlock</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Literal EPUB source, including FileInfo.FullName and provider PSPath.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Show</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>AllowLoss</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether native-save loss is explicitly accepted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
+        <maml:name>Content</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets a content block; omission returns the live document.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ScriptBlock</command:parameterValue>
+        <dev:type>
+          <maml:name>ScriptBlock</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
+        <maml:name>LiteralPath</maml:name>
+        <maml:description>
+          <maml:para>Literal EPUB source, including FileInfo.FullName and provider PSPath.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>PassThru</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether a completed content block returns the saved FileInfo.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>EPUB source with FileSystem wildcard expansion.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Show</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether the saved file opens in the system default application.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Epub.EpubPublication</maml:name>
+        </dev:type>
+      </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.IO.FileInfo</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Open a publication from a literal file pipeline.</maml:title>
+        <dev:code>$book = Get-Item -LiteralPath './Guide[final].epub' | Open-OfficeEpub</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Append a chapter and save only when the block succeeds.</maml:title>
+        <dev:code>Open-OfficeEpub -Path ./Guide.epub { EpubChapter -Title Review -Text 'Reviewed and approved.' }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Open-OfficeMarkdown</command:name>
       <command:verb>Open</command:verb>
       <command:noun>OfficeMarkdown</command:noun>
@@ -182636,11 +183046,11 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:verb>Save</command:verb>
       <command:noun>OfficeEpub</command:noun>
       <maml:description>
-        <maml:para>Writes a validated EPUB package with explicit conflict and loss policies.</maml:para>
+        <maml:para>Saves a native EPUB publication, rejecting loss unless explicitly allowed.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Writes a validated EPUB package with explicit conflict and loss policies.</maml:para>
+      <maml:para>Save replaces its destination after validation. PassThru returns the native write report.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
@@ -182657,14 +183067,14 @@ options retain their owner password, permission mask, algorithm, metadata settin
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Force</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Replace an existing destination.</maml:para>
+            <maml:para>Live editable publication.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
           <dev:type>
-            <maml:name>SwitchParameter</maml:name>
+            <maml:name>EpubPublication</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -182684,7 +183094,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Return the created or changed object.</maml:para>
+            <maml:para>Return the native write report.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -182693,26 +183103,14 @@ options retain their owner password, permission mask, algorithm, metadata settin
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
           <maml:name>Path</maml:name>
           <maml:description>
-            <maml:para>Destination EPUB path.</maml:para>
+            <maml:para>Destination path; omission uses the native publication's associated path.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Publication</maml:name>
-          <maml:description>
-            <maml:para>Live editable publication.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
-          <dev:type>
-            <maml:name>EpubPublication</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -182720,23 +183118,11 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>RemoveInvalidatedSignatures</maml:name>
           <maml:description>
-            <maml:para>Explicitly remove signatures invalidated by package edits. Requires AllowLoss if reported as loss.</maml:para>
+            <maml:para>Explicitly remove signatures invalidated by edits. Reported loss still requires AllowLoss.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
             <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ReportVariable</maml:name>
-          <maml:description>
-            <maml:para>Variable receiving the writer preservation report.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -182756,14 +183142,14 @@ options retain their owner password, permission mask, algorithm, metadata settin
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Force</maml:name>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
         <maml:description>
-          <maml:para>Replace an existing destination.</maml:para>
+          <maml:para>Live editable publication.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
         <dev:type>
-          <maml:name>SwitchParameter</maml:name>
+          <maml:name>EpubPublication</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -182783,7 +183169,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Return the created or changed object.</maml:para>
+          <maml:para>Return the native write report.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -182792,26 +183178,14 @@ options retain their owner password, permission mask, algorithm, metadata settin
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>Destination EPUB path.</maml:para>
+          <maml:para>Destination path; omission uses the native publication's associated path.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Publication</maml:name>
-        <maml:description>
-          <maml:para>Live editable publication.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
-        <dev:type>
-          <maml:name>EpubPublication</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -182819,23 +183193,11 @@ options retain their owner password, permission mask, algorithm, metadata settin
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>RemoveInvalidatedSignatures</maml:name>
         <maml:description>
-          <maml:para>Explicitly remove signatures invalidated by package edits. Requires AllowLoss if reported as loss.</maml:para>
+          <maml:para>Explicitly remove signatures invalidated by edits. Reported loss still requires AllowLoss.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ReportVariable</maml:name>
-        <maml:description>
-          <maml:para>Variable receiving the writer preservation report.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -182851,7 +183213,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
     <command:returnValues>
       <command:returnValue>
         <dev:type>
-          <maml:name>OfficeIMO.Epub.EpubPublication</maml:name>
+          <maml:name>OfficeIMO.Epub.EpubWriteReport</maml:name>
         </dev:type>
       </command:returnValue>
     </command:returnValues>
@@ -182862,8 +183224,8 @@ options retain their owner password, permission mask, algorithm, metadata settin
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Writes a validated EPUB package with explicit conflict and loss policies.</maml:title>
-        <dev:code>$book | Save-OfficeEpub -Path ./operations.epub</dev:code>
+        <maml:title>Save a live publication to its associated path and inspect the report.</maml:title>
+        <dev:code>$report = $book | Save-OfficeEpub -PassThru</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -186322,6 +186684,18 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">EpubPublication</command:parameterValue>
+          <dev:type>
+            <maml:name>EpubPublication</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Language</maml:name>
           <maml:description>
@@ -186342,18 +186716,6 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
             <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Publication</maml:name>
-          <maml:description>
-            <maml:para>Live editable publication.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
-          <dev:type>
-            <maml:name>EpubPublication</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -186385,6 +186747,18 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">EpubPublication</command:parameterValue>
+        <dev:type>
+          <maml:name>EpubPublication</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Language</maml:name>
         <maml:description>
@@ -186405,18 +186779,6 @@ The document is saved through the normal OfficeIMO.Pdf save path.</maml:para>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Publication</maml:name>
-        <maml:description>
-          <maml:para>Live editable publication.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">EpubPublication</command:parameterValue>
-        <dev:type>
-          <maml:name>EpubPublication</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
