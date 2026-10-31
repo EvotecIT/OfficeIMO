@@ -122,7 +122,8 @@ internal static partial class PdfTextEditor {
                             bounds.Top <= candidate.Bounds.Bottom || bounds.Bottom >= candidate.Bounds.Top ||
                             !candidate.Owners.Any(owner => IsOnOwnerBaseline(owner, glyph.X, glyph.Y))) continue;
                         selected.Add(GlyphKey(page.Key, span, glyph));
-                        glyphs.Add(new PdfRedactionSelectedGlyph(glyph.X, glyph.Y, glyph.EncodedBytes));
+                        glyphs.Add(new PdfRedactionSelectedGlyph(glyph.X, glyph.Y, glyph.EncodedBytes,
+                            PdfTextSpanGeometry.GetGlyphInkBounds(span, boundaries[glyph.TextStart], glyph.PaintedAdvance)));
                     }
                 }
                 if (glyphs.Count == 0) {
@@ -309,7 +310,8 @@ internal static partial class PdfTextEditor {
                     foreach (PdfTextGlyph glyph in covered) {
                         budget.Charge(1L);
                         selected.Add(GlyphKey(hit.PageNumber, span, glyph));
-                        coveredGlyphs.Add(new PdfRedactionSelectedGlyph(glyph.X, glyph.Y, glyph.EncodedBytes));
+                        coveredGlyphs.Add(new PdfRedactionSelectedGlyph(glyph.X, glyph.Y, glyph.EncodedBytes,
+                            PdfTextSpanGeometry.GetGlyphInkBounds(span, boundaries[glyph.TextStart], glyph.PaintedAdvance)));
                         PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, boundaries[glyph.TextStart], glyph.PaintedAdvance);
                         left = Math.Min(left, bounds.Left); bottom = Math.Min(bottom, bounds.Bottom);
                         right = Math.Max(right, bounds.Right); top = Math.Max(top, bounds.Top);

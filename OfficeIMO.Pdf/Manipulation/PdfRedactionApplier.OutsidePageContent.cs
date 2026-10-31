@@ -105,9 +105,14 @@ internal static partial class PdfRedactionApplier {
 
     // Rewriting a repeated image or form paints a scrubbed copy under a new name, and the original stays
     // listed. Pruning keeps anything listed, so its pixels would stay in the file unless the entry goes too.
-    private static bool RemoveUnpaintedRedactedImages(Dictionary<int, PdfIndirectObject> objects, IEnumerable<int> imageObjectNumbers, PdfReadLimits limits, HashSet<PdfStream> sourceStreamIdentities) {
+    // A source file can also arrive with an unpainted form holding searched text. Nothing shows it and
+    // nothing would ever need it, so it goes the same way.
+    private static bool RemoveUnpaintedRedactedResources(Dictionary<int, PdfIndirectObject> objects, IEnumerable<int> imageObjectNumbers, PdfRedactionArea[] areas, PdfReadLimits limits, HashSet<PdfStream> sourceStreamIdentities) {
         var images = new HashSet<int>(imageObjectNumbers);
-        if (images.Count == 0) return false;
+        PdfRedactionSearchCriteria[] criteria = GetSearchCriteria(areas);
+        if (images.Count == 0 && criteria.Length == 0) return false;
+        PdfDictionary? anyPage = objects.Values.Select(static item => item.Value).OfType<PdfDictionary>()
+            .FirstOrDefault(static candidate => string.Equals(candidate.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal));
         // A resource dictionary can have several owners, so each collects what all of them paint.
         var paintedNames = new Dictionary<PdfDictionary, HashSet<string>>();
         bool hasUnreadableOwner = false;
@@ -137,7 +142,8 @@ internal static partial class PdfRedactionApplier {
         foreach (KeyValuePair<PdfDictionary, HashSet<string>> owner in paintedNames) {
             if (ResolveDictionary(objects, owner.Key.Items.TryGetValue("XObject", out PdfObject? value) ? value : null) is not PdfDictionary xObjects) continue;
             foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items.ToArray()) {
-                if (owner.Value.Contains(entry.Key) || inheritedNames.Contains(entry.Key) || !HoldsRedactedImage(entry.Value)) continue;
+                if (owner.Value.Contains(entry.Key) || inheritedNames.Contains(entry.Key)) continue;
+                if (!HoldsRedactedImage(entry.Value) && !HoldsSearched(entry.Value, owner.Key)) continue;
                 changed = xObjects.Items.Remove(entry.Key) || changed;
             }
         }
@@ -154,6 +160,15 @@ internal static partial class PdfRedactionApplier {
                 foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(PdfEncoding.Latin1GetString(decoded),
                     maxOperations: limits.MaxContentOperations, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands)) names.Add(invocation.Name);
             }
+        }
+
+        bool HoldsSearched(PdfObject value, PdfDictionary ownerResources) {
+            if (criteria.Length == 0 || anyPage is null || PdfObjectLookup.Resolve(objects, value) is not PdfStream form ||
+                !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) return false;
+            PdfDictionary formResources = ResolveDictionary(objects, form.Dictionary.Items.TryGetValue("Resources", out PdfObject? own) ? own : null) ?? ownerResources;
+            return StreamHoldsSearchedText(objects, form, formResources, anyPage, criteria, limits) ||
+                ResolveDictionary(objects, formResources.Items.TryGetValue("XObject", out PdfObject? nested) ? nested : null) is PdfDictionary xObjects &&
+                !ReferenceEquals(formResources, ownerResources) && xObjects.Items.Values.Any(child => HoldsSearched(child, formResources));
         }
 
         bool HoldsRedactedImage(PdfObject value) {
@@ -229,9 +244,9 @@ internal static partial class PdfRedactionApplier {
         // A form listed on one page can be painted by another, so this waits until every page is walked.
         foreach (KeyValuePair<PdfStream, PdfDictionary> candidate in listed) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (criteria.Length == 0 || painted.Contains(candidate.Key) || pageForDecoding is null || !HoldsSearchedText(candidate.Key, candidate.Value, pageForDecoding)) continue;
+            if (criteria.Length == 0 || painted.Contains(candidate.Key) || pageForDecoding is null || !StreamHoldsSearchedText(objects, candidate.Key, candidate.Value, pageForDecoding, criteria, limits)) continue;
             issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "OrphanedFormXObject",
-                "A Form XObject that no page paints still holds searched text."));
+                "Content that the page text doesn't show still holds searched text: a form no page paints, a pattern, a soft mask or an annotation appearance."));
         }
         if (reviewedInlineImage && listed.Keys.Any(form => !painted.Contains(form) && TryDecodeContent(form, objects, limits, out string formContent) && HasInlineImage(formContent, limits))) {
             issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "OrphanedImageData",
@@ -294,26 +309,87 @@ internal static partial class PdfRedactionApplier {
         void CollectAnnotationAppearances(PdfDictionary pageDictionary, PdfDictionary resources) {
             if (PdfObjectLookup.Resolve(objects, pageDictionary.Items.TryGetValue("Annots", out PdfObject? annotsValue) ? annotsValue : null) is not PdfArray annotations) return;
             foreach (PdfObject item in annotations.Items) {
-                if (ResolveDictionary(objects, item) is not PdfDictionary annotation) continue;
+                if (ResolveDictionary(objects, item) is not PdfDictionary annotation ||
+                    string.Equals(annotation.Get<PdfName>("Subtype")?.Name, "Widget", StringComparison.Ordinal)) continue;
+                if (criteria.Length > 0 && (HoldsSearchedText(objects, annotation, "Contents", criteria) || HoldsSearchedText(objects, annotation, "RC", criteria))) {
+                    issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "AnnotationText", "An annotation on a reviewed page still holds searched text."));
+                }
                 foreach (PdfStream appearance in GetAppearanceStreams(objects, annotation)) CollectHolder(appearance, resources);
             }
         }
 
-        bool HoldsSearchedText(PdfStream form, PdfDictionary formResources, PdfDictionary pageDictionary) {
-            if (!TryDecodeContent(form, objects, limits, out string formContent)) return false;
-            try {
-                Dictionary<string, Func<byte[], string>> decoders = MergeDecoders(ResourceResolver.GetFontDecoders(pageDictionary, objects),
-                    ResourceResolver.GetFontDecodersForResources(formResources, objects));
-                Dictionary<string, Func<byte[], double>> widths = MergeWidthProviders(ResourceResolver.GetFontWidthProviders(pageDictionary, objects),
-                    ResourceResolver.GetFontWidthProvidersForResources(formResources, objects));
-                string[] runs = ParseTextSpans(formContent, decoders, widths, limits).Select(static span => span.Text).ToArray();
-                string joined = string.Concat(runs), spaced = string.Join(" ", runs);
-                return criteria.Any(criterion => criterion.Matches(joined) || criterion.Matches(spaced));
-            } catch (PdfUnsupportedTextMappingException) {
-                // Text that can't be read can't be cleared, and nothing paints this form anyway.
-                return true;
+    }
+
+    private static bool StreamHoldsSearchedText(Dictionary<int, PdfIndirectObject> objects, PdfStream form, PdfDictionary formResources,
+        PdfDictionary pageDictionary, PdfRedactionSearchCriteria[] criteria, PdfReadLimits limits) {
+        if (!TryDecodeContent(form, objects, limits, out string formContent)) return false;
+        try {
+            Dictionary<string, Func<byte[], string>> decoders = MergeDecoders(ResourceResolver.GetFontDecoders(pageDictionary, objects),
+                ResourceResolver.GetFontDecodersForResources(formResources, objects));
+            Dictionary<string, Func<byte[], double>> widths = MergeWidthProviders(ResourceResolver.GetFontWidthProviders(pageDictionary, objects),
+                ResourceResolver.GetFontWidthProvidersForResources(formResources, objects));
+            string[] runs = ParseTextSpans(formContent, decoders, widths, limits).Select(static span => span.Text).ToArray();
+            string joined = string.Concat(runs), spaced = string.Join(" ", runs);
+            return criteria.Any(criterion => criterion.Matches(joined) || criterion.Matches(spaced));
+        } catch (PdfUnsupportedTextMappingException) {
+            // Text that can't be read can't be proven free of the search.
+            return true;
+        }
+    }
+
+    /// <summary>Finds the forms listed for a page that it never paints and that hold searched text, which is what the rewrite clears.</summary>
+    internal static HashSet<PdfStream> FindUnpaintedFormsHoldingSearch(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? page, IEnumerable<PdfRedactionArea> areas) {
+        var found = new HashSet<PdfStream>();
+        PdfRedactionSearchCriteria[] criteria = GetSearchCriteria(areas);
+        if (criteria.Length == 0 || page is null || GetInheritedDictionary(objects, page, "Resources") is not PdfDictionary pageResources) return found;
+        var limits = new PdfReadLimits();
+        var painted = new HashSet<PdfStream>();
+        var candidates = new List<(PdfStream Form, PdfDictionary Resources)>();
+        var content = new StringBuilder();
+        if (page.Items.TryGetValue("Contents", out PdfObject? contents)) {
+            foreach (PdfReference reference in EnumerateContentStreamReferences(objects, contents)) {
+                if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) && indirect.Value is PdfStream stream) {
+                    if (!TryDecodeContent(stream, objects, limits, out string segment)) return found;
+                    content.Append(segment).Append('\n');
+                }
             }
         }
+        Visit(content.ToString(), pageResources);
+        foreach ((PdfStream form, PdfDictionary resources) in candidates) {
+            if (!painted.Contains(form) && StreamHoldsSearchedText(objects, form, resources, page, criteria, limits)) found.Add(form);
+        }
+        return found;
+
+        void Visit(string ownerContent, PdfDictionary resources) {
+            if (ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out PdfObject? value) ? value : null) is not PdfDictionary xObjects) return;
+            var invoked = new HashSet<string>(TextContentParser.ExtractFormInvocations(ownerContent, maxOperations: limits.MaxContentOperations,
+                maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands).Select(static invocation => invocation.Name), StringComparer.Ordinal);
+            foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items) {
+                if (PdfObjectLookup.Resolve(objects, entry.Value) is not PdfStream form ||
+                    !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) continue;
+                PdfDictionary formResources = ResolveDictionary(objects, form.Dictionary.Items.TryGetValue("Resources", out PdfObject? own) ? own : null) ?? resources;
+                if (!invoked.Contains(entry.Key)) candidates.Add((form, formResources));
+                else if (painted.Add(form) && TryDecodeContent(form, objects, limits, out string formContent)) Visit(formContent, formResources);
+            }
+        }
+    }
+
+    /// <summary>True when an annotation holds the searched text in its contents or appearance, wherever it sits on the page.</summary>
+    /// <remarks>Form widgets are left out: their values belong to the form field, not to page text.</remarks>
+    internal static bool CarriesSearchedText(Dictionary<int, PdfIndirectObject> objects, int pageObjectNumber, PdfAnnotation annotation, IEnumerable<PdfRedactionArea> areas) {
+        PdfRedactionSearchCriteria[] criteria = GetSearchCriteria(areas);
+        if (criteria.Length == 0 || string.Equals(annotation.Subtype, "Widget", StringComparison.Ordinal)) return false;
+        if (annotation.Contents is string contents && criteria.Any(criterion => criterion.Matches(contents))) return true;
+        return annotation.ObjectNumber is int number && objects.TryGetValue(number, out PdfIndirectObject? indirect) && indirect.Value is PdfDictionary dictionary &&
+            objects.TryGetValue(pageObjectNumber, out PdfIndirectObject? pageObject) && pageObject.Value is PdfDictionary page &&
+            AnnotationHoldsSearchedText(objects, dictionary, page, criteria, new PdfReadLimits());
+    }
+
+    private static bool AnnotationHoldsSearchedText(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, PdfDictionary page, PdfRedactionSearchCriteria[] criteria, PdfReadLimits limits) {
+        if (HoldsSearchedText(objects, annotation, "Contents", criteria) || HoldsSearchedText(objects, annotation, "RC", criteria)) return true;
+        PdfDictionary pageResources = GetInheritedDictionary(objects, page, "Resources") ?? new PdfDictionary();
+        return GetAppearanceStreams(objects, annotation).Any(appearance => StreamHoldsSearchedText(objects, appearance,
+            ResolveDictionary(objects, appearance.Dictionary.Items.TryGetValue("Resources", out PdfObject? own) ? own : null) ?? pageResources, page, criteria, limits));
     }
 
     internal static IEnumerable<PdfStream> GetAppearanceStreams(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {

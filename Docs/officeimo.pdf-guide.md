@@ -2302,6 +2302,13 @@ hidden layers are removed without a mark and without touching what overlaps them
 lists and inline marked content alike, and the output is refused if those entries or
 a Form XObject that no page paints still hold it.
 
+A search mark keeps its full height, but only image pixels follow that rectangle.
+Vector paths and annotations are removed when they overlap the matched glyphs, so a
+table rule or link on the next line stays. Annotations holding the searched text in
+their contents or appearance go wherever they sit on a reviewed page, except form
+widgets, whose values belong to the field. Unpainted forms holding the searched text
+are removed too.
+
 Whole-block search removes the block's own glyphs and marks its full rectangle, so a
 neighbouring line stays. Text with no glyph mapping can only go as a rectangle, which
 is allowed when nothing else is in reach and refused otherwise. Text overlapping a

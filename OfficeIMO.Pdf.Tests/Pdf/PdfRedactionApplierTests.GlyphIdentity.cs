@@ -714,6 +714,111 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains(report.Issues, issue => issue.Marker == "OrphanedImageData");
         }
 
+        private byte[] BuildAnnotatedPage(string content, string annotationObjects, string annots, params string[] extra) => BuildPdf(new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Annots [" + annots + "] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes(content)),
+            annotationObjects
+        }.Concat(extra).ToArray(), rootObjectNumber: 1);
+
+        // Line boxes at 720 and 706.2: a rule in the gap and a link on the next line touch the mark, not the glyphs.
+        private const string TwoLines = "BT /F1 12 Tf 13.8 TL 72 720 Td (Alpha secret Omega) Tj T* (Linked next line) Tj ET";
+
+        [Theory]
+        [InlineData(PdfRedactionTextSelection.MatchedGlyphs)]
+        [InlineData(PdfRedactionTextSelection.LogicalBlocks)]
+        public void NeighbouringLinkAndTableRuleStayUnderTheMark(PdfRedactionTextSelection selection) {
+            byte[] bytes = BuildAnnotatedPage("60 716.9 300 0.4 re f " + TwoLines,
+                "6 0 obj\n<< /Type /Annot /Subtype /Link /Rect [72 703 200 717.2] /Border [0 0 0] /A << /S /URI /URI (https://example.com/) >> >>\nendobj", "6 0 R");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            Assert.DoesNotContain(plan.Matches, match => match.Kind == PdfRedactionMatchKind.VectorPath || match.Kind == PdfRedactionMatchKind.Annotation);
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.Contains("60 716.9 300 0.4 re f", DecodeAllStreams(result.Pdf), StringComparison.Ordinal);
+            Assert.Contains("https://example.com/", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PathThroughTheMatchedGlyphsAndAnnotationOverThemStillGo() {
+            byte[] bytes = BuildAnnotatedPage("70 722 200 2 re f " + TwoLines,
+                "6 0 obj\n<< /Type /Annot /Subtype /Highlight /Rect [100 718 140 730] >>\nendobj", "6 0 R");
+            PdfDocument source = PdfDocument.Load(bytes);
+            var options = new PdfRedactionSearchOptions { TextSelection = PdfRedactionTextSelection.MatchedGlyphs }.AddLiteral("secret");
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(source.Redactions.Search(options));
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.DoesNotContain("70 722 200 2 re f", DecodeAllStreams(result.Pdf), StringComparison.Ordinal);
+            Assert.DoesNotContain("/Highlight", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData(PdfRedactionTextSelection.MatchedGlyphs)]
+        [InlineData(PdfRedactionTextSelection.LogicalBlocks)]
+        public void AnnotationCarryingTheTextGoesWhereverItSitsAndOthersStay(PdfRedactionTextSelection selection) {
+            const string appearance = "BT /F1 12 Tf 0 0 Td (Stamp secret words) Tj ET";
+            byte[] bytes = BuildAnnotatedPage(TwoLines,
+                "6 0 obj\n<< /Type /Annot /Subtype /Text /Rect [400 100 420 120] /Contents (About the secret plan) >>\nendobj",
+                "6 0 R 7 0 R 9 0 R",
+                "7 0 obj\n<< /Type /Annot /Subtype /Stamp /Rect [400 200 500 220] /AP << /N 8 0 R >> >>\nendobj",
+                "8 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Resources << /Font << /F1 4 0 R >> >> /Length " + appearance.Length + " >>\nstream\n" + appearance + "\nendstream\nendobj",
+                "9 0 obj\n<< /Type /Annot /Subtype /Text /Rect [400 300 420 320] /Contents (Harmless remark) >>\nendobj");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret"));
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string raw = PdfEncoding.Latin1GetString(result.Pdf) + DecodeAllStreams(result.Pdf);
+            Assert.DoesNotContain("secret", raw, StringComparison.Ordinal);
+            Assert.Contains("Harmless remark", raw, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void VerifierFlagsAnAnnotationStillCarryingTheText() {
+            PdfDocument source = PdfDocument.Load(BuildTextContentRedactionSource(TwoLines));
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            PdfDocument output = PdfDocument.Load(BuildAnnotatedPage("q Q", "6 0 obj\n<< /Type /Annot /Subtype /Text /Rect [400 100 420 120] /Contents (The secret plan) >>\nendobj", "6 0 R"));
+            PdfRedactionVerificationReport report = output.Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
+            Assert.Contains(report.Issues, issue => issue.Marker == "AnnotationText");
+        }
+
+        [Fact]
+        public void ManualRectangleStillRemovesTheAnnotationAndPathItTouches() {
+            byte[] bytes = BuildAnnotatedPage("60 716.9 300 0.4 re f " + TwoLines,
+                "6 0 obj\n<< /Type /Annot /Subtype /Link /Rect [72 703 200 717.2] /A << /S /URI /URI (https://example.com/) >> >>\nendobj", "6 0 R");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(source.Redactions.Plan(new[] { new PdfRedactionArea(1, 100, 715, 100, 15) }));
+            Assert.DoesNotContain("https://example.com/", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+            Assert.DoesNotContain("60 716.9 300 0.4 re f", DecodeAllStreams(result.Pdf), StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData(PdfRedactionTextSelection.MatchedGlyphs)]
+        [InlineData(PdfRedactionTextSelection.LogicalBlocks)]
+        public void UnpaintedFormInTheSourceHoldingTheTextIsCleaned(PdfRedactionTextSelection selection) {
+            const string form = "BT /F1 12 Tf 0 0 Td (Form secret text) Tj ET";
+            byte[] bytes = BuildPdf(new[] {
+                "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+                "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+                "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> /XObject << /Unused 6 0 R /Other 7 0 R >> >> >>\nendobj",
+                "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+                BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes(TwoLines)),
+                "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 300 20] /Resources << /Font << /F1 4 0 R >> >> /Length " + form.Length + " >>\nstream\n" + form + "\nendstream\nendobj",
+                "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 300 20] /Length 3 >>\nstream\nq Q\nendstream\nendobj"
+            }, rootObjectNumber: 1);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret"));
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.DoesNotContain("Form secret", DecodeAllStreams(result.Pdf), StringComparison.Ordinal);
+            Assert.Contains("/Other", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+        }
+
         private byte[] BuildTaggedSource() => BuildPdf(new[] {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",

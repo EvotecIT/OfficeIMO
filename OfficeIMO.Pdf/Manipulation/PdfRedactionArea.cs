@@ -115,6 +115,11 @@ public sealed class PdfRedactionArea {
         IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height) &&
         (GlyphSelection is null || encodedBytes is not null && GlyphSelection.Contains(originX, originY, encodedBytes));
 
+    /// <summary>Decides whether vector content or an annotation is under this area: the matched ink for search marks, the geometry otherwise.</summary>
+    /// <remarks>Images keep the full rectangle, because that is what clears descender ink on a scan.</remarks>
+    internal bool IntersectsUnderlay(double x, double y, double width, double height) =>
+        GlyphSelection is null ? IntersectsRectangle(x, y, width, height) : !IsHiddenOnly && GlyphSelection.OverlapsInk(x, y, width, height);
+
     /// <summary>Decides whether a text run can hold a glyph this area removes.</summary>
     internal bool TargetsSpan(PdfTextSpanBounds bounds) =>
         IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height) &&

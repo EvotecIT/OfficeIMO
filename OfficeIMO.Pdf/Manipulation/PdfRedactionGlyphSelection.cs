@@ -42,6 +42,15 @@ internal sealed class PdfRedactionGlyphSelection {
         }
     }
 
+    /// <summary>True when the rectangle overlaps the ink of a selected glyph, as opposed to the mark around it.</summary>
+    internal bool OverlapsInk(double x, double y, double width, double height) {
+        for (int index = 0; index < _glyphs.Length; index++) {
+            PdfTextSpanBounds ink = _glyphs[index].Ink;
+            if (x < ink.Right && x + width > ink.Left && y < ink.Top && y + height > ink.Bottom) return true;
+        }
+        return false;
+    }
+
     internal bool HasOriginWithin(PdfTextSpanBounds bounds) {
         for (int index = 0; index < _glyphs.Length; index++) {
             PdfRedactionSelectedGlyph glyph = _glyphs[index];
@@ -55,11 +64,14 @@ internal sealed class PdfRedactionGlyphSelection {
 internal readonly struct PdfRedactionSelectedGlyph {
     private readonly byte[] _encodedBytes;
 
-    internal PdfRedactionSelectedGlyph(double x, double y, IReadOnlyList<byte> encodedBytes) {
+    internal PdfRedactionSelectedGlyph(double x, double y, IReadOnlyList<byte> encodedBytes, PdfTextSpanBounds ink) {
         X = x;
         Y = y;
+        Ink = ink;
         _encodedBytes = encodedBytes.ToArray();
     }
+
+    internal PdfTextSpanBounds Ink { get; }
 
     internal double X { get; }
     internal double Y { get; }

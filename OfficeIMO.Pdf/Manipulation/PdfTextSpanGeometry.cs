@@ -45,6 +45,10 @@ internal static class PdfTextSpanGeometry {
     internal static PdfTextSpanBounds GetGlyphBodyBounds(PdfTextSpan span, double advanceOffset, double advance) =>
         GetAxisAlignedBoundsCore(span, advanceOffset, advance, 0.5D, 0D, useSourceTransform: true);
 
+    /// <summary>Returns where a glyph's ink can be, from descender depth to cap height, tighter than the mark around it.</summary>
+    internal static PdfTextSpanBounds GetGlyphInkBounds(PdfTextSpan span, double advanceOffset, double advance) =>
+        GetAxisAlignedBoundsCore(span, advanceOffset, advance, 0.75D, -0.2D, useSourceTransform: true);
+
     /// <summary>Projects a baseline advance offset to its page-space origin, as <see cref="PdfTextSpan.TryGetGlyphs"/> does.</summary>
     internal static (double X, double Y) GetGlyphOrigin(PdfTextSpan span, double advanceOffset) {
         double radians = span.RotationDegrees * Math.PI / 180D;

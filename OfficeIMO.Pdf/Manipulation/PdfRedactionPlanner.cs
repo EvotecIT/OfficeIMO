@@ -130,8 +130,11 @@ internal static partial class PdfRedactionPlanner {
                     AddHiddenTextMatches(area, hiddenSpans, matches);
                 }
             }
-            // A hidden-only selection paints nothing, so it has no claim on what shares its rectangle.
-            if (area.IsHiddenOnly) continue;
+            if (area.IsHiddenOnly) {
+                // A hidden-only selection paints nothing, so it has no claim on what shares its rectangle.
+                AddAnnotationMatches(area, info.Pages, matches, readDocument);
+                continue;
+            }
             if (includeHiddenOptionalContentText && area.PageNumber <= readDocument.Pages.Count) {
                 if (!hiddenImagePlacementsByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfImagePlacement>? hiddenImagePlacements)) {
                     hiddenImagePlacements = readDocument.Pages[area.PageNumber - 1]
@@ -142,7 +145,7 @@ internal static partial class PdfRedactionPlanner {
             } else {
                 AddImageMatches(area, logical.Images, matches, findings);
             }
-            AddAnnotationMatches(area, info.Pages, matches);
+            AddAnnotationMatches(area, info.Pages, matches, readDocument);
             if (area.PageNumber <= readDocument.Pages.Count) {
                 PdfReadPage page = readDocument.Pages[area.PageNumber - 1];
                 if (!nestedPathPrimitivesByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfPageVisualPrimitive>? primitives)) {
@@ -305,14 +308,15 @@ internal static partial class PdfRedactionPlanner {
         return new PdfTextSpanBounds(x, block.BaselineY - fontSize * 0.25D, x + width, block.BaselineY + fontSize);
     }
 
-    private static void AddAnnotationMatches(PdfRedactionArea area, IReadOnlyList<PdfPageInfo> pages, List<PdfRedactionMatch> matches) {
+    private static void AddAnnotationMatches(PdfRedactionArea area, IReadOnlyList<PdfPageInfo> pages, List<PdfRedactionMatch> matches, PdfReadDocument document) {
         foreach (PdfPageInfo page in pages) {
             if (page.PageNumber != area.PageNumber) {
                 continue;
             }
 
             foreach (PdfAnnotation annotation in page.Annotations) {
-                if (!area.IntersectsRectangle(annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) {
+                if (!area.IntersectsUnderlay(annotation.X1, annotation.Y1, annotation.Width, annotation.Height) &&
+                    !PdfRedactionApplier.CarriesSearchedText(document.Objects, document.Pages[page.PageNumber - 1].ObjectNumber, annotation, new[] { area })) {
                     continue;
                 }
 
@@ -423,7 +427,7 @@ internal static partial class PdfRedactionPlanner {
             double right = primitive.X + primitive.Width + strokePadding;
             double bottom = primitive.Y + primitive.Height + strokePadding;
             PdfVisualBounds userBounds = page.TransformVisualBoundsToUser(left, top, right, bottom);
-            if (!area.IntersectsRectangle(userBounds.Left, userBounds.Top, userBounds.Width, userBounds.Height)) continue;
+            if (!area.IntersectsUnderlay(userBounds.Left, userBounds.Top, userBounds.Width, userBounds.Height)) continue;
             matches.Add(new PdfRedactionMatch(
                 PdfRedactionMatchKind.VectorPath,
                 area,

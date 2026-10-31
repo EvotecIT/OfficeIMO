@@ -302,9 +302,9 @@ internal static partial class PdfRedactionApplier {
         bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
         cleanupChanged = RemoveAlternateTextHoldingMatches(objects, areaArray, limits) || cleanupChanged;
         if (mutationScope == RedactionMutationScope.All) {
-            cleanupChanged = RemoveUnpaintedRedactedImages(objects, plan.Matches
+            cleanupChanged = RemoveUnpaintedRedactedResources(objects, plan.Matches
                 .Where(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement && match.RequiresRemoval)
-                .Select(static match => match.ObjectNumber).OfType<int>(), limits, sourceStreamIdentities) || cleanupChanged;
+                .Select(static match => match.ObjectNumber).OfType<int>(), areaArray, limits, sourceStreamIdentities) || cleanupChanged;
         }
         if (!mutation.HasChanges && !cleanupChanged) {
             generatedGrowth = default;
