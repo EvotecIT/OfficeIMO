@@ -69,9 +69,7 @@ internal static partial class PdfRedactionApplier {
             generatedGrowth: out generatedGrowth,
             appliedImageMatches: out appliedImageMatches);
         VerifySearchedTextRemoved(output, pdf, plan, layoutOptions, readOptions, generatedGrowth, effectiveOptions.CancellationToken);
-        PdfRedactionVerificationIssue[] outsidePages = FindRedactedContentOutsidePages(output, plan,
-            PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth), effectiveOptions.CancellationToken).ToArray();
-        if (outsidePages.Length > 0) throw new InvalidOperationException(string.Join(" ", outsidePages.Select(static issue => issue.Message)));
+        ThrowIfContentOutsidePages(output, plan, PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth), effectiveOptions.CancellationToken);
         if (plan.Areas.Any(static area => area.RequiresGlyphRewrite)) {
             // Even the non-evidence Apply route must preserve unselected text for precise plans.
             PdfRedactionVerification.VerifyAppliedPlan(output, plan, new PdfRedactionVerificationOptions {
@@ -101,7 +99,7 @@ internal static partial class PdfRedactionApplier {
                 applyOptions, layoutOptions, readOptions);
         }
 
-        return ApplyCore(
+        byte[] output = ApplyCore(
             pdf,
             areaArray,
             applyOptions,
@@ -110,7 +108,19 @@ internal static partial class PdfRedactionApplier {
             RedactionMutationScope.All,
             paintMarks: true,
             PdfMutationOperation.Redact,
-            imageTargets: null);
+            imageTargets: null,
+            out PdfGeneratedOutputGrowth generatedGrowth);
+        if (output.SequenceEqual(pdf)) return output;
+        // The same proof as the plan route: nothing reviewed may survive somewhere the pages don't paint.
+        System.Threading.CancellationToken cancellationToken = applyOptions?.CancellationToken ?? default;
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(pdf, areaArray, layoutOptions, readOptions, cancellationToken);
+        ThrowIfContentOutsidePages(output, plan, PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth), cancellationToken);
+        return output;
+    }
+
+    private static void ThrowIfContentOutsidePages(byte[] output, PdfRedactionPlan plan, PdfLoadOptions readOptions, System.Threading.CancellationToken cancellationToken) {
+        PdfRedactionVerificationIssue[] issues = FindRedactedContentOutsidePages(output, plan, readOptions, cancellationToken).ToArray();
+        if (issues.Length > 0) throw new InvalidOperationException(string.Join(" ", issues.Select(static issue => issue.Message)));
     }
 
     /// <summary>

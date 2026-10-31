@@ -244,8 +244,8 @@ internal static partial class PdfRedactionApplier {
                 bool newlyPainted = paints && painted.Add(form);
                 PdfDictionary formResources = ResolveDictionary(objects, form.Dictionary.Items.TryGetValue("Resources", out PdfObject? own) ? own : null) ?? resources;
                 listed[form] = formResources;
-                if ((firstVisit || newlyPainted) && TryDecodeContent(form, objects, limits, out string formContent))
-                    CollectForms(formContent, formResources, paints);
+                // Unreadable content proves nothing is painted, so its resources still count as held.
+                if (firstVisit || newlyPainted) CollectForms(TryDecodeContent(form, objects, limits, out string formContent) ? formContent : string.Empty, formResources, paints);
             }
         }
 
