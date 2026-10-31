@@ -16,23 +16,23 @@ public partial class PowerPointImageExportTests {
     [InlineData(OfficeImageExportFormat.Jpeg)]
     [InlineData(OfficeImageExportFormat.Svg)]
     public void PowerPointSlide_ImageExportPreservesTextTableThemeAndClippedContent(OfficeImageExportFormat format) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(320, 180);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
         presentation.SetThemeColorForAllMasters(PowerPointThemeColor.Accent2, "146C94");
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "FFF9E8";
 
-        PowerPointTextBox title = slide.AddTextBoxPoints("Canonical slide", 18, 12, 260, 32);
-        title.FontSize = 18;
+        PowerPointTextBox title = slide.AddTextBox("Canonical slide",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(32));
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         A.Run run = title.Element.Descendants<A.Run>().First();
         A.RunProperties properties = run.RunProperties ??= new A.RunProperties();
         properties.RemoveAllChildren<A.SolidFill>();
         properties.InsertAt(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent2 }), 0);
-        title.Paragraphs[0].AddRun(" bold", run => { run.Bold = true; run.FontSize = 18; });
+        title.Paragraphs[0].AddRun(" bold", run => { run.Bold = true; run.FontSize = global::OfficeIMO.OfficeLength.Points(18); });
 
-        PowerPointTable table = slide.AddTablePoints(2, 2, 18, 64, 220, 64);
-        table.SetColumnWidthsPoints(110, 110);
-        table.SetRowHeightsPoints(32, 32);
+        PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(64),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(64));
+        table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(110));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(32));
         table.GetCell(0, 0).Text = "Region";
         table.GetCell(0, 1).Text = "Revenue";
         table.GetCell(1, 0).Text = "North";
@@ -40,9 +40,9 @@ public partial class PowerPointImageExportTests {
         table.GetCell(0, 0).FillColor = "146C94";
         table.GetCell(0, 0).Color = "FFFFFF";
 
-        PowerPointAutoShape edge = slide.AddRectanglePoints(-12, 148, 60, 48);
+        PowerPointAutoShape edge = slide.AddRectangle(OfficeIMO.OfficeLength.Points(-12), OfficeIMO.OfficeLength.Points(148), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(48));
         edge.FillColor = "D7263D";
-        edge.OutlineWidthPoints = 0;
+        edge.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
         AssertNativeImageRoute(presentation, format, scale: 1.5D);
         PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
@@ -57,7 +57,7 @@ public partial class PowerPointImageExportTests {
         Assert.Equal(OfficeColor.FromRgb(255, 249, 232), image.GetPixel(60, 170));
     }
 
-    private static void AssertNativeImageRoute(PowerPointPresentation presentation, OfficeImageExportFormat format, double scale = 1D) {
+    private static void AssertNativeImageRoute(PowerPointDocument presentation, OfficeImageExportFormat format, double scale = 1D) {
         OfficeImageExportResult actual = presentation.Slides[0].ExportImage(format, new PowerPointImageExportOptions { Scale = scale });
         PowerPointSlideVisualInfo snapshot = presentation.Slides[0].CreateVisualSnapshot();
         Assert.Equal(format, actual.Format);

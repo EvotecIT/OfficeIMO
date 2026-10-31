@@ -109,9 +109,9 @@ namespace OfficeIMO.Tests.Pdf {
             .ConfigurePdfXGroundwork(PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(), "Managed test CMYK", PdfTrappingStatus.False);
 
-        private static PdfCreateOptions Options(double width, double height) => new PdfCreateOptions {
-            PageWidth = width, PageHeight = height, CompressContentStreams = false,
-            MarginLeft = 0, MarginTop = 0, MarginRight = 0, MarginBottom = 0
+        private static PdfCreateOptions Options(double width, double height) => new PdfCreateOptions { BackgroundColor = null,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(width), PageHeight = global::OfficeIMO.OfficeLength.Points(height), CompressContentStreams = false,
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
         };
 
         private static byte[] Write(OfficeDrawing drawing, PdfCreateOptions? options = null) =>

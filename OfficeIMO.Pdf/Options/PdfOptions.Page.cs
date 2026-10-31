@@ -1,13 +1,13 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfCreateOptions {
-    private double _pageWidth = 612;
-    private double _pageHeight = 792;
+    private OfficeLength? _marginLeft;
+    private OfficeLength? _marginRight;
+    private OfficeLength? _marginTop;
+    private OfficeLength? _marginBottom;
+    private OfficeLength _pageWidth = OfficeLength.Points(612);
+    private OfficeLength _pageHeight = OfficeLength.Points(792);
     private long _pageSizeConfigurationVersion;
-    private double? _marginLeft;
-    private double? _marginRight;
-    private double? _marginTop;
-    private double? _marginBottom;
 
     internal long PageSizeConfigurationState => _pageSizeConfigurationVersion;
 
@@ -28,28 +28,28 @@ public sealed partial class PdfCreateOptions {
         }
     }
 
-    /// <summary>Page width in points (1 pt = 1/72 in). Default is 612 (Letter 8.5in).</summary>
-    public double PageWidth {
+    /// <summary>Page width. Default is 612 points (Letter 8.5in).</summary>
+    public OfficeLength PageWidth {
         get => _pageWidth;
         set {
             _pageWidth = value;
             _pageSizeConfigurationVersion++;
         }
     }
-    /// <summary>Page height in points. Default is 792 (Letter 11in).</summary>
-    public double PageHeight {
+    /// <summary>Page height. Default is 792 points (Letter 11in).</summary>
+    public OfficeLength PageHeight {
         get => _pageHeight;
         set {
             _pageHeight = value;
             _pageSizeConfigurationVersion++;
         }
     }
-    /// <summary>Page size in points.</summary>
+    /// <summary>Page size.</summary>
     public PdfPageSize PageSize {
         get => new PdfPageSize(PageWidth, PageHeight);
         set {
-            Guard.Positive(value.Width, nameof(PageSize));
-            Guard.Positive(value.Height, nameof(PageSize));
+            Guard.Positive(value.Width.ToPoints(), nameof(PageSize));
+            Guard.Positive(value.Height.ToPoints(), nameof(PageSize));
             _pageWidth = value.Width;
             _pageHeight = value.Height;
             _pageSizeConfigurationVersion++;
@@ -57,17 +57,17 @@ public sealed partial class PdfCreateOptions {
     }
     /// <summary>Page orientation inferred from the current page size.</summary>
     public OfficePageOrientation PageOrientation => PageWidth > PageHeight ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
-    /// <summary>Left margin in points. Defaults to the selected theme's page margin.</summary>
-    public double MarginLeft { get => _marginLeft ?? EffectiveTheme.Page.MarginLeft.ToPoints(); set => _marginLeft = value; }
-    /// <summary>Right margin in points. Defaults to the selected theme's page margin.</summary>
-    public double MarginRight { get => _marginRight ?? EffectiveTheme.Page.MarginRight.ToPoints(); set => _marginRight = value; }
+    /// <summary>Left margin. Default 72 points (1 inch).</summary>
+    public OfficeLength MarginLeft { get => _marginLeft ?? (_useOfficeThemeDefaults ? EffectiveTheme.Page.MarginLeft : OfficeLength.Points(72)); set => _marginLeft = value; }
+    /// <summary>Right margin. Default 72 points (1 inch).</summary>
+    public OfficeLength MarginRight { get => _marginRight ?? (_useOfficeThemeDefaults ? EffectiveTheme.Page.MarginRight : OfficeLength.Points(72)); set => _marginRight = value; }
     /// <summary>Swaps the left and right margins on even visible page numbers. Numbering starts and restarts determine parity.</summary>
     public bool MirrorMargins { get; set; }
-    /// <summary>Top margin in points. Defaults to the selected theme's page margin.</summary>
-    public double MarginTop { get => _marginTop ?? EffectiveTheme.Page.MarginTop.ToPoints(); set => _marginTop = value; }
-    /// <summary>Bottom margin in points. Defaults to the selected theme's page margin.</summary>
-    public double MarginBottom { get => _marginBottom ?? EffectiveTheme.Page.MarginBottom.ToPoints(); set => _marginBottom = value; }
-    /// <summary>Page margins in points.</summary>
+    /// <summary>Top margin. Default 72 points (1 inch).</summary>
+    public OfficeLength MarginTop { get => _marginTop ?? (_useOfficeThemeDefaults ? EffectiveTheme.Page.MarginTop : OfficeLength.Points(72)); set => _marginTop = value; }
+    /// <summary>Bottom margin. Default 72 points (1 inch).</summary>
+    public OfficeLength MarginBottom { get => _marginBottom ?? (_useOfficeThemeDefaults ? EffectiveTheme.Page.MarginBottom : OfficeLength.Points(72)); set => _marginBottom = value; }
+    /// <summary>Page margins.</summary>
     public PdfPageMargins Margins {
         get => new PdfPageMargins(MarginLeft, MarginTop, MarginRight, MarginBottom);
         set {

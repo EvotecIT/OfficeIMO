@@ -13,14 +13,14 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookMerge.Target.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddWorksheet("North").CellValue(1, 1, "North value");
-                source.AddWorksheet("South").CellValue(1, 1, "South value");
+                source.AddSheet("North").CellValue(1, 1, "North value");
+                source.AddSheet("South").CellValue(1, 1, "South value");
                 source.Save();
             }
 
             using (var target = ExcelDocument.Create(targetPath))
             using (var source = ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                target.AddWorksheet("Summary");
+                target.AddSheet("Summary");
                 ExcelWorkbookMergeResult result = target.MergeWorkbookFrom(source, new ExcelWorkbookMergeOptions {
                     SheetNames = new[] { "South" },
                     SheetNamePrefix = "Imported "
@@ -46,14 +46,14 @@ namespace OfficeIMO.Tests {
             using var sourceStream = new MemoryStream();
 
             using (var source = ExcelDocument.Create(sourceStream)) {
-                source.AddWorksheet("Source").CellValue(1, 1, "Imported");
+                source.AddSheet("Source").CellValue(1, 1, "Imported");
                 source.Save(sourceStream);
             }
 
             sourceStream.Position = 0;
             using (var target = ExcelDocument.Create(targetStream))
             using (var source = ExcelDocument.Load(sourceStream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                target.AddWorksheet("Target");
+                target.AddSheet("Target");
                 ExcelWorkbookMergeResult result = target.MergeWorkbookFrom(source);
 
                 Assert.Equal(1, result.SheetCount);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookMerge.FormulaTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet data = source.AddWorksheet("Data");
+                ExcelSheet data = source.AddSheet("Data");
                 data.CellValue(1, 1, "Name");
                 data.CellValue(1, 2, "Amount");
                 data.CellValue(2, 1, "Ada");
@@ -85,22 +85,22 @@ namespace OfficeIMO.Tests {
                 data.AddTable("A1:B2", hasHeader: true, name: "People", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
                 source.SetNamedRange("TaxRate", "C2", data, save: false);
 
-                ExcelSheet importedData = source.AddWorksheet("Imported Data");
+                ExcelSheet importedData = source.AddSheet("Imported Data");
                 importedData.CellValue(1, 1, 84);
 
-                ExcelSheet jan = source.AddWorksheet("Jan");
+                ExcelSheet jan = source.AddSheet("Jan");
                 jan.CellValue(1, 1, 1);
 
-                ExcelSheet mar = source.AddWorksheet("Mar");
+                ExcelSheet mar = source.AddSheet("Mar");
                 mar.CellValue(1, 1, 3);
 
-                ExcelSheet jan2026 = source.AddWorksheet("Jan 2026");
+                ExcelSheet jan2026 = source.AddSheet("Jan 2026");
                 jan2026.CellValue(1, 1, 1);
 
-                ExcelSheet mar2026 = source.AddWorksheet("Mar 2026");
+                ExcelSheet mar2026 = source.AddSheet("Mar 2026");
                 mar2026.CellValue(1, 1, 3);
 
-                ExcelSheet summary = source.AddWorksheet("Summary");
+                ExcelSheet summary = source.AddSheet("Summary");
                 summary.CellFormula(1, 1, "Data!B2+'Imported Data'!A1+Data!TaxRate+SUM(People[Amount])+TotalWithTax+SUM(Jan:Mar!A1)+SUM('Jan 2026:Mar 2026'!A1)");
                 summary.SetInternalLink(2, 1, "Data!A1", "Go");
                 summary.ValidationCustomFormula("B2", "COUNTIF(Data!$A$1:$A$1,\">0\")>0");
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests {
 
             using (var target = ExcelDocument.Create(targetPath))
             using (var source = ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelSheet existing = target.AddWorksheet("Existing");
+                ExcelSheet existing = target.AddSheet("Existing");
                 existing.CellValue(1, 1, "Name");
                 existing.CellValue(2, 1, "Grace");
                 existing.AddTable("A1:A2", hasHeader: true, name: "People", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
@@ -160,13 +160,13 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookMerge.ExternalNameTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet data = source.AddWorksheet("Data");
+                ExcelSheet data = source.AddSheet("Data");
                 data.CellFormula(1, 1, "ExternalValue");
                 source.Save();
             }
 
             using (var target = ExcelDocument.Create(targetPath)) {
-                target.AddWorksheet("Existing").CellFormula(1, 1, "[1]Sheet1!B1");
+                target.AddSheet("Existing").CellFormula(1, 1, "[1]Sheet1!B1");
                 target.Save();
             }
 
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookMerge.SameWorkbookPackageMode.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet source = document.AddWorksheet("Source");
+                ExcelSheet source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Amount");
                 source.CellValue(2, 1, 10);
                 source.AddTable("A1:A2", hasHeader: true, name: "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);

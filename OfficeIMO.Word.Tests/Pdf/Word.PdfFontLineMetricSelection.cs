@@ -50,17 +50,16 @@ public partial class Word {
         if (frame == "columns") source.Sections[0].ColumnCount = 2;
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(TextLine("A", 12, true), TextLine("B", 12, true), TextLine("C", 12, false));
-        paragraph.LineSpacing = 276;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-        paragraph.LineSpacingBeforePoints = 0;
-        paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((276) / 240D);
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
         options.EmbedStandardFont(PdfStandardFont.Helvetica,
             CreateSelectionMetricFont(4, useTypo, 78, 1100, 400, 700, -250, 50), "OfficeIMO-Portable-Regular");
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 300), Margins = PdfPageMargins.Uniform(30)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Single(pdf.GetPages());
         var letters = pdf.GetPage(1).Letters;

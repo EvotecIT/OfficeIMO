@@ -6,61 +6,61 @@ using System.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
-    private static bool IsBarChart(OfficeChartKind kind) =>
-        kind == OfficeChartKind.BarClustered
-        || kind == OfficeChartKind.BarStacked
-        || kind == OfficeChartKind.BarStacked100;
+    private static bool IsBarChart(OfficeChartType kind) =>
+        kind == OfficeChartType.BarClustered
+        || kind == OfficeChartType.BarStacked
+        || kind == OfficeChartType.BarStacked100;
 
-    private static bool IsColumnChart(OfficeChartKind kind) =>
-        kind == OfficeChartKind.ColumnClustered
-        || kind == OfficeChartKind.ColumnStacked
-        || kind == OfficeChartKind.ColumnStacked100;
+    private static bool IsColumnChart(OfficeChartType kind) =>
+        kind == OfficeChartType.ColumnClustered
+        || kind == OfficeChartType.ColumnStacked
+        || kind == OfficeChartType.ColumnStacked100;
 
-    private static bool IsBarOrColumnChart(OfficeChartKind kind) =>
+    private static bool IsBarOrColumnChart(OfficeChartType kind) =>
         IsBarChart(kind) || IsColumnChart(kind);
 
-    private static bool IsLineChart(OfficeChartKind kind) =>
-        kind == OfficeChartKind.Line
-        || kind == OfficeChartKind.LineStacked
-        || kind == OfficeChartKind.LineStacked100;
+    private static bool IsLineChart(OfficeChartType kind) =>
+        kind == OfficeChartType.Line
+        || kind == OfficeChartType.LineStacked
+        || kind == OfficeChartType.LineStacked100;
 
-    private static bool IsStackedLineChart(OfficeChartKind kind) => kind == OfficeChartKind.LineStacked;
+    private static bool IsStackedLineChart(OfficeChartType kind) => kind == OfficeChartType.LineStacked;
 
-    private static bool IsPercentStackedLineChart(OfficeChartKind kind) => kind == OfficeChartKind.LineStacked100;
+    private static bool IsPercentStackedLineChart(OfficeChartType kind) => kind == OfficeChartType.LineStacked100;
 
-    private static bool IsAreaChart(OfficeChartKind kind) =>
-        kind == OfficeChartKind.Area
-        || kind == OfficeChartKind.AreaStacked
-        || kind == OfficeChartKind.AreaStacked100;
+    private static bool IsAreaChart(OfficeChartType kind) =>
+        kind == OfficeChartType.Area
+        || kind == OfficeChartType.AreaStacked
+        || kind == OfficeChartType.AreaStacked100;
 
-    private static bool IsScatterChart(OfficeChartKind kind) =>
-        kind == OfficeChartKind.Scatter || kind == OfficeChartKind.Bubble;
+    private static bool IsScatterChart(OfficeChartType kind) =>
+        kind == OfficeChartType.Scatter || kind == OfficeChartType.Bubble;
 
-    private static bool IsRadarChart(OfficeChartKind kind) => kind == OfficeChartKind.Radar;
+    private static bool IsRadarChart(OfficeChartType kind) => kind == OfficeChartType.Radar;
 
-    private static bool IsStackedAreaChart(OfficeChartKind kind) => kind == OfficeChartKind.AreaStacked;
+    private static bool IsStackedAreaChart(OfficeChartType kind) => kind == OfficeChartType.AreaStacked;
 
-    private static bool IsPercentStackedAreaChart(OfficeChartKind kind) => kind == OfficeChartKind.AreaStacked100;
+    private static bool IsPercentStackedAreaChart(OfficeChartType kind) => kind == OfficeChartType.AreaStacked100;
 
-    private static bool IsStackedBarOrColumnChart(OfficeChartKind kind) =>
-        kind == OfficeChartKind.ColumnStacked
-        || kind == OfficeChartKind.BarStacked;
+    private static bool IsStackedBarOrColumnChart(OfficeChartType kind) =>
+        kind == OfficeChartType.ColumnStacked
+        || kind == OfficeChartType.BarStacked;
 
-    private static bool IsPercentStackedBarOrColumnChart(OfficeChartKind kind) =>
-        kind == OfficeChartKind.ColumnStacked100
-        || kind == OfficeChartKind.BarStacked100;
+    private static bool IsPercentStackedBarOrColumnChart(OfficeChartType kind) =>
+        kind == OfficeChartType.ColumnStacked100
+        || kind == OfficeChartType.BarStacked100;
 
-    private static bool IsPieChart(OfficeChartKind kind) => kind == OfficeChartKind.Pie;
+    private static bool IsPieChart(OfficeChartType kind) => kind == OfficeChartType.Pie;
 
-    private static bool IsDoughnutChart(OfficeChartKind kind) => kind == OfficeChartKind.Doughnut;
+    private static bool IsDoughnutChart(OfficeChartType kind) => kind == OfficeChartType.Doughnut;
 
-    private static OfficeChartKind GetEffectiveSeriesKind(OfficeChartSnapshot snapshot, OfficeChartSeries series) =>
+    private static OfficeChartType GetEffectiveSeriesKind(OfficeChartSnapshot snapshot, OfficeSeries series) =>
         series.RenderKind ?? snapshot.ChartKind;
 
     private static bool HasMixedCartesianSeriesKinds(OfficeChartSnapshot snapshot) {
-        OfficeChartKind? first = null;
-        foreach (OfficeChartSeries series in snapshot.Data.Series) {
-            OfficeChartKind kind = GetEffectiveSeriesKind(snapshot, series);
+        OfficeChartType? first = null;
+        foreach (OfficeSeries series in snapshot.Data.Series) {
+            OfficeChartType kind = GetEffectiveSeriesKind(snapshot, series);
             if (IsPieChart(kind) || IsDoughnutChart(kind) || IsRadarChart(kind)) {
                 continue;
             }
@@ -78,19 +78,19 @@ public static partial class OfficeChartDrawingRenderer {
         return false;
     }
 
-    private static bool ShouldRenderSeriesAsBarOrColumn(OfficeChartSnapshot snapshot, OfficeChartSeries series) =>
+    private static bool ShouldRenderSeriesAsBarOrColumn(OfficeChartSnapshot snapshot, OfficeSeries series) =>
         !HasMixedCartesianSeriesKinds(snapshot) || IsBarOrColumnChart(GetEffectiveSeriesKind(snapshot, series));
 
-    private static bool ShouldRenderSeriesAsArea(OfficeChartSnapshot snapshot, OfficeChartSeries series) =>
+    private static bool ShouldRenderSeriesAsArea(OfficeChartSnapshot snapshot, OfficeSeries series) =>
         !HasMixedCartesianSeriesKinds(snapshot) || IsAreaChart(GetEffectiveSeriesKind(snapshot, series));
 
-    private static bool ShouldRenderSeriesAsLine(OfficeChartSnapshot snapshot, OfficeChartSeries series) =>
+    private static bool ShouldRenderSeriesAsLine(OfficeChartSnapshot snapshot, OfficeSeries series) =>
         !HasMixedCartesianSeriesKinds(snapshot) || IsLineChart(GetEffectiveSeriesKind(snapshot, series));
 
-    private static bool ShouldRenderSeriesAsScatter(OfficeChartSnapshot snapshot, OfficeChartSeries series) =>
+    private static bool ShouldRenderSeriesAsScatter(OfficeChartSnapshot snapshot, OfficeSeries series) =>
         !HasMixedCartesianSeriesKinds(snapshot) || IsScatterChart(GetEffectiveSeriesKind(snapshot, series));
 
-    private static double GetPositiveCategoryTotal(IReadOnlyList<OfficeChartSeries> series, int categoryIndex) {
+    private static double GetPositiveCategoryTotal(IReadOnlyList<OfficeSeries> series, int categoryIndex) {
         double total = 0D;
         for (int s = 0; s < series.Count; s++) {
             if (TryGetSeriesValue(series[s], categoryIndex, out double value)) {
@@ -101,7 +101,7 @@ public static partial class OfficeChartDrawingRenderer {
         return total;
     }
 
-    private static double GetDataLabelCategoryTotal(IReadOnlyList<OfficeChartSeries> series, int categoryIndex) {
+    private static double GetDataLabelCategoryTotal(IReadOnlyList<OfficeSeries> series, int categoryIndex) {
         double total = GetPositiveCategoryTotal(series, categoryIndex);
         if (total > 0D) {
             return total;
@@ -126,7 +126,7 @@ public static partial class OfficeChartDrawingRenderer {
         internal double[] Negative { get; }
     }
 
-    private static PercentStackedTotals BuildPercentStackedTotals(IReadOnlyList<OfficeChartSeries> series, int categoryCount) {
+    private static PercentStackedTotals BuildPercentStackedTotals(IReadOnlyList<OfficeSeries> series, int categoryCount) {
         var positive = new double[categoryCount];
         var negative = new double[categoryCount];
         for (int s = 0; s < series.Count; s++) {
@@ -155,7 +155,7 @@ public static partial class OfficeChartDrawingRenderer {
         return total <= 0D ? 0D : value / total;
     }
 
-    private static ValueRange GetPercentStackedSeriesRange(IReadOnlyList<OfficeChartSeries> series, int categoryCount) {
+    private static ValueRange GetPercentStackedSeriesRange(IReadOnlyList<OfficeSeries> series, int categoryCount) {
         PercentStackedTotals totals = BuildPercentStackedTotals(series, categoryCount);
         for (int category = 0; category < categoryCount; category++) {
             if (totals.Negative[category] > 0D) {
@@ -166,7 +166,7 @@ public static partial class OfficeChartDrawingRenderer {
         return new ValueRange(0D, 1D).AsFixed();
     }
 
-    private static ValueRange GetStackedSeriesRange(IReadOnlyList<OfficeChartSeries> series, int categoryCount) {
+    private static ValueRange GetStackedSeriesRange(IReadOnlyList<OfficeSeries> series, int categoryCount) {
         double min = 0D;
         double max = 0D;
         for (int category = 0; category < categoryCount; category++) {
@@ -196,7 +196,7 @@ public static partial class OfficeChartDrawingRenderer {
         return ExpandFlatRange(min, max);
     }
 
-    private static bool TryGetSeriesValue(OfficeChartSeries series, int index, out double value) {
+    private static bool TryGetSeriesValue(OfficeSeries series, int index, out double value) {
         value = 0D;
         if (index < 0 || index >= series.Values.Count) {
             return false;
@@ -206,7 +206,7 @@ public static partial class OfficeChartDrawingRenderer {
         return IsFiniteChartValue(value);
     }
 
-    private static double GetSeriesValue(OfficeChartSeries series, int index) {
+    private static double GetSeriesValue(OfficeSeries series, int index) {
         return TryGetSeriesValue(series, index, out double value) ? value : 0D;
     }
 
@@ -254,7 +254,7 @@ public static partial class OfficeChartDrawingRenderer {
         return values;
     }
 
-    private static ValueRange GetScatterXRange(IReadOnlyList<OfficeChartSeries> series, IReadOnlyList<double> sharedXValues) {
+    private static ValueRange GetScatterXRange(IReadOnlyList<OfficeSeries> series, IReadOnlyList<double> sharedXValues) {
         var values = new List<double>(sharedXValues.Count);
         bool hasSeriesXValues = false;
         bool usesSharedXValues = false;
@@ -276,7 +276,7 @@ public static partial class OfficeChartDrawingRenderer {
         return hasSeriesXValues ? GetFiniteRange(values) : GetFiniteRange(sharedXValues);
     }
 
-    private static (ValueRange XRange, ValueRange YRange) GetScatterPointRanges(IReadOnlyList<OfficeChartSeries> series, IReadOnlyList<double> sharedXValues) {
+    private static (ValueRange XRange, ValueRange YRange) GetScatterPointRanges(IReadOnlyList<OfficeSeries> series, IReadOnlyList<double> sharedXValues) {
         var xValues = new List<double>();
         var yValues = new List<double>();
         for (int s = 0; s < series.Count; s++) {
@@ -316,11 +316,11 @@ public static partial class OfficeChartDrawingRenderer {
         return new OfficePoint(centerX + Math.Cos(angle) * radius, centerY + Math.Sin(angle) * radius);
     }
 
-    private static ValueRange GetFiniteSeriesRange(IReadOnlyList<OfficeChartSeries> series) {
+    private static ValueRange GetFiniteSeriesRange(IReadOnlyList<OfficeSeries> series) {
         bool any = false;
         double min = 0D;
         double max = 0D;
-        foreach (OfficeChartSeries item in series) {
+        foreach (OfficeSeries item in series) {
             foreach (double value in item.Values) {
                 if (double.IsNaN(value) || double.IsInfinity(value)) {
                     continue;
@@ -491,7 +491,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
         if (!IsScatterChart(snapshot.ChartKind)) return false;
         IReadOnlyList<double> sharedX = GetScatterXValues(snapshot.Data.Categories);
-        List<OfficeChartSeries> series = GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList();
+        List<OfficeSeries> series = GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList();
         ValueRange horizontal = ApplyValueAxisScale(GetScatterPointRanges(series, sharedX).XRange,
             layout, horizontal: true);
         return ExceedsAxisUnitBudget(horizontal, layout.HorizontalAxisMajorUnit, 32) ||
@@ -670,7 +670,7 @@ public static partial class OfficeChartDrawingRenderer {
         return any ? ExpandFlatRange(min, max) : new ValueRange(0D, 1D);
     }
 
-    private static ValueRange GetRadarValueRange(IReadOnlyList<OfficeChartSeries> series) {
+    private static ValueRange GetRadarValueRange(IReadOnlyList<OfficeSeries> series) {
         ValueRange range = GetFiniteSeriesRange(series);
         return ExpandFlatRange(Math.Min(0D, range.Min), Math.Max(0D, range.Max));
     }

@@ -55,7 +55,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 300D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(300D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(0D)
         });
         HtmlRenderShape[] edges = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
@@ -205,7 +205,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(50D / HtmlRenderOptions.CssPixelsPerInch, 35D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(50D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(35D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
@@ -327,7 +327,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(70D / HtmlRenderOptions.CssPixelsPerInch, 80D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(70D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(80D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
@@ -444,7 +444,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(50D / HtmlRenderOptions.CssPixelsPerInch, 30D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(50D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(30D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
@@ -492,7 +492,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(50D / HtmlRenderOptions.CssPixelsPerInch, 35D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(50D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(35D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
@@ -570,7 +570,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<html style='margin:0'><body style='margin:0'><div id='tall-path' style='box-sizing:border-box;width:40px;height:90px;border-radius:12px 3px 8px 5px / 4px 9px 2px 7px;background:#ff0000'></div></body></html>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent

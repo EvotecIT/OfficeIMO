@@ -405,7 +405,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentationImageExportOptions`
+- `OfficeIMO.PowerPoint.PowerPointImageExportOptions`
 
 ## RELATED LINKS
 

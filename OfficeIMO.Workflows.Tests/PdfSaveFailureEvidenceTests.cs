@@ -18,8 +18,8 @@ public sealed class PdfSaveFailureEvidenceTests {
             string input = Path.Combine(root, "source" + extension), output = Path.Combine(root, "result.pdf");
             const string text = "مرحبا";
             if (extension == ".docx") { using var word = WordDocument.Create(input); word.AddParagraph(text); word.Save(); }
-            else if (extension == ".xlsx") { using var excel = ExcelDocument.Create(input); excel.AddWorksheet("Unicode").CellValue(1, 1, text); excel.Save(); }
-            else if (extension == ".pptx") { using var ppt = PowerPointPresentation.Create(input); ppt.AddSlide().AddTextBox(text); ppt.Save(); }
+            else if (extension == ".xlsx") { using var excel = ExcelDocument.Create(input); excel.AddSheet("Unicode").CellValue(1, 1, text); excel.Save(); }
+            else if (extension == ".pptx") { using var ppt = PowerPointDocument.Create(input); ppt.AddSlide().AddTextBox(text); ppt.Save(); }
             else {
                 var drawing = OdgDocument.Create();
                 drawing.AddPage("Unicode").Shapes.AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 5), text);

@@ -16,8 +16,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph anchor = document.AddParagraph("SHRINKREFERENCE");
         WordParagraph story = anchor;
-        if (noteKind == 1) story = anchor.AddFootNote("SHRINKNOTESTART").FootNote!.Paragraphs!.First();
-        else if (noteKind == 2) story = anchor.AddEndNote("SHRINKNOTESTART").EndNote!.Paragraphs!.First();
+        if (noteKind == 1) story = anchor.AddFootNote("SHRINKNOTESTART").Paragraph.FootNote!.Paragraphs!.First();
+        else if (noteKind == 2) story = anchor.AddEndNote("SHRINKNOTESTART").Paragraph.EndNote!.Paragraphs!.First();
         WordTableStyle sourceStyle = sourceGridStyle ? WordTableStyle.TableGrid : WordTableStyle.TableNormal;
         WordTable outer = story.AddTableAfter(1, 1, sourceStyle);
         ConfigureNestedLayoutTable(outer, 6000, 6000);

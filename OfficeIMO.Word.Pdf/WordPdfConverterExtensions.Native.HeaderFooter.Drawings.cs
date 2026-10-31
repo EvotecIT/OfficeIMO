@@ -96,8 +96,8 @@ namespace OfficeIMO.Word.Pdf {
             if (!TryPrepareNativeBodyImage(image, options, source, out byte[] preparedBytes,
                     unsupportedCode: "NativeHeaderFooterImageUnsupported")) return;
 
-            double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
-            double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
+            double width = image.Width?.ToPoints() ?? 144D;
+            double height = image.Height?.ToPoints() ?? 144D;
             images.Add(new NativeHeaderFooterImage(preparedBytes, width, height, align,
                 CreateNativeImageStyle(image, options, source)));
         }
@@ -156,7 +156,7 @@ namespace OfficeIMO.Word.Pdf {
             public PdfCore.PdfAlign Align { get; }
             public PdfCore.PdfImageStyle Style { get; }
 
-            public PdfCore.PdfHeaderFooterImage ToPdfImage() => new(Data, Width, Height, Align, Style);
+            public PdfCore.PdfHeaderFooterImage ToPdfImage() => new(Data, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), Align, Style);
         }
 
         private sealed class NativeHeaderFooterShape {

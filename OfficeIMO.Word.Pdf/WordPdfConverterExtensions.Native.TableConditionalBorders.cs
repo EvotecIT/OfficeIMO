@@ -167,7 +167,7 @@ namespace OfficeIMO.Word.Pdf {
 
             return new PdfCore.PdfCellBorder {
                 Color = null,
-                Width = 0D,
+                Width = global::OfficeIMO.OfficeLength.Points(0D),
                 TopBorder = CreateNativeConditionalBorderSide(top),
                 RightBorder = CreateNativeConditionalBorderSide(right),
                 BottomBorder = CreateNativeConditionalBorderSide(bottom),
@@ -186,7 +186,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfCellBorderSide? CreateNativeConditionalBorderSide(W.BorderType? border) {
             if (border?.Val?.Value == W.BorderValues.Nil || border?.Val?.Value == W.BorderValues.None) {
-                return new PdfCore.PdfCellBorderSide { Color = null, Width = 0D };
+                return new PdfCore.PdfCellBorderSide { Color = null, Width = global::OfficeIMO.OfficeLength.Points(0D) };
             }
 
             return CreateNativeCellBorderSide(border);
@@ -195,7 +195,7 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfCellBorder MergeNativeCellBorder(PdfCore.PdfCellBorder? existing, PdfCore.PdfCellBorder overlay) {
             PdfCore.PdfCellBorder result = existing?.Clone() ?? new PdfCore.PdfCellBorder {
                 Color = null,
-                Width = 0D,
+                Width = global::OfficeIMO.OfficeLength.Points(0D),
                 Top = false,
                 Right = false,
                 Bottom = false,

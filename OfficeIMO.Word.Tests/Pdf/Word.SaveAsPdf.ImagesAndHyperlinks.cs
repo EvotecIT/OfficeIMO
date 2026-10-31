@@ -21,7 +21,7 @@ public partial class Word {
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddParagraph().AddImage(imagePath, 50, 50);
+            document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
             document.AddHyperLink("OfficeIMO", new Uri("https://evotec.xyz"), addStyle: true);
             document.Save();
             document.SaveAsPdf(pdfPath);
@@ -42,21 +42,21 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordParagraph left = document.AddParagraph();
             left.ParagraphAlignment = WordParagraphAlignment.Left;
-            left.AddImage(imagePath, 48, 48);
+            left.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(48));
 
             WordParagraph center = document.AddParagraph();
             center.ParagraphAlignment = WordParagraphAlignment.Center;
-            center.AddImage(imagePath, 48, 48);
+            center.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(48));
 
             WordParagraph right = document.AddParagraph();
             right.ParagraphAlignment = WordParagraphAlignment.Right;
-            right.AddImage(imagePath, 48, 48);
+            right.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(48));
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 260),
-                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(260)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -91,7 +91,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordParagraph paragraph = document.AddParagraph();
             paragraph.AddText("Before loaded image ");
-            paragraph.AddImage(imagePath, 48, 48);
+            paragraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(48));
             paragraph.AddText(" after loaded image");
             document.Save();
         }
@@ -121,7 +121,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Before unsupported image");
-            document.AddParagraph().AddImage(imagePath, 48, 48);
+            document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(48));
             document.AddParagraph("After unsupported image");
             document.Save();
         }
@@ -155,7 +155,7 @@ public partial class Word {
             document.AddParagraph("Logo content control:");
             WordParagraph picture = document.AddParagraph();
             picture.ParagraphAlignment = WordParagraphAlignment.Center;
-            picture.AddPictureControl(imagePath, 48, 48, "Logo", "LogoTag");
+            picture.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48), "Logo", "LogoTag");
 
             document.Save();
             conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
@@ -176,7 +176,7 @@ public partial class Word {
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
         using (WordDocument document = WordDocument.Create()) {
             WordParagraph paragraph = document.AddParagraph();
-            paragraph.AddPictureControl(imagePath, 48, 48);
+            paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48));
             SdtRun control = paragraph._paragraph.Elements<SdtRun>().Single();
             control.Remove();
             paragraph._paragraph.Append(
@@ -201,7 +201,7 @@ public partial class Word {
             WordParagraph cellParagraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
             WordTextBox textBox = cellParagraph.AddTextBox("Image box", WordImageTextWrapping.Square);
             Paragraph inner = textBox.Content!.Descendants<Paragraph>().First();
-            new WordParagraph(document, inner).AddImage(imagePath, 24, 24);
+            new WordParagraph(document, inner).AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(24));
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
@@ -214,7 +214,7 @@ public partial class Word {
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
         using (WordDocument document = WordDocument.Create()) {
             WordParagraph paragraph = document.AddParagraph();
-            paragraph.AddPictureControl(imagePath, 48, 48);
+            paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48));
             SdtRun control = paragraph._paragraph.Elements<SdtRun>().Single();
             SdtContentRun content = control.SdtContentRun!;
             Run imageRun = content.Elements<Run>().Single();
@@ -243,14 +243,12 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.WidthType = WordTableWidthUnit.Dxa;
-            table.Width = 7200;
-            table.ColumnWidth = new[] { 7200 }.ToList();
-            table.ColumnWidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(7200) * 635)));
+            table.ColumnWidth = new[] { 7200 }.ToList().Select(value => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(value) * 635)))).ToList();
             WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "Logo content control in a table";
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-            paragraph.AddPictureControl(imagePath, 48, 48, "Cell Logo", "CellLogo");
+            paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48), "Cell Logo", "CellLogo");
 
             document.Save();
             conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
@@ -275,8 +273,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
-        paragraph.AddPictureControl(imagePath, 32, 32, "First", "First");
-        paragraph.AddPictureControl(imagePath, 32, 32, "Second", "Second");
+        paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "First", "First");
+        paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Second", "Second");
 
         Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
             new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));
@@ -288,8 +286,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid)
             .Rows[0].Cells[0].Paragraphs[0];
-        paragraph.AddImage(imagePath, 32, 32);
-        paragraph.AddText(" between ").AddImage(imagePath, 32, 32);
+        paragraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
+        paragraph.AddText(" between ").AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
 
         Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
             new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));
@@ -301,8 +299,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
         WordParagraph paragraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
-        paragraph.AddImage(imagePath, 32, 32);
-        paragraph.AddText(" between ").AddImage(imagePath, 32, 32);
+        paragraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
+        paragraph.AddText(" between ").AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         document.AddParagraph("Body");
 
         Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
@@ -315,9 +313,9 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid)
             .Rows[0].Cells[0].Paragraphs[0];
-        paragraph.AddImage(imagePath, 32, 32);
+        paragraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         WordParagraph deleted = paragraph.AddText("deleted");
-        deleted.AddImage(imagePath, 32, 32);
+        deleted.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         DocumentFormat.OpenXml.Wordprocessing.Run deletedRun = deleted._run!;
         deletedRun.Remove();
         paragraph._paragraph!.Append(new DocumentFormat.OpenXml.Wordprocessing.DeletedRun(deletedRun));

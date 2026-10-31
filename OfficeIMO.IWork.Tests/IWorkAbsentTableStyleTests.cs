@@ -28,9 +28,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(WordBorderStyle.Nil, cell.Borders.LeftStyle);
             Assert.Equal(WordBorderStyle.Single, cell.Borders.RightStyle);
         } else {
-            using var converted = source.ToPowerPointPresentationResult(policy);
+            using var converted = source.ToPowerPointDocumentResult(policy);
             converted.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved);
+            using var reopened = PowerPointDocument.Load(saved);
             Assert.Empty(reopened.ValidateDocument());
             PowerPointTable table = Assert.Single(reopened.Slides[0].Tables);
             Assert.Null(table.StyleId);

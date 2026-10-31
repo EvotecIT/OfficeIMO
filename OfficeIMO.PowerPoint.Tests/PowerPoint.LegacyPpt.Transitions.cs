@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_AuthorsSupportedTransitionAndAdvanceSettings(
             PowerPointSlideTransition transition, byte effectType, byte effectDirection) {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide();
                 slide.Transition = transition;
                 slide.TransitionSpeed = PowerPointSlideTransitionSpeed.Fast;
@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptTransition binary = Assert.IsType<LegacyPptTransition>(
-                Assert.Single(LegacyPptPresentation.Load(bytes).Slides).Transition);
+                Assert.Single(LegacyPptDocument.Load(bytes).Slides).Transition);
             Assert.Equal(effectType, binary.RawEffectType);
             Assert.Equal(effectDirection, binary.EffectDirection);
             Assert.Equal(2, binary.Speed);
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4250, binary.SlideTimeMilliseconds);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(input);
+            using PowerPointDocument projected = PowerPointDocument.Load(input);
             PowerPointSlide projectedSlide = projected.Slides[0];
             Assert.Equal(transition, projectedSlide.Transition);
             Assert.Equal(PowerPointSlideTransitionSpeed.Fast, projectedSlide.TransitionSpeed);
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksModernTransitionWithoutLegacyEquivalent() {
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide();
             slide.Transition = PowerPointSlideTransition.Morph;
 
@@ -114,17 +114,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedTransitionEdit_AppendsPreservingRecord() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide();
                 slide.Transition = PowerPointSlideTransition.Fade;
                 slide.TransitionSpeed = PowerPointSlideTransitionSpeed.Slow;
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes, writable: false))
-            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 PowerPointSlide slide = imported.Slides[0];
                 slide.Transition = PowerPointSlideTransition.WheelEightSpokes;
                 slide.TransitionSpeed = PowerPointSlideTransitionSpeed.Fast;
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved = LegacyPptDocument.Load(savedBytes);
             LegacyPptTransition transition = Assert.IsType<LegacyPptTransition>(
                 Assert.Single(saved.Slides).Transition);
             Assert.Equal(LegacyPptTransitionEffect.Wheel, transition.Effect);

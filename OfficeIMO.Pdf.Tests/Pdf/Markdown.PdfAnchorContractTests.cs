@@ -13,7 +13,9 @@ public sealed class MarkdownPdfAnchorContractTests {
         IMarkdownBlock target = kind == "details"
             ? new DetailsBlock(new SummaryBlock(paragraph.Inlines))
             : new FootnoteDefinitionBlock("note", new IMarkdownBlock[] { paragraph });
-        var document = MarkdownDocument.Create().Add(new ParagraphBlock(new InlineSequence().Link("Jump", "#direct"))).Add(target);
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Link("Jump", "#direct")));
+        document.Add(target);
         var result = document.ConvertToPdfWithEvidence();
         Assert.NotEmpty(result.Value.ToBytes());
         Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == "UnresolvedInternalLink");
@@ -25,7 +27,9 @@ public sealed class MarkdownPdfAnchorContractTests {
     public void IncompleteAnchorCarriersRetainPlainTextWithoutBreakingExport(string html) {
         var inlines = new InlineSequence { AutoSpacing = false };
         inlines.AddRaw(new HtmlRawInline(html));
-        var result = MarkdownDocument.Create().Add(new ParagraphBlock(inlines)).ConvertToPdfWithEvidence();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(new ParagraphBlock(inlines));
+        var result = addedDocument.ConvertToPdfWithEvidence();
         Assert.NotEmpty(result.Value.ToBytes());
     }
 
@@ -40,7 +44,9 @@ public sealed class MarkdownPdfAnchorContractTests {
             _ => new ParagraphBlock(new InlineSequence().Text("Anchor marker"))
         };
         ((MarkdownObject)block).SetAttributes(MarkdownAttributeSet.Create(elementId: "destination"));
-        var document = MarkdownDocument.Create().Add(new ParagraphBlock(new InlineSequence().Link("Jump", "#destination"))).Add(block);
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Link("Jump", "#destination")));
+        document.Add(block);
         var result = document.ConvertToPdfWithEvidence();
         Assert.NotEmpty(result.Value.ToBytes());
         Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == "UnresolvedInternalLink");

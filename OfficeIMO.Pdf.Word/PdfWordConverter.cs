@@ -584,7 +584,7 @@ namespace OfficeIMO.Pdf.Word {
             paragraph.SetStyle(MapHeadingStyle(heading.Level));
             paragraph.KeepWithNext = true;
             if (heading.FontSize > 0) {
-                paragraph.FontSizePoints = ScaleEditableFontSize(heading.FontSize, typographyScale);
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(heading.FontSize, typographyScale));
             }
             return paragraph;
         }
@@ -664,17 +664,18 @@ namespace OfficeIMO.Pdf.Word {
             System.Text.RegularExpressions.Match match = LeaderLinePattern.Match(lines[0].Text.Trim());
             if (!match.Success) return false;
             WordSection section = document.Sections[document.Sections.Count - 1];
-            long textWidth = (long)(section.PageSettings.Width ?? 12240U) - section.Margins.Left - section.Margins.Right;
+            long textWidth = (section.PageSettings.Width?.ToTwips() ?? 12240L) -
+                (section.Margins.Left?.ToTwips() ?? 0L) - (section.Margins.Right?.ToTwips() ?? 0L);
             if (textWidth <= 720) return false;
             paragraph = document.AddParagraph();
-            paragraph.AddTabStop((int)Math.Min(int.MaxValue, textWidth), WordTabAlignment.Right, WordTabLeader.Dot);
+            paragraph.AddTabStop(OfficeLength.Points(Math.Min(int.MaxValue, textWidth) / 20D), WordTabAlignment.Right, WordTabLeader.Dot);
             double fontSize = lines[0].FontSize;
             PdfCore.PdfLogicalTextRun? firstRun = lines[0].Runs.Count > 0 ? lines[0].Runs[0] : null;
             WordParagraph label = paragraph.AddText(match.Groups["label"].Value);
             paragraph.AddTab();
             WordParagraph value = paragraph.AddText(match.Groups["value"].Value);
             foreach (WordParagraph run in new[] { label, value }) {
-                if (fontSize > 0D) run.FontSizePoints = ScaleEditableFontSize(fontSize, typographyScale);
+                if (fontSize > 0D) run.FontSize = OfficeLength.Points(ScaleEditableFontSize(fontSize, typographyScale));
                 if (firstRun?.IsBold == true) run.SetBold();
                 string? family = PdfCore.PdfFontFamilyNames.ToFamilyName(firstRun?.BaseFont);
                 if (!string.IsNullOrWhiteSpace(family)) run.SetFontFamily(family!);
@@ -713,7 +714,7 @@ namespace OfficeIMO.Pdf.Word {
             if (runs.Count == 0) {
                 WordParagraph fallbackRun = paragraph.AddText(fallbackText);
                 if (fallbackFontSize > 0D) {
-                    fallbackRun.FontSizePoints = ScaleEditableFontSize(fallbackFontSize, typographyScale);
+                    fallbackRun.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(fallbackFontSize, typographyScale));
                 }
                 return;
             }
@@ -725,7 +726,7 @@ namespace OfficeIMO.Pdf.Word {
                 if (source.IsItalic) run.SetItalic();
                 double fontSize = source.FontSize > 0D ? source.FontSize : fallbackFontSize;
                 if (fontSize > 0D) {
-                    run.FontSizePoints = ScaleEditableFontSize(fontSize, typographyScale);
+                    run.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(fontSize, typographyScale));
                 }
                 // Light text was drawn on a coloured panel that a reflowed paragraph does not keep; on the white
                 // page it would be invisible, so it keeps the document text colour.
@@ -765,8 +766,8 @@ namespace OfficeIMO.Pdf.Word {
             ApplySourceParagraphSpacing(paragraph, options);
             WordParagraph hyperlink;
             if (target.IsUri) {
-                hyperlink = paragraph.AddHyperLink(text, target.Uri!, addStyle: true, tooltip: "Imported PDF link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture));
-                if (fontSizePoints > 0D) hyperlink.FontSizePoints = BoundEditableFontSize(fontSizePoints.Value);
+                hyperlink = paragraph.AddHyperLink(text, target.Uri!, addStyle: true, tooltip: "Imported PDF link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture)).Paragraph;
+                if (fontSizePoints > 0D) hyperlink.FontSize = global::OfficeIMO.OfficeLength.Points(BoundEditableFontSize(fontSizePoints.Value));
                 AddWarning(
                     options,
                     "pdf-uri-link-reconstructed",
@@ -780,8 +781,8 @@ namespace OfficeIMO.Pdf.Word {
                 return paragraph;
             }
 
-            hyperlink = paragraph.AddHyperLink(text, target.Anchor!, addStyle: true, tooltip: "Imported PDF internal link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture));
-            if (fontSizePoints > 0D) hyperlink.FontSizePoints = BoundEditableFontSize(fontSizePoints.Value);
+            hyperlink = paragraph.AddHyperLink(text, target.Anchor!, addStyle: true, tooltip: "Imported PDF internal link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture)).Paragraph;
+            if (fontSizePoints > 0D) hyperlink.FontSize = global::OfficeIMO.OfficeLength.Points(BoundEditableFontSize(fontSizePoints.Value));
             AddWarning(
                 options,
                 "pdf-internal-link-reconstructed",
@@ -874,8 +875,8 @@ namespace OfficeIMO.Pdf.Word {
         }
 
         private static void ApplyCompactSpacing(WordParagraph paragraph) {
-            paragraph.LineSpacingBeforePoints = 0D;
-            paragraph.LineSpacingAfterPoints = 0D;
+            paragraph.LineSpacingBefore = OfficeLength.Zero;
+            paragraph.LineSpacingAfter = OfficeLength.Zero;
         }
 
         private static bool IsBulletMarker(string marker) {
@@ -929,17 +930,17 @@ namespace OfficeIMO.Pdf.Word {
         private static void ApplyLightRules(WordTable table) {
             WordTableStyleDetails? details = table.StyleDetails;
             if (details == null) return;
-            details.SetBordersForAllSides(WordBorderStyle.Single, 4U, LightRuleColor);
-            details.MarginDefaultTopWidth = 29;
-            details.MarginDefaultBottomWidth = 29;
-            details.MarginDefaultLeftWidth = 86;
-            details.MarginDefaultRightWidth = 86;
+            details.SetBordersForAllSides(WordBorderStyle.Single, OfficeLength.Points(0.5D), LightRuleColor);
+            details.MarginDefaultTop = OfficeLength.Points(29D / 20D);
+            details.MarginDefaultBottom = OfficeLength.Points(29D / 20D);
+            details.MarginDefaultLeft = OfficeLength.Points(86D / 20D);
+            details.MarginDefaultRight = OfficeLength.Points(86D / 20D);
         }
 
         private static void AddTableSeparator(WordDocument document) {
             WordParagraph separator = document.AddParagraph();
             ApplyCompactSpacing(separator);
-            separator.LineSpacingAfterPoints = 6D;
+            separator.LineSpacingAfter = OfficeLength.Points(6D);
         }
 
         private static bool HasHeaderRow(PdfCore.PdfLogicalTableData data) {
@@ -978,8 +979,7 @@ namespace OfficeIMO.Pdf.Word {
                     columnWeights = ApplyMinimumColumnWeights(columnWeights, data);
                     table.SetColumnWidthsPercentage(columnWeights);
                 } else {
-                    table.WidthType = WordTableWidthUnit.Pct;
-                    table.Width = 5000;
+                    table.Width = WordTableWidth.Percent(100);
                     table.DistributeColumnsEvenly();
                 }
             }
@@ -1063,9 +1063,9 @@ namespace OfficeIMO.Pdf.Word {
                 ApplyCompactSpacing(paragraph);
                 PdfCore.PdfLogicalTableCellStyle? style = styles != null && columnIndex < styles.Count ? styles[columnIndex] : null;
                 if (style?.FontSize is double sourceFontSize && sourceFontSize > 0D) {
-                    paragraph.FontSizePoints = ScaleEditableFontSize(sourceFontSize, typographyScale);
+                    paragraph.FontSize = OfficeLength.Points(ScaleEditableFontSize(sourceFontSize, typographyScale));
                 } else if (typographyScale != 1D) {
-                    paragraph.FontSizePoints = ScaleEditableFontSize(DefaultEditableTableFontSizePoints, typographyScale);
+                    paragraph.FontSize = OfficeLength.Points(ScaleEditableFontSize(DefaultEditableTableFontSizePoints, typographyScale));
                 }
                 if (style != null) ApplyCellStyle(cells[columnIndex], paragraph, style);
                 if (alignNumericColumns && data.IsNumericColumn(columnIndex)) {

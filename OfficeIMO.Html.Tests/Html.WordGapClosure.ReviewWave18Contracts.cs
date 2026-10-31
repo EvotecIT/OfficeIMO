@@ -73,7 +73,7 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             paragraph => string.IsNullOrEmpty(paragraph.Text));
 
-        Assert.Equal(300, spacing.LineSpacingBefore);
-        Assert.Equal(300, spacing.LineSpacingAfter);
+        Assert.Equal(300, checked((int?)(spacing.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(300, checked((int?)(spacing.LineSpacingAfter?.ToTwips())));
     }
 }

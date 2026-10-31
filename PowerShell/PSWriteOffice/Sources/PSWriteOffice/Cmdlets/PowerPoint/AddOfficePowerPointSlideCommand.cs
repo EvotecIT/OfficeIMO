@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointSlide", DefaultParameterSetName = "Content")]
 [Alias("PowerPointSlide")]
 [OutputType(typeof(PowerPointSlide))]
-public sealed class AddOfficePowerPointSlideCommand : OfficeDocumentCmdlet<PowerPointPresentation> {
+public sealed class AddOfficePowerPointSlideCommand : OfficeDocumentCmdlet<PowerPointDocument> {
     /// <summary>Gets or sets the slide's typed content block.</summary>
     [Parameter(Position = 0)]
     public ScriptBlock? Content { get; set; }

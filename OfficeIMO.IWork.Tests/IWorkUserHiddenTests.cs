@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
         if (kind == IWorkDocumentKind.Pages) {
             using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
+            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
         }
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false);

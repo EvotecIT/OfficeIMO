@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private static RichSeg CreateInlineAppearanceSegment(PdfTextRun run, PdfCreateOptions options) {
-        RichSeg segment = CreatePositionedTextSegment(run, options.DefaultFontSize, options);
+        RichSeg segment = CreatePositionedTextSegment(run, options.DefaultFontSize.ToPoints(), options);
         PrepareInlineAppearanceCommand(segment, options);
         return segment;
     }

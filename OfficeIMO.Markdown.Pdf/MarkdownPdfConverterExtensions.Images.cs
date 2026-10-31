@@ -17,8 +17,8 @@ public static partial class MarkdownPdfConverterExtensions {
             pdf,
             bytes,
             sourceName,
-            image.Width,
-            image.Height,
+            image.Width?.ToPoints(),
+            image.Height?.ToPoints(),
             image.PlainAlt ?? image.Alt,
             image.Caption,
             NormalizeAbsoluteLink(image.LinkUrl),
@@ -147,7 +147,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 .FontSize(figureStyle.CaptionFontSizeSnapshot)
                 .Color(figureStyle.CaptionColorSnapshot)
                 .Text(caption!.Trim());
-        }, align: figureStyle.CaptionAlignSnapshot, defaultColor: figureStyle.CaptionColorSnapshot, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 2, SpacingAfter = 2 });
+        }, align: figureStyle.CaptionAlignSnapshot, defaultColor: figureStyle.CaptionColorSnapshot, style: new PdfCore.PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(2), SpacingAfter = global::OfficeIMO.OfficeLength.Points(2) });
     }
 
     private static bool TryReadImageBytes(string path, MarkdownPdfExportOptions options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage) {
@@ -422,7 +422,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static double GetImageWidthPoints(OfficeImageInfo? info, MarkdownPdfExportOptions options) {
         if (info == null || info.Width <= 0) {
-            return options.DefaultImageWidth;
+            return options.DefaultImageWidth.ToPoints();
         }
 
         return info.Width * 72D / info.DpiX;
@@ -430,7 +430,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static double GetImageHeightPoints(OfficeImageInfo? info, double width, MarkdownPdfExportOptions options) {
         if (info == null || info.Height <= 0 || info.Width <= 0) {
-            return options.DefaultImageHeight;
+            return options.DefaultImageHeight.ToPoints();
         }
 
         return width * info.Height / info.Width;

@@ -28,7 +28,7 @@ internal static class EvaluationChallengeCorpus {
         };
         string[][] table = { new[] { "Code", "Count", "Amount" }, new[] { "AA-7", "0", "-3.25" },
             new[] { "BB-2", "19", "1024.80" }, new[] { "CC-8", "2", "0.00" } };
-        var fontOptions = new PdfCreateOptions { DefaultFontSize = 14 };
+        var fontOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(14) };
         if (!fontOptions.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true)) throw new InvalidOperationException("Evaluation requires an embeddable font.");
         byte[] pdf = PdfDocument.Create(builder => builder.Content(content => content.H1("Reconciliation").Table(table)),
             fontOptions).ToBytes();

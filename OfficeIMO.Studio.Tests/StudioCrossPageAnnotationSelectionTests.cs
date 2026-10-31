@@ -299,7 +299,7 @@ public sealed class StudioCrossPageAnnotationSelectionTests {
 
     private static byte[] CreateSource() {
         var document = PdfDocument.Create(compose => {
-            for (int page = 1; page <= 2; page++) compose.Page(builder => builder.Size(400, 400).Content(content =>
+            for (int page = 1; page <= 2; page++) compose.Page(builder => builder.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(400)).Content(content =>
                 content.Item(item => item.Paragraph(paragraph => paragraph.Text("Cross-page annotation workspace")))));
         });
         document = document.Pages.SetCropBox(20, 30, 380, 390, 1).Pages.SetCropBox(30, 40, 390, 400, 2).Pages.Rotate(90, 2);

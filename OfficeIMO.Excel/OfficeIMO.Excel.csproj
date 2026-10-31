@@ -95,6 +95,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
+        <InternalsVisibleTo Include="PSWriteOffice" />
         <InternalsVisibleTo Include="OfficeIMO.LegacyImport.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.IWork" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Benchmarks" />
@@ -115,5 +116,7 @@
     </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Shared.Tests" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
-  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Excel.Benchmarks.NPOI" />
+    <InternalsVisibleTo Include="ExcelReaderTyped.Benchmarks" /></ItemGroup>
 </Project>

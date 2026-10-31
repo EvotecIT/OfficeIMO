@@ -53,7 +53,9 @@ internal static class RtfToMarkdownConverter {
 
             ReportOmittedHeaderFooters(document, blocks, context);
             AppendNoteDefinitions(document, blocks, context, ref imageIndex);
-            return MarkdownDocument.Create().AddRange(blocks);
+            var markdown = MarkdownDocument.Create();
+            markdown.AddRange(blocks);
+            return markdown;
         } finally {
             context.NoteRegistry = null;
         }

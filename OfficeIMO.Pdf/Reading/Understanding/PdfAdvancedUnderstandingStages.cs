@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Built-in dependency-free understanding stages for rotated baselines, spatial regions, multi-column reading order, and richer business-document semantics.
 /// </summary>
-public static partial class PdfAdvancedUnderstandingStages {
+internal static partial class PdfAdvancedUnderstandingStages {
     /// <summary>Parser-backed positioned text decoding.</summary>
     public static IPdfGlyphDecodingStage GlyphDecoding { get; } = new AdvancedGlyphDecodingStage();
     /// <summary>Rotation-aware word grouping.</summary>

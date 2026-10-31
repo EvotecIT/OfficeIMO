@@ -93,13 +93,13 @@ public class PdfTableStreamExportContracts {
     public void WordEditableConversionPreservesMixedSourcePageSizes() {
         byte[] source = PdfDocument.Create().Compose(composer => {
             composer.Page(page => page
-                .Size(420D, 595D)
-                .Margin(36D)
+                .Size(global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(595D))
+                .Margin(global::OfficeIMO.OfficeLength.Points(36D))
                 .Content(content => content.Column(column =>
                     column.Item().Paragraph(paragraph => paragraph.Text("Small invoice page")))));
             composer.Page(page => page
-                .Size(612D, 792D)
-                .Margin(36D)
+                .Size(global::OfficeIMO.OfficeLength.Points(612D), global::OfficeIMO.OfficeLength.Points(792D))
+                .Margin(global::OfficeIMO.OfficeLength.Points(36D))
                 .Content(content => content.Column(column =>
                     column.Item().Paragraph(paragraph => paragraph.Text("Letter invoice page")))));
         }).ToBytes();
@@ -324,12 +324,16 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void ExcelCurrencyFormatsPreserveAffixPlacementAndSpacing() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420D,
-                PageHeight = 420D,
-                MarginLeft = 20D,
-                MarginRight = 20D,
-                MarginTop = 20D,
-                MarginBottom = 20D
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(420D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+                // Supply a ruled source table; this test measures spreadsheet value/format semantics.
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
+                DefaultTableStyle = PdfTableStyles.Light()
             })
             .Table(new[] {
                 new[] { "Prefix", "Suffix" },
@@ -454,12 +458,16 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void ExcelKeepsCurrencyAffixedPercentValuesAsText() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 300D,
-                PageHeight = 240D,
-                MarginLeft = 20D,
-                MarginRight = 20D,
-                MarginTop = 20D,
-                MarginBottom = 20D
+                PageWidth = global::OfficeIMO.OfficeLength.Points(300D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+                // Supply a ruled source table; this test measures spreadsheet value/format semantics.
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
+                DefaultTableStyle = PdfTableStyles.Light()
             })
             .Table(new[] {
                 new[] { "Rate", "Description" },
@@ -621,22 +629,22 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void TableScopeAnalysisReportsIncompleteClassificationWhenBudgetIsExhausted() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .KeyValueTable(new[] {
                 PdfKeyValueRow.Text("InvoiceId", "INV-001"),
                 PdfKeyValueRow.Text("Customer", "Evotec"),
                 PdfKeyValueRow.Text("Due", "2026-06-30")
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 120, 170 },
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(170) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source, new PdfTextLayoutOptions {
@@ -659,9 +667,9 @@ public class PdfTableStreamExportContracts {
             .Rectangle(
                 120,
                 40,
-                strokeColor: PdfColor.FromRgb(0, 64, 128),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(0, 64, 128),
                 strokeWidth: 2,
-                fillColor: PdfColor.FromRgb(204, 238, 255))
+                fillColor: global::OfficeIMO.OfficeColor.FromRgb(204, 238, 255))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
@@ -1083,9 +1091,9 @@ public class PdfTableStreamExportContracts {
             .Rectangle(
                 120,
                 40,
-                strokeColor: PdfColor.FromRgb(0, 64, 128),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(0, 64, 128),
                 strokeWidth: 2,
-                fillColor: PdfColor.FromRgb(204, 238, 255))
+                fillColor: global::OfficeIMO.OfficeColor.FromRgb(204, 238, 255))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 

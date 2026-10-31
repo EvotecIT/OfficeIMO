@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             byte[] replacement = CreateVbaTestProject("ReplacementModule",
                 "Sub ReplacementMacro()\nEnd Sub");
 
-            using var presentation = PowerPointPresentation.Create();
+            using var presentation = PowerPointDocument.Create();
             Assert.False(presentation.HasVbaProject);
             Assert.Null(presentation.GetVbaProjectBytes());
             Assert.False(presentation.RemoveVbaProject());
@@ -52,20 +52,20 @@ namespace OfficeIMO.Tests {
             byte[] project = CreateVbaTestProject("RoundTripModule",
                 "Sub RoundTripMacro()\nEnd Sub");
             try {
-                using (PowerPointPresentation presentation =
-                       PowerPointPresentation.Create(pptm)) {
-                    presentation.AddSlide().AddTitle("Macro-enabled deck");
+                using (PowerPointDocument presentation =
+                       PowerPointDocument.Create(pptm)) {
+                    presentation.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Macro-enabled deck");
                     presentation.SetVbaProject(project);
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened =
-                    PowerPointPresentation.Load(pptm);
+                using PowerPointDocument reopened =
+                    PowerPointDocument.Load(pptm);
                 Assert.Equal(project, reopened.GetVbaProjectBytes());
 
                 byte[] binary = reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-                using PowerPointPresentation projected =
-                    PowerPointPresentation.Load(new MemoryStream(binary));
+                using PowerPointDocument projected =
+                    PowerPointDocument.Load(new MemoryStream(binary));
                 Assert.True(projected.HasVbaProject,
                     string.Join(Environment.NewLine, projected.LegacyPptImportDiagnostics
                         .Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
@@ -79,8 +79,8 @@ namespace OfficeIMO.Tests {
         public void PublicMacroApi_RequiresExplicitMacroEnabledStreamOutput() {
             byte[] project = CreateVbaTestProject("StreamModule",
                 "Sub StreamMacro()\nEnd Sub");
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.AddSlide().AddTitle("Macro stream output");
             presentation.SetVbaProject(project);
 
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
             AssertEncryptedMacroFreeBytes(safeEncryptedStream.ToArray(),
                 "macro-safe-pass");
 
-            using PowerPointPresentation pptx = PowerPointPresentation.Load(
+            using PowerPointDocument pptx = PowerPointDocument.Load(
                 new MemoryStream(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptx })));
             Assert.False(pptx.HasVbaProject);
             Assert.Equal(PresentationDocumentType.Presentation,
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
             byte[] missingModule = CreateVbaTestProject(
                 "MissingModule", "Sub Main(): End Sub",
                 omitModuleStream: true);
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
 
             InvalidDataException headerError = Assert.Throws<InvalidDataException>(() =>
                 presentation.SetVbaProject(badHeader));
@@ -164,8 +164,8 @@ namespace OfficeIMO.Tests {
                 "Sub Main(): End Sub", moduleCount: 32);
             byte[] excessive = CreateVbaTestProject("RepeatedModule",
                 "Sub Main(): End Sub", moduleCount: 1025);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
 
             presentation.SetVbaProject(bounded);
             Assert.Equal(bounded, presentation.GetVbaProjectBytes());
@@ -178,8 +178,8 @@ namespace OfficeIMO.Tests {
         public void FeatureReport_PreservesVbaProjectsWithRelatedParts() {
             byte[] project = CreateVbaTestProject("RelatedPartModule",
                 "Sub Main(): End Sub");
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.AddSlide().AddTitle("Related VBA parts");
             presentation.SetVbaProject(project);
             VbaDataPart dataPart = presentation.OpenXmlDocument
@@ -202,7 +202,7 @@ namespace OfficeIMO.Tests {
 
         private static void AssertMacroEnabledBytes(byte[] bytes,
             byte[] expectedProject) {
-            using PowerPointPresentation loaded = PowerPointPresentation.Load(
+            using PowerPointDocument loaded = PowerPointDocument.Load(
                 new MemoryStream(bytes));
             Assert.Equal(PresentationDocumentType.MacroEnabledPresentation,
                 loaded.OpenXmlDocument.DocumentType);
@@ -212,8 +212,8 @@ namespace OfficeIMO.Tests {
 
         private static void AssertEncryptedMacroEnabledBytes(byte[] bytes,
             string password, byte[] expectedProject) {
-            using PowerPointPresentation loaded =
-                PowerPointPresentation.LoadEncrypted(
+            using PowerPointDocument loaded =
+                PowerPointDocument.LoadEncrypted(
                     new MemoryStream(bytes), password);
             Assert.Equal(PresentationDocumentType.MacroEnabledPresentation,
                 loaded.OpenXmlDocument.DocumentType);
@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertMacroFreeBytes(byte[] bytes) {
-            using PowerPointPresentation loaded = PowerPointPresentation.Load(
+            using PowerPointDocument loaded = PowerPointDocument.Load(
                 new MemoryStream(bytes));
             Assert.Equal(PresentationDocumentType.Presentation,
                 loaded.OpenXmlDocument.DocumentType);
@@ -232,8 +232,8 @@ namespace OfficeIMO.Tests {
 
         private static void AssertEncryptedMacroFreeBytes(byte[] bytes,
             string password) {
-            using PowerPointPresentation loaded =
-                PowerPointPresentation.LoadEncrypted(
+            using PowerPointDocument loaded =
+                PowerPointDocument.LoadEncrypted(
                     new MemoryStream(bytes), password);
             Assert.Equal(PresentationDocumentType.Presentation,
                 loaded.OpenXmlDocument.DocumentType);

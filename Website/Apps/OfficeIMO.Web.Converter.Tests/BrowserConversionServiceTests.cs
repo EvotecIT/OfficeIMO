@@ -321,7 +321,7 @@ public sealed class BrowserConversionServiceTests {
     [Fact]
     public void ExcelBrowserReadPlan_AutomaticallyBoundsSparseWorksheetBeyondBrowserCellBudget() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "First");
         sheet.CellValue(300, 200, "Last");
 
@@ -336,7 +336,7 @@ public sealed class BrowserConversionServiceTests {
     [Fact]
     public void ExcelBrowserReadPlan_LeavesNormalWorksheetUnboundedUnlessPreviewIsRequested() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Name");
         sheet.CellValue(2, 2, "Value");
 
@@ -646,7 +646,7 @@ public sealed class BrowserConversionServiceTests {
     [Fact]
     public void ExcelConversion_UsesThePortableTaggedPdfProfile() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Delivery");
+        var sheet = workbook.AddSheet("Delivery");
         sheet.CellAt(1, 1).SetValue("Workstream").SetFontName("Calibri Light");
         sheet.CellValue(1, 2, "Status");
         sheet.CellValue(2, 1, "Platform");
@@ -730,8 +730,8 @@ public sealed class BrowserConversionServiceTests {
 
     [Fact]
     public void PowerPointConversion_UsesThePortableTaggedPdfProfile() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Delivery readiness", 36, 36, 320, 64);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("Delivery readiness", OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(320), OfficeIMO.OfficeLength.Points(64));
         textBox.FontName = "Calibri";
         byte[] bytes = presentation.ToBytes();
         var document = new SelectedDocument("readiness.pptx", ".pptx", "PPTX", bytes.LongLength, bytes);
@@ -761,7 +761,7 @@ public sealed class BrowserConversionServiceTests {
     public void PowerPointSample_ProvesVisibleMultiFeaturePdfOutput() {
         string samplePath = Path.Combine(AppContext.BaseDirectory, "samples", "conversion-proof.pptx");
         byte[] bytes = File.ReadAllBytes(samplePath);
-        using (PowerPointPresentation presentation = PowerPointPresentation.Load(new MemoryStream(bytes))) {
+        using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(bytes))) {
             Assert.Equal(2, presentation.Slides.Count);
             Assert.Contains(presentation.Slides, slide => slide.Shapes.OfType<PowerPointTable>().Any());
             Assert.Contains(presentation.Slides, slide => slide.Shapes.OfType<PowerPointChart>().Any());

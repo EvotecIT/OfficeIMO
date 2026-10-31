@@ -14,8 +14,8 @@ public partial class PdfDocumentComplianceAssessmentTests {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
-            .Header(header => header.Image(CreateMinimalRgbPng(), 24, 12, alternativeText: "Header logo"))
-            .Footer(footer => footer.Image(CreateMinimalRgbPng(), 24, 12, alternativeText: "Footer logo"))
+            .Header(header => header.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), alternativeText: "Header logo"))
+            .Footer(footer => footer.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), alternativeText: "Footer logo"))
             .Paragraph(paragraph => paragraph.Text("Header and footer image marked content."))
             .ToBytes();
 
@@ -47,8 +47,8 @@ public partial class PdfDocumentComplianceAssessmentTests {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
-            .Header(header => header.Image(CreateMinimalRgbPng(), 24, 12))
-            .Footer(footer => footer.Image(CreateMinimalRgbPng(), 24, 12))
+            .Header(header => header.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12)))
+            .Footer(footer => footer.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12)))
             .Paragraph(paragraph => paragraph.Text("Header and footer decorative images."))
             .ToBytes();
 
@@ -64,7 +64,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
-            .Background(PdfColor.White)
+            .Background(global::OfficeIMO.OfficeColor.White)
             .BackgroundImage(CreateMinimalRgbPng(), OfficeIMO.Drawing.OfficeImageFit.Stretch, opacity: 0.2)
             .ImageWatermark(CreateMinimalRgbPng(), 80, 40, opacity: 0.2)
             .Watermark("DRAFT", fontSize: 48, opacity: 0.18)
@@ -88,11 +88,11 @@ public partial class PdfDocumentComplianceAssessmentTests {
             })
             .TaggedPdfCatalogMarkers()
             .Header(header => {
-                if (contentStory) header.Content(content => content.Paragraph(paragraph => paragraph.Text("Running header")), 24D);
+                if (contentStory) header.Content(content => content.Paragraph(paragraph => paragraph.Text("Running header")), global::OfficeIMO.OfficeLength.Points(24D));
                 else header.Text("Running header");
             })
             .Footer(footer => {
-                if (contentStory) footer.Content(content => content.Paragraph(paragraph => paragraph.Text("Running footer")), 24D);
+                if (contentStory) footer.Content(content => content.Paragraph(paragraph => paragraph.Text("Running footer")), global::OfficeIMO.OfficeLength.Points(24D));
                 else footer.Text("Page {page} of {pages}");
             })
             .Paragraph(paragraph => paragraph.Text("Body text remains structured."))
@@ -129,12 +129,12 @@ public partial class PdfDocumentComplianceAssessmentTests {
             })
             .TaggedPdfCatalogMarkers()
             .Paragraph(paragraph => paragraph.Text("Before top-level rule."))
-            .HR(thickness: 1.2, color: PdfColor.FromRgb(148, 163, 184), spacingBefore: 2, spacingAfter: 2)
+            .HR(thickness: 1.2, color: global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184), spacingBefore: 2, spacingAfter: 2)
             .Paragraph(paragraph => paragraph.Text("After top-level rule."))
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row
                 .PercentColumn(100, column => column
                     .Paragraph(paragraph => paragraph.Text("Before row rule."))
-                    .HR(thickness: 0.8, color: PdfColor.FromRgb(203, 213, 225), spacingBefore: 2, spacingAfter: 2)
+                    .HR(thickness: global::OfficeIMO.OfficeLength.Points(0.8), color: global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), spacingBefore: global::OfficeIMO.OfficeLength.Points(2), spacingAfter: global::OfficeIMO.OfficeLength.Points(2))
                     .Paragraph(paragraph => paragraph.Text("After row rule.")))))))
             .ToBytes();
 
@@ -148,27 +148,27 @@ public partial class PdfDocumentComplianceAssessmentTests {
     [Fact]
     public void TaggedDecorativeLayoutChromeEmitsArtifactMarkedContent() {
         var panelStyle = new PdfPanelStyle {
-            Background = PdfColor.FromRgb(248, 250, 252),
-            BorderColor = PdfColor.FromRgb(37, 99, 235),
-            BorderWidth = 0.8,
-            PaddingX = 10,
-            PaddingY = 8
+            Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.8),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(10),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(8)
         };
         PdfTableStyle tableStyle = PdfTableStyles.Minimal();
         tableStyle.HeaderRowCount = 1;
-        tableStyle.HeaderFill = PdfColor.FromRgb(229, 231, 235);
-        tableStyle.RowStripeFill = PdfColor.FromRgb(248, 250, 252);
-        tableStyle.BorderColor = PdfColor.FromRgb(148, 163, 184);
-        tableStyle.BorderWidth = 0.7;
-        tableStyle.RowSeparatorColor = PdfColor.FromRgb(203, 213, 225);
-        tableStyle.RowSeparatorWidth = 0.5;
-        tableStyle.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(1, 1)] = PdfColor.FromRgb(220, 252, 231)
+        tableStyle.HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(229, 231, 235);
+        tableStyle.RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252);
+        tableStyle.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184);
+        tableStyle.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.7);
+        tableStyle.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225);
+        tableStyle.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.5);
+        tableStyle.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(1, 1)] = global::OfficeIMO.OfficeColor.FromRgb(220, 252, 231)
         };
         tableStyle.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(1, 1)] = new PdfCellBorder {
-                Color = PdfColor.FromRgb(22, 163, 74),
-                Width = 0.8
+                Color = global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74),
+                Width = global::OfficeIMO.OfficeLength.Points(0.8)
             }
         };
 
@@ -273,7 +273,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .AddImage(PdfPngTestImages.CreateRgbPng(1, 1), "image/png", projection, "Nested image alternative text");
         PdfDocument[] documents = {
             PdfDocument.Create().Drawing(drawing),
-            PdfDocument.Create().Canvas(canvas => canvas.Drawing(drawing, 10D, 10D, 24D, 12D))
+            PdfDocument.Create().Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(12D)))
         };
 
         foreach (PdfDocument document in documents) {

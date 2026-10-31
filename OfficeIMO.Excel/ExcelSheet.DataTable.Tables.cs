@@ -102,12 +102,10 @@ namespace OfficeIMO.Excel {
                 return string.Empty;
             }
 
-            string[]? headerNames = null;
-            if (includeHeaders) {
-                headerNames = new string[columnCount];
-                for (int i = 0; i < headerNames.Length; i++) {
-                    headerNames[i] = source.GetColumnName(i);
-                }
+            // Native table columns remain named when their worksheet header row is hidden.
+            var headerNames = new string[columnCount];
+            for (int i = 0; i < headerNames.Length; i++) {
+                headerNames[i] = source.GetColumnName(i);
             }
 
             AddTableAndGetName(
@@ -128,7 +126,7 @@ namespace OfficeIMO.Excel {
         /// Inserts a DataTable and immediately creates an Excel Table over the written range.
         /// Returns the A1-style range of the created table.
         /// </summary>
-        public string InsertDataTableAsTable(
+        internal string InsertDataTableAsTable(
             DataTable table,
             int startRow = 1,
             int startColumn = 1,

@@ -17,16 +17,16 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(sourcePath);
         WordParagraph paragraph = document.AddParagraph(leadingText ? "BeforeDrawable" : string.Empty);
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddImage(image, "inline.png", 16, 32);
+        paragraph.AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));
         W.Run sourceRun = paragraph._run!;
         W.Run drawableRun;
         if (kind == "chart") {
-            WordChart chart = document.AddChart("MixedRunChart", false, 240, 160);
+            WordChart chart = document.AddChart("MixedRunChart",false,OfficeIMO.OfficeLength.Pixels(240),OfficeIMO.OfficeLength.Pixels(160));
             chart.AddPie("One", 3);
             chart.AddPie("Two", 4);
             drawableRun = chart.Drawing!.Ancestors<W.Run>().Single();
         } else {
-            WordShape shape = document.AddShape(WordShapeType.Rectangle, 36, 18, "#CCB399", "#1A334D", 2.5);
+            WordShape shape = document.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(18), OfficeIMO.OfficeColor.Parse("#CCB399"), OfficeIMO.OfficeColor.Parse("#1A334D"), OfficeIMO.OfficeLength.Points(2.5));
             drawableRun = shape._run;
         }
         W.Paragraph drawableParagraph = drawableRun.Ancestors<W.Paragraph>().Single();

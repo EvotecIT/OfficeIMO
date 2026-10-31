@@ -155,16 +155,16 @@ public partial class Html {
         Assert.NotEmpty(wordDocument.Paragraphs);
 
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorksheet("Data").CellValue(1, 1, "value");
+        workbook.AddSheet("Data").CellValue(1, 1, "value");
         HtmlConversionDocument excelHtml = HtmlConversionDocument.Parse(workbook.ToHtml());
         using ExcelDocument importedWorkbook = excelHtml.ToExcelDocumentResult().RequireValue();
         Assert.Single(importedWorkbook.Sheets);
 
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.AddSlide().AddTextBoxPoints("Hello", 20, 20, 200, 40);
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.AddSlide().AddTextBox("Hello",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         HtmlConversionDocument powerPointHtml = HtmlConversionDocument.Parse(presentation.ToHtml());
-        using PowerPointPresentation importedPresentation = powerPointHtml
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument importedPresentation = powerPointHtml
+            .ToPowerPointDocumentResult()
             .RequireValue();
         Assert.Single(importedPresentation.Slides);
 
@@ -193,7 +193,7 @@ public partial class Html {
                 typeof(HtmlExcelConverterExtensions), "ToExcelDocument", "ToExcelDocumentResult",
                 typeof(ExcelHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
             [HtmlConversionTarget.PowerPoint] = new(
-                typeof(HtmlPowerPointConverterExtensions), "ToPowerPointPresentation", "ToPowerPointPresentationResult",
+                typeof(HtmlPowerPointConverterExtensions), "ToPowerPointDocument", "ToPowerPointDocumentResult",
                 typeof(PowerPointHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
             [HtmlConversionTarget.OneNote] = new(
                 typeof(HtmlOneNoteConverterExtensions), "ToOneNoteSection", "ToOneNoteSectionResult",

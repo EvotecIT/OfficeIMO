@@ -20,7 +20,7 @@ public partial class PdfPageFootnoteTests {
             .Text("NoteLead", style: NoteLineStyle(20))
             .Text("KeptHeading", style: inherited ? null : kept)
             .Text(string.Join("\n", Enumerable.Range(0, 6).Select(index => $"Terminal{index:D2}")), style: NoteLineStyle(20)));
-        document.Content.Spacer(50).Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Content.Spacer(global::OfficeIMO.OfficeLength.Points(50)).Paragraph(paragraph => paragraph.Runs(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
 
@@ -42,18 +42,18 @@ public partial class PdfPageFootnoteTests {
     public void DecoratedNoteFragmentsReserveTheirActualPaddingAndPreserveTheCapturedStyle(
         bool repeat, double inset, int pages, int markerPage) {
         PdfCreateOptions options = Options();
-        options.PageHeight = 200;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(200);
         var panelStyle = new PdfPanelStyle {
-            Background = PdfColor.FromRgb(255, 255, 0), BorderColor = PdfColor.Black,
-            PaddingX = 6, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0,
-            RepeatFragmentDecoration = repeat, FragmentBottomInset = inset
+            Background = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0), BorderColor = global::OfficeIMO.OfficeColor.Black,
+            PaddingX = global::OfficeIMO.OfficeLength.Points(6), PaddingY = global::OfficeIMO.OfficeLength.Points(4), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
+            RepeatFragmentDecoration = repeat, FragmentBottomInset = global::OfficeIMO.OfficeLength.Points(inset)
         };
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => body.Panel(panel => panel.Text(
             string.Join("\n", Enumerable.Range(1, 22).Select(index => $"PanelLine{index:D2}")),
             style: NoteLineStyle(20)), panelStyle), new PdfFootnoteOptions { Placement = PdfFootnotePlacement.BeneathText });
-        panelStyle.PaddingX = 50;
-        panelStyle.PaddingY = 50;
+        panelStyle.PaddingX = global::OfficeIMO.OfficeLength.Points(50);
+        panelStyle.PaddingY = global::OfficeIMO.OfficeLength.Points(50);
         panelStyle.Background = null;
         document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
@@ -89,9 +89,9 @@ public partial class PdfPageFootnoteTests {
             PdfListItem.Rich(new[] { PdfTextRun.Bolded(string.Join("\n", Enumerable.Range(0, 12).Select(index => $"ListLine{index:D2}"))) }),
             PdfListItem.Plain("SecondItem"), PdfListItem.Plain("ThirdItem")
         }, style: new PdfListStyle {
-            FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(10), LeftIndent = 4,
-            MarkerWidth = 12, MarkerGap = 3, ItemSpacing = 0, SpacingBefore = 0, SpacingAfter = 0
-        }), new PdfPanelStyle { PaddingX = 6, PaddingY = 0, BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0 }));
+            FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), LeftIndent = global::OfficeIMO.OfficeLength.Points(4),
+            MarkerWidth = global::OfficeIMO.OfficeLength.Points(12), MarkerGap = global::OfficeIMO.OfficeLength.Points(3), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
+        }), new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(6), PaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }));
         document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
@@ -130,8 +130,8 @@ public partial class PdfPageFootnoteTests {
     [InlineData("Rule", true)]
     public void NonTextNoteKeepsRetainTheirFollowingParagraph(string kind, bool inherited) {
         PdfCreateOptions options = Options();
-        var imageStyle = new PdfImageStyle { KeepWithNext = true, SpacingBefore = 0, SpacingAfter = 0 };
-        var ruleStyle = new PdfHorizontalRuleStyle { KeepWithNext = true, Thickness = 20, SpacingBefore = 0, SpacingAfter = 0 };
+        var imageStyle = new PdfImageStyle { KeepWithNext = true, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
+        var ruleStyle = new PdfHorizontalRuleStyle { KeepWithNext = true, Thickness = global::OfficeIMO.OfficeLength.Points(20), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         if (inherited) {
             if (kind == "Image") options.DefaultImageStyle = imageStyle;
             else options.DefaultHorizontalRuleStyle = ruleStyle;
@@ -139,11 +139,11 @@ public partial class PdfPageFootnoteTests {
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
             body.Text("NoteLead", style: NoteLineStyle(20));
-            if (kind == "Image") body.Image(PdfPngTestImages.Create16BitRgbPng(), 4, 20, style: inherited ? null : imageStyle);
+            if (kind == "Image") body.Image(PdfPngTestImages.Create16BitRgbPng(), global::OfficeIMO.OfficeLength.Points(4), global::OfficeIMO.OfficeLength.Points(20), style: inherited ? null : imageStyle);
             else body.HR(style: inherited ? null : ruleStyle);
             body.Text("KeptCaption", style: NoteLineStyle(20));
         });
-        document.Content.Spacer(50).Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Content.Spacer(global::OfficeIMO.OfficeLength.Points(50)).Paragraph(paragraph => paragraph.Runs(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
 
@@ -178,7 +178,7 @@ public partial class PdfPageFootnoteTests {
         var note = document.Content.DefineFootnote(body => body.Panel(panel => panel.Text(
             "SpacingLine00\nSpacingLine01\nSpacingLine02\nSpacingLine03", style: NoteLineStyle(20)),
             new PdfPanelStyle {
-                PaddingX = 0, PaddingY = 0, BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 30,
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(30),
                 ClipSpacingAfterAtFrameEnd = clip
             }));
         document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
@@ -194,7 +194,7 @@ public partial class PdfPageFootnoteTests {
     }
 
     private static PdfParagraphStyle NoteLineStyle(double leading) => new() {
-        FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(leading), WidowControl = false,
-        SpacingBefore = 0, SpacingAfter = 0
+        FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(leading)), WidowControl = false,
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
     };
 }

@@ -5,6 +5,8 @@ public sealed partial class PdfCreateOptions {
     /// <remarks>Never expose this view for general editing or serialization. It must not mutate borrowed attachments, styles, or font definitions.</remarks>
     internal PdfCreateOptions CreateTextMeasurementSnapshot() {
         var view = (PdfCreateOptions)MemberwiseClone();
+        view._themeDefaults = null;
+        view._themeDeferredTableStyle = null;
         // Font definitions and their immutable owned bytes can be borrowed. Dictionary
         // membership must be private because automatic fallback may register a family.
         view._embeddedFonts = _embeddedFonts == null ? null : new Dictionary<PdfStandardFont, PdfEmbeddedFont>(_embeddedFonts);

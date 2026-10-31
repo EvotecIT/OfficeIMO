@@ -12,7 +12,7 @@ public sealed class ExcelConditionalAverageErrorTests {
     [InlineData("AVERAGEIFS(B1:B2,A1:A2,D1)", true)]
     public void Empty_conditional_averages_return_typed_errors_and_recalculate_after_edits(string formula, bool noNumbers) {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Conditional averages");
+        var sheet = document.AddSheet("Conditional averages");
         sheet.CellValue(1, 1, "EU"); sheet.CellValue(2, 1, "US");
         if (noNumbers) sheet.CellValue(1, 2, "text");
         else sheet.CellValue(1, 2, 10d);

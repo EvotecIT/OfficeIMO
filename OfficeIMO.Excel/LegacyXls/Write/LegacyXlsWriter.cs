@@ -634,7 +634,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 columns.Add(new LegacyXlsColumnLayout(
                     checked((ushort)(column.StartIndex - 1)),
                     checked((ushort)(column.EndIndex - 1)),
-                    column.Width,
+                    column.StoredWidth,
                     column.Hidden,
                     styleIndex,
                     column.OutlineLevel ?? 0,
@@ -654,7 +654,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ushort styleIndex = styleTable.GetBiffStyleIndex(row.StyleIndex);
                 rows.Add(new LegacyXlsRowLayout(
                     checked((ushort)(row.Index - 1)),
-                    row.Height,
+                    row.StoredHeight,
                     row.Hidden,
                     row.CustomHeight,
                     row.CustomFormat,
@@ -691,8 +691,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsWorksheetProtection protection = ExtractWorksheetProtection(sheet);
 
             return new LegacyXlsWorksheetLayout(
-                NormalizeDefaultColumnWidth(sheet.DefaultColumnWidth),
-                sheet.DefaultRowHeight,
+                NormalizeDefaultColumnWidth(sheet.DefaultColumnWidth?.ToCharacters(sheet)),
+                sheet.DefaultRowHeight?.ToLength(sheet).ToPoints(),
                 sheet.DefaultRowsHidden,
                 columns,
                 rows,
@@ -1454,12 +1454,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             return new LegacyXlsWorksheetPageSetup(
                 pageSetup.Orientation,
-                pageSetup.Margins?.Left,
-                pageSetup.Margins?.Right,
-                pageSetup.Margins?.Top,
-                pageSetup.Margins?.Bottom,
-                pageSetup.Margins?.Header,
-                pageSetup.Margins?.Footer,
+                pageSetup.Margins?.Left.ToInches(),
+                pageSetup.Margins?.Right.ToInches(),
+                pageSetup.Margins?.Top.ToInches(),
+                pageSetup.Margins?.Bottom.ToInches(),
+                pageSetup.Margins?.Header.ToInches(),
+                pageSetup.Margins?.Footer.ToInches(),
                 // Rendering uses effective dimensions; serialization also retains
                 // cached dimensions while manual scaling is active.
                 storedPageSetup?.FitToWidth?.Value ?? pageSetup.FitToWidth,

@@ -17,10 +17,10 @@ public partial class PdfDocumentVisualQualityTests {
     public void WavyUnderlineRejectsExcessiveSegmentsFromNegativeTrackingAndJustification() {
         PdfDocument document = PdfDocument.Create()
             .Paragraph(paragraph => paragraph
-                .CharacterSpacing(-100_000)
+                .CharacterSpacing(OfficeLength.Points(-100_000))
                 .Underline(OfficeTextDecorationStyle.Wavy)
                 .Text("A A")
-                .CharacterSpacing(0)
+                .CharacterSpacing(OfficeLength.Points(0))
                 .Underline(false)
                 .Text(new string('B', 120)), PdfAlign.Justify);
 
@@ -29,10 +29,13 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RichParagraph_ResetColor_ReturnsToDefaultTextColor() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                // ResetColor must restore the configured document color after the red run.
+                DefaultTextColor = global::OfficeIMO.OfficeColor.Black
+            })
             .Paragraph(p => p
                 .Text("Before ")
-                .Color(new PdfColor(1, 0, 0))
+                .Color(global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0, 0))
                 .Text("Red")
                 .ResetColor()
                 .Text("After"))
@@ -57,11 +60,11 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RichParagraph_FontSize_AppliesOnlyToScopedRuns() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                DefaultFontSize = 11
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11)
             })
             .Paragraph(p => p
                 .Text("Small")
-                .FontSize(18)
+                .FontSize(global::OfficeIMO.OfficeLength.Points(18))
                 .Text("Large")
                 .ResetFontSize()
                 .Text("Normal"))
@@ -90,7 +93,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .Paragraph(p => p
                 .Text("Before ")
-                .BackgroundColor(PdfColor.FromRgb(255, 255, 0))
+                .BackgroundColor(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0))
                 .Text("Marked")
                 .ResetBackgroundColor()
                 .Text("After"))
@@ -116,7 +119,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .Paragraph(p => p
                 .Text("Before ")
-                .BackgroundColor(PdfColor.FromRgb(255, 255, 0))
+                .BackgroundColor(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0))
                 .Text("Marked Words")
                 .ResetBackgroundColor()
                 .Text(" After"))
@@ -138,19 +141,19 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RichTextCell_RendersScopedRunStyles() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                DefaultFontSize = 11
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11)
             })
             .Table(new[] {
                 new[] {
                     PdfTableCell.RichTextCell(new[] {
                         PdfTextRun.Normal("Plain "),
-                        new PdfTextRun("CellRed", color: PdfColor.FromRgb(255, 0, 0)),
+                        new PdfTextRun("CellRed", color: global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0)),
                         PdfTextRun.Normal(" "),
                         PdfTextRun.Bolded("CellBold"),
                         PdfTextRun.Normal(" "),
-                        PdfTextRun.Normal("CellMarked", backgroundColor: PdfColor.FromRgb(255, 255, 0)),
+                        PdfTextRun.Normal("CellMarked", backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0)),
                         PdfTextRun.Normal(" "),
-                        PdfTextRun.Normal("CellLarge", fontSize: 18)
+                        PdfTextRun.Normal("CellLarge", fontSize: global::OfficeIMO.OfficeLength.Points(18))
                     })
                 }
             }, style: new PdfTableStyle {
@@ -214,7 +217,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RichText_RendersSuperscriptAndSubscriptWithTextRise() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                DefaultFontSize = 14
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(14)
             })
             .Paragraph(p => p
                 .Text("Base")
@@ -257,11 +260,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var paragraphStyle = new PdfParagraphStyle {
             LineHeight = 1.6,
-            LeftIndent = 4,
-            RightIndent = 5,
-            FirstLineIndent = 3,
-            SpacingBefore = 6,
-            SpacingAfter = 7,
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(4),
+            RightIndent = global::OfficeIMO.OfficeLength.Points(5),
+            FirstLineIndent = global::OfficeIMO.OfficeLength.Points(3),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(6),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(7),
             KeepTogether = true,
             KeepWithNext = true,
             WidowControl = true
@@ -272,11 +275,11 @@ public partial class PdfDocumentVisualQualityTests {
         runs[0] = PdfTextRun.Normal("Mutated alpha");
         runs.Add(PdfTextRun.Normal("Late gamma"));
         paragraphStyle.LineHeight = 2.2;
-        paragraphStyle.LeftIndent = 20;
-        paragraphStyle.RightIndent = 21;
-        paragraphStyle.FirstLineIndent = 22;
-        paragraphStyle.SpacingBefore = 22;
-        paragraphStyle.SpacingAfter = 23;
+        paragraphStyle.LeftIndent = global::OfficeIMO.OfficeLength.Points(20);
+        paragraphStyle.RightIndent = global::OfficeIMO.OfficeLength.Points(21);
+        paragraphStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(22);
+        paragraphStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(22);
+        paragraphStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(23);
         paragraphStyle.KeepTogether = false;
         paragraphStyle.KeepWithNext = false;
         paragraphStyle.WidowControl = false;
@@ -284,11 +287,11 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(new[] { "Stable alpha", "Stable beta" }, paragraph.Runs.Select(run => run.Text).ToArray());
         Assert.False(paragraph.Runs is List<PdfTextRun>);
         Assert.Equal(1.6, paragraph.Style!.LineHeight);
-        Assert.Equal(4, paragraph.Style.LeftIndent);
-        Assert.Equal(5, paragraph.Style.RightIndent);
-        Assert.Equal(3, paragraph.Style.FirstLineIndent);
-        Assert.Equal(6, paragraph.Style.SpacingBefore);
-        Assert.Equal(7, paragraph.Style.SpacingAfter);
+        Assert.Equal(4, paragraph.Style.LeftIndent.ToPoints());
+        Assert.Equal(5, paragraph.Style.RightIndent.ToPoints());
+        Assert.Equal(3, paragraph.Style.FirstLineIndent.ToPoints());
+        Assert.Equal(6, paragraph.Style.SpacingBefore.ToPoints());
+        Assert.Equal(7, (paragraph.Style.SpacingAfter?.ToPoints()));
         Assert.True(paragraph.Style.KeepTogether);
         Assert.True(paragraph.Style.KeepWithNext);
         Assert.True(paragraph.Style.WidowControl);

@@ -10,9 +10,11 @@ using X = DocumentFormat.OpenXml.Spreadsheet;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 
-namespace OfficeIMO.Tests {
+namespace OfficeIMO.Tests
+{
     [Trait("Category", "ExcelImageVisualGate")]
-    public partial class ExcelImageExportVisualBaselineTests {
+    public partial class ExcelImageExportVisualBaselineTests
+    {
         private const string BaselineName = "officeimo-excel-image-premium-range";
         private const string ConditionalBaselineName = "officeimo-excel-image-conditional-formatting";
         private const string ExpandedIconSetBaselineName = "officeimo-excel-image-expanded-icon-sets";
@@ -813,14 +815,14 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreatePremiumBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelImageBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Premium");
+            ExcelSheet sheet = document.AddSheet("Premium");
 
             sheet.CellValue(1, 1, "Operations Snapshot");
             sheet.Range("A1:H1").Merge();
             sheet.Range("A1:H1").SetFillColor("1F4E79").SetFontColor("FFFFFF").SetBold();
             sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
             sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
-            sheet.SetRowHeight(1, 26);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
 
             sheet.CellValue(2, 1, "Region");
             sheet.CellValue(2, 2, "Score");
@@ -834,7 +836,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 3, "Ready");
             sheet.CellAt(3, 3).Success();
             sheet.CellValue(3, 4, "Wrapped cell text stays centered and readable");
-            sheet.WrapCells(3, 3, 4);
+            sheet.WrapCells(3,3,4);
             sheet.CellVerticalAlign(3, 4, ExcelVerticalAlignment.Center);
             sheet.CellAlign(3, 4, ExcelHorizontalAlignment.Center);
 
@@ -845,7 +847,7 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(4, 3).Warning();
             sheet.CellValue(4, 4, "Narrative stays bounded beside the chart");
             sheet.CellAt(4, 4).MutedText();
-            sheet.WrapCells(4, 4, 4);
+            sheet.WrapCells(4,4,4);
             sheet.CellVerticalAlign(4, 4, ExcelVerticalAlignment.Center);
 
             sheet.CellValue(5, 1, "South");
@@ -857,8 +859,8 @@ namespace OfficeIMO.Tests {
             sheet.CellVerticalAlign(5, 4, ExcelVerticalAlignment.Bottom);
             sheet.CellAlign(5, 4, ExcelHorizontalAlignment.Right);
             sheet.CellAt(6, 4).SetRichText(
-                new ExcelRichTextRun("Rich") { Bold = true, FontColor = "0F766E", FontSize = 13D },
-                new ExcelRichTextRun(" text") { Italic = true, Underline = true, FontColor = "7C3AED", FontSize = 12D });
+                new ExcelRichTextRun("Rich") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(13D) },
+                new ExcelRichTextRun(" text") { Italic = true, Underline = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
             sheet.CellAt(6, 4).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
             sheet.CellAt(6, 4).SetFillColor("F8FAFC");
             sheet.CellValue(7, 4, "Review note");
@@ -869,19 +871,19 @@ namespace OfficeIMO.Tests {
             sheet.CellVerticalAlign(7, 4, ExcelVerticalAlignment.Center);
             sheet.SetComment("D7", "Ready for leadership review", "Reviewer");
 
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 10);
-            sheet.SetColumnWidth(3, 12);
-            sheet.SetColumnWidth(4, 18);
-            sheet.SetColumnWidth(5, 4);
-            sheet.SetColumnWidth(6, 16);
-            sheet.SetColumnWidth(7, 16);
-            sheet.SetColumnWidth(8, 16);
-            sheet.SetRowHeight(3, 54);
-            sheet.SetRowHeight(4, 36);
-            sheet.SetRowHeight(5, 40);
-            sheet.SetRowHeight(6, 32);
-            sheet.SetRowHeight(7, 32);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(10));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(18));
+            sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(4));
+            sheet.SetColumnWidth(6, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(7, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(8, ExcelColumnWidth.Characters(16));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(54)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(40)));
+            sheet.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
+            sheet.SetRowHeight(7, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
 
             for (int row = 2; row <= 5; row++) {
                 for (int column = 1; column <= 4; column++) {
@@ -889,15 +891,20 @@ namespace OfficeIMO.Tests {
                 }
             }
 
-            sheet.AddImage(6, 2, CreateMarkerPng(), "image/png", widthPixels: 36, heightPixels: 22, name: "QualityMarker");
-            sheet.AddChartFromRange("A2:B5", row: 2, column: 6, widthPixels: 230, heightPixels: 135, type: ExcelChartType.ColumnClustered, title: "Revenue Trend");
+            sheet.AddImage(6, 2, CreateMarkerPng(), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(36),
+                Height = OfficeIMO.OfficeLength.Pixels(22),
+                Name = "QualityMarker"
+            });
+            sheet.AddChart(OfficeChartType.ColumnClustered, "A2:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(230), Height = OfficeLength.Pixels(135), Title = "Revenue Trend" });
             return new ExcelBaselineFixture(document, sheet);
         }
 
         private static ExcelBaselineFixture CreateCommentBodyBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelCommentBodyBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("CommentBodies");
+            ExcelSheet sheet = document.AddSheet("CommentBodies");
 
             sheet.CellValue(1, 1, "Comment Body Fidelity");
             sheet.Range("A1:G1").Merge();
@@ -928,16 +935,16 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(5, 2).Error();
             sheet.CellValue(5, 3, "Owner");
 
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 13);
-            sheet.SetColumnWidth(3, 16);
-            sheet.SetColumnWidth(4, 10);
-            sheet.SetColumnWidth(5, 18);
-            sheet.SetColumnWidth(6, 18);
-            sheet.SetColumnWidth(7, 18);
-            sheet.SetRowHeight(1, 28);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(13));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(10));
+            sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(18));
+            sheet.SetColumnWidth(6, ExcelColumnWidth.Characters(18));
+            sheet.SetColumnWidth(7, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 2; row <= 7; row++) {
-                sheet.SetRowHeight(row, row == 3 ? 32 : 28);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 3 ? 32 : 28)));
                 for (int column = 1; column <= 7; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
@@ -952,7 +959,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateRichTextBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelRichTextBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("RichText");
+            ExcelSheet sheet = document.AddSheet("RichText");
 
             sheet.CellValue(1, 1, "Rich Text Fidelity");
             sheet.Range("A1:B1").Merge();
@@ -971,50 +978,50 @@ namespace OfficeIMO.Tests {
             }
 
             sheet.CellAt(2, 2).SetRichText(
-                new ExcelRichTextRun("Single") { Bold = true, FontColor = "0F766E", FontSize = 13D },
-                new ExcelRichTextRun(" styled") { Italic = true, FontColor = "7C3AED", FontSize = 12D },
-                new ExcelRichTextRun(" line") { Underline = true, FontColor = "2563EB", FontSize = 12D });
+                new ExcelRichTextRun("Single") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(13D) },
+                new ExcelRichTextRun(" styled") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun(" line") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
             sheet.CellAt(3, 2).SetRichText(
-                new ExcelRichTextRun("Hard") { Bold = true, FontColor = "DC2626", FontSize = 12D },
-                new ExcelRichTextRun("\nbreak") { Italic = true, FontColor = "2563EB", FontSize = 12D });
+                new ExcelRichTextRun("Hard") { Bold = true, FontColor = "DC2626", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("\nbreak") { Italic = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
             sheet.CellAt(4, 2).SetRichText(
-                new ExcelRichTextRun("Wrapped ") { Bold = true, FontColor = "0F766E", FontSize = 12D },
-                new ExcelRichTextRun("rich text keeps") { Italic = true, FontColor = "7C3AED", FontSize = 12D },
-                new ExcelRichTextRun(" runs") { Underline = true, FontColor = "2563EB", FontSize = 12D });
-            sheet.WrapCells(4, 4, 2);
+                new ExcelRichTextRun("Wrapped ") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("rich text keeps") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun(" runs") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
+            sheet.WrapCells(4,4,2);
 
             sheet.CellAt(5, 2)
                 .SetShrinkToFit()
                 .SetRichText(
-                    new ExcelRichTextRun("Shrink") { Bold = true, FontColor = "0F766E", FontSize = 16D },
-                    new ExcelRichTextRun(" to fit") { Italic = true, FontColor = "7C3AED", FontSize = 18D });
+                    new ExcelRichTextRun("Shrink") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(16D) },
+                    new ExcelRichTextRun(" to fit") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(18D) });
 
             sheet.CellAt(6, 2).SetRichText(
-                new ExcelRichTextRun("Rich text stays bounded     hidden overflow") { Bold = true, FontColor = "DC2626", FontSize = 12D });
+                new ExcelRichTextRun("Rich text stays bounded     hidden overflow") { Bold = true, FontColor = "DC2626", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
 
             sheet.CellAt(7, 2)
                 .SetTextRotation(45)
                 .SetRichText(
-                    new ExcelRichTextRun("Tilt") { Bold = true, FontColor = "0F766E", FontSize = 14D },
-                    new ExcelRichTextRun(" rich") { Italic = true, FontColor = "7C3AED", FontSize = 13D },
-                    new ExcelRichTextRun(" text") { Underline = true, FontColor = "2563EB", FontSize = 13D });
+                    new ExcelRichTextRun("Tilt") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(14D) },
+                    new ExcelRichTextRun(" rich") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(13D) },
+                    new ExcelRichTextRun(" text") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(13D) });
 
             sheet.CellAt(8, 2).SetRichText(
-                new ExcelRichTextRun("Large line") { Bold = true, FontColor = "0F766E", FontSize = 18D },
-                new ExcelRichTextRun("\ntiny line stays visible") { Italic = true, FontColor = "7C3AED", FontSize = 8D });
+                new ExcelRichTextRun("Large line") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(18D) },
+                new ExcelRichTextRun("\ntiny line stays visible") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(8D) });
 
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 18);
-            sheet.SetRowHeight(1, 28);
-            sheet.SetRowHeight(2, 28);
-            sheet.SetRowHeight(3, 46);
-            sheet.SetRowHeight(4, 58);
-            sheet.SetRowHeight(5, 28);
-            sheet.SetRowHeight(6, 24);
-            sheet.SetRowHeight(7, 48);
-            sheet.SetRowHeight(8, 36);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(46)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(58)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
+            sheet.SetRowHeight(7, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(48)));
+            sheet.SetRowHeight(8, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
             for (int row = 1; row <= 8; row++) {
                 for (int column = 1; column <= 2; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
@@ -1027,7 +1034,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateStackedTextBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelStackedTextBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("StackedText");
+            ExcelSheet sheet = document.AddSheet("StackedText");
 
             sheet.CellValue(1, 1, "Stacked Text Fidelity");
             sheet.Range("A1:D1").Merge();
@@ -1049,21 +1056,21 @@ namespace OfficeIMO.Tests {
             sheet.Range("A3:A5").SetFillColor("F8FAFC").SetFontColor("334155");
 
             sheet.CellValue(3, 2, "STACK");
-            sheet.CellAt(3, 2).SetTextRotation(255).SetFontColor("0F766E").SetBold().SetFontSize(12);
+            sheet.CellAt(3, 2).SetTextRotation(255).SetFontColor("0F766E").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12));
             sheet.CellAlign(3, 2, ExcelHorizontalAlignment.Center);
             sheet.CellVerticalAlign(3, 2, ExcelVerticalAlignment.Center);
 
             sheet.CellValue(3, 3, "EXPORT");
-            sheet.CellAt(3, 3).SetTextRotation(255).SetFontColor("7C3AED").SetBold().SetShrinkToFit().SetFontSize(14);
+            sheet.CellAt(3, 3).SetTextRotation(255).SetFontColor("7C3AED").SetBold().SetShrinkToFit().SetFontSize(global::OfficeIMO.OfficeLength.Points(14));
             sheet.CellAlign(3, 3, ExcelHorizontalAlignment.Center);
             sheet.CellVerticalAlign(3, 3, ExcelVerticalAlignment.Center);
 
             sheet.CellAt(3, 4).SetTextRotation(255).SetRichText(
-                new ExcelRichTextRun("R") { Bold = true, FontColor = "DC2626", FontSize = 12D },
-                new ExcelRichTextRun("E") { Italic = true, FontColor = "EA580C", FontSize = 12D },
-                new ExcelRichTextRun("A") { Underline = true, FontColor = "2563EB", FontSize = 12D },
-                new ExcelRichTextRun("D") { Bold = true, FontColor = "16A34A", FontSize = 12D },
-                new ExcelRichTextRun("Y") { FontColor = "7C3AED", FontSize = 12D });
+                new ExcelRichTextRun("R") { Bold = true, FontColor = "DC2626", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("E") { Italic = true, FontColor = "EA580C", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("A") { Underline = true, FontColor = "2563EB", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("D") { Bold = true, FontColor = "16A34A", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
+                new ExcelRichTextRun("Y") { FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
             sheet.CellAlign(3, 4, ExcelHorizontalAlignment.Center);
             sheet.CellVerticalAlign(3, 4, ExcelVerticalAlignment.Center);
 
@@ -1078,17 +1085,17 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(5, 3, "No old unsupported diagnostic");
             sheet.CellValue(5, 4, "PNG/SVG baseline gate");
             sheet.Range("B5:D5").SetFontColor("475569");
-            sheet.WrapCells(5, 5, 3);
+            sheet.WrapCells(5,5,3);
 
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetColumnWidth(3, 10);
-            sheet.SetColumnWidth(4, 20);
-            sheet.SetRowHeight(1, 28);
-            sheet.SetRowHeight(2, 26);
-            sheet.SetRowHeight(3, 96);
-            sheet.SetRowHeight(4, 30);
-            sheet.SetRowHeight(5, 42);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(10));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(20));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(96)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
 
             for (int row = 1; row <= 5; row++) {
                 for (int column = 1; column <= 4; column++) {
@@ -1105,7 +1112,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreatePatternFillBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelPatternFillBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Patterns");
+            ExcelSheet sheet = document.AddSheet("Patterns");
 
             sheet.CellValue(1, 1, "Pattern Fill Fidelity");
             sheet.Range("A1:D1").Merge();
@@ -1141,13 +1148,13 @@ namespace OfficeIMO.Tests {
             ApplyPatternFill(sheet, 4, 4, PatternValues.DarkTrellis, "FF70AD47", "FFE2F0D9");
             ApplyPatternFill(sheet, 5, 2, PatternValues.Gray125, "FF70AD47", "FFF8FAFC");
 
-            sheet.SetColumnWidth(1, 13);
-            sheet.SetColumnWidth(2, 15);
-            sheet.SetColumnWidth(3, 15);
-            sheet.SetColumnWidth(4, 15);
-            sheet.SetRowHeight(1, 28);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(13));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(15));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(15));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(15));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 2; row <= 5; row++) {
-                sheet.SetRowHeight(row, 32);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
                 for (int column = 1; column <= 4; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
@@ -1161,14 +1168,14 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateConditionalFormattingBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelConditionalBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Signals");
+            ExcelSheet sheet = document.AddSheet("Signals");
 
             sheet.CellValue(1, 1, "Conditional Signals");
             sheet.Range("A1:G1").Merge();
             sheet.Range("A1:G1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
             sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
             sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
-            sheet.SetRowHeight(1, 26);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
 
             string[] headers = { "Service", "Heat", "Load", "Delta", "State", "Icons", "Rule" };
             for (int column = 1; column <= headers.Length; column++) {
@@ -1194,15 +1201,15 @@ namespace OfficeIMO.Tests {
                 sheet.CellAt(row, 5).SetFillColor(i >= 3 ? "FEE2E2" : "F8FAFC");
             }
 
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 11);
-            sheet.SetColumnWidth(3, 16);
-            sheet.SetColumnWidth(4, 16);
-            sheet.SetColumnWidth(5, 13);
-            sheet.SetColumnWidth(6, 10);
-            sheet.SetColumnWidth(7, 11);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(11));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(13));
+            sheet.SetColumnWidth(6, ExcelColumnWidth.Characters(10));
+            sheet.SetColumnWidth(7, ExcelColumnWidth.Characters(11));
             for (int row = 2; row <= 7; row++) {
-                sheet.SetRowHeight(row, 24);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 for (int column = 1; column <= 7; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
@@ -1233,14 +1240,14 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateExpandedIconSetBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelExpandedIconSetBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("IconSets");
+            ExcelSheet sheet = document.AddSheet("IconSets");
 
             sheet.CellValue(1, 1, "Expanded Icon Sets");
             sheet.Range("A1:G1").Merge();
             sheet.Range("A1:E1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
             sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
             sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
-            sheet.SetRowHeight(1, 26);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
 
             string[] headers = { "Tier", "Five arrows", "Arrow value", "Four traffic", "Traffic value", "Five rating", "Five quarters" };
             for (int column = 1; column <= headers.Length; column++) {
@@ -1262,11 +1269,11 @@ namespace OfficeIMO.Tests {
             }
 
             for (int column = 1; column <= 7; column++) {
-                sheet.SetColumnWidth(column, column == 1 ? 13 : 12);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column == 1 ? 13 : 12));
             }
 
             for (int row = 2; row <= 7; row++) {
-                sheet.SetRowHeight(row, 24);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 for (int column = 1; column <= 7; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
@@ -1281,11 +1288,11 @@ namespace OfficeIMO.Tests {
             return new ExcelBaselineFixture(document, sheet);
         }
 
-        private static ExcelBaselineFixture CreateSparklineBaselineWorkbook() {
+        private static ExcelBaselineFixture CreateSparklineBaselineWorkbook()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelSparklineBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Sparklines");
-
+            ExcelSheet sheet = document.AddSheet("Sparklines");
             sheet.CellValue(1, 1, "Metric");
             sheet.CellValue(1, 2, "Jan");
             sheet.CellValue(1, 3, "Feb");
@@ -1297,7 +1304,6 @@ namespace OfficeIMO.Tests {
             sheet.CellVerticalAlign(1, 3, ExcelVerticalAlignment.Center);
             sheet.CellVerticalAlign(1, 4, ExcelVerticalAlignment.Center);
             sheet.CellVerticalAlign(1, 5, ExcelVerticalAlignment.Center);
-
             sheet.CellValue(2, 1, "Revenue");
             sheet.CellValue(2, 2, 10);
             sheet.CellValue(2, 3, 18);
@@ -1310,39 +1316,41 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(4, 2, 1);
             sheet.CellValue(4, 3, -1);
             sheet.CellValue(4, 4, 1);
-
-            sheet.SetColumnWidth(1, 14);
-            sheet.SetColumnWidth(2, 9);
-            sheet.SetColumnWidth(3, 9);
-            sheet.SetColumnWidth(4, 9);
-            sheet.SetColumnWidth(5, 16);
-            sheet.SetRowHeight(1, 28);
-            sheet.SetRowHeight(2, 30);
-            sheet.SetRowHeight(3, 30);
-            sheet.SetRowHeight(4, 30);
-            for (int row = 1; row <= 4; row++) {
-                for (int column = 1; column <= 5; column++) {
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(9));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(9));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(9));
+            sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(16));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            for (int row = 1; row <= 4; row++)
+            {
+                for (int column = 1; column <= 5; column++)
+                {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "E2E8F0");
                     sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
                 }
             }
 
-            for (int row = 2; row <= 4; row++) {
+            for (int row = 2; row <= 4; row++)
+            {
                 sheet.CellAlign(row, 2, ExcelHorizontalAlignment.Center);
                 sheet.CellAlign(row, 3, ExcelHorizontalAlignment.Center);
                 sheet.CellAlign(row, 4, ExcelHorizontalAlignment.Center);
             }
 
-            sheet.AddSparklines("B2:D2", "E2", displayMarkers: true, displayHighLow: true, displayAxis: true, seriesColor: "#2563EB", markersColor: "#1D4ED8", highColor: "#16A34A", lowColor: "#DC2626", axisColor: "#94A3B8");
-            sheet.AddSparklines("B3:D3", "E3", ExcelSparklineType.Column, displayNegative: true, displayAxis: true, seriesColor: "#16A34A", negativeColor: "#DC2626", axisColor: "#94A3B8");
-            sheet.AddSparklines("B4:D4", "E4", ExcelSparklineType.Stacked, displayNegative: true, displayAxis: true, seriesColor: "#0EA5E9", negativeColor: "#DC2626", axisColor: "#94A3B8");
+            sheet.AddSparklines("B2:D2", "E2", displayMarkers: true, displayHighLow: true, displayAxis: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#2563EB"), markersColor: OfficeIMO.OfficeColor.ParseHex("#1D4ED8"), highColor: OfficeIMO.OfficeColor.ParseHex("#16A34A"), lowColor: OfficeIMO.OfficeColor.ParseHex("#DC2626"), axisColor: OfficeIMO.OfficeColor.ParseHex("#94A3B8"));
+            sheet.AddSparklines("B3:D3", "E3", ExcelSparklineType.Column, displayNegative: true, displayAxis: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#16A34A"), negativeColor: OfficeIMO.OfficeColor.ParseHex("#DC2626"), axisColor: OfficeIMO.OfficeColor.ParseHex("#94A3B8"));
+            sheet.AddSparklines("B4:D4", "E4", ExcelSparklineType.Stacked, displayNegative: true, displayAxis: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#0EA5E9"), negativeColor: OfficeIMO.OfficeColor.ParseHex("#DC2626"), axisColor: OfficeIMO.OfficeColor.ParseHex("#94A3B8"));
             return new ExcelBaselineFixture(document, sheet);
         }
 
         private static ExcelBaselineFixture CreateImageClippingBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelImageClippingBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("ImageClip");
+            ExcelSheet sheet = document.AddSheet("ImageClip");
 
             sheet.CellValue(1, 1, "Outside Anchor");
             sheet.CellValue(1, 2, "Selected Range");
@@ -1353,12 +1361,12 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 2, "Only the overlapping slice is exported");
             sheet.CellValue(3, 2, "The image anchor remains in column A");
             sheet.Range("B2:C3").SetFillColor("F8FAFC");
-            sheet.SetColumnWidth(1, 10);
-            sheet.SetColumnWidth(2, 16);
-            sheet.SetColumnWidth(3, 16);
-            sheet.SetRowHeight(1, 26);
-            sheet.SetRowHeight(2, 42);
-            sheet.SetRowHeight(3, 42);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(10));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             for (int row = 1; row <= 3; row++) {
                 for (int column = 1; column <= 3; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
@@ -1366,14 +1374,19 @@ namespace OfficeIMO.Tests {
                 }
             }
 
-            sheet.AddImage(2, 1, CreateClippedBannerPng(), "image/png", widthPixels: 170, heightPixels: 44, name: "WideBanner");
+            sheet.AddImage(2, 1, CreateClippedBannerPng(), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(170),
+                Height = OfficeIMO.OfficeLength.Pixels(44),
+                Name = "WideBanner"
+            });
             return new ExcelBaselineFixture(document, sheet);
         }
 
         private static ExcelBaselineFixture CreateTwoCellImageBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelTwoCellImageBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("TwoCell");
+            ExcelSheet sheet = document.AddSheet("TwoCell");
 
             sheet.CellValue(1, 1, "Two-cell image anchor");
             sheet.Range("A1:F1").Merge();
@@ -1386,15 +1399,15 @@ namespace OfficeIMO.Tests {
             sheet.CellAlign(5, 2, ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 6; column++) {
-                sheet.SetColumnWidth(column, column == 1 || column == 6 ? 9 : 14);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column == 1 || column == 6 ? 9 : 14));
             }
 
-            sheet.SetRowHeight(1, 26);
-            sheet.SetRowHeight(2, 30);
-            sheet.SetRowHeight(3, 30);
-            sheet.SetRowHeight(4, 30);
-            sheet.SetRowHeight(5, 26);
-            sheet.SetRowHeight(6, 22);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(22)));
             for (int row = 1; row <= 6; row++) {
                 for (int column = 1; column <= 6; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
@@ -1409,7 +1422,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateCroppedImageBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelCroppedImageBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Crop");
+            ExcelSheet sheet = document.AddSheet("Crop");
 
             sheet.CellValue(1, 1, "Cropped worksheet image");
             sheet.Range("A1:E1").Merge();
@@ -1422,14 +1435,14 @@ namespace OfficeIMO.Tests {
             sheet.CellAlign(5, 1, ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 5; column++) {
-                sheet.SetColumnWidth(column, 14);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(14));
             }
 
-            sheet.SetRowHeight(1, 26);
-            sheet.SetRowHeight(2, 34);
-            sheet.SetRowHeight(3, 34);
-            sheet.SetRowHeight(4, 34);
-            sheet.SetRowHeight(5, 28);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 1; row <= 5; row++) {
                 for (int column = 1; column <= 5; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
@@ -1444,7 +1457,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateRotatedImageBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelRotatedImageBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Rotate");
+            ExcelSheet sheet = document.AddSheet("Rotate");
 
             sheet.CellValue(1, 1, "Rotated worksheet image");
             sheet.Range("A1:E1").Merge();
@@ -1457,18 +1470,18 @@ namespace OfficeIMO.Tests {
             sheet.CellAlign(9, 1, ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 5; column++) {
-                sheet.SetColumnWidth(column, 14);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(14));
             }
 
-            sheet.SetRowHeight(1, 26);
-            sheet.SetRowHeight(2, 34);
-            sheet.SetRowHeight(3, 34);
-            sheet.SetRowHeight(4, 34);
-            sheet.SetRowHeight(5, 34);
-            sheet.SetRowHeight(6, 34);
-            sheet.SetRowHeight(7, 34);
-            sheet.SetRowHeight(8, 34);
-            sheet.SetRowHeight(9, 28);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(7, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(8, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
+            sheet.SetRowHeight(9, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 1; row <= 9; row++) {
                 for (int column = 1; column <= 5; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
@@ -1483,7 +1496,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateTransformedImageBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelTransformedImageBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Transform");
+            ExcelSheet sheet = document.AddSheet("Transform");
 
             sheet.CellValue(1, 1, "Cropped, flipped, rotated worksheet image");
             sheet.Range("A1:E1").Merge();
@@ -1496,15 +1509,15 @@ namespace OfficeIMO.Tests {
             sheet.CellAlign(9, 1, ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 5; column++) {
-                sheet.SetColumnWidth(column, 14);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(14));
             }
 
-            sheet.SetRowHeight(1, 26);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
             for (int row = 2; row <= 8; row++) {
-                sheet.SetRowHeight(row, 34);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
             }
 
-            sheet.SetRowHeight(9, 28);
+            sheet.SetRowHeight(9, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 1; row <= 9; row++) {
                 for (int column = 1; column <= 5; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
@@ -1519,7 +1532,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateDrawingObjectBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelDrawingObjectBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Drawing");
+            ExcelSheet sheet = document.AddSheet("Drawing");
 
             sheet.CellValue(1, 1, "Worksheet drawing object");
             sheet.Range("A1:F1").Merge();
@@ -1532,15 +1545,15 @@ namespace OfficeIMO.Tests {
             sheet.CellAlign(5, 2, ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 6; column++) {
-                sheet.SetColumnWidth(column, column == 1 || column == 6 ? 9 : 14);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column == 1 || column == 6 ? 9 : 14));
             }
 
-            sheet.SetRowHeight(1, 26);
-            sheet.SetRowHeight(2, 38);
-            sheet.SetRowHeight(3, 38);
-            sheet.SetRowHeight(4, 30);
-            sheet.SetRowHeight(5, 28);
-            sheet.SetRowHeight(6, 22);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(26)));
+            sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(38)));
+            sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(38)));
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
+            sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+            sheet.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(22)));
             for (int row = 1; row <= 6; row++) {
                 for (int column = 1; column <= 6; column++) {
                     sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");

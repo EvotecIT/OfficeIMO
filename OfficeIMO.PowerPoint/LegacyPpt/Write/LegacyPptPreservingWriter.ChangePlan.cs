@@ -8,7 +8,7 @@ using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptPreservingWriter {
-        private static bool TryBuildModifiedPersistObjects(PowerPointPresentation presentation,
+        private static bool TryBuildModifiedPersistObjects(PowerPointDocument presentation,
             out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects,
             out IReadOnlyList<uint> currentSlideIds,
             out byte[]? replacementPicturesStream) {

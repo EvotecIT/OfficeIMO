@@ -53,7 +53,7 @@ internal static partial class FixtureCorpus {
         var profile = new OfficeRenderingProfile("conversion-consistency",
             new OfficeFontFaceCollection().Add(family, font).AddFallbackFamily(family), OfficeManagedTextShapingProvider.Instance);
         var rendering = new HtmlRenderOptions {
-            Mode = HtmlRenderMode.Paged, TargetDpi = 96, PageSize = new OfficePageSize(5, 320D / 96),
+            Mode = HtmlRenderMode.Paged, TargetDpi = 96, PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5), global::OfficeIMO.OfficeLength.Inches(320D / 96)),
             DefaultFontFamily = family, Margins = HtmlRenderMargins.All(0), BackgroundColor = OfficeColor.White
         };
         rendering.UseRenderingProfile(profile);

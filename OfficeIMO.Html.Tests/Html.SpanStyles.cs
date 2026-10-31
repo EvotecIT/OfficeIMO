@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("FF0000", run.ColorHex);
             Assert.Equal("Arial", run.FontFamily);
-            Assert.Equal(18, run.FontSize);
+            Assert.Equal(18, run.FontSize?.ToPoints());
         }
 
         [Fact]
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal(10, run.FontSize);
+            Assert.Equal(10, run.FontSize?.ToPoints());
         }
 
         [Fact]
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal(24, run.FontSize);
+            Assert.Equal(24, run.FontSize?.ToPoints());
         }
 
         [Fact]

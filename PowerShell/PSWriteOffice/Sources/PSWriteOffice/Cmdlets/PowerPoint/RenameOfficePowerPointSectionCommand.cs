@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public sealed class RenameOfficePowerPointSectionCommand : OfficeCmdlet {
     /// <summary>Gets or sets the live document; omission uses its enclosing content block.</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Document { get; set; }
+    public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets the existing section name.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public string Name { get; set; } = string.Empty;

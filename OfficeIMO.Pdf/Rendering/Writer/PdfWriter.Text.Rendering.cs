@@ -36,7 +36,7 @@ internal static partial class PdfWriter {
         int? parentElementIndex,
         bool suppressAccessibility) {
         LayoutResult.Page? taggingPage = suppressAccessibility ? null : structurePage;
-        double bottom = baseline + inlineElement.BaselineOffset;
+        double bottom = baseline + inlineElement.BaselineOffset.ToPoints();
         if (inlineElement is PdfInlineImage inlineImage) {
             if (page == null) {
                 throw new InvalidOperationException("Inline images require an active output page.");
@@ -46,14 +46,14 @@ internal static partial class PdfWriter {
             PageImage pageImage = CreatePageImage(
                 block,
                 block.Style ?? new PdfImageStyle(),
-                inlineImage.TableTextRotation == 0 ? x : x + (inlineElement.Width - inlineElement.Height) / 2D,
-                inlineImage.TableTextRotation == 0 ? bottom : bottom + (inlineElement.Height - inlineElement.Width) / 2D,
-                inlineImage.TableTextRotation == 0 ? inlineElement.Width : inlineElement.Height,
-                inlineImage.TableTextRotation == 0 ? inlineElement.Height : inlineElement.Width);
+                inlineImage.TableTextRotation == 0 ? x : x + (inlineElement.Width.ToPoints() - inlineElement.Height.ToPoints()) / 2D,
+                inlineImage.TableTextRotation == 0 ? bottom : bottom + (inlineElement.Height.ToPoints() - inlineElement.Width.ToPoints()) / 2D,
+                inlineImage.TableTextRotation == 0 ? inlineElement.Width.ToPoints() : inlineElement.Height.ToPoints(),
+                inlineImage.TableTextRotation == 0 ? inlineElement.Height.ToPoints() : inlineElement.Width.ToPoints());
             if (inlineImage.TableTextRotation != 0) {
                 pageImage.RotationAngle -= inlineImage.TableTextRotation;
-                pageImage.RotationCenterX = x + inlineElement.Width / 2D;
-                pageImage.RotationCenterY = bottom + inlineElement.Height / 2D;
+                pageImage.RotationCenterX = x + inlineElement.Width.ToPoints() / 2D;
+                pageImage.RotationCenterY = bottom + inlineElement.Height.ToPoints() / 2D;
             }
             pageImage.IsInlineDecoration = string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
             pageImage.SuppressAccessibilityWrapper = suppressAccessibility;
@@ -71,7 +71,7 @@ internal static partial class PdfWriter {
         if (inlineElement is PdfInlineFormWidget inlineWidget) {
             if (page == null) throw new InvalidOperationException("Inline form fields require an active output page.");
             PrepareInlineCheckBoxGlyphUsage(inlineWidget.Field, options);
-            double left = x, right = x + inlineWidget.Width, top = bottom + inlineWidget.Height;
+            double left = x, right = x + inlineWidget.Width.ToPoints(), top = bottom + inlineWidget.Height.ToPoints();
             if (inlineWidget.SourceRun is { } source) {
                 double cursor = x;
                 foreach (PdfTextRun run in NormalizeFallbackRuns(new[] { source }, ChooseNormal(options.DefaultFont), options)) {
@@ -108,26 +108,26 @@ internal static partial class PdfWriter {
 
         ContentStreamBuilder boxContent = new ContentStreamBuilder(sb).SaveState();
         if (inlineBox.SourceRule is { } rule) {
-            if (inlineBox.Width > 0D) {
+            if (inlineBox.Width.ToPoints() > 0D) {
                 foreach (PdfInlineRule.InkBand band in rule.Bands) {
                     boxContent
                         .FillColor(band.Color)
-                        .Rectangle(x, baseline + band.BaselineOffset, inlineBox.Width, band.Height)
+                        .Rectangle(x, baseline + band.BaselineOffset, inlineBox.Width.ToPoints(), band.Height)
                         .FillPath();
                 }
             }
         } else if (inlineBox.Background.HasValue) {
             boxContent
                 .FillColor(inlineBox.Background.Value)
-                .Rectangle(x, bottom, inlineBox.Width, inlineBox.Height)
+                .Rectangle(x, bottom, inlineBox.Width.ToPoints(), inlineBox.Height.ToPoints())
                 .FillPath();
         }
 
-        if (inlineBox.BorderColor.HasValue && inlineBox.BorderWidth > 0D) {
+        if (inlineBox.BorderColor.HasValue && inlineBox.BorderWidth.ToPoints() > 0D) {
             boxContent
                 .StrokeColor(inlineBox.BorderColor.Value)
-                .LineWidth(inlineBox.BorderWidth)
-                .Rectangle(x, bottom, inlineBox.Width, inlineBox.Height)
+                .LineWidth(inlineBox.BorderWidth.ToPoints())
+                .Rectangle(x, bottom, inlineBox.Width.ToPoints(), inlineBox.Height.ToPoints())
                 .StrokePath();
         }
 
@@ -142,7 +142,7 @@ internal static partial class PdfWriter {
     private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfCreateOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null, double paragraphSpacingAfter = 0D, TableCellContentFrame? barClipFrame = null, double paragraphSpacingBefore = 0D, Action<Action>? foregroundGroup = null, bool suppressInlineAccessibility = false) {
         List<List<RichSeg>> logicalRows = lines;
         RichPaintRows? paintRows = ExpandRichPaintRows(lines, lineHeights, defaultLeading,
-            xOverride ?? opts.MarginLeft, widthOverride ?? opts.PageWidth - opts.MarginLeft - opts.MarginRight,
+            xOverride ?? opts.MarginLeft.ToPoints(), widthOverride ?? opts.PageWidth.ToPoints() - opts.MarginLeft.ToPoints() - opts.MarginRight.ToPoints(),
             firstLineXOverride, firstLineWidthOverride, lineXOffsets, lineWidths, lineTopGaps);
         if (paintRows != null) {
             lines = paintRows.Lines;
@@ -156,18 +156,18 @@ internal static partial class PdfWriter {
         // Canvas artifacts can suppress accessibility structure while still
         // owning page glyphs and their font resources.
         fontPage ??= structurePage;
-        double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
+        double widthContent = opts.PageWidth.ToPoints() - opts.MarginLeft.ToPoints() - opts.MarginRight.ToPoints();
         double widthUsed = widthOverride ?? widthContent;
-        System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? underlines = null;
-        System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? strikes = null;
-        System.Collections.Generic.List<(double X, double Y, double Width, double Height, PdfColor Color)>? backgrounds = null;
+        System.Collections.Generic.List<(double X1, double X2, double Y, global::OfficeIMO.OfficeColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? underlines = null;
+        System.Collections.Generic.List<(double X1, double X2, double Y, global::OfficeIMO.OfficeColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? strikes = null;
+        System.Collections.Generic.List<(double X, double Y, double Width, double Height, global::OfficeIMO.OfficeColor Color)>? backgrounds = null;
 
-        void AddBackground(double x, double y, double width, double height, PdfColor color) {
+        void AddBackground(double x, double y, double width, double height, global::OfficeIMO.OfficeColor color) {
             if (width <= 0.001D || height <= 0.001D) {
                 return;
             }
 
-            backgrounds ??= new System.Collections.Generic.List<(double X, double Y, double Width, double Height, PdfColor Color)>();
+            backgrounds ??= new System.Collections.Generic.List<(double X, double Y, double Width, double Height, global::OfficeIMO.OfficeColor Color)>();
             if (backgrounds.Count > 0) {
                 var previous = backgrounds[backgrounds.Count - 1];
                 if (previous.Color.Equals(color) &&
@@ -185,7 +185,7 @@ internal static partial class PdfWriter {
         }
 
         double backgroundYOffset = 0D;
-        double xOrigin = xOverride ?? opts.MarginLeft;
+        double xOrigin = xOverride ?? opts.MarginLeft.ToPoints();
         int?[] bidiParagraphLevels = ResolveRichParagraphBidiLevels(lines);
         var justification = new RichLineJustification[lines.Count];
         for (int index = 0; index < lines.Count; index++) {
@@ -346,7 +346,7 @@ internal static partial class PdfWriter {
                 }
 
                 var color = s.Color ?? block.DefaultColor ?? opts.DefaultTextColor;
-                content.FillColor(color ?? PdfColor.Black);
+                content.FillColor(color ?? global::OfficeIMO.OfficeColor.Black);
                 bool hasLinkTarget = !string.IsNullOrEmpty(s.Uri) || !string.IsNullOrEmpty(s.DestinationName);
                 if (paintsPageText && (!hasLinkTarget || s.LeadingSpace)) {
                     EnsureTextMarkedContentOpen(
@@ -365,7 +365,7 @@ internal static partial class PdfWriter {
                         syntheticBold,
                         runFontSize,
                         textRise,
-                        color ?? PdfColor.Black,
+                        color ?? global::OfficeIMO.OfficeColor.Black,
                         hasLinkTarget && s.LeadingSpace && s.LeadingTabLeader == PdfTabLeaderStyle.None && s.InlineElement == null);
                 }
 
@@ -379,9 +379,9 @@ internal static partial class PdfWriter {
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     }
                     if (s.LeadingUnderlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None && s.LeadingTabLeader == PdfTabLeaderStyle.None && s.LeadingSpaceIsExpandable) {
-                        PdfColor underlineColor = s.LeadingDecorationColor ?? block.DefaultColor ?? opts.DefaultTextColor ?? PdfColor.Black;
+                        global::OfficeIMO.OfficeColor underlineColor = s.LeadingDecorationColor ?? block.DefaultColor ?? opts.DefaultTextColor ?? global::OfficeIMO.OfficeColor.Black;
                         double underlineY = lineY + s.LeadingDecorationTextRise - s.LeadingDecorationFontSize * 0.15;
-                        (underlines ??= new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>())
+                        (underlines ??= new System.Collections.Generic.List<(double X1, double X2, double Y, global::OfficeIMO.OfficeColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>())
                             .Add((lineXOrigin + xCursor, lineXOrigin + xCursor + gap, underlineY, underlineColor, s.LeadingUnderlineStyle));
                     }
 
@@ -434,11 +434,11 @@ internal static partial class PdfWriter {
                     // Upright pictures keep the paragraph's top-to-bottom advance even
                     // when counterclockwise cell text advances from bottom to top.
                     double inlineX = s.InlineElement is PdfInlineImage { TableTextRotation: > 0 }
-                        ? lineXOrigin + lineWidthUsed - xCursor - s.InlineElement.Width
+                        ? lineXOrigin + lineWidthUsed - xCursor - s.InlineElement.Width.ToPoints()
                         : lineXOrigin + xCursor;
                     bool pictureClip = BeginImportedPictureClip(sb, s.InlineElement,
                         (block.Style ?? opts.DefaultParagraphStyleSnapshot)?.LineSpacing, inlineX, lineY,
-                        startY + GetAscenderForOptions(baselineFont ?? ChooseNormal(opts.DefaultFont), fontSize, opts), opts.PageWidth);
+                        startY + GetAscenderForOptions(baselineFont ?? ChooseNormal(opts.DefaultFont), fontSize, opts), opts.PageWidth.ToPoints());
                     AppendInlineElement(
                         s.InlineElement is PdfInlineImage { TableTextRotation: not 0 }
                             ? uprightCellImages ??= new StringBuilder()
@@ -453,7 +453,7 @@ internal static partial class PdfWriter {
                         textStructElementIndex,
                         suppressInlineAccessibility);
                     if (pictureClip) new ContentStreamBuilder(sb).RestoreState();
-                    xCursor += s.InlineElement.Width + s.JustificationAdvance;
+                    xCursor += s.InlineElement.Width.ToPoints() + s.JustificationAdvance;
                     content = new ContentStreamBuilder(sb)
                         .BeginText()
                         .TextLeading(defaultLeading)
@@ -523,7 +523,7 @@ internal static partial class PdfWriter {
                     }
 
                     content
-                        .FillColor(color ?? PdfColor.Black)
+                        .FillColor(color ?? global::OfficeIMO.OfficeColor.Black)
                         .ShowText(textCommand, runFontSize, textRise, suppressActualText);
                     ResetRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, pdfWordSpacing);
                     content.EndText();
@@ -546,9 +546,9 @@ internal static partial class PdfWriter {
                 double baselineY = lineY + textRise;
 
                 if (s.Underline) {
-                    var ulColor = (s.DecorationColor ?? s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
+                    var ulColor = (s.DecorationColor ?? s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? global::OfficeIMO.OfficeColor.Black;
                     double yLine = baselineY - runFontSize * 0.15;
-                    underlines ??= new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>();
+                    underlines ??= new System.Collections.Generic.List<(double X1, double X2, double Y, global::OfficeIMO.OfficeColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>();
                     if (s.UnderlineStyle == OfficeIMO.Drawing.OfficeTextDecorationStyle.Words) {
                         VisitRichWordDecorationAdvances(s, textCommand, opts,
                             (start, end) => underlines.Add((lineXOrigin + segmentStartX + start,
@@ -558,9 +558,9 @@ internal static partial class PdfWriter {
                     }
                 }
                 if (s.Strike) {
-                    var stColor = (s.DecorationColor ?? s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
+                    var stColor = (s.DecorationColor ?? s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? global::OfficeIMO.OfficeColor.Black;
                     double yLine = baselineY + runFontSize * 0.32;
-                    (strikes ??= new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>())
+                    (strikes ??= new System.Collections.Generic.List<(double X1, double X2, double Y, global::OfficeIMO.OfficeColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>())
                         .Add((lineXOrigin + segmentStartX, lineXOrigin + segmentStartX + wSeg, yLine, stColor, s.StrikeStyle));
                 }
                 if (hasLinkTarget) {
@@ -687,7 +687,7 @@ internal static partial class PdfWriter {
         bool syntheticBold,
         double fontSize,
         double textRise,
-        PdfColor fillColor,
+        global::OfficeIMO.OfficeColor fillColor,
         bool isLinkLeadingWhitespace) {
         if (textMarkedContentOpen ||
             structurePage == null ||

@@ -11,10 +11,10 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfParagraphStyle nextStyle = CreateNativeParagraphStyle(nextParagraph, nativeDefaults);
             PdfCore.PdfPanelStyle? nextPanel = CreateNativeParagraphPanelStyle(nextParagraph, nextStyle);
             if (nextPanel == null || !Equals(nextPanel.Background, panelStyle.Background) || HasNativePanelBorders(nextPanel) ||
-                nextStyle.LeftIndent != paragraphStyle.LeftIndent || nextStyle.RightIndent != paragraphStyle.RightIndent) return paragraphStyle;
+                nextStyle.LeftIndent.ToPoints() != paragraphStyle.LeftIndent.ToPoints() || nextStyle.RightIndent.ToPoints() != paragraphStyle.RightIndent.ToPoints()) return paragraphStyle;
             PdfCore.PdfParagraphStyle result = paragraphStyle.Clone();
-            result.SpacingAfter = Math.Max(panelStyle.SpacingAfter, nextStyle.SpacingBefore);
-            panelStyle.SpacingAfter = 0D;
+            result.SpacingAfter = global::OfficeIMO.OfficeLength.Points(Math.Max(panelStyle.SpacingAfter.ToPoints(), nextStyle.SpacingBefore.ToPoints()));
+            panelStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
             return result;
         }
 

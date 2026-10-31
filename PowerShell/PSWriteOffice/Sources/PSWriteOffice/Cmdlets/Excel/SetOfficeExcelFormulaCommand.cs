@@ -23,7 +23,7 @@ public sealed class SetOfficeExcelFormulaCommand : PSWriteOffice.Cmdlets.OfficeM
     [Parameter(ParameterSetName = "Coordinates")]
     public int? Column { get; set; }
 
-    /// <summary>A1-style cell address (e.g., ExcelA1, C5).</summary>
+    /// <summary>A1-style cell address (e.g., A1, C5).</summary>
     [Parameter(ParameterSetName = "Address")]
     public string? Address { get; set; }
 

@@ -69,8 +69,8 @@ public sealed class AddOfficePowerPointParagraphCommand : OfficeCmdlet {
         try {
             var paragraph = body.Box.AddParagraph(Content == null ? Text : string.Empty);
             if (Alignment.HasValue) paragraph.Alignment = PowerPointTextFormatting.Alignment(Alignment.Value);
-            if (SpacingBefore.HasValue) paragraph.SpaceBeforePoints = SpacingBefore.Value.ToPoints();
-            if (SpacingAfter.HasValue) paragraph.SpaceAfterPoints = SpacingAfter.Value.ToPoints();
+            if (SpacingBefore.HasValue) paragraph.SpaceBefore = SpacingBefore.Value;
+            if (SpacingAfter.HasValue) paragraph.SpaceAfter = SpacingAfter.Value;
             if (Content != null) {
                 paragraph.ClearInlineContent();
                 using (OfficeDocumentContext.Push(new PowerPointTextScope(scope, paragraph))) Content.Invoke();

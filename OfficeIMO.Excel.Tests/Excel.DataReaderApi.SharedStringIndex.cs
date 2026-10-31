@@ -128,7 +128,7 @@ public partial class Excel {
         int fillerCount = IndexedSharedStringFillerCount) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.IndexedSst.{Guid.NewGuid():N}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Header");
             sheet.CellValue(2, 1, "Ready");
             document.Save();

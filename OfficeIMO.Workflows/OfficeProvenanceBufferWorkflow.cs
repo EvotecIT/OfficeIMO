@@ -18,7 +18,7 @@ public static class OfficeProvenanceBufferWorkflow {
         OfficeProvenanceReport report = input.Capability.Owner switch {
             OfficeProvenanceWorkflowAdapter.ProvenanceOwner.Word => WordDocument.InspectProvenance(data, fileName, options),
             OfficeProvenanceWorkflowAdapter.ProvenanceOwner.Excel => ExcelDocument.InspectProvenance(data, fileName, options),
-            OfficeProvenanceWorkflowAdapter.ProvenanceOwner.PowerPoint => PowerPointPresentation.InspectProvenance(data, fileName, options),
+            OfficeProvenanceWorkflowAdapter.ProvenanceOwner.PowerPoint => PowerPointDocument.InspectProvenance(data, fileName, options),
             OfficeProvenanceWorkflowAdapter.ProvenanceOwner.Pdf => PdfProvenance.Inspect(data, options),
             _ => OfficeProvenanceInspector.Inspect(data, fileName, options)
         };
@@ -33,7 +33,7 @@ public static class OfficeProvenanceBufferWorkflow {
         var result = input.Capability.Owner switch {
             OfficeProvenanceWorkflowAdapter.ProvenanceOwner.Word => WordDocument.RemoveProvenance(data, fileName, options),
             OfficeProvenanceWorkflowAdapter.ProvenanceOwner.Excel => ExcelDocument.RemoveProvenance(data, fileName, options),
-            OfficeProvenanceWorkflowAdapter.ProvenanceOwner.PowerPoint => PowerPointPresentation.RemoveProvenance(data, fileName, options),
+            OfficeProvenanceWorkflowAdapter.ProvenanceOwner.PowerPoint => PowerPointDocument.RemoveProvenance(data, fileName, options),
             OfficeProvenanceWorkflowAdapter.ProvenanceOwner.Pdf => PdfProvenance.Remove(data, options),
             _ => RemoveImage(data, fileName, input.Format, options)
         };

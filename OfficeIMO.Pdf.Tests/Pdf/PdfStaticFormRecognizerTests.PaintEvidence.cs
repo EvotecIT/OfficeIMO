@@ -73,10 +73,10 @@ public sealed partial class PdfStaticFormRecognizerTests {
         OfficeShape backdrop = OfficeShape.Rectangle(90D, 35D);
         backdrop.FillColor = OfficeColor.Black;
         backdrop.StrokeColor = null;
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
-            .Canvas(canvas => canvas.Shape(backdrop, 10D, 20D)
-                .Text("Name:", 20D, 28D, 70D, 20D, color: PdfColor.FromRgb(0, 0, 0))
-                .Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
+            .Canvas(canvas => canvas.Shape(backdrop, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D), color: global::OfficeIMO.OfficeColor.FromRgb(0, 0, 0))
+                .Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))).ToBytes();
 
         Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
     }
@@ -187,10 +187,10 @@ public sealed partial class PdfStaticFormRecognizerTests {
     [InlineData(true)]
     public void NativeLabelOverImageNeedsSeparateVisibilityEvidence(bool supplyOcr) {
         byte[] image = PdfPngTestImages.CreateRgbPng(80, 30);
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
-            .Canvas(canvas => canvas.Image(image, 10D, 20D, 85D, 35D)
-                .Text("Name:", 20D, 28D, 70D, 20D)
-                .Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
+            .Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(85D), global::OfficeIMO.OfficeLength.Points(35D))
+                .Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))).ToBytes();
         var labels = supplyOcr
             ? new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 28D, 90D, 48D, 1D) }
             : Array.Empty<PdfStaticFormTextEvidence>();
@@ -313,9 +313,9 @@ public sealed partial class PdfStaticFormRecognizerTests {
 
     [Fact]
     public void ReadingOrderGroupsSlightlyOffsetRightToLeftFieldsIntoOneRow() {
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
-            .Canvas(canvas => canvas.Shape(Box(80D, 20D), 70D, 82D)
-                .Shape(Box(80D, 20D), 250D, 80D)).ToBytes();
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
+            .Canvas(canvas => canvas.Shape(Box(80D, 20D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(82D))
+                .Shape(Box(80D, 20D), global::OfficeIMO.OfficeLength.Points(250D), global::OfficeIMO.OfficeLength.Points(80D))).ToBytes();
         var labels = new[] {
             new PdfStaticFormTextEvidence(1, "\u05E9\u05DD", 70D, 45D, 140D, 65D, 1D),
             new PdfStaticFormTextEvidence(1, "\u05E2\u05D9\u05E8", 250D, 45D, 320D, 65D, 1D)
@@ -459,8 +459,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         OfficeShape outline = Box(140D, 20D);
         outline.FillColor = null;
         outline.StrokeColor = OfficeColor.Black;
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
-            .Canvas(canvas => canvas.Shape(backdrop, 0D, 0D).Shape(outline, 100D, 28D)).ToBytes();
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
+            .Canvas(canvas => canvas.Shape(backdrop, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D)).Shape(outline, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))).ToBytes();
         var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 28D, 70D, 48D, 1D) };
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
@@ -494,8 +494,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         OfficeShape outline = Box(140D, 20D);
         outline.FillColor = null;
         outline.StrokeColor = OfficeColor.White;
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
-            .Canvas(canvas => canvas.Shape(backing, 100D, 28D).Shape(outline, 100D, 28D)).ToBytes();
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
+            .Canvas(canvas => canvas.Shape(backing, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)).Shape(outline, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))).ToBytes();
         var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 28D, 70D, 48D, 1D) };
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
@@ -596,10 +596,10 @@ public sealed partial class PdfStaticFormRecognizerTests {
     [Fact]
     public void OpaqueImageOverNativeLabelDoesNotSupportAFieldProposal() {
         byte[] image = PdfPngTestImages.CreateRgbPng(80, 30);
-        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
-            .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D)
-                .Shape(Box(140D, 20D), 100D, 28D)
-                .Image(image, 10D, 20D, 95D, 35D)).ToBytes();
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
+            .Canvas(canvas => canvas.Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))
+                .Image(image, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(95D), global::OfficeIMO.OfficeLength.Points(35D))).ToBytes();
 
         Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
     }

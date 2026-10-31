@@ -11,8 +11,8 @@ public sealed class StudioFormDefinitionOperationsTests {
         string source = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "edited.pdf");
         try {
             byte[] original = PdfDocument.Create(compose => {
-                compose.Page(page => page.Size(300, 400));
-                compose.Page(page => page.Size(300, 400));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
             }).Forms.Edit(edit => edit.Create(new() { Name = "Code", Value = "Now", X = 30, Y = 300, Style = new() { MaxLength = 3 } }))
                 .ToBytes();
             File.WriteAllBytes(source, original);

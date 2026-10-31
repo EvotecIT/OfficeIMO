@@ -10,9 +10,9 @@ namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
         public void PowerPointSlide_ReportsOversizedTableAndEnforcesStrictOmissionPolicy() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTable table = slide.AddTablePoints(1, 1, 10, 10, 80, 40);
+            PowerPointTable table = slide.AddTable(1, 1, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(80), OfficeLength.Points(40));
             A.TableRow row = table.TableElement.Elements<A.TableRow>().Single();
             for (int index = 1; index <= 4096; index++) table.TableElement.Append(row.CloneNode(true));
 
@@ -33,10 +33,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PowerPointSlide_StrictOmissionPolicyRejectsSkippedGroupContent() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape first = slide.AddRectanglePoints(10, 10, 20, 20);
-            PowerPointAutoShape second = slide.AddRectanglePoints(40, 10, 20, 20);
+            PowerPointAutoShape first = slide.AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
+            PowerPointAutoShape second = slide.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
             slide.GroupShapes(new PowerPointShape[] { first, second }, "Omitted group");
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
@@ -51,10 +51,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_StrictOmissionPolicyAllowsSmallCapsApproximation() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(160, 90);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("Keep this text", 20, 20, 120, 50);
+            PowerPointTextBox textBox = slide.AddTextBox("Keep this text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(50));
             textBox.Paragraphs[0].Runs[0].Capitalization = PowerPointCapitalization.SmallCaps;
 
             OfficeImageExportResult result = slide.ExportImage(
@@ -74,8 +74,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_StrictOmissionPolicyRejectsUnreadableBackgroundImage() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(160, 90);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
             using var emptyImage = new MemoryStream();
             slide.SetBackgroundImage(
@@ -99,8 +99,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_StrictOmissionPolicyRejectsUnsupportedBackgroundFill() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(160, 90);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
             slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
                 new BackgroundProperties(

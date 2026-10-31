@@ -276,7 +276,7 @@ internal static partial class RtfPdfConverter {
                     if (!string.IsNullOrEmpty(run.Text)) {
                         if (run.FontId.HasValue) fontIds.Add(run.FontId.Value);
                         text.Add(run.Text!);
-                        runs.Add(new PdfCore.PdfTextRun(run.Text!, fontSize: run.FontSize));
+                        runs.Add(new PdfCore.PdfTextRun(run.Text!, fontSize: run.FontSize.HasValue ? OfficeIMO.OfficeLength.Points(run.FontSize.Value) : null));
                     }
                     if (run.Note != null) referencedNotes?.Add(run.Note);
                     break;

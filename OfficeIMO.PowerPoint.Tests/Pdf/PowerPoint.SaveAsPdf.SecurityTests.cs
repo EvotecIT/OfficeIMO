@@ -9,13 +9,13 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PowerPointSaveAsPdfSecurityTests {
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_StopsAtConfiguredGroupDepth() {
+    public void SaveAsPdf_PowerPointDocument_StopsAtConfiguredGroupDepth() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
+            using PowerPointDocument presentation = PowerPointDocument.Create(path);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("Nested text", 72, 72, 144, 36);
-            PowerPointTextBox secondTextBox = slide.AddTextBoxPoints("Nested sibling", 72, 120, 144, 36);
+            PowerPointTextBox textBox = slide.AddTextBox("Nested text",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(144),global::OfficeIMO.OfficeLength.Points(36));
+            PowerPointTextBox secondTextBox = slide.AddTextBox("Nested sibling",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(144),global::OfficeIMO.OfficeLength.Points(36));
             slide.GroupShapes(new PowerPointShape[] { textBox, secondTextBox }, "Outer");
 
             var options = new PowerPointPdfExportOptions {
@@ -38,10 +38,10 @@ public class PowerPointSaveAsPdfSecurityTests {
     public void SaveAsPdf_PowerPointHandouts_HonorZeroGroupDepth() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
+            using PowerPointDocument presentation = PowerPointDocument.Create(path);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("Nested text", 72, 72, 144, 36);
-            PowerPointTextBox secondTextBox = slide.AddTextBoxPoints("Nested sibling", 72, 120, 144, 36);
+            PowerPointTextBox textBox = slide.AddTextBox("Nested text",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(144),global::OfficeIMO.OfficeLength.Points(36));
+            PowerPointTextBox secondTextBox = slide.AddTextBox("Nested sibling",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(144),global::OfficeIMO.OfficeLength.Points(36));
             slide.GroupShapes(new PowerPointShape[] { textBox, secondTextBox }, "Outer");
 
             PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {

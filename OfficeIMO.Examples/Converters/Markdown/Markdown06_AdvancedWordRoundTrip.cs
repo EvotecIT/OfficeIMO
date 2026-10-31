@@ -45,8 +45,8 @@ namespace OfficeIMO.Examples.Word.Converters {
             Console.WriteLine($"  Resources:        {resourcesPath}");
             Console.WriteLine($"  Round-trip Word:  {roundTripPath}");
             Console.WriteLine($"  Chart SVG files:  {Directory.GetFiles(resourcesPath, "*.svg").Length}");
-            Console.WriteLine($"  Page break block: {markdown.Contains(WordMarkdownSemanticBlocks.PageBreakFenceLanguage, StringComparison.Ordinal)}");
-            Console.WriteLine($"  Header block:     {markdown.Contains(WordMarkdownSemanticBlocks.HeaderFenceLanguage, StringComparison.Ordinal)}");
+            Console.WriteLine($"  Page break block: {markdown.Contains("officeimo-word-page-break", StringComparison.Ordinal)}");
+            Console.WriteLine($"  Header block:     {markdown.Contains("officeimo-word-header", StringComparison.Ordinal)}");
             Console.WriteLine($"  TOC marker:       {markdown.Contains("[TOC", StringComparison.Ordinal)}");
             foreach (string warning in warnings) {
                 Console.WriteLine($"  Warning:          {warning}");
@@ -102,21 +102,21 @@ namespace OfficeIMO.Examples.Word.Converters {
             table.Rows[3].Cells[3].Paragraphs[0].Text = "24";
 
             document.AddParagraph("Chart visual fallback").Style = WordParagraphStyles.Heading2;
-            WordChart chart = document.AddChart("Regional pipeline", roundedCorners: false, width: 640, height: 320);
+            WordChart chart = document.AddChart("Regional pipeline",roundedCorners: false,width: OfficeIMO.OfficeLength.Pixels(640),height: OfficeIMO.OfficeLength.Pixels(320));
             chart.AddCategories(new List<string> { "Q1", "Q2", "Q3" });
             chart.AddBar("EMEA", new List<int> { 11, 16, 21 }, OfficeColor.CornflowerBlue);
             chart.AddBar("APAC", new List<int> { 9, 14, 19 }, OfficeColor.SeaGreen);
             chart.AddBar("AMER", new List<int> { 13, 17, 24 }, OfficeColor.Orange);
             chart.ApplyPalette(WordChart.WordChartPalette.ColorBlindSafe)
-                .SetWidthToPageContent(1.0, 320);
+                .SetWidthToPageContent(1.0,OfficeIMO.OfficeLength.Pixels(320));
 
             document.AddParagraph("Pie point-color fallback").Style = WordParagraphStyles.Heading2;
-            WordChart pie = document.AddChart("Rules outcome", roundedCorners: false, width: 480, height: 260);
+            WordChart pie = document.AddChart("Rules outcome",roundedCorners: false,width: OfficeIMO.OfficeLength.Pixels(480),height: OfficeIMO.OfficeLength.Pixels(260));
             pie.AddPie("Passed", 42);
             pie.AddPie("Failed", 30);
             pie.AddPie("Skipped", 5);
             pie.ApplyPalette(WordChart.WordChartPalette.Professional, semanticOutcomes: true, applyToPies: true, applyToSeries: false)
-                .SetWidthToPageContent(0.8, 260);
+                .SetWidthToPageContent(0.8,OfficeIMO.OfficeLength.Pixels(260));
 
             document.AddPageBreak();
             document.AddParagraph("Second Page").Style = WordParagraphStyles.Heading1;

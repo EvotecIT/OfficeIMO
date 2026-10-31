@@ -17,39 +17,39 @@ public sealed class PowerPointPdfThumbnailSlideLinkTests {
     [InlineData(PowerPointPdfPageLayout.Handouts, 4, true)]
     public void ThumbnailLinksResolveToVisibleSlideLocationsAndReportUnavailableTargets(
         PowerPointPdfPageLayout layout, int perPage, bool includeHidden) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(400, 300);
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300));
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide hidden = presentation.AddSlide(); hidden.Hidden = true;
         PowerPointSlide third = presentation.AddSlide();
         PowerPointSlide fourth = presentation.AddSlide();
         PowerPointSlide fifth = presentation.AddSlide();
-        first.AddTextBoxPoints("VISIBLE TARGET", 20, 20, 350, 40)
+        first.AddTextBox("VISIBLE TARGET",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0].SetHyperlink(third);
-        first.AddTextBoxPoints("HIDDEN TARGET", 20, 65, 350, 40)
+        first.AddTextBox("HIDDEN TARGET",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(65),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0].SetHyperlink(hidden);
-        first.AddTextBoxPoints("ABSENT TARGET", 20, 110, 350, 40)
+        first.AddTextBox("ABSENT TARGET",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0].Hyperlink = new Uri("#slide-99", UriKind.Relative);
-        PowerPointTextBox grouped = first.AddTextBoxPoints("GROUP TARGET", 20, 155, 350, 40);
+        PowerPointTextBox grouped = first.AddTextBox("GROUP TARGET",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(155),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(40));
         grouped.Paragraphs[0].Runs[0].SetHyperlink(fourth);
         grouped.Paragraphs[0].AddRun(" HIDDEN").SetHyperlink(hidden);
         grouped.Paragraphs[0].AddRun(" ABSENT").Hyperlink = new Uri("#slide-99", UriKind.Relative);
-        first.GroupShapes(new PowerPointShape[] { grouped, first.AddRectanglePoints(20, 200, 350, 2) });
-        PowerPointTable table = first.AddTablePoints(1, 2, 20, 210, 350, 70);
+        first.GroupShapes(new PowerPointShape[] { grouped, first.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(350), OfficeIMO.OfficeLength.Points(2)) });
+        PowerPointTable table = first.AddTable(1,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(210),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(70));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "TABLE TARGET"; cell.Paragraphs[0].Runs[0].SetHyperlink(fifth);
         PowerPointTableCell flowing = table.GetCell(0, 1);
         flowing.Text = "TABLE FLOW"; flowing.Paragraphs[0].Runs[0].SetHyperlink(third);
         flowing.AddParagraph("TABLE HIDDEN").Runs[0].SetHyperlink(hidden);
         flowing.AddParagraph("TABLE EXTERNAL").Runs[0].Hyperlink = new Uri("https://example.com/table");
-        fifth.AddTextBoxPoints("EXTERNAL TARGET", 20, 20, 350, 40)
+        fifth.AddTextBox("EXTERNAL TARGET",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0].Hyperlink = new Uri("https://example.com/slide");
         var options = new PowerPointPdfExportOptions {
             PageLayout = layout, HandoutSlidesPerPage = perPage, IncludeHiddenSlides = includeHidden
         };
 
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence(options);
         byte[] bytes = conversion.ToBytes();
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(bytes);

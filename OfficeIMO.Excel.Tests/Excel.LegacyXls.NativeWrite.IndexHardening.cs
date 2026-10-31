@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
             params (string Name, int FirstValue)[] sheets) {
             using ExcelDocument document = ExcelDocument.Create();
             foreach ((string name, int firstValue) in sheets) {
-                ExcelSheet sheet = document.AddWorksheet(name);
+                ExcelSheet sheet = document.AddSheet(name);
                 sheet.CellValue(1, 1, "Value");
                 for (int row = 2; row <= 256; row++) {
                     sheet.CellValue(row, 1, firstValue + row - 2);

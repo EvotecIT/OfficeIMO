@@ -68,7 +68,7 @@ public sealed class StudioSourceIdentityTests {
             using var workspace = await PdfWorkspace.OpenAsync(path, CancellationToken.None, new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery")));
             await workspace.DuplicateAsync([1], CancellationToken.None);
             byte[] edits = workspace.CopyBytes();
-            byte[] external = PdfDocument.Create(document => document.Page(page => page.Size(250, 350))).ToBytes();
+            byte[] external = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(250), global::OfficeIMO.OfficeLength.Points(350)))).ToBytes();
             if (change == "changed") File.WriteAllBytes(path, external);
             else {
                 File.Move(path, Path.Combine(root, "old.pdf"));
@@ -164,7 +164,7 @@ public sealed class StudioSourceIdentityTests {
     }
 
     private static string NewFolder() => Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "officeimo-source-identity-" + Guid.NewGuid().ToString("N"))).FullName;
-    private static void CreatePdf(string path) => PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(path);
+    private static void CreatePdf(string path) => PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(path);
     private static void Alias(string source, string alias, bool hard) {
         if (!hard) File.CreateSymbolicLink(alias, source);
         else if (OperatingSystem.IsWindows()) Assert.True(CreateHardLink(alias, source, IntPtr.Zero));

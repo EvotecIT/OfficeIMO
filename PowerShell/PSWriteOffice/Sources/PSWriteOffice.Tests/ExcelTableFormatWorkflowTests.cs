@@ -13,7 +13,7 @@ public sealed class ExcelTableFormatWorkflowTests {
     [InlineData(true)]
     public void NamedTableFormatsOnlyItsOwnDataCells(bool noHeader) {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Sales");
+        var sheet = document.AddSheet("Sales");
         sheet.CellValue(20, 2, 0.25);
         sheet.FormatCell(20, 2, "0.0000");
         using var runspace = Open();
@@ -45,7 +45,7 @@ public sealed class ExcelTableFormatWorkflowTests {
     [Fact]
     public void MissingFormatColumnRejectsTheTableBeforeWriting() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Sales");
+        var sheet = document.AddSheet("Sales");
         using var runspace = Open();
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;

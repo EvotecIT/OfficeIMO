@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
                 var section1 = document.AddSection();
                 section1.PageOrientation = OfficePageOrientation.Portrait;
 
-                section1.AddParagraph("Test Section2").SetFontFamily("Tahoma").SetFontSize(20);
+                section1.AddParagraph("Test Section2").SetFontFamily("Tahoma").SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
 
                 section1.ColumnCount = 2;
                 for (int i = 0; i < 50; i++) {
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
 
                 var section2 = document.AddSection();
 
-                section2.AddParagraph("Test Section3").SetFontFamily("Tahoma").SetFontSize(20);
+                section2.AddParagraph("Test Section3").SetFontFamily("Tahoma").SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
 
                 section2.PageOrientation = OfficePageOrientation.Landscape;
 
@@ -290,44 +290,44 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[4].Paragraphs.Count == 1, "Number of paragraphs on 5th section is wrong.");
 
                 // Normal
-                Assert.True(document.Sections[0].Margins.Left == 1440);
-                Assert.True(document.Sections[0].Margins.Right == 1440);
-                Assert.True(document.Sections[0].Margins.Top == 1440);
-                Assert.True(document.Sections[0].Margins.Bottom == 1440);
-                Assert.True(document.Sections[0].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[0].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[0].Margins.Right.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[0].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[0].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[0].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[0].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 //Narrow
-                Assert.True(document.Sections[1].Margins.Left == 720);
-                Assert.True(document.Sections[1].Margins.Right == 720);
-                Assert.True(document.Sections[1].Margins.Top == 720);
-                Assert.True(document.Sections[1].Margins.Bottom == 720);
-                Assert.True(document.Sections[1].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[1].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[1].Margins.Left.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[1].Margins.Right.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((int?)(document.Sections[1].Margins.Top?.ToTwips())) == 720);
+                Assert.True(checked((int?)(document.Sections[1].Margins.Bottom?.ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[1].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[1].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 // Mirrored
-                Assert.True(document.Sections[2].Margins.Left == 1800);
-                Assert.True(document.Sections[2].Margins.Right == 1440);
-                Assert.True(document.Sections[2].Margins.Top == 1440);
-                Assert.True(document.Sections[2].Margins.Bottom == 1440);
-                Assert.True(document.Sections[2].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[2].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[2].Margins.Left.GetValueOrDefault().ToTwips())) == 1800);
+                Assert.True(checked((uint)(document.Sections[2].Margins.Right.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[2].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[2].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[2].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[2].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 // Moderate
-                Assert.True(document.Sections[3].Margins.Left == 1080);
-                Assert.True(document.Sections[3].Margins.Right == 1080);
-                Assert.True(document.Sections[3].Margins.Top == 1440);
-                Assert.True(document.Sections[3].Margins.Bottom == 1440);
-                Assert.True(document.Sections[3].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[3].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[3].Margins.Left.GetValueOrDefault().ToTwips())) == 1080);
+                Assert.True(checked((uint)(document.Sections[3].Margins.Right.GetValueOrDefault().ToTwips())) == 1080);
+                Assert.True(checked((int?)(document.Sections[3].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[3].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[3].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[3].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 // Wide
-                Assert.True(document.Sections[4].Margins.Left == 2880);
-                Assert.True(document.Sections[4].Margins.Right == 2880);
-                Assert.True(document.Sections[4].Margins.Top == 1440);
-                Assert.True(document.Sections[4].Margins.Bottom == 1440);
-                Assert.True(document.Sections[4].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[4].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[4].Margins.Left.GetValueOrDefault().ToTwips())) == 2880);
+                Assert.True(checked((uint)(document.Sections[4].Margins.Right.GetValueOrDefault().ToTwips())) == 2880);
+                Assert.True(checked((int?)(document.Sections[4].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[4].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[4].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[4].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 document.Save();
             }
@@ -341,44 +341,44 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[4].Paragraphs.Count == 1, "Number of paragraphs on 5th section is wrong.");
 
                 // Normal
-                Assert.True(document.Sections[0].Margins.Left == 1440);
-                Assert.True(document.Sections[0].Margins.Right == 1440);
-                Assert.True(document.Sections[0].Margins.Top == 1440);
-                Assert.True(document.Sections[0].Margins.Bottom == 1440);
-                Assert.True(document.Sections[0].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[0].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[0].Margins.Right.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[0].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[0].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[0].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[0].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 //Narrow
-                Assert.True(document.Sections[1].Margins.Left == 720);
-                Assert.True(document.Sections[1].Margins.Right == 720);
-                Assert.True(document.Sections[1].Margins.Top == 720);
-                Assert.True(document.Sections[1].Margins.Bottom == 720);
-                Assert.True(document.Sections[1].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[1].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[1].Margins.Left.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[1].Margins.Right.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((int?)(document.Sections[1].Margins.Top?.ToTwips())) == 720);
+                Assert.True(checked((int?)(document.Sections[1].Margins.Bottom?.ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[1].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[1].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 // Mirrored
-                Assert.True(document.Sections[2].Margins.Left == 1800);
-                Assert.True(document.Sections[2].Margins.Right == 1440);
-                Assert.True(document.Sections[2].Margins.Top == 1440);
-                Assert.True(document.Sections[2].Margins.Bottom == 1440);
-                Assert.True(document.Sections[2].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[2].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[2].Margins.Left.GetValueOrDefault().ToTwips())) == 1800);
+                Assert.True(checked((uint)(document.Sections[2].Margins.Right.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[2].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[2].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[2].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[2].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 // Moderate
-                Assert.True(document.Sections[3].Margins.Left == 1080);
-                Assert.True(document.Sections[3].Margins.Right == 1080);
-                Assert.True(document.Sections[3].Margins.Top == 1440);
-                Assert.True(document.Sections[3].Margins.Bottom == 1440);
-                Assert.True(document.Sections[3].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[3].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[3].Margins.Left.GetValueOrDefault().ToTwips())) == 1080);
+                Assert.True(checked((uint)(document.Sections[3].Margins.Right.GetValueOrDefault().ToTwips())) == 1080);
+                Assert.True(checked((int?)(document.Sections[3].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[3].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[3].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[3].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 // Wide
-                Assert.True(document.Sections[4].Margins.Left == 2880);
-                Assert.True(document.Sections[4].Margins.Right == 2880);
-                Assert.True(document.Sections[4].Margins.Top == 1440);
-                Assert.True(document.Sections[4].Margins.Bottom == 1440);
-                Assert.True(document.Sections[4].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[4].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[4].Margins.Left.GetValueOrDefault().ToTwips())) == 2880);
+                Assert.True(checked((uint)(document.Sections[4].Margins.Right.GetValueOrDefault().ToTwips())) == 2880);
+                Assert.True(checked((int?)(document.Sections[4].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[4].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[4].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[4].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 document.AddSection();
                 document.AddParagraph("Section 5");
@@ -390,20 +390,20 @@ namespace OfficeIMO.Tests {
                 document.Sections[6].SetMargins(WordMargin.Office2003Default);
 
                 // Normal
-                Assert.True(document.Sections[5].Margins.Left == 1440);
-                Assert.True(document.Sections[5].Margins.Right == 1440);
-                Assert.True(document.Sections[5].Margins.Top == 1440);
-                Assert.True(document.Sections[5].Margins.Bottom == 1440);
-                Assert.True(document.Sections[5].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[5].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[5].Margins.Left.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[5].Margins.Right.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[5].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[5].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[5].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[5].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 // Office2003Default
-                Assert.True(document.Sections[6].Margins.Left == 1800);
-                Assert.True(document.Sections[6].Margins.Right == 1800);
-                Assert.True(document.Sections[6].Margins.Top == 1440);
-                Assert.True(document.Sections[6].Margins.Bottom == 1440);
-                Assert.True(document.Sections[6].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[6].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[6].Margins.Left.GetValueOrDefault().ToTwips())) == 1800);
+                Assert.True(checked((uint)(document.Sections[6].Margins.Right.GetValueOrDefault().ToTwips())) == 1800);
+                Assert.True(checked((int?)(document.Sections[6].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[6].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[6].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[6].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 document.Save();
             }
@@ -419,60 +419,60 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[6].Paragraphs.Count == 1, "Number of paragraphs on 6th section is wrong.");
 
                 // Normal
-                Assert.True(document.Sections[0].Margins.Left == 1440);
-                Assert.True(document.Sections[0].Margins.Right == 1440);
-                Assert.True(document.Sections[0].Margins.Top == 1440);
-                Assert.True(document.Sections[0].Margins.Bottom == 1440);
-                Assert.True(document.Sections[0].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[0].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[0].Margins.Right.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[0].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[0].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[0].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[0].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 //Narrow
-                Assert.True(document.Sections[1].Margins.Left == 720);
-                Assert.True(document.Sections[1].Margins.Right == 720);
-                Assert.True(document.Sections[1].Margins.Top == 720);
-                Assert.True(document.Sections[1].Margins.Bottom == 720);
-                Assert.True(document.Sections[1].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[1].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[1].Margins.Left.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[1].Margins.Right.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((int?)(document.Sections[1].Margins.Top?.ToTwips())) == 720);
+                Assert.True(checked((int?)(document.Sections[1].Margins.Bottom?.ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[1].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[1].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 // Mirrored
-                Assert.True(document.Sections[2].Margins.Left == 1800);
-                Assert.True(document.Sections[2].Margins.Right == 1440);
-                Assert.True(document.Sections[2].Margins.Top == 1440);
-                Assert.True(document.Sections[2].Margins.Bottom == 1440);
-                Assert.True(document.Sections[2].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[2].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[2].Margins.Left.GetValueOrDefault().ToTwips())) == 1800);
+                Assert.True(checked((uint)(document.Sections[2].Margins.Right.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[2].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[2].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[2].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[2].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 // Moderate
-                Assert.True(document.Sections[3].Margins.Left == 1080);
-                Assert.True(document.Sections[3].Margins.Right == 1080);
-                Assert.True(document.Sections[3].Margins.Top == 1440);
-                Assert.True(document.Sections[3].Margins.Bottom == 1440);
-                Assert.True(document.Sections[3].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[3].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[3].Margins.Left.GetValueOrDefault().ToTwips())) == 1080);
+                Assert.True(checked((uint)(document.Sections[3].Margins.Right.GetValueOrDefault().ToTwips())) == 1080);
+                Assert.True(checked((int?)(document.Sections[3].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[3].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[3].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[3].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 // Wide
-                Assert.True(document.Sections[4].Margins.Left == 2880);
-                Assert.True(document.Sections[4].Margins.Right == 2880);
-                Assert.True(document.Sections[4].Margins.Top == 1440);
-                Assert.True(document.Sections[4].Margins.Bottom == 1440);
-                Assert.True(document.Sections[4].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[4].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[4].Margins.Left.GetValueOrDefault().ToTwips())) == 2880);
+                Assert.True(checked((uint)(document.Sections[4].Margins.Right.GetValueOrDefault().ToTwips())) == 2880);
+                Assert.True(checked((int?)(document.Sections[4].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[4].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[4].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[4].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 // Normal
-                Assert.True(document.Sections[5].Margins.Left == 1440);
-                Assert.True(document.Sections[5].Margins.Right == 1440);
-                Assert.True(document.Sections[5].Margins.Top == 1440);
-                Assert.True(document.Sections[5].Margins.Bottom == 1440);
-                Assert.True(document.Sections[5].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[5].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[5].Margins.Left.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[5].Margins.Right.GetValueOrDefault().ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[5].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[5].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[5].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[5].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
 
                 // Office2003Default
-                Assert.True(document.Sections[6].Margins.Left == 1800);
-                Assert.True(document.Sections[6].Margins.Right == 1800);
-                Assert.True(document.Sections[6].Margins.Top == 1440);
-                Assert.True(document.Sections[6].Margins.Bottom == 1440);
-                Assert.True(document.Sections[6].Margins.HeaderDistance == 720);
-                Assert.True(document.Sections[6].Margins.FooterDistance == 720);
+                Assert.True(checked((uint)(document.Sections[6].Margins.Left.GetValueOrDefault().ToTwips())) == 1800);
+                Assert.True(checked((uint)(document.Sections[6].Margins.Right.GetValueOrDefault().ToTwips())) == 1800);
+                Assert.True(checked((int?)(document.Sections[6].Margins.Top?.ToTwips())) == 1440);
+                Assert.True(checked((int?)(document.Sections[6].Margins.Bottom?.ToTwips())) == 1440);
+                Assert.True(checked((uint)(document.Sections[6].Margins.HeaderDistance.GetValueOrDefault().ToTwips())) == 720);
+                Assert.True(checked((uint)(document.Sections[6].Margins.FooterDistance.GetValueOrDefault().ToTwips())) == 720);
             }
         }
 

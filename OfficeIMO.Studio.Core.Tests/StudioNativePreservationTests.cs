@@ -19,7 +19,7 @@ public sealed class StudioNativePreservationTests : IDisposable {
 
     private string CreatePdf() {
         string path = Path.Combine(_root, "source.pdf");
-        PdfDocument.Create(document => document.Page(page => page.Size(300, 400))).Save(path);
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).Save(path);
         return path;
     }
 

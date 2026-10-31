@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
         public void CleanupDocument_RemovesRedundantRunProperties() {
             string filePath = Path.Combine(_directoryWithFiles, "CleanupRunProperties.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                WordParagraph run = document.AddParagraph().AddText("Test");
+                WordParagraph run = document.AddParagraph("Test");
                 run._run!.RunProperties = new RunProperties();
                 Assert.NotNull(run._run);
                 Assert.NotNull(run._run!.RunProperties);

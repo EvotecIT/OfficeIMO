@@ -32,10 +32,10 @@ public sealed partial class IWorkBoundaryTests {
             var run = Assert.Single(reopened.Tables[0].Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "Value");
             Assert.False(run.Bold);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointDocumentResult(policy);
             Assert.False(result.IsVisualFallback); Assert.True(result.Report.IsPartialEditableReconstruction);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var cell = Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0);
             Assert.Equal("Value", cell.Text); Assert.False(cell.Paragraphs[0].Runs[0].Bold);
             Assert.Empty(reopened.ValidateDocument());

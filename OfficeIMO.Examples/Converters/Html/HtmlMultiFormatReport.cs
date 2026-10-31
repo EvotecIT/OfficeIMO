@@ -48,7 +48,7 @@ internal static partial class Html {
             sheet.AutoFitColumns();
             var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(sheet.UsedRangeA1);
             if (firstColumn == lastColumn) {
-                sheet.WrapCells(firstRow, lastRow, firstColumn, 80D);
+                sheet.WrapCells(firstRow,lastRow,firstColumn, ExcelColumnWidth.Characters(80D));
                 for (int row = firstRow; row <= lastRow; row++) sheet.CellVerticalAlign(row, firstColumn, ExcelVerticalAlignment.Top);
             }
             sheet.AutoFitRows();
@@ -80,7 +80,16 @@ internal static partial class Html {
             });
         }
         Previews("Saved PDF pages", "pdf", consume => {
-            foreach (var image in PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(stem + ".pdf"))).Render.ExportImages(OfficeImageExportFormat.Png)) consume(image);
+            using var pdfDocument = PdfDocument.Load(stem + ".pdf");
+            var pages = pdfDocument.ExportImages(null, out var imageReport);
+            foreach (var diagnostic in imageReport.Diagnostics)
+                conversionNotes.Add("Saved PDF pages: " + diagnostic.Code + ": " + diagnostic.Message);
+            foreach (var image in pages) {
+                byte[] bytes = image.Bytes;
+                if (!OfficeImageReader.TryValidateContent(bytes, ".png", out OfficeImageInfo info))
+                    throw new InvalidDataException("The saved PDF preview is not a valid PNG.");
+                consume(new OfficeImageExportResult(OfficeImageExportFormat.Png, info.Width, info.Height, bytes));
+            }
         });
         Previews("HTML layout pages", "html", consume => {
             foreach (var image in report.ExportImages(OfficeImageExportFormat.Png, pdfOptions)) consume(image);

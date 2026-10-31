@@ -44,7 +44,7 @@ public sealed class PdfOptionalBreakLinkTests {
         if (named) { options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("IdentifierFont", font)); }
         else { options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "IdentifierFont"); }
         var run = new PdfTextRun("AV\u200BAV", fontFamily: named ? "IdentifierFont" : null);
-        if (spaced) { run = run.WithHorizontalTextScaling(75D).WithCharacterSpacing(0.5D); }
+        if (spaced) { run = run.WithHorizontalTextScaling(75D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(0.5D)); }
 
         byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] { run })).ToBytes();
 

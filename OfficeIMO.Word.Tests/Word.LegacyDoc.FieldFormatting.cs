@@ -83,8 +83,8 @@ public partial class Word {
     private static W.Paragraph[] CreateFieldFormattingStories(WordDocument source) {
         source.AddHeadersAndFooters();
         WordParagraph notes = source.AddParagraph("References");
-        W.Paragraph footnote = notes.AddFootNote("Placeholder").FootNote!.Paragraphs![1]._paragraph;
-        W.Paragraph endnote = notes.AddEndNote("Placeholder").EndNote!.Paragraphs![1]._paragraph;
+        W.Paragraph footnote = notes.AddFootNote("Placeholder").Paragraph.FootNote!.Paragraphs![1]._paragraph;
+        W.Paragraph endnote = notes.AddEndNote("Placeholder").Paragraph.EndNote!.Paragraphs![1]._paragraph;
         return new[] {
             source.AddParagraph()._paragraph, source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0]._paragraph,
             source.Sections[0].Header.Default!.AddParagraph()._paragraph,

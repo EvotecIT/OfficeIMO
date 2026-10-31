@@ -12,10 +12,10 @@ public sealed class PdfPrintRendererTests {
         background.FillColor = OfficeColor.Red; background.StrokeWidth = 0;
         stripe.FillColor = OfficeColor.Blue; stripe.StrokeWidth = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 100, PageHeight = 100, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
-        }).Canvas(canvas => canvas.Shape(background, 0, 0).Shape(stripe, 80, 0));
+            PageWidth = global::OfficeIMO.OfficeLength.Points(100), PageHeight = global::OfficeIMO.OfficeLength.Points(100), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
+        }).Canvas(canvas => canvas.Shape(background, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0)).Shape(stripe, global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(0)));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document, new() {
-            InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(150, 180), Margin = 10,
+            InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(150),OfficeIMO.OfficeLength.Points(180)), Margin = 10,
             ScaleMode = PdfPrintScaleMode.Custom, CustomScalePercent = 250, Alignment = alignment
         }, new() { Dpi = 72 });
         PdfRenderedPrintSheet sheet = Assert.Single(prepared.Sheets);
@@ -34,11 +34,11 @@ public sealed class PdfPrintRendererTests {
         marker.FillColor = OfficeColor.Red;
         marker.StrokeWidth = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 100, PageHeight = 100, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
-        }).Canvas(canvas => canvas.Shape(marker, 0, 0));
+            PageWidth = global::OfficeIMO.OfficeLength.Points(100), PageHeight = global::OfficeIMO.OfficeLength.Points(100), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
+        }).Canvas(canvas => canvas.Shape(marker, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0)));
         byte[] source = document.ToBytes();
         var request = new PdfPrintPlanRequest {
-            InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(200, 200), Margin = 10,
+            InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(200),OfficeIMO.OfficeLength.Points(200)), Margin = 10,
             ScaleMode = PdfPrintScaleMode.Custom, CustomScalePercent = 50, Alignment = PdfPrintAlignment.BottomRight
         };
         OfficeRasterImage color = Assert.Single(PdfPrintRenderer.Prepare(document, request,
@@ -63,14 +63,14 @@ public sealed class PdfPrintRendererTests {
         marker.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Black, OfficeColor.FromRgb(255, 128, 64));
         marker.StrokeWidth = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 200, PageHeight = 300, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
-        }).Canvas(canvas => canvas.Shape(marker, 20, 20));
+            PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
+        }).Canvas(canvas => canvas.Shape(marker, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20)));
         // A multi-channel gradient keeps more than 256 colors after placement, so the
         // encoder cannot replace RGB scanlines with a compact exact palette.
         // This sheet fits the pixel budget, but its RGB scanlines and decoded RGBA output
         // together exceed the shared 256 MiB decoder bound. A blank bilevel sheet does not.
         Assert.Throws<InvalidOperationException>(() => PdfPrintRenderer.Prepare(document,
-            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(650, 900) },
+            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(650),OfficeIMO.OfficeLength.Points(900)) },
             new PdfPrintRenderOptions { Dpi = 600, MaximumPixelsPerImage = 45_000_000 }));
     }
 
@@ -79,7 +79,7 @@ public sealed class PdfPrintRendererTests {
         PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(PdfPageSizes.A4).Content(content =>
             content.Item(item => item.Paragraph(text => text.Text("This source must not disappear"))))));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document,
-            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(200, 300) },
+            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(200),OfficeIMO.OfficeLength.Points(300)) },
             new PdfPrintRenderOptions { Dpi = 600, MaximumPixelsPerImage = 5_000_000 });
         OfficeRasterImage raster = Assert.Single(prepared.Sheets).Decode(CancellationToken.None);
         Assert.InRange((long)raster.Width * raster.Height, 1, 5_000_000);
@@ -94,11 +94,11 @@ public sealed class PdfPrintRendererTests {
         stripe.FillColor = OfficeColor.Black;
         stripe.StrokeWidth = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 72, PageHeight = 72, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
+            PageWidth = global::OfficeIMO.OfficeLength.Points(72), PageHeight = global::OfficeIMO.OfficeLength.Points(72), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
         })
-            .Canvas(canvas => canvas.Shape(stripe, 30, 0));
+            .Canvas(canvas => canvas.Shape(stripe, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(0)));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document,
-            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(720, 720), Margin = 0, ScaleMode = mode },
+            new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(720),OfficeIMO.OfficeLength.Points(720)), Margin = 0, ScaleMode = mode },
             new PdfPrintRenderOptions { Dpi = 72, MaximumPixelsPerImage = 1_000_000 });
         OfficeRasterImage raster = Assert.Single(prepared.Sheets).Decode(CancellationToken.None);
         int darkPixels = Enumerable.Range(0, raster.Width).Count(x => raster.GetPixel(x, raster.Height / 2).R < 128);
@@ -107,7 +107,7 @@ public sealed class PdfPrintRendererTests {
 
     [Fact]
     public void HighResolutionSheetsDecodeAtTheirPreparedDimensions() {
-        PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(200, 300)));
+        PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300))));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document,
             new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = PdfPageSizes.A3 },
             new PdfPrintRenderOptions { Dpi = 300, MaximumPixelsPerImage = 18_000_000 });
@@ -131,7 +131,7 @@ public sealed class PdfPrintRendererTests {
             PaperSize = PdfPageSizes.A4, Pages = "1", Orientation = PdfPrintOrientation.Landscape
         });
         Assert.Single(prepared.Sheets);
-        Assert.True(prepared.Sheets[0].Plan.PaperSize.Width > prepared.Sheets[0].Plan.PaperSize.Height);
+        Assert.True(prepared.Sheets[0].Plan.PaperSize.Width.ToPoints() > prepared.Sheets[0].Plan.PaperSize.Height.ToPoints());
         Assert.True(OfficeImageReader.TryValidateContent(prepared.Sheets[0].GetPng(), "sheet.png", out var image));
         Assert.True(image.Width > image.Height);
         Assert.Equal(bytes, document.ToBytes());
@@ -144,7 +144,7 @@ public sealed class PdfPrintRendererTests {
     [InlineData(2)]
     public void PreparationRejectsExceededResourceBudgets(int budget) {
         PdfDocument document = PdfDocument.Create(c => {
-            c.Page(p => p.Size(200, 300)); c.Page(p => p.Size(200, 300));
+            c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300))); c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)));
         });
         var limits = new PdfPrintRenderOptions();
         if (budget == 0) limits.MaximumPages = 1;
@@ -157,7 +157,7 @@ public sealed class PdfPrintRendererTests {
 
     [Fact]
     public void CancelledPreparationDoesNotRenderSheets() {
-        PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(200, 300)));
+        PdfDocument document = PdfDocument.Create(c => c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300))));
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         Assert.ThrowsAny<OperationCanceledException>(() => PdfPrintRenderer.Prepare(document,

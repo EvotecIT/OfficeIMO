@@ -78,7 +78,7 @@ public sealed partial class PowerPointSlideEditWorkflowTests {
             Assert.False(shell.HadErrors, Errors(shell));
             Assert.Same(document.Slides[0], Assert.Single(result).BaseObject);
             using var input = new MemoryStream(document.ToBytes());
-            using var reopened = PowerPointPresentation.Load(input);
+            using var reopened = PowerPointDocument.Load(input);
             Assert.Equal(PowerPointSlideBackgroundKind.Image, reopened.Slides[0].GetBackground().Kind);
             Assert.Equal(bytes, reopened.Slides[0].GetBackground().ImageBytes);
             Assert.NotEqual(PowerPointSlideBackgroundKind.Image, reopened.Slides[1].GetBackground().Kind);
@@ -100,8 +100,8 @@ public sealed partial class PowerPointSlideEditWorkflowTests {
         Assert.Equal(PowerPointSlideTransition.Fade, document.Slides[0].Transition);
     }
 
-    private static PowerPointPresentation Create() {
-        var document = PowerPointPresentation.Create(options: new PowerPointCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.Explicit });
+    private static PowerPointDocument Create() {
+        var document = PowerPointDocument.Create(options: new PowerPointCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.Explicit });
         document.AddSlide().AddTitle("First"); document.AddSlide().AddTitle("Second");
         return document;
     }

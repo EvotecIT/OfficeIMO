@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                 compressed ? "Compressed linked OLE" : "Linked OLE");
             byte[] sourceBytes = CreateExternalObjectFixture(storageBytes,
                 ExternalObjectFixtureKind.LinkedOle, compressed);
-            LegacyPptPresentation source = LegacyPptPresentation.Load(
+            LegacyPptDocument source = LegacyPptDocument.Load(
                 sourceBytes);
 
             LegacyPptLinkedOleObject linked = Assert.Single(
@@ -63,8 +63,8 @@ namespace OfficeIMO.Tests {
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(input)) {
                 PowerPointTextBox textBox = Assert.Single(
                     imported.Slides[0].TextBoxes, item =>
                         item.Text == "Editable companion");
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
                 compressed ? "Compressed ActiveX" : "ActiveX");
             byte[] sourceBytes = CreateExternalObjectFixture(storageBytes,
                 ExternalObjectFixtureKind.ActiveX, compressed);
-            LegacyPptPresentation source = LegacyPptPresentation.Load(
+            LegacyPptDocument source = LegacyPptDocument.Load(
                 sourceBytes);
 
             LegacyPptActiveXControl control = Assert.Single(
@@ -138,8 +138,8 @@ namespace OfficeIMO.Tests {
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(input)) {
                 PowerPointTextBox textBox = Assert.Single(
                     imported.Slides[0].TextBoxes, item =>
                         item.Text == "Editable companion");
@@ -206,7 +206,7 @@ namespace OfficeIMO.Tests {
                 ExternalObjectFixtureKind.LinkedOle, compressed: false,
                 linkedUpdateMode: 99);
 
-            LegacyPptPresentation neutral = LegacyPptPresentation.Load(
+            LegacyPptDocument neutral = LegacyPptDocument.Load(
                 sourceBytes);
             Assert.Empty(neutral.LinkedOleObjects);
             Assert.Contains(neutral.Diagnostics, diagnostic =>
@@ -216,8 +216,8 @@ namespace OfficeIMO.Tests {
             Assert.True(neutral.CreateImportReport().HasConversionLoss);
 
             using var input = new MemoryStream(sourceBytes);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             Assert.Contains(projected.LegacyPptImportDiagnostics,
                 diagnostic => diagnostic.Code ==
                     "ppt-ole-link-identity");
@@ -234,10 +234,10 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertExternalObjectPreserved(
-            LegacyPptPresentation source, byte[] savedBytes,
+            LegacyPptDocument source, byte[] savedBytes,
             uint persistId, byte[] storageBytes,
             ExternalObjectFixtureKind kind, bool compressed) {
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             byte[] savedStorage;
             bool savedCompressed;
@@ -268,8 +268,8 @@ namespace OfficeIMO.Tests {
             byte[] storageBytes, ExternalObjectFixtureKind kind,
             bool compressed, uint linkedUpdateMode = 3) {
             byte[] embeddedBytes;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = created.AddSlide();
                 slide.AddTextBox("Editable companion");
                 using var storage = new MemoryStream(storageBytes,
@@ -289,7 +289,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes, ExternalObjectFixtureKind kind,
             uint linkedUpdateMode, uint embeddedSoundId = 0,
             ushort mediaFlags = 0) {
-            LegacyPptPresentation source = LegacyPptPresentation.Load(
+            LegacyPptDocument source = LegacyPptDocument.Load(
                 sourceBytes);
             LegacyPptPersistObject documentPersist = source.Package
                 .PersistObjects[source.Package.DocumentPersistId];

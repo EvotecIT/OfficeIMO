@@ -1081,14 +1081,14 @@ public sealed class OfficeWorkflowRunnerTests {
             case "xlsx-pdf": {
                 string path = System.IO.Path.Combine(root, "source.xlsx");
                 using ExcelDocument document = ExcelDocument.Create(path);
-                document.AddWorksheet("Data").Cell(1, 1, "OfficeIMO workflow Excel source");
+                document.AddSheet("Data").Cell(1, 1, "OfficeIMO workflow Excel source");
                 document.Save();
                 return path;
             }
             case "pptx-pdf": {
                 string path = System.IO.Path.Combine(root, "source.pptx");
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
-                presentation.AddSlide().AddTextBoxPoints("OfficeIMO workflow PowerPoint source", 40, 40, 500, 60);
+                using PowerPointDocument presentation = PowerPointDocument.Create(path);
+                presentation.AddSlide().AddTextBox("OfficeIMO workflow PowerPoint source",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(60));
                 presentation.Save();
                 return path;
             }

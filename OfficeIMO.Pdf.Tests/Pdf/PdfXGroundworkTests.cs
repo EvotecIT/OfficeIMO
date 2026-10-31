@@ -27,7 +27,7 @@ public class PdfXGroundworkTests {
                 "FOGRA51",
                 PdfTrappingStatus.False);
         options.CompressContentStreams = false;
-        options.BackgroundColor = PdfColor.Gray;
+        options.BackgroundColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
         byte[] pdf = PdfDocument.Create(options)
             .Meta(title: "PDF/X-4 groundwork", author: "OfficeIMO")
@@ -107,14 +107,14 @@ public class PdfXGroundworkTests {
                 "CMYK reviewer note",
                 width: 140,
                 height: 44,
-                textColor: new PdfColor(0.15D, 0.35D, 0.75D),
-                borderColor: new PdfColor(0.8D, 0.2D, 0.1D),
-                fillColor: new PdfColor(0.9D, 0.95D, 1D))
+                textColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.15D, 0.35D, 0.75D),
+                borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8D, 0.2D, 0.1D),
+                fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D))
             .HighlightAnnotation(
                 "CMYK highlight",
                 width: 120,
                 height: 14,
-                color: new PdfColor(1D, 0.9D, 0.1D))
+                color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D))
             .ToBytes();
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
@@ -314,16 +314,16 @@ public class PdfXGroundworkTests {
     [Fact]
     public void PrintProductionPageBoxesRequireBleedToContainTrim() {
         Assert.Throws<ArgumentException>(() => new PdfPrintProductionPageBoxes(
-            PdfPageMargins.Uniform(3D),
-            PdfPageMargins.Uniform(6D)));
+            PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(3D)),
+            PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(6D))));
 
         var options = new PdfCreateOptions {
-            PageWidth = 100D,
-            PageHeight = 100D,
-            Margins = PdfPageMargins.Uniform(0D),
+            PageWidth = global::OfficeIMO.OfficeLength.Points(100D),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(100D),
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D)),
             PrintProductionPageBoxes = new PdfPrintProductionPageBoxes(
-                new PdfPageMargins(60D, 0D, 40D, 0D),
-                PdfPageMargins.Uniform(0D))
+                new PdfPageMargins(OfficeIMO.OfficeLength.Points(60D),OfficeIMO.OfficeLength.Points(0D),OfficeIMO.OfficeLength.Points(40D),OfficeIMO.OfficeLength.Points(0D)),
+                PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D)))
         };
 
         Assert.Throws<InvalidOperationException>(() => PdfDocument.Create(options)
@@ -334,8 +334,8 @@ public class PdfXGroundworkTests {
     [Fact]
     public void PrintProductionPageBoxesUseTheMediaBoxPrecision() {
         var options = new PdfCreateOptions {
-            PageWidth = 595.276D,
-            PageHeight = 841.89D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(595.276D),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(841.89D)
         }.ConfigurePdfXGroundwork(
             PdfComplianceProfile.PdfX4,
             IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -394,7 +394,7 @@ public class PdfXGroundworkTests {
                 "FOGRA51");
         options.CompressContentStreams = false;
         options.ConvertVectorColorsToPdfXPrintCondition = false;
-        options.BackgroundColor = PdfColor.Gray;
+        options.BackgroundColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
         byte[] pdf = PdfDocument.Create(options)
             .Image(PdfPngTestImages.CreateRgbPng(12, 34, 56), 12, 12)

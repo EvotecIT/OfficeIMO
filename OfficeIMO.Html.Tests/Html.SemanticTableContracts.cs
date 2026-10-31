@@ -13,7 +13,7 @@ public sealed class HtmlSemanticTableContractTests {
             new OfficeIMO.Excel.Html.HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using var excel = excelResult.RequireValue();
         Assert.Contains(excelResult.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TableSpanInvalid);
-        var slideResult = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointPresentationResult(source,
+        var slideResult = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointDocumentResult(source,
             new OfficeIMO.PowerPoint.Html.HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using var slides = slideResult.RequireValue();
         Assert.Contains(slideResult.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TableSpanInvalid);
@@ -42,7 +42,7 @@ public sealed class HtmlSemanticTableContractTests {
             new OfficeIMO.Excel.Html.HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         Assert.Equal("A1:A2", Assert.Single(excel.Sheets[0].GetMergedRanges()).A1Range);
         Assert.Equal("Next", excel.Sheets[0].CellAt(3, 1).GetValue<string>());
-        using var slides = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointPresentation(source,
+        using var slides = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointDocument(source,
             new OfficeIMO.PowerPoint.Html.HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         Assert.Equal("Next", Assert.Single(slides.Slides.SelectMany(slide => slide.Tables)).GetCell(2, 0).Text);
     }

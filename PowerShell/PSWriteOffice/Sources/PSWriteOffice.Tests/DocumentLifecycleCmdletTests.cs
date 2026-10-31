@@ -28,7 +28,7 @@ public sealed class DocumentLifecycleCmdletTests {
                 source.Save(template);
             } else {
                 using var source = ExcelDocument.Create();
-                source.AddWorksheet("Data").CellValue(1, 1, "Template content");
+                source.AddSheet("Data").CellValue(1, 1, "Template content");
                 source.Save(template);
             }
             byte[] sourceBytes = File.ReadAllBytes(template);
@@ -193,7 +193,7 @@ public sealed class DocumentLifecycleCmdletTests {
             string copy = Path.Combine(directory, "copy.xlsx");
             string plain = Path.Combine(directory, "plain.xlsx");
             using (var source = ExcelDocument.Create()) {
-                source.AddWorksheet("Data").CellValue(1, 1, "Original");
+                source.AddSheet("Data").CellValue(1, 1, "Original");
                 source.Save(path, new ExcelSaveOptions { Password = "test-secret" });
             }
             byte[] original = File.ReadAllBytes(path);
@@ -269,7 +269,7 @@ public sealed class DocumentLifecycleCmdletTests {
             using var implicitDocument = ExcelDocument.Create(implicitPath, new ExcelCreateOptions {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             });
-            implicitDocument.AddWorksheet("Data").CellValue(1, 1, "Original");
+            implicitDocument.AddSheet("Data").CellValue(1, 1, "Original");
             implicitDocument.Save();
             byte[] beforeClose = File.ReadAllBytes(implicitPath);
             implicitDocument.Sheets[0].CellValue(1, 1, "Do not publish implicitly");

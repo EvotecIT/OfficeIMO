@@ -187,7 +187,7 @@ public sealed class StudioExtractionPreviewTests {
         }, CancellationToken.None);
     }
     private static PdfDocument CreatePdf() => PdfDocument.Create(document => {
-        for (int index = 0; index < 3; index++) { int width = 200 + index * 10; document.Page(page => page.Size(width, 300)); }
+        for (int index = 0; index < 3; index++) { int width = 200 + index * 10; document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(300))); }
     });
     private static async Task Layout(Window window) { window.UpdateLayout(); await Task.Delay(30); window.UpdateLayout(); }
     private static void Click(Window window, string label) {

@@ -41,7 +41,7 @@ public sealed class WordMarkdownOutputAcceptanceTests {
     [Fact]
     public void SilentUnsupportedContentPolicyStillReportsOmission() {
         using var word = WordDocument.Create();
-        word.AddShape(WordShapeType.Rectangle, 60, 30);
+        word.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
         var warnings = new List<string>();
         var options = new WordMarkdownExportOptions { UnsupportedContentMode = WordMarkdownUnsupportedContentMode.Omit, OnWarning = warnings.Add };
         using var markdown = word.ToMarkdown(options, out var report);
@@ -59,7 +59,7 @@ public sealed class WordMarkdownOutputAcceptanceTests {
             using var word = WordDocument.Create(); word.AddHeadersAndFooters();
             word.Header!.Default!.AddParagraph("Omitted running content");
             byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
-            using (var source = new MemoryStream(png)) word.AddParagraph().AddImage(source, "embedded.png", width: 32, height: 32);
+            using (var source = new MemoryStream(png)) word.AddParagraph().AddImage(source, "embedded.png", width: OfficeIMO.OfficeLength.Pixels(32), height: OfficeIMO.OfficeLength.Pixels(32));
             string output = Path.Combine(directory, "report.md"), images = Path.Combine(directory, "images");
             File.WriteAllText(output, "original markdown");
             Assert.Throws<OfficeConversionException>(() => word.SaveAsMarkdown(output, new WordMarkdownExportOptions {
@@ -77,7 +77,7 @@ public sealed class WordMarkdownOutputAcceptanceTests {
         Directory.CreateDirectory(directory);
         try {
             using var word = WordDocument.Create();
-            var chart = word.AddChart("Chart", width: 400, height: 240);
+            var chart = word.AddChart("Chart",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new List<string> { "Q1", "Q2" });
             chart.AddBar("Series", new List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
             string output = Path.Combine(directory, "report.md"), assets = Path.Combine(directory, "report.assets");

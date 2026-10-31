@@ -23,7 +23,7 @@ namespace OfficeIMO.Word.Pdf {
             bool usesAutoFitLayout = ShouldUseNativeAutoFitTableLayout(
                 table._table.GetFirstChild<W.TableProperties>(), tableStyleDefaults);
             var rows = new List<PdfCore.PdfTableCell[]>();
-            var cellFills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+            var cellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
             var directCellBorders = new Dictionary<(int Row, int Column), WordTableCellBorder>();
             var cellPaddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
             var cellAlignments = new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>();
@@ -94,14 +94,14 @@ namespace OfficeIMO.Word.Pdf {
                         images: embeddedContent.Images.Count == 0 ? null : embeddedContent.Images,
                         // Word no-wrap changes automatic sizing. Fixed-layout tables and
                         // cells with absolute preferred widths still wrap their content.
-                        noWrap: usesAutoFitLayout && TablePreferredWidth.CanDisableCellWrapping(cell) && !cell.WrapText,
+                        noWrap: usesAutoFitLayout && WordTableWidthNative.CanDisableCellWrapping(cell) && !cell.WrapText,
                         textRotation: GetNativeCellTextRotation(cell.TextDirection),
                         blocks: cellText.Blocks) {
                         OrientedRowTextHeight = GetNativeOrientedCellMarkHeight(cell, cellText.Runs, embeddedContent,
                             nativeDefaults, cellStyleDefaults, nativeFontMap)
                     });
 
-                    PdfCore.PdfColor? fill =
+                    global::OfficeIMO.OfficeColor? fill =
                         ParseNativeColor(cell.ShadingFillColorHex) ??
                         cellStyleDefaults.CellFill;
                     if (fill.HasValue) {
@@ -154,7 +154,7 @@ namespace OfficeIMO.Word.Pdf {
                     style.Position = CreateNativeTablePosition(tablePosition,
                         table._tableProperties?.GetFirstChild<W.TableOverlap>()?.Val?.Value != W.TableOverlapValues.Never);
                     // tblpX is a placement coordinate, not a width reservation.
-                    style.LeftIndent = 0;
+                    style.LeftIndent = global::OfficeIMO.OfficeLength.Points(0);
                 }
             }
             if (cellFills.Count > 0) {

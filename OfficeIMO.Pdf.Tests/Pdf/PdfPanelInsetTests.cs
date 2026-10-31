@@ -11,19 +11,19 @@ public class PdfPanelInsetTests {
     [InlineData(false, 18D, PdfAlign.Right, 164D)]
     public void InsetsPlaceTheWholeFrameAndSurvivePageContinuation(bool row, double left, PdfAlign align, double expectedX) {
         using PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 160, MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20
+            PageWidth = OfficeLength.Points(300), PageHeight = OfficeLength.Points(160), MarginLeft = OfficeLength.Points(20), MarginRight = OfficeLength.Points(20), MarginTop = OfficeLength.Points(20), MarginBottom = OfficeLength.Points(20)
         });
         var style = new PdfPanelStyle {
             LeftInset = OfficeLength.Points(left), RightInset = OfficeLength.Points(16),
-            MaxWidth = align == PdfAlign.Right ? 100 : null, Align = align,
-            PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0,
-            BorderColor = PdfColor.Black, BorderWidth = 1
+            MaxWidth = align == PdfAlign.Right ? OfficeLength.Points(100) : null, Align = align,
+            PaddingX = OfficeLength.Points(0), PaddingY = OfficeLength.Points(0), SpacingBefore = OfficeLength.Points(0), SpacingAfter = OfficeLength.Points(0),
+            BorderColor = OfficeColor.Black, BorderWidth = OfficeLength.Points(1)
         };
         void Compose(PdfContentBuilder content) => content.Panel(panel => panel.Paragraph(
             p => p.Text(string.Join("\n", Enumerable.Range(1, 15).Select(i => $"Marker{i:D3}"))),
-            style: new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(20), SpacingAfter = 0, WidowControl = false }), style);
+            style: new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(OfficeLength.Points(20)), SpacingAfter = OfficeLength.Points(0), WidowControl = false }), style);
         if (row) document.Row(columns => columns.RelativeColumn(Compose));
-        else document.Panel(panel => Compose(panel), new PdfPanelStyle { PaddingX = 0, PaddingY = 0, BorderWidth = 0 });
+        else document.Panel(panel => Compose(panel), new PdfPanelStyle { PaddingX = OfficeLength.Points(0), PaddingY = OfficeLength.Points(0), BorderWidth = OfficeLength.Points(0) });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToBytes());
 
         Assert.True(pdf.NumberOfPages > 1);

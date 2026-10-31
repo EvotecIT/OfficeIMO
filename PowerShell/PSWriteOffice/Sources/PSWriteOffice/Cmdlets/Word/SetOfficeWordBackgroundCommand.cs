@@ -70,7 +70,7 @@ public sealed class SetOfficeWordBackgroundCommand : PSCmdlet
         if (ParameterSetName == ParameterSetImage)
         {
             var resolvedPath = ResolvePath(ImagePath);
-            document.Background.SetImage(resolvedPath, Width, Height);
+            document.Background.SetImage(resolvedPath, Width.HasValue ? global::OfficeIMO.OfficeLength.Pixels(Width.Value) : null, Height.HasValue ? global::OfficeIMO.OfficeLength.Pixels(Height.Value) : null);
         }
         else
         {

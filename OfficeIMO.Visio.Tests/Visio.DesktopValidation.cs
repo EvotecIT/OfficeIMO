@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
                 string blankPdf = Path.Combine(directory, "blank.pdf");
                 File.WriteAllBytes(blankPdf, PdfCore.PdfDocument.Create(document => document
                     .Content(content => content.Paragraph(paragraph => paragraph
-                        .Color(PdfCore.PdfColor.White)
+                        .Color(global::OfficeIMO.OfficeColor.White)
                         .Text("Invisible"))))
                     .ToBytes());
                 Assert.False(VisioDesktopBaselineValidator.ValidateOutputFile(

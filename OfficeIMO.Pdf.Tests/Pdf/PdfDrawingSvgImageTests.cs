@@ -18,9 +18,9 @@ public sealed class PdfDrawingSvgImageTests {
         for (int y = 0; y < 20; y++)
             for (int x = 20; x < 40; x++) pixels.SetPixel(x, y, OfficeColor.Blue);
         byte[] raster = OfficePngWriter.Encode(pixels);
-        byte[] Export(byte[] bytes) => PdfDocument.Create(new PdfCreateOptions { PageWidth = 120, PageHeight = 120,
-            MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0 }).Canvas(canvas =>
-                canvas.Image(bytes, 30, 40, 60, 30, new PdfImageStyle { Fit = fit,
+        byte[] Export(byte[] bytes) => PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(120), PageHeight = global::OfficeIMO.OfficeLength.Points(120),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0) }).Canvas(canvas =>
+                canvas.Image(bytes, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), new PdfImageStyle { Fit = fit,
                     SourceCrop = new PdfImageSourceCrop(.25D, 0D, 0D, 0D) },
                     rotationAngle: rotation, horizontalFlip: flip)).ToBytes();
         byte[] pdf = Export(svg);
@@ -46,7 +46,7 @@ public sealed class PdfDrawingSvgImageTests {
             canvas.ForegroundImage(svg, 0, 0, 40, 20);
             OfficeShape cover = OfficeShape.Rectangle(40, 20);
             cover.FillColor = OfficeColor.Blue;
-            canvas.Shape(cover, 0, 0);
+            canvas.Shape(cover, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
         }).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), background: OfficeColor.White);
@@ -121,6 +121,6 @@ public sealed class PdfDrawingSvgImageTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(30, 10));
     }
 
-    private static PdfCreateOptions Options() => new PdfCreateOptions { PageWidth = 40D, PageHeight = 30D,
-        MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D };
+    private static PdfCreateOptions Options() => new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(40D), PageHeight = global::OfficeIMO.OfficeLength.Points(30D),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D) };
 }

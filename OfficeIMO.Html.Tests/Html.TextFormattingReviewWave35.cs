@@ -59,9 +59,9 @@ public sealed class HtmlTextFormattingReviewWave35Tests {
             </section>
             """;
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ToPowerPointDocumentResult()
             .RequireValue();
         PowerPointTextBox[] boxes = Assert.Single(imported.Slides).TextBoxes.ToArray();
 

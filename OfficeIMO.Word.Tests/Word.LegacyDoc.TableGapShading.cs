@@ -39,7 +39,7 @@ public partial class Word {
     public void LegacyDoc_TableGapShading_EffectiveOverridesPermitSupportedSave(string mode) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateNativeGapShadingTable(document, "inherited");
-        if (mode == "zero-spacing") table.StyleDetails!.CellSpacing = 0;
+        if (mode == "zero-spacing") table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
         else {
             Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
             var properties = mode == "zero-style-spacing"
@@ -51,7 +51,7 @@ public partial class Word {
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal("Supported cells", restored.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
-        Assert.Equal(mode.Contains("spacing") ? (short)0 : (short)120, restored.Tables[0].StyleDetails!.CellSpacing);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points((mode.Contains("spacing") ? (short)0 : (short)120) / 20D), restored.Tables[0].StyleDetails!.CellSpacing);
     }
 
     [Theory]
@@ -61,7 +61,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Conditional gap";
-        table.StyleDetails!.CellSpacing = 120;
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
         table._tableProperties!.TableLook = new TableLook { FirstRow = active };
         Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         Style grid = styles.Elements<Style>().Single(s => s.StyleId?.Value == "TableGrid");
@@ -71,7 +71,7 @@ public partial class Word {
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal("Conditional gap", restored.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
-        Assert.Equal((short)120, restored.Tables[0].StyleDetails!.CellSpacing);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(6), restored.Tables[0].StyleDetails!.CellSpacing);
     }
 
     [Theory]
@@ -82,7 +82,7 @@ public partial class Word {
             ? TableStyleOverrideValues.NorthWestCell : TableStyleOverrideValues.FirstRow;
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-        table.StyleDetails!.CellSpacing = 120;
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
         table._tableProperties!.TableLook = new TableLook { FirstRow = true, FirstColumn = true };
         Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Elements<Style>().Single(s => s.StyleId?.Value == "TableGrid").Append(
@@ -95,7 +95,7 @@ public partial class Word {
         });
         table._tableProperties.TableStyle = new TableStyle { Val = "GapClear" };
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        Assert.Equal((short)120, restored.Tables[0].StyleDetails!.CellSpacing);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(6), restored.Tables[0].StyleDetails!.CellSpacing);
         Assert.Equal(string.Empty, restored.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
     }
 
@@ -107,7 +107,7 @@ public partial class Word {
         if (mode == "direct-shading") table._tableProperties!.Append(
             new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" });
         else properties.Shading = new Shading { Val = ShadingPatternValues.Clear, Fill = "FF0000" };
-        if (mode is "direct-spacing" or "direct-shading") table.StyleDetails!.CellSpacing = 120;
+        if (mode is "direct-spacing" or "direct-shading") table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
         else properties.Append(new TableCellSpacing { Width = "120", Type = TableWidthUnitValues.Dxa });
         if (mode == "inherited") {
             styles.Append(new Style(new StyleName { Val = "Gap Child" }, new BasedOn { Val = "TableGrid" }) {

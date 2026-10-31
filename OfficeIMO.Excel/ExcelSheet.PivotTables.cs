@@ -125,77 +125,6 @@ namespace OfficeIMO.Excel {
         /// <param name="showEmptyRows">Whether to show empty rows.</param>
         /// <param name="showEmptyColumns">Whether to show empty columns.</param>
         /// <param name="showDrill">Whether to show drill indicators.</param>
-        public void AddPivotTable(
-            string sourceRange,
-            string destinationCell,
-            string? name,
-            IEnumerable<string>? rowFields,
-            IEnumerable<string>? columnFields,
-            IEnumerable<string>? pageFields,
-            IEnumerable<ExcelPivotDataField>? dataFields,
-            bool showRowGrandTotals,
-            bool showColumnGrandTotals,
-            string? pivotStyleName,
-            ExcelPivotLayout layout,
-            bool? dataOnRows,
-            bool? showHeaders,
-            bool? showEmptyRows,
-            bool? showEmptyColumns,
-            bool? showDrill) {
-            AddPivotTable(
-                sourceRange,
-                destinationCell,
-                name,
-                rowFields,
-                columnFields,
-                pageFields,
-                dataFields,
-                showRowGrandTotals,
-                showColumnGrandTotals,
-                pivotStyleName,
-                layout,
-                dataOnRows,
-                showHeaders,
-                showEmptyRows,
-                showEmptyColumns,
-                showDrill,
-                fieldOptions: null,
-                rowHeaderCaption: null,
-                columnHeaderCaption: null,
-                grandTotalCaption: null,
-                missingCaption: null,
-                errorCaption: null,
-                showDataDropDown: null,
-                showDropZones: null,
-                showDataTips: null,
-                showMemberPropertyTips: null,
-                fieldListSortAscending: null,
-                customListSort: null,
-                pivotFilters: null,
-                calculatedFields: null,
-                groupings: null,
-                options: null);
-        }
-
-        /// <summary>
-        /// Adds a basic pivot table based on a source range and places it at a destination cell.
-        /// </summary>
-        /// <param name="sourceRange">Source data range (including header row), e.g. "A1:D100".</param>
-        /// <param name="destinationCell">Top-left cell for the pivot table (e.g. "F2").</param>
-        /// <param name="name">Optional pivot table name. Defaults to "PivotTable1" style.</param>
-        /// <param name="rowFields">Optional row fields (header names).</param>
-        /// <param name="columnFields">Optional column fields (header names).</param>
-        /// <param name="pageFields">Optional page fields (header names) used as filters.</param>
-        /// <param name="dataFields">Optional data field definitions. Defaults to last column with Sum.</param>
-        /// <param name="showRowGrandTotals">Show row grand totals.</param>
-        /// <param name="showColumnGrandTotals">Show column grand totals.</param>
-        /// <param name="pivotStyleName">Optional pivot table style name.</param>
-        /// <param name="layout">Layout mode (Compact, Outline, Tabular).</param>
-        /// <param name="dataOnRows">Whether to show data fields on rows instead of columns.</param>
-        /// <param name="showHeaders">Whether to show field headers.</param>
-        /// <param name="showEmptyRows">Whether to show empty rows.</param>
-        /// <param name="showEmptyColumns">Whether to show empty columns.</param>
-        /// <param name="showDrill">Whether to show drill indicators.</param>
         /// <param name="fieldOptions">Optional formatting and display options for source fields.</param>
         /// <param name="rowHeaderCaption">Optional row header caption.</param>
         /// <param name="columnHeaderCaption">Optional column header caption.</param>
@@ -212,7 +141,7 @@ namespace OfficeIMO.Excel {
         /// <param name="calculatedFields">Optional formula-backed pivot cache fields.</param>
         /// <param name="groupings">Optional date or numeric grouping metadata.</param>
         /// <param name="options">Optional pivot layout, cache and workbook-interaction settings.</param>
-        public void AddPivotTable(
+        private ExcelPivotTable AddPivotTableCore(
             string sourceRange,
             string destinationCell,
             string? name = null,
@@ -245,6 +174,7 @@ namespace OfficeIMO.Excel {
             IEnumerable<ExcelPivotCalculatedField>? calculatedFields = null,
             IEnumerable<ExcelPivotGrouping>? groupings = null,
             ExcelPivotTableOptions? options = null) {
+            ExcelPivotTable? created = null;
             int? valuesAxisPosition = options?.ValuesAxisPosition;
             if (string.IsNullOrWhiteSpace(sourceRange)) throw new ArgumentNullException(nameof(sourceRange));
             if (string.IsNullOrWhiteSpace(destinationCell)) throw new ArgumentNullException(nameof(destinationCell));
@@ -648,8 +578,10 @@ namespace OfficeIMO.Excel {
                 if (options?.EnableDrill.HasValue == true) pivotDefinition.EnableDrill = options.EnableDrill.Value;
 
                 pivotPart.PivotTableDefinition = pivotDefinition;
+                created = new ExcelPivotTable(this, pivotPart, sourceRange, destinationCell);
                 ReportPivotTiming("AddPivotTable.BuildAndSavePivotDefinition");
             });
+            return created!;
         }
 
         private static int ResolveFieldIndex(string field, IDictionary<string, int> headerIndex, string paramName) {

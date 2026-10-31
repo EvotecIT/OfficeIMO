@@ -170,7 +170,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         int lines = (int)Math.Floor(fillerHeight / Line);
         WordParagraph? last = null;
         for (int index = 0; index < lines; index++) Configure(last = word.AddParagraph(), "FILL" + index);
-        if (last != null) last.LineSpacingAfterPoints = fillerHeight - lines * Line;
+        if (last != null) last.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(fillerHeight - lines * Line);
         var anchor = word.AddParagraph();
         Configure(anchor, "ANCHOR WORD TWO");
         anchor.KeepWithNext = true;
@@ -184,20 +184,19 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         var word = WordDocument.Create();
         word.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         var section = word.Sections[0];
-        section.PageSettings.Width = 4800; section.PageSettings.Height = 6000;
-        section.Margins.Left = section.Margins.Right = 600;
-        section.Margins.Top = section.Margins.Bottom = 600;
-        section.Margins.HeaderDistance = section.Margins.FooterDistance = 360;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D); section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
+        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
+        section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
         return word;
     }
 
     private static void Configure(WordParagraph paragraph, string text) {
         paragraph.Text = text;
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        paragraph.FontSize = 12;
-        paragraph.LineSpacingPoints = Line;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0D;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(Line));
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.AvoidWidowAndOrphan = false;
     }
 
@@ -205,11 +204,11 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         double distance = Distance, double verticalOffset = 0D) {
         byte[] png = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(2, 2, OfficeColor.Black), OfficeImageExportFormat.Png);
         using var stream = new MemoryStream(png);
-        var image = paragraph.AddText(string.Empty).InsertImage(stream, "picture.png", ImageWidth / .75D, ImageHeight / .75D, wrapping);
+        var image = paragraph.AddText(string.Empty).AddImage(stream, "picture.png", OfficeIMO.OfficeLength.Pixels(ImageWidth / .75D), OfficeIMO.OfficeLength.Pixels(ImageHeight / .75D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-        image.HorizontalPositionOffset = 30L * 12700L;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(30L * 12700L);
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
-        image.VerticalPositionOffset = (long)(verticalOffset * 12700D);
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus((long)(verticalOffset * 12700D));
         var main = word.OpenXmlDocument!.MainDocumentPart!;
         var anchor = main.Document!.Descendants<DW.Anchor>()
             .Concat(main.HeaderParts.SelectMany(part => part.Header!.Descendants<DW.Anchor>())).Single();

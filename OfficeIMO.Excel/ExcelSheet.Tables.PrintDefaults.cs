@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel {
 
             if (lastColumn == 0) return 0D;
             IReadOnlyList<ExcelColumnInfo> columns = GetColumnDefinitions();
-            double defaultWidth = DefaultColumnWidth is double configured && configured > 0D ? configured : 8.43D;
+            double defaultWidth = DefaultColumnWidth is ExcelColumnWidth configured && configured.ToCharacters(this) > 0D ? configured.ToCharacters(this) : 8.43D;
             double width = 0D;
             for (int column = 1; column <= lastColumn; column++) {
                 double characters = defaultWidth;
@@ -78,7 +78,7 @@ namespace OfficeIMO.Excel {
                     ExcelColumnInfo definition = columns[index];
                     if (column < definition.StartIndex || column > definition.EndIndex) continue;
                     hidden = definition.Hidden;
-                    if (definition.Width is double custom && custom > 0D) characters = custom;
+                    if (definition.Width is ExcelColumnWidth custom && custom.ToCharacters(this) > 0D) characters = custom.ToCharacters(this);
                     break;
                 }
 

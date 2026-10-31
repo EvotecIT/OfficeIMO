@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
                 var title = document.AddParagraph("Table Styles with Twips and Centimeters");
                 title.ParagraphAlignment = WordParagraphAlignment.Center;
                 title.Bold = true;
-                title.FontSize = 16;
+                title.FontSize = global::OfficeIMO.OfficeLength.Points(16);
                 document.AddParagraph();
 
                 // Example 1: Using Twips (Original Method)
@@ -29,15 +29,15 @@ namespace OfficeIMO.Examples.Word {
 
                 // Set margins using twips
                 var styleDetails1 = Guard.NotNull(wordTable1.StyleDetails, "Table style details should be available.");
-                styleDetails1.MarginDefaultTopWidth = 110;
-                styleDetails1.MarginDefaultBottomWidth = 110;
-                styleDetails1.MarginDefaultLeftWidth = 110;
-                styleDetails1.MarginDefaultRightWidth = 110;
-                styleDetails1.CellSpacing = 50;
+                styleDetails1.MarginDefaultTop = global::OfficeIMO.OfficeLength.Points(5.5);
+                styleDetails1.MarginDefaultBottom = global::OfficeIMO.OfficeLength.Points(5.5);
+                styleDetails1.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points(5.5);
+                styleDetails1.MarginDefaultRight = global::OfficeIMO.OfficeLength.Points(5.5);
+                styleDetails1.CellSpacing = global::OfficeIMO.OfficeLength.Points(2.5);
 
                 Console.WriteLine("\nFirst table (Twips):");
-                Console.WriteLine("Table MarginDefaultTopWidth: " + styleDetails1.MarginDefaultTopWidth);
-                Console.WriteLine("Table MarginDefaultTopCentimeters: " + styleDetails1.MarginDefaultTopCentimeters);
+                Console.WriteLine("Table MarginDefaultTop: " + styleDetails1.MarginDefaultTop);
+                Console.WriteLine("Table top margin (cm): " + styleDetails1.MarginDefaultTop?.ToCentimeters());
 
                 document.AddParagraph();
 
@@ -53,15 +53,15 @@ namespace OfficeIMO.Examples.Word {
 
                 // Set margins using centimeters
                 var styleDetails2 = Guard.NotNull(wordTable2.StyleDetails, "Table style details should be available.");
-                styleDetails2.MarginDefaultTopCentimeters = 0.2;
-                styleDetails2.MarginDefaultBottomCentimeters = 0.2;
-                styleDetails2.MarginDefaultLeftCentimeters = 0.2;
-                styleDetails2.MarginDefaultRightCentimeters = 0.2;
-                styleDetails2.CellSpacingCentimeters = 0.1;
+                styleDetails2.MarginDefaultTop = global::OfficeIMO.OfficeLength.Centimeters(0.2);
+                styleDetails2.MarginDefaultBottom = global::OfficeIMO.OfficeLength.Centimeters(0.2);
+                styleDetails2.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Centimeters(0.2);
+                styleDetails2.MarginDefaultRight = global::OfficeIMO.OfficeLength.Centimeters(0.2);
+                styleDetails2.CellSpacing = global::OfficeIMO.OfficeLength.Centimeters(0.1);
 
                 Console.WriteLine("\nSecond table (Centimeters):");
-                Console.WriteLine("Table MarginDefaultTopCentimeters: " + styleDetails2.MarginDefaultTopCentimeters);
-                Console.WriteLine("Table MarginDefaultTopWidth: " + styleDetails2.MarginDefaultTopWidth);
+                Console.WriteLine("Table MarginDefaultTop: " + styleDetails2.MarginDefaultTop);
+                Console.WriteLine("Table top margin (cm): " + styleDetails2.MarginDefaultTop?.ToCentimeters());
 
                 document.AddParagraph();
 
@@ -77,16 +77,16 @@ namespace OfficeIMO.Examples.Word {
 
                 // Mix of twips and centimeters
                 var styleDetails3 = Guard.NotNull(wordTable3.StyleDetails, "Table style details should be available.");
-                styleDetails3.MarginDefaultTopWidth = 120;  // Using twips
-                styleDetails3.MarginDefaultBottomCentimeters = 0.3;  // Using centimeters
-                styleDetails3.MarginDefaultLeftWidth = 150;  // Using twips
-                styleDetails3.MarginDefaultRightCentimeters = 0.25;  // Using centimeters
+                styleDetails3.MarginDefaultTop = global::OfficeIMO.OfficeLength.Points(6);  // Using points
+                styleDetails3.MarginDefaultBottom = global::OfficeIMO.OfficeLength.Centimeters(0.3);  // Using centimeters
+                styleDetails3.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points(7.5);  // Using points
+                styleDetails3.MarginDefaultRight = global::OfficeIMO.OfficeLength.Centimeters(0.25);  // Using centimeters
 
                 Console.WriteLine("\nThird table (Mixed):");
-                Console.WriteLine("Table MarginDefaultTopWidth: " + styleDetails3.MarginDefaultTopWidth);
-                Console.WriteLine("Table MarginDefaultBottomCentimeters: " + styleDetails3.MarginDefaultBottomCentimeters);
-                Console.WriteLine("Table MarginDefaultLeftWidth: " + styleDetails3.MarginDefaultLeftWidth);
-                Console.WriteLine("Table MarginDefaultRightCentimeters: " + styleDetails3.MarginDefaultRightCentimeters);
+                Console.WriteLine("Table MarginDefaultTop: " + styleDetails3.MarginDefaultTop);
+                Console.WriteLine("Table MarginDefaultBottom: " + styleDetails3.MarginDefaultBottom);
+                Console.WriteLine("Table MarginDefaultLeft: " + styleDetails3.MarginDefaultLeft);
+                Console.WriteLine("Table MarginDefaultRight: " + styleDetails3.MarginDefaultRight);
 
                 document.AddParagraph();
 
@@ -103,16 +103,16 @@ namespace OfficeIMO.Examples.Word {
                 // Set borders with different units
                 var styleDetails4 = Guard.NotNull(wordTable4.StyleDetails, "Table style details should be available.");
                 styleDetails4.SetBordersOutsideInside(
-                    WordBorderStyle.Double, 24U, Color.Red,  // Outside borders
-                    WordBorderStyle.Single, 12U, Color.Blue  // Inside borders
+                    WordBorderStyle.Double, global::OfficeIMO.OfficeLength.Points(3), Color.Red,  // Outside borders
+                    WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(1.5), Color.Blue  // Inside borders
                 );
 
                 // Set cell spacing using centimeters
-                styleDetails4.CellSpacingCentimeters = 0.15;
+                styleDetails4.CellSpacing = global::OfficeIMO.OfficeLength.Centimeters(0.15);
 
                 Console.WriteLine("\nFourth table (Borders):");
-                Console.WriteLine("Table CellSpacingCentimeters: " + styleDetails4.CellSpacingCentimeters);
                 Console.WriteLine("Table CellSpacing: " + styleDetails4.CellSpacing);
+                Console.WriteLine("Table cell spacing (cm): " + styleDetails4.CellSpacing?.ToCentimeters());
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

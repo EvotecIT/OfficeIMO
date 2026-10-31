@@ -121,13 +121,13 @@ namespace OfficeIMO.PowerPoint {
             PowerPointSlideDensity density, PowerPointCompositionVariant variant) {
             double metricsHeight = MetricHeightFor(content, density);
             bool evidenceLead = variant == PowerPointCompositionVariant.EvidenceLead;
-            PowerPointLayoutBox metrics = Box(content.LeftCm,
-                evidenceLead ? content.TopCm : content.BottomCm - metricsHeight,
-                content.WidthCm, metricsHeight);
-            PowerPointLayoutBox main = Box(content.LeftCm,
-                evidenceLead ? metrics.BottomCm + gutter : content.TopCm,
-                content.WidthCm, content.HeightCm - metricsHeight - gutter);
-            PowerPointLayoutBox[] columns = main.SplitColumnsCm(2, gutter);
+            PowerPointLayoutBox metrics = Box(content.Left.ToCentimeters(),
+                evidenceLead ? content.Top.ToCentimeters() : content.Bottom.ToCentimeters() - metricsHeight,
+                content.Width.ToCentimeters(), metricsHeight);
+            PowerPointLayoutBox main = Box(content.Left.ToCentimeters(),
+                evidenceLead ? metrics.Bottom.ToCentimeters() + gutter : content.Top.ToCentimeters(),
+                content.Width.ToCentimeters(), content.Height.ToCentimeters() - metricsHeight - gutter);
+            PowerPointLayoutBox[] columns = main.SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(gutter));
             bool mirrored = IsMirrored(variant);
             PowerPointLayoutBox primary = mirrored ? columns[1] : columns[0];
             PowerPointLayoutBox secondary = mirrored ? columns[0] : columns[1];
@@ -141,17 +141,17 @@ namespace OfficeIMO.PowerPoint {
             PowerPointCompositionVariant variant) {
             bool visualLead = IsMirrored(variant);
             double primaryWidth = variant == PowerPointCompositionVariant.VisualLead
-                ? content.WidthCm * 0.36
-                : content.WidthCm * 0.42;
-            double visualWidth = content.WidthCm - primaryWidth - gutter;
+                ? content.Width.ToCentimeters() * 0.36
+                : content.Width.ToCentimeters() * 0.42;
+            double visualWidth = content.Width.ToCentimeters() - primaryWidth - gutter;
             PowerPointLayoutBox primary = visualLead
-                ? Box(content.LeftCm + visualWidth + gutter, content.TopCm, primaryWidth, content.HeightCm)
-                : Box(content.LeftCm, content.TopCm, primaryWidth, content.HeightCm);
+                ? Box(content.Left.ToCentimeters() + visualWidth + gutter, content.Top.ToCentimeters(), primaryWidth, content.Height.ToCentimeters())
+                : Box(content.Left.ToCentimeters(), content.Top.ToCentimeters(), primaryWidth, content.Height.ToCentimeters());
             PowerPointLayoutBox visual = visualLead
-                ? Box(content.LeftCm, content.TopCm, visualWidth, content.HeightCm)
-                : Box(content.LeftCm + primaryWidth + gutter, content.TopCm, visualWidth, content.HeightCm);
-            PowerPointLayoutBox supporting = Box(primary.LeftCm, primary.BottomCm - Math.Min(1.45, primary.HeightCm * 0.28),
-                primary.WidthCm, Math.Min(1.45, primary.HeightCm * 0.28));
+                ? Box(content.Left.ToCentimeters(), content.Top.ToCentimeters(), visualWidth, content.Height.ToCentimeters())
+                : Box(content.Left.ToCentimeters() + primaryWidth + gutter, content.Top.ToCentimeters(), visualWidth, content.Height.ToCentimeters());
+            PowerPointLayoutBox supporting = Box(primary.Left.ToCentimeters(), primary.Bottom.ToCentimeters() - Math.Min(1.45, primary.Height.ToCentimeters() * 0.28),
+                primary.Width.ToCentimeters(), Math.Min(1.45, primary.Height.ToCentimeters() * 0.28));
 
             return new PowerPointCompositionLayout(PowerPointCompositionPreset.VisualSplit, variant, content,
                 primary, supporting, visual, supporting, supporting,
@@ -163,21 +163,21 @@ namespace OfficeIMO.PowerPoint {
             double metricsHeight = MetricHeightFor(content, density) + 0.25;
             bool evidenceLead = variant == PowerPointCompositionVariant.EvidenceLead;
             bool visualLead = IsMirrored(variant);
-            double storyTop = evidenceLead ? content.TopCm + metricsHeight + gutter : content.TopCm;
-            double storyHeight = content.HeightCm - metricsHeight - gutter;
+            double storyTop = evidenceLead ? content.Top.ToCentimeters() + metricsHeight + gutter : content.Top.ToCentimeters();
+            double storyHeight = content.Height.ToCentimeters() - metricsHeight - gutter;
             double visualWidth = variant == PowerPointCompositionVariant.VisualLead
-                ? content.WidthCm * 0.46
-                : content.WidthCm * 0.38;
-            double primaryWidth = content.WidthCm - visualWidth - gutter;
+                ? content.Width.ToCentimeters() * 0.46
+                : content.Width.ToCentimeters() * 0.38;
+            double primaryWidth = content.Width.ToCentimeters() - visualWidth - gutter;
             PowerPointLayoutBox primary = visualLead
-                ? Box(content.LeftCm + visualWidth + gutter, storyTop, primaryWidth, storyHeight)
-                : Box(content.LeftCm, storyTop, primaryWidth, storyHeight);
+                ? Box(content.Left.ToCentimeters() + visualWidth + gutter, storyTop, primaryWidth, storyHeight)
+                : Box(content.Left.ToCentimeters(), storyTop, primaryWidth, storyHeight);
             PowerPointLayoutBox visual = visualLead
-                ? Box(content.LeftCm, storyTop, visualWidth, storyHeight)
-                : Box(primary.RightCm + gutter, storyTop, visualWidth, storyHeight);
-            PowerPointLayoutBox metrics = Box(content.LeftCm,
-                evidenceLead ? content.TopCm : content.BottomCm - metricsHeight,
-                content.WidthCm, metricsHeight);
+                ? Box(content.Left.ToCentimeters(), storyTop, visualWidth, storyHeight)
+                : Box(primary.Right.ToCentimeters() + gutter, storyTop, visualWidth, storyHeight);
+            PowerPointLayoutBox metrics = Box(content.Left.ToCentimeters(),
+                evidenceLead ? content.Top.ToCentimeters() : content.Bottom.ToCentimeters() - metricsHeight,
+                content.Width.ToCentimeters(), metricsHeight);
 
             return new PowerPointCompositionLayout(PowerPointCompositionPreset.MetricStory, variant, content,
                 primary, visual, visual, metrics, metrics,
@@ -186,7 +186,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointCompositionLayout CreateDashboardGrid(PowerPointLayoutBox content, double gutter,
             PowerPointCompositionVariant variant) {
-            PowerPointLayoutBox[,] grid = content.SplitGridCm(2, 2, gutter, gutter);
+            PowerPointLayoutBox[,] grid = content.SplitGrid(2,2,OfficeIMO.OfficeLength.Centimeters(gutter),OfficeIMO.OfficeLength.Centimeters(gutter));
             PowerPointLayoutBox primary;
             PowerPointLayoutBox secondary;
             PowerPointLayoutBox visual;
@@ -238,7 +238,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException("Composition region height is not positive.");
             }
 
-            return PowerPointLayoutBox.FromCentimeters(left, top, width, height);
+            return new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(left),OfficeIMO.OfficeLength.Centimeters(top),OfficeIMO.OfficeLength.Centimeters(width),OfficeIMO.OfficeLength.Centimeters(height));
         }
 
         private static double GutterFor(PowerPointSlideDensity density) {
@@ -266,7 +266,7 @@ namespace OfficeIMO.PowerPoint {
                     break;
             }
 
-            double max = content.HeightCm * 0.30;
+            double max = content.Height.ToCentimeters() * 0.30;
             return preferred > max ? max : preferred;
         }
 

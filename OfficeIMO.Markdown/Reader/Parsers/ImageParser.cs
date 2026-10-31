@@ -32,19 +32,8 @@ internal static partial class MarkdownReader {
                     trimmedLine.Substring(ranges.GenericAttributeStart.Value, ranges.GenericAttributeLength.Value),
                     attributeSourceSpan);
             }
-            if (!string.IsNullOrWhiteSpace(sizeSpec))
-            {
-                foreach (var part in sizeSpec!.Split(new[]{' '}, StringSplitOptions.RemoveEmptyEntries))
-                {
-                    var kv = part.Split(new[]{'='}, 2);
-                    if (kv.Length == 2)
-                    {
-                        var key = kv[0].Trim().ToLowerInvariant();
-                        var val = kv[1].Trim();
-                        if (key == "width" && double.TryParse(val, out var w)) img.Width = w;
-                        if (key == "height" && double.TryParse(val, out var h)) img.Height = h;
-                    }
-                }
+            if (!string.IsNullOrWhiteSpace(sizeSpec)) {
+                TryApplyImageSizeSpec(sizeSpec, img);
             }
             var resolvedPath = ResolveUrl(img.Path, options);
             if (string.IsNullOrWhiteSpace(resolvedPath)) {

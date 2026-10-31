@@ -143,8 +143,7 @@ public partial class Word {
     public void SaveAsPdf_NarrowTableKeepsCellMarginsInsteadOfFailing() {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(3, 6);
-        table.WidthType = WordTableWidthUnit.Pct;
-        table.Width = 100; // 100 fiftieths of a percent: a 2% wide table.
+        table.Width = WordTableWidth.Percent(2);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Longer text example to show wrapping";
 
         using PdfPigDocument pdf = OpenAuditPdf(document);

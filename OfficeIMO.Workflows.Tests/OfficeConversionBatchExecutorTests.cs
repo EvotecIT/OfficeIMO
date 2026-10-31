@@ -17,13 +17,13 @@ public sealed class OfficeConversionBatchExecutorTests {
         }
         var result = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), scope.Request, publicationGuard: new ChangePendingStage(scope.Output, resume ? 1 : 2, replace));
         Assert.Equal(1, result.Failed);
-        Assert.False(File.Exists(Path.Combine(scope.Output, "one.txt.pdf")));
+        Assert.False(File.Exists(Path.Combine(scope.Output, "one.pdf")));
     }
 
     private sealed class ChangePendingStage(string directory, int check, bool replace) : IOfficePublicationGuard {
         private int _finalChecks;
         public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
-            if (!isDirectory && Path.GetFileName(path) == "one.txt.pdf" && Interlocked.Increment(ref _finalChecks) == check) {
+            if (!isDirectory && Path.GetFileName(path) == "one.pdf" && Interlocked.Increment(ref _finalChecks) == check) {
                 string staged = Assert.Single(Directory.GetFiles(directory, "*.conversion.pdf"));
                 if (replace) File.Delete(staged);
                 File.WriteAllText(staged, "Modified during publication policy check");
@@ -41,7 +41,7 @@ public sealed class OfficeConversionBatchExecutorTests {
         using var cancellation = new CancellationTokenSource();
         var interrupted = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), scope.Request, cancellationToken: cancellation.Token, publicationGuard: new CancelBeforeFinalMove(cancellation));
         Assert.True(interrupted.Cancelled);
-        string output = Path.Combine(scope.Output, "one.txt.pdf");
+        string output = Path.Combine(scope.Output, "one.pdf");
         Assert.False(File.Exists(output));
         string staged = Assert.Single(Directory.GetFiles(scope.Output, "*.conversion.pdf"));
         byte[] original = File.ReadAllBytes(staged);
@@ -65,13 +65,13 @@ public sealed class OfficeConversionBatchExecutorTests {
         string staged = Assert.Single(Directory.GetFiles(scope.Output, "*.conversion.pdf"));
         File.WriteAllText(changeSource ? input : staged, "Changed after durable intent");
         var resumed = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), scope.Request with { RetryFailed = true });
-        Assert.Equal(1, resumed.Failed); Assert.False(File.Exists(Path.Combine(scope.Output, "one.txt.pdf")));
+        Assert.Equal(1, resumed.Failed); Assert.False(File.Exists(Path.Combine(scope.Output, "one.pdf")));
     }
 
     private sealed class CancelBeforeFinalMove(CancellationTokenSource cancellation) : IOfficePublicationGuard {
         private int _finalChecks;
         public Task<bool> CanPublishAsync(string path, bool directory, CancellationToken token) {
-            if (!directory && Path.GetFileName(path) == "one.txt.pdf" && Interlocked.Increment(ref _finalChecks) == 2)
+            if (!directory && Path.GetFileName(path) == "one.pdf" && Interlocked.Increment(ref _finalChecks) == 2)
                 cancellation.Cancel();
             return Task.FromResult(true);
         }
@@ -143,8 +143,8 @@ public sealed class OfficeConversionBatchExecutorTests {
         var first = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
         Assert.Equal(2, first.Completed);
         Assert.Equal(0, first.Failed);
-        Assert.True(File.Exists(Path.Combine(scope.Output, "nested", "one.txt.pdf")));
-        string output = Path.Combine(scope.Output, "one.txt.pdf");
+        Assert.True(File.Exists(Path.Combine(scope.Output, "nested", "one.pdf")));
+        string output = Path.Combine(scope.Output, "one.pdf");
         byte[] original = File.ReadAllBytes(output);
         var resumed = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request with { MaxParallelism = 1 });
         Assert.Equal(2, resumed.Reused);
@@ -172,7 +172,7 @@ public sealed class OfficeConversionBatchExecutorTests {
     public async Task MissingReceiptAndChangedOutputNeverAuthorizeReplacement() {
         using var scope = new BatchDirectory();
         File.WriteAllText(Path.Combine(scope.Input, "one.txt"), "original");
-        string output = Path.Combine(scope.Output, "one.txt.pdf");
+        string output = Path.Combine(scope.Output, "one.pdf");
         Directory.CreateDirectory(scope.Output);
         File.WriteAllText(output, "user-owned existing output");
         Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), scope.Request)).Failed);
@@ -210,7 +210,7 @@ public sealed class OfficeConversionBatchExecutorTests {
         File.WriteAllText(Path.Combine(nestedInput, "one.txt"), "batch source");
         string outside = Path.Combine(Path.GetDirectoryName(scope.Output)!, "outside");
         Directory.CreateDirectory(outside);
-        string displacedOutput = Path.Combine(outside, "one.txt.pdf");
+        string displacedOutput = Path.Combine(outside, "one.pdf");
         File.WriteAllText(displacedOutput, "keep existing file");
         Directory.CreateDirectory(scope.Output);
         Directory.CreateSymbolicLink(Path.Combine(scope.Output, "nested"), outside);
@@ -231,7 +231,7 @@ public sealed class OfficeConversionBatchExecutorTests {
         File.WriteAllText(Path.Combine(nestedInput, "one.txt"), "batch source");
         string outside = Path.Combine(Path.GetDirectoryName(scope.Output)!, "outside");
         Directory.CreateDirectory(outside);
-        string displacedOutput = Path.Combine(outside, "one.txt.pdf");
+        string displacedOutput = Path.Combine(outside, "one.pdf");
         File.WriteAllText(displacedOutput, "keep existing file");
 
         var runner = new SwapOutputBeforeConversion(scope.Output, outside);
@@ -294,7 +294,7 @@ public sealed class OfficeConversionBatchExecutorTests {
         };
         var first = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
         Assert.Equal(1, first.Completed); Assert.Equal(0, first.Failed);
-        Assert.NotEmpty(OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(scope.Output, "page" + extension + ".pdf")).Read().Pages);
+        Assert.NotEmpty(OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(scope.Output, "page.pdf")).Read().Pages);
         Assert.Equal(1, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request)).Reused);
     }
 

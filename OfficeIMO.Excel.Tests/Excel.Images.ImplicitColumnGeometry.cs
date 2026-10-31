@@ -17,28 +17,28 @@ namespace OfficeIMO.Tests {
         [InlineData(12U, 13D, 273)]
         public void ExcelImage_RangeUsesImplicitColumnGeometryBeforeAndAfterSave(uint baseWidth, double? storedWidth, int expectedPixels) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("ImplicitWidth");
+            ExcelSheet sheet = document.AddSheet("ImplicitWidth");
             SetMissingGridFont(document);
-            sheet.SetDefaultRowHeight(15D);
+            sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
             X.SheetFormatProperties format = sheet.WorksheetPart.Worksheet.GetFirstChild<X.SheetFormatProperties>()!;
             format.BaseColumnWidth = baseWidth;
             format.DefaultColumnWidth = storedWidth.HasValue ? new DocumentFormat.OpenXml.DoubleValue(storedWidth.Value) : null;
 
-            ExcelImage image = sheet.AddImageToRange("A1:C2", OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue)));
-            Assert.Equal(expectedPixels, image.WidthPixels);
+            ExcelImage image = sheet.AddImage("A1:C2", OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue)));
+            Assert.Equal(expectedPixels, image.Width.ToPixels());
             Assert.Equal((double)expectedPixels, sheet.Range("A1:C2").CreateVisualSnapshot().Columns.Sum(column => column.Width));
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx });
             using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(package));
-            Assert.Equal(expectedPixels, reopened.Sheets[0].Images.Single().WidthPixels);
+            Assert.Equal(expectedPixels, reopened.Sheets[0].Images.Single().Width.ToPixels());
             Assert.Equal((double)expectedPixels, reopened.Sheets[0].Range("A1:C2").CreateVisualSnapshot().Columns.Sum(column => column.Width));
         }
 
         [Fact]
         public void ExcelChart_TwoCellAnchorUsesImplicitWidthAndRefreshesWhenBaseChanges() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("ImplicitChart");
+            ExcelSheet sheet = document.AddSheet("ImplicitChart");
             SetMissingGridFont(document);
-            sheet.SetDefaultRowHeight(15D);
+            sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Only");
@@ -46,16 +46,16 @@ namespace OfficeIMO.Tests {
             X.SheetFormatProperties format = sheet.WorksheetPart.Worksheet.GetFirstChild<X.SheetFormatProperties>()!;
             format.BaseColumnWidth = 8U;
             format.DefaultColumnWidth = null;
-            ExcelChart chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 3);
+            ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3 });
             ReplaceChartAnchorWithTwoCell(document,
                 new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("0"), new Xdr.RowOffset("0")),
                 new Xdr.ToMarker(new Xdr.ColumnId("3"), new Xdr.ColumnOffset("0"), new Xdr.RowId("2"), new Xdr.RowOffset("0")));
 
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo before));
-            Assert.Equal(192, before.WidthPixels);
+            Assert.Equal(192, before.Width.ToPixels());
             format.BaseColumnWidth = 12U;
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo after));
-            Assert.Equal(288, after.WidthPixels);
+            Assert.Equal(288, after.Width.ToPixels());
         }
 
         [Theory]
@@ -64,9 +64,9 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void ExcelDrawing_StoredColumnWidthAppliesRegardlessOfCustomWidthFlag(bool? customWidth) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("StoredWidth");
+            ExcelSheet sheet = document.AddSheet("StoredWidth");
             SetMissingGridFont(document);
-            sheet.SetDefaultRowHeight(15D);
+            sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
             sheet.WorksheetPart.Worksheet.GetFirstChild<X.SheetFormatProperties>()!.BaseColumnWidth = 8U;
             sheet.WorksheetPart.Worksheet.AddChild(new X.Columns(new X.Column {
                 Min = 1U, Max = 1U, Width = 20D,
@@ -76,20 +76,20 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Only");
             sheet.CellValue(2, 2, 1);
-            ExcelImage image = sheet.AddImageToRange("A1:A2", OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue)));
-            ExcelChart chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 3);
+            ExcelImage image = sheet.AddImage("A1:A2", OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue)));
+            ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3 });
             ReplaceChartAnchorWithTwoCell(document,
                 new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("0"), new Xdr.RowOffset("0")),
                 new Xdr.ToMarker(new Xdr.ColumnId("1"), new Xdr.ColumnOffset("0"), new Xdr.RowId("2"), new Xdr.RowOffset("0")));
 
-            Assert.Equal(140, image.WidthPixels);
+            Assert.Equal(140, image.Width.ToPixels());
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo before));
-            Assert.Equal(140, before.WidthPixels);
+            Assert.Equal(140, before.Width.ToPixels());
             Assert.Equal(140, sheet.Range("A1:A2").ExportImage(OfficeImageExportFormat.Png).Width);
             using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx })));
-            Assert.Equal(140, reopened.Sheets[0].Images.Single().WidthPixels);
+            Assert.Equal(140, reopened.Sheets[0].Images.Single().Width.ToPixels());
             Assert.True(reopened.Sheets[0].Charts.Single().TryGetSnapshot(out ExcelChartInfo after));
-            Assert.Equal(140, after.WidthPixels);
+            Assert.Equal(140, after.Width.ToPixels());
             Assert.Equal(140, reopened.Sheets[0].Range("A1:A2").ExportImage(OfficeImageExportFormat.Png).Width);
         }
 

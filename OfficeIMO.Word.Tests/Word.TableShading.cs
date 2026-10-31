@@ -44,10 +44,10 @@ public partial class Word {
         WordTableStyleDetails details = Assert.IsType<WordTableStyleDetails>(table.StyleDetails);
         Assert.Equal(kind == "direct-shading" ? "FF0000" : string.Empty, details.ShadingFillColorHex);
         details.ShadingFillColorHex = "0000FF";
-        details.CellSpacing = 120;
+        details.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
         using WordDocument roundtrip = WordDocument.Load(new MemoryStream(loaded.ToBytes()));
         Assert.Equal("0000FF", roundtrip.Tables[0].StyleDetails!.ShadingFillColorHex);
-        Assert.Equal((short)120, roundtrip.Tables[0].StyleDetails!.CellSpacing);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(6), roundtrip.Tables[0].StyleDetails!.CellSpacing);
         Assert.Null(roundtrip.Tables[0]._tableProperties!.TableStyle);
         Assert.IsType<W.TableProperties>(roundtrip.Tables[0]._table.ChildElements[0]);
         Assert.Equal("FFFF00", roundtrip.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
@@ -59,8 +59,8 @@ public partial class Word {
     public void TableShading_PublicSettingsRoundTripWithoutChangingCellsOrMargins() {
         using WordDocument source = WordDocument.Create();
         WordTable table = source.AddTable(2, 2, WordTableStyle.TableGrid);
-        table.StyleDetails!.CellSpacing = 120;
-        table.StyleDetails.MarginDefaultBottomWidth = 80;
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
+        table.StyleDetails.MarginDefaultBottom = global::OfficeIMO.OfficeLength.Points(4);
         table.Rows[0].Cells[0].ShadingFillColorHex = "FFFFFF";
         table.StyleDetails.ShadingFillColorHex = "#80c0ff";
         table.StyleDetails.ShadingPattern = WordShadingPattern.Percent20;
@@ -72,8 +72,8 @@ public partial class Word {
         Assert.Equal(WordShadingPattern.Percent20, style.ShadingPattern);
         Assert.Equal("0000FF", style.ShadingColorHex);
         Assert.Equal(Color.Blue, style.ShadingColor);
-        Assert.Equal((short)120, style.CellSpacing);
-        Assert.Equal((short)80, style.MarginDefaultBottomWidth);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(6), style.CellSpacing);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(4), style.MarginDefaultBottom);
         Assert.Equal("FFFFFF", loaded.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
         Assert.Empty(loaded.DocumentValidationErrors);
     }
@@ -162,7 +162,7 @@ public partial class Word {
     public void TableShading_VisibleNativeDocGapsRemainExplicitlyUnsupported() {
         using WordDocument document = WordDocument.Create();
         WordTableStyleDetails style = document.AddTable(1, 1).StyleDetails!;
-        style.CellSpacing = 120;
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
         style.ShadingFillColorHex = "80C0FF";
         var error = Assert.Throws<NotSupportedException>(() => document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc,  LossPolicy = OfficeIMO.OfficeConversionLossPolicy.Allow }));
         Assert.Contains("table gap shading", error.Message);

@@ -21,7 +21,7 @@ public partial class Word {
         document.AddHeadersAndFooters();
         WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
         WordParagraph headerParagraph = header.AddParagraph("Header ");
-        WordParagraph linked = headerParagraph.AddHyperLink("Original", new Uri("https://example.com/"));
+        WordParagraph linked = headerParagraph.AddHyperLink("Original", new Uri("https://example.com/")).Paragraph;
         Hyperlink hyperlink = linked._hyperlink!;
         hyperlink.RemoveAllChildren();
         hyperlink.Append(
@@ -74,8 +74,8 @@ public partial class Word {
 
             PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(260, 300),
-                Margins = PdfCore.PdfPageMargins.Uniform(72)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(300)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
             });
             result.Save(pdfPath);
 
@@ -266,7 +266,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
-            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph().AddImage(imagePath, 32, 32);
+            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
             document.AddParagraph("Native GIF header image body");
             document.Save();
         }
@@ -352,12 +352,12 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
-            header.AddShape(WordShapeType.Rectangle, 36, 16, "#99ccff", "#003366", 1.5);
+            header.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(16), OfficeIMO.OfficeColor.Parse("#99ccff"), OfficeIMO.OfficeColor.Parse("#003366"), OfficeIMO.OfficeLength.Points(1.5));
 
             WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             WordParagraph footerParagraph = footer.AddParagraph();
             footerParagraph.ParagraphAlignment = WordParagraphAlignment.Right;
-            footerParagraph.AddShape(WordShapeType.Rectangle, 34, 14, "#ffe699", "#663300", 1.25);
+            footerParagraph.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(34), OfficeIMO.OfficeLength.Points(14), OfficeIMO.OfficeColor.Parse("#ffe699"), OfficeIMO.OfficeColor.Parse("#663300"), OfficeIMO.OfficeLength.Points(1.25));
 
             document.AddParagraph("Native header footer shape body");
             document.Save();
@@ -392,10 +392,10 @@ public partial class Word {
             document.AddHeadersAndFooters();
             WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native image header");
             headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
-            headerParagraph.AddImage(imagePath, 32, 32);
+            headerParagraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
 
             WordTable footerTable = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddTable(1, 3, WordTableStyle.TableNormal);
-            footerTable.Rows[0].Cells[2].Paragraphs[0].AddImage(imagePath, 32, 32);
+            footerTable.Rows[0].Cells[2].Paragraphs[0].AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
 
             document.AddParagraph("Native header/footer image body");
             document.Save();
@@ -432,10 +432,10 @@ public partial class Word {
             document.AddHeadersAndFooters();
             WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native picture-control header");
             headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
-            headerParagraph.AddPictureControl(imagePath, 32, 32, "Header Logo", "HeaderLogo");
+            headerParagraph.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Header Logo", "HeaderLogo");
 
             WordTable footerTable = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddTable(1, 3, WordTableStyle.TableNormal);
-            footerTable.Rows[0].Cells[2].Paragraphs[0].AddPictureControl(imagePath, 32, 32, "Footer Logo", "FooterLogo");
+            footerTable.Rows[0].Cells[2].Paragraphs[0].AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Footer Logo", "FooterLogo");
 
             document.AddParagraph("Native header/footer picture-control body");
             document.Save();
@@ -463,8 +463,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
         WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
-        header.AddPictureControl(imagePath, 32, 32, "First", "First");
-        header.AddPictureControl(imagePath, 32, 32, "Second", "Second");
+        header.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "First", "First");
+        header.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Second", "Second");
         document.AddParagraph("Body");
 
         Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(

@@ -254,7 +254,7 @@ public static class PdfPrintPlanner {
             PdfPageLayoutInfo firstPage = pageLayouts[pages[offset] - 1];
             (double firstPageWidth, double firstPageHeight) = GetVisualPageSize(firstPage);
             PdfPageSize paper = ResolvePaper(validated, firstPageWidth > firstPageHeight);
-            if (paper.Width <= validated.MarginLeft + validated.MarginRight || paper.Height <= validated.MarginTop + validated.MarginBottom) {
+            if (paper.Width.ToPoints() <= validated.MarginLeft + validated.MarginRight || paper.Height.ToPoints() <= validated.MarginTop + validated.MarginBottom) {
                 throw new ArgumentException("Print margins leave no printable paper area.", nameof(request));
             }
             IReadOnlyList<PdfPrintPlacement> placements = CreatePlacements(
@@ -286,11 +286,11 @@ public static class PdfPrintPlanner {
         CancellationToken cancellationToken) {
         (int columns, int rows) = request.PagesPerSheet switch {
             1 => (1, 1), 2 => (2, 1), 4 => (2, 2),
-            6 when paper.Width > paper.Height => (3, 2),
+            6 when paper.Width.ToPoints() > paper.Height.ToPoints() => (3, 2),
             6 => (2, 3), _ => (3, 3)
         };
-        double printableWidth = paper.Width - request.MarginLeft - request.MarginRight;
-        double printableHeight = paper.Height - request.MarginTop - request.MarginBottom;
+        double printableWidth = paper.Width.ToPoints() - request.MarginLeft - request.MarginRight;
+        double printableHeight = paper.Height.ToPoints() - request.MarginTop - request.MarginBottom;
         double slotWidth = printableWidth / columns;
         double slotHeight = printableHeight / rows;
         var placements = new List<PdfPrintPlacement>(count);

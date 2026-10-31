@@ -23,7 +23,7 @@ public sealed class StudioOcrSessionTests {
             Directory.CreateDirectory(services.Paths.Root);
             string first = Path.Combine(services.Paths.Root, "scan.pdf");
             string second = Path.Combine(services.Paths.Root, "scan-searchable.pdf");
-            byte[] original = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+            byte[] original = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
             File.WriteAllBytes(first, original); File.WriteAllBytes(second, original);
             IReadOnlyList<string> selection = newWork ? [second] : [first, second];
             var engine = new DelegateOcrEngine("source-fixture", (_, _) => Task.FromResult(new OcrResult {
@@ -189,13 +189,13 @@ public sealed class StudioOcrSessionTests {
             Directory.CreateDirectory(services.Paths.Root);
             string image = Path.Combine(services.Paths.Root, "Invoice.png");
             string pdf = Path.Combine(services.Paths.Root, "Scanned page.pdf");
-            byte[] visualSource = PdfDocument.Create(document => document.Page(page => page.Size(360, 480).Canvas(canvas =>
-                canvas.Text([new PdfTextRun("Invoice 4827")], 30, 60, 280, 30, fontSize: 24)
-                    .Text([new PdfTextRun("Reviewed searchable statement")], 30, 120, 300, 25, fontSize: 16)))).ToBytes();
+            byte[] visualSource = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(480)).Canvas(canvas =>
+                canvas.Text([new PdfTextRun("Invoice 4827")], global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(280), global::OfficeIMO.OfficeLength.Points(30), fontSize: global::OfficeIMO.OfficeLength.Points(24))
+                    .Text([new PdfTextRun("Reviewed searchable statement")], global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(25), fontSize: global::OfficeIMO.OfficeLength.Points(16))))).ToBytes();
             byte[] png = PdfDocument.Load(new System.IO.MemoryStream(visualSource)).Render.Pages(PdfPageSelection.From(1),
-                new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = 72 }).Single().Bytes!;
+                new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72 }).Single().Bytes!;
             File.WriteAllBytes(image, png);
-            byte[] originalPdf = PdfDocument.Create(document => document.Page(page => page.Size(360, 480))).ToBytes();
+            byte[] originalPdf = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(480)))).ToBytes();
             File.WriteAllBytes(pdf, originalPdf);
             int calls = 0;
             var engine = new DelegateOcrEngine("session-fixture", (_, _) => {

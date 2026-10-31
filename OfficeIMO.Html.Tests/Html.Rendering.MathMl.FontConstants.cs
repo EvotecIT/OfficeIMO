@@ -12,7 +12,7 @@ public sealed partial class HtmlRenderingTests {
         const string markup = "<math xmlns='http://www.w3.org/1998/Math/MathML' displaystyle='true' style='font:20px ScopedMath'><mrow><mo>∑</mo>"
             + "<msqrt><mfrac><mtext>x</mtext><mtext>y</mtext></mfrac></msqrt></mrow></math>";
         byte[] font = ManagedTextShapingTestAssets.CreateMathConstructionFont();
-        var options = new HtmlToPdfOptions { PageSize = new OfficePageSize(3, 3), HonorCssPageRules = false,
+        var options = new HtmlToPdfOptions { PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(3), global::OfficeIMO.OfficeLength.Inches(3)), HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0), AllowSystemFontFallback = false };
         options.Fonts.Add("ScopedMath", font);
         var result = HtmlConversionDocument.Parse(markup).RenderToPdfResult(
@@ -41,7 +41,7 @@ public sealed partial class HtmlRenderingTests {
         var math = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         Assert.All(math.Drawing.Elements.OfType<OfficeDrawingText>(), t => Assert.Equal(14D, t.Font.Size, 6));
         Assert.Equal(1.36D, Assert.Single(math.Drawing.Elements.OfType<OfficeDrawingShape>()).Shape.StrokeWidth, 6);
-        var pdfOptions = new HtmlToPdfOptions { PageSize = new OfficePageSize(2, 2), HonorCssPageRules = false,
+        var pdfOptions = new HtmlToPdfOptions { PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(2), global::OfficeIMO.OfficeLength.Inches(2)), HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0), AllowSystemFontFallback = false };
         pdfOptions.Fonts.Add("ScopedMath", font);
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();

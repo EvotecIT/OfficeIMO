@@ -30,9 +30,9 @@ Second overlapping box
 """;
         OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
 
-        OfficeMarkupPowerPointConversionResult bounded = parsed.Document.ToPowerPointPresentationResult(
+        OfficeMarkupPowerPointConversionResult bounded = parsed.Document.ToPowerPointDocumentResult(
             new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
-        OfficeMarkupPowerPointConversionResult explicitCollisionScan = parsed.Document.ToPowerPointPresentationResult(
+        OfficeMarkupPowerPointConversionResult explicitCollisionScan = parsed.Document.ToPowerPointDocumentResult(
             new MarkupToPowerPointOptions {
                 RenderMermaidDiagrams = false,
                 PreflightOptions = new PowerPointDeckPreflightOptions {
@@ -71,7 +71,7 @@ profile: presentation
 This shape is outside the slide.
 """;
         OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
-        OfficeMarkupPowerPointConversionResult result = parsed.Document.ToPowerPointPresentationResult(
+        OfficeMarkupPowerPointConversionResult result = parsed.Document.ToPowerPointDocumentResult(
             new MarkupToPowerPointOptions {
                 RenderMermaidDiagrams = false,
                 PreflightOptions = new PowerPointDeckPreflightOptions {
@@ -170,7 +170,7 @@ A deliberately long paragraph that cannot fit inside the very short slide used b
                             DetectShapeCollisions = false,
                             DetectMissingVisualAssets = false,
                             IncludeVisualSnapshotDiagnostics = false,
-                            MinimumReadableFontSizePoints = 100D,
+                            MinimumReadableFontSize = global::OfficeIMO.OfficeLength.Points(100D),
                             FailureSeverity = PowerPointDeckPreflightSeverity.Warning
                         }
                     }));

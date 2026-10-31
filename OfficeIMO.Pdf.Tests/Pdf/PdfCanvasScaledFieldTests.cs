@@ -14,7 +14,7 @@ public sealed class PdfCanvasScaledFieldTests {
     public void OpaqueUniformScalePreservesFieldValueAndPhysicalWidgetBounds(double scale) {
         byte[] pdf = PdfDocument.Create().Canvas(canvas => canvas.Effect(
             OfficeTransform.Scale(scale, scale), 1D,
-            content => content.TextField("name", "Ada", 10D, 20D, 80D, 20D))).ToBytes();
+            content => content.TextField("name", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D)))).ToBytes();
         PdfFormField field = Assert.Single(PdfInspector.Inspect(pdf).FormFields);
         Assert.Equal("Ada", field.Value);
         var widget = Assert.Single(field.Widgets);
@@ -26,18 +26,18 @@ public sealed class PdfCanvasScaledFieldTests {
     [InlineData(0.5)]
     [InlineData(2.0)]
     public void NestedUniformScalePreservesAuthoredAppearanceAndScaledEditingStyle(double scale) {
-        var style = new PdfFormFieldStyle { BorderWidth = 2D, CornerRadius = 3D };
+        var style = new PdfFormFieldStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(2D), CornerRadius = global::OfficeIMO.OfficeLength.Points(3D) };
         byte[] pdf = PdfDocument.Create().Canvas(canvas => canvas.Effect(
             OfficeTransform.Scale(scale, scale), 1D, outer => outer.Effect(
                 OfficeTransform.Scale(scale, scale), 1D,
-                inner => inner.TextField("name", "Ada", 10D, 20D, 80D, 20D, 12D, style)))).ToBytes();
+                inner => inner.TextField("name", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(12D), style)))).ToBytes();
         PdfFormField field = Assert.Single(PdfInspector.Inspect(pdf).FormFields);
         string totalFontSize = (12D * scale * scale).ToString("0.######", CultureInfo.InvariantCulture);
         Assert.Contains(" " + totalFontSize + " Tf", field.DefaultAppearance);
         string source = Encoding.ASCII.GetString(pdf);
         Assert.Contains("/BBox [0 0 80 20]", source);
-        Assert.Equal(2D, style.BorderWidth);
-        Assert.Equal(3D, style.CornerRadius);
+        Assert.Equal(2D, style.BorderWidth.ToPoints());
+        Assert.Equal(3D, style.CornerRadius.ToPoints());
         var widget = Assert.Single(field.Widgets);
         Assert.Equal(80D * scale * scale, widget.X2 - widget.X1, 4);
     }

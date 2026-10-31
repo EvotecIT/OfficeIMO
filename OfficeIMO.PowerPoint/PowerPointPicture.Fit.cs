@@ -2,12 +2,15 @@ using System;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointPicture {
+        /// <summary>Fills the current shape bounds using the image's stored pixel size.</summary>
+        public void FitToBox() => FitToBox(crop: true);
+
         /// <summary>
         ///     Fits the image into the current shape bounds using the pixel size stored in the image itself.
         ///     With <paramref name="crop" /> the picture fills the box and the excess is cropped on the axis where
         ///     the image is longer; otherwise the frame shrinks to the image's aspect ratio, centred in the box.
         /// </summary>
-        public void FitToBox(bool crop = true) {
+        public void FitToBox(bool crop) {
             if (!TryGetPixelSize(out int width, out int height)) {
                 throw new InvalidOperationException("The picture's pixel size could not be read from its image data.");
             }
@@ -27,7 +30,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Crops the source so it fills the frame, keeping the focal point (fractions 0..1) in view.</summary>
         internal void CropToFill(int pixelWidth, int pixelHeight, double focalX, double focalY) {
-            double boxAspect = Width / (double)Math.Max(1L, Height);
+            double boxAspect = Width.ToEmus() / (double)Math.Max(1L, Height.ToEmus());
             double imageAspect = pixelWidth / (double)Math.Max(1, pixelHeight);
             double left = 0, top = 0, right = 0, bottom = 0;
             if (imageAspect > boxAspect) {
@@ -48,7 +51,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Shrinks the frame to the image's aspect ratio, centred in the current frame.</summary>
         internal void ContainInFrame() {
             if (!TryGetPixelSize(out int width, out int height)) return;
-            double boxWidth = Width, boxHeight = Height;
+            double boxWidth = Width.ToPoints(), boxHeight = Height.ToPoints();
             if (boxWidth <= 0 || boxHeight <= 0) return;
             double imageAspect = width / (double)height, boxAspect = boxWidth / boxHeight;
             if (Math.Abs(imageAspect / boxAspect - 1D) < 0.005D) return;

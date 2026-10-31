@@ -17,6 +17,13 @@ internal static partial class OfficeBatchExecutor {
         return OfficeConverter.Routes.Where(route => selected.Contains(route.Id)).ToArray();
     }
 
+    /// <summary>Replaces the final source extension while preserving the selected relative directory.</summary>
+    private static string GetOutputPath(OfficeBatchOptions settings, string input) {
+        string relative = settings.InputDirectory == null ? Path.GetFileName(input)
+            : OfficeRuntimeCompatibility.GetRelativePath(settings.InputDirectory, input);
+        return Path.Combine(settings.OutputDirectory, Path.ChangeExtension(relative, settings.TargetExtension));
+    }
+
     /// <summary>Shares validation and discovery with execution, while never creating output or checkpoint state.</summary>
     internal static Task<OfficeBatchPlan> PlanAsync(IOfficeConversionExecutor runner, OfficeBatchOptions request,
         IProgress<OfficeBatchPlanItem>? progress, CancellationToken token) =>
@@ -42,7 +49,7 @@ internal static partial class OfficeBatchExecutor {
                 if (route == null) result.Skipped++;
                 else {
                     result.Selected++;
-                    output = Path.Combine(settings.OutputDirectory, (settings.InputDirectory == null ? Path.GetFileName(input) : OfficeRuntimeCompatibility.GetRelativePath(settings.InputDirectory, input)) + settings.TargetExtension);
+                    output = GetOutputPath(settings, input);
                     try {
                         EnsureNoLinks(input); EnsureNoLinks(output);
                         bool directoryPackage = ValidateSelectedInput(runner, settings, route, input);

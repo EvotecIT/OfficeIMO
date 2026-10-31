@@ -14,8 +14,8 @@ public sealed class PdfDrawingParagraphTests {
         var drawing = new OfficeDrawing(200, 100).AddRichTextParagraphs(new[] {
             new OfficeRichTextParagraph(new[] { new OfficeRichTextRun(caption, 10, OfficeColor.Black, fontFamily: "Arial") }, alignment)
         }, 40, 20, 40, 40, wrapText: false);
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 200, PageHeight = 100,
-            MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0 })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(100),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0) })
             .Compose(canvas => canvas.Page(page => page.Content(content => content.Drawing(drawing)))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters;
@@ -34,8 +34,8 @@ public sealed class PdfDrawingParagraphTests {
             new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("Right", 10, OfficeColor.Red, bold: true) }, OfficeTextAlignment.Right,
                 lineHeight: 30, margins: new OfficeTextPadding(10, 5, 15, 0))
         }, 20, 10, 160, 100);
-        var bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 200, PageHeight = 150,
-            MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0 })
+        var bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(150),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0) })
             .Compose(c => c.Page(p => p.Content(content => content.Drawing(drawing)))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters; Assert.Equal("LeftRight", string.Concat(letters.Select(l => l.Value)));

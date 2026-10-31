@@ -17,8 +17,8 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// Close-OfficePowerPoint -Document $deck</code>
 /// </example>
 [Cmdlet(VerbsCommon.Open, "OfficePowerPoint", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
-[OutputType(typeof(PowerPointPresentation), typeof(FileInfo))]
-public sealed class OpenOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPointPresentation> {
+[OutputType(typeof(PowerPointDocument), typeof(FileInfo))]
+public sealed class OpenOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPointDocument> {
     /// <summary>Presentation paths with FileSystem wildcard expansion.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
     [SupportsWildcards]
@@ -41,7 +41,7 @@ public sealed class OpenOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoi
         bool literal = ParameterSetName == "LiteralPath";
         foreach (string input in OfficePath.ResolveInput(SessionState, literal ? LiteralPath : Path, literal)) {
             RunDocument(input, isNew: false, force: false,
-                path => PowerPointDocumentService.LoadPresentation(path!, Password == null ? null : new NetworkCredential(string.Empty, Password).Password),
+                path => PowerPointDocumentService.LoadDocument(path!, Password == null ? null : new NetworkCredential(string.Empty, Password).Password),
                 (document, path, allowLoss) => {
                     // The source password belongs to Load; omitting a save override
                     // keeps the native document's existing encryption policy.
@@ -52,6 +52,6 @@ public sealed class OpenOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoi
     }
 
     /// <inheritdoc />
-    protected override void InvokeContent(PowerPointPresentation document) =>
+    protected override void InvokeContent(PowerPointDocument document) =>
         PowerPointDocumentService.InvokeContent(document, Content!);
 }

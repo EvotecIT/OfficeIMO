@@ -57,11 +57,11 @@ public partial class Excel {
             sheet.Cell(1, 1, "ARef");
             sheet.Cell(1, 2, "BRef");
             if (!baseColumnWidth.HasValue && !defaultColumnWidth.HasValue) {
-                sheet.SetColumnWidth(1, 12);
-                sheet.SetColumnWidth(2, 12);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+                sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             }
-            if (defaultColumnWidth.HasValue) sheet.SetDefaultColumnWidth(defaultColumnWidth.Value);
-            sheet.SetRowHeight(1, 32);
+            if (defaultColumnWidth.HasValue) sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(defaultColumnWidth.Value));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
             workbook.Save();
         }
 
@@ -94,8 +94,8 @@ public partial class Excel {
             WorksheetLayout = ExcelPdfWorksheetLayoutMode.WorksheetCanvas,
             IncludeSheetHeadings = false,
             HeaderRowCount = 0,
-            PageSize = new PdfCore.PdfPageSize(500, 200),
-            Margins = PdfCore.PdfPageMargins.Uniform(24),
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(200)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)),
             PdfOptions = new PdfCore.PdfCreateOptions().RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
                 "GeometryDefault", OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()))
         };

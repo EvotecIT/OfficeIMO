@@ -42,15 +42,15 @@ public sealed class PdfTaggingStandardsTests {
         if (containerCells) {
             document.Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Table, table => table
                 .Structure(PdfCanvasStructureRole.TableRow, row => row
-                    .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Group", 20, 20, 100, 20),
+                    .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Group", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)),
                         new PdfCanvasStructureOptions { ColumnSpan = 2, HeaderScope = PdfCanvasTableHeaderScope.Column }))
                 .Structure(PdfCanvasStructureRole.TableBody, body => body
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Row", 20, 60, 100, 20),
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Row", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)),
                             new PdfCanvasStructureOptions { HeaderScope = PdfCanvasTableHeaderScope.Row, RowSpan = 2 })
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Value", 140, 60, 100, 20)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Value", global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20))))
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Next", 140, 100, 100, 20))))));
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Next", global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)))))));
         } else {
             var style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 1;
@@ -134,7 +134,7 @@ public sealed class PdfTaggingStandardsTests {
         var document = PdfDocument.Create(new PdfCreateOptions { Language = "en-US" }).TaggedPdfCatalogMarkers();
         document.Compose(compose => compose.Page(page => {
             page.Options.Language = "fr-FR";
-            page.Content(content => content.Canvas(canvas => canvas.Text(new[] { PdfTextRun.Normal("Bonjour") }, PdfCanvasTextStructureRole.Span, 20, 20, 100, 20)));
+            page.Content(content => content.Canvas(canvas => canvas.Text(new[] { PdfTextRun.Normal("Bonjour") }, PdfCanvasTextStructureRole.Span, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20))));
         }));
         var raw = PdfReadDocument.Open(document.ToBytes()).RawStructure();
         var root = Assert.Single(Elements(raw), item => item.Value.Entries["S"].Text == "Document");
@@ -149,14 +149,14 @@ public sealed class PdfTaggingStandardsTests {
         var document = PdfDocument.Create(new PdfCreateOptions { Language = "en-US" }).TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph
                 .Structure(PdfCanvasStructureRole.Span, span => span
-                    .Text(new[] { PdfTextRun.Normal("Bonjour") }, PdfCanvasTextStructureRole.Span, 20, 20, 100, 20)
+                    .Text(new[] { PdfTextRun.Normal("Bonjour") }, PdfCanvasTextStructureRole.Span, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20))
                     .Structure(PdfCanvasStructureRole.Span, inherited => inherited
-                        .Text(new[] { PdfTextRun.Normal("Encore") }, PdfCanvasTextStructureRole.Span, 120, 20, 100, 20))
+                        .Text(new[] { PdfTextRun.Normal("Encore") }, PdfCanvasTextStructureRole.Span, global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)))
                     .Structure(PdfCanvasStructureRole.Span, english => english
-                        .Text(new[] { PdfTextRun.Normal("Hello") }, PdfCanvasTextStructureRole.Span, 220, 20, 100, 20),
+                        .Text(new[] { PdfTextRun.Normal("Hello") }, PdfCanvasTextStructureRole.Span, global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)),
                         new PdfCanvasStructureOptions { Language = "en-US" }), french)
                 .Structure(PdfCanvasStructureRole.Span, sibling => sibling
-                    .Text(new[] { PdfTextRun.Normal("After") }, PdfCanvasTextStructureRole.Span, 320, 20, 100, 20))));
+                    .Text(new[] { PdfTextRun.Normal("After") }, PdfCanvasTextStructureRole.Span, global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)))));
         french.Language = "de-DE";
         var raw = PdfReadDocument.Open(document.ToBytes()).RawStructure();
         var elements = Elements(raw).ToDictionary(element => element.ObjectNumber);

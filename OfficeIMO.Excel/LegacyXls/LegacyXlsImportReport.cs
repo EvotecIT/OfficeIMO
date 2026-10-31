@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.LegacyXls {
     /// Compact public import report for preflight checks and diagnostics.
     /// Detailed corpus aggregations are kept internal to avoid turning parser telemetry into a public compatibility surface.
     /// </summary>
-    public sealed class LegacyXlsImportReport {
+    internal sealed class LegacyXlsImportReport {
         internal LegacyXlsImportReport(LegacyXlsWorkbook workbook) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 

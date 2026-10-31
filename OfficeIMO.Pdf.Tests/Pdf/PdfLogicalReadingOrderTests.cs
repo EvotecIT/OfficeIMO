@@ -243,9 +243,9 @@ public sealed class PdfLogicalReadingOrderTests {
     public void CanonicalText_PreservesBlocksOmittedByATableProjection() {
         var style = new PdfTableStyle {
             HeaderRowCount = 1,
-            CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-                [(1, 0)] = new PdfColor(0.86D, 0.92D, 0.99D),
-                [(3, 0)] = new PdfColor(0.99D, 0.95D, 0.78D)
+            CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+                [(1, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.86D, 0.92D, 0.99D),
+                [(3, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.99D, 0.95D, 0.78D)
             },
             CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
                 [(1, 0)] = PdfColumnAlign.Center,
@@ -257,9 +257,9 @@ public sealed class PdfLogicalReadingOrderTests {
         };
         var rows = new[] {
             new[] { PdfTableCell.TextCell("Service"), PdfTableCell.TextCell("Status"), PdfTableCell.TextCell("Owner") },
-            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Identity systems", bold: true, italic: true, fontSize: 17) }, 3) },
+            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Identity systems", bold: true, italic: true, fontSize: global::OfficeIMO.OfficeLength.Points(17)) }, 3) },
             new[] { PdfTableCell.TextCell("Entra"), PdfTableCell.TextCell("Watch"), PdfTableCell.TextCell("IAM") },
-            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Follow-up", bold: true, fontSize: 15) }, 3) },
+            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Follow-up", bold: true, fontSize: global::OfficeIMO.OfficeLength.Points(15)) }, 3) },
             new[] { PdfTableCell.TextCell("Release"), PdfTableCell.TextCell("Ready"), PdfTableCell.TextCell("OfficeIMO") }
         };
         byte[] pdf = PdfDocument.Create()

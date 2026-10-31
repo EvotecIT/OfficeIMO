@@ -91,10 +91,10 @@ namespace OfficeIMO.Word.Pdf {
             WordDocumentTraversal.ListInfo info) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
-            double textOffset = paragraph.IndentationBeforePoints ??
+            double textOffset = paragraph.IndentationBefore?.ToPoints() ??
                 (useParagraphStyleIndent ? styleDefaults.LeftIndent : null) ??
                 ConvertNativeTwipsToPoints(info.LeftIndentTwips ?? ((info.Level + 1) * 720)) ?? 0D;
-            double hangingIndent = paragraph.IndentationHangingPoints ??
+            double hangingIndent = paragraph.IndentationHanging?.ToPoints() ??
                 (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
                 ConvertNativeTwipsToPoints(info.HangingIndentTwips ?? 360) ?? 0D;
             double markerOffset = Math.Max(0D, textOffset - Math.Max(0D, hangingIndent));
@@ -112,7 +112,7 @@ namespace OfficeIMO.Word.Pdf {
             double markerOffset,
             double textOffset) {
             PdfCore.PdfTextRun styledMarker = CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap);
-            double markerFontSize = styledMarker.FontSize ?? textStyle.FontSize ?? 12D;
+            double markerFontSize = (styledMarker.FontSize?.ToPoints()) ?? textStyle.FontSize ?? 12D;
             NativeTextSpacing markerSpacing = ResolveNativeListMarkerTextSpacing(info, textStyle.ListMarkerTextSpacing);
             double markerWidth = EstimateNativeListMarkerWidth(marker, markerFontSize, markerSpacing);
             double markerColumnWidth = Math.Max(markerWidth, Math.Max(0D, textOffset - markerOffset));
@@ -175,7 +175,7 @@ namespace OfficeIMO.Word.Pdf {
                 color: style.Color,
                 italic: style.Italic,
                 strike: style.Strike,
-                fontSize: style.FontSize,
+                fontSize: ((double?)(style.FontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
                 font: style.Font,
                 baseline: style.Baseline,
                 backgroundColor: style.BackgroundColor,

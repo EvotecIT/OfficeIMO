@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
 
 
-    private static PdfCore.PdfDocument ConvertToPdfDocument(PptCore.PowerPointPresentation presentation, PowerPointPdfExportOptions options) {
+    private static PdfCore.PdfDocument ConvertToPdfDocument(PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions options) {
         if (presentation == null) {
             throw new ArgumentNullException(nameof(presentation));
         }
@@ -31,7 +31,7 @@ public static partial class PowerPointPdfConverterExtensions {
         bool hasExplicitDefaultFont = options.HasExplicitPdfFontConfiguration && options.PdfOptions?.HasExplicitDefaultFont == true;
         options.NativeTextDefaultFontFamily = string.IsNullOrWhiteSpace(options.FontFamily) && !hasExplicitDefaultFont ? null
             : PdfCore.PdfFontNames.ToBaseFontName(PdfCore.PdfStandardFontMapper.GetStyledFont(pdfOptions.DefaultFont, false, false));
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
         ReportOmittedSpeakerNotes(presentation, options);
 
         IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
@@ -41,11 +41,11 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         if (options.PageLayout == PowerPointPdfPageLayout.NotesPages) {
-            RenderNotesPages(pdf, presentation, pdfOptions.PageWidth, pdfOptions.PageHeight, options);
+            RenderNotesPages(pdf, presentation, pdfOptions.PageWidth.ToPoints(), pdfOptions.PageHeight.ToPoints(), options);
             return pdf;
         }
         if (options.PageLayout == PowerPointPdfPageLayout.Handouts) {
-            RenderHandoutPages(pdf, presentation, pdfOptions.PageWidth, pdfOptions.PageHeight, options);
+            RenderHandoutPages(pdf, presentation, pdfOptions.PageWidth.ToPoints(), pdfOptions.PageHeight.ToPoints(), options);
             return pdf;
         }
 
@@ -61,12 +61,12 @@ public static partial class PowerPointPdfConverterExtensions {
                 pdf.PageBreak();
             }
 
-            RenderSlide(pdf, slide, slideIndex + 1, presentation.SlideSize.WidthPoints, presentation.SlideSize.HeightPoints, options);
+            RenderSlide(pdf, slide, slideIndex + 1, presentation.SlideSize.Width.ToPoints(), presentation.SlideSize.Height.ToPoints(), options);
             renderedSlides++;
         }
 
         if (renderedSlides == 0) {
-            RenderEmptySlide(pdf, presentation.SlideSize.WidthPoints, presentation.SlideSize.HeightPoints);
+            RenderEmptySlide(pdf, presentation.SlideSize.Width.ToPoints(), presentation.SlideSize.Height.ToPoints());
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -76,7 +76,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>
     /// Converts a PowerPoint presentation to a PDF document and returns conversion diagnostics with it.
     /// </summary>
-    internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this PptCore.PowerPointPresentation presentation, PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
+    internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (presentation == null) {
             throw new ArgumentNullException(nameof(presentation));

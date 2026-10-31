@@ -32,10 +32,10 @@ public static partial class WordPdfConverterExtensions {
         if (width <= 0D) return;
         if (legacyFrame && style.AutoFitColumns) {
             // This is a preferred outer frame, not a cap on unbreakable content.
-            style.PreferredWidth = width;
+            style.PreferredWidth = global::OfficeIMO.OfficeLength.Points(width);
             style.AllowWidthBeyondFrame = true;
         } else if (!style.AutoFitColumns && style.AllowWidthBeyondFrame) {
-            style.MaxWidth = width;
+            style.MaxWidth = global::OfficeIMO.OfficeLength.Points(width);
         }
     }
 
@@ -60,8 +60,8 @@ public static partial class WordPdfConverterExtensions {
         NativeStyleLookupCache? styles = GetNativeStyleLookupCache(table.Document);
         string? styleId = styles?.ResolveTableStyleId(GetNativeTableStyleId(table));
         if (styleId != null && styles!.TableStyles.ContainsKey(styleId)) return;
-        style.LeftIndent = GetNativeTableCellHorizontalMargin(style, 0,
-            GetNativeTableRowStartColumn(layout, 0), right: false);
+        style.LeftIndent = global::OfficeIMO.OfficeLength.Points(GetNativeTableCellHorizontalMargin(style, 0,
+            GetNativeTableRowStartColumn(layout, 0), right: false));
     }
 
     private static int GetNativeTableLastCellStartColumn(TableLayout layout, int row) {

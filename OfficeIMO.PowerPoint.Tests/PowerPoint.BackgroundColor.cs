@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests;
 public sealed class PowerPointBackgroundColorTests {
     [Fact]
     public void SemanticBackgroundKeepsItsNativeThemeReferenceAfterSave() {
-        using var document = PowerPointPresentation.Create(options: new PowerPointCreateOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
+        using var document = PowerPointDocument.Create(options: new PowerPointCreateOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
         var slide = document.AddSlide();
         slide.SetBackgroundColor(OfficeColor.Accent1);
         var fill = slide.SlidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!.GetFirstChild<A.SolidFill>()!;
@@ -18,26 +18,26 @@ public sealed class PowerPointBackgroundColorTests {
         document.SetThemeColor(PowerPointThemeColor.Accent1, "123456");
         Assert.Equal("123456", slide.GetBackground().Color);
         using var input = new MemoryStream(document.ToBytes());
-        using var reopened = PowerPointPresentation.Load(input);
+        using var reopened = PowerPointDocument.Load(input);
         Assert.Equal("123456", reopened.Slides[0].GetBackground().Color);
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
     }
 
     [Fact]
     public void LiteralBackgroundRetainsTransparencyThroughTheNativePackage() {
-        using var document = PowerPointPresentation.Create(options: new PowerPointCreateOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
+        using var document = PowerPointDocument.Create(options: new PowerPointCreateOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
         var slide = document.AddSlide();
         slide.SetBackgroundColor(OfficeColor.FromRgba(17, 34, 51, 128));
         Assert.Equal("11223380", slide.GetBackground().Color);
         using var input = new MemoryStream(document.ToBytes());
-        using var reopened = PowerPointPresentation.Load(input);
+        using var reopened = PowerPointDocument.Load(input);
         Assert.Equal("11223380", reopened.Slides[0].GetBackground().Color);
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
     }
 
     [Fact]
     public void ClearingSolidGradientNoFillAndImageBackgroundsRestoresInheritance() {
-        using var document = PowerPointPresentation.Create(options: new PowerPointCreateOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
+        using var document = PowerPointDocument.Create(options: new PowerPointCreateOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
         var slide = document.AddSlide();
         var inherited = document.AddSlide().GetBackground();
         Action[] backgrounds = [

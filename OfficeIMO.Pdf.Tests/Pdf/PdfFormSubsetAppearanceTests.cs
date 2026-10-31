@@ -17,10 +17,10 @@ public sealed class PdfFormSubsetAppearanceTests {
         using PdfDocument source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .UseFontFamily("Form body", fontPath)
             .Paragraph(p => p.Text("ABC abc"))
-            .TextField("inspector", width: 280)
-            .TextField("date", width: 180)
-            .TextField("notes", width: 450, height: 48, style: new PdfFormFieldStyle { IsMultiline = true })
-            .TextField("code", width: 180, style: new PdfFormFieldStyle { IsComb = true, MaxLength = 4 })
+            .TextField("inspector", width: OfficeLength.Points(280))
+            .TextField("date", width: OfficeLength.Points(180))
+            .TextField("notes", width: OfficeLength.Points(450), height: OfficeLength.Points(48), style: new PdfFormFieldStyle { IsMultiline = true })
+            .TextField("code", width: OfficeLength.Points(180), style: new PdfFormFieldStyle { IsComb = true, MaxLength = 4 })
             .ChoiceField("disposition", new[] { "Awaiting", "Return to pool" }, value: "Awaiting");
         byte[] original = source.ToBytes();
         var values = new Dictionary<string, string> {

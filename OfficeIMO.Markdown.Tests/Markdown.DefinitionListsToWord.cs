@@ -91,9 +91,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MarkdownToWordPreset_IntelligenceXTranscript_ConfiguresTypedTranscriptDefaults() {
-            var options = MarkdownToWordPresets.CreateIntelligenceXTranscript(
+            var options = WordMarkdownImportOptions.CreateIntelligenceXTranscript(
                 ["C:\\allowed-a", "", "C:\\allowed-a", "C:\\allowed-b"],
-                2500);
+                OfficeLength.Pixels(2500));
             var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
                 preservesGroupedDefinitionLikeParagraphs: false,
                 visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence);
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             Assert.True(options.FitImagesToPageContentWidth);
             Assert.False(options.FitImagesToContextWidth);
             Assert.Equal(100d, options.MaxImageWidthPercentOfContent);
-            Assert.Equal(2000, options.MaxImageWidthPixels);
+            Assert.Equal(2000, options.MaxImageWidth?.ToPixels());
             Assert.Equal(2, options.AllowedImageDirectories.Count);
             Assert.Contains("C:\\allowed-a", options.AllowedImageDirectories);
             Assert.Contains("C:\\allowed-b", options.AllowedImageDirectories);
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
                 Impact: none
                 """;
 
-            var options = MarkdownToWordPresets.CreateIntelligenceXTranscript();
+            var options = WordMarkdownImportOptions.CreateIntelligenceXTranscript();
             var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options.ReaderOptions);
 
             Assert.Collection(document.Blocks,

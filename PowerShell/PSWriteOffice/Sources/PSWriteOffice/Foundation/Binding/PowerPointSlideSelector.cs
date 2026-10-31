@@ -30,7 +30,7 @@ public sealed class PowerPointSlideSelector {
     }
 
     /// <summary>Resolves the slide, checking membership when a document is supplied.</summary>
-    internal PowerPointSlide Resolve(PowerPointPresentation? document) {
+    internal PowerPointSlide Resolve(PowerPointDocument? document) {
         if (Slide != null && (document == null || document.Slides.Any(item => ReferenceEquals(item, Slide)))) return Slide;
         if (Position.HasValue && document != null && Position.Value <= document.Slides.Count) return document.Slides[Position.Value - 1];
         throw new ArgumentException(document == null ? "Supply -Document for a numeric slide position." : "The selected slide does not belong to this document.");

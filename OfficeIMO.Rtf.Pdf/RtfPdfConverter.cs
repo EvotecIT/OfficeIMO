@@ -41,7 +41,7 @@ internal static partial class RtfPdfConverter {
         ApplyHeaderFooters(document, firstPageSetup, pdfOptions, normalized,
             document.Sections.Count == 0 ? document.HeaderFooters : document.GetEffectiveHeaderFooters(document.Sections[0]));
 
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
         ApplyMetadata(document, pdf, normalized);
         PdfRenderState state = new PdfRenderState(document, fontSlots, pdf.Options);
         ApplyHeaderFooterContent(document, firstPageSetup, pdf, pdf.Options, normalized, state,

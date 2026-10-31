@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents border formatting decoded from a legacy XLS differential-format record.
     /// </summary>
-    public sealed class LegacyXlsDifferentialBorder {
+    internal sealed class LegacyXlsDifferentialBorder {
         /// <summary>
         /// Creates a decoded differential border.
         /// </summary>
@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents one side of a legacy XLS differential border.
     /// </summary>
-    public sealed class LegacyXlsDifferentialBorderSide {
+    internal sealed class LegacyXlsDifferentialBorderSide {
         /// <summary>
         /// Creates a decoded differential border side.
         /// </summary>

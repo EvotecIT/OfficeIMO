@@ -152,7 +152,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.StaleWideDimension.{Guid.NewGuid():N}.xlsb");
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "Alpha");
@@ -189,10 +189,10 @@ public partial class Excel {
             Path.GetTempPath(),
             $"OfficeIMO.Excel.SheetRelationships.{Guid.NewGuid():N}.xlsb");
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet first = document.AddWorksheet("First");
+        ExcelSheet first = document.AddSheet("First");
         first.CellValue(1, 1, "Value");
         first.CellValue(2, 1, "Ready");
-        ExcelSheet second = document.AddWorksheet("Second");
+        ExcelSheet second = document.AddSheet("Second");
         second.CellValue(1, 1, "Value");
         second.CellValue(2, 1, "Ignored");
         File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));

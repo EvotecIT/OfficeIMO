@@ -210,7 +210,7 @@ public sealed class PdfSplitWorkflowTests {
 
     private static string NewRoot() => Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "officeimo-split-tests-" + Guid.NewGuid().ToString("N"))).FullName;
     private static byte[] CreatePdf(int count = 5) => PdfDocument.Create(document => {
-        for (int index = 0; index < count; index++) { int width = 200 + index; document.Page(page => page.Size(width, 350)); }
+        for (int index = 0; index < count; index++) { int width = 200 + index; document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(350))); }
     }).ToBytes();
     private sealed class ProgressInline(Action<OfficeWorkflowProgress> report) : IProgress<OfficeWorkflowProgress> {
         public void Report(OfficeWorkflowProgress value) => report(value);

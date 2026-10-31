@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Defines the worksheet-level phonetic character conversion decoded from a BIFF PhoneticInfo record.
     /// </summary>
-    public enum LegacyXlsPhoneticType {
+    internal enum LegacyXlsPhoneticType {
         /// <summary>Use narrow/half-width Katakana characters as phonetic text.</summary>
         HalfWidthKatakana = 0,
 

@@ -18,18 +18,18 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void EmptyParagraphOutsideTheFrameRetainsFollowingTextAndDiagnosesTextBoxOverflow(bool table, bool followingText) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
         if (table) {
-            var cell = slide.AddTablePoints(1, 1, 20, 20, 240, 60).GetCell(0, 0);
-            cell.Text = "VISIBLE"; cell.FontName = "Helvetica"; cell.FontSize = 32;
+            var cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
+            cell.Text = "VISIBLE"; cell.FontName = "Helvetica"; cell.FontSize = global::OfficeIMO.OfficeLength.Points(32);
             cell.AddParagraph("");
             if (followingText) cell.AddParagraph("OVERFLOW");
         } else {
-            var box = slide.AddTextBoxPoints("VISIBLE", 20, 20, 240, 60);
-            box.FontName = "Helvetica"; box.FontSize = 32;
-            box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
+            var box = slide.AddTextBox("VISIBLE",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
+            box.FontName = "Helvetica"; box.FontSize = global::OfficeIMO.OfficeLength.Points(32);
+            box.TextMarginLeft = box.TextMarginRight = box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0);
             box.AddParagraph("");
             if (followingText) box.AddParagraph("OVERFLOW");
         }
@@ -51,11 +51,11 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(false)]
     [InlineData(true)]
     public void CondensedDescendersRemainVisibleBeyondTheTextBoxBoundary(bool rich) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
-        var box = presentation.AddSlide().AddTextBoxPoints("gypsy\nplaying\nquickly", 20, 20, 240, 40);
-        box.FontSize = 24; box.FontName = "Helvetica";
-        box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
+        var box = presentation.AddSlide().AddTextBox("gypsy\nplaying\nquickly",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(40));
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(24); box.FontName = "Helvetica";
+        box.TextMarginLeft = box.TextMarginRight = box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0);
         box.Paragraphs[0].LineSpacingMultiplier = 0.75D;
         box.Paragraphs[0].Runs[0].Bold = rich;
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
@@ -78,18 +78,18 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(true, true, false)]
     [InlineData(true, true, true)]
     public void CondensedParagraphLeadingSurvivesNativeRendering(bool table, bool rich, bool trailingParagraph) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
         PowerPointParagraph paragraph;
         if (table) {
-            var cell = slide.AddTablePoints(1, 1, 20, 20, 240, 160).GetCell(0, 0);
-            cell.Text = "FIRST\nSECOND\nTHIRD"; cell.FontName = "Helvetica"; cell.FontSize = 12;
+            var cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160)).GetCell(0, 0);
+            cell.Text = "FIRST\nSECOND\nTHIRD"; cell.FontName = "Helvetica"; cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph = cell.Paragraphs[0];
             if (trailingParagraph) cell.AddParagraph("END");
         } else {
-            var box = slide.AddTextBoxPoints("FIRST\nSECOND\nTHIRD", 20, 20, 240, 160);
-            box.FontName = "Helvetica"; box.FontSize = 12;
+            var box = slide.AddTextBox("FIRST\nSECOND\nTHIRD",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160));
+            box.FontName = "Helvetica"; box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph = box.Paragraphs[0];
             if (trailingParagraph) box.AddParagraph("END").Alignment = PowerPointTextAlignment.Right;
         }
@@ -111,11 +111,11 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData("end", false)]
     [InlineData("end", true)]
     public void BlankParagraphUsesEffectiveFontSize(string source, bool differentAlignment) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
-            var box = presentation.AddSlide().AddTextBoxPoints("FIRST", 20, 20, 240, 160);
-            box.FontName = "Helvetica"; box.FontSize = 12;
+            var box = presentation.AddSlide().AddTextBox("FIRST",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160));
+            box.FontName = "Helvetica"; box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             if (spacer) {
                 var empty = box.AddParagraph("");
                 empty.Paragraph.Elements<A.Run>().Single().RunProperties = new A.RunProperties();
@@ -132,12 +132,12 @@ public sealed class PowerPointParagraphFlowContractTests {
 
     [Fact]
     public void BlankTableCellParagraphRetainsItsLineAndSpacing() {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
-            var cell = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 240, 160).GetCell(0, 0);
-            cell.Text = "FIRST"; cell.FontName = "Helvetica"; cell.FontSize = 12;
-            if (spacer) cell.AddParagraph("").SetSpaceBeforePoints(7).SetSpaceAfterPoints(11);
+            var cell = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160)).GetCell(0, 0);
+            cell.Text = "FIRST"; cell.FontName = "Helvetica"; cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            if (spacer) cell.AddParagraph("").SetSpaceBefore(global::OfficeIMO.OfficeLength.Points(7)).SetSpaceAfter(global::OfficeIMO.OfficeLength.Points(11));
             cell.AddParagraph("SECOND");
         }
         var pdf = Read(presentation);
@@ -150,11 +150,11 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData("master")]
     [InlineData("end")]
     public void BlankTableCellParagraphUsesEffectiveFontSize(string source) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
-            var cell = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 240, 160).GetCell(0, 0);
-            cell.Text = "FIRST"; cell.FontName = "Helvetica"; cell.FontSize = 12;
+            var cell = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160)).GetCell(0, 0);
+            cell.Text = "FIRST"; cell.FontName = "Helvetica"; cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             if (spacer) {
                 var empty = cell.AddParagraph("");
                 empty.Paragraph.RemoveAllChildren<A.Run>();
@@ -169,7 +169,7 @@ public sealed class PowerPointParagraphFlowContractTests {
                     level.RemoveAllChildren<A.DefaultRunProperties>(); level.Append(defaults);
                 }
             }
-            cell.AddParagraph("SECOND").Runs[0].FontSize = 12;
+            cell.AddParagraph("SECOND").Runs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);
         }
         var pdf = Read(presentation);
         Assert.InRange(Span(pdf.Pages[0], "SECOND").Y - Span(pdf.Pages[1], "SECOND").Y, 35D, 37D);
@@ -181,9 +181,9 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData("master", false)]
     [InlineData("master", true)]
     public void SingleEffectiveRunRetainsInheritedCapitalization(string source, bool flow) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        var box = presentation.AddSlide().AddTextBoxPoints("mixed case", 20, 20, 240, 120);
-        box.FontName = "Helvetica"; box.FontSize = 12;
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        var box = presentation.AddSlide().AddTextBox("mixed case",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(120));
+        box.FontName = "Helvetica"; box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (flow) box.AddParagraph("SECOND").Alignment = PowerPointTextAlignment.Right;
         SetDefaults(box, box.Paragraphs[0].Paragraph, source, new A.DefaultRunProperties { Capital = A.TextCapsValues.All });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -211,16 +211,16 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData(false)]
     [InlineData(true)]
     public void EmptyParagraphRetainsItsLineAndSpacingInPdfSpans(bool bullet) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.SlideSize.SetSizePoints(300, 220);
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
-            var box = presentation.AddSlide().AddTextBoxPoints("FIRST", 20, 20, 240, 160);
+            var box = presentation.AddSlide().AddTextBox("FIRST",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160));
             box.FontName = "Helvetica";
-            box.FontSize = 12;
+            box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             if (spacer) {
                 var empty = box.AddParagraph("");
-                empty.SetSpaceBeforePoints(7);
-                empty.SetSpaceAfterPoints(11);
+                empty.SetSpaceBefore(global::OfficeIMO.OfficeLength.Points(7));
+                empty.SetSpaceAfter(global::OfficeIMO.OfficeLength.Points(11));
             }
             box.AddParagraph("SECOND").Alignment = PowerPointTextAlignment.Right;
             if (bullet) box.Paragraphs[0].SetBullet('*');
@@ -234,11 +234,11 @@ public sealed class PowerPointParagraphFlowContractTests {
     [InlineData("list")]
     [InlineData("master")]
     public void PlainParagraphUsesItsEffectiveInheritedColor(string source) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         var slide = presentation.AddSlide();
-        var box = slide.AddTextBoxPoints("INHERITED", 20, 20, 240, 100);
+        var box = slide.AddTextBox("INHERITED",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(100));
         box.FontName = "Helvetica";
-        box.FontSize = 12;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         box.AddParagraph("SECOND").Alignment = PowerPointTextAlignment.Right;
         var paragraph = box.TextBody!.Elements<A.Paragraph>().First();
         paragraph.Elements<A.Run>().Single().RunProperties = new A.RunProperties();
@@ -254,7 +254,7 @@ public sealed class PowerPointParagraphFlowContractTests {
         var text = Span(Read(presentation).Pages[0], "INHERITED");
         Assert.Equal(OfficeColor.FromRgb(192, 32, 96), text.Color);
     }
-    private static PdfCore.PdfReadDocument Read(PowerPointPresentation presentation) =>
+    private static PdfCore.PdfReadDocument Read(PowerPointDocument presentation) =>
         PdfCore.PdfReadDocument.Open(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
     private static PdfCore.PdfTextSpan Span(PdfCore.PdfReadPage page, string text) =>

@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
 
         private static void CreateAutoFitVisualWorkbook(string filePath, bool applyOfficeImoAutoFit) {
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorksheet("AutoFit Visual");
+            var sheet = document.AddSheet("AutoFit Visual");
 
             sheet.CellValue(1, 1, "Case");
             sheet.CellValue(1, 2, "Auto column text");
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
                 SetCellStyle(spreadsheet, "C" + row.ToString(CultureInfo.InvariantCulture), wrapStyle);
             }
 
-            sheet.SetColumnWidth(3, 18);
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(18));
             if (applyOfficeImoAutoFit) {
                 sheet.AutoFitColumnsFor(new[] { 1, 2 });
                 sheet.AutoFitRows();

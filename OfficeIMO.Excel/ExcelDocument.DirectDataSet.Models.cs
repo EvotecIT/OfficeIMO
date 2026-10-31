@@ -33,6 +33,11 @@ namespace OfficeIMO.Excel {
 
             internal ExcelTabularStylePlan? TabularStyles { get; }
 
+            internal static DirectDataSetWorkbookModel CreateStreaming(IReadOnlyList<DirectDataSetSheetModel> sheets,
+                ExcelDateSystem dateSystem, ExcelTabularStylePlan? styles) =>
+                new DirectDataSetWorkbookModel(sheets, Array.Empty<ExcelDataSetImportResult>(),
+                    DefaultDateTimeOffsetWriteStrategy, dateSystem, styles);
+
             internal DirectDataSetWorkbookModel WithDateSystem(ExcelDateSystem dateSystem) {
                 return dateSystem == DateSystem
                     ? this
@@ -225,6 +230,7 @@ namespace OfficeIMO.Excel {
                 bool includeHeaders,
                 ExcelTableStyle tableStyle,
                 bool includeAutoFilter,
+                IReadOnlyList<string> columnNames,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 CancellationToken ct) {
                 var sheets = new DirectDataSetSheetModel[Sheets.Count];
@@ -242,7 +248,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    var table = includeHeaders ? sheet.Table : sheet.Table.WithGeneratedColumnNames();
+                    var table = sheet.Table.WithColumnNames(columnNames);
                     double[]? columnWidths = sheet.ColumnWidths;
                     if (sheet.AutoFitColumns && !ReferenceEquals(table, sheet.Table)) {
                         columnWidths = table.CalculateColumnWidths(includeHeaders, dateTimeOffsetWriteStrategy, ct);
@@ -464,7 +470,7 @@ namespace OfficeIMO.Excel {
                 return value.Length > 31 ? ExcelSheetNameText.Truncate(value, 31) : value;
             }
 
-            private static string SanitizeTableName(string name) {
+            internal static string SanitizeTableName(string name) {
                 var builder = new StringBuilder(name.Length + 1);
                 foreach (char ch in name) {
                     builder.Append(char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_');

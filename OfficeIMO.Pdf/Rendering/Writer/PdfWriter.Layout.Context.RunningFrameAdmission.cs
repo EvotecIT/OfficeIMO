@@ -73,7 +73,7 @@ internal static partial class PdfWriter {
                     source.GetRunningContentForPage(variantPage, isHeader: false), variant,
                     source.MirrorMargins && currentVisiblePageNumber % 2 == 0,
                     activeColumnFlow?.ColumnIndex ?? -1, IsPartialPhysicalColumnFrame(),
-                    currentOpts.MarginLeft, width, capacity, GetFullPageContentHeight(),
+                    currentOpts.MarginLeft.ToPoints(), width, capacity, GetFullPageContentHeight(),
                     GetMeasuredContinuationFrameHeight(), GetRunningBodyContinuationReservation(),
                     containerMeasurementTopPadding, containerMeasurementBottomInset, requiredHeight);
                 // First/even/default and mirror/column geometry are separate

@@ -326,10 +326,10 @@ public sealed class MarkdownNativeImageBlock : MarkdownNativeBlock {
     public string? Title { get; }
 
     /// <summary>Requested display width when available.</summary>
-    public double? Width { get; }
+    public OfficeLength? Width { get; }
 
     /// <summary>Requested display height when available.</summary>
-    public double? Height { get; }
+    public OfficeLength? Height { get; }
 
     /// <summary>Optional image caption.</summary>
     public string? Caption { get; }

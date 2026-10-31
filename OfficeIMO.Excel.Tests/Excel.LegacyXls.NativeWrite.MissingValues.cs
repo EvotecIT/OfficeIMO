@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
         [InlineData(ExcelFileFormat.Xlsb, true, true)]
         public void NativeBinarySave_ClearedTrailingCellsRetainOnlyIntentionalBlanks(ExcelFileFormat format, bool styled, bool clearAll) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Keep");
             sheet.CellValue(5, 4, 42);
             if (styled) sheet.FormatRange("D5:D5", "0.0000");
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
         [InlineData("SharedString")]
         public void LegacyXls_NativeSave_PresentEmptyTextExtendsUsedRangeWithoutStyle(string storage) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Keep");
             sheet.CellValue(5, 4, string.Empty);
             Cell source = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "D5");
@@ -123,8 +123,8 @@ namespace OfficeIMO.Tests {
             table.Rows.Add(1, DBNull.Value, string.Empty);
             table.Rows.Add(2, DBNull.Value, "Next");
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.InsertDataTable(table);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.WriteData(table);
             sheet.ColumnStyleByHeader("Amount").NumberFormat("0.0000");
             byte[] bytes = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(bytes);
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
                 set.Tables.Add(table);
                 document.InsertDataSet(set, createTables: false, includeHeaders: false, includeAutoFilter: false);
             } else {
-                document.AddWorksheet("Data").InsertDataTable(table, includeHeaders: false);
+                document.AddSheet("Data").WriteData(table, includeHeaders: false);
             }
             byte[] bytes = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(bytes, new ExcelReaderOptions { HasHeaderRow = false });
@@ -180,14 +180,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_MissingReplacementKeepsDefaultPresenceUntilStylesAreCleared() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Replace");
             DataTable table = new DataTable();
             table.Columns.Add("A", typeof(string));
             table.Columns.Add("B", typeof(string));
             table.Columns.Add("C", typeof(string));
             table.Rows.Add(DBNull.Value, DBNull.Value, DBNull.Value);
-            sheet.InsertDataTable(table, includeHeaders: false, mode: ExcelExecutionMode.Parallel);
+            sheet.WriteData(table, includeHeaders: false, mode: ExcelExecutionMode.Parallel);
             sheet.ClearRange("A1:C1", ExcelClearOptions.Values);
             byte[] missing = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls,  DisableFastPackageWriter = true });
             using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(missing, new ExcelReaderOptions { HasHeaderRow = false })) {

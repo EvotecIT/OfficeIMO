@@ -47,7 +47,7 @@ public sealed class AddOfficeWordImageCommand : PSCmdlet
         var context = WordDslContext.Require(this);
         var paragraph = context.CurrentParagraph ?? context.RequireParagraphHost().AddParagraph();
         var fullPath = ResolvePath();
-        var image = paragraph.InsertImage(fullPath, Width, Height, Wrap, Description);
+        var image = paragraph.AddImage(fullPath, (Width is { } imageLength1 ? OfficeIMO.OfficeLength.Pixels(imageLength1) : (OfficeIMO.OfficeLength? )null), (Height is { } imageLength2 ? OfficeIMO.OfficeLength.Pixels(imageLength2) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Wrapping = Wrap, Description = Description });
 
         if (PassThru.IsPresent)
         {

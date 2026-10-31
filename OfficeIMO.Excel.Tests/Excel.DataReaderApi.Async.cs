@@ -13,10 +13,10 @@ public partial class Excel {
             $"OfficeIMO.Excel.AsyncReader.{Guid.NewGuid():N}.xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet first = document.AddWorksheet("First");
+                ExcelSheet first = document.AddSheet("First");
                 first.CellValue(1, 1, "Value");
                 first.CellValue(2, 1, "Alpha");
-                ExcelSheet second = document.AddWorksheet("Second");
+                ExcelSheet second = document.AddSheet("Second");
                 second.CellValue(1, 1, "Value");
                 second.CellValue(2, 1, "Beta");
                 document.Save();
@@ -49,10 +49,10 @@ public partial class Excel {
         bool cancelDuringNextSheet = false;
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet first = document.AddWorksheet("First");
+                ExcelSheet first = document.AddSheet("First");
                 first.CellValue(1, 1, "Value");
                 first.CellValue(2, 1, "Alpha");
-                ExcelSheet second = document.AddWorksheet("Second");
+                ExcelSheet second = document.AddSheet("Second");
                 second.CellValue(1, 1, "Value");
                 for (int row = 2; row <= 512; row++) {
                     second.CellValue(row, 1, row == 2 ? "CancelHere" : "Value" + row);
@@ -87,10 +87,10 @@ public partial class Excel {
         using var perCallCancellation = new CancellationTokenSource();
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet first = document.AddWorksheet("First");
+                ExcelSheet first = document.AddSheet("First");
                 first.CellValue(1, 1, "Value");
                 first.CellValue(2, 1, "Alpha");
-                ExcelSheet second = document.AddWorksheet("Second");
+                ExcelSheet second = document.AddSheet("Second");
                 second.CellValue(1, 1, "Value");
                 second.CellValue(2, 1, "Beta");
                 document.Save();
@@ -112,7 +112,7 @@ public partial class Excel {
     public async Task ReadAsyncThreadsThePerCallTokenIntoBinaryWorksheetReads(ExcelFileFormat format) {
         byte[] workbook;
         using (ExcelDocument document = ExcelDocument.Create()) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             for (int column = 1; column <= 256; column++) {
                 sheet.CellValue(1, column, "Column" + column);
                 sheet.CellValue(2, column, column);
@@ -145,7 +145,7 @@ public partial class Excel {
     public async Task ReadAsyncCompletesRowAdvanceWithoutThreadPoolDispatch(ExcelFileFormat format) {
         byte[] workbook;
         using (ExcelDocument document = ExcelDocument.Create()) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.CellValue(2, 1, "Alpha");
             workbook = document.ToBytes(format);

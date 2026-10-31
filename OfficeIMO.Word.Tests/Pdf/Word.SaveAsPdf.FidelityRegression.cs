@@ -59,7 +59,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(horizontal ? 2 : 1, horizontal ? 1 : 2);
             table.Style = WordTableStyle.TableGrid;
-            if (cellSpacingTwips > 0) table.StyleDetails!.CellSpacing = (short)cellSpacingTwips;
+            if (cellSpacingTwips > 0) table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points((cellSpacingTwips) / 20D);
             table._tableProperties!.TableBorders = new TableBorders(
                 new TopBorder { Val = BorderValues.Nil },
                 new BottomBorder { Val = BorderValues.Nil },
@@ -203,8 +203,8 @@ public partial class Word {
                     new RightBorder { Val = BorderValues.Nil },
                     new InsideHorizontalBorder { Val = BorderValues.Nil },
                     new InsideVerticalBorder { Val = BorderValues.Single });
-                table.Rows[0].Height = 650;
-                table.Rows[1].Height = 850;
+                table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(32.5D);
+                table.Rows[1].Height = global::OfficeIMO.OfficeLength.Points(42.5D);
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "Merged";
                 table.Rows[0].Cells[0].MergeVertically(1);
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Upper";
@@ -290,8 +290,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 220),
-                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(24)
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             });
         }
 
@@ -605,12 +605,12 @@ public partial class Word {
                 IncludePageNumbers = false,
                 PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions {
                     DefaultTableStyle = new OfficeIMO.Pdf.PdfTableStyle {
-                        BorderColor = OfficeIMO.Pdf.PdfColor.Black,
-                        BorderWidth = 0.5D,
+                        BorderColor = global::OfficeIMO.OfficeColor.Black,
+                        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5D),
                         CellBorders = new Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfCellBorder> {
                             [(0, 0)] = new OfficeIMO.Pdf.PdfCellBorder {
-                                Color = OfficeIMO.Pdf.PdfColor.FromRgb(0, 0, 255),
-                                Width = 2D
+                                Color = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255),
+                                Width = global::OfficeIMO.OfficeLength.Points(2D)
                             }
                         }
                     }

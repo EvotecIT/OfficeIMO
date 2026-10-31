@@ -127,8 +127,8 @@ public sealed partial class HtmlRenderingTests {
         PdfCore.PdfLogicalTextBlock second = Assert.Single(page.TextBlocks, block => block.Text.Contains("SecondCard", StringComparison.Ordinal));
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri("https://example.com/second"));
 
-        Assert.Equal(OfficePageSizes.A4.WidthInches * 72D, width, 2);
-        Assert.Equal(OfficePageSizes.A4.HeightInches * 72D, height, 2);
+        Assert.Equal(OfficePageSizes.A4.Width.ToInches() * 72D, width, 2);
+        Assert.Equal(OfficePageSizes.A4.Height.ToInches() * 72D, height, 2);
         Assert.Equal(first.BaselineY, second.BaselineY, 2);
         Assert.InRange(first.XStart, 17D, 20D);
         Assert.True(second.XStart > first.XStart + 100D);
@@ -333,7 +333,7 @@ public sealed partial class HtmlRenderingTests {
         PdfCore.PdfNamedDestination target = Assert.Single(info.NamedDestinations, destination => destination.Name == "html-fragment:target");
         PdfCore.PdfFormField field = Assert.Single(info.FormFields, item => item.Name == "query");
 
-        Assert.InRange(target.DestinationTop!.Value, 650D, OfficePageSizes.A4.HeightInches * 72D);
-        Assert.True(Assert.Single(field.Widgets).X2 <= OfficePageSizes.A4.WidthInches * 72D);
+        Assert.InRange(target.DestinationTop!.Value, 650D, OfficePageSizes.A4.Height.ToInches() * 72D);
+        Assert.True(Assert.Single(field.Widgets).X2 <= OfficePageSizes.A4.Width.ToInches() * 72D);
     }
 }

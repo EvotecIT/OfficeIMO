@@ -6,7 +6,7 @@ namespace PSWriteOffice.Tests;
 public sealed partial class PowerPointContentWorkflowTests {
     [Fact]
     public void SlideAppearanceSurvivesContinuationAndNativeReopening() {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         using var runspace = Open();
         runspace.SessionStateProxy.SetVariable("deck", document);
         using var shell = PowerShell.Create();
@@ -21,7 +21,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         Assert.True(document.Slides.Count > 1);
         Assert.Equal(document.Slides.Count, result.Count);
         for (int i = 0; i < result.Count; i++) Assert.Same(document.Slides[i], result[i].BaseObject);
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Empty(saved.ValidateDocument());
         Assert.All(saved.Slides, slide => {
             Assert.Equal(saved.GetThemeColor(PowerPointThemeColor.Accent2), slide.GetBackground().Color);
@@ -36,7 +36,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         string image = Path.Combine(_root, "background[1].png");
         byte[] bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         File.WriteAllBytes(image, bytes);
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         using var runspace = Open();
         runspace.SessionStateProxy.SetVariable("deck", document);
         runspace.SessionStateProxy.SetVariable("image", image);
@@ -46,7 +46,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         var result = shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
         Assert.Same(document.Slides[0], Assert.Single(result).BaseObject);
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Empty(saved.ValidateDocument());
         Assert.Equal(bytes, saved.Slides[0].GetBackground().ImageBytes);
         Assert.Equal(PowerPointSlideTransition.Fade, saved.Slides[0].Transition);
@@ -57,7 +57,7 @@ public sealed partial class PowerPointContentWorkflowTests {
     [InlineData("-BackgroundImage $image")]
     [InlineData("-Transition 9999")]
     public void InvalidAppearanceDoesNotRunTheContentBlockOrAppendASlide(string arguments) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var original = document.AddSlide();
         original.AddTitle("Preserved");
         using var runspace = Open();
@@ -77,7 +77,7 @@ public sealed partial class PowerPointContentWorkflowTests {
     public void AppearanceFailureAfterCollectionRollsBackAndAllowsTheNextSlide() {
         string image = Path.Combine(_root, "disappearing.png");
         File.WriteAllBytes(image, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         using var runspace = Open();
         runspace.SessionStateProxy.SetVariable("deck", document);
         runspace.SessionStateProxy.SetVariable("image", image);
@@ -93,7 +93,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         var result = shell.Invoke();
         Assert.True(shell.HadErrors);
         Assert.Same(Assert.Single(document.Slides), Assert.Single(result).BaseObject);
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Empty(saved.ValidateDocument());
         Assert.Contains(saved.Slides[0].TextBoxes, box => box.Text == "Accepted content");
         Assert.DoesNotContain(saved.Slides[0].TextBoxes, box => box.Text.Contains("Rejected", StringComparison.Ordinal));

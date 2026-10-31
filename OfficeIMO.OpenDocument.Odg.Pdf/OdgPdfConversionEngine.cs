@@ -16,13 +16,13 @@ internal static class OdgPdfConversionEngine {
             textShapingProvider: pdfOptions.TextShapingProvider, textShapingLanguage: pdfOptions.Language);
         OdfConversionResult<IReadOnlyList<OfficeDrawing>> projected = source.ToDrawings(operation.LossPolicy, operation.ForPrint,
             operation.MaximumPages, token, operation.DateTimeFields, profile, PdfWriter.CreateDrawingTextMetrics(pdfOptions, token));
-        PdfDocument pdf = PdfDocument.Create(pdfOptions);
+        PdfDocument pdf = PdfDocument.CreateForImportedLayout(pdfOptions);
         foreach (OfficeDrawing drawing in projected.Value) {
             token.ThrowIfCancellationRequested();
             pdf.Compose(document => document.Page(builder => {
-                builder.Size(drawing.Width, drawing.Height).Margin(0);
+                builder.Size(global::OfficeIMO.OfficeLength.Points(drawing.Width), global::OfficeIMO.OfficeLength.Points(drawing.Height)).Margin(global::OfficeIMO.OfficeLength.Points(0));
                 builder.Canvas(canvas => {
-                    if (drawing.Elements.Count > 0) canvas.Drawing(drawing, 0, 0, drawing.Width, drawing.Height);
+                    if (drawing.Elements.Count > 0) canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(drawing.Width), global::OfficeIMO.OfficeLength.Points(drawing.Height));
                 });
             }));
         }

@@ -526,10 +526,10 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = WordDocument.Create(filePath);
                 WordParagraph paragraph = document.AddParagraph("Styled");
-                paragraph.IndentationBeforePoints = 12.75D;
+                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(12.75D);
                 using var imageStream = new MemoryStream(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
-                paragraph.AddImage(imageStream, "pixel.png", 10, 10);
-                Assert.Single(document.Images).Width = 15.5D;
+                paragraph.AddImage(imageStream, "pixel.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
+                Assert.Single(document.Images).Width = OfficeIMO.OfficeLength.Pixels(15.5D);
                 CultureInfo previousCulture = CultureInfo.CurrentCulture;
                 try {
                     CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
@@ -560,7 +560,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph imageParagraph = document.AddParagraph("Image ");
                 byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
                 using (var imageStream = new MemoryStream(png)) {
-                    imageParagraph.AddImage(imageStream, "pixel.png", 10, 10);
+                    imageParagraph.AddImage(imageStream, "pixel.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
                 }
                 WordImage image = Assert.Single(document.Images);
 
@@ -579,11 +579,11 @@ namespace OfficeIMO.Tests {
                 const string replyPath = "comment/0/reply/0";
 
                 body.PageBreakBefore = true;
-                body.IndentationBeforePoints = 18;
+                body.IndentationBefore = global::OfficeIMO.OfficeLength.Points(18D);
                 GoogleDocsSyncCheckpoint layoutChanged = GoogleDocsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(baseline.ContentHashes[bodyPath], layoutChanged.ContentHashes[bodyPath]);
 
-                image.Width = 20;
+                image.Width = OfficeIMO.OfficeLength.Pixels(20);
                 GoogleDocsSyncCheckpoint imageChanged = GoogleDocsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(layoutChanged.ContentHashes[imagePath], imageChanged.ContentHashes[imagePath]);
 

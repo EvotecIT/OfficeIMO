@@ -17,7 +17,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData("  ", true, false, 24D)]
     public void InvisibleReferenceLabelsRetainOneNoteWithoutChangingAuthoredWhitespace(string label, bool preserve, bool terminal, double width) {
         PdfCreateOptions options = Options();
-        options.PageWidth = width + options.MarginLeft + options.MarginRight;
+        options.PageWidth = global::OfficeIMO.OfficeLength.Points(width + options.MarginLeft.ToPoints() + options.MarginRight.ToPoints());
         options.DefaultFont = PdfStandardFont.Courier;
         options.TextWhitespaceMode = preserve ? PdfTextWhitespaceMode.Preserve : PdfTextWhitespaceMode.Collapse;
         var control = PdfDocument.Create(options);
@@ -45,7 +45,7 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void LaterReferenceToSameDefinitionCannotPostponeWrappedWhitespaceReference() {
         PdfCreateOptions options = Options();
-        options.PageWidth = options.MarginLeft + 24D + options.MarginRight;
+        options.PageWidth = global::OfficeIMO.OfficeLength.Points(options.MarginLeft.ToPoints() + 24D + options.MarginRight.ToPoints());
         options.DefaultFont = PdfStandardFont.Courier;
         options.TextWhitespaceMode = PdfTextWhitespaceMode.Preserve;
         var document = PdfDocument.Create(options);

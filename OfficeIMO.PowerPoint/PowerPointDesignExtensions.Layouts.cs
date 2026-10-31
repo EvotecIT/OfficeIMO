@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint {
         ///     presentation's theme part names now. A template composed without applying the design keeps its own
         ///     fonts, and measuring with the design's fonts would wrap differently from what is drawn.
         /// </remarks>
-        internal static PowerPointLayoutTheme LayoutThemeFor(PowerPointPresentation presentation, PowerPointDesignTheme? theme) {
+        internal static PowerPointLayoutTheme LayoutThemeFor(PowerPointDocument presentation, PowerPointDesignTheme? theme) {
             if (theme == null) return presentation.LayoutTheme;
             PowerPointLayoutTheme mapped = PowerPointLayoutTheme.From(ResolveTheme(theme), presentation.BaseTheme);
             if (presentation.OwnsLayoutTheme) return mapped;
@@ -30,7 +30,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies the designer theme: its brand accents and safe fonts are mapped onto the presentation's theme and
         ///     written to the theme part, and a presentation created by OfficeIMO also gets matching master text styles.
         /// </summary>
-        public static PowerPointPresentation ApplyDesignerTheme(this PowerPointPresentation presentation,
+        public static PowerPointDocument ApplyDesignerTheme(this PowerPointDocument presentation,
             PowerPointDesignTheme? theme = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             PowerPointDesignTheme resolvedTheme = ResolveTheme(theme);
@@ -57,7 +57,7 @@ namespace OfficeIMO.PowerPoint {
             return presentation;
         }
 
-        private static PowerPointLayoutSlide Content(PowerPointPresentation presentation, string? title, string? subtitle,
+        private static PowerPointLayoutSlide Content(PowerPointDocument presentation, string? title, string? subtitle,
             PowerPointDesignerSlideOptions options, PowerPointLayout layout) {
             PowerPointLayoutDeck deck = presentation.LayoutDeck;
             if (!string.IsNullOrWhiteSpace(options.FooterLeft) && options.FooterLeft != LegacyFooterBrand) {
@@ -89,14 +89,14 @@ namespace OfficeIMO.PowerPoint {
             return slide;
         }
 
-        private static PowerPointSlide Compose(PowerPointPresentation presentation, PowerPointLayoutSlide slide, PowerPointDesignTheme? theme,
+        private static PowerPointSlide Compose(PowerPointDocument presentation, PowerPointLayoutSlide slide, PowerPointDesignTheme? theme,
             string? title) {
             IReadOnlyList<PowerPointSlide> slides = PowerPointLayoutEngine.AddSlides(presentation, slide, LayoutThemeFor(presentation, theme));
             foreach (PowerPointSlide added in slides) FinalizeDesignerAccessibility(added, title);
             return slides[0];
         }
 
-        private static void ReportIgnored(PowerPointPresentation presentation, string option, string? title) {
+        private static void ReportIgnored(PowerPointDocument presentation, string option, string? title) {
             presentation.LayoutDeck.Report("designer-option-ignored", OfficeDiagnosticSeverity.Information,
                 "The " + option + " designer option has no effect in the theme layouts; the slide uses its designed layout.", title,
                 oncePerDeck: false);
@@ -104,7 +104,7 @@ namespace OfficeIMO.PowerPoint {
 
         // ------------------------------------------------------------------ section, case study, cards, process
 
-        public static PowerPointSlide AddDesignerSectionSlide(this PowerPointPresentation presentation, string title,
+        public static PowerPointSlide AddDesignerSectionSlide(this PowerPointDocument presentation, string title,
             string? subtitle = null, PowerPointDesignTheme? theme = null, PowerPointDesignerSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             if (title == null) throw new ArgumentNullException(nameof(title));
@@ -116,7 +116,7 @@ namespace OfficeIMO.PowerPoint {
             return Compose(presentation, slide, theme, title);
         }
 
-        public static PowerPointSlide AddDesignerCaseStudySlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerCaseStudySlide(this PowerPointDocument presentation,
             string clientTitle, IEnumerable<PowerPointCaseStudySection> sections, IEnumerable<PowerPointMetric>? metrics = null,
             PowerPointDesignTheme? theme = null, PowerPointCaseStudySlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -137,7 +137,7 @@ namespace OfficeIMO.PowerPoint {
             return Compose(presentation, slide, theme, clientTitle);
         }
 
-        public static PowerPointSlide AddDesignerCardGridSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerCardGridSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointCardContent> cards,
             PowerPointDesignTheme? theme = null, PowerPointCardGridSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -150,7 +150,7 @@ namespace OfficeIMO.PowerPoint {
             return Compose(presentation, slide, theme, title);
         }
 
-        public static PowerPointSlide AddDesignerProcessSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerProcessSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointProcessStep> steps,
             PowerPointDesignTheme? theme = null, PowerPointProcessSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -164,7 +164,7 @@ namespace OfficeIMO.PowerPoint {
 
         // ------------------------------------------------------------------ logos, coverage, capability
 
-        public static PowerPointSlide AddDesignerLogoWallSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerLogoWallSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointLogoItem> logos,
             PowerPointDesignTheme? theme = null, PowerPointLogoWallSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -181,7 +181,7 @@ namespace OfficeIMO.PowerPoint {
             return Compose(presentation, slide, theme, title);
         }
 
-        public static PowerPointSlide AddDesignerCoverageSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerCoverageSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointCoverageLocation> locations,
             PowerPointDesignTheme? theme = null, PowerPointCoverageSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -197,7 +197,7 @@ namespace OfficeIMO.PowerPoint {
             return Compose(presentation, slide, theme, title);
         }
 
-        public static PowerPointSlide AddDesignerCapabilitySlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerCapabilitySlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointCapabilitySection> sections,
             PowerPointDesignTheme? theme = null, PowerPointCapabilitySlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -246,7 +246,7 @@ namespace OfficeIMO.PowerPoint {
 
         // ------------------------------------------------------------------ executive, chart, comparison, table
 
-        public static PowerPointSlide AddDesignerExecutiveSummarySlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerExecutiveSummarySlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointExecutiveSummaryContent content,
             PowerPointDesignTheme? theme = null, PowerPointExecutiveSummarySlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -278,7 +278,7 @@ namespace OfficeIMO.PowerPoint {
             return Compose(presentation, slide, theme, title);
         }
 
-        public static PowerPointSlide AddDesignerChartStorySlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerChartStorySlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointChartStoryContent content,
             PowerPointDesignTheme? theme = null, PowerPointChartStorySlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -303,7 +303,7 @@ namespace OfficeIMO.PowerPoint {
             return Compose(presentation, slide, theme, title);
         }
 
-        public static PowerPointSlide AddDesignerComparisonSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerComparisonSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointComparisonItem> items,
             PowerPointDesignTheme? theme = null, PowerPointComparisonSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -337,7 +337,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (string tradeoff in item.Tradeoffs) yield return new PowerPointLayoutListItem("Trade-off: " + tradeoff);
         }
 
-        public static PowerPointSlide AddDesignerAppendixTableSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerAppendixTableSlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointTableData data, PowerPointDesignTheme? theme = null,
             PowerPointAppendixTableSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -359,7 +359,7 @@ namespace OfficeIMO.PowerPoint {
 
         // ------------------------------------------------------------------ screenshot, architecture, closing
 
-        public static PowerPointSlide AddDesignerScreenshotStorySlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerScreenshotStorySlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointImageAsset image, IEnumerable<string>? narrative = null,
             PowerPointDesignTheme? theme = null, PowerPointScreenshotStorySlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -388,7 +388,7 @@ namespace OfficeIMO.PowerPoint {
             return Compose(presentation, slide, theme, title);
         }
 
-        public static PowerPointSlide AddDesignerArchitectureSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerArchitectureSlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointArchitectureContent content,
             PowerPointDesignTheme? theme = null, PowerPointArchitectureSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -400,7 +400,7 @@ namespace OfficeIMO.PowerPoint {
             return Compose(presentation, slide, theme, title);
         }
 
-        public static PowerPointSlide AddDesignerClosingSlide(this PowerPointPresentation presentation,
+        public static PowerPointSlide AddDesignerClosingSlide(this PowerPointDocument presentation,
             string title, PowerPointClosingContent content, PowerPointDesignTheme? theme = null,
             PowerPointClosingSlideOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));

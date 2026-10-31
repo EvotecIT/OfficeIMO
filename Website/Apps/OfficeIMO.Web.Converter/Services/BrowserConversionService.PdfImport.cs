@@ -200,7 +200,7 @@ public sealed partial class BrowserConversionService {
             MaximumDegreeOfParallelism = 1
         };
         if (pageCount == 1) {
-            OfficeImageExportResult image = pdf.ToImages(options).AsPng().Export().Single();
+            OfficeImageExportResult image = pdf.ExportImageResults(options).Single();
             IReadOnlyList<PdfConversionWarning> warnings = MapImageDiagnostics(image, 1);
             return new PdfImportPayload(
                 image.Bytes,
@@ -242,7 +242,7 @@ public sealed partial class BrowserConversionService {
         var warnings = new List<PdfConversionWarning>();
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
-            pdf.ToImages(options).AsPng().ExportEach(image => {
+            pdf.ExportImageResultsEach(options, image => {
                 int pageNumberValue = nextPageNumber++;
                 string pageNumber = pageNumberValue.ToString(
                     new string('0', digits),

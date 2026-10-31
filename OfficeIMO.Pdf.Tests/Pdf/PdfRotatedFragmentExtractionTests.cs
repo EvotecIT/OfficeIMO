@@ -72,8 +72,8 @@ public sealed class PdfRotatedFragmentExtractionTests {
             rotated => {
                 foreach (double y in new[] { 100D, 125D }) {
                     if (fragments) AddGlyphs(rotated, "REPEATED_LABEL", 100D, y);
-                    else rotated.Text("REPEATED_LABEL", 100D, y, 180D, 18D,
-                        fontSize: 12D, font: PdfStandardFont.Courier);
+                    else rotated.Text("REPEATED_LABEL", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(18D),
+                        fontSize: global::OfficeIMO.OfficeLength.Points(12D), font: PdfStandardFont.Courier);
                 }
             }));
         PdfReadPage page = PdfReadDocument.Open(bytes).Pages[0];
@@ -83,15 +83,15 @@ public sealed class PdfRotatedFragmentExtractionTests {
     }
 
     private static byte[] CreatePdf(Action<PdfPageCanvas> build) => PdfDocument.Create(new PdfCreateOptions {
-        PageWidth = 600D, PageHeight = 800D, CompressContentStreams = false
+        PageWidth = global::OfficeIMO.OfficeLength.Points(600D), PageHeight = global::OfficeIMO.OfficeLength.Points(800D), CompressContentStreams = false
     }).Canvas(build).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
     private static void AddGlyphs(PdfPageCanvas canvas, string text, double x, double y) {
         for (int index = 0; index < text.Length; index++) {
             string glyph = text[index].ToString();
             double glyphX = x + index * 7.2D;
-            canvas.ActualText(glyph, painted => painted.Text(glyph, glyphX, y, 12D, 18D,
-                fontSize: 12D, font: PdfStandardFont.Courier));
+            canvas.ActualText(glyph, painted => painted.Text(glyph, global::OfficeIMO.OfficeLength.Points(glyphX), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(18D),
+                fontSize: global::OfficeIMO.OfficeLength.Points(12D), font: PdfStandardFont.Courier));
         }
     }
 }

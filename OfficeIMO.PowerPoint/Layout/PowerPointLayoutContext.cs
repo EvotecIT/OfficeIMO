@@ -5,23 +5,23 @@ using System.Linq;
 namespace OfficeIMO.PowerPoint {
     /// <summary>Everything a layout renderer needs: document, tokens, grid and deck state.</summary>
     internal sealed class PowerPointLayoutContext {
-        internal PowerPointLayoutContext(PowerPointPresentation document, PowerPointLayoutTheme theme) {
+        internal PowerPointLayoutContext(PowerPointDocument document, PowerPointLayoutTheme theme) {
             Document = document;
             Theme = theme.Scaled(SizeScale(document));
             Grid = (document.OwnsLayoutTheme ? null : TemplateGrid(document)) ?? PowerPointLayoutGrid.For(document, theme);
             Deck = document.LayoutDeck;
         }
 
-        internal PowerPointPresentation Document { get; }
+        internal PowerPointDocument Document { get; }
 
         /// <summary>
         ///     The slide size relative to the 960 x 540 pt reference (and 720 x 540 pt for 4:3). The type scale and
         ///     spacing are designed for those sizes; a smaller slide, such as a 10 inch 720 x 405 pt template, scales
         ///     them down so the same content keeps the same composition instead of overflowing.
         /// </summary>
-        internal static double SizeScale(PowerPointPresentation document) {
+        internal static double SizeScale(PowerPointDocument document) {
             PowerPointSlideSize size = document.SlideSize;
-            double width = PowerPointUnits.ToPoints(size.WidthEmus), height = PowerPointUnits.ToPoints(size.HeightEmus);
+            double width = size.Width.ToPoints(), height = size.Height.ToPoints();
             if (width <= 0D || height <= 0D) return 1D;
             double referenceWidth = width / height < 1.5D ? 720D : 960D;
             return Math.Min(1D, Math.Min(width / referenceWidth, height / 540D));
@@ -34,7 +34,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal PowerPointLayoutRect? MasterTitle { get; private set; }
 
-        private PowerPointLayoutGrid? TemplateGrid(PowerPointPresentation document) {
+        private PowerPointLayoutGrid? TemplateGrid(PowerPointDocument document) {
             DocumentFormat.OpenXml.Packaging.SlideMasterPart? master = document.OpenXmlDocument.PresentationPart?.SlideMasterParts.FirstOrDefault();
             if (master == null) return null;
             DocumentFormat.OpenXml.Packaging.SlideLayoutPart? layout = master.SlideLayoutParts.FirstOrDefault(l =>
@@ -63,8 +63,10 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutRect? titleBox = Bounds(layout?.SlideLayout, true) ?? Bounds(master.SlideMaster, true);
             MasterTitle = Bounds(master.SlideMaster, true);
             if (body == null || body.Value.Width < 100D || body.Value.Height < 100D) return null;
+            if (!PowerPointLayoutEngine.WithinSlide(document, body.Value.X, body.Value.Y, body.Value.Width, body.Value.Height))
+                return null;
             PowerPointSlideSize size = document.SlideSize;
-            return PowerPointLayoutGrid.ForTemplate(PowerPointUnits.ToPoints(size.WidthEmus), PowerPointUnits.ToPoints(size.HeightEmus),
+            return PowerPointLayoutGrid.ForTemplate(PowerPointUnits.ToPoints(size.Width.ToEmus()), PowerPointUnits.ToPoints(size.Height.ToEmus()),
                 body.Value, Math.Max(12D, (titleBox?.Y ?? body.Value.Y - 100D) - 24D), SizeScale(document));
         }
         internal PowerPointLayoutTheme Theme { get; }

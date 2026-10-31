@@ -90,7 +90,7 @@ public sealed class StudioActiveCloseTests {
                 window.Show();
                 string source = Path.Combine(services.Paths.Root, "first.pdf");
                 string other = Path.Combine(services.Paths.Root, "second.pdf");
-                PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(source);
+                PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
                 File.Copy(source, other);
                 await window.TabHost.OpenDocumentAsync(source);
                 var firstTab = window.TabHost.SelectedTab!;

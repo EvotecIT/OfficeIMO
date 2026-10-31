@@ -37,11 +37,11 @@ public sealed class OfficeDocumentSummaryRoutingTests {
         OfficeDocumentReadResult read;
         if (format == "Excel") {
             using var workbook = ExcelDocument.Create();
-            workbook.AddWorksheet("Data").CellValue(1, 1, "Inventory");
-            workbook.AddWorksheet("Empty");
+            workbook.AddSheet("Data").CellValue(1, 1, "Inventory");
+            workbook.AddSheet("Empty");
             read = workbook.ReadDocument();
         } else {
-            using var presentation = PowerPointPresentation.Create();
+            using var presentation = PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Inventory");
             presentation.AddSlide();
             read = presentation.ReadDocument();
@@ -65,9 +65,9 @@ public sealed class OfficeDocumentSummaryRoutingTests {
             if (extension == "docx") {
                 using var word = WordDocument.Create(); word.AddParagraph("Plain source"); word.Save(path);
             } else if (extension == "xlsx") {
-                using var excel = ExcelDocument.Create(); excel.AddWorksheet("Data"); excel.Save(path);
+                using var excel = ExcelDocument.Create(); excel.AddSheet("Data"); excel.Save(path);
             } else {
-                using var presentation = PowerPointPresentation.Create(); presentation.AddSlide(); presentation.Save(path);
+                using var presentation = PowerPointDocument.Create(); presentation.AddSlide(); presentation.Save(path);
             }
             byte[] original = File.ReadAllBytes(path);
             var options = new OfficeInspectOptions { IncludeSummary = true, IncludeContent = false };

@@ -29,12 +29,12 @@ public static partial class PdfPowerPointConverterExtensions {
             for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 PptCore.PowerPointTableCell cell = table.GetCell(rowIndex, columnIndex);
-                cell.FontSize = fontSize;
+                cell.FontSize = OfficeLength.Points(fontSize);
                 // Room on both sides keeps a right-aligned figure from touching the next column's text.
-                cell.PaddingLeftPoints = EditableCellHorizontalPaddingPoints;
-                cell.PaddingRightPoints = EditableCellHorizontalPaddingPoints;
-                cell.PaddingTopPoints = EditableCellVerticalPaddingPoints;
-                cell.PaddingBottomPoints = EditableCellVerticalPaddingPoints;
+                cell.PaddingLeft = OfficeLength.Points(EditableCellHorizontalPaddingPoints);
+                cell.PaddingRight = OfficeLength.Points(EditableCellHorizontalPaddingPoints);
+                cell.PaddingTop = OfficeLength.Points(EditableCellVerticalPaddingPoints);
+                cell.PaddingBottom = OfficeLength.Points(EditableCellVerticalPaddingPoints);
                 cell.VerticalAlignment = PptCore.PowerPointTextVerticalAlignment.Top;
                 cell.TextAutoFit = PptCore.PowerPointTextAutoFit.Normal;
             }

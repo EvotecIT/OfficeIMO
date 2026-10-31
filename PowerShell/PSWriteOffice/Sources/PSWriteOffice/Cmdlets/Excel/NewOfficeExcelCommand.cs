@@ -12,15 +12,15 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Create a workbook with a sheet and a few cells.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficeExcel -Path .\report.xlsx { ExcelSheet 'Data' { ExcelCell -Address 'ExcelA1' -Value 'Region' } }</code>
-///   <para>Creates <c>report.xlsx</c> and writes “Region” into cell ExcelA1 on the Data worksheet.</para>
+///   <code>New-OfficeExcel -Path .\report.xlsx { ExcelSheet 'Data' { ExcelCell -Address 'A1' -Value 'Region' } }</code>
+///   <para>Creates <c>report.xlsx</c> and writes “Region” into cell A1 on the Data worksheet.</para>
 /// </example>
 /// <example>
 ///   <summary>Keep a workbook for incremental composition.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$workbook = New-OfficeExcel -Path .\report.xlsx -NoSave
 /// $sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
-/// $sheet | Set-OfficeExcelCell -Address ExcelA1 -Value 'Region'
+/// $sheet | Set-OfficeExcelCell -Address A1 -Value 'Region'
 /// $workbook | Save-OfficeExcel
 /// $workbook | Close-OfficeExcel</code>
 ///   <para>Associates the output path with a live workbook, changes a worksheet, then saves and closes it once.</para>
@@ -190,7 +190,7 @@ public sealed class NewOfficeExcelCommand : PSCmdlet {
 
             if (!NoSave.IsPresent) {
                 if (document.Sheets.Count == 0) {
-                    document.AddWorksheet(string.Empty, ExcelSheetNameValidationMode.Sanitize);
+                    document.AddSheet(string.Empty, ExcelSheetNameValidationMode.Sanitize);
                 }
                 var saveOptions = ExcelDocumentService.CreateSaveOptions(
                     SafePreflight.IsPresent,

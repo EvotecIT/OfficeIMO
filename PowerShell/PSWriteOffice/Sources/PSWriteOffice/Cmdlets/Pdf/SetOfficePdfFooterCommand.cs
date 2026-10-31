@@ -82,7 +82,7 @@ public sealed class SetOfficePdfFooterCommand : PSCmdlet
             ApplyAlignment(footer);
             if (FontSize.HasValue)
             {
-                footer.FontSize(FontSize.Value);
+                footer.FontSize(global::OfficeIMO.OfficeLength.Points(FontSize.Value));
             }
             if (compose != null)
             {

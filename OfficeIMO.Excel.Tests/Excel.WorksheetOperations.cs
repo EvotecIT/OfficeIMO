@@ -15,9 +15,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetReorder.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Alpha");
-                document.AddWorksheet("Beta");
-                document.AddWorksheet("Gamma");
+                document.AddSheet("Alpha");
+                document.AddSheet("Beta");
+                document.AddSheet("Gamma");
 
                 document.ReorderWorksheet("Gamma", 0);
 
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetCopyWithin.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet source = document.AddWorksheet("Source");
+                ExcelSheet source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Name");
                 source.CellValue(1, 2, "Score");
                 source.CellValue(2, 1, "Ada");
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetCopyWithinTables.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet source = document.AddWorksheet("Source");
+                ExcelSheet source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Revenue");
                 source.CellValue(2, 1, "NA");
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetCopyTablePartsOrder.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet source = document.AddWorksheet("Source");
+                ExcelSheet source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Name");
                 source.CellValue(2, 1, "Ada");
                 source.AddTable("A1:A2", hasHeader: true, name: "People", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetCopyStructuredReferenceRewrite.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet source = document.AddWorksheet("Source");
+                ExcelSheet source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Revenue");
                 source.CellValue(2, 1, "NA");
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Source");
+                ExcelSheet source = sourceDocument.AddSheet("Source");
                 source.CellValue(2, 2, "Region");
                 source.CellValue(2, 3, "Revenue");
                 source.CellValue(3, 2, "NA");
@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyTableTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Source");
+                ExcelSheet source = sourceDocument.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Revenue");
                 source.CellValue(2, 1, "NA");
@@ -265,7 +265,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageHeaderTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Headers");
+                ExcelSheet source = sourceDocument.AddSheet("Headers");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Revenue");
                 source.CellBold(1, 1, true);
@@ -277,7 +277,7 @@ namespace OfficeIMO.Tests {
 
             using (var sourceDocument = ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                targetDocument.AddWorksheet("Summary").CellValue(1, 1, "Summary");
+                targetDocument.AddSheet("Summary").CellValue(1, 1, "Summary");
                 ExcelSheet copied = targetDocument.CopyWorksheetFrom(sourceDocument, "Headers", "Imported", ExcelSheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
                     CopyMode = ExcelWorksheetCopyMode.Package
                 });
@@ -316,7 +316,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageInlineTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("External");
+                ExcelSheet source = sourceDocument.AddSheet("External");
                 source.CellValue(1, 1, "Name");
                 source.CellValue(2, 1, "Imported");
                 sourceDocument.Save();
@@ -348,7 +348,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDefaultStyleTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("StyledDefault");
+                ExcelSheet source = sourceDocument.AddSheet("StyledDefault");
                 source.CellValue(1, 1, "Default styled");
                 sourceDocument.Save();
             }
@@ -357,7 +357,7 @@ namespace OfficeIMO.Tests {
 
             using (var sourceDocument = ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                targetDocument.AddWorksheet("Existing").CellValue(1, 1, "Existing");
+                targetDocument.AddSheet("Existing").CellValue(1, 1, "Existing");
                 targetDocument.CopyWorksheetFrom(sourceDocument, "StyledDefault", "Imported", ExcelSheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
                     CopyMode = ExcelWorksheetCopyMode.Package
                 });
@@ -385,7 +385,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageInheritedStyleTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Inherited");
+                ExcelSheet source = sourceDocument.AddSheet("Inherited");
                 source.CellValue(1, 1, "Row inherited");
                 source.CellValue(2, 2, "Column inherited");
                 sourceDocument.Save();
@@ -396,7 +396,7 @@ namespace OfficeIMO.Tests {
 
             using (var sourceDocument = ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                targetDocument.AddWorksheet("Existing").CellValue(1, 1, "Existing");
+                targetDocument.AddSheet("Existing").CellValue(1, 1, "Existing");
                 targetDocument.CopyWorksheetFrom(sourceDocument, "Inherited", "Imported", ExcelSheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
                     CopyMode = ExcelWorksheetCopyMode.Package
                 });
@@ -427,12 +427,12 @@ namespace OfficeIMO.Tests {
             using var savedStream = new MemoryStream();
 
             using (var sourceDocument = ExcelDocument.Create(sourceStream)) {
-                sourceDocument.AddWorksheet("Source").CellValue(1, 1, "Copied");
+                sourceDocument.AddSheet("Source").CellValue(1, 1, "Copied");
                 sourceDocument.Save(sourceStream);
             }
 
             using (var targetDocument = ExcelDocument.Create(targetSeedStream)) {
-                targetDocument.AddWorksheet("Existing").CellValue(1, 1, "Existing");
+                targetDocument.AddSheet("Existing").CellValue(1, 1, "Existing");
                 targetDocument.Save(targetSeedStream);
             }
 
@@ -459,7 +459,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStyleTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Styled");
+                ExcelSheet source = sourceDocument.AddSheet("Styled");
                 source.CellValue(1, 1, 10);
                 source.CellBackground(1, 1, "#D9EAD3");
                 sourceDocument.Save();
@@ -468,7 +468,7 @@ namespace OfficeIMO.Tests {
             AddSourceWorksheetPackageArtifacts(sourcePath, "Styled");
 
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                targetDocument.AddWorksheet("Existing").CellValue(1, 1, "Existing");
+                targetDocument.AddSheet("Existing").CellValue(1, 1, "Existing");
                 targetDocument.Save();
             }
 
@@ -522,7 +522,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageFormulaTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Source");
+                ExcelSheet source = sourceDocument.AddSheet("Source");
                 source.CellValue(1, 1, 10);
                 source.CellFormula(2, 1, "Source!A1*TaxRate");
                 sourceDocument.SetNamedRange("TaxRate", "A1", source);
@@ -558,13 +558,13 @@ namespace OfficeIMO.Tests {
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath))
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Source");
+                ExcelSheet source = sourceDocument.AddSheet("Source");
                 var table = new DataTable();
                 table.Columns.Add("Name", typeof(string));
                 table.Columns.Add("Count", typeof(int));
                 table.Rows.Add("Alpha", 1);
                 table.Rows.Add("Beta", 2);
-                source.InsertDataTableAsTable(table, tableName: "Items");
+                source.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "Items" }, row: 1, column: 1);
 
                 targetDocument.CopyWorksheetFrom(sourceDocument, "Source", "Imported", ExcelSheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
                     CopyMode = ExcelWorksheetCopyMode.Package
@@ -589,7 +589,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStructuredTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Source");
+                ExcelSheet source = sourceDocument.AddSheet("Source");
                 source.CellValue(1, 1, "Name");
                 source.CellValue(2, 1, "Ada");
                 source.AddTable("A1:A2", hasHeader: true, name: "People", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
@@ -607,7 +607,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                ExcelSheet existing = targetDocument.AddWorksheet("Existing");
+                ExcelSheet existing = targetDocument.AddSheet("Existing");
                 existing.CellValue(1, 1, "Name");
                 existing.CellValue(2, 1, "Grace");
                 existing.AddTable("A1:A2", hasHeader: true, name: "People", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
@@ -650,7 +650,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageFunctionNameTableTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Source");
+                ExcelSheet source = sourceDocument.AddSheet("Source");
                 source.CellValue(1, 1, "Value");
                 source.CellValue(2, 1, 10);
                 source.AddTable("A1:A2", hasHeader: true, name: "SUM", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
@@ -659,7 +659,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                ExcelSheet existing = targetDocument.AddWorksheet("Existing");
+                ExcelSheet existing = targetDocument.AddSheet("Existing");
                 existing.CellValue(1, 1, "Value");
                 existing.CellValue(2, 1, 20);
                 existing.AddTable("A1:A2", hasHeader: true, name: "SUM", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
@@ -692,7 +692,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDisplayNameTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Source");
+                ExcelSheet source = sourceDocument.AddSheet("Source");
                 source.CellValue(1, 1, "Amount");
                 source.CellValue(2, 1, 10);
                 source.AddTable("A1:A2", hasHeader: true, name: "Internal", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
@@ -703,7 +703,7 @@ namespace OfficeIMO.Tests {
             SetTableDisplayName(sourcePath, "Source", "Internal", "Visible");
 
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                ExcelSheet existing = targetDocument.AddWorksheet("Existing");
+                ExcelSheet existing = targetDocument.AddSheet("Existing");
                 existing.CellValue(1, 1, "Amount");
                 existing.CellValue(2, 1, 20);
                 existing.AddTable("A1:A2", hasHeader: true, name: "Internal", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
@@ -739,7 +739,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageStructuredOnceTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Source");
+                ExcelSheet source = sourceDocument.AddSheet("Source");
                 source.CellValue(1, 1, "Amount");
                 source.CellValue(2, 1, 10);
                 source.AddTable("A1:A2", hasHeader: true, name: "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
@@ -751,7 +751,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                ExcelSheet existing = targetDocument.AddWorksheet("Existing");
+                ExcelSheet existing = targetDocument.AddSheet("Existing");
                 existing.CellValue(1, 1, "Amount");
                 existing.CellValue(2, 1, 1);
                 existing.AddTable("A1:A2", hasHeader: true, name: "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
@@ -788,7 +788,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageThemeColorTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("ThemeStyled");
+                ExcelSheet source = sourceDocument.AddSheet("ThemeStyled");
                 source.CellValue(1, 1, "Theme styled");
                 sourceDocument.Save();
             }
@@ -797,7 +797,7 @@ namespace OfficeIMO.Tests {
 
             using (var sourceDocument = ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                targetDocument.AddWorksheet("Existing").CellValue(1, 1, "Existing");
+                targetDocument.AddSheet("Existing").CellValue(1, 1, "Existing");
                 targetDocument.CopyWorksheetFrom(sourceDocument, "ThemeStyled", "Imported", ExcelSheetNameValidationMode.Sanitize, new ExcelWorksheetCopyOptions {
                     CopyMode = ExcelWorksheetCopyMode.Package
                 });
@@ -830,14 +830,14 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageCalcChainTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("FormulaSource");
+                ExcelSheet source = sourceDocument.AddSheet("FormulaSource");
                 source.CellValue(1, 1, 10);
                 source.CellFormula(2, 1, "A1*2");
                 sourceDocument.Save();
             }
 
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                targetDocument.AddWorksheet("Existing").CellValue(1, 1, "Existing");
+                targetDocument.AddSheet("Existing").CellValue(1, 1, "Existing");
                 targetDocument.Save();
             }
 
@@ -867,14 +867,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorkbookMergeSameWorkbookTables.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet source = document.AddWorksheet("Source");
+                ExcelSheet source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Name");
                 source.CellValue(1, 2, "Amount");
                 source.CellValue(2, 1, "Alpha");
                 source.CellValue(2, 2, 10);
                 source.AddTable("A1:B2", hasHeader: true, name: "People", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
 
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet summary = document.AddSheet("Summary");
                 summary.CellFormula(1, 1, "SUM(People[Amount])");
 
                 document.MergeWorkbookFrom(document, new ExcelWorkbookMergeOptions {
@@ -900,7 +900,7 @@ namespace OfficeIMO.Tests {
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
                 sourceDocument.DateSystem = ExcelDateSystem.NineteenFour;
-                ExcelSheet source = sourceDocument.AddWorksheet("Dates");
+                ExcelSheet source = sourceDocument.AddSheet("Dates");
                 source.CellValue(1, 1, "Created");
                 source.CellValue(2, 1, date);
                 sourceDocument.Save();
@@ -931,7 +931,7 @@ namespace OfficeIMO.Tests {
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
                 sourceDocument.DateSystem = ExcelDateSystem.NineteenFour;
-                ExcelSheet source = sourceDocument.AddWorksheet("Dates");
+                ExcelSheet source = sourceDocument.AddSheet("Dates");
                 source.CellValue(1, 1, "Created");
                 source.CellValue(2, 1, date);
                 sourceDocument.Save();
@@ -966,7 +966,7 @@ namespace OfficeIMO.Tests {
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
                 sourceDocument.DateSystem = ExcelDateSystem.NineteenFour;
-                ExcelSheet source = sourceDocument.AddWorksheet("Times");
+                ExcelSheet source = sourceDocument.AddSheet("Times");
                 source.CellValue(1, 1, "Elapsed");
                 source.CellValue(2, 1, TimeSpan.FromHours(12));
                 sourceDocument.Save();
@@ -997,7 +997,7 @@ namespace OfficeIMO.Tests {
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
                 sourceDocument.DateSystem = ExcelDateSystem.NineteenFour;
-                ExcelSheet source = sourceDocument.AddWorksheet("Dates");
+                ExcelSheet source = sourceDocument.AddSheet("Dates");
                 source.CellValue(1, 1, "Created");
                 source.CellValue(2, 1, date);
                 source.CellAt(2, 1).SetNumberFormat("mmm h:mm");
@@ -1028,7 +1028,7 @@ namespace OfficeIMO.Tests {
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
                 sourceDocument.DateSystem = ExcelDateSystem.NineteenFour;
-                ExcelSheet source = sourceDocument.AddWorksheet("Elapsed");
+                ExcelSheet source = sourceDocument.AddSheet("Elapsed");
                 source.CellValue(1, 1, "Duration");
                 source.CellValue(2, 1, 1.25D);
                 source.CellAt(2, 1).SetNumberFormat("[m]:ss");
@@ -1058,13 +1058,13 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageExternalLinkTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("External");
+                ExcelSheet source = sourceDocument.AddSheet("External");
                 source.CellFormula(1, 1, "[1]Sheet1!A1");
                 sourceDocument.Save();
             }
 
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                targetDocument.AddWorksheet("Existing").CellFormula(1, 1, "[1]Sheet1!B1");
+                targetDocument.AddSheet("Existing").CellFormula(1, 1, "[1]Sheet1!B1");
                 targetDocument.Save();
             }
 
@@ -1097,13 +1097,13 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageExternalDefinedNameTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("External");
+                ExcelSheet source = sourceDocument.AddSheet("External");
                 source.CellFormula(1, 1, "ExternalValue");
                 sourceDocument.Save();
             }
 
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                targetDocument.AddWorksheet("Existing").CellFormula(1, 1, "[1]Sheet1!B1");
+                targetDocument.AddSheet("Existing").CellFormula(1, 1, "[1]Sheet1!B1");
                 targetDocument.Save();
             }
 
@@ -1136,7 +1136,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageNumericStructuredColumnTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Structured");
+                ExcelSheet source = sourceDocument.AddSheet("Structured");
                 source.CellValue(1, 1, "1");
                 source.CellValue(2, 1, 7);
                 source.AddTable("A1:A2", hasHeader: true, name: "People", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
@@ -1145,7 +1145,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                ExcelSheet existing = targetDocument.AddWorksheet("Existing");
+                ExcelSheet existing = targetDocument.AddSheet("Existing");
                 existing.CellValue(1, 1, "1");
                 existing.CellValue(2, 1, 3);
                 existing.AddTable("A1:A2", hasHeader: true, name: "People", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
@@ -1181,7 +1181,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageQueryTableTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Query");
+                ExcelSheet source = sourceDocument.AddSheet("Query");
                 source.CellValue(1, 1, "Name");
                 source.CellValue(2, 1, "Ada");
                 source.AddTable("A1:A2", hasHeader: true, name: "QueryTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
@@ -1219,7 +1219,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageTableExternalFormulaTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("TableFormula");
+                ExcelSheet source = sourceDocument.AddSheet("TableFormula");
                 source.CellValue(1, 1, "Name");
                 source.CellValue(1, 2, "External");
                 source.CellValue(2, 1, "Ada");
@@ -1229,7 +1229,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                targetDocument.AddWorksheet("Existing").CellFormula(1, 1, "[1]Sheet1!B1");
+                targetDocument.AddSheet("Existing").CellFormula(1, 1, "[1]Sheet1!B1");
                 targetDocument.Save();
             }
 
@@ -1263,7 +1263,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageDeferredTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                sourceDocument.AddWorksheet("Source").CellValue(1, 1, "Copied");
+                sourceDocument.AddSheet("Source").CellValue(1, 1, "Copied");
                 sourceDocument.Save();
             }
 
@@ -1298,7 +1298,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyPackageMetadataTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Metadata");
+                ExcelSheet source = sourceDocument.AddSheet("Metadata");
                 source.CellValue(1, 1, "Name");
                 source.CellValue(2, 1, "Alpha");
                 sourceDocument.Save();
@@ -1335,7 +1335,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetCopyValuesModeSameWorkbook.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet source = document.AddWorksheet("Source");
+                ExcelSheet source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Name");
                 source.CellValue(2, 1, "Ada");
                 source.CellBold(1, 1, true);
@@ -1368,7 +1368,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetCopyValuesModeTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("Source");
+                ExcelSheet source = sourceDocument.AddSheet("Source");
                 source.CellValue(1, 1, "Name");
                 source.CellValue(2, 1, "Ada");
                 source.CellBold(1, 1, true);
@@ -1657,13 +1657,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetCompare.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet left = document.AddWorksheet("Left");
+                ExcelSheet left = document.AddSheet("Left");
                 left.CellValue(1, 1, "Name");
                 left.CellValue(1, 2, "Score");
                 left.CellValue(2, 1, "Ada");
                 left.CellValue(2, 2, 10);
 
-                ExcelSheet right = document.AddWorksheet("Right");
+                ExcelSheet right = document.AddSheet("Right");
                 right.CellValue(1, 1, "Name");
                 right.CellValue(1, 2, "Score");
                 right.CellValue(2, 1, "Ada");
@@ -1687,13 +1687,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetMergeAppend.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet target = document.AddWorksheet("Combined");
+                ExcelSheet target = document.AddSheet("Combined");
                 target.CellValue(1, 1, "Region");
                 target.CellValue(1, 2, "Revenue");
                 target.CellValue(2, 1, "NA");
                 target.CellValue(2, 2, 100);
 
-                ExcelSheet source = document.AddWorksheet("More");
+                ExcelSheet source = document.AddSheet("More");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Revenue");
                 source.CellValue(2, 1, "EMEA");
@@ -1734,13 +1734,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetMergeHeaders.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet target = document.AddWorksheet("Combined");
+                ExcelSheet target = document.AddSheet("Combined");
                 target.CellValue(1, 1, "Region");
                 target.CellValue(1, 2, "Revenue");
                 target.CellValue(2, 1, "NA");
                 target.CellValue(2, 2, 100);
 
-                ExcelSheet source = document.AddWorksheet("More");
+                ExcelSheet source = document.AddSheet("More");
                 source.CellValue(1, 1, "Revenue");
                 source.CellValue(1, 2, "Region");
                 source.CellValue(2, 1, 200);
@@ -1780,14 +1780,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetMergeExplicitHeaderRow.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet target = document.AddWorksheet("Combined");
+                ExcelSheet target = document.AddSheet("Combined");
                 target.CellValue(1, 1, "Quarterly report");
                 target.CellValue(3, 2, "Region");
                 target.CellValue(3, 3, "Revenue");
                 target.CellValue(4, 2, "NA");
                 target.CellValue(4, 3, 100);
 
-                ExcelSheet source = document.AddWorksheet("More");
+                ExcelSheet source = document.AddSheet("More");
                 source.CellValue(1, 1, "Revenue");
                 source.CellValue(1, 2, "Region");
                 source.CellValue(2, 1, 200);
@@ -1824,13 +1824,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetMergeHeadersMissing.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet target = document.AddWorksheet("Combined");
+                ExcelSheet target = document.AddSheet("Combined");
                 target.CellValue(1, 1, "Region");
                 target.CellValue(1, 2, "Revenue");
                 target.CellValue(2, 1, "NA");
                 target.CellValue(2, 2, 100);
 
-                ExcelSheet source = document.AddWorksheet("More");
+                ExcelSheet source = document.AddSheet("More");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Amount");
                 source.CellValue(2, 1, "EMEA");
@@ -1851,7 +1851,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "WorksheetMergeExternalTarget.xlsx");
 
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet source = sourceDocument.AddWorksheet("More");
+                ExcelSheet source = sourceDocument.AddSheet("More");
                 source.CellValue(1, 1, "Revenue");
                 source.CellValue(1, 2, "Region");
                 source.CellValue(2, 1, 200);
@@ -1861,7 +1861,7 @@ namespace OfficeIMO.Tests {
 
             using (var sourceDocument = ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             using (var targetDocument = ExcelDocument.Create(targetPath)) {
-                ExcelSheet target = targetDocument.AddWorksheet("Combined");
+                ExcelSheet target = targetDocument.AddSheet("Combined");
                 target.CellValue(1, 1, "Region");
                 target.CellValue(1, 2, "Revenue");
 
@@ -1894,10 +1894,10 @@ namespace OfficeIMO.Tests {
 
             using (var leftDocument = ExcelDocument.Create(leftPath))
             using (var rightDocument = ExcelDocument.Create(rightPath)) {
-                ExcelSheet wrongTarget = rightDocument.AddWorksheet("WrongTarget");
+                ExcelSheet wrongTarget = rightDocument.AddSheet("WrongTarget");
                 wrongTarget.CellValue(1, 1, "Region");
 
-                ExcelSheet source = leftDocument.AddWorksheet("Source");
+                ExcelSheet source = leftDocument.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(2, 1, "EMEA");
 
@@ -1914,8 +1914,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetJoinRange.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet target = document.AddWorksheet("Target");
-                ExcelSheet source = document.AddWorksheet("Source");
+                ExcelSheet target = document.AddSheet("Target");
+                ExcelSheet source = document.AddSheet("Source");
                 source.CellValue(1, 1, "ignore");
                 source.CellValue(2, 2, "Name");
                 source.CellValue(2, 3, "Score");
@@ -1953,10 +1953,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetJoinOverwriteBlocked.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet target = document.AddWorksheet("Target");
+                ExcelSheet target = document.AddSheet("Target");
                 target.CellValue(5, 4, "Existing");
 
-                ExcelSheet source = document.AddWorksheet("Source");
+                ExcelSheet source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Name");
                 source.CellValue(1, 2, "Score");
                 source.CellValue(2, 1, "Ada");
@@ -1980,10 +1980,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetJoinOverwriteEnabled.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet target = document.AddWorksheet("Target");
+                ExcelSheet target = document.AddSheet("Target");
                 target.CellValue(5, 4, "Existing");
 
-                ExcelSheet source = document.AddWorksheet("Source");
+                ExcelSheet source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Name");
                 source.CellValue(1, 2, "Score");
                 source.CellValue(2, 1, "Ada");

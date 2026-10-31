@@ -16,19 +16,19 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ClassicComments_CreateEditReassignRemove_AndRoundTripPpt() {
             byte[] binary;
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create()) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create()) {
                 PowerPointSlide slide = presentation.AddSlide();
                 var alice = new PowerPointCommentAuthor("Alice Reviewer", "AR");
                 var bob = new PowerPointCommentAuthor("Bob Reviewer", "BR");
                 PowerPointClassicComment first = presentation.AddClassicComment(slide,
-                    alice, "First review", 120, 240,
+                    alice, "First review", global::OfficeIMO.OfficeLength.Points(120 / 8D), global::OfficeIMO.OfficeLength.Points(240 / 8D),
                     new DateTime(2026, 8, 1, 9, 0, 0, DateTimeKind.Utc));
                 PowerPointClassicComment removed = presentation.AddClassicComment(slide,
                     alice, "Remove me");
 
                 first.Text = "Updated review";
-                first.X = -25;
-                first.Y = 900;
+                first.X = global::OfficeIMO.OfficeLength.Points(-25 / 8D);
+                first.Y = global::OfficeIMO.OfficeLength.Points(900 / 8D);
                 first.SetAuthor(bob);
                 removed.Remove();
 
@@ -36,28 +36,28 @@ namespace OfficeIMO.Tests {
                     presentation.GetClassicComments(slide));
                 Assert.Equal("Bob Reviewer", current.Author.Name);
                 Assert.Equal("Updated review", current.Text);
-                Assert.Equal(-25, current.X);
-                Assert.Equal(900, current.Y);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(-25 / 8D), current.X);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(900 / 8D), current.Y);
                 var preflight = presentation.AnalyzeLegacyPptWrite();
                 Assert.True(preflight.CanWrite, string.Join(Environment.NewLine,
                     preflight.Findings.Select(finding => finding.Code + ": " + finding.Description)));
                 binary = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            using PowerPointPresentation roundTrip = PowerPointPresentation.Load(
+            using PowerPointDocument roundTrip = PowerPointDocument.Load(
                 new MemoryStream(binary, writable: false));
             PowerPointReviewComment projected = Assert.Single(
                 roundTrip.InspectReviewComments().Comments);
             Assert.Equal(PowerPointCommentKind.Classic, projected.Kind);
             Assert.Equal("Bob Reviewer", projected.AuthorName);
             Assert.Equal("Updated review", projected.Text);
-            Assert.Equal(-25, projected.X);
-            Assert.Equal(900, projected.Y);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(-25 / 8D), projected.X);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(900 / 8D), projected.Y);
         }
 
         [Fact]
         public void ClassicCommentMutation_RecomputesRetainedAuthorLastIndex() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var alice = new PowerPointCommentAuthor("Alice", "A");
             var bob = new PowerPointCommentAuthor("Bob", "B");
@@ -78,8 +78,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClassicCommentMutation_RejectsMissingTimestamp() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointClassicComment comment = presentation.AddClassicComment(
                 presentation.AddSlide(),
                 new PowerPointCommentAuthor("Reviewer", "R"), "Review");
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void RemovingCommentedSlideReconcilesClassicAndModernAuthors() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide removed = presentation.AddSlide();
             PowerPointSlide retained = presentation.AddSlide();
             var alice = new PowerPointCommentAuthor("Alice", "A");
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ModernCommentMutation_PreservesAbsentOptionalAuthorIdentity() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             presentation.AddModernComment(slide,
                 new PowerPointCommentAuthor("Imported", "I"), "Review");
@@ -158,8 +158,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClassicCommentMutation_PreservesEmptyImportedInitials() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointClassicComment comment = presentation.AddClassicComment(
                 presentation.AddSlide(),
                 new PowerPointCommentAuthor("Imported", "I"), "Review");
@@ -183,7 +183,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClassicCommentMutation_ReusesFreeAuthorIdWhenMaximumIsOccupied() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             CommentAuthorsPart authorsPart = presentation.OpenXmlDocument
                 .PresentationPart!.AddNewPart<CommentAuthorsPart>();
@@ -205,8 +205,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClassicCommentMutation_ReusesFreeIndexAfterUInt32Maximum() {
-            using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+            PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var author = new PowerPointCommentAuthor("Reviewer", "R");
             presentation.AddClassicComment(slide, author, "Maximum");
@@ -231,8 +231,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClassicCommentMutation_AllocatesWithinBinaryIndexRange() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var author = new PowerPointCommentAuthor("Reviewer", "R");
             presentation.AddClassicComment(slide, author, "Maximum");
@@ -257,8 +257,8 @@ namespace OfficeIMO.Tests {
         [InlineData("control\u0001text")]
         public void ClassicCommentMutation_RejectsBinaryIncompatibleText(
             string invalidText) {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var author = new PowerPointCommentAuthor("Reviewer", "R");
 
@@ -274,8 +274,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClassicCommentMutation_RejectsTextAboveBinaryLimit() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var author = new PowerPointCommentAuthor("Reviewer", "R");
             string invalidText = new string('x', 32001);
@@ -290,8 +290,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClassicCommentMutation_RejectsBinaryIncompatibleAuthors() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointCommentAuthor longName = new(new string('n', 53), "N");
             PowerPointCommentAuthor longInitials = new("Name",
@@ -313,60 +313,60 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClassicCommentMutation_RejectsPositionsOutsideBinaryRange() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var author = new PowerPointCommentAuthor("Reviewer", "R");
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.AddClassicComment(slide, author, "Review",
-                    (long)int.MaxValue + 1L, 0L));
+                    global::OfficeIMO.OfficeLength.Points(((long)int.MaxValue + 1L) / 8D), global::OfficeIMO.OfficeLength.Zero));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.AddClassicComment(slide, author, "Review",
-                    0L, (long)int.MinValue - 1L));
+                    global::OfficeIMO.OfficeLength.Zero, global::OfficeIMO.OfficeLength.Points(((long)int.MinValue - 1L) / 8D)));
             Assert.Empty(presentation.GetClassicComments(slide));
 
             PowerPointClassicComment comment = presentation.AddClassicComment(
-                slide, author, "Valid", 10L, 20L);
+                slide, author, "Valid", global::OfficeIMO.OfficeLength.Points(10 / 8D), global::OfficeIMO.OfficeLength.Points(20 / 8D));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                comment.X = long.MaxValue);
+                comment.X = global::OfficeIMO.OfficeLength.Emus(long.MaxValue));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                comment.Y = long.MinValue);
-            Assert.Equal(10L, comment.X);
-            Assert.Equal(20L, comment.Y);
+                comment.Y = global::OfficeIMO.OfficeLength.Emus(long.MinValue));
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(10 / 8D), comment.X);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(20 / 8D), comment.Y);
         }
 
         [Fact]
         public void ModernCommentMutation_RejectsPositionsOutsideDrawingRange() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var author = new PowerPointCommentAuthor("Reviewer", "R");
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.AddModernComment(slide, author, "Review",
-                    x: long.MaxValue));
+                    x: global::OfficeIMO.OfficeLength.Emus(long.MaxValue)));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.AddModernComment(slide, author, "Review",
-                    y: long.MinValue));
+                    y: global::OfficeIMO.OfficeLength.Emus(long.MinValue)));
             Assert.Empty(GetModernAuthorNames(presentation));
             Assert.Empty(presentation.GetModernComments(slide));
 
             PowerPointModernComment comment = presentation.AddModernComment(
-                slide, author, "Valid", x: 10L, y: 20L);
+                slide, author, "Valid", x: global::OfficeIMO.OfficeLength.Emus(10L), y: global::OfficeIMO.OfficeLength.Emus(20L));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                comment.X = long.MaxValue);
+                comment.X = global::OfficeIMO.OfficeLength.Emus(long.MaxValue));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                comment.Y = long.MinValue);
-            Assert.Equal(10L, comment.X);
-            Assert.Equal(20L, comment.Y);
+                comment.Y = global::OfficeIMO.OfficeLength.Emus(long.MinValue));
+            Assert.Equal(10L, comment.X.ToEmus());
+            Assert.Equal(20L, comment.Y.ToEmus());
             Assert.Empty(presentation.ValidateDocument());
         }
 
         [Fact]
         public void ModernCommentCoordinateGettersDoNotMaterializeMissingPosition() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointModernComment comment = presentation.AddModernComment(
                 slide, new PowerPointCommentAuthor("Reviewer", "R"),
@@ -378,20 +378,20 @@ namespace OfficeIMO.Tests {
                 .Elements<P188.Comment>());
             nativeComment.GetFirstChild<P188.Point2DType>()!.Remove();
 
-            Assert.Equal(0L, comment.X);
-            Assert.Equal(0L, comment.Y);
+            Assert.Equal(0L, comment.X.ToEmus());
+            Assert.Equal(0L, comment.Y.ToEmus());
             Assert.Null(nativeComment.GetFirstChild<P188.Point2DType>());
 
-            comment.X = 12L;
-            Assert.Equal(12L, comment.X);
-            Assert.Equal(0L, comment.Y);
+            comment.X = global::OfficeIMO.OfficeLength.Emus(12L);
+            Assert.Equal(12L, comment.X.ToEmus());
+            Assert.Equal(0L, comment.Y.ToEmus());
             Assert.NotNull(nativeComment.GetFirstChild<P188.Point2DType>());
         }
 
         [Fact]
         public void ModernReplyMutationRejectsDetachedReplyList() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var author = new PowerPointCommentAuthor("Reviewer", "R");
             PowerPointModernComment comment = presentation.AddModernComment(
@@ -419,7 +419,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ModernComments_CreateEditReplyReassignRemove_AndRoundTripPptx() {
             using var stream = new MemoryStream();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 var alice = new PowerPointCommentAuthor("Alice Reviewer", "AR",
                     "alice@example.test", "OfficeIMO");
@@ -427,13 +427,13 @@ namespace OfficeIMO.Tests {
                     "bob@example.test", "OfficeIMO");
                 PowerPointModernComment comment = presentation.AddModernComment(slide,
                     alice, "Modern review", PowerPointModernCommentStatus.Active,
-                    123, 456, new DateTime(2026, 8, 1, 10, 0, 0, DateTimeKind.Utc));
+                    global::OfficeIMO.OfficeLength.Emus(123), global::OfficeIMO.OfficeLength.Emus(456), new DateTime(2026, 8, 1, 10, 0, 0, DateTimeKind.Utc));
                 PowerPointModernCommentReply reply = comment.AddReply(bob, "Initial reply");
                 PowerPointModernCommentReply removed = comment.AddReply(alice, "Remove reply");
 
                 comment.Text = "Updated modern review";
                 comment.Status = PowerPointModernCommentStatus.Resolved;
-                comment.X = 321;
+                comment.X = global::OfficeIMO.OfficeLength.Emus(321);
                 comment.SetAuthor(bob);
                 reply.Text = "Updated reply";
                 reply.Status = PowerPointModernCommentStatus.Closed;
@@ -451,12 +451,12 @@ namespace OfficeIMO.Tests {
             }
 
             stream.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             PowerPointModernComment current = Assert.Single(
                 reopened.GetModernComments(reopened.Slides[0]));
             Assert.Equal("Updated modern review", current.Text);
             Assert.Equal(PowerPointModernCommentStatus.Resolved, current.Status);
-            Assert.Equal(321, current.X);
+            Assert.Equal(321, current.X.ToEmus());
             PowerPointModernCommentReply currentReply = Assert.Single(current.Replies);
             Assert.Equal("Updated reply", currentReply.Text);
             Assert.Equal(PowerPointModernCommentStatus.Closed, currentReply.Status);
@@ -471,8 +471,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ModernCommentMutation_RejectsXmlInvalidText() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var author = new PowerPointCommentAuthor("Reviewer", "R",
                 "reviewer@example.test", "OfficeIMO");
@@ -501,8 +501,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ModernCommentMutation_RejectsOversizedAndNewlineAmplifiedTextBeforeAllocation() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var author = new PowerPointCommentAuthor("Alice Reviewer", "AR");
             string tooLong = new string('x', 32001);
@@ -519,8 +519,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ModernCommentMutation_RejectsInvalidStatusBeforeAuthorCreation() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var alice = new PowerPointCommentAuthor("Alice", "A",
                 "alice@example.test", "OfficeIMO");
@@ -561,8 +561,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CommentMutation_RejectsForeignSlidesAndEmptyText() {
-            using PowerPointPresentation first = PowerPointPresentation.Create();
-            using PowerPointPresentation second = PowerPointPresentation.Create();
+            using PowerPointDocument first = PowerPointDocument.Create();
+            using PowerPointDocument second = PowerPointDocument.Create();
             PowerPointSlide foreign = second.AddSlide();
             var author = new PowerPointCommentAuthor("Reviewer");
 
@@ -584,8 +584,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(supplementaryCjk + "R", cjkAuthor.Initials);
 
             using var stream = new MemoryStream();
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Create(stream)) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Create(stream)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 presentation.AddClassicComment(slide, emojiAuthor, "Emoji author");
                 presentation.AddModernComment(slide, cjkAuthor, "CJK author");
@@ -593,7 +593,7 @@ namespace OfficeIMO.Tests {
             }
 
             stream.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             Assert.Equal("😀R", Assert.Single(reopened.GetClassicComments(
                 reopened.Slides[0])).Author.Initials);
             Assert.Equal(supplementaryCjk + "R", Assert.Single(
@@ -603,7 +603,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ModernCommentMutation_RemovesUnusedAuthorMetadata() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var alice = new PowerPointCommentAuthor("Alice", "A");
             var bob = new PowerPointCommentAuthor("Bob", "B");
@@ -626,8 +626,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ModernCommentMutation_PreservesProducerMetadataWhenRemovingLastComment() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointModernComment comment = presentation.AddModernComment(
                 slide, new PowerPointCommentAuthor("Reviewer", "R"),
@@ -662,22 +662,22 @@ namespace OfficeIMO.Tests {
             comment.Append(body);
 
             Assert.Equal("First\nSecond\nThird",
-                PowerPointPresentation.GetModernCommentText(comment));
+                PowerPointDocument.GetModernCommentText(comment));
             string original = body.OuterXml;
 
             Assert.Throws<NotSupportedException>(() =>
-                PowerPointPresentation.SetModernCommentText(comment,
+                PowerPointDocument.SetModernCommentText(comment,
                     "Alpha\r\n\r\nBeta"));
 
             Assert.Equal(original, body.OuterXml);
             Assert.Equal("First\nSecond\nThird",
-                PowerPointPresentation.GetModernCommentText(comment));
+                PowerPointDocument.GetModernCommentText(comment));
         }
 
         [Fact]
         public void RichModernCommentBodyIsPreservedAndReportedAsNonEditable() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointModernComment comment = presentation.AddModernComment(
                 slide, new PowerPointCommentAuthor("Reviewer", "R"),
@@ -707,7 +707,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static string[] GetModernAuthorNames(
-            PowerPointPresentation presentation) => presentation.OpenXmlDocument
+            PowerPointDocument presentation) => presentation.OpenXmlDocument
                 .PresentationPart!.Parts.Select(pair => pair.OpenXmlPart)
                 .OfType<PowerPointAuthorsPart>()
                 .SelectMany(part => part.AuthorList?.Elements<P188.Author>()
@@ -717,7 +717,7 @@ namespace OfficeIMO.Tests {
                 .ToArray();
 
         private static P.CommentAuthor GetClassicAuthor(
-            PowerPointPresentation presentation, string name) => presentation
+            PowerPointDocument presentation, string name) => presentation
                 .OpenXmlDocument.PresentationPart!.CommentAuthorsPart!
                 .CommentAuthorList!.Elements<P.CommentAuthor>()
                 .Single(author => author.Name?.Value == name);

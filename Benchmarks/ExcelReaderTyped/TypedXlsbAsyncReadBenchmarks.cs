@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         [Benchmark]
         public async Task<long> OfficeIMOTypedXlsbAsync() {
-            await using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(_workload.Workbook, new ExcelReaderOptions { HasHeaderRow = true });
+            await using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_workload.Workbook, writable: false), new ExcelReaderOptions { HasHeaderRow = true });
             long sum = 0;
             int count = 0;
             await foreach (TypedRecord record in reader.RowsAsAsync<TypedRecord>()) {
@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
 
         private async IAsyncEnumerable<TypedRecord> ReadOfficeIMOForValidation() {
-            await using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(_workload.Workbook, new ExcelReaderOptions { HasHeaderRow = true });
+            await using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_workload.Workbook, writable: false), new ExcelReaderOptions { HasHeaderRow = true });
             await foreach (TypedRecord record in reader.RowsAsAsync<TypedRecord>()) yield return record;
         }
 

@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-public static partial class OfficeDocumentModelPdfExtensions {
+internal static partial class OfficeDocumentModelPdfExtensions {
     private static bool HasExplicitReadingOrder(OfficeDocumentModel source) =>
         source.Blocks.Any(block => block.Location?.LogicalOrder.HasValue == true)
         || source.Tables.Any(table => table.Location?.LogicalOrder.HasValue == true)

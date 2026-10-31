@@ -83,8 +83,8 @@ internal static partial class PdfWriter {
         PrepareCanvasTextBoxText(IReadOnlyList<PdfTextRun> runs, double width,
             PdfCanvasTextBoxStyle style, PdfCreateOptions options, System.Threading.CancellationToken cancellationToken = default) {
         double textWidth = width - style.EffectivePaddingLeft - style.EffectivePaddingRight;
-        double size = style.FontSize ?? options.DefaultFontSize;
-        double leading = style.LineHeight ?? size * 1.2D;
+        double size = (style.FontSize?.ToPoints()) ?? options.DefaultFontSize.ToPoints();
+        double leading = (style.LineHeight?.ToPoints()) ?? size * 1.2D;
         PdfStandardFont baseFont = ChooseNormal(style.Font ?? options.DefaultFont);
         var wrap = WrapRichRunsWithSpacing(runs, textWidth, size, baseFont, leading,
             null, DefaultParagraphTabStopWidth, options, style.LineSpacing, cancellationToken: cancellationToken);
@@ -93,13 +93,13 @@ internal static partial class PdfWriter {
     }
 
     private static OfficeShape? CreateCanvasTextBoxShape(double width, double height, PdfCanvasTextBoxStyle style) {
-        if (!style.Background.HasValue && !(style.BorderColor.HasValue && style.BorderWidth > 0D)) return null;
-        OfficeShape shape = style.CornerRadius > 0D
-            ? OfficeShape.RoundedRectangle(width, height, style.CornerRadius) : OfficeShape.Rectangle(width, height);
-        shape.FillColor = style.Background?.ToOfficeColor();
+        if (!style.Background.HasValue && !(style.BorderColor.HasValue && style.BorderWidth.ToPoints() > 0D)) return null;
+        OfficeShape shape = style.CornerRadius.ToPoints() > 0D
+            ? OfficeShape.RoundedRectangle(width, height, style.CornerRadius.ToPoints()) : OfficeShape.Rectangle(width, height);
+        shape.FillColor = style.Background;
         shape.FillOpacity = style.Background.HasValue ? style.BackgroundOpacity : null;
-        shape.StrokeColor = style.BorderWidth > 0D ? style.BorderColor?.ToOfficeColor() : null;
-        shape.StrokeWidth = style.BorderWidth;
+        shape.StrokeColor = style.BorderWidth.ToPoints() > 0D ? style.BorderColor : null;
+        shape.StrokeWidth = style.BorderWidth.ToPoints();
         shape.StrokeDashStyle = style.BorderDashStyle;
         shape.StrokeLineCap = style.BorderLineCap;
         shape.StrokeLineJoin = style.BorderLineJoin;

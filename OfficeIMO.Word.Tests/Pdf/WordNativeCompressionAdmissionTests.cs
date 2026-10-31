@@ -39,10 +39,9 @@ public sealed class WordNativeCompressionAdmissionTests {
             string twips = Math.Round(width * 20D).ToString(CultureInfo.InvariantCulture);
             table._tableProperties!.TableWidth = new W.TableWidth { Type = W.TableWidthUnitValues.Dxa, Width = twips };
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.Width = int.Parse(twips, CultureInfo.InvariantCulture);
-            cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.MarginLeftWidth = 0;
-            cell.MarginRightWidth = 0;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(int.Parse(twips, CultureInfo.InvariantCulture)) * 635)));
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero;
+            cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             target = cell.Paragraphs[0];
         } else {
             target = document.AddParagraph();
@@ -60,7 +59,7 @@ public sealed class WordNativeCompressionAdmissionTests {
         Assert.Empty(document.ValidateDocument());
         string authored = document.OpenXmlDocument.MainDocumentPart!.Document.OuterXml;
         byte[] bytes = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
-            PageSize = new PdfPageSize(owner == "table" ? 300D : width + 60D, 300D), Margins = PdfPageMargins.Uniform(30D), FontFamily = "Helvetica" }).ToBytes();
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(owner == "table" ? 300D : width + 60D),OfficeIMO.OfficeLength.Points(300D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)), FontFamily = "Helvetica" }).ToBytes();
         Assert.Equal(authored, document.OpenXmlDocument.MainDocumentPart.Document.OuterXml);
         Assert.Empty(document.ValidateDocument());
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT");

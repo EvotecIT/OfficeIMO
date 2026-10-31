@@ -234,7 +234,7 @@ public sealed class NewOfficePdfCommand : PSCmdlet {
         }
 
         if (DefaultFontSize.HasValue) {
-            options.DefaultFontSize = DefaultFontSize.Value;
+            options.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(DefaultFontSize.Value);
         }
 
         if (Theme.HasValue) {

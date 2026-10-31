@@ -184,7 +184,7 @@ public sealed partial class HtmlRenderingTests {
             + "<thead><tr style='height:20px'><th style='padding:0'>Header</th></tr></thead><tbody>" + rows + "</tbody></table>");
         var options = TableGeometryOptions();
         options.Mode = HtmlRenderMode.Paged;
-        options.PageSize = new OfficePageSize(200D / 96D, 100D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(200D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D));
         options.HonorCssPageRules = false;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 

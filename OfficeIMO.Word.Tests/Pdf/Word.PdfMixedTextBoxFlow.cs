@@ -72,7 +72,7 @@ public partial class Word {
         WordParagraph paragraph = story == null ? document.AddParagraph("PREFIX") : story.AddParagraph("PREFIX");
         paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddImage(image, "inline.png", 16D, 32D);
+        paragraph.AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16D), OfficeIMO.OfficeLength.Pixels(32D));
         paragraph.AddText("SUFFIX");
         if (story != null) {
             story.AddParagraph().AddField(WordFieldType.SectionPages);

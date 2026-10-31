@@ -80,7 +80,7 @@ public partial class Word {
         }
 
         var primitives = PdfCore.PdfReadDocument.Open(bytes).Pages[1].GetIdentityVisualPrimitives();
-        var frame = Assert.Single(primitives, primitive => primitive.FillColor == OfficeColor.FromRgb(68, 114, 196));
+        var frame = Assert.Single(primitives, primitive => primitive.FillColor == OfficeTheme.Default.Palette.Accent1);
         Assert.InRange(frame.FillOpacity ?? 1D, 0.45D - 1D / 255D, 0.45D + 1D / 255D);
         Assert.Equal((612D - 468D * 0.585D) / 2D, frame.X, precision: 3);
         Assert.Equal(footer ? 730D : 14.4D, frame.Y, precision: 3);

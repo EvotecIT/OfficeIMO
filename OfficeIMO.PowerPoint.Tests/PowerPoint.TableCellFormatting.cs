@@ -10,16 +10,16 @@ namespace OfficeIMO.Tests {
     public class PowerPointTableCellFormatting {
         [Fact]
         public void Hidden_borders_can_be_restored_without_conflicting_fills_or_changing_other_edges() {
-            using var presentation = PowerPointPresentation.Create();
-            var cell = presentation.AddSlide().AddTable(1, 1).GetCell(0, 0);
+            using var presentation = PowerPointDocument.Create();
+            var cell = presentation.AddSlide().AddTable(1,1).GetCell(0, 0);
             cell.Text = "Preserved"; cell.FillColor = "ABCDEF";
-            cell.SetBorders(PowerPointTableCellBorders.All, "123456", 1);
+            cell.SetBorders(PowerPointTableCellBorders.All, "123456", global::OfficeIMO.OfficeLength.Points(1));
             cell.HideBorders(PowerPointTableCellBorders.Right | PowerPointTableCellBorders.Bottom);
-            cell.SetBorders(PowerPointTableCellBorders.Bottom, "FF0000", 3);
-            Assert.Throws<ArgumentOutOfRangeException>(() => cell.SetBorders(PowerPointTableCellBorders.Top, "00FF00", 1584.25));
+            cell.SetBorders(PowerPointTableCellBorders.Bottom, "FF0000", global::OfficeIMO.OfficeLength.Points(3));
+            Assert.Throws<ArgumentOutOfRangeException>(() => cell.SetBorders(PowerPointTableCellBorders.Top, "00FF00", global::OfficeIMO.OfficeLength.Points(1584.25)));
             Assert.Throws<ArgumentOutOfRangeException>(() => cell.HideBorders((PowerPointTableCellBorders)128));
             using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
-            using (var reopened = PowerPointPresentation.Load(saved)) {
+            using (var reopened = PowerPointDocument.Load(saved)) {
                 Assert.Empty(reopened.ValidateDocument());
                 var output = reopened.Slides.Single().Tables.Single().GetCell(0, 0);
                 Assert.Equal("Preserved", output.Text); Assert.Equal("ABCDEF", output.FillColor);
@@ -38,26 +38,26 @@ namespace OfficeIMO.Tests {
         public void CanSetTableCellBordersAndPadding() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(2, 2);
+                PowerPointTable table = slide.AddTable(2,2);
                 PowerPointTableCell cell = table.GetCell(0, 0);
                 cell.Text = "Header";
-                cell.SetBorders(PowerPointTableCellBorders.All, "FF0000", 1.5);
-                cell.PaddingLeftPoints = 4;
-                cell.PaddingRightPoints = 4;
-                cell.PaddingTopPoints = 3;
-                cell.PaddingBottomPoints = 3;
+                cell.SetBorders(PowerPointTableCellBorders.All, "FF0000", global::OfficeIMO.OfficeLength.Points(1.5));
+                cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(4);
+                cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(4);
+                cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(3);
+                cell.PaddingBottom = global::OfficeIMO.OfficeLength.Points(3);
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointTableCell cell = presentation.Slides.Single().Tables.First().GetCell(0, 0);
                 Assert.Equal("FF0000", cell.BorderColor);
-                Assert.Equal(4, cell.PaddingLeftPoints ?? 0, 2);
-                Assert.Equal(4, cell.PaddingRightPoints ?? 0, 2);
-                Assert.Equal(3, cell.PaddingTopPoints ?? 0, 2);
-                Assert.Equal(3, cell.PaddingBottomPoints ?? 0, 2);
+                Assert.Equal(4, cell.PaddingLeft?.ToPoints() ?? 0, 2);
+                Assert.Equal(4, cell.PaddingRight?.ToPoints() ?? 0, 2);
+                Assert.Equal(3, cell.PaddingTop?.ToPoints() ?? 0, 2);
+                Assert.Equal(3, cell.PaddingBottom?.ToPoints() ?? 0, 2);
             }
 
             using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
@@ -76,21 +76,21 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointTable table = slide.AddTable(1, 1);
+                    PowerPointTable table = slide.AddTable(1,1);
                     PowerPointTableCell cell = table.GetCell(0, 0);
                     IReadOnlyList<PowerPointParagraph> paragraphs = cell.SetParagraphs(new[] { "First", "Second" }, paragraph => {
-                        paragraph.SetLineSpacingPoints(18);
+                        paragraph.SetLineSpacing(global::OfficeIMO.OfficeLength.Points(18));
                     });
                     paragraphs[0].AddRun(" bold", run => run.Bold = true);
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointTableCell cell = presentation.Slides.Single().Tables.First().GetCell(0, 0);
                     Assert.Equal(new[] { "First bold", "Second" }, cell.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
-                    Assert.Equal(18D, cell.Paragraphs[0].LineSpacingPoints);
+                    Assert.Equal(18D, cell.Paragraphs[0].LineSpacing?.ToPoints());
                     Assert.True(cell.Paragraphs[0].Runs.Last().Bold);
                 }
             } finally {
@@ -105,26 +105,26 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointTable table = slide.AddTable(1, 1);
+                    PowerPointTable table = slide.AddTable(1,1);
                     PowerPointTableCell cell = table.GetCell(0, 0);
                     cell.SetBullets(new[] { "First bullet", "Second bullet" }, configure: paragraph => {
-                        paragraph.SetBulletSizePoints(11);
+                        paragraph.SetBulletSize(global::OfficeIMO.OfficeLength.Points(11));
                     });
                     cell.AddNumberedList(new[] { "First number", "Second number" }, PowerPointNumberingScheme.AlphaLowerCharacterPeriod, startAt: 2);
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointTableCell cell = presentation.Slides.Single().Tables.First().GetCell(0, 0);
                     PowerPointParagraph[] paragraphs = cell.Paragraphs.ToArray();
 
                     Assert.Equal(new[] { "First bullet", "Second bullet", "First number", "Second number" }, paragraphs.Select(paragraph => paragraph.Text).ToArray());
                     Assert.Equal("\u2022", paragraphs[0].BulletCharacter);
-                    Assert.Equal(11, paragraphs[0].BulletSizePoints);
-                    Assert.Equal(18D, paragraphs[0].LeftMarginPoints);
-                    Assert.Equal(-18D, paragraphs[0].IndentPoints);
+                    Assert.Equal(11, paragraphs[0].BulletSize?.ToPoints());
+                    Assert.Equal(18D, paragraphs[0].LeftMargin?.ToPoints());
+                    Assert.Equal(-18D, paragraphs[0].Indent?.ToPoints());
                     Assert.True(paragraphs[2].IsNumbered);
                     Assert.Equal(2, paragraphs[2].NumberingStartAt);
                     Assert.True(paragraphs[3].IsNumbered);

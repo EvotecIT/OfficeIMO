@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [InlineData("AVERAGEA", "SUM(A1:A100001)")]
         public void UnsupportedNestedFormulaDoesNotProduceAnInferredValue(string function, string leaf) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Bounds");
+            ExcelSheet sheet = document.AddSheet("Bounds");
             string formula = leaf;
             for (int depth = 0; depth < 12; depth++)
                 formula = function == "IFERROR" || function == "IFNA"
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
         [InlineData("TEXTBEFORE")]
         public void NestedConditionsAndDatesDoNotRetryUnsupportedSubtrees(string function) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Bounds");
+            ExcelSheet sheet = document.AddSheet("Bounds");
             string formula = "SUM(A1:A100001)";
             for (int depth = 0; depth < 12; depth++)
                 formula = function switch {
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NestedTextJoinBooleanPolicyKeepsTheCalculatedValue() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Bounds");
+            ExcelSheet sheet = document.AddSheet("Bounds");
             string formula = "0";
             for (int depth = 0; depth < 12; depth++)
                 formula = $"LEN(TEXTJOIN(\"\",{formula},\"x\"))";

@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel {
         /// <param name="includeHeaders">Whether to include column headers.</param>
         /// <param name="startRow">1-based starting row.</param>
         [RequiresUnreferencedCode("Uses reflection over arbitrary object graphs. For AOT-safe usage, map values explicitly with CellValues or pre-flatten using known types.")]
-        public void InsertObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(IEnumerable<T> items, bool includeHeaders = true, int startRow = 1) {
+        internal void InsertObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(IEnumerable<T> items, bool includeHeaders = true, int startRow = 1) {
             if (items == null) {
                 throw new ArgumentNullException(nameof(items));
             }
@@ -114,7 +114,7 @@ namespace OfficeIMO.Excel {
         /// <typeparam name="T">Type of objects being inserted.</typeparam>
         /// <param name="items">Collection of objects to insert.</param>
         /// <param name="columns">Column headers and selectors.</param>
-        public void InsertObjects<T>(IEnumerable<T> items, params (string Header, Func<T, object?> Selector)[] columns) {
+        internal void InsertObjects<T>(IEnumerable<T> items, params (string Header, Func<T, object?> Selector)[] columns) {
             InsertObjects(items, includeHeaders: true, startRow: 1, columns);
         }
 
@@ -127,7 +127,7 @@ namespace OfficeIMO.Excel {
         /// <param name="includeHeaders">Whether to include column headers.</param>
         /// <param name="startRow">1-based starting row.</param>
         /// <param name="columns">Column headers and selectors.</param>
-        public void InsertObjects<T>(IEnumerable<T> items, bool includeHeaders, int startRow, params (string Header, Func<T, object?> Selector)[] columns) {
+        internal void InsertObjects<T>(IEnumerable<T> items, bool includeHeaders, int startRow, params (string Header, Func<T, object?> Selector)[] columns) {
             if (items == null) {
                 throw new ArgumentNullException(nameof(items));
             }
@@ -207,7 +207,8 @@ namespace OfficeIMO.Excel {
             CellValuesCore(cells, hasBlankDisplayHeader ? ExcelExecutionMode.Parallel : null, CancellationToken.None, preserveMissingValues: true);
         }
 
-        private static IReadOnlyList<T> MaterializeObjectRowsBounded<T>(IEnumerable<T> items, bool includeHeaders, int startRow) {
+        private static IReadOnlyList<T> MaterializeObjectRowsBounded<T>(IEnumerable<T> items, bool includeHeaders, int startRow, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (startRow < 1 || startRow > ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(startRow), $"Start row must be between 1 and {ExcelA1.MaxRows}.");
             }
@@ -230,11 +231,16 @@ namespace OfficeIMO.Excel {
             }
 
             var rows = capacity > 0 ? new List<T>(capacity) : new List<T>();
-            foreach (T item in items) {
+            using var enumerator = items.GetEnumerator();
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                bool hasNext = enumerator.MoveNext();
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!hasNext) break;
                 if (rows.Count >= maximumRows) {
                     throw new InvalidDataException($"Object insertion exceeds the {maximumRows}-row worksheet limit.");
                 }
-                rows.Add(item);
+                rows.Add(enumerator.Current);
             }
             return rows;
         }

@@ -33,7 +33,7 @@ public static partial class PdfPowerPointConverterExtensions {
         }
 
         using var presentationOwner = new PresentationConstructionScope();
-        PptCore.PowerPointPresentation presentation = presentationOwner.Value;
+        PptCore.PowerPointDocument presentation = presentationOwner.Value;
         cancellationToken.ThrowIfCancellationRequested();
         OfficeDrawing? referenceDrawing = logical.Pages.Count == 0 || sourceDocument == null
             ? null
@@ -70,8 +70,8 @@ public static partial class PdfPowerPointConverterExtensions {
             EditablePagePlacement placement = GetEditablePagePlacement(
                 drawing?.Width ?? page.GetVisualPageSize().Width,
                 drawing?.Height ?? page.GetVisualPageSize().Height,
-                presentation.SlideSize.WidthPoints,
-                presentation.SlideSize.HeightPoints);
+                presentation.SlideSize.Width.ToPoints(),
+                presentation.SlideSize.Height.ToPoints());
             IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables =
                 tablesByPage.TryGetValue(pageIndex, out IReadOnlyList<PdfCore.PdfLogicalTableExtraction>? pageTables)
                     ? pageTables
@@ -178,14 +178,14 @@ public static partial class PdfPowerPointConverterExtensions {
     }
 
     private static void ConfigureEditableSlideSize(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         OfficeDrawing? drawing) {
         if (drawing == null || drawing.Width <= 0D || drawing.Height <= 0D) return;
         ConfigureEditableSlideSize(presentation, drawing.Width, drawing.Height);
     }
 
     private static void ConfigureEditableSlideSize(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         double sourceWidth,
         double sourceHeight) {
         if (sourceWidth <= 0D || sourceHeight <= 0D) return;
@@ -196,7 +196,7 @@ public static partial class PdfPowerPointConverterExtensions {
         double height = sourceHeight >= sourceWidth
             ? maximumSlideDimensionPoints
             : maximumSlideDimensionPoints * sourceHeight / sourceWidth;
-        presentation.SlideSize.SetSizePoints(width, height);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(width),OfficeIMO.OfficeLength.Points(height));
     }
 
     private static EditablePagePlacement GetEditablePagePlacement(
@@ -273,22 +273,22 @@ public static partial class PdfPowerPointConverterExtensions {
         PptCore.PowerPointAutoShape target;
         switch (source.Kind) {
             case OfficeShapeKind.Rectangle:
-                target = slide.AddShapePoints(OfficePresetShapeType.Rectangle, left, top, width, height);
+                target = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
                 break;
             case OfficeShapeKind.RoundedRectangle:
-                target = slide.AddShapePoints(OfficePresetShapeType.RoundRectangle, left, top, width, height);
+                target = slide.AddShape(OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
                 break;
             case OfficeShapeKind.Ellipse:
-                target = slide.AddShapePoints(OfficePresetShapeType.Ellipse, left, top, width, height);
+                target = slide.AddShape(OfficePresetShapeType.Ellipse, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
                 break;
             case OfficeShapeKind.Line when source.Points.Count >= 2:
                 OfficePoint start = source.Points[0];
                 OfficePoint end = source.Points[source.Points.Count - 1];
-                target = slide.AddLinePoints(
-                    placement.MapX(drawingShape.X + start.X),
-                    placement.MapY(drawingShape.Y + start.Y),
-                    placement.MapX(drawingShape.X + end.X),
-                    placement.MapY(drawingShape.Y + end.Y));
+                target = slide.AddLine(
+                    OfficeIMO.OfficeLength.Points(placement.MapX(drawingShape.X + start.X)),
+                    OfficeIMO.OfficeLength.Points(placement.MapY(drawingShape.Y + start.Y)),
+                    OfficeIMO.OfficeLength.Points(placement.MapX(drawingShape.X + end.X)),
+                    OfficeIMO.OfficeLength.Points(placement.MapY(drawingShape.Y + end.Y)));
                 break;
             default:
                 return false;
@@ -309,7 +309,7 @@ public static partial class PdfPowerPointConverterExtensions {
         target.OutlineTransparency = source.StrokeColor.HasValue
             ? ToTransparency(source.StrokeOpacity)
             : 100;
-        target.OutlineWidthPoints = Math.Max(0D, source.StrokeWidth);
+        target.OutlineWidth = global::OfficeIMO.OfficeLength.Points(Math.Max(0D, source.StrokeWidth));
         target.OutlineDash = source.StrokeDashStyle switch {
             OfficeStrokeDashStyle.Dash => PptCore.PowerPointLineDashStyle.Dash,
             OfficeStrokeDashStyle.Dot => PptCore.PowerPointLineDashStyle.Dot,
@@ -378,16 +378,15 @@ public static partial class PdfPowerPointConverterExtensions {
                     bounds = bounds.SwapDimensionsAroundCenter();
                 }
                 using var stream = new MemoryStream(image.SourceImage.Bytes, writable: false);
-                PptCore.PowerPointPicture picture = slide.AddPicturePoints(
+                PptCore.PowerPointPicture picture = slide.AddImage(
                     stream,
                     format,
-                    bounds.Left,
-                    bounds.Top,
-                    bounds.Width,
-                    bounds.Height);
-                // PDF placement already defines the frame, independently of the image's pixel ratio.
-                picture.SetSizePoints(bounds.Width, bounds.Height);
-                picture.SetPositionPoints(bounds.Left, bounds.Top);
+                    OfficeIMO.OfficeLength.Points(bounds.Left),
+                    OfficeIMO.OfficeLength.Points(bounds.Top),
+                    OfficeIMO.OfficeLength.Points(bounds.Width),
+                    OfficeIMO.OfficeLength.Points(bounds.Height));
+                // Preserve the PDF frame independently of the image's intrinsic pixel ratio.
+                picture.SetSize(OfficeLength.Points(bounds.Width), OfficeLength.Points(bounds.Height));
                 if (pageRotation > 0.01D) {
                     picture.Rotation = pageRotation;
                 }
@@ -566,15 +565,12 @@ public static partial class PdfPowerPointConverterExtensions {
             if (Math.Abs(visualRotation - 90D) < 0.01D || Math.Abs(visualRotation - 270D) < 0.01D) {
                 bounds = bounds.SwapDimensionsAroundCenter();
             }
-            // A source line is one line: font substitution can make it slightly wider, so give it room and never wrap.
+            // A source line remains one line when substitution changes its measured width.
             double widenedWidth = bounds.Width * 1.08D + fontSize * placement.Scale;
-            PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(
-                string.Empty,
-                bounds.Left,
-                bounds.Top,
-                widenedWidth,
-                bounds.Height);
-            textBox.SetTextMarginsPoints(0D, 0D, 0D, 0D);
+            PptCore.PowerPointTextBox textBox = slide.AddTextBox(string.Empty,
+                OfficeLength.Points(bounds.Left), OfficeLength.Points(bounds.Top),
+                OfficeLength.Points(widenedWidth), OfficeLength.Points(bounds.Height));
+            textBox.SetTextMargins(OfficeLength.Zero, OfficeLength.Zero, OfficeLength.Zero, OfficeLength.Zero);
             if (textBox.TextBody?.BodyProperties is DocumentFormat.OpenXml.Drawing.BodyProperties bodyProperties) {
                 bodyProperties.Wrap = DocumentFormat.OpenXml.Drawing.TextWrappingValues.None;
             }
@@ -616,7 +612,7 @@ public static partial class PdfPowerPointConverterExtensions {
         if (sourceRuns.Count == 0) {
             paragraph.Text = block.Text;
             PptCore.PowerPointTextRun targetRun = paragraph.Runs[0];
-            targetRun.FontSizePoints = ScaleEditableFontSize(block.FontSize, scale);
+            targetRun.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(block.FontSize, scale));
             return;
         }
 
@@ -635,9 +631,9 @@ public static partial class PdfPowerPointConverterExtensions {
         PdfCore.PdfLogicalTextRun source,
         double fallbackFontSize,
         double scale) {
-        target.FontSizePoints = ScaleEditableFontSize(
+        target.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(
             source.FontSize > 0D ? source.FontSize : fallbackFontSize,
-            scale);
+            scale));
         target.FontName = ResolvePowerPointFontFamily(source.BaseFont);
         target.Bold = source.IsBold;
         target.Italic = source.IsItalic;
@@ -648,7 +644,7 @@ public static partial class PdfPowerPointConverterExtensions {
         int pageIndex,
         PdfCore.PdfLogicalPage page,
         IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         PptCore.PowerPointSlide primarySlide,
         int primarySlideIndex,
         EditablePagePlacement placement,
@@ -685,13 +681,7 @@ public static partial class PdfPowerPointConverterExtensions {
                     ? (tableBounds.TryGetValue(extraction.Table, out EditableBounds sourceBounds) ? sourceBounds : MapTableBounds(page, extraction.Table, placement))
                     : GetContinuationTableBounds(presentation, options);
                 PptCore.PowerPointTable table = slide.AddTable(
-                    rowCount,
-                    segment.ColumnCount,
-                    ResolveReconstructedTableStyle(options.TableStyle),
-                    PowerPointUnits.FromPoints(bounds.Left),
-                    PowerPointUnits.FromPoints(bounds.Top),
-                    PowerPointUnits.FromPoints(Math.Max(1D, bounds.Width)),
-                    PowerPointUnits.FromPoints(Math.Max(1D, bounds.Height)));
+                    rowCount,                    segment.ColumnCount,                    ResolveReconstructedTableStyle(options.TableStyle),                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(bounds.Left)),                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(bounds.Top)),                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(Math.Max(1D, bounds.Width))),                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(Math.Max(1D, bounds.Height))));
                 PopulateTable(table, extraction.Table, data, segment, headerRowIncluded, options, cancellationToken);
                 ApplyEditableTableTypography(
                     table,
@@ -724,10 +714,10 @@ public static partial class PdfPowerPointConverterExtensions {
     }
 
     private static EditableBounds GetContinuationTableBounds(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         PowerPointPdfImportOptions options) {
-        double slideWidth = Math.Max(1D, presentation.SlideSize.WidthPoints);
-        double slideHeight = Math.Max(1D, presentation.SlideSize.HeightPoints);
+        double slideWidth = Math.Max(1D, presentation.SlideSize.Width.ToPoints());
+        double slideHeight = Math.Max(1D, presentation.SlideSize.Height.ToPoints());
         double left = Math.Min(Math.Max(0D, options.TableLeft / 12700D), slideWidth - 1D);
         double top = Math.Min(Math.Max(0D, options.TableTop / 12700D), slideHeight - 1D);
         double width = Math.Min(Math.Max(1D, options.TableWidth / 12700D), slideWidth - left);

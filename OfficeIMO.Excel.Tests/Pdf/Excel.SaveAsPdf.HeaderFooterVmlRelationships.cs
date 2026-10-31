@@ -57,8 +57,8 @@ public partial class Excel {
         Assert.NotNull(image);
         Assert.Equal(logo, image.Bytes);
         Assert.Equal("image/png", image.ContentType);
-        Assert.Equal(28D, image.WidthPoints);
-        Assert.Equal(14D, image.HeightPoints);
+        Assert.Equal(28D, image.Width.ToPoints());
+        Assert.Equal(14D, image.Height.ToPoints());
         Assert.Equal(shapeId == "LH" ? ExcelHeaderFooterPosition.Left : ExcelHeaderFooterPosition.Right, image.Position);
 
         byte[] pdf = document.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

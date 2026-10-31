@@ -15,16 +15,16 @@ public partial class Word {
         foreach (WordTableBorderSide side in Enum.GetValues(typeof(WordTableBorderSide))) {
             var border = table.StyleDetails!.GetBorderProperties(side);
             Assert.Equal(WordBorderStyle.Single, border.Style);
-            Assert.Equal(4U, border.Size);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), border.Size);
         }
 
-        table.StyleDetails!.SetCustomBorders(topStyle: WordBorderStyle.Double, topSize: 12,
+        table.StyleDetails!.SetCustomBorders(topStyle: WordBorderStyle.Double, topSize: global::OfficeIMO.OfficeLength.Points(1.5),
             topColor: OfficeIMO.OfficeColor.Red);
         // The Word-produced fixture also carries preserve-only metadata; this test qualifies its table projection.
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx,  LossPolicy = OfficeConversionLossPolicy.Allow })));
         var top = reloaded.Tables[0].StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
         Assert.Equal(WordBorderStyle.Double, top.Style);
-        Assert.Equal(12U, top.Size);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.5), top.Size);
         Assert.Equal("FF0000", top.ColorHex);
         Assert.Equal(WordBorderStyle.Single,
             reloaded.Tables[0].StyleDetails!.GetBorderProperties(WordTableBorderSide.InsideHorizontal).Style);
@@ -39,13 +39,13 @@ public partial class Word {
         var cell = document.Tables[0].Rows[0].Cells[0];
         Assert.Equal(style, cell.Borders.TopStyle);
         Assert.Equal(color, cell.Borders.TopColorHex);
-        Assert.Equal(size, cell.Borders.TopSize);
+        Assert.Equal(size.HasValue ? OfficeLength.Points(size.Value / 8D) : (OfficeLength?)null, cell.Borders.TopSize);
         Assert.Equal(WordBorderStyle.Single, document.Tables[0].StyleDetails!.GetBorderProperties(WordTableBorderSide.Top).Style);
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx,  LossPolicy = OfficeConversionLossPolicy.Allow })));
         var border = restored.Tables[0].Rows[0].Cells[0].Borders;
         Assert.Equal(style, border.TopStyle);
         Assert.Equal(color, border.TopColorHex);
-        Assert.Equal(size, border.TopSize);
+        Assert.Equal(size.HasValue ? OfficeLength.Points(size.Value / 8D) : (OfficeLength?)null, border.TopSize);
     }
 
     [Theory]
@@ -56,7 +56,7 @@ public partial class Word {
         var details = document.Tables[0].StyleDetails!;
         var top = details.GetBorderProperties(WordTableBorderSide.Top);
         Assert.Equal(WordBorderStyle.Double, top.Style);
-        Assert.Equal(12U, top.Size);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.5), top.Size);
         Assert.Equal("12AB34", top.ColorHex);
         Assert.Equal(bottom, details.GetBorderProperties(WordTableBorderSide.Bottom).Style);
         if (name.Contains("Custom")) {

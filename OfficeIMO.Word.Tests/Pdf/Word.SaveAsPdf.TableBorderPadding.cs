@@ -23,8 +23,8 @@ public partial class Word {
 
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 140),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(20)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(140)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("BeforeThree", pdf.GetPage(1).Text);
@@ -36,12 +36,12 @@ public partial class Word {
     private static void ConfigureMeasuredBorderTable(WordTable table, WordBorderStyle style) {
         table.ConditionalFormattingFirstRow = false;
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.Width = 4000; table.WidthType = WordTableWidthUnit.Dxa;
-        table.StyleDetails!.SetBordersForAllSides(style, 12U, OfficeIMO.OfficeColor.Black);
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
+        table.StyleDetails!.SetBordersForAllSides(style, global::OfficeIMO.OfficeLength.Points(1.5), OfficeIMO.OfficeColor.Black);
         foreach (var row in table.Rows) {
             var cell = row.Cells[0];
-            cell.Width = 4000; cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
         }
     }
 
@@ -66,19 +66,18 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(2, 1);
         table.ConditionalFormattingFirstRow = false;
-        table.StyleDetails!.SetBordersForAllSides(style, size, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(style, global::OfficeIMO.OfficeLength.Points((size) / 8D), OfficeIMO.OfficeColor.Black);
         for (int row = 0; row < 2; row++) {
             var cell = table.Rows[row].Cells[0];
-            cell.MarginTopWidth = marginTwips;
-            cell.MarginBottomWidth = marginTwips;
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Points((marginTwips) / 20D);
+            cell.MarginBottom = global::OfficeIMO.OfficeLength.Points((marginTwips) / 20D);
             var paragraph = cell.Paragraphs[0];
             paragraph.Text = $"RowMarker{row}";
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = 0;
-            paragraph.LineSpacingAfterPoints = 0;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-            paragraph.LineSpacing = 240;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

@@ -113,7 +113,7 @@ public sealed partial class HtmlRenderingTests {
         string family = ManagedTextShapingTestAssets.FamilyName;
         var options = new HtmlRenderOptions {
             Mode = mode,
-            PageSize = new OfficePageSize(200D / HtmlRenderOptions.CssPixelsPerInch, 120D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(200D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(120D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(10D),
             HonorCssPageRules = false,
             ViewportWidth = 200D,

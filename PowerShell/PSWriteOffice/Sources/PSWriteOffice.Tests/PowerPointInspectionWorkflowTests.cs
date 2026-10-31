@@ -45,7 +45,7 @@ public sealed class PowerPointInspectionWorkflowTests : IDisposable {
         var summary = Assert.IsType<PowerPointSlideSummaryInfo>(Assert.Single((object[])runspace.SessionStateProxy.GetVariable("slides")) is PSObject s ? s.BaseObject : null);
         Assert.Equal("Review", summary.Title);
         Assert.False(summary.HasNotes);
-        using var saved = PowerPointPresentation.Load(target);
+        using var saved = PowerPointDocument.Load(target);
         Assert.False(Assert.Single(saved.Slides).HasSpeakerNotes);
     }
 
@@ -139,8 +139,8 @@ public sealed class PowerPointInspectionWorkflowTests : IDisposable {
         Assert.Equal("Customer" + Environment.NewLine + "onboarding review", title.Text);
     }
 
-    private static PowerPointPresentation Create() {
-        var document = PowerPointPresentation.Create(options: new PowerPointCreateOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
+    private static PowerPointDocument Create() {
+        var document = PowerPointDocument.Create(options: new PowerPointCreateOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
         document.AddSlide().AddTextBox("First"); document.AddSlide().AddTextBox("Second");
         return document;
     }

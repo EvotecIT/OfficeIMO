@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared dependency-free sparkline renderer for raster and SVG output.
 /// </summary>
-public static class OfficeSparklineRenderer {
+internal static class OfficeSparklineRenderer {
     /// <summary>
     /// Draws a sparkline on a raster canvas.
     /// </summary>

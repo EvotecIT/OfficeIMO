@@ -35,7 +35,7 @@ internal static class OfficeProtectionDispatch {
                 OfficeProtectionFamily.Excel => ExcelDocument.Load(path, new ExcelLoadOptions {
                     AccessMode = DocumentAccessMode.ReadWrite, PersistenceMode = DocumentPersistenceMode.Explicit, AllowBinaryProjection = false
                 }),
-                OfficeProtectionFamily.PowerPoint => PowerPointPresentation.Load(path, new PowerPointLoadOptions {
+                OfficeProtectionFamily.PowerPoint => PowerPointDocument.Load(path, new PowerPointLoadOptions {
                     AccessMode = DocumentAccessMode.ReadWrite, PersistenceMode = DocumentPersistenceMode.Explicit, AllowLegacyProjection = false
                 }),
                 _ => PdfDocument.Load(path)
@@ -51,7 +51,7 @@ internal static class OfficeProtectionDispatch {
     internal static string Extension(object document) => document switch {
         WordDocument word => word.SourceFormatDescriptor.Extension,
         ExcelDocument excel => excel.SourceFormatDescriptor.Extension,
-        PowerPointPresentation presentation => presentation.SourceFormatDescriptor.Extension,
+        PowerPointDocument presentation => presentation.SourceFormatDescriptor.Extension,
         PdfDocument => ".pdf",
         _ => throw new PSArgumentException("Document must be a native WordDocument, ExcelDocument, PowerPointPresentation or PdfDocument.")
     };
@@ -59,7 +59,7 @@ internal static class OfficeProtectionDispatch {
     internal static string? AssociatedPath(object document) => document switch {
         WordDocument word => word.FilePath,
         ExcelDocument excel => excel.FilePath,
-        PowerPointPresentation presentation => presentation.FilePath,
+        PowerPointDocument presentation => presentation.FilePath,
         PdfDocument pdf => pdf.FilePath,
         _ => null
     };
@@ -85,7 +85,7 @@ internal static class OfficeProtectionDispatch {
                 if (encrypt && excel.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && SamePath(excel.FilePath, output))
                     throw new PSArgumentException("In-place live Excel encryption requires Explicit persistence. Use an independent OutputPath or load with PersistenceMode Explicit.");
                 break;
-            case PowerPointPresentation presentation:
+            case PowerPointDocument presentation:
                 CheckEditable(presentation.AccessMode, changes);
                 if (presentation.SourceFormatDescriptor.Encoding != OfficeFormatEncoding.OpenXml) RejectBinary();
                 if (changes && presentation.InspectSignatures().HasSignatureMetadata) RejectSigned();
@@ -139,7 +139,7 @@ internal static class OfficeProtectionDispatch {
                     Publish(output, stream => excel.Save(stream, save));
                 }
                 return excel;
-            case PowerPointPresentation presentation:
+            case PowerPointDocument presentation:
                 var presentationSave = new PowerPointSaveOptions();
                 if (encrypt) presentationSave.Password = password;
                 PublishPresentation(presentation, output!, presentationSave);
@@ -179,7 +179,7 @@ internal static class OfficeProtectionDispatch {
         OfficeOutput.Write(output, stream => serialized.CopyTo(stream), noClobber: false);
     }
 
-    private static void PublishPresentation(PowerPointPresentation presentation, string output, PowerPointSaveOptions options) {
+    private static void PublishPresentation(PowerPointDocument presentation, string output, PowerPointSaveOptions options) {
         // PowerPoint's stream format selector cannot represent templates, slide shows or add-ins. The native
         // SaveCopy path preserves their package kind and VBA without changing the caller's associated path.
         string directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeimo-protection-" + Guid.NewGuid().ToString("N"));

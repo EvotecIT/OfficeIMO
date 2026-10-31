@@ -25,11 +25,11 @@ namespace OfficeIMO.Examples.Pdf {
                 .PanelParagraph(
                     p => p.Bold("Page two is extracted later. ").Text("This proves the example is not just visual; it also exercises read/rewrite operations."),
                     new PdfPanelStyle {
-                        Background = PdfColor.FromRgb(248, 250, 252),
-                        BorderColor = PdfColor.FromRgb(148, 163, 184),
-                        BorderWidth = 0.7,
-                        PaddingX = 10,
-                        PaddingY = 8
+                        Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184),
+                        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.7),
+                        PaddingX = global::OfficeIMO.OfficeLength.Points(10),
+                        PaddingY = global::OfficeIMO.OfficeLength.Points(8)
                     })), StandardOptions("OfficeIMO.Pdf manipulation source A"))
                 .Meta(title: "OfficeIMO.Pdf Manipulation Source A", author: "OfficeIMO")
                 .Save(sourceAPath);
@@ -68,11 +68,11 @@ namespace OfficeIMO.Examples.Pdf {
                     new PdfTextStampOptions {
                         PageNumbers = new[] { page },
                         X = pageGeometry.PageWidth - pageGeometry.MarginRight,
-                        Y = 36,
+                        Y = OfficeLength.Points(36),
                         Align = PdfAlign.Right,
                         Font = PdfStandardFont.Helvetica,
-                        FontSize = 8.5,
-                        Color = PdfColor.FromOfficeColor(OfficeTheme.Default.Palette.TextMuted)
+                        FontSize = OfficeLength.Points(8.5),
+                        Color = OfficeTheme.Default.Palette.TextMuted
                     });
             }
             stamped.Save(stampedPath);
@@ -94,11 +94,11 @@ namespace OfficeIMO.Examples.Pdf {
 
         private static PdfTableStyle UtilityTableStyle() {
             var style = PdfTheme.FromOfficeTheme(OfficeTheme.Default).TableStyle!;
-            style.CellPaddingX = 7;
-            style.CellPaddingY = 5;
-            style.CellPaddingTop = 5;
-            style.CellPaddingBottom = 5;
-            style.FontSize = 9.5;
+            style.CellPaddingX = OfficeLength.Points(7);
+            style.CellPaddingY = OfficeLength.Points(5);
+            style.CellPaddingTop = OfficeLength.Points(5);
+            style.CellPaddingBottom = OfficeLength.Points(5);
+            style.FontSize = OfficeLength.Points(9.5);
             style.LineHeight = 1.18;
             style.AutoFitColumns = true;
             return style;

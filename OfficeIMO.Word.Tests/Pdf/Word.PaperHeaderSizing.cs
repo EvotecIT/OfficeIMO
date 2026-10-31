@@ -31,13 +31,13 @@ public sealed class WordPaperHeaderSizingTests {
         serialized.Position = 0;
         using WordDocument reopened = WordDocument.Load(serialized);
         WordTable saved = reopened.Tables[0];
-        Assert.Equal(available, saved.GridColumnWidth.Sum());
-        Assert.Equal(available, saved.Width);
-        Assert.Equal(WordTableWidthUnit.Dxa, saved.WidthType);
-        Assert.Equal(saved.GridColumnWidth, saved.ColumnWidth);
-        Assert.All(saved.Rows, row => Assert.Equal(saved.GridColumnWidth, row.Cells.Select(cell => cell.Width!.Value)));
-        Assert.True(saved.ColumnWidth[1] > available * .05D);
-        Assert.True(saved.ColumnWidth[0] > saved.ColumnWidth[1]);
+        Assert.Equal(available, saved.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum());
+        Assert.Equal(available, saved.Width?.ToNativeValue());
+        Assert.Equal(WordTableWidthKind.Length, saved.Width?.Kind);
+        Assert.Equal(saved.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList(), saved.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList());
+        Assert.All(saved.Rows, row => Assert.Equal(saved.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList(), row.Cells.Select(cell => cell.Width!.Value.ToNativeValue())));
+        Assert.True(saved.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()[1] > available * .05D);
+        Assert.True(saved.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()[0] > saved.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()[1]);
         byte[] bytes = reopened.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
         string? proof = Environment.GetEnvironmentVariable("OFFICEIMO_PAPER_PROOF_DIR");
         if (!string.IsNullOrWhiteSpace(proof)) {
@@ -51,14 +51,14 @@ public sealed class WordPaperHeaderSizingTests {
         using var independent = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var words = independent.GetPage(1).GetWords().ToArray();
         foreach (string word in new[] { "Authentication", "MTA-STS", "TLS-RPT", "Disposition" }) {
-            Assert.True(spans.Any(span => span.Text.Contains(word)), word + ": widths=" + string.Join(",", saved.ColumnWidth) + " " + string.Join(" | ", spans.Select(span => $"{span.Text} @ {span.X},{span.Y} size={span.FontSize} width={span.Advance}")));
+            Assert.True(spans.Any(span => span.Text.Contains(word)), word + ": widths=" + string.Join(",", saved.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()) + " " + string.Join(" | ", spans.Select(span => $"{span.Text} @ {span.X},{span.Y} size={span.FontSize} width={span.Advance}")));
             PdfTextSpan span = Assert.Single(spans, span => span.Text.Contains(word));
             int column = Array.FindIndex(headers, header => header.Contains(word));
-            double left = document.Margins.Left / 20D + saved.ColumnWidth.Take(column).Sum() / 20D;
+            double left = checked((uint)(document.Margins.Left.GetValueOrDefault().ToTwips())) / 20D + saved.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList().Take(column).Sum() / 20D;
             Assert.True(span.X >= left, word + " starts outside its column");
             var independentWord = Assert.Single(words, candidate => candidate.Text == word);
-            Assert.True(independentWord.BoundingBox.Right <= left + saved.ColumnWidth[column] / 20D + .1D,
-                $"{family}: [{span.Text}] size={span.FontSize} font={span.BaseFont}: {word} at {span.X:0.###}..{span.X + span.Advance:0.###} exceeds {left:0.###}..{left + saved.ColumnWidth[column] / 20D:0.###}; widths={string.Join(",", saved.ColumnWidth)}");
+            Assert.True(independentWord.BoundingBox.Right <= left + saved.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()[column] / 20D + .1D,
+                $"{family}: [{span.Text}] size={span.FontSize} font={span.BaseFont}: {word} at {span.X:0.###}..{span.X + span.Advance:0.###} exceeds {left:0.###}..{left + saved.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()[column] / 20D:0.###}; widths={string.Join(",", saved.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList())}");
         }
     }
 
@@ -73,7 +73,7 @@ public sealed class WordPaperHeaderSizingTests {
         style.FitTableColumnsToHeaders(table, 0, 1);
         double fallback = OfficeIMO.Drawing.OfficeStandardFontMetrics.MeasureFallbackWidth("W-W", 9, OfficeIMO.Drawing.OfficeFontStyle.Bold);
         Assert.Equal(fallback, OfficeIMO.Drawing.OfficeStandardFontMetrics.MeasureFallbackWidth("W\u00ADW", 9, OfficeIMO.Drawing.OfficeFontStyle.Bold));
-        Assert.True(table.ColumnWidth[0] >= fallback * 20 + 2 * style.TableCellHorizontalPadding);
+        Assert.True(table.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()[0] >= fallback * 20 + 2 * style.TableCellHorizontalPadding.ToTwips());
     }
 
     [Fact]
@@ -81,11 +81,11 @@ public sealed class WordPaperHeaderSizingTests {
         using WordDocument document = WordDocument.Create();
         var style = new WordPaperStyle();
         WordTable table = style.AddKeyValueTable(document, new[] { new System.Collections.Generic.KeyValuePair<string, string>("Host", "example.test") });
-        table.Width = 2500;
+        table.Width = WordTableWidth.Percent((2500) / 50d);
         int available = table.EstimateTableWidthInDxa();
         style.FitTableColumnsToHeaders(table, 1, 2);
-        Assert.Equal(available, table.GridColumnWidth.Sum());
-        Assert.InRange(Math.Abs(table.ColumnWidth[1] - table.ColumnWidth[0] * 2), 0, 2);
+        Assert.Equal(available, table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum());
+        Assert.InRange(Math.Abs(table.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()[1] - table.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()[0] * 2), 0, 2);
     }
 
     [Theory]
@@ -93,12 +93,12 @@ public sealed class WordPaperHeaderSizingTests {
     [InlineData("Unavailable paper font 537")]
     public void ShortHeadersKeepDesiredRatiosAndDoNotChangeBodyTypography(string family) {
         using WordDocument document = WordDocument.Create();
-        var style = new WordPaperStyle { FontFamily = family, TableFontSizePoints = 10.5D };
+        var style = new WordPaperStyle { FontFamily = family, TableFontSize = global::OfficeIMO.OfficeLength.Points(10.5D)};
         WordTable table = style.AddKeyValueTable(document,
             new[] { new System.Collections.Generic.KeyValuePair<string, string>("Host", "example.test") }, "Key", "Value");
         WordParagraph body = table.Rows[1].Cells[1].Paragraphs[0];
         body.FontFamily = "Courier New";
-        body.FontSizePoints = 12.5D;
+        body.FontSize = global::OfficeIMO.OfficeLength.Points(12.5D);
         body.ColorHex = "405060";
         style.FitTableColumnsToHeaders(table, 1, 2);
         using var serialized = new MemoryStream();
@@ -106,13 +106,13 @@ public sealed class WordPaperHeaderSizingTests {
         serialized.Position = 0;
         using WordDocument reopened = WordDocument.Load(serialized);
         WordTable saved = reopened.Tables[0];
-        Assert.InRange(Math.Abs(saved.ColumnWidth[1] - saved.ColumnWidth[0] * 2), 0, 2);
+        Assert.InRange(Math.Abs(saved.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()[1] - saved.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList()[0] * 2), 0, 2);
         WordParagraph restored = saved.Rows[1].Cells[1].Paragraphs[0];
         Assert.Equal("Courier New", restored.FontFamily);
-        Assert.Equal(12.5D, restored.FontSizePoints);
+        Assert.Equal(12.5D, restored.FontSize?.ToPoints());
         Assert.Equal("405060", restored.ColorHex);
         Assert.Equal(family, saved.Rows[0].Cells[0].Paragraphs[0].FontFamily);
-        Assert.Equal(9D, saved.Rows[0].Cells[0].Paragraphs[0].FontSizePoints);
+        Assert.Equal(9D, saved.Rows[0].Cells[0].Paragraphs[0].FontSize?.ToPoints());
     }
 
     [Fact]

@@ -66,20 +66,20 @@ public sealed partial class PdfTableCellViewportTests {
     private static byte[] RenderRotatedImage(string mode, PdfImageStyle imageStyle, bool fragment = true) {
         double width = fragment ? 80 : 200;
         var cell = PdfTableCell.WithImages(string.Empty, new[] {
-            new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), 12, 60, imageStyle, linkUri: "https://example.com/")
+            new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(60), imageStyle, linkUri: "https://example.com/")
         });
-        if (fragment) cell = cell.WithViewport(new PdfTableCellViewport(200, 72, 80, 72, offsetX: 120));
+        if (fragment) cell = cell.WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(72), offsetX: global::OfficeIMO.OfficeLength.Points(120)));
         var rows = new[] { new[] { cell } };
-        var options = new PdfCreateOptions { PageWidth = 320, PageHeight = 180,
-            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(320), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24) };
         var style = PdfTableStyles.Minimal();
-        style.BorderColor = null; style.BorderWidth = 0; style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { width }; style.FixedRowHeights = new List<double?> { 72 };
-        style.CellPaddingX = 0; style.CellPaddingY = 0; style.CellSpacing = 0;
-        style.SpacingBefore = 0; style.SpacingAfter = 0;
+        style.BorderColor = null; style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0); style.HeaderRowCount = 0;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(width) }; style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(72) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0); style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Top };
         return PdfDocument.Create(options).Compose(document => document.Page(page => {
-            if (mode == "canvas") page.Canvas(canvas => canvas.Table(rows, 24, 24, width, 72, style));
+            if (mode == "canvas") page.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(72), style));
             else page.Content(content => {
                 if (mode == "flow") content.Item(item => item.Table(rows, style: style));
                 else content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)));

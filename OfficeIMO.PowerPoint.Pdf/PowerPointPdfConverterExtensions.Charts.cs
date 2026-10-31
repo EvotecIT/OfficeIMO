@@ -44,10 +44,10 @@ public static partial class PowerPointPdfConverterExtensions {
             }
             canvas.Drawing(
                 rendering.Drawing,
-                x,
-                y,
-                width,
-                height,
+                global::OfficeIMO.OfficeLength.Points(x),
+                global::OfficeIMO.OfficeLength.Points(y),
+                global::OfficeIMO.OfficeLength.Points(width),
+                global::OfficeIMO.OfficeLength.Points(height),
                 style: new PdfCore.PdfDrawingStyle {
                     AlternativeText = string.IsNullOrWhiteSpace(snapshot.Title) ? "PowerPoint chart" : snapshot.Title
                 },

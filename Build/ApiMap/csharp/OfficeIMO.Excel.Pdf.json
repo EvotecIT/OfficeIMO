@@ -230,8 +230,8 @@
       "category": "conversion",
       "notes": "ToConversionWarning() maps to PdfConversionWarning today.",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Only the internal ExcelPdfExportOptions.Warnings collection carries this type; construction and ToConversionWarning are implementation details. The user-facing diagnostics are shared reports. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.Pdf.ExcelToPdfOptions.UseRenderingProfile(OfficeRenderingProfile profile, OfficeRenderingProfileApplyMode mode = Replace)",
@@ -410,14 +410,14 @@
     {
       "old": "OfficeIMO.Excel.Pdf.PdfExcelTableImportReport",
       "kind": "type",
-      "action": "merge",
-      "new": "OfficeIMO.OfficeConversionReport",
-      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.Excel.PdfExcelTableImportReport",
+      "reason": "Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule.",
       "file": "OfficeIMO.Excel.Pdf/PdfExcelTableImportModels.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-retained-public-contract",
+      "note": "Keep the report: a documented public ODS result exposes PdfOdsConversionReport.PdfReport, independently of the internal PDF-to-Excel importer. PSWriteOffice also declares this report as cmdlet output. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.Pdf.PdfExcelTableImportResult",
@@ -428,20 +428,20 @@
       "file": "OfficeIMO.Excel.Pdf/PdfExcelTableImportModels.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the result wrapper: both incoming ConvertToExcelWithEvidence overloads are internal. ODS consumes this wrapper inside method bodies and returns a different public result containing only its report. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.Pdf.PdfExcelTableImportEntry",
       "kind": "type",
-      "action": "merge",
-      "new": "OfficeIMO.OfficeConversionReport",
-      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.Excel.PdfExcelTableImportEntry",
+      "reason": "Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule.",
       "file": "OfficeIMO.Excel.Pdf/PdfExcelTableImportModels.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-retained-public-contract",
+      "note": "Keep the entry model: the documented ODS PdfReport.Entries path exposes these records for table projection evidence. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Excel.Pdf.PdfExcelTableColumnKind",
@@ -508,6 +508,33 @@
       "phase": "A",
       "applied": "applied",
       "note": "InternalsVisibleTo grants the existing browser engine and its tests access to detailed conversion and serialization evidence. This preserves browser diagnostics while keeping conversion kernels outside the public API."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Worksheet sizing calls use ExcelColumnWidth.Characters for existing stored column units and ExcelColumnWidth.Length(OfficeLength.Points(...)) for existing row points. Default dimension reads convert explicitly at numeric format boundaries. This is a mechanical consumer migration; conversion/layout behavior is retained."
+    },
+    {
+      "change": "Consume shared worksheet image lengths at the PDF geometry boundary",
+      "reason": "Read physical image dimensions and offsets in points directly from OfficeLength rather than passing through integer pixels. Worksheet authoring and inspection retain whole EMUs; raster safety rounding remains in the image renderer.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.WorksheetContent.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "fix",
+      "old": "Merged-cell PDF fragments round full dimensions, offsets and fragment dimensions independently after double containment.",
+      "new": "Convert once, enforce full-size containment in the exact OfficeLength domain, and compare viewport extents without floating-point addition.",
+      "reason": "Imported custom row heights can make rounded fragment plus offset exceed rounded full height by one EMU and abort export across a manual break.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.SheetData.PageProjection.cs",
+        "OfficeIMO.Pdf/Model/PdfTableCellViewport.cs"
+      ],
+      "note": "Both axes retain the positive/nonnegative/out-of-bounds guards. A saved XLSX with15.1236pt custom rows and a split merge reproduces the failure in both WorksheetCanvas and FlowTable; keep the saved PDF page and text assertions."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

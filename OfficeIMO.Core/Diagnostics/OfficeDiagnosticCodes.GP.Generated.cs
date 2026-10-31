@@ -1,4 +1,5 @@
 // Generated from diagnostic-code-map.json by generate_diagnostic_catalog.py.
+#nullable enable
 namespace OfficeIMO;
 
 /// <summary>Stable diagnostic codes shared by document formats and converters.</summary>
@@ -73,6 +74,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string ImagePaintEffectNotSafelyEditable = "image-paint-effect-not-safely-editable";
     /// <summary>Stable code: <c>image-placement-soft-mask-not-safely-editable</c>.</summary>
     public const string ImagePlacementSoftMaskNotSafelyEditable = "image-placement-soft-mask-not-safely-editable";
+    /// <summary>Stable code: <c>image-raster-scale-reduced</c>.</summary>
+    public const string ImageRasterScaleReduced = "image-raster-scale-reduced";
     /// <summary>Stable code: <c>image-region-caption-proximity</c>.</summary>
     public const string ImageRegionCaptionProximity = "image-region-caption-proximity";
     /// <summary>Stable code: <c>image-region-marked-content</c>.</summary>
@@ -93,6 +96,18 @@ public static partial class OfficeDiagnosticCodes {
     public const string ImageResourceTooLarge = "image-resource-too-large";
     /// <summary>Stable code: <c>image-skipped-by-policy</c>.</summary>
     public const string ImageSkippedByPolicy = "image-skipped-by-policy";
+    /// <summary>Stable code: <c>image-source-decode-fallback</c>.</summary>
+    public const string ImageSourceDecodeFallback = "image-source-decode-fallback";
+    /// <summary>Stable code: <c>image-source-decode-omitted</c>.</summary>
+    public const string ImageSourceDecodeOmitted = "image-source-decode-omitted";
+    /// <summary>Stable code: <c>image-source-decoded-by-caller-codec</c>.</summary>
+    public const string ImageSourceDecodedByCallerCodec = "image-source-decoded-by-caller-codec";
+    /// <summary>Stable code: <c>image-source-static-frame-selected</c>.</summary>
+    public const string ImageSourceStaticFrameSelected = "image-source-static-frame-selected";
+    /// <summary>Stable code: <c>image-source-svg-preview-loss</c>.</summary>
+    public const string ImageSourceSvgPreviewLoss = "image-source-svg-preview-loss";
+    /// <summary>Stable code: <c>image-text-shaping-fallback</c>.</summary>
+    public const string ImageTextShapingFallback = "image-text-shaping-fallback";
     /// <summary>Stable code: <c>image-transform-not-safely-editable</c>.</summary>
     public const string ImageTransformNotSafelyEditable = "image-transform-not-safely-editable";
     /// <summary>Stable code: <c>image-transparency-mask-not-resolved</c>.</summary>

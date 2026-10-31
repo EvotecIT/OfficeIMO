@@ -71,14 +71,14 @@ internal static class ExcelInspectionProjection {
     private static void AddVisibility(ReaderInspectionMetadataBuilder builder, ExcelWorksheetInfo sheet, string? path) {
         if (sheet.Hidden) builder.Add(OfficeDocumentInspectionCategories.Visibility, "Worksheet", sheet.VisibilityState, "visibility-state",
             new ReaderLocation { Path = path, Sheet = sheet.Name, SourceBlockKind = "sheet" }, sheet.Name);
-        foreach (ExcelRowInfo row in sheet.Rows.Where(row => row.Hidden || row.CustomHeight && row.Height == 0))
+        foreach (ExcelRowInfo row in sheet.Rows.Where(row => row.Hidden || row.CustomHeight && row.StoredHeight == 0))
             builder.Add(OfficeDocumentInspectionCategories.Visibility, "Row", "hidden", "visibility-state",
                 new ReaderLocation { Path = path, Sheet = sheet.Name, SourceBlockKind = "row" },
                 sheet.Name + "!row:" + row.Index.ToString(CultureInfo.InvariantCulture),
-                ReaderInspectionMetadataBuilder.Attributes(("row", row.Index.ToString(CultureInfo.InvariantCulture)), ("hidden", row.Hidden ? "true" : "false"), ("height", row.Height?.ToString(CultureInfo.InvariantCulture))));
-        foreach (ExcelColumnInfo column in sheet.Columns.Where(column => column.Hidden || column.CustomWidth && column.Width == 0))
+                ReaderInspectionMetadataBuilder.Attributes(("row", row.Index.ToString(CultureInfo.InvariantCulture)), ("hidden", row.Hidden ? "true" : "false"), ("height", row.StoredHeight?.ToString(CultureInfo.InvariantCulture))));
+        foreach (ExcelColumnInfo column in sheet.Columns.Where(column => column.Hidden || column.CustomWidth && column.StoredWidth == 0))
             builder.Add(OfficeDocumentInspectionCategories.Visibility, "Column range", "hidden", "visibility-state",
                 new ReaderLocation { Path = path, Sheet = sheet.Name, SourceBlockKind = "column" },
-                attributes: ReaderInspectionMetadataBuilder.Attributes(("startColumn", column.StartIndex.ToString(CultureInfo.InvariantCulture)), ("endColumn", column.EndIndex.ToString(CultureInfo.InvariantCulture)), ("hidden", column.Hidden ? "true" : "false"), ("width", column.Width?.ToString(CultureInfo.InvariantCulture))));
+                attributes: ReaderInspectionMetadataBuilder.Attributes(("startColumn", column.StartIndex.ToString(CultureInfo.InvariantCulture)), ("endColumn", column.EndIndex.ToString(CultureInfo.InvariantCulture)), ("hidden", column.Hidden ? "true" : "false"), ("width", column.StoredWidth?.ToString(CultureInfo.InvariantCulture))));
     }
 }

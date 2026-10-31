@@ -41,7 +41,7 @@ internal static partial class PdfWriter {
         double textAdvance = textAscent + textDescent;
         if (spacing.Rule == PdfLineSpacingRule.Multiple)
             textAdvance = bodyAscent == 0D && textDescent == 0D ? 0D
-                : (bodyAscent + textDescent) * spacing.Value / natural
+                : (bodyAscent + textDescent) * spacing.MultipleValue!.Value / natural
                     + Math.Max(0D, textAscent - bodyAscent);
         contentHeight = Math.Max(contentHeight, textAdvance);
         return hasInline && (inlineAscent > textAscent || inlineDescent > textDescent)
@@ -63,8 +63,8 @@ internal static partial class PdfWriter {
                 bool emptySeparator = segment.Text.Length == 0 && (segment.LeadingSpace || segment.LeadingIsTab) && segment.InlineElement == null;
                 if (emptySeparator && segment.LeadingIsTab && !HasPaintedRichTabLeader(segment, options)) continue;
                 if (segment.InlineElement is { } inline && !UsesInlineRunTextMetrics(inline)) {
-                    double ascent = Math.Max(0D, inline.BaselineOffset + inline.Height);
-                    double descent = Math.Max(0D, -inline.BaselineOffset);
+                    double ascent = Math.Max(0D, inline.BaselineOffset.ToPoints() + inline.Height.ToPoints());
+                    double descent = Math.Max(0D, -inline.BaselineOffset.ToPoints());
                     inlineAscent = Math.Max(inlineAscent, ascent);
                     inlineDescent = Math.Max(inlineDescent, descent);
                     hasInline = true;
@@ -139,9 +139,9 @@ internal static partial class PdfWriter {
                     descent = Math.Max(descent, runDescent);
                 }
             } else if (segment.InlineElement is { } inline && !UsesInlineRunTextMetrics(inline)) {
-                ascent = Math.Max(ascent, inline.BaselineOffset + inline.Height);
-                inlineAscent = Math.Max(inlineAscent, inline.BaselineOffset + inline.Height);
-                descent = Math.Max(descent, -inline.BaselineOffset);
+                ascent = Math.Max(ascent, inline.BaselineOffset.ToPoints() + inline.Height.ToPoints());
+                inlineAscent = Math.Max(inlineAscent, inline.BaselineOffset.ToPoints() + inline.Height.ToPoints());
+                descent = Math.Max(descent, -inline.BaselineOffset.ToPoints());
             } else {
                 GetRichRunLineMetrics(segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,
                     options, spacing, out double runAscent, out double runDescent);
@@ -155,9 +155,9 @@ internal static partial class PdfWriter {
         if (spacing?.LineGridPitch != null)
             ascent += spacing.GetGridBaselineExpansion(ascent + descent);
         else if (spacing?.FontLineBoxMultiplier is double natural && spacing.Rule == PdfLineSpacingRule.Multiple)
-            ascent = Math.Max(inlineAscent, ascent - bodyAscent * (1D - Math.Min(1D, spacing.Value / natural)));
+            ascent = Math.Max(inlineAscent, ascent - bodyAscent * (1D - Math.Min(1D, spacing.MultipleValue!.Value / natural)));
         else if (spacing?.FontLineBoxMultiplier != null && spacing.Rule == PdfLineSpacingRule.AtLeast)
-            ascent = Math.Max(ascent, spacing.Value - descent);
+            ascent = Math.Max(ascent, spacing.Height!.Value.ToPoints() - descent);
         if (ascent == 0D) return fallbackAscent;
         // A line set only in a smaller-ascent face, such as inline code in a table cell, keeps the paragraph
         // font's baseline as CSS line boxes do with their strut, so it lines up with neighbouring text.
@@ -197,7 +197,7 @@ internal static partial class PdfWriter {
             PdfNamedFontFace? namedFont = options != null &&
                 options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolved)
                     ? resolved : null;
-            GetRichRunLineMetrics(font, namedFont, run.FontSize ?? fontSize, run.Baseline,
+            GetRichRunLineMetrics(font, namedFont, (run.FontSize?.ToPoints()) ?? fontSize, run.Baseline,
                 options, spacing, out double runAscent, out double runDescent);
             ascent = Math.Max(ascent, runAscent);
             if (run.ContributesLineBoxDescent) descent = Math.Max(descent, runDescent);
@@ -230,7 +230,7 @@ internal static partial class PdfWriter {
         double requiredAscent = baseAscent;
         foreach (RichSeg segment in segments) {
             if (segment.InlineElement is { } inline)
-                requiredAscent = Math.Max(requiredAscent, inline.BaselineOffset + inline.Height);
+                requiredAscent = Math.Max(requiredAscent, inline.BaselineOffset.ToPoints() + inline.Height.ToPoints());
         }
         return baseline - Math.Max(0D, requiredAscent - baseAscent);
     }
@@ -244,7 +244,7 @@ internal static partial class PdfWriter {
                 !HasPaintedRichTabLeader(segment, options)) continue;
             if (segment.InlineElement is { } inline) {
                 if (inline is PdfInlineBox { SourceRule: { } rule } box) {
-                    if (box.Width > 0D) {
+                    if (box.Width.ToPoints() > 0D) {
                         foreach (PdfInlineRule.InkBand band in rule.Bands) {
                             ascender = Math.Max(ascender, segment.LineAlignmentRise + band.BaselineOffset + band.Height);
                             descender = Math.Max(descender, -band.BaselineOffset - segment.LineAlignmentRise);
@@ -252,8 +252,8 @@ internal static partial class PdfWriter {
                     }
                     continue;
                 }
-                ascender = Math.Max(ascender, inline.BaselineOffset + inline.Height);
-                descender = Math.Max(descender, -inline.BaselineOffset);
+                ascender = Math.Max(ascender, inline.BaselineOffset.ToPoints() + inline.Height.ToPoints());
+                descender = Math.Max(descender, -inline.BaselineOffset.ToPoints());
             } else {
                 double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline) + segment.LineAlignmentRise;
                 double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);

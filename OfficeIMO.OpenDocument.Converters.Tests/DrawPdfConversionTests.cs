@@ -85,7 +85,7 @@ public sealed class DrawPdfConversionTests {
         var conversion = source.ToPdfDocumentResult(settings);
         // A caller may add PDF-native content before saving; its save-time diagnostics must stay linked.
         var vertical = new OfficeDrawing(100, 100).AddVerticalText("Vertical", 0, 0, 100, 100);
-        conversion.Value.Compose(builder => builder.Page(page => page.Canvas(canvas => canvas.Drawing(vertical, 0, 0, 100, 100))));
+        conversion.Value.Compose(builder => builder.Page(page => page.Canvas(canvas => canvas.Drawing(vertical, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100)))));
         using var output = new MemoryStream();
         PdfSaveResult saved = await conversion.SaveAsync(output);
         saved.RequireSuccess();

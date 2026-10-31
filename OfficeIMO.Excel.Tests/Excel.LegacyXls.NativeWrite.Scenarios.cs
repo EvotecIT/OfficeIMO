@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Scenarios");
+                    ExcelSheet sheet = document.AddSheet("Scenarios");
                     sheet.CellValue(1, 1, "Base");
                     sheet.CellValue(2, 1, "Other");
                     sheet.WorksheetPart.Worksheet.Append(new Scenarios(

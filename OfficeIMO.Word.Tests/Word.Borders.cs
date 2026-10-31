@@ -17,8 +17,8 @@ namespace OfficeIMO.Tests {
 
                 document.Sections[0].Borders.LeftStyle = WordBorderStyle.BabyPacifier;
                 document.Sections[0].Borders.LeftColor = OfficeIMO.OfficeColor.Aqua;
-                document.Sections[0].Borders.LeftSpace = 10;
-                document.Sections[0].Borders.LeftSize = 24;
+                document.Sections[0].Borders.LeftSpace = OfficeLength.Points(10);
+                document.Sections[0].Borders.LeftSize = OfficeLength.Points(3);
 
                 document.Sections[0].Borders.RightStyle = WordBorderStyle.BirdsFlight;
                 document.Sections[0].Borders.RightColor = OfficeIMO.OfficeColor.Red;
@@ -28,15 +28,15 @@ namespace OfficeIMO.Tests {
 
                 document.Sections[0].Borders.BottomStyle = WordBorderStyle.Thick;
                 document.Sections[0].Borders.BottomColor = OfficeIMO.OfficeColor.Blue;
-                document.Sections[0].Borders.BottomSpace = 15;
-                document.Sections[0].Borders.BottomSize = 18;
+                document.Sections[0].Borders.BottomSpace = OfficeLength.Points(15);
+                document.Sections[0].Borders.BottomSize = OfficeLength.Points(2.25);
 
 
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == WordBorderStyle.BabyPacifier);
                 Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.Aqua.ToRgbHex());
-                Assert.Equal(10U, document.Sections[0].Borders.LeftSpace);
-                Assert.Equal(24U, document.Sections[0].Borders.LeftSize);
+                Assert.Equal(OfficeLength.Points(10), document.Sections[0].Borders.LeftSpace);
+                Assert.Equal(OfficeLength.Points(3), document.Sections[0].Borders.LeftSize);
 
                 Assert.True(document.Sections[0].Borders.RightStyle == WordBorderStyle.BirdsFlight);
                 Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.Red.ToRgbHex());
@@ -50,8 +50,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Borders.BottomStyle == WordBorderStyle.Thick);
                 Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.Blue.ToRgbHex());
-                Assert.Equal(15U, document.Sections[0].Borders.BottomSpace);
-                Assert.Equal(18U, document.Sections[0].Borders.BottomSize);
+                Assert.Equal(OfficeLength.Points(15), document.Sections[0].Borders.BottomSpace);
+                Assert.Equal(OfficeLength.Points(2.25), document.Sections[0].Borders.BottomSize);
 
 
                 document.AddSection();
@@ -77,8 +77,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == WordBorderStyle.BabyPacifier);
                 Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.Aqua.ToRgbHex());
-                Assert.Equal(10U, document.Sections[0].Borders.LeftSpace);
-                Assert.Equal(24U, document.Sections[0].Borders.LeftSize);
+                Assert.Equal(OfficeLength.Points(10), document.Sections[0].Borders.LeftSpace);
+                Assert.Equal(OfficeLength.Points(3), document.Sections[0].Borders.LeftSize);
 
                 Assert.True(document.Sections[0].Borders.RightStyle == WordBorderStyle.BirdsFlight);
                 Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.Red.ToRgbHex());
@@ -92,8 +92,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Borders.BottomStyle == WordBorderStyle.Thick);
                 Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.Blue.ToRgbHex());
-                Assert.Equal(15U, document.Sections[0].Borders.BottomSpace);
-                Assert.Equal(18U, document.Sections[0].Borders.BottomSize);
+                Assert.Equal(OfficeLength.Points(15), document.Sections[0].Borders.BottomSpace);
+                Assert.Equal(OfficeLength.Points(2.25), document.Sections[0].Borders.BottomSize);
 
 
                 Assert.True(document.Sections[1].Borders.LeftStyle == WordBorderStyle.BabyRattle);
@@ -133,8 +133,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == WordBorderStyle.BabyPacifier);
                 Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.Aqua.ToRgbHex());
-                Assert.Equal(10U, document.Sections[0].Borders.LeftSpace);
-                Assert.Equal(24U, document.Sections[0].Borders.LeftSize);
+                Assert.Equal(OfficeLength.Points(10), document.Sections[0].Borders.LeftSpace);
+                Assert.Equal(OfficeLength.Points(3), document.Sections[0].Borders.LeftSize);
 
                 Assert.True(document.Sections[0].Borders.RightStyle == WordBorderStyle.BirdsFlight);
                 Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.Red.ToRgbHex());
@@ -148,8 +148,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Borders.BottomStyle == WordBorderStyle.Thick);
                 Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.Blue.ToRgbHex());
-                Assert.Equal(15U, document.Sections[0].Borders.BottomSpace);
-                Assert.Equal(18U, document.Sections[0].Borders.BottomSize);
+                Assert.Equal(OfficeLength.Points(15), document.Sections[0].Borders.BottomSpace);
+                Assert.Equal(OfficeLength.Points(2.25), document.Sections[0].Borders.BottomSize);
 
 
                 Assert.True(document.Sections[1].Borders.LeftStyle == WordBorderStyle.BabyRattle);

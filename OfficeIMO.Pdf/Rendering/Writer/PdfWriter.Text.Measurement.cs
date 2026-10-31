@@ -135,7 +135,7 @@ internal static partial class PdfWriter {
             PdfTabAlignment.DecimalSeparator => decimalAnchorWidthOverride ?? MeasureDecimalAnchorWidth(followingText, followingFont, fontSize, baseline, options, followingNamedFont, featureSettings, horizontalTextScaling, characterSpacing, explicitTabStop?.DecimalSeparator),
             _ => 0D
         };
-        double nextStop = explicitTabStop?.Position - lineOriginOffset ?? (Math.Floor(lineWidth / tabStopWidth) + 1D) * tabStopWidth;
+        double nextStop = explicitTabStop?.Position.ToPoints() - lineOriginOffset ?? (Math.Floor(lineWidth / tabStopWidth) + 1D) * tabStopWidth;
         if (boundedMaxWidth.HasValue) {
             nextStop = Math.Min(nextStop, boundedMaxWidth.Value);
         }

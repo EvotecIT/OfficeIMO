@@ -8,19 +8,14 @@ public partial class Excel {
     public void MaterializePivotTable_FormatsValuesWithTheDataFieldNumberFormat() {
         string path = Path.Combine(_directoryWithFiles, "PivotMaterializeValueFormats.xlsx");
         using ExcelDocument document = ExcelDocument.Create(path);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
         sheet.CellValue(2, 2, 836000d);
         sheet.CellValue(3, 1, "South");
         sheet.CellValue(3, 2, 692000d);
-        sheet.AddPivotTable(
-            sourceRange: "A1:B3",
-            destinationCell: "D1",
-            name: "SalesPivot",
-            rowFields: new[] { "Region" },
-            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales", numberFormat: "#,##0") });
+        sheet.AddPivotTable(sourceRange: "A1:B3", destinationCell: "D1", new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales", numberFormat: "#,##0") } });
 
         sheet.MaterializePivotTable("SalesPivot");
 

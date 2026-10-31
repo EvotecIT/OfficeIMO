@@ -111,7 +111,7 @@ public static partial class WordDocumentService
                 throw new InvalidOperationException("Provide -Password when saving a document loaded from an encrypted package.");
             }
 
-            document.Save(associatedPath!);
+            document.Save(associatedPath!, new WordSaveOptions { Password = null });
         }
 
         var savedPath = associatedPath ?? throw new InvalidOperationException("No saved file path was available.");
@@ -131,7 +131,7 @@ public static partial class WordDocumentService
             return;
         }
 
-        document.Save(path);
+        document.Save(path, new WordSaveOptions { Password = null });
     }
 
     private static WordLoadOptions CreateLoadOptions(bool readOnly, bool autoSave) => new()

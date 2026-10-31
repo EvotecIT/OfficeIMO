@@ -20,7 +20,7 @@ public partial class PdfFontFamilyTests {
             // The same regular bytes are enough to expose replacement of the other faces.
             new PdfEmbeddedFontFallbackCandidate(" Caller Family ", family.Regular)
         });
-        var baselineOptions = new PdfCreateOptions { DefaultFontSize = 10 }
+        var baselineOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) }
             .RegisterNamedFontFamily(family);
         var fallbackOptions = baselineOptions.Clone().RegisterEmbeddedFontFallbacks(fallbacks);
 
@@ -46,7 +46,7 @@ public partial class PdfFontFamilyTests {
             new PdfEmbeddedFontFallbackCandidate("Caller Family",
                 ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, ' ', 'A', 0x03A9))
         });
-        var options = new PdfCreateOptions { DefaultFontSize = 10 }
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) }
             .RegisterNamedFontFamily(CreateCallerCollisionFamily())
             .RegisterEmbeddedFontFallbacks(fallbacks);
         IReadOnlyList<PdfTextRun> runs;
@@ -66,7 +66,7 @@ public partial class PdfFontFamilyTests {
 
     [Fact]
     public void CallerNamedFallbackRendersMissingGlyphWithoutReplacingCoveredStyledGlyph() {
-        var options = new PdfCreateOptions { DefaultFontSize = 10 }
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) }
             .RegisterNamedFontFamily(CreateCallerCollisionFamily())
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
                 new PdfEmbeddedFontFallbackCandidate("Caller Family",
@@ -89,7 +89,7 @@ public partial class PdfFontFamilyTests {
     [Fact]
     public void CallerNamedFallbackRegistrationReusesRetainedResourceAcrossReplacementAndClear() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, ' ', 'A', 0x03A9);
-        var options = new PdfCreateOptions { DefaultFontSize = 10 }
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) }
             .RegisterNamedFontFamily(CreateCallerCollisionFamily());
         PdfEmbeddedFontFallbackSet? latest = null;
         for (int index = 0; index < 65; index++) {
@@ -116,7 +116,7 @@ public partial class PdfFontFamilyTests {
             new PdfEmbeddedFontFallbackCandidate("Caller Family",
                 ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, ' ', 'A', 0x03A9))
         });
-        var options = new PdfCreateOptions { DefaultFontSize = 10 }.RegisterEmbeddedFontFallbacks(fallbacks);
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) }.RegisterEmbeddedFontFallbacks(fallbacks);
         options.RegisterNamedFontFamily(CreateCallerCollisionFamily());
 
         byte[] pdf = PdfDocument.Create(options)
@@ -134,7 +134,7 @@ public partial class PdfFontFamilyTests {
     [Fact]
     public void CallerNamedFallbackCollisionAtFamilyCapacityLeavesCallerFacesIntact() {
         var family = CreateCallerCollisionFamily();
-        var options = new PdfCreateOptions { DefaultFontSize = 10 }.RegisterNamedFontFamily(family);
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) }.RegisterNamedFontFamily(family);
         for (int index = 1; index < 64; index++) {
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Unrelated Family " + index, family.Regular));
         }
@@ -157,7 +157,7 @@ public partial class PdfFontFamilyTests {
             new PdfEmbeddedFontFallbackCandidate("Caller Family",
                 ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, ' ', 'A', 0x03A9))
         });
-        var options = new PdfCreateOptions { DefaultFontSize = 10 }
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) }
             .RegisterNamedFontFamily(CreateCallerCollisionFamily())
             .RegisterEmbeddedFontFallbacks(fallbacks);
         options.ClearNamedFontFamilies().RegisterNamedFontFamily(CreateCallerCollisionFamily());
@@ -186,7 +186,7 @@ public partial class PdfFontFamilyTests {
             new PdfEmbeddedFontFallbackCandidate("Caller Family",
                 ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, ' ', 'A', 0x03A9))
         });
-        var options = new PdfCreateOptions { DefaultFontSize = 10 }.RegisterNamedFontFamily(CreateCallerCollisionFamily());
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) }.RegisterNamedFontFamily(CreateCallerCollisionFamily());
         fallbacks.RegisterFonts(options);
 
         byte[] pdf = PdfDocument.Create(options)
@@ -204,13 +204,13 @@ public partial class PdfFontFamilyTests {
             new PdfEmbeddedFontFallbackCandidate("Caller Family",
                 ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, ' ', 'A'))
         });
-        var options = new PdfCreateOptions { DefaultFontSize = 10 }
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) }
             .RegisterNamedFontFamily(CreateCallerCollisionFamily())
             .RegisterFontFamily(PdfStandardFont.TimesRoman, new PdfEmbeddedFontFamily("Explicit Mapped Font",
                 ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 700, ' ', 'A')))
             .RegisterEmbeddedFontFallbacks(fallbacks);
         PdfTextRun template = fallbacks.PlanTextRuns("A")[0]
-            .WithCharacterSpacing(1).WithHorizontalTextScaling(50);
+            .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithHorizontalTextScaling(50);
         PdfTextFallbackPlan plan = fallbacks.PlanText("A");
         IReadOnlyList<PdfTextRun> runs = namedMapping
             ? plan.ToNamedTextRuns(new[] { "Caller Family" }, template)
@@ -218,7 +218,7 @@ public partial class PdfFontFamilyTests {
         PdfTextRun expected = PdfTextRun.Normal("A",
                 font: namedMapping ? null : PdfStandardFont.TimesRoman,
                 fontFamily: namedMapping ? "Caller Family" : null)
-            .WithCharacterSpacing(1).WithHorizontalTextScaling(50);
+            .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithHorizontalTextScaling(50);
 
         byte[] Render(IReadOnlyList<PdfTextRun> textRuns) => PdfDocument.Create(options.Clone())
             .Paragraph(paragraph => paragraph.Runs(textRuns)).ToBytes();
@@ -232,7 +232,7 @@ public partial class PdfFontFamilyTests {
         var fonts = new OfficeFontFaceCollection()
             .Add(originalFamily.FamilyName, originalFamily.Regular)
             .Add(originalFamily.FamilyName, originalFamily.Bold!, OfficeFontStyle.Bold);
-        var original = new PdfCreateOptions { DefaultFontSize = 10 }
+        var original = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) }
             .UseRenderingProfile(new OfficeRenderingProfile("profile-only-family", fonts));
         byte[] callerData = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, ' ', 'A', 0x03A9);
         var fallbacks = new PdfEmbeddedFontFallbackSet(new[] {
@@ -272,7 +272,7 @@ public partial class PdfFontFamilyTests {
         var profileFonts = new OfficeFontFaceCollection()
             .Add(profileFamily, callerFamily.Regular)
             .AddFallbackFamily(profileFamily);
-        var options = new PdfCreateOptions { DefaultFontSize = 10 }
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) }
             .UseRenderingProfile(new OfficeRenderingProfile("profile-at-capacity", profileFonts));
         for (int index = 0; index < 63; index++) {
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Other Family " + index,
@@ -309,7 +309,7 @@ public partial class PdfFontFamilyTests {
         string route, string familyName, string familyReference, string competingFamily) {
         byte[] familyData = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 900, ' ', 'A', 'B');
         byte[] competingData = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, ' ', 'A', 'B');
-        var options = new PdfCreateOptions { DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { DefaultFontSize = OfficeLength.Points(10) };
         IReadOnlyList<PdfTextRun>? runs = null;
         if (route == "profile") {
             options.UseRenderingProfile(new OfficeRenderingProfile("literal-family", new OfficeFontFaceCollection()
@@ -325,7 +325,7 @@ public partial class PdfFontFamilyTests {
             } else {
                 options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, familyData));
                 runs = fallbacks.PlanText("AB").ToNamedTextRuns(new[] { familyName },
-                    PdfTextRun.Normal("template", fontSize: 10));
+                    PdfTextRun.Normal("template", fontSize: OfficeLength.Points(10)));
             }
             // Plain names already represent one literal family and keep their public run value.
             if (familyName == familyReference) Assert.All(runs, run => Assert.Equal(familyName, run.FontFamily));

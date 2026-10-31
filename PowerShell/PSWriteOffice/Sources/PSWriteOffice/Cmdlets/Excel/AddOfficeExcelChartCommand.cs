@@ -89,7 +89,7 @@ public sealed partial class AddOfficeExcelChartCommand : PSCmdlet {
 
     /// <summary>Shared chart family. Bubble requires the separate native bubble-data contract.</summary>
     [Parameter]
-    public OfficeChartKind Type { get; set; } = OfficeChartKind.ColumnClustered;
+    public OfficeChartType Type { get; set; } = OfficeChartType.ColumnClustered;
 
     /// <summary>Chart title.</summary>
     [Parameter]
@@ -164,9 +164,9 @@ public sealed partial class AddOfficeExcelChartCommand : PSCmdlet {
                 Range = plan.SourceRange,
                 Row = placement.Row,
                 Column = placement.Column,
-                WidthPixels = placement.Width,
-                HeightPixels = placement.Height,
-                ChartType = ToExcelChartType(kind),
+                Width = OfficeLength.Pixels(placement.Width),
+                Height = OfficeLength.Pixels(placement.Height),
+                ChartType = kind,
                 HasHeaders = plan.HasHeaders,
                 Title = Title,
                 IncludeCachedData = !NoCachedData.IsPresent,
@@ -175,7 +175,7 @@ public sealed partial class AddOfficeExcelChartCommand : PSCmdlet {
                 ColorStyleId = ColorStyle
             });
         } else {
-            chart = sheet.AddChart(kind, plan.Data, placement.Row, placement.Column, placement.Width, placement.Height, Title);
+            chart = sheet.AddChart(kind, plan.Data, new ExcelChartOptions { Row = placement.Row, Column = placement.Column, Width = OfficeLength.Pixels(placement.Width), Height = OfficeLength.Pixels(placement.Height), Title = Title });
             chart.ApplyDashboardPreset(Preset, Style, ColorStyle);
         }
 

@@ -17,8 +17,8 @@ public class PdfEmbeddedFontFollowThroughTests {
         if (!DefaultBodyFontInstalled()) return;
         PdfDocument template = PdfDocument.Create(pdf => pdf.Content(content => {
             content.Paragraph(p => p.Text("Inspector"));
-            content.TextField("asset", width: 200, value: "NW-42");
-            content.TextField("inspector", width: 200);
+            content.TextField("asset", width: OfficeLength.Points(200), value: "NW-42");
+            content.TextField("inspector", width: OfficeLength.Points(200));
         }), new PdfCreateOptions { EmbedDefaultFonts = true });
 
         PdfDocument completed = template.Forms.Fill(new Dictionary<string, string> { ["inspector"] = "Marta Nowak" });
@@ -35,9 +35,9 @@ public class PdfEmbeddedFontFollowThroughTests {
     public void FieldsFilledTogetherShareOneSubsetTaggedFont() {
         if (!DefaultBodyFontInstalled()) return;
         PdfDocument template = PdfDocument.Create(pdf => pdf.Content(content => {
-            content.TextField("first", width: 200);
-            content.TextField("second", width: 200);
-            content.TextField("third", width: 200);
+            content.TextField("first", width: OfficeLength.Points(200));
+            content.TextField("second", width: OfficeLength.Points(200));
+            content.TextField("third", width: OfficeLength.Points(200));
         }), new PdfCreateOptions { EmbedDefaultFonts = true });
 
         byte[] bytes = template.Forms.Fill(new Dictionary<string, string> {
@@ -55,7 +55,7 @@ public class PdfEmbeddedFontFollowThroughTests {
     [InlineData(PdfAlign.Right)]
     public void StampAlignmentAnchorsTheTextAtX(PdfAlign align) {
         PdfDocument source = PdfDocument.Create(pdf => pdf.Content(content => content.Paragraph(p => p.Text("Body"))));
-        byte[] bytes = source.Stamp.Text("Page 1 of 1", new PdfTextStampOptions { X = 300, Y = 36, Align = align, EmbedFont = false }).ToBytes();
+        byte[] bytes = source.Stamp.Text("Page 1 of 1", new PdfTextStampOptions { X = OfficeLength.Points(300), Y = OfficeLength.Points(36), Align = align, EmbedFont = false }).ToBytes();
 
         PdfTextSpan span = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans().First(item => item.Text.Contains("Page"));
         double expected = align == PdfAlign.Left ? span.X : align == PdfAlign.Center ? span.X + span.Advance / 2 : span.X + span.Advance;
@@ -67,8 +67,8 @@ public class PdfEmbeddedFontFollowThroughTests {
         if (!DefaultBodyFontInstalled()) return;
         PdfDocument source = PdfDocument.Create(pdf => pdf.Content(content => content.Paragraph(p => p.Text("Body"))));
 
-        byte[] embedded = source.Stamp.Text("Page 1 of 1", new PdfTextStampOptions { X = 72, Y = 36, EmbedFont = true, Font = PdfStandardFont.Helvetica }).ToBytes();
-        byte[] standard = source.Stamp.Text("Page 1 of 1", new PdfTextStampOptions { X = 72, Y = 36, EmbedFont = false, Font = PdfStandardFont.Helvetica }).ToBytes();
+        byte[] embedded = source.Stamp.Text("Page 1 of 1", new PdfTextStampOptions { X = OfficeLength.Points(72), Y = OfficeLength.Points(36), EmbedFont = true, Font = PdfStandardFont.Helvetica }).ToBytes();
+        byte[] standard = source.Stamp.Text("Page 1 of 1", new PdfTextStampOptions { X = OfficeLength.Points(72), Y = OfficeLength.Points(36), EmbedFont = false, Font = PdfStandardFont.Helvetica }).ToBytes();
 
         Assert.Contains("/FontFile", PdfTestContentText.ReadDecoded(embedded), StringComparison.Ordinal);
         Assert.Contains("Page 1 of 1", PdfReadDocument.Open(embedded).ExtractText(), StringComparison.Ordinal);
@@ -77,10 +77,10 @@ public class PdfEmbeddedFontFollowThroughTests {
 
     [Fact]
     public void ListStyleWithoutMarkerColorKeepsTheDefaultListMarkerColor() {
-        var accent = PdfColor.FromRgb(12, 34, 210);
+        var accent = OfficeColor.FromRgb(12, 34, 210);
         byte[] bytes = PdfDocument.Create()
             .DefaultListStyle(new PdfListStyle { MarkerColor = accent })
-            .Bullets(new[] { "First", "Second" }, style: new PdfListStyle { ItemSpacing = 2 })
+            .Bullets(new[] { "First", "Second" }, style: new PdfListStyle { ItemSpacing = OfficeLength.Points(2) })
             .ToBytes();
 
         Assert.Matches(new Regex(@"0\.047\d* 0\.133\d* 0\.82\d* rg"), PdfTestContentText.ReadDecoded(bytes));

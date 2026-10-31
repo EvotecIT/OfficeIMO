@@ -29,58 +29,6 @@ namespace OfficeIMO.Excel {
                 token => ExportImageCore(format, resolved, token));
         }
 
-        /// <summary>Renders this chart to dependency-free PNG bytes.</summary>
-        public byte[] ToPng(ExcelImageExportOptions? options = null) =>
-            ExportImage(OfficeImageExportFormat.Png, options).Bytes;
-
-        /// <summary>Renders this chart to dependency-free SVG text.</summary>
-        public string ToSvg(ExcelImageExportOptions? options = null) =>
-            Encoding.UTF8.GetString(ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-
-        /// <summary>Saves this chart as a PNG file.</summary>
-        public OfficeImageExportResult SaveAsPng(string path, ExcelImageExportOptions? options = null) =>
-            new ExcelChartImageExportBuilder(this, options).AsPng().Save(path);
-
-        /// <summary>Saves this chart as an SVG file.</summary>
-        public OfficeImageExportResult SaveAsSvg(string path, ExcelImageExportOptions? options = null) =>
-            new ExcelChartImageExportBuilder(this, options).AsSvg().Save(path);
-
-        /// <summary>Writes this chart as PNG to a caller-owned stream.</summary>
-        public OfficeImageExportResult SaveAsPng(Stream stream, ExcelImageExportOptions? options = null) =>
-            new ExcelChartImageExportBuilder(this, options).AsPng().Save(stream);
-
-        /// <summary>Writes this chart as SVG to a caller-owned stream.</summary>
-        public OfficeImageExportResult SaveAsSvg(Stream stream, ExcelImageExportOptions? options = null) =>
-            new ExcelChartImageExportBuilder(this, options).AsSvg().Save(stream);
-
-        /// <summary>Asynchronously saves this chart as a PNG file.</summary>
-        public Task<OfficeImageExportResult> SaveAsPngAsync(
-            string path,
-            ExcelImageExportOptions? options = null,
-            CancellationToken cancellationToken = default) =>
-            new ExcelChartImageExportBuilder(this, options).AsPng().SaveAsync(path, cancellationToken);
-
-        /// <summary>Asynchronously saves this chart as an SVG file.</summary>
-        public Task<OfficeImageExportResult> SaveAsSvgAsync(
-            string path,
-            ExcelImageExportOptions? options = null,
-            CancellationToken cancellationToken = default) =>
-            new ExcelChartImageExportBuilder(this, options).AsSvg().SaveAsync(path, cancellationToken);
-
-        /// <summary>Asynchronously writes this chart as PNG to a stream.</summary>
-        public Task<OfficeImageExportResult> SaveAsPngAsync(
-            Stream stream,
-            ExcelImageExportOptions? options = null,
-            CancellationToken cancellationToken = default) =>
-            new ExcelChartImageExportBuilder(this, options).AsPng().SaveAsync(stream, cancellationToken);
-
-        /// <summary>Asynchronously writes this chart as SVG to a stream.</summary>
-        public Task<OfficeImageExportResult> SaveAsSvgAsync(
-            Stream stream,
-            ExcelImageExportOptions? options = null,
-            CancellationToken cancellationToken = default) =>
-            new ExcelChartImageExportBuilder(this, options).AsSvg().SaveAsync(stream, cancellationToken);
-
         private OfficeImageExportResult ExportImageCore(
             OfficeImageExportFormat format,
             ExcelImageExportOptions options,
@@ -94,8 +42,8 @@ namespace OfficeIMO.Excel {
             var diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
             if (!ExcelRangeImageRenderer.TryCreateOfficeChartSnapshot(
                 snapshot,
-                snapshot.WidthPixels,
-                snapshot.HeightPixels,
+                ExcelImageExportLimits.ExtentPixels(snapshot.Width),
+                ExcelImageExportLimits.ExtentPixels(snapshot.Height),
                 diagnostics,
                 _sheetName,
                 out OfficeChartSnapshot? officeSnapshot) || officeSnapshot == null) {

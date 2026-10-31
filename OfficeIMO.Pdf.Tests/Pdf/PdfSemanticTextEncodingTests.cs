@@ -16,10 +16,10 @@ public sealed class PdfSemanticTextEncodingTests {
             var ink = new OfficeDrawing(200D, 30D).AddText("Paint", 0D, 0D, 180D, 20D,
                 new OfficeFontInfo("Helvetica", 12D));
             var scene = new OfficeDrawing(200D, 30D).AddActualTextDrawing(text, ink, 0D, 0D);
-            document.Canvas(canvas => canvas.Drawing(scene, 10D, 10D, 200D, 30D));
+            document.Canvas(canvas => canvas.Drawing(scene, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(30D)));
         } else {
-            document.Canvas(canvas => canvas.ActualText(text, 10D, 10D,
-                logical => logical.Text("Paint", 10D, 10D, 180D, 20D)));
+            document.Canvas(canvas => canvas.ActualText(text, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D),
+                logical => logical.Text("Paint", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(20D))));
         }
 
         byte[] bytes = document.ToBytes();
@@ -57,7 +57,7 @@ public sealed class PdfSemanticTextEncodingTests {
     [InlineData("• – “quote” €")]
     public void GeneratedOutlineTitlesAndLinkCommentsKeepUnicode(string text) {
         byte[] bytes = PdfDocument.Create()
-            .Canvas(canvas => canvas.Outline(text, 1, 10D))
+            .Canvas(canvas => canvas.Outline(text, 1, global::OfficeIMO.OfficeLength.Points(10D)))
             .Paragraph(paragraph => paragraph.Link("Link", "https://evotec.xyz/", contents: text))
             .ToBytes();
 

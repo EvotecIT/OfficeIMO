@@ -14,15 +14,15 @@ public sealed partial class PdfFooterBuilder {
     /// <summary>Sets footer alignment to the right.</summary>
     public PdfFooterBuilder AlignRight() { _opts.FooterAlign = PdfAlign.Right; return this; }
     /// <summary>Sets footer text color.</summary>
-    public PdfFooterBuilder Color(PdfColor color) { _opts.FooterTextColor = color; return this; }
+    public PdfFooterBuilder Color(global::OfficeIMO.OfficeColor color) { _opts.FooterTextColor = color; return this; }
     /// <summary>Sets footer font.</summary>
     public PdfFooterBuilder Font(PdfStandardFont font) { _opts.FooterFont = font; _opts.FooterFontFamily = null; return this; }
     /// <summary>Uses a registered named font family for footer text.</summary>
     public PdfFooterBuilder FontFamily(string familyName) { _opts.FooterFontFamily = familyName; return this; }
     /// <summary>Sets footer font size in points.</summary>
-    public PdfFooterBuilder FontSize(double size) { Guard.Positive(size, nameof(size)); _opts.FooterFontSize = size; return this; }
+    public PdfFooterBuilder FontSize(global::OfficeIMO.OfficeLength size) { Guard.Positive(size.ToPoints(), nameof(size)); _opts.FooterFontSize = size; return this; }
     /// <summary>Sets footer baseline offset below the bottom margin in points.</summary>
-    public PdfFooterBuilder Offset(double points) { Guard.NonNegative(points, nameof(points)); _opts.FooterOffsetY = points; return this; }
+    public PdfFooterBuilder Offset(global::OfficeIMO.OfficeLength points) { Guard.NonNegative(points.ToPoints(), nameof(points)); _opts.FooterOffsetY = points; return this; }
     /// <summary>Renders the current page number in the footer.</summary>
     public PdfFooterBuilder PageNumber() { _opts.ClearFooterSegmentsForCompose(); _opts.ClearFooterZonesForCompose(); _opts.ShowPageNumbers = true; _opts.FooterFormat = "{page}"; return this; }
     /// <summary>Renders the current page number and total pages in the footer.</summary>
@@ -86,44 +86,32 @@ public sealed partial class PdfFooterBuilder {
         return this;
     }
 
-    /// <summary>Adds an image to the running footer.</summary>
-    public PdfFooterBuilder Image(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) =>
-        Image(data, width, height, align, fit, alternativeText: null);
-
     /// <summary>Adds a meaningful image to the running footer with alternate text.</summary>
-    public PdfFooterBuilder Image(byte[] data, double width, double height, string? alternativeText) =>
+    public PdfFooterBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText) =>
         Image(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText);
 
     /// <summary>Adds an image to the running footer.</summary>
-    public PdfFooterBuilder Image(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText) {
+    public PdfFooterBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) {
         _opts.AddFooterImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
         return this;
     }
 
-    /// <summary>Adds an image to the page-1-only footer.</summary>
-    public PdfFooterBuilder FirstPageImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) =>
-        FirstPageImage(data, width, height, align, fit, alternativeText: null);
-
     /// <summary>Adds a meaningful image to the page-1-only footer with alternate text.</summary>
-    public PdfFooterBuilder FirstPageImage(byte[] data, double width, double height, string? alternativeText) =>
+    public PdfFooterBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText) =>
         FirstPageImage(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText);
 
     /// <summary>Adds an image to the page-1-only footer.</summary>
-    public PdfFooterBuilder FirstPageImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText) {
+    public PdfFooterBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) {
         _opts.AddFirstPageFooterImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
         return this;
     }
 
-    /// <summary>Adds an image to the even-page-only footer.</summary>
-    public PdfFooterBuilder EvenPagesImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) =>
-        EvenPagesImage(data, width, height, align, fit, alternativeText: null);
-
     /// <summary>Adds a meaningful image to the even-page-only footer with alternate text.</summary>
-    public PdfFooterBuilder EvenPagesImage(byte[] data, double width, double height, string? alternativeText) =>
+    public PdfFooterBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText) =>
         EvenPagesImage(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText);
 
     /// <summary>Adds an image to the even-page-only footer.</summary>
-    public PdfFooterBuilder EvenPagesImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText) {
+    public PdfFooterBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) {
         _opts.AddEvenPageFooterImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
         return this;
     }

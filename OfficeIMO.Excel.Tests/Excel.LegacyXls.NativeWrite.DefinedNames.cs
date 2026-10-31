@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet north = document.AddWorksheet("North");
-                    ExcelSheet south = document.AddWorksheet("South");
+                    ExcelSheet north = document.AddSheet("North");
+                    ExcelSheet south = document.AddSheet("South");
 
                     north.CellValue(1, 1, 99d);
                     north.CellValue(1, 2, 10d);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet data = document.AddWorksheet("Data");
+                    ExcelSheet data = document.AddSheet("Data");
                     data.CellValue(1, 1, 41d);
 
                     document.WorkbookRoot.DefinedNames ??= new DefinedNames();
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet data = document.AddWorksheet("Data");
+                    ExcelSheet data = document.AddSheet("Data");
                     data.CellValue(1, 1, 41d);
                     data.CellValue(2, 1, 43d);
                     data.CellFormula(2, 1, "AdjustedAnswer+1");
@@ -162,9 +162,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet summary = document.AddWorksheet("Summary");
-                    ExcelSheet first = document.AddWorksheet("Region 1");
-                    ExcelSheet second = document.AddWorksheet("Region 2");
+                    ExcelSheet summary = document.AddSheet("Summary");
+                    ExcelSheet first = document.AddSheet("Region 1");
+                    ExcelSheet second = document.AddSheet("Region 2");
 
                     first.CellValue(1, 1, 10d);
                     first.CellValue(2, 1, 20d);
@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Names");
+                    ExcelSheet sheet = document.AddSheet("Names");
                     sheet.CellValue(1, 1, "External workbook");
                     document.WorkbookRoot.DefinedNames ??= new DefinedNames();
                     document.WorkbookRoot.DefinedNames.Append(new DefinedName {
@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Names");
+                    ExcelSheet sheet = document.AddSheet("Names");
                     sheet.CellValue(1, 1, "External name");
                     document.WorkbookRoot.DefinedNames ??= new DefinedNames();
                     document.WorkbookRoot.DefinedNames.Append(new DefinedName {
@@ -296,7 +296,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExternalNames");
+                    ExcelSheet sheet = document.AddSheet("ExternalNames");
                     sheet.CellValue(1, 1, 0.25d);
                     sheet.CellFormula(1, 1, "'[Budget.xls]Feb'!TaxRate");
 
@@ -334,7 +334,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Names");
+                    ExcelSheet sheet = document.AddSheet("Names");
                     sheet.CellValue(1, 1, "Scoped external name");
                     document.WorkbookRoot.DefinedNames ??= new DefinedNames();
                     document.WorkbookRoot.DefinedNames.Append(new DefinedName {

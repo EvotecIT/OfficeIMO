@@ -55,11 +55,11 @@ namespace OfficeIMO.Word.Pdf {
                 // A successful probe still maps crop diagnostics through options.
                 if (!TryPrepareNativeBodyImage(image, null, "flow inline image", out byte[] prepared,
                         cancellationToken: cancellationToken)) return false;
-                double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
-                double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
+                double width = image.Width?.ToPoints() ?? 144D;
+                double height = image.Height?.ToPoints() ?? 144D;
                 PdfCore.PdfImageStyle style = CreateNativeImageStyle(image, options, "inline image");
                 style.ScaleDownToFit = false;
-                inline = PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineImage(prepared, width, height, style, 0D) {
+                inline = PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineImage(prepared, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style, global::OfficeIMO.OfficeLength.Points(0D)) {
                     AllowFrameOverflow = true
                 });
                 return true;

@@ -99,12 +99,12 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         string excel = Path.Combine(scope.Path, "workbook.xlsx");
         using (ExcelDocument document = ExcelDocument.Create(excel)) {
-            document.AddWorksheet("Data").Cell(1, 1, "workflow provenance");
+            document.AddSheet("Data").Cell(1, 1, "workflow provenance");
             document.Save();
         }
         string powerPoint = Path.Combine(scope.Path, "deck.pptx");
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(powerPoint)) {
-            presentation.AddSlide().AddTextBoxPoints("workflow provenance", 20, 20, 300, 60);
+        using (PowerPointDocument presentation = PowerPointDocument.Create(powerPoint)) {
+            presentation.AddSlide().AddTextBox("workflow provenance",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(60));
             presentation.Save();
         }
         string visio = Path.Combine(scope.Path, "drawing.vsdx");

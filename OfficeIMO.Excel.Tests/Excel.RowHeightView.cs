@@ -13,7 +13,7 @@ public partial class Excel {
     [InlineData(false)]
     public void Xlsb_DefaultViewRetainsGridlineVisibilityAcrossRewrite(bool visible) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, "Original");
         sheet.SetGridlinesVisible(visible);
         using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }), writable: false));
@@ -31,9 +31,9 @@ public partial class Excel {
     public void RowHeight_SaveRetainsViewRequiredForExcelToReadPointHeights(bool validate, bool unfreeze) {
         using var stream = new MemoryStream();
         using (ExcelDocument document = ExcelDocument.Create()) {
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             sheet.Cell(1, 1, "Explicit height");
-            sheet.SetRowHeight(1, 24D);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24D)));
             if (unfreeze) { sheet.Freeze(1, 1); sheet.Freeze(); }
             document.Save(stream, new ExcelSaveOptions { ValidateOpenXml = validate });
         }

@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Adds one paragraph inside a decorated panel.</summary>
-    internal PdfDocument PanelParagraph(System.Action<PdfParagraphBuilder> compose, PdfPanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) {
+    internal PdfDocument PanelParagraph(System.Action<PdfParagraphBuilder> compose, PdfPanelStyle? style = null, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeColor? defaultColor = null) {
         Guard.NotNull(compose, nameof(compose));
         return Panel(content => content.Paragraph(compose, align, defaultColor), style);
     }
@@ -20,7 +20,7 @@ public sealed partial class PdfDocument {
         var list = new System.Collections.Generic.List<IPdfBlock>(blocks);
         if (list.Count > 0 && list[list.Count - 1] is RichParagraphBlock last && last.Style?.SpacingAfter == null) {
             PdfParagraphStyle collapsed = last.Style?.Clone() ?? _options.DefaultParagraphStyle ?? new PdfParagraphStyle();
-            collapsed.SpacingAfter = 0D;
+            collapsed.SpacingAfter = OfficeLength.Zero;
             list[list.Count - 1] = new RichParagraphBlock(last.Runs, last.Align, last.DefaultColor, collapsed);
         }
         return list;

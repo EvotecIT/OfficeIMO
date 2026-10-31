@@ -48,4 +48,7 @@
     <EnableAotAnalyzer>true</EnableAotAnalyzer>
   </PropertyGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Web.Converter" /><InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" /></ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Tool" />
+  </ItemGroup>
 </Project>

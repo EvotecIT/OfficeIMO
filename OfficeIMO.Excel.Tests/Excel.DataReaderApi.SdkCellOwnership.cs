@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel.Tests {
         [InlineData("formula", "cell")]
         public void DataReader_BorrowedSdkIgnoresExtensionOwnedCellReferences(string kind, string placement) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Number");
             sheet.CellValue(2, 1, 1);
             document.Save();
@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel.Tests {
         [Fact]
         public void DataReader_BorrowedSdkEmptySheetIgnoresExtensionOwnedCells() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("Empty");
+            document.AddSheet("Empty");
             document.Save();
             Worksheet worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet!;
             var payload = new OpenXmlUnknownElement("e", "metadata", "urn:officeimo:cell-ownership");
@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel.Tests {
         [InlineData("formula")]
         public void DataReader_BorrowedSdkValidatesOwnedCellReferences(string kind) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Number");
             sheet.CellValue(2, 1, 1);
             document.Save();

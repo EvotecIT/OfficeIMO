@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Loss-aware PDF projection over the neutral document model.</summary>
-public static partial class OfficeDocumentModelPdfExtensions {
+internal static partial class OfficeDocumentModelPdfExtensions {
     private const string ConverterName = "OfficeIMO.Pdf";
 
     /// <summary>
@@ -29,7 +29,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
         PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCreateOptions();
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(report, ConverterName);
-        PdfDocument document = PdfDocument.Create(pdfOptions)
+        PdfDocument document = PdfDocument.CreateForImportedLayout(pdfOptions)
             .Meta(source.Source.Title, source.Source.Author, source.Source.Subject, source.Source.Keywords);
         OfficeRasterDecodeOptions rasterDecodeOptions = options.SnapshotRasterDecodeOptions();
         rasterDecodeOptions.MaximumDecodedPixels = Math.Min(
@@ -370,7 +370,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
             .Select(static entry => new[] { entry.Name, entry.Value ?? string.Empty })
             .ToArray();
         if (rows.Length > 0) {
-            document.Table(rows, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = 10 });
+            document.Table(rows, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) });
         }
     }
 

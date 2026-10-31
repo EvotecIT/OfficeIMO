@@ -189,7 +189,7 @@ internal sealed partial class StudioNativeDocument {
                 // The editor maps a rectangle on the page as displayed into the page's own space, through its box and rotation.
                 var gesture = new PdfEditorGesture(area.Page, Finite(bounds.X), Finite(bounds.Y), Finite(bounds.X + bounds.Width), Finite(bounds.Y + bounds.Height), []);
                 PdfEditorCommand command = PdfEditorCommandFactory.Create(snapshot, PdfEditorTool.Redact, gesture,
-                    new PdfEditorProperties(string.Empty, string.Empty, PdfColor.Black, string.Empty, string.Empty, 12D));
+                    new PdfEditorProperties(string.Empty, string.Empty, global::OfficeIMO.OfficeColor.Black, string.Empty, string.Empty, 12D));
                 planned.Add(new PdfRedactionArea(area.Page, command.Bounds.Left, command.Bounds.Bottom, command.Bounds.Width, command.Bounds.Height,
                     "OfficeIMO Studio redaction"));
             }

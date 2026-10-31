@@ -15,7 +15,7 @@ internal sealed class PowerPointContentScope : IDisposable {
     private readonly Action? _rollbackNativeState;
     private bool _accepted;
 
-    internal PowerPointContentScope(PowerPointPresentation document, PowerPointContentScope? parent = null) {
+    internal PowerPointContentScope(PowerPointDocument document, PowerPointContentScope? parent = null) {
         Document = document;
         Slide = parent?.Slide ?? this;
         if (parent == null) _materialization = new PowerPointLayoutMaterialization(document);
@@ -25,7 +25,7 @@ internal sealed class PowerPointContentScope : IDisposable {
             _rollbackNativeState = () => { rollbackNotes(); rollbackSections(); };
         }
     }
-    internal PowerPointPresentation Document { get; }
+    internal PowerPointDocument Document { get; }
     internal PowerPointContentScope Slide { get; }
     internal PowerPointSlide NativeSlide => Slide._materialization!.Slide;
     internal List<PowerPointLayoutBlock> Blocks { get; } = new();
@@ -33,7 +33,7 @@ internal sealed class PowerPointContentScope : IDisposable {
     internal static PowerPointContentScope? Current {
         get {
             var scope = OfficeDocumentContext.Find<PowerPointContentScope>();
-            return scope != null && ReferenceEquals(scope.Document, OfficeDocumentContext.Find<PowerPointPresentation>()) ? scope : null;
+            return scope != null && ReferenceEquals(scope.Document, OfficeDocumentContext.Find<PowerPointDocument>()) ? scope : null;
         }
     }
 

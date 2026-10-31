@@ -324,7 +324,7 @@ internal static class PdfCommandUtilities
         return document.Security.Encrypt(options).ToDocument();
     }
 
-    internal static PdfColor? ParseColor(string? color)
+    internal static global::OfficeIMO.OfficeColor? ParseColor(string? color)
         => OfficeColorUtilities.ToPdfColor(color);
 
     internal static PdfPageSize ResolvePageSize(string? pageSize, double? width, double? height, bool landscape)
@@ -333,7 +333,7 @@ internal static class PdfCommandUtilities
         PdfPageSize size = pageSizeName.ToUpperInvariant() switch
         {
             "CUSTOM" => width.HasValue && height.HasValue
-                ? new PdfPageSize(width.Value, height.Value)
+                ? new PdfPageSize(OfficeIMO.OfficeLength.Points(width.Value),OfficeIMO.OfficeLength.Points(height.Value))
                 : throw new PSArgumentException("Custom page size requires -Width and -Height."),
             _ => PdfPageSizes.TryGet(pageSizeName, out var resolved)
                 ? resolved
@@ -358,7 +358,7 @@ internal static class PdfCommandUtilities
 
         if (margin.HasValue)
         {
-            options.Margin = margin.Value;
+            options.Margin = OfficeIMO.OfficeLength.Points(margin.Value);
         }
 
         return options;

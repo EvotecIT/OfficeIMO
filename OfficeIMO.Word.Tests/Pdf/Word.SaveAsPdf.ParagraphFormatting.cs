@@ -25,19 +25,19 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Before native baseline formatting");
                 WordParagraph superscript = document.AddParagraph("Native paragraph superscript");
-                superscript.FontSize = 20;
+                superscript.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 superscript.SetSuperScript();
                 WordParagraph subscript = document.AddParagraph("Native paragraph subscript");
-                subscript.FontSize = 20;
+                subscript.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 subscript.SetSubScript();
                 WordParagraph mixed = document.AddParagraph();
                 mixed.AddText("Native mixed baseline ");
                 WordParagraph runSuperscript = mixed.AddText("run superscript");
-                runSuperscript.FontSize = 20;
+                runSuperscript.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 runSuperscript.SetSuperScript();
                 mixed.AddText(" ");
                 WordParagraph runSubscript = mixed.AddText("run subscript");
-                runSubscript.FontSize = 20;
+                runSubscript.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 runSubscript.SetSubScript();
                 document.AddParagraph("After native baseline formatting");
                 document.Save();
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph("NativeSoftFirst");
                 paragraph.AddBreak();
                 paragraph.AddText("NativeSoftSecond");
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 WordParagraph cellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
                 cellParagraph.Text = string.Empty;
                 cellParagraph.AddText("CellSoftFirst");
@@ -127,15 +127,15 @@ namespace OfficeIMO.Tests {
                 });
 
                 WordParagraph intro = document.AddParagraph("IntroMarker");
-                intro.LineSpacingAfterPoints = 70;
+                intro.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(70D);
                 document.AddParagraph("InheritedKeepLabel").SetStyleId(styleId);
                 document.AddParagraph("FollowingBody");
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(260, 170),
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(170)),
+                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 WordParagraph intro = document.AddParagraph("ChainIntro");
-                intro.LineSpacingAfterPoints = 100;
+                intro.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(100D);
                 document.AddParagraph("ChainLead").SetStyleId(styleId);
                 document.AddParagraph("ChainBridge").SetStyleId(styleId);
                 document.AddParagraph("ChainTarget");
@@ -176,8 +176,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(260, 220),
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(220)),
+                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -243,7 +243,7 @@ namespace OfficeIMO.Tests {
                         new Run(new Text("BodyBefore")),
                         new Run(new Break(), new Text("BodyAfterSameRun"))));
 
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 table.Rows[0].Cells[0]._tableCell.RemoveAllChildren<Paragraph>();
                 table.Rows[0].Cells[0]._tableCell.Append(
                     new Paragraph(
@@ -285,7 +285,7 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_EmptyParagraphSpacingCountsDiscardedPagesAgainstLimit() {
             using WordDocument document = WordDocument.Create();
             WordParagraph blank = document.AddParagraph(string.Empty);
-            blank.LineSpacingBeforePoints = 100_000D;
+            blank.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(100000D);
             document.AddParagraph("After spacing");
 
             Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
@@ -295,18 +295,23 @@ namespace OfficeIMO.Tests {
                 }).Value.ToBytes());
         }
 
-        [Fact]
-        public void SaveAsPdf_RejectsPathologicalInitialParagraphSpacingBeforePagination() {
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void SaveAsPdf_RejectsPathologicalParagraphSpacingBeforePagination(bool before) {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph("Body text");
             paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
-            paragraph._paragraph.ParagraphProperties.Append(new SpacingBetweenLines { BeforeLines = int.MaxValue });
+            var spacing = new SpacingBetweenLines();
+            if (before) spacing.BeforeLines = int.MaxValue;
+            else spacing.AfterLines = int.MaxValue;
+            paragraph._paragraph.ParagraphProperties.Append(spacing);
             paragraph._paragraph.ParagraphProperties.Append(new SnapToGrid { Val = false });
             document.Sections[0]._sectionProperties.Append(new DocGrid { Type = DocGridValues.Lines, LinePitch = int.MaxValue });
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
                 document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false }));
-            Assert.Contains("Initial paragraph spacing", exception.Message);
+            Assert.Contains(before ? "Initial paragraph spacing" : "Paragraph spacing after", exception.Message);
         }
 
 
@@ -321,8 +326,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(240, 360),
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(24)
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(360)),
+                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
                 });
             }
 
@@ -359,10 +364,10 @@ namespace OfficeIMO.Tests {
                 paragraph.Borders.BottomColorHex = "336699";
                 paragraph.Borders.LeftColorHex = "336699";
                 paragraph.Borders.RightColorHex = "336699";
-                paragraph.Borders.TopSize = 8;
-                paragraph.Borders.BottomSize = 8;
-                paragraph.Borders.LeftSize = 8;
-                paragraph.Borders.RightSize = 8;
+                paragraph.Borders.TopSize = OfficeLength.Points(1);
+                paragraph.Borders.BottomSize = OfficeLength.Points(1);
+                paragraph.Borders.LeftSize = OfficeLength.Points(1);
+                paragraph.Borders.RightSize = OfficeLength.Points(1);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -446,8 +451,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 240),
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(36)
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
                 });
             }
 
@@ -476,8 +481,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 180),
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30)
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(180)),
+                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
                 });
             }
 
@@ -504,17 +509,17 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph("Native bordered paragraph heading");
                 paragraph.Borders.BottomStyle = WordBorderStyle.Single;
                 paragraph.Borders.BottomColorHex = "336699";
-                paragraph.Borders.BottomSize = 12;
-                paragraph.Borders.BottomSpace = 3;
-                paragraph.LineSpacingAfterPoints = 8;
+                paragraph.Borders.BottomSize = OfficeLength.Points(1.5);
+                paragraph.Borders.BottomSpace = OfficeLength.Points(3);
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
 
                 document.AddParagraph("After native bottom border");
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 200),
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30)
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(200)),
+                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
                 });
             }
 
@@ -542,15 +547,15 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph("Native top bordered paragraph");
                 paragraph.Borders.TopStyle = WordBorderStyle.Single;
                 paragraph.Borders.TopColorHex = "008000";
-                paragraph.Borders.TopSize = 16;
-                paragraph.Borders.TopSpace = 4;
-                paragraph.LineSpacingBeforePoints = 8;
+                paragraph.Borders.TopSize = OfficeLength.Points(2);
+                paragraph.Borders.TopSpace = OfficeLength.Points(4);
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(8D);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 200),
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30)
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(200)),
+                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
                 });
             }
 
@@ -577,16 +582,16 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph("Native side bordered paragraph");
                 paragraph.Borders.LeftStyle = WordBorderStyle.Single;
                 paragraph.Borders.LeftColorHex = "FF0000";
-                paragraph.Borders.LeftSize = 12;
+                paragraph.Borders.LeftSize = OfficeLength.Points(1.5);
                 paragraph.Borders.RightStyle = WordBorderStyle.Single;
                 paragraph.Borders.RightColorHex = "0000FF";
-                paragraph.Borders.RightSize = 20;
+                paragraph.Borders.RightSize = OfficeLength.Points(2.5);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 200),
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30)
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(200)),
+                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
                 });
             }
 
@@ -614,21 +619,21 @@ namespace OfficeIMO.Tests {
                 WordParagraph tight = document.AddParagraph("TightSpace");
                 tight.Borders.LeftStyle = WordBorderStyle.Single;
                 tight.Borders.LeftColorHex = "444444";
-                tight.Borders.LeftSize = 8;
-                tight.Borders.LeftSpace = 0;
-                tight.LineSpacingAfterPoints = 4;
+                tight.Borders.LeftSize = OfficeLength.Points(1);
+                tight.Borders.LeftSpace = OfficeLength.Points(0);
+                tight.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(4D);
 
                 WordParagraph wide = document.AddParagraph("WideSpace");
                 wide.Borders.LeftStyle = WordBorderStyle.Single;
                 wide.Borders.LeftColorHex = "444444";
-                wide.Borders.LeftSize = 8;
-                wide.Borders.LeftSpace = 24;
+                wide.Borders.LeftSize = OfficeLength.Points(1);
+                wide.Borders.LeftSpace = OfficeLength.Points(24);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 220),
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -658,16 +663,16 @@ namespace OfficeIMO.Tests {
                 paragraph.Borders.RightStyle = WordBorderStyle.Single;
                 paragraph.Borders.TopStyle = WordBorderStyle.Single;
                 paragraph.Borders.BottomStyle = WordBorderStyle.Single;
-                paragraph.Borders.LeftSpace = uint.MaxValue;
-                paragraph.Borders.RightSpace = uint.MaxValue;
-                paragraph.Borders.TopSpace = uint.MaxValue;
-                paragraph.Borders.BottomSpace = uint.MaxValue;
+                paragraph.Borders.LeftSpace = OfficeLength.Points(uint.MaxValue);
+                paragraph.Borders.RightSpace = OfficeLength.Points(uint.MaxValue);
+                paragraph.Borders.TopSpace = OfficeLength.Points(uint.MaxValue);
+                paragraph.Borders.BottomSpace = OfficeLength.Points(uint.MaxValue);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 220),
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                    Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -682,13 +687,13 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("Revenue\t12");
-                paragraph.AddTabStop(4320, WordTabAlignment.Right, WordTabLeader.Dot);
+                paragraph.AddTabStop(OfficeLength.Points(216), WordTabAlignment.Right, WordTabLeader.Dot);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 180),
-                    Margins = PdfPageMargins.Uniform(36)
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(180)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
                 });
             }
 
@@ -713,7 +718,7 @@ namespace OfficeIMO.Tests {
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Equal(72D, style.DefaultTabStopWidth);
+            Assert.Equal(72D, (style.DefaultTabStopWidth?.ToPoints()));
         }
 
         [Fact]
@@ -736,8 +741,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(420, 180),
-                    Margins = PdfPageMargins.Uniform(36)
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(180)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
                 });
             }
 
@@ -755,18 +760,18 @@ namespace OfficeIMO.Tests {
             paragraph.KeepLinesTogether = true;
             paragraph.KeepWithNext = true;
             paragraph.AvoidWidowAndOrphan = true;
-            paragraph.AddTabStop(1440, WordTabAlignment.Right, WordTabLeader.Dot);
+            paragraph.AddTabStop(OfficeLength.Points(72), WordTabAlignment.Right, WordTabLeader.Dot);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Null(style.DefaultTabStopWidth);
+            Assert.Null((style.DefaultTabStopWidth?.ToPoints()));
             PdfTabStop tabStop = Assert.Single(style.TabStops);
-            Assert.Equal(72D, tabStop.Position);
+            Assert.Equal(72D, tabStop.Position.ToPoints());
             Assert.Equal(PdfTabAlignment.Right, tabStop.Alignment);
             Assert.Equal(PdfTabLeaderStyle.Dots, tabStop.Leader);
             Assert.Equal(1.220703125D * (259D / 240D), style.LineHeight);
-            Assert.Equal(8D, style.SpacingAfter);
+            Assert.Equal(8D, (style.SpacingAfter?.ToPoints()));
             Assert.True(style.KeepTogether);
             Assert.True(style.KeepWithNext);
             Assert.True(style.WidowControl);
@@ -799,9 +804,9 @@ namespace OfficeIMO.Tests {
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Null(style.DefaultTabStopWidth);
+            Assert.Null((style.DefaultTabStopWidth?.ToPoints()));
             PdfTabStop tabStop = Assert.Single(style.TabStops);
-            Assert.Equal(72D, tabStop.Position);
+            Assert.Equal(72D, tabStop.Position.ToPoints());
             Assert.Equal(PdfTabAlignment.Right, tabStop.Alignment);
             Assert.Equal(PdfTabLeaderStyle.Dots, tabStop.Leader);
         }
@@ -836,8 +841,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 180),
-                    Margins = PdfPageMargins.Uniform(36)
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(180)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
                 });
             }
 
@@ -875,9 +880,9 @@ namespace OfficeIMO.Tests {
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Equal(72D, style.LeftIndent);
-            Assert.Equal(36D, style.RightIndent);
-            Assert.Equal(-18D, style.FirstLineIndent);
+            Assert.Equal(72D, style.LeftIndent.ToPoints());
+            Assert.Equal(36D, style.RightIndent.ToPoints());
+            Assert.Equal(-18D, style.FirstLineIndent.ToPoints());
         }
 
         [Fact]
@@ -936,8 +941,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 180),
-                    Margins = PdfPageMargins.Uniform(30),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(180)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -966,8 +971,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 180),
-                    Margins = PdfPageMargins.Uniform(30),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(180)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -1000,8 +1005,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 180),
-                    Margins = PdfPageMargins.Uniform(30),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(180)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -1104,16 +1109,16 @@ namespace OfficeIMO.Tests {
             Assert.True(run.Underline);
             Assert.Equal(OfficeTextDecorationStyle.Wavy, run.UnderlineStyle);
             Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikeStyle);
-            Assert.Equal(PdfColor.FromRgb(192, 0, 0), run.Color);
-            Assert.Equal(PdfColor.FromRgb(255, 255, 0), run.BackgroundColor);
-            Assert.Equal(14D, run.FontSize);
+            Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(192, 0, 0), run.Color);
+            Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0), run.BackgroundColor);
+            Assert.Equal(14D, (run.FontSize?.ToPoints()));
             Assert.False(overrideRun.Bold);
             Assert.False(overrideRun.Italic);
             Assert.False(overrideRun.Underline);
             Assert.Equal(OfficeTextDecorationStyle.None, overrideRun.UnderlineStyle);
             Assert.Equal(OfficeTextDecorationStyle.None, overrideRun.StrikeStyle);
-            Assert.Equal(PdfColor.FromRgb(0, 0, 255), overrideRun.Color);
-            Assert.Equal(10D, overrideRun.FontSize);
+            Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), overrideRun.Color);
+            Assert.Equal(10D, (overrideRun.FontSize?.ToPoints()));
         }
 
         [Fact]
@@ -1562,7 +1567,7 @@ namespace OfficeIMO.Tests {
                 WordDocumentTraversal.BuildListMarkers(document)
             }));
 
-            Assert.Equal(18D, effective.DefaultFontSize);
+            Assert.Equal(18D, effective.DefaultFontSize.ToPoints());
             Assert.Equal(PdfStandardFont.TimesRoman, effective.DefaultFont);
             Assert.Same(
                 OfficeIMO.Drawing.OfficeManagedTextShapingProvider.Instance,
@@ -1590,14 +1595,14 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Keeps_Default_Tab_Width_Separate_From_Explicit_TabStops() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTabWidth.docx"));
             WordParagraph paragraph = document.AddParagraph("Native default tab width");
-            paragraph.AddTabStop(2880, WordTabAlignment.Left, WordTabLeader.None);
+            paragraph.AddTabStop(OfficeLength.Points(144), WordTabAlignment.Left, WordTabLeader.None);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Null(style.DefaultTabStopWidth);
+            Assert.Null((style.DefaultTabStopWidth?.ToPoints()));
             PdfTabStop tabStop = Assert.Single(style.TabStops);
-            Assert.Equal(144D, tabStop.Position);
+            Assert.Equal(144D, tabStop.Position.ToPoints());
         }
 
         [Fact]
@@ -1605,12 +1610,11 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeExplicitParagraphStyle.docx"));
             document.Settings.FontFamily = "Calibri";
             WordParagraph exactParagraph = document.AddParagraph("Native exact line spacing");
-            exactParagraph.FontSize = 12;
-            exactParagraph.LineSpacingPoints = 24;
+            exactParagraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            exactParagraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(24));
 
             WordParagraph autoParagraph = document.AddParagraph("Native auto line spacing");
-            autoParagraph.LineSpacing = 276;
-            autoParagraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            autoParagraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((276) / 240D);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle exactStyle = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { exactParagraph }));
@@ -1625,8 +1629,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeFontMetricLineSpacing.docx"));
             WordParagraph paragraph = document.AddParagraph("Serif line spacing");
             paragraph.FontFamily = "Times New Roman";
-            paragraph.LineSpacing = 240;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
 
             Type converterType = typeof(WordPdfConverterExtensions);
             Type nativeFontMapType = converterType.GetNestedType("NativeFontMap", BindingFlags.NonPublic)!;
@@ -1702,8 +1705,7 @@ namespace OfficeIMO.Tests {
                     "PdfNativeRangeScopedMetricLineSpacing.docx"));
             WordParagraph paragraph = document.AddParagraph("A");
             paragraph.FontFamily = "Scoped Metric";
-            paragraph.LineSpacing = 240;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
 
             var onlyA = new OfficeIMO.Drawing.OfficeFontUnicodeRangeSet(new[] {
                 new OfficeIMO.Drawing.OfficeFontUnicodeRange('A', 'A')
@@ -1766,9 +1768,8 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAtLeastParagraphStyle.docx"));
             document.Settings.FontFamily = "Calibri";
             WordParagraph directParagraph = document.AddParagraph("Native at least line spacing");
-            directParagraph.FontSize = 24;
-            directParagraph.LineSpacingPoints = 6;
-            directParagraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
+            directParagraph.FontSize = global::OfficeIMO.OfficeLength.Points(24);
+            directParagraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(6));
 
             const string styleId = "AtLeastLineSpacingStyle";
             Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -1805,24 +1806,22 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph exact = document.AddParagraph("ExactSmallFirst");
-                exact.FontSize = 24;
-                exact.LineSpacingPoints = 6;
-                exact.LineSpacingRule = WordLineSpacingRule.Exact;
+                exact.FontSize = global::OfficeIMO.OfficeLength.Points(24);
+                exact.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6));
                 exact.AddBreak();
-                exact.AddText("ExactSmallSecond").FontSize = 24;
+                exact.AddText("ExactSmallSecond").FontSize = global::OfficeIMO.OfficeLength.Points(24);
 
                 WordParagraph atLeast = document.AddParagraph("AtLeastFirst");
-                atLeast.FontSize = 24;
-                atLeast.LineSpacingPoints = 6;
-                atLeast.LineSpacingRule = WordLineSpacingRule.AtLeast;
+                atLeast.FontSize = global::OfficeIMO.OfficeLength.Points(24);
+                atLeast.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(6));
                 atLeast.AddBreak();
-                atLeast.AddText("AtLeastSecond").FontSize = 24;
+                atLeast.AddText("AtLeastSecond").FontSize = global::OfficeIMO.OfficeLength.Points(24);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 260),
-                    Margins = PdfPageMargins.Uniform(36),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -1860,9 +1859,8 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText("CharExactFirst").SetCharacterStyleId(styleId);
                 paragraph.AddBreak();
                 paragraph.AddText("CharExactSecond").SetCharacterStyleId(styleId);
-                paragraph.LineSpacingAfterPoints = 0;
-                paragraph.LineSpacingPoints = 18;
-                paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18));
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -1898,7 +1896,7 @@ namespace OfficeIMO.Tests {
             });
 
             WordParagraph paragraph = document.AddParagraph("Native style exact line spacing");
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.SetStyleId(styleId);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
@@ -1930,17 +1928,17 @@ namespace OfficeIMO.Tests {
                 });
 
                 WordParagraph before = document.AddParagraph("LineUnitBefore");
-                before.LineSpacingAfterPoints = 0;
+                before.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 WordParagraph styled = document.AddParagraph("LineUnitStyled");
                 styled.SetStyleId(styleId);
                 WordParagraph after = document.AddParagraph("LineUnitAfter");
-                after.LineSpacingAfterPoints = 0;
+                after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(320, 240),
-                    Margins = PdfPageMargins.Uniform(36),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -2004,7 +2002,7 @@ namespace OfficeIMO.Tests {
                 });
 
             WordParagraph paragraph = document.AddParagraph("Native derived style auto line spacing");
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.SetStyleId(derivedStyleId);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
@@ -2017,14 +2015,14 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Hanging_Indent() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeHangingIndentStyle.docx"));
             WordParagraph paragraph = document.AddParagraph("Native hanging paragraph");
-            paragraph.IndentationBeforePoints = 72;
-            paragraph.IndentationHangingPoints = 36;
+            paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(72D);
+            paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points(36D);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Equal(72D, style.LeftIndent);
-            Assert.Equal(-36D, style.FirstLineIndent);
+            Assert.Equal(72D, style.LeftIndent.ToPoints());
+            Assert.Equal(-36D, style.FirstLineIndent.ToPoints());
         }
 
         [Fact]
@@ -2034,17 +2032,17 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph normal = document.AddParagraph("NormalIndentMarker alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau");
-                normal.LineSpacingAfterPoints = 0;
+                normal.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 WordParagraph extended = document.AddParagraph("NegativeIndentMarker alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau");
-                extended.IndentationBeforePoints = -18;
-                extended.IndentationAfterPoints = -30;
-                extended.LineSpacingAfterPoints = 0;
+                extended.IndentationBefore = global::OfficeIMO.OfficeLength.Points(-18);
+                extended.IndentationAfter = global::OfficeIMO.OfficeLength.Points(-30);
+                extended.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 320),
-                    Margins = PdfPageMargins.Uniform(30)
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(320)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
                 });
             }
 
@@ -2064,13 +2062,13 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("HangingOnly alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu");
-                paragraph.IndentationHangingPoints = 36;
+                paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points(36D);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(260, 260),
-                    Margins = PdfPageMargins.Uniform(36)
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(260)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
                 });
             }
 
@@ -2098,15 +2096,15 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("HangingStart alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu");
-                paragraph.IndentationBeforePoints = 72;
-                paragraph.IndentationHangingPoints = 36;
-                paragraph.LineSpacingAfterPoints = 0;
+                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(72D);
+                paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points(36D);
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(260, 260),
-                    Margins = PdfPageMargins.Uniform(36)
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(260)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
                 });
             }
 
@@ -2131,24 +2129,24 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph before = document.AddParagraph(beforeMarker);
-                before.LineSpacingAfterPoints = 0;
+                before.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 if (includeBlankParagraph) {
                     WordParagraph blank = document.AddParagraph();
-                    blank.LineSpacingBeforePoints = blankSpacingBefore;
-                    blank.LineSpacingAfterPoints = 0;
+                    blank.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(blankSpacingBefore);
+                    blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                     blank._paragraph.ParagraphProperties!.ParagraphMarkRunProperties =
                         new ParagraphMarkRunProperties(new FontSize { Val = "40" });
                 }
 
                 WordParagraph after = document.AddParagraph(afterMarker);
-                after.LineSpacingAfterPoints = 0;
+                after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(320, 240),
-                    Margins = PdfPageMargins.Uniform(36),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -2168,16 +2166,16 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph first = document.AddParagraph(firstMarker);
-                first.LineSpacingAfterPoints = 30;
+                first.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(30D);
                 WordParagraph second = document.AddParagraph(secondMarker);
-                second.LineSpacingBeforePoints = secondSpacingBefore;
-                second.LineSpacingAfterPoints = 0;
+                second.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(secondSpacingBefore);
+                second.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(320, 240),
-                    Margins = PdfPageMargins.Uniform(36),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -2223,13 +2221,13 @@ namespace OfficeIMO.Tests {
                 first.SetStyleId(contextualStyleId);
                 WordParagraph second = document.AddParagraph(secondMarker);
                 second.SetStyleId(sameStyle ? contextualStyleId : otherStyleId);
-                second.LineSpacingAfterPoints = 0;
+                second.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(320, 240),
-                    Margins = PdfPageMargins.Uniform(36),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                     FontFamily = "Helvetica"
                 });
             }

@@ -46,8 +46,8 @@ namespace OfficeIMO.Word {
                     return true;
                 case OfficeCompoundDocumentDetector.DocumentKind.ExcelWorkbook:
                     throw new InvalidDataException("The input contains a legacy Excel workbook, not a Word document. Load it with OfficeIMO.Excel.ExcelDocument.");
-                case OfficeCompoundDocumentDetector.DocumentKind.PowerPointPresentation:
-                    throw new InvalidDataException("The input contains a legacy PowerPoint presentation, not a Word document. Load it with OfficeIMO.PowerPoint.PowerPointPresentation.");
+                case OfficeCompoundDocumentDetector.DocumentKind.PowerPointDocument:
+                    throw new InvalidDataException("The input contains a legacy PowerPoint presentation, not a Word document. Load it with OfficeIMO.PowerPoint.PowerPointDocument.");
                 case OfficeCompoundDocumentDetector.DocumentKind.EncryptedOpenXmlPackage:
                     throw new InvalidDataException("The input is a password-encrypted Office Open XML package. Use WordDocument.Load with WordLoadOptions.Password.");
                 case OfficeCompoundDocumentDetector.DocumentKind.Ambiguous:

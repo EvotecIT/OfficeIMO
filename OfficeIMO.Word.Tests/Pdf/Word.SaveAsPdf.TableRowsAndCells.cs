@@ -20,15 +20,15 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.Rows[0].Height = 1600;
+            table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(80D);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "TallRow";
             document.AddParagraph("AfterTall");
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(400, 500),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -49,8 +49,8 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.Rows[0].Cells[0].Width = 2400;
-            table.Rows[0].Cells[1].Width = 2400;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
+            table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
 
             WordParagraph mixed = table.Rows[0].Cells[0].Paragraphs[0];
             mixed.Text = string.Empty;
@@ -101,8 +101,8 @@ public partial class Word {
             WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
-            table.Rows[0].Cells[0].Width = 2400;
-            table.Rows[0].Cells[1].Width = 2400;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
+            table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
 
             WordParagraph direct = table.Rows[0].Cells[0].Paragraphs[0];
             direct.Text = string.Empty;
@@ -150,14 +150,14 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
-            table.Rows[0].Cells[0].Width = 3600;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             table.Rows[0].Cells[0].Paragraphs[0].Text = "TableStyledSub";
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 220),
-                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(40),
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -180,18 +180,18 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(3, 1, WordTableStyle.TableGrid);
-            table.Rows[0].Height = 400;
+            table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(20D);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "ShortA";
-            table.Rows[1].Height = 1200;
+            table.Rows[1].Height = global::OfficeIMO.OfficeLength.Points(60D);
             table.Rows[1].Cells[0].Paragraphs[0].Text = "TallB";
-            table.Rows[2].Height = 400;
+            table.Rows[2].Height = global::OfficeIMO.OfficeLength.Points(20D);
             table.Rows[2].Cells[0].Paragraphs[0].Text = "ShortC";
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(320, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -226,7 +226,7 @@ public partial class Word {
             });
 
             WordParagraph intro = document.AddParagraph("ParagraphTableChainIntro");
-            intro.LineSpacingAfterPoints = 100;
+            intro.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(100D);
             document.AddParagraph("ParagraphTableChainLead").SetStyleId(styleId);
             WordTable table = document.AddTable(3, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle?.Remove();
@@ -238,14 +238,14 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new OfficeIMO.Pdf.PdfPageSize(260, 260),
-                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30),
+                PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(260)),
+                Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                 FontFamily = "Helvetica",
                 PdfOptions = new PdfCore.PdfCreateOptions {
                     DefaultTableStyle = new PdfCore.PdfTableStyle {
                         KeepWithNext = true,
-                        CellPaddingX = 4,
-                        CellPaddingY = 3
+                        CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                        CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
                     }
                 }
             });
@@ -348,12 +348,10 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
-            table.WidthType = WordTableWidthUnit.Dxa;
-            table.Width = 2200;
-            if (heightRule == HeightRuleValues.AtLeast) table.Rows[0].MinimumHeight = 360;
-            else table.Rows[0].Height = 360;
-            table.Rows[0].Cells[0].Width = 2200;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2200) * 635)));
+            if (heightRule == HeightRuleValues.AtLeast) table.Rows[0].MinimumHeight = global::OfficeIMO.OfficeLength.Points(18D);
+            else table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(18D);
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2200) * 635)));
             // Keep enough wrapped lines to exceed the minimum height under font substitution too.
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda Mu Nu Xi Omicron Pi Rho Sigma Tau Upsilon Phi Chi Psi Omega";
             table.Rows[1].Cells[0].Paragraphs[0].Text = followingRowText;
@@ -361,8 +359,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 320),
-                Margins = PdfCore.PdfPageMargins.Uniform(30),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(320)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                 FontFamily = "Helvetica"
             });
         }
@@ -381,20 +379,17 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
-            table.WidthType = WordTableWidthUnit.Pct;
-            table.Width = 5000;
-            table.Rows[0].Cells[0].Width = 1440;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-            table.Rows[0].Cells[1].Width = 1440;
-            table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Percent((5000) / 50d);
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
             table.Rows[0].Cells[0].Paragraphs[0].Text = "LeftColumn";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "RightColumn";
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(400, 300),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -415,14 +410,12 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 3, WordTableStyle.TableGrid);
-            table.Width = 4320;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4320) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.GridColumnWidth = new List<int> { 1440, 1440, 1440 };
+            table.GridColumnWidth = new List<int> { 1440, 1440, 1440 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1440;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                 }
             }
 
@@ -438,8 +431,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -465,13 +458,11 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 3, WordTableStyle.TableGrid);
-            table.Width = 4320;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4320) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.GridColumnWidth = new List<int> { 1440, 1440, 1440 };
+            table.GridColumnWidth = new List<int> { 1440, 1440, 1440 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
             foreach (WordTableCell cell in table.Rows[0].Cells) {
-                cell.Width = 1440;
-                cell.WidthType = WordTableWidthUnit.Dxa;
+                cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "GALeft";
@@ -483,8 +474,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -505,8 +496,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 7, WordTableStyle.TableGrid);
-            table.WidthType = WordTableWidthUnit.Pct;
-            table.Width = 5000;
+            table.Width = WordTableWidth.Percent((5000) / 50d);
             table.LayoutMode = WordTableLayoutMode.AutoFit;
             string[] headers = {
                 "Item",
@@ -528,19 +518,17 @@ public partial class Word {
             };
 
             for (int column = 0; column < headers.Length; column++) {
-                table.Rows[0].Cells[column].Width = 2400;
-                table.Rows[0].Cells[column].WidthType = WordTableWidthUnit.Dxa;
+                table.Rows[0].Cells[column].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
                 table.Rows[0].Cells[column].Paragraphs[0].Text = headers[column];
-                table.Rows[1].Cells[column].Width = 2400;
-                table.Rows[1].Cells[column].WidthType = WordTableWidthUnit.Dxa;
+                table.Rows[1].Cells[column].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
                 table.Rows[1].Cells[column].Paragraphs[0].Text = values[column];
             }
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(612, 300),
-                Margins = new PdfCore.PdfPageMargins(72, 72, 40, 40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(300)),
+                Margins = new PdfCore.PdfPageMargins(OfficeIMO.OfficeLength.Points(72),OfficeIMO.OfficeLength.Points(72),OfficeIMO.OfficeLength.Points(40),OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -566,17 +554,17 @@ public partial class Word {
 
             if (includeSpacingParagraph) {
                 WordParagraph blank = document.AddParagraph();
-                blank.LineSpacingAfterPoints = 6;
+                blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
             }
 
             WordParagraph after = document.AddParagraph(afterMarker);
-            after.LineSpacingAfterPoints = 0;
+            after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -596,12 +584,10 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.Width = 900;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(900) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.Width = 900;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(900) * 635)));
             cell.WrapText = wrapText;
             if (explicitNoWrapOff) {
                 cell._tableCell.TableCellProperties!.AddChild(new NoWrap { Val = OnOffOnlyValues.Off }, true);
@@ -609,13 +595,13 @@ public partial class Word {
             cell.Paragraphs[0].Text = tableMarker + " Alpha Beta Gamma Delta Epsilon";
 
             WordParagraph after = document.AddParagraph(afterMarker);
-            after.LineSpacingAfterPoints = 0;
+            after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -651,8 +637,7 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.Width = 2880;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = firstMarker;
@@ -662,8 +647,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -683,24 +668,21 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.Width = 900;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(900) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.Width = 900;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(900) * 635)));
 
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = firstMarker + " " + secondMarker;
-            paragraph.LineSpacingAfterPoints = 0D;
-            paragraph.LineSpacingPoints = lineSpacingPoints;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(lineSpacingPoints));
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -731,27 +713,24 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.Width = 3000;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3000) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.Width = 3000;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3000) * 635)));
 
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = string.Empty;
             paragraph.AddText(firstMarker).SetCharacterStyleId(styleId);
             paragraph.AddBreak();
             paragraph.AddText(secondMarker).SetCharacterStyleId(styleId);
-            paragraph.LineSpacingAfterPoints = 0D;
-            paragraph.LineSpacingPoints = 18D;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18D));
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -780,13 +759,13 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
         string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
-        Assert.Matches(@"/F\d+\s+14\s+Tf", content);
+        Assert.Matches(@"/[^\s/]+\s+14\s+Tf", content);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         Assert.Contains("InheritedTableSize", pdf.GetPage(1).Text);
@@ -818,14 +797,14 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
 
         string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
-        Assert.Matches(@"/F\d+\s+14\s+Tf", content);
+        Assert.Matches(@"/[^\s/]+\s+14\s+Tf", content);
         Assert.Contains("0.753 0 0 rg", content);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
@@ -859,8 +838,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -895,17 +874,15 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
-            table.Width = 3600;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstColumn = true;
             foreach (WordTableRow row in table.Rows) {
-                row.Height = 1200;
+                row.Height = global::OfficeIMO.OfficeLength.Points(60D);
                 row._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1800;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1800) * 635)));
                 }
             }
 
@@ -918,8 +895,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(30),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
                 FontFamily = "Helvetica"
             });
         }
@@ -958,14 +935,12 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
-            table.Width = 3600;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstRow = true;
             foreach (WordTableRow row in table.Rows) {
-                row.Cells[0].Width = 3600;
-                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
+                row.Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "CenteredAA";
@@ -974,8 +949,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1016,14 +991,12 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
-            table.Width = 900;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(900) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstRow = true;
             foreach (WordTableRow row in table.Rows) {
-                row.Cells[0].Width = 900;
-                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
+                row.Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(900) * 635)));
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "TallA TallB";
@@ -1032,8 +1005,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1072,14 +1045,12 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
-            table.Width = 3600;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstRow = true;
             foreach (WordTableRow row in table.Rows) {
-                row.Cells[0].Width = 3600;
-                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
+                row.Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "StyledIndent";
@@ -1088,8 +1059,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 240),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1110,24 +1081,22 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
-            table.Width = 3000;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3000) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             foreach (WordTableRow row in table.Rows) {
-                row.Cells[0].Width = 3000;
-                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
+                row.Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3000) * 635)));
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "PlainCellIndent";
             WordParagraph indented = table.Rows[1].Cells[0].Paragraphs[0];
             indented.Text = "IndentedCellIndent";
-            indented.IndentationBeforePoints = 42D;
+            indented.IndentationBefore = global::OfficeIMO.OfficeLength.Points(42D);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 240),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1148,29 +1117,27 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(3, 1, WordTableStyle.TableGrid);
-            table.Width = 600;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(600) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             foreach (WordTableRow row in table.Rows) {
-                row.Cells[0].Width = 600;
-                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
+                row.Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(600) * 635)));
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "P0";
             WordParagraph negative = table.Rows[1].Cells[0].Paragraphs[0];
             negative.Text = "N0";
-            negative.IndentationBeforePoints = -30D;
-            negative.IndentationAfterPoints = -30D;
+            negative.IndentationBefore = global::OfficeIMO.OfficeLength.Points(-30D);
+            negative.IndentationAfter = global::OfficeIMO.OfficeLength.Points(-30D);
 
             WordParagraph hanging = table.Rows[2].Cells[0].Paragraphs[0];
             hanging.Text = "H0 a b c d e f g h i j k l m";
-            hanging.IndentationHangingPoints = 36D;
+            hanging.IndentationHanging = global::OfficeIMO.OfficeLength.Points(36D);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 300),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(300)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1202,21 +1169,19 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.Width = 5200;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5200) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.Rows[0].Cells[0].Width = 5200;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5200) * 635)));
 
             WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "CellTabRevenue\t42";
-            paragraph.AddTabStop(3600, WordTabAlignment.Right, WordTabLeader.Dot);
+            paragraph.AddTabStop(OfficeLength.Points(180), WordTabAlignment.Right, WordTabLeader.Dot);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 180),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(180)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1259,8 +1224,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -1299,8 +1264,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -1353,8 +1318,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -1381,8 +1346,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(72),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)),
                 FontFamily = "Helvetica",
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
             });
@@ -1410,18 +1375,16 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.Settings.DefaultTabStop = defaultTabStopTwips;
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.Width = 5200;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5200) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.Rows[0].Cells[0].Width = 5200;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5200) * 635)));
             table.Rows[0].Cells[0].Paragraphs[0].Text = "WWW\tDefaultCellTab";
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 180),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(180)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1442,20 +1405,19 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle?.Remove();
-            table.Rows[0].Cells[0].Width = 2880;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = firstMarker;
-            cell.Paragraphs[0].LineSpacingAfterPoints = firstSpacingAfter;
+            cell.Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(firstSpacingAfter);
             WordParagraph second = cell.AddParagraph(secondMarker);
-            second.LineSpacingBeforePoints = secondSpacingBefore;
-            second.LineSpacingAfterPoints = 0;
+            second.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(secondSpacingBefore);
+            second.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1487,24 +1449,22 @@ public partial class Word {
 
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle?.Remove();
-            table.Width = 3200;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3200) * 635)));
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.Width = 3200;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3200) * 635)));
             cell.Paragraphs[0].AddText(firstMarker).SetCharacterStyleId(styleId);
-            cell.Paragraphs[0].LineSpacingAfterPoints = 0D;
+            cell.Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph second = cell.AddParagraph(string.Empty);
             second._paragraph.ParagraphProperties ??= new ParagraphProperties();
             second._paragraph.ParagraphProperties.Append(new SpacingBetweenLines { BeforeLines = 100 });
             second.AddText(secondMarker).SetCharacterStyleId(styleId);
-            second.LineSpacingAfterPoints = 0D;
+            second.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(36),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1542,8 +1502,7 @@ public partial class Word {
 
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle?.Remove();
-            table.Rows[0].Cells[0].Width = 2880;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = firstMarker;
             cell.Paragraphs[0].SetStyleId(styleId);
@@ -1552,8 +1511,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(40),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                 FontFamily = "Helvetica"
             });
         }
@@ -1574,7 +1533,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             WordTableCell cell = table.Rows[0].Cells[0];
-            WordParagraph linkParagraph = cell.Paragraphs[0].AddHyperLink("Native table link", new Uri(linkUri), addStyle: true, tooltip: "Native table link metadata");
+            WordParagraph linkParagraph = cell.Paragraphs[0].AddHyperLink("Native table link", new Uri(linkUri), addStyle: true, tooltip: "Native table link metadata").Paragraph;
             linkParagraph.Hyperlink!.Anchor = "IgnoredWhenExternalUriExists";
 
             document.Save();
@@ -1607,12 +1566,9 @@ public partial class Word {
             WordTableCell centerCell = table.Rows[0].Cells[1];
             WordTableCell rightCell = table.Rows[0].Cells[2];
 
-            leftCell.Width = 1440;
-            leftCell.WidthType = WordTableWidthUnit.Dxa;
-            centerCell.Width = 1440;
-            centerCell.WidthType = WordTableWidthUnit.Dxa;
-            rightCell.Width = 1440;
-            rightCell.WidthType = WordTableWidthUnit.Dxa;
+            leftCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            centerCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            rightCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
 
             leftCell.Paragraphs[0].Text = "TOP";
             leftCell.AddParagraph("PAD");
@@ -1663,8 +1619,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.Width = 2880;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
             cell.Paragraphs[0].Text = "LeftMix";
             cell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Left;
             WordParagraph center = cell.AddParagraph("CenterMix");
@@ -1675,8 +1630,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 240),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -1734,12 +1689,9 @@ public partial class Word {
             WordTableCell centerCell = table.Rows[0].Cells[1];
             WordTableCell rightCell = table.Rows[0].Cells[2];
 
-            leftCell.Width = 1440;
-            leftCell.WidthType = WordTableWidthUnit.Dxa;
-            centerCell.Width = 1440;
-            centerCell.WidthType = WordTableWidthUnit.Dxa;
-            rightCell.Width = 1440;
-            rightCell.WidthType = WordTableWidthUnit.Dxa;
+            leftCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            centerCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            rightCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
 
             leftCell.Paragraphs[0].Text = "SLEFT";
             centerCell.Paragraphs[0].Text = "SMID";
@@ -1778,10 +1730,9 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
             foreach (WordTableRow row in table.Rows) {
-                row.Height = 1100;
+                row.Height = global::OfficeIMO.OfficeLength.Points(55D);
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1440;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                 }
             }
 
@@ -1799,8 +1750,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(30)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
             });
         }
 
@@ -1826,8 +1777,7 @@ public partial class Word {
             WordTable table = document.AddTable(3, 3, WordTableStyle.TableGrid);
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1440;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                 }
             }
 

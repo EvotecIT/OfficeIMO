@@ -24,31 +24,29 @@ public sealed partial class AddOfficeExcelChartCommand {
         return checked((int)pixels);
     }
 
-    private OfficeChartKind ResolveChartKind() {
+    private OfficeChartType ResolveChartKind() {
         if (!Enum.IsDefined(typeof(ExcelDashboardChartPreset), Preset)) throw new PSArgumentException("Unknown chart preset.", nameof(Preset));
         var kind = MyInvocation.BoundParameters.ContainsKey(nameof(Type)) ? Type : Preset switch {
-            ExcelDashboardChartPreset.Trend => OfficeChartKind.Line,
-            ExcelDashboardChartPreset.Contribution => OfficeChartKind.Pie,
-            ExcelDashboardChartPreset.CompactComparison => OfficeChartKind.BarClustered,
+            ExcelDashboardChartPreset.Trend => OfficeChartType.Line,
+            ExcelDashboardChartPreset.Contribution => OfficeChartType.Pie,
+            ExcelDashboardChartPreset.CompactComparison => OfficeChartType.BarClustered,
             _ => Type
         };
-        _ = ToExcelChartType(kind);
+        ValidateChartType(kind);
         return kind;
     }
 
-    private static ExcelChartType ToExcelChartType(OfficeChartKind kind) {
-        if (!Enum.IsDefined(typeof(OfficeChartKind), kind) || kind == OfficeChartKind.Bubble ||
-            !Enum.TryParse(kind.ToString(), out ExcelChartType type)) {
+    private static void ValidateChartType(OfficeChartType kind) {
+        if (!Enum.IsDefined(typeof(OfficeChartType), kind) || kind == OfficeChartType.Bubble) {
             throw new PSArgumentException($"Chart type '{kind}' is not supported by this command. Bubble charts require explicit size data.", nameof(Type));
         }
-        return type;
     }
 
-    private static void ValidateChartData(OfficeChartData data, OfficeChartKind kind) {
-        if ((kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) && data.Series.Count != 1) {
+    private static void ValidateChartData(OfficeChartData data, OfficeChartType kind) {
+        if ((kind is OfficeChartType.Pie or OfficeChartType.Doughnut) && data.Series.Count != 1) {
             throw new PSArgumentException("Pie and Doughnut charts require exactly one value column.", nameof(Value));
         }
-        if (kind == OfficeChartKind.Scatter && data.Categories.Any(category =>
+        if (kind == OfficeChartType.Scatter && data.Categories.Any(category =>
             !double.TryParse(category, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) ||
             double.IsNaN(number) || double.IsInfinity(number))) {
             throw new PSArgumentException("Scatter charts require finite numeric categories.", nameof(Category));

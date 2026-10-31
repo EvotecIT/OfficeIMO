@@ -14,13 +14,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.Graph.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet acyclic = document.AddWorksheet("Acyclic");
+                ExcelSheet acyclic = document.AddSheet("Acyclic");
                 acyclic.CellValue(4, 1, 1d);
                 acyclic.CellFormula(3, 1, "A4+1");
                 acyclic.CellFormula(2, 1, "A3+1");
                 acyclic.CellFormula(1, 1, "A2+1");
 
-                ExcelSheet circular = document.AddWorksheet("Circular");
+                ExcelSheet circular = document.AddSheet("Circular");
                 circular.CellFormula(1, 1, "B1+1");
                 circular.CellFormula(1, 2, "A1+1");
                 circular.CellFormula(1, 3, "A1+1");
@@ -63,10 +63,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_ResolvesWholeRowAndColumnReferences() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet columns = document.AddWorksheet("Whole Columns");
+            ExcelSheet columns = document.AddSheet("Whole Columns");
             columns.CellFormula(1, 1, "SUM(B:B)");
             columns.CellFormula(1, 2, "A1");
-            ExcelSheet rows = document.AddWorksheet("Whole Rows");
+            ExcelSheet rows = document.AddSheet("Whole Rows");
             rows.CellFormula(1, 1, "SUM(2:2)");
             rows.CellFormula(2, 1, "A1");
 
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaInspectionRejectsOversizedFormulaBeforeDependencyMasking() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Bounds");
+            ExcelSheet sheet = document.AddSheet("Bounds");
             sheet.CellValue(1, 1, 1D);
             Cell cell = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Cell>());
             cell.CellFormula = new CellFormula("SUM(" + new string('A', 9000) + ")");
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraphCapsWholeColumnExpansionPerFormula() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Dense");
+            ExcelSheet sheet = document.AddSheet("Dense");
             for (int row = 1; row <= 5000; row++) sheet.CellFormula(row, 1, "1");
             sheet.CellFormula(1, 2, "SUM(A:A)");
 
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_IgnoresReferenceShapeFunctionArguments() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Reference Shapes");
+            ExcelSheet sheet = document.AddSheet("Reference Shapes");
             sheet.CellFormula(1, 1, "ROW(A1)");
             sheet.CellFormula(1, 2, "COLUMN(B1)");
             sheet.CellFormula(1, 3, "ROWS(C1:C3)");
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
             sheet.AddTable("J1:K2", hasHeader: true, name: "ShapeTable", style: ExcelTableStyle.TableStyleMedium2);
             document.SetNamedRange("ShapeRows", "'Reference Shapes'!C1:C3", save: false);
 
-            ExcelSheet quotedShapeName = document.AddWorksheet("ROW(A1)");
+            ExcelSheet quotedShapeName = document.AddSheet("ROW(A1)");
             quotedShapeName.CellFormula(1, 2, "1+1");
             sheet.CellFormula(1, 12, "'ROW(A1)'!B1");
             sheet.CellFormula(1, 13, "ROWS(M:M)");
@@ -200,7 +200,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_RespectsRangeIntersections() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Intersections");
+            ExcelSheet sheet = document.AddSheet("Intersections");
             sheet.CellFormula(1, 1, "D1");
             sheet.CellFormula(1, 2, "D3");
             sheet.CellFormula(2, 2, "1+1");
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
             sheet.CellFormula(3, 5, "SUM(ROWS((D1:E2 E2:F3)),D1)");
             document.SetNamedRange("Data", "Intersections!A1:B2", save: false);
 
-            ExcelSheet structuredSheet = document.AddWorksheet("Structured Intersections");
+            ExcelSheet structuredSheet = document.AddSheet("Structured Intersections");
             structuredSheet.CellValue(1, 1, "Amount");
             structuredSheet.CellValue(1, 2, "Other");
             structuredSheet.CellFormula(2, 1, "1+1");
@@ -272,16 +272,16 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_ResolvesCurrentRowStructuredReferences() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Current Row");
+            ExcelSheet sheet = document.AddSheet("Current Row");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellFormula(2, 1, "CurrentRowData[@B]");
             sheet.CellFormula(2, 2, "CurrentRowData[[#This Row],[A]]");
             sheet.AddTable("A1:B2", hasHeader: true, name: "CurrentRowData", style: ExcelTableStyle.TableStyleMedium2);
 
-            ExcelSheet crossSource = document.AddWorksheet("Cross Source");
+            ExcelSheet crossSource = document.AddSheet("Cross Source");
             crossSource.CellFormula(2, 1, "CrossRowData[@B]");
-            ExcelSheet crossTable = document.AddWorksheet("Cross Table");
+            ExcelSheet crossTable = document.AddSheet("Cross Table");
             crossTable.CellValue(1, 1, "A");
             crossTable.CellValue(1, 2, "B");
             crossTable.CellValue(2, 1, 1d);
@@ -309,7 +309,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_ResolvesStructuredColumnRanges() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Structured Column Ranges");
+            ExcelSheet sheet = document.AddSheet("Structured Column Ranges");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(1, 3, "C");
@@ -336,7 +336,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_ResolvesEscapedStructuredReferenceBrackets() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Escaped Structured Brackets");
+            ExcelSheet sheet = document.AddSheet("Escaped Structured Brackets");
             sheet.CellValue(1, 1, "Cost [ old");
             sheet.CellValue(1, 2, "Cost ] new");
             sheet.CellValue(2, 1, 1d);
@@ -361,7 +361,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_ResolvesCurrentRowStructuredReferences() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Structured Evaluation");
+            ExcelSheet sheet = document.AddSheet("Structured Evaluation");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(1, 3, "At");
@@ -401,7 +401,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaStructuredReferences_ResolveWhitespaceAndCombinedItems() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Structured Combined Items");
+            ExcelSheet sheet = document.AddSheet("Structured Combined Items");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(1, 3, "C");
@@ -448,7 +448,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_ResolvesUnqualifiedCurrentRowStructuredReferences() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Unqualified Current Row");
+            ExcelSheet sheet = document.AddSheet("Unqualified Current Row");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(1, 3, "Sales Amount");
@@ -513,7 +513,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_IgnoresLexicallyScopedNames() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Lexical");
+            ExcelSheet sheet = document.AddSheet("Lexical");
             sheet.CellFormula(1, 1, "LET(Input,1,Input+1)");
             sheet.CellFormula(1, 2, "A1");
             sheet.CellFormula(2, 1, "Input+LET(Input,1,Input+1)");
@@ -525,7 +525,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 5, 2d);
             sheet.AddTable("D1:E2", hasHeader: true, name: "LexicalData", style: ExcelTableStyle.TableStyleMedium2);
             sheet.CellFormula(4, 1, "LET(Input,LexicalData[[#Headers],[Amount]],Input)");
-            ExcelSheet quotedQualifier = document.AddWorksheet("O'A,B)");
+            ExcelSheet quotedQualifier = document.AddSheet("O'A,B)");
             quotedQualifier.CellValue(1, 1, 5d);
             sheet.CellFormula(5, 1, "LET(Input,'O''A,B)'!A1,Input)");
             sheet.CellFormula(6, 1, "LET(LexicalData,1,SUM(LexicalData[Amount]))");
@@ -554,9 +554,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyInspection_EvaluatesCrossSheetDependenciesOnOwningSheet() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet source = document.AddWorksheet("Source");
+            ExcelSheet source = document.AddSheet("Source");
             source.CellFormula(1, 1, "Other!C2");
-            ExcelSheet other = document.AddWorksheet("Other");
+            ExcelSheet other = document.AddSheet("Other");
             other.CellValue(1, 1, "Amount");
             other.CellValue(1, 2, "Label");
             other.CellValue(1, 3, "Result");
@@ -578,13 +578,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.Budget.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Depth");
+                ExcelSheet sheet = document.AddSheet("Depth");
                 sheet.CellValue(4, 1, 1d);
                 sheet.CellFormula(3, 1, "A4+1");
                 sheet.CellFormula(2, 1, "A3+1");
                 sheet.CellFormula(1, 1, "A2+1");
 
-                ExcelSheet dependenciesFirst = document.AddWorksheet("DependenciesFirst");
+                ExcelSheet dependenciesFirst = document.AddSheet("DependenciesFirst");
                 dependenciesFirst.CellValue(1, 1, 1d);
                 dependenciesFirst.CellFormula(2, 1, "A1+1");
                 dependenciesFirst.CellFormula(3, 1, "A2+1");
@@ -619,13 +619,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.Aliases.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet named = document.AddWorksheet("Named Circular");
+                ExcelSheet named = document.AddSheet("Named Circular");
                 named.CellFormula(1, 1, "Loop+1");
                 document.SetNamedRange("Loop", "'Named Circular'!A1", save: false);
                 document.SetNamedRange("Amount", "'Named Circular'!A1", save: false);
                 document.SetNamedRange("SUM", "'Named Circular'!A1", save: false);
 
-                ExcelSheet structured = document.AddWorksheet("Structured");
+                ExcelSheet structured = document.AddSheet("Structured");
                 structured.CellValue(1, 1, "Amount");
                 structured.CellFormula(2, 1, "SUM(Sales[Amount])");
                 structured.CellValue(1, 2, "A1");
@@ -633,16 +633,16 @@ namespace OfficeIMO.Tests {
                 structured.CellFormula(2, 3, "SUM(Sales[A1])");
                 structured.AddTable("A1:B2", hasHeader: true, name: "Sales", style: ExcelTableStyle.TableStyleMedium2);
 
-                ExcelSheet sales = document.AddWorksheet("Sales");
+                ExcelSheet sales = document.AddSheet("Sales");
                 sales.CellValue(1, 1, 5d);
-                ExcelSheet salesData = document.AddWorksheet("Sales Data");
+                ExcelSheet salesData = document.AddSheet("Sales Data");
                 salesData.CellValue(1, 3, 7d);
                 salesData.SetNamedRange("SharedInput", "C1", save: false);
-                ExcelSheet apostropheSales = document.AddWorksheet("O'Sales");
+                ExcelSheet apostropheSales = document.AddSheet("O'Sales");
                 apostropheSales.CellValue(1, 3, 8d);
                 apostropheSales.SetNamedRange("EscapedInput", "C1", save: false);
 
-                ExcelSheet tokens = document.AddWorksheet("Tokens");
+                ExcelSheet tokens = document.AddSheet("Tokens");
                 tokens.CellValue(1, 1, 100d);
                 tokens.CellFormula(1, 2, "SUM(A1)");
                 tokens.CellFormula(1, 3, "LOG10(A1)");
@@ -702,7 +702,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_ResolvesDefinedNamesWithQuotedCommas() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Sales, East");
+            ExcelSheet sheet = document.AddSheet("Sales, East");
             sheet.CellFormula(1, 1, "B1");
             sheet.CellFormula(1, 2, "CommaAlias");
             document.SetNamedRange("CommaAlias", "'Sales, East'!A1", save: false);
@@ -724,10 +724,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_ResolvesWholeRowAndColumnDefinedNames() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet columns = document.AddWorksheet("Whole Column Name");
+            ExcelSheet columns = document.AddSheet("Whole Column Name");
             columns.CellFormula(1, 1, "SUM(AllB)");
             columns.CellFormula(1, 2, "A1");
-            ExcelSheet rows = document.AddWorksheet("Whole Row Name");
+            ExcelSheet rows = document.AddSheet("Whole Row Name");
             rows.CellFormula(1, 1, "SUM(AllRows)");
             rows.CellFormula(2, 1, "A1");
             document.WorkbookRoot.DefinedNames ??= new DefinedNames();
@@ -754,7 +754,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_ResolvesBackslashTableAndStructuredDefinedName() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Backslash Table");
+            ExcelSheet sheet = document.AddSheet("Backslash Table");
             sheet.CellValue(1, 1, "Amount");
             sheet.CellFormula(2, 1, "C2");
             sheet.CellFormula(2, 3, "SUM(TableAlias)");
@@ -790,7 +790,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_ResolvesChainedDefinedNamesAndGuardsNameCycles() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Chained Names");
+            ExcelSheet sheet = document.AddSheet("Chained Names");
             sheet.CellFormula(1, 1, "B1");
             sheet.CellFormula(1, 2, "Alias");
             sheet.CellFormula(1, 3, "First");
@@ -821,7 +821,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_ExpandsDefinedNameRangeEndpoints() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Named Range Endpoints");
+            ExcelSheet sheet = document.AddSheet("Named Range Endpoints");
             sheet.CellValue(1, 1, 1d);
             sheet.CellFormula(1, 2, "D1");
             sheet.CellValue(1, 3, 3d);
@@ -862,7 +862,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_BoundsAcyclicDefinedNameExpansion() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Bounded Names");
+            ExcelSheet sheet = document.AddSheet("Bounded Names");
             sheet.CellValue(1, 1, 1d);
             sheet.CellFormula(1, 2, "Name000");
             document.WorkbookRoot.DefinedNames ??= new DefinedNames();
@@ -887,7 +887,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.PreExistingCache.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Depth");
+                ExcelSheet sheet = document.AddSheet("Depth");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellFormula(2, 1, "A1+1");
                 sheet.CellFormula(3, 1, "A2+1");
@@ -912,7 +912,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.InfoFunction.xlsx");
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Depth");
+            ExcelSheet sheet = document.AddSheet("Depth");
             sheet.CellFormula(1, 1, "ISBLANK(A2)");
             sheet.CellFormula(2, 1, "1+1");
             document.Calculation.MaximumDependencyDepth = 1;
@@ -926,8 +926,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_EnforcesDependencyDepthAcrossWorksheets() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet source = document.AddWorksheet("Source");
-            ExcelSheet other = document.AddWorksheet("Other");
+            ExcelSheet source = document.AddSheet("Source");
+            ExcelSheet other = document.AddSheet("Other");
             source.CellFormula(1, 1, "Other!A1+1");
             other.CellFormula(1, 1, "1+1");
             document.Calculation.MaximumDependencyDepth = 1;
@@ -941,7 +941,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_DoesNotCacheAggregatesAfterDependencyDepthGuard() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Depth");
+            ExcelSheet sheet = document.AddSheet("Depth");
             sheet.CellFormula(1, 1, "SUBTOTAL(2,A2)");
             sheet.CellFormula(1, 2, "COUNTBLANK(B2)");
             sheet.CellFormula(1, 3, "COUNTIF(C2,\">0\")");
@@ -962,7 +962,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_CountsCachedUnsupportedFormulaDependenciesTowardDepth() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Depth");
+            ExcelSheet sheet = document.AddSheet("Depth");
             sheet.CellFormula(1, 1, "UNSUPPORTED()");
             sheet.CellFormula(2, 1, "SUM(A1)");
             sheet.CellFormula(3, 1, "SUM(A2)");
@@ -996,7 +996,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.Shared.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Shared");
+                ExcelSheet sheet = document.AddSheet("Shared");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellFormula(1, 2, "SUM(A1,$A1,A$1,$A$1)");
@@ -1067,7 +1067,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaDepth.SharedFormulaText.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Shared Formula Text");
+                ExcelSheet sheet = document.AddSheet("Shared Formula Text");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellFormula(1, 2, "A1+1");
@@ -1111,9 +1111,9 @@ namespace OfficeIMO.Tests {
             const string masterFormula = "SUM(A:A,$A:$A,1:1,$1:$1,A1#,$A1#,A$1#,$A$1#,A1%)+LOG10(A1)+LOG10 (A1)+FOO1 (A1)+SUM(A1 (A1))+SUM(A1 (A1:A2))+SUM(A1 (A1,B2))+SUM(A1 ((A1,B2),C3))+Q1:Q4!A1";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Q1");
-                document.AddWorksheet("Q4");
-                ExcelSheet sheet = document.AddWorksheet("Shared");
+                document.AddSheet("Q1");
+                document.AddSheet("Q4");
+                ExcelSheet sheet = document.AddSheet("Shared");
                 sheet.CellFormula(1, 5, masterFormula);
                 sheet.CellFormula(1, 6, masterFormula);
                 sheet.CellFormula(2, 5, masterFormula);
@@ -1160,7 +1160,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaInspection_DoesNotExpandOversizedSharedFormulaFollowers() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Shared");
+            ExcelSheet sheet = document.AddSheet("Shared");
             Worksheet worksheet = sheet.WorksheetPart.Worksheet;
             SheetData sheetData = worksheet.GetFirstChild<SheetData>()!;
 #if EXCEL_PERFORMANCE_EVIDENCE
@@ -1204,7 +1204,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaInspection_IgnoresDefinedNamesScopedToMalformedSheets() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet valid = document.AddWorksheet("Valid");
+            ExcelSheet valid = document.AddSheet("Valid");
             valid.CellFormula(1, 1, "Broken!ScopedValue");
 
             uint malformedSheetIndex = (uint)document.WorkbookRoot.Sheets!.Elements<Sheet>().Count();
@@ -1228,7 +1228,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_IgnoresDefinedNamesInsideErrorLiterals() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Errors");
+            ExcelSheet sheet = document.AddSheet("Errors");
             sheet.CellFormula(1, 1, "#NAME?");
             sheet.CellFormula(1, 2, "A1+1");
             document.SetNamedRange("NAME", "Errors!B1", save: false);
@@ -1247,15 +1247,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencyGraph_DoesNotTreatExternalOrThreeDimensionalReferencesAsLocal() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             data.CellValue(1, 1, 10d);
-            ExcelSheet first = document.AddWorksheet("First");
+            ExcelSheet first = document.AddSheet("First");
             first.CellValue(1, 1, 20d);
-            ExcelSheet last = document.AddWorksheet("Last");
+            ExcelSheet last = document.AddSheet("Last");
             last.CellValue(1, 1, 30d);
-            document.AddWorksheet("Q1");
-            document.AddWorksheet("Q4");
-            ExcelSheet tokens = document.AddWorksheet("Tokens");
+            document.AddSheet("Q1");
+            document.AddSheet("Q4");
+            ExcelSheet tokens = document.AddSheet("Tokens");
             tokens.CellFormula(1, 1, "[Other.xlsx]Data!A1+First:Last!A1+'First:Last'!A1+Q1:Q4!A1");
             document.SetNamedRange("Data", "Data!A1", save: false);
             document.SetNamedRange("First", "First!A1", save: false);

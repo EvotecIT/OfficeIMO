@@ -611,7 +611,7 @@ internal static partial class PdfWriter {
                 } else {
                     headerFontAlias = EnsurePageFontResource(pageOpts.HeaderFont, "F5");
                 }
-                EnsurePageTextFontResources(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, pageOpts.HeaderFontSize, isHeader: true, EnsurePageFontResource, EnsurePageNamedFontResource);
+                EnsurePageTextFontResources(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, pageOpts.HeaderFontSize.ToPoints(), isHeader: true, EnsurePageFontResource, EnsurePageNamedFontResource);
             }
             string? footerFontAlias = null;
             if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber)) {
@@ -621,7 +621,7 @@ internal static partial class PdfWriter {
                 } else {
                     footerFontAlias = EnsurePageFontResource(pageOpts.FooterFont, "F6");
                 }
-                EnsurePageTextFontResources(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, pageOpts.FooterFontSize, isHeader: false, EnsurePageFontResource, EnsurePageNamedFontResource);
+                EnsurePageTextFontResources(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, pageOpts.FooterFontSize.ToPoints(), isHeader: false, EnsurePageFontResource, EnsurePageNamedFontResource);
             }
 
             string headerFooterShapeContent = BuildHeaderFooterShapes(
@@ -853,7 +853,7 @@ internal static partial class PdfWriter {
                         StringBuilder target = img.IsForeground ? foregroundImages : sbImgs;
                         AppendPageImageDraw(target, img);
                         if (img.DebugBox) {
-                            DrawRowRect(target, new PdfColor(1D, 0D, 1D), 0.6D, img.X, img.Y, img.W, img.H, markInfo);
+                            DrawRowRect(target, global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 1D), 0.6D, img.X, img.Y, img.W, img.H, markInfo);
                         }
                     }
 
@@ -1193,8 +1193,8 @@ internal static partial class PdfWriter {
             int pageId = AddObject(objects,
                 PdfPageDictionaryBuilder.BuildGeneratedPageDictionary(
                     pagesId,
-                    pageOpts.PageWidth,
-                    pageOpts.PageHeight,
+                    pageOpts.PageWidth.ToPoints(),
+                    pageOpts.PageHeight.ToPoints(),
                     contentId,
                     usedFontResources,
                     usedXObjectResources,
@@ -1655,7 +1655,7 @@ internal static partial class PdfWriter {
             new ContentStreamBuilder(backgroundColor)
                 .SaveState()
                 .FillColor(options.BackgroundColor.Value)
-                .Rectangle(0, 0, options.PageWidth, options.PageHeight)
+                .Rectangle(0, 0, options.PageWidth.ToPoints(), options.PageHeight.ToPoints())
                 .FillPath()
                 .RestoreState();
             sb.Append(WrapArtifactContent(backgroundColor.ToString(), markDecorativeArtifacts));
@@ -1798,18 +1798,18 @@ internal static partial class PdfWriter {
         foreach (PdfPageBackgroundShape backgroundShape in shapes) {
             if (backgroundShape.FirstPageOnly && !isFirstPage) continue;
             OfficeIMO.Drawing.OfficeShape shape = backgroundShape.Shape;
-            DrawHeaderFooterShapeGeometryAt(sb, page, shape, backgroundShape.X, backgroundShape.Y);
+            DrawHeaderFooterShapeGeometryAt(sb, page, shape, backgroundShape.X.ToPoints(), backgroundShape.Y.ToPoints());
         }
 
         return sb.ToString();
     }
 
     private static void AppendPageBorder(StringBuilder sb, PdfCreateOptions options, PdfPageBorder border, string? graphicsStateName) {
-        double inset = border.Inset;
+        double inset = border.Inset.ToPoints();
         double pathX = inset;
         double pathY = inset;
-        double pathWidth = options.PageWidth - (inset * 2D);
-        double pathHeight = options.PageHeight - (inset * 2D);
+        double pathWidth = options.PageWidth.ToPoints() - (inset * 2D);
+        double pathHeight = options.PageHeight.ToPoints() - (inset * 2D);
         if (pathWidth <= 0D || pathHeight <= 0D || double.IsNaN(pathWidth) || double.IsInfinity(pathWidth) || double.IsNaN(pathHeight) || double.IsInfinity(pathHeight)) {
             throw new ArgumentException("PDF page border inset must leave a positive border rectangle.");
         }
@@ -1822,8 +1822,8 @@ internal static partial class PdfWriter {
 
         content
             .StrokeColor(border.Color)
-            .LineWidth(border.Width);
-        ApplyStrokeStyle(content, border.DashStyle, border.Width, strokeLineCap: null, strokeLineJoin: null);
+            .LineWidth(border.Width.ToPoints());
+        ApplyStrokeStyle(content, border.DashStyle, border.Width.ToPoints(), strokeLineCap: null, strokeLineJoin: null);
         content
             .Rectangle(pathX, pathY, pathWidth, pathHeight)
             .StrokePath()
@@ -1831,15 +1831,15 @@ internal static partial class PdfWriter {
     }
 
     private static void AddPageBackgroundImage(LayoutResult.Page page, PdfCreateOptions options, PdfPageBackgroundImage image) {
-        double imageWidth = image.ImageInfo.Width > 0 ? image.ImageInfo.Width : options.PageWidth;
-        double imageHeight = image.ImageInfo.Height > 0 ? image.ImageInfo.Height : options.PageHeight;
+        double imageWidth = image.ImageInfo.Width > 0 ? image.ImageInfo.Width : options.PageWidth.ToPoints();
+        double imageHeight = image.ImageInfo.Height > 0 ? image.ImageInfo.Height : options.PageHeight.ToPoints();
         OfficeImageRenderPlan renderPlan = OfficeImageRenderPlan.CreateBottomLeft(
             imageWidth,
             imageHeight,
             0D,
             0D,
-            options.PageWidth,
-            options.PageHeight,
+            options.PageWidth.ToPoints(),
+            options.PageHeight.ToPoints(),
             image.Fit);
         string? stateName = image.Opacity < 1D
             ? EnsureHeaderFooterGraphicsState(page, image.Opacity, image.Opacity)
@@ -1860,8 +1860,8 @@ internal static partial class PdfWriter {
     }
 
     private static void AddImageWatermark(LayoutResult.Page page, PdfCreateOptions options, PdfImageWatermark watermark) {
-        double x = (options.PageWidth - watermark.Width) / 2D;
-        double y = (options.PageHeight - watermark.Height) / 2D;
+        double x = (options.PageWidth.ToPoints() - watermark.Width.ToPoints()) / 2D;
+        double y = (options.PageHeight.ToPoints() - watermark.Height.ToPoints()) / 2D;
         string? stateName = watermark.Opacity < 1D
             ? EnsureHeaderFooterGraphicsState(page, watermark.Opacity, watermark.Opacity)
             : null;
@@ -1872,8 +1872,8 @@ internal static partial class PdfWriter {
             PreparedStream = watermark.PreparedStream,
             X = x,
             Y = y,
-            W = watermark.Width,
-            H = watermark.Height,
+            W = watermark.Width.ToPoints(),
+            H = watermark.Height.ToPoints(),
             IsBackgroundDecoration = true,
             Opacity = watermark.Opacity,
             RotationAngle = watermark.RotationAngle,

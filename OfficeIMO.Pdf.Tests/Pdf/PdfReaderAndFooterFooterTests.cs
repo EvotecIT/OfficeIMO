@@ -92,8 +92,8 @@ public partial class PdfReaderAndFooterRegressionTests {
     [Fact]
     public void FooterSegments_ValidateFooterPlacementWithoutShowPageNumbersFlag() {
         var options = new PdfCreateOptions {
-            MarginBottom = 20,
-            FooterOffsetY = 21,
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            FooterOffsetY = global::OfficeIMO.OfficeLength.Points(21),
             FooterSegments = new System.Collections.Generic.List<PdfFooterSegment> {
                 new PdfFooterSegment(PdfFooterSegmentKind.Text, "Direct footer")
             }

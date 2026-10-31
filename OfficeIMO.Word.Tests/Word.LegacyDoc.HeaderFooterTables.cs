@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
@@ -25,7 +26,7 @@ public partial class Word {
             WordParagraph paragraph = table.Rows[row].Cells[column].Paragraphs[0];
             paragraph.Text = $"CELL{row + 1}{column + 1}";
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         }
         story.AddParagraph("AFTERTABLE");
 
@@ -89,14 +90,14 @@ public partial class Word {
         WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
         WordTable table = story.AddTable(1, 1, WordTableStyle.TableNormal);
         WordTable target = nested ? table.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableNormal) : table;
-        target.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), 18, 12);
+        target.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(18), OfficeIMO.OfficeLength.Pixels(12));
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
         WordTable restoredTable = Assert.Single(restoredStory.Tables);
         WordTable restoredTarget = nested ? Assert.Single(restoredTable.Rows[0].Cells[0].NestedTables) : restoredTable;
         WordParagraph run = Assert.Single(restoredTarget.Rows[0].Cells[0].Paragraphs.SelectMany(paragraph => paragraph.GetRuns()), paragraph => paragraph.IsImage);
-        Assert.Equal(18, run.Image!.Width!.Value, 3);
-        Assert.Equal(12, run.Image.Height!.Value, 3);
+        Assert.Equal(18, (run.Image!.Width?.ToPixels())!.Value, 3);
+        Assert.Equal(12, (run.Image.Height?.ToPixels())!.Value, 3);
     }
 
     [Theory]
@@ -130,14 +131,14 @@ public partial class Word {
         cell.ShadingFillColorHex = "FFFF00";
         cell.Borders.BottomStyle = WordBorderStyle.Double;
         cell.Borders.BottomColorHex = "00FF00";
-        cell.Borders.BottomSize = 8;
+        cell.Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
         WordTableCell restoredCell = Assert.Single(restoredStory.Tables).Rows[0].Cells[0];
         Assert.Equal("FFFF00", restoredCell.ShadingFillColorHex);
         Assert.Equal(WordBorderStyle.Double, restoredCell.Borders.BottomStyle);
         Assert.Equal("00FF00", restoredCell.Borders.BottomColorHex);
-        Assert.Equal(8U, restoredCell.Borders.BottomSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), restoredCell.Borders.BottomSize);
     }
 
     [Theory]
@@ -242,13 +243,12 @@ public partial class Word {
         WordTable outer = storyKind == 0 ? source.AddTable(1, 1, WordTableStyle.TableNormal)
             : (storyKind == 1 ? (WordHeaderFooter)source.Header.Default : source.Footer.Default).AddTable(1, 1, WordTableStyle.TableNormal);
         WordTable nested = outer.Rows[0].Cells[0].AddTable(2, 2, WordTableStyle.TableNormal);
-        nested.GridColumnWidth = new List<int> { 1800, 3000 };
-        nested.Rows[0].Height = 720;
+        nested.GridColumnWidth = new List<int> { 1800, 3000 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+        nested.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(36D);
         for (int row = 0; row < 2; row++) for (int column = 0; column < 2; column++) {
             WordTableCell cell = nested.Rows[row].Cells[column];
-            cell.Width = column == 0 ? 1800 : 3000;
-            cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.MarginLeftWidth = 240;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(column == 0 ? 1800 : 3000) * 635)));
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(12D);
             cell.Paragraphs[0].Text = $"CELL{row}{column}";
             cell.AddParagraph("SECOND");
         }
@@ -265,12 +265,12 @@ public partial class Word {
                 : Assert.Single((storyKind == 1 ? (WordHeaderFooter)restored.Header.Default : restored.Footer.Default).Tables);
             WordTable restoredNested = Assert.Single(restoredOuter.Rows[0].Cells[0].NestedTables);
             Assert.Equal(2, restoredNested.Rows.Count);
-            Assert.Equal(720, restoredNested.Rows[0].Height);
+            Assert.Equal(720, checked((int?)(restoredNested.Rows[0].Height?.ToTwips())));
             for (int row = 0; row < 2; row++) {
                 Assert.Equal(2, restoredNested.Rows[row].Cells.Count);
-                Assert.Equal(1800, restoredNested.Rows[row].Cells[0].Width);
-                Assert.Equal(3000, restoredNested.Rows[row].Cells[1].Width);
-                Assert.All(restoredNested.Rows[row].Cells, cell => Assert.Equal((short)240, cell.MarginLeftWidth));
+                Assert.Equal(1800, restoredNested.Rows[row].Cells[0].Width?.ToNativeValue());
+                Assert.Equal(3000, restoredNested.Rows[row].Cells[1].Width?.ToNativeValue());
+                Assert.All(restoredNested.Rows[row].Cells, cell => Assert.Equal((short)240, checked((short?)(cell.MarginLeft?.ToTwips()))));
                 for (int column = 0; column < 2; column++) Assert.Equal(new[] { $"CELL{row}{column}", "SECOND" },
                     restoredNested.Rows[row].Cells[column].Paragraphs.Select(paragraph => paragraph.Text));
             }

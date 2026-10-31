@@ -34,7 +34,7 @@ public partial class Word {
     public void MarkdownToWord_InlineCodeIsSetSmallerThanBodyText() {
         using WordDocument document = OfficeIMO.Markdown.MarkdownDocument.Parse("Run `dotnet test` now.").ToWord();
         WordParagraph code = document.Paragraphs.Single(paragraph => paragraph.Text == "dotnet test");
-        int body = document.Settings.FontSize ?? 11;
+        OfficeLength body = document.Settings.FontSize ?? OfficeLength.Points(11);
         Assert.NotNull(code.FontSize);
         Assert.True(code.FontSize < body, $"Inline code is {code.FontSize} pt on {body} pt body text.");
     }

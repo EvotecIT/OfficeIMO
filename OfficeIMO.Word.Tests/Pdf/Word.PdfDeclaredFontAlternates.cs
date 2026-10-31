@@ -70,7 +70,7 @@ public sealed class WordPdfDeclaredFontAlternateTests {
         document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
             .RunPropertiesDefault!.RunPropertiesBaseStyle!.RunFonts = Fonts(MissingFamily);
         WordParagraph paragraph = document.AddParagraph("AAAA");
-        paragraph.FontSize = 12;
+        paragraph.FontSize = OfficeLength.Points(12);
         using var pdf = PdfPigDocument.Open(document.ToPdf(Options(CreateFonts())).ToBytes(new PdfSaveOptions { AllowLoss = true }));
         var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "AAAA");
         Assert.Equal(7.2D, word.Letters[1].StartBaseLine.X - word.Letters[0].StartBaseLine.X, 3);
@@ -84,7 +84,7 @@ public sealed class WordPdfDeclaredFontAlternateTests {
         document.Settings.FontFamily = MissingFamily;
         document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
             .RunPropertiesDefault!.RunPropertiesBaseStyle!.RunFonts = Fonts(MissingFamily);
-        document.AddParagraph("AAAA").FontSize = 12;
+        document.AddParagraph("AAAA").FontSize = OfficeLength.Points(12);
         var fonts = new PdfCreateOptions().RegisterNamedFontFamily(Family(FirstAlternate, 300));
         if (!converterOverride) fonts.DefaultFont = PdfStandardFont.Courier;
         WordPdfExportOptions options = Options(fonts);
@@ -109,7 +109,7 @@ public sealed class WordPdfDeclaredFontAlternateTests {
             document.Settings.FontFamily = literalPrimary;
             document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
                 .RunPropertiesDefault!.RunPropertiesBaseStyle!.RunFonts = Fonts(literalPrimary);
-            document.AddParagraph("AAAA").FontSize = 12;
+            document.AddParagraph("AAAA").FontSize = OfficeLength.Points(12);
         } else AddFontOwner(document, "body", literalPrimary);
         var fonts = CreateFonts().RegisterNamedFontFamily(Family(literalPrimary, 300));
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(Options(fonts));
@@ -134,7 +134,7 @@ public sealed class WordPdfDeclaredFontAlternateTests {
             document.Settings.FontFamily = MissingFamily;
             document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
                 .RunPropertiesDefault!.RunPropertiesBaseStyle!.RunFonts = Fonts(MissingFamily);
-            document.AddParagraph("AAAA").FontSize = 12;
+            document.AddParagraph("AAAA").FontSize = OfficeLength.Points(12);
         } else AddFontOwner(document, "body");
         var fonts = new PdfCreateOptions().RegisterNamedFontFamily(Family(resolvedFamily, 900))
             .RegisterNamedFontFamily(Family("OfficeIMO Raw", 300));
@@ -209,7 +209,7 @@ public sealed class WordPdfDeclaredFontAlternateTests {
             document.Settings.FontFamily = sourceFamily;
             document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
                 .RunPropertiesDefault!.RunPropertiesBaseStyle!.RunFonts = Fonts(sourceFamily);
-            document.AddParagraph("AAAA").FontSize = 12;
+            document.AddParagraph("AAAA").FontSize = OfficeLength.Points(12);
         } else AddFontOwner(document, "body", sourceFamily);
         PdfStandardFont slot = scenario == "alternate-default-slot" ? PdfStandardFont.Helvetica : PdfStandardFont.TimesRoman;
         var caller = new PdfCreateOptions().RegisterFontFamily(slot, Family(FirstAlternate, 300));
@@ -240,7 +240,7 @@ public sealed class WordPdfDeclaredFontAlternateTests {
             document.Settings.FontFamily = MissingFamily;
             document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
                 .RunPropertiesDefault!.RunPropertiesBaseStyle!.RunFonts = Fonts(MissingFamily);
-            document.AddParagraph("AAAA").FontSize = 12;
+            document.AddParagraph("AAAA").FontSize = OfficeLength.Points(12);
         } else AddFontOwner(document, "body");
         var caller = new PdfCreateOptions().RegisterNamedFontFamily(Family(FirstAlternate, 300));
         string sourceBefore = SourceXml(document);
@@ -270,7 +270,7 @@ public sealed class WordPdfDeclaredFontAlternateTests {
         document.Settings.FontFamily = MissingFamily;
         document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!
             .RunPropertiesDefault!.RunPropertiesBaseStyle!.RunFonts = Fonts(MissingFamily);
-        document.AddParagraph("AAAA").FontSize = 12;
+        document.AddParagraph("AAAA").FontSize = OfficeLength.Points(12);
         var fonts = new PdfCreateOptions();
         if (configuration != "empty-options") {
             fonts.RegisterNamedFontFamily(Family(FirstAlternate, 600));
@@ -369,7 +369,7 @@ public sealed class WordPdfDeclaredFontAlternateTests {
             paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "AAAA";
         } else paragraph = document.AddParagraph("AAAA");
-        paragraph.FontSize = 12;
+        paragraph.FontSize = OfficeLength.Points(12);
         if (owner is "paragraph-style" or "character-style") {
             bool character = owner == "character-style";
             document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(new W.Style(

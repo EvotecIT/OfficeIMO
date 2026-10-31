@@ -14,22 +14,22 @@ namespace OfficeIMO.Excel.Pdf {
                 List<double> widthWeights = columnWidths.WidthWeights.Skip(columnOffset).Take(exportedColumns).ToList();
                 tableStyle.ColumnWidthWeights = widthWeights.Count == 0 ? columnWidths.WidthWeights : widthWeights;
                 if (ExcelPageSetupGeometry.HasFitToPageScale(pageSetup) && pageSetup?.FitToWidth is uint fitToWidth && fitToWidth > 0U) {
-                    tableStyle.MaxWidth = CalculateFitToWidthMaxWidth(options, pageSetup);
+                    tableStyle.MaxWidth = global::OfficeIMO.OfficeLength.Points(CalculateFitToWidthMaxWidth(options, pageSetup));
                 } else if (pageSetup?.Scale is uint scale && scale > 0U && scale < 100U) {
                     double approximateWidth = CalculateChunkApproximateWidth(columnWidths, columnOffset, exportedColumns);
-                    tableStyle.MaxWidth = Math.Max(24D, approximateWidth * scale / 100D);
+                    tableStyle.MaxWidth = global::OfficeIMO.OfficeLength.Points(Math.Max(24D, approximateWidth * scale / 100D));
                 }
             }
 
             if (rowHeights != null) {
-                tableStyle.RowMinHeights = rowIndexes
+                tableStyle.RowMinHeights = (rowIndexes
                     .Select(row => row >= 0 && row < rowHeights.MinHeights.Count ? rowHeights.MinHeights[row] : null)
-                    .ToList();
+                    .ToList()) is { } lengths1849 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths1849, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
             }
 
             ApplyFitToHeight(tableStyle, options, pageSetup, rowIndexes, rowHeights);
 
-            Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = CreateCellFills(styles, conditionalFills, cellReferences, structuredTables, rowIndexes, columnOffset, exportedColumns);
+            Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? cellFills = CreateCellFills(styles, conditionalFills, cellReferences, structuredTables, rowIndexes, columnOffset, exportedColumns);
             if (cellFills != null) {
                 tableStyle.CellFills = cellFills;
             }
@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel.Pdf {
                 : null;
             if (cellIcons != null) {
                 tableStyle.CellIcons = cellIcons;
-                tableStyle.CellPaddings = CreateIconCellPaddings(cellIcons, tableStyle.CellPaddings, tableStyle.CellPaddingLeft ?? tableStyle.CellPaddingX);
+                tableStyle.CellPaddings = CreateIconCellPaddings(cellIcons, tableStyle.CellPaddings, tableStyle.CellPaddingLeft?.ToPoints() ?? tableStyle.CellPaddingX.ToPoints());
             }
 
             Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? cellAlignments = CreateCellAlignments(styles, rowIndexes, columnOffset, exportedColumns);
@@ -74,11 +74,11 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return new PdfCore.PdfTableStyle {
-                CellPaddingX = 4,
-                CellPaddingY = 3,
-                HeaderFill = PdfCore.PdfColor.FromRgb(230, 238, 247),
-                HeaderTextColor = PdfCore.PdfColor.FromRgb(31, 78, 121),
-                RowStripeFill = PdfCore.PdfColor.FromRgb(248, 250, 252)
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(3),
+                HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(230, 238, 247),
+                HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121),
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252)
             };
         }
 
@@ -112,17 +112,17 @@ namespace OfficeIMO.Excel.Pdf {
             double scale = Math.Max(0.05D, targetHeight / currentHeight);
             // Flow tables must retain enough height for their laid-out text. A fixed
             // worksheet height can be smaller than a line box plus table padding.
-            tableStyle.RowMinHeights = currentHeights
+            tableStyle.RowMinHeights = (currentHeights
                 .Select(height => (double?)Math.Max(1D, height * scale))
-                .ToList();
+                .ToList()) is { } lengths7041 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths7041, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
 
             tableStyle.CellPaddingY *= scale;
-            tableStyle.CellPaddingTop = ScaleOptional(tableStyle.CellPaddingTop, scale);
-            tableStyle.CellPaddingBottom = ScaleOptional(tableStyle.CellPaddingBottom, scale);
-            double bodyFontSize = tableStyle.FontSize ?? defaultFontSize;
-            tableStyle.FontSize = ScaleFontSize(tableStyle.FontSize, defaultFontSize, scale);
-            tableStyle.HeaderFontSize = ScaleFontSize(tableStyle.HeaderFontSize, bodyFontSize, scale);
-            tableStyle.FooterFontSize = ScaleFontSize(tableStyle.FooterFontSize, bodyFontSize, scale);
+            tableStyle.CellPaddingTop = (ScaleOptional(tableStyle.CellPaddingTop?.ToPoints(), scale)) is { } points7243 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points7243) : null;
+            tableStyle.CellPaddingBottom = (ScaleOptional(tableStyle.CellPaddingBottom?.ToPoints(), scale)) is { } points7335 ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(points7335) : null;
+            double bodyFontSize = tableStyle.FontSize?.ToPoints() ?? defaultFontSize;
+            tableStyle.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleFontSize(tableStyle.FontSize?.ToPoints(), defaultFontSize, scale));
+            tableStyle.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(ScaleFontSize(tableStyle.HeaderFontSize?.ToPoints(), bodyFontSize, scale));
+            tableStyle.FooterFontSize = global::OfficeIMO.OfficeLength.Points(ScaleFontSize(tableStyle.FooterFontSize?.ToPoints(), bodyFontSize, scale));
             tableStyle.MinRowHeight *= scale;
         }
 
@@ -133,7 +133,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static double CalculateFitToHeightMaxHeight(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {
             PdfCore.PdfPageSize pageSize = GetEffectivePageSize(options, pageSetup);
             PdfCore.PdfPageMargins margins = GetEffectiveMargins(options, pageSetup);
-            double pageContentHeight = Math.Max(24D, pageSize.Height - margins.Top - margins.Bottom);
+            double pageContentHeight = Math.Max(24D, pageSize.Height.ToPoints() - margins.Top.ToPoints() - margins.Bottom.ToPoints());
             uint fitToHeight = pageSetup?.FitToHeight ?? 1U;
             return pageContentHeight * Math.Max(1U, fitToHeight);
         }
@@ -153,9 +153,9 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static double GetDefaultApproximateRowHeight(PdfCore.PdfTableStyle tableStyle, double defaultFontSize) {
-            double fontSize = tableStyle.FontSize ?? defaultFontSize;
+            double fontSize = tableStyle.FontSize?.ToPoints() ?? defaultFontSize;
             double lineHeight = tableStyle.LineHeight.HasValue ? fontSize * tableStyle.LineHeight.Value : fontSize * 1.4D;
-            return Math.Max(tableStyle.MinRowHeight, lineHeight + tableStyle.CellPaddingY * 2D);
+            return Math.Max(tableStyle.MinRowHeight.ToPoints(), lineHeight + tableStyle.CellPaddingY.ToPoints() * 2D);
         }
 
         private static double? ScaleOptional(double? value, double scale) {
@@ -163,7 +163,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static double GetDefaultTableFontSize(ExcelPdfExportOptions options) {
-            return options.PdfOptions?.DefaultFontSize ?? 11D;
+            return options.PdfOptions?.DefaultFontSize.ToPoints() ?? 11D;
         }
 
         private static double ScaleFontSize(double? value, double defaultFontSize, double scale) {
@@ -173,7 +173,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static double CalculateFitToWidthMaxWidth(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {
             PdfCore.PdfPageSize pageSize = GetEffectivePageSize(options, pageSetup);
             PdfCore.PdfPageMargins margins = GetEffectiveMargins(options, pageSetup);
-            return Math.Max(24D, pageSize.Width - margins.Left - margins.Right);
+            return Math.Max(24D, pageSize.Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints());
         }
 
         private static PdfCore.PdfPageSize GetEffectivePageSize(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {
@@ -195,7 +195,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             OfficePageSize officePageSize = ExcelPageSetupGeometry.ResolvePageSize(pageSetup, OfficePageSizes.Letter);
-            return new PdfCore.PdfPageSize(officePageSize.ToPointWidth(), officePageSize.ToPointHeight());
+            return new PdfCore.PdfPageSize(officePageSize.Width,officePageSize.Height);
         }
 
         private static PdfCore.PdfPageMargins GetEffectiveMargins(ExcelPdfExportOptions options, ExcelSheetPageSetup? pageSetup) {
@@ -215,7 +215,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         /// <summary>Excel's Normal margins: 0.7 in left and right, 0.75 in top and bottom.</summary>
-        private static readonly PdfCore.PdfPageMargins ExcelNormalMargins = PdfCore.PdfPageMargins.FromInches(0.7D, 0.75D, 0.7D, 0.75D);
+        private static readonly PdfCore.PdfPageMargins ExcelNormalMargins = new PdfCore.PdfPageMargins(OfficeLength.Inches(0.7D), OfficeLength.Inches(0.75D), OfficeLength.Inches(0.7D), OfficeLength.Inches(0.75D));
 
         /// <summary>Excel's Normal header and footer margin, in inches.</summary>
         private const double ExcelNormalHeaderFooterMarginInches = 0.3D;
@@ -236,13 +236,13 @@ namespace OfficeIMO.Excel.Pdf {
             return hyperlinks[row, column];
         }
 
-        private static Dictionary<(int Row, int Column), PdfCore.PdfColor>? CreateCellFills(ExcelCellStyleInfo?[,]? styles, ConditionalFillData? conditionalFills, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
+        private static Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? CreateCellFills(ExcelCellStyleInfo?[,]? styles, ConditionalFillData? conditionalFills, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
             if (styles == null && conditionalFills == null && structuredTables.Count == 0) {
                 return null;
             }
 
             int columnEnd = exportedColumns > 0 ? columnOffset + exportedColumns : int.MaxValue;
-            Dictionary<(int Row, int Column), PdfCore.PdfColor>? fills = null;
+            Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? fills = null;
             if (cellReferences != null && structuredTables.Count > 0) {
                 int columns = Math.Min(columnEnd, cellReferences.GetLength(1));
                 for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
@@ -253,9 +253,9 @@ namespace OfficeIMO.Excel.Pdf {
 
                     for (int column = columnOffset; column < columns; column++) {
                         StructuredTableCellVisual? tableVisual = GetStructuredTableCellVisual(structuredTables, cellReferences, row, column);
-                        PdfCore.PdfColor? fill = ToPdfColor(tableVisual?.Fill);
+                        global::OfficeIMO.OfficeColor? fill = ToPdfColor(tableVisual?.Fill);
                         if (fill.HasValue) {
-                            fills ??= new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+                            fills ??= new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
                             fills[(localRow, column - columnOffset)] = fill.Value;
                         }
                     }
@@ -271,9 +271,9 @@ namespace OfficeIMO.Excel.Pdf {
                     }
 
                     for (int column = columnOffset; column < columns; column++) {
-                        PdfCore.PdfColor? fill = ToPdfColor(styles[row, column]?.FillColorHex);
+                        global::OfficeIMO.OfficeColor? fill = ToPdfColor(styles[row, column]?.FillColorHex);
                         if (fill.HasValue) {
-                            fills ??= new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+                            fills ??= new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
                             fills[(localRow, column - columnOffset)] = fill.Value;
                         }
                     }
@@ -289,9 +289,9 @@ namespace OfficeIMO.Excel.Pdf {
                         continue;
                     }
 
-                    PdfCore.PdfColor? fill = ToPdfColor(conditionalFill.Value);
+                    global::OfficeIMO.OfficeColor? fill = ToPdfColor(conditionalFill.Value);
                     if (fill.HasValue) {
-                        fills ??= new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+                        fills ??= new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
                         fills[(localRow, conditionalFill.Key.Column - columnOffset)] = fill.Value;
                     }
                 }
@@ -315,7 +315,7 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                PdfCore.PdfColor? fill = ToPdfColor(conditionalDataBar.Value.Color);
+                global::OfficeIMO.OfficeColor? fill = ToPdfColor(conditionalDataBar.Value.Color);
                 if (fill.HasValue) {
                     dataBars ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellDataBar>();
                     dataBars[(localRow, conditionalDataBar.Key.Column - columnOffset)] = new PdfCore.PdfCellDataBar {
@@ -349,7 +349,7 @@ namespace OfficeIMO.Excel.Pdf {
                 icons[(localRow, conditionalIcon.Key.Column - columnOffset)] = new PdfCore.PdfCellIcon {
                     Kind = GetLegacyConditionalIconShape(conditionalIcon.Value.Kind),
                     Color = GetLegacyConditionalIconColor(conditionalIcon.Value.Kind),
-                    Size = 8D,
+                    Size = global::OfficeIMO.OfficeLength.Points(8D),
                     HorizontalAlignment = PdfCore.PdfColumnAlign.Left
                 };
             }
@@ -369,9 +369,9 @@ namespace OfficeIMO.Excel.Pdf {
                     padding = padding.Clone();
                 }
 
-                double iconAndGapWidth = icon.Value.Size + 4D;
-                padding.Left = (padding.Left ?? defaultLeftPadding) + iconAndGapWidth;
-                icon.Value.OffsetX = -iconAndGapWidth;
+                double iconAndGapWidth = icon.Value.Size.ToPoints() + 4D;
+                padding.Left = global::OfficeIMO.OfficeLength.Points((padding.Left?.ToPoints() ?? defaultLeftPadding) + iconAndGapWidth);
+                icon.Value.OffsetX = global::OfficeIMO.OfficeLength.Points(-iconAndGapWidth);
                 paddings[icon.Key] = padding;
             }
 
@@ -449,12 +449,12 @@ namespace OfficeIMO.Excel.Pdf {
 
                     for (int column = columnOffset; column < columns; column++) {
                         StructuredTableCellVisual? tableVisual = GetStructuredTableCellVisual(structuredTables, cellReferences, row, column);
-                        PdfCore.PdfColor? color = ToPdfColor(tableVisual?.Border);
+                        global::OfficeIMO.OfficeColor? color = ToPdfColor(tableVisual?.Border);
                         if (color.HasValue) {
                             borders ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
                             borders[(localRow, column - columnOffset)] = new PdfCore.PdfCellBorder {
                                 Color = color.Value,
-                                Width = 0.35D,
+                                Width = OfficeLength.Points(0.35D),
                                 Top = tableVisual!.BorderTop,
                                 Right = tableVisual.BorderRight,
                                 Bottom = tableVisual.BorderBottom,
@@ -571,8 +571,8 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return new PdfCore.PdfCellBorderSide {
-                Color = ToPdfColor(side.ColorArgb) ?? PdfCore.PdfColor.FromRgb(0, 0, 0),
-                Width = width,
+                Color = ToPdfColor(side.ColorArgb) ?? global::OfficeIMO.OfficeColor.FromRgb(0, 0, 0),
+                Width = global::OfficeIMO.OfficeLength.Points(width),
                 DashStyle = ToPdfBorderDashStyle(side.Style),
                 LineStyle = ToPdfBorderLineStyle(side.Style)
             };
@@ -631,7 +631,7 @@ namespace OfficeIMO.Excel.Pdf {
                 : PdfCore.PdfCellBorderLineStyle.Standard;
         }
 
-        private static PdfCore.PdfColor? ToPdfColor(string? hex) {
+        private static global::OfficeIMO.OfficeColor? ToPdfColor(string? hex) {
             if (string.IsNullOrWhiteSpace(hex)) {
                 return null;
             }
@@ -652,7 +652,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
-            return PdfCore.PdfColor.FromRgb(r, g, b);
+            return global::OfficeIMO.OfficeColor.FromRgb(r, g, b);
         }
 
     }

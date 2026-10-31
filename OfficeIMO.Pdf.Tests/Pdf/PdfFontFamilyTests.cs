@@ -1260,7 +1260,7 @@ public partial class PdfFontFamilyTests {
             })
             .Header(header => header.Font(PdfStandardFont.TimesRoman).Text("Times header"))
             .Footer(footer => footer.Font(PdfStandardFont.Courier).Text("Courier footer"))
-            .DefaultTextStyle(style => style.FontFamily(family).FontSize(12))
+            .DefaultTextStyle(style => style.FontFamily(family).FontSize(global::OfficeIMO.OfficeLength.Points(12)))
             .Paragraph(paragraph => paragraph.Text("Styled body"))
             .ToBytes();
 
@@ -2124,12 +2124,12 @@ public partial class PdfFontFamilyTests {
             "template",
             bold: true,
             underline: true,
-            color: PdfColor.FromRgb(1, 2, 3),
+            color: global::OfficeIMO.OfficeColor.FromRgb(1, 2, 3),
             italic: true,
             strike: true,
-            fontSize: 14,
+            fontSize: global::OfficeIMO.OfficeLength.Points(14),
             baseline: PdfTextBaseline.Superscript,
-            backgroundColor: PdfColor.FromRgb(250, 240, 200));
+            backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(250, 240, 200));
 
         PdfTextRun run = Assert.Single(plan.ToTextRuns(new[] { PdfStandardFont.Courier }, template));
 
@@ -2139,7 +2139,7 @@ public partial class PdfFontFamilyTests {
         Assert.True(run.Underline);
         Assert.True(run.Italic);
         Assert.True(run.Strike);
-        Assert.Equal(14, run.FontSize);
+        Assert.Equal(14, (run.FontSize?.ToPoints()));
         Assert.Equal(PdfTextBaseline.Superscript, run.Baseline);
         Assert.Equal(template.Color, run.Color);
         Assert.Equal(template.BackgroundColor, run.BackgroundColor);
@@ -2395,14 +2395,14 @@ public partial class PdfFontFamilyTests {
             "Invoice Cafe",
             out IReadOnlyList<PdfTextRun> runs,
             "word:paragraph[11]",
-            PdfTextRun.Italicized("template", fontSize: 12),
+            PdfTextRun.Italicized("template", fontSize: global::OfficeIMO.OfficeLength.Points(12)),
             report,
             "OfficeIMO.Word.Pdf");
 
         PdfTextRun run = Assert.Single(runs);
         Assert.True(covered);
         Assert.True(run.Italic);
-        Assert.Equal(12, run.FontSize);
+        Assert.Equal(12, (run.FontSize?.ToPoints()));
         Assert.Equal(PdfStandardFont.Helvetica, run.Font);
         Assert.False(report.HasWarnings);
     }
@@ -2503,8 +2503,8 @@ public partial class PdfFontFamilyTests {
                 .Bold()
                 .Italic()
                 .Underline()
-                .FontSize(13)
-                .Color(PdfColor.FromRgb(10, 20, 30))
+                .FontSize(global::OfficeIMO.OfficeLength.Points(13))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30))
                 .FallbackText(fallbackSet, "Invoice Cafe", "word:paragraph[9]"))
             .ToBytes();
 
@@ -2619,12 +2619,12 @@ public partial class PdfFontFamilyTests {
             new[] { PdfStandardFont.TimesRoman });
         var topLevelStyle = PdfTableStyles.Minimal();
         topLevelStyle.Caption = "Tabela Łódź Zażółć";
-        topLevelStyle.CaptionFontSize = 10;
-        topLevelStyle.CaptionSpacingAfter = 4;
+        topLevelStyle.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(10);
+        topLevelStyle.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(4);
         var rowColumnStyle = PdfTableStyles.Minimal();
         rowColumnStyle.Caption = "Tabela kolumna Łódź";
-        rowColumnStyle.CaptionFontSize = 10;
-        rowColumnStyle.CaptionSpacingAfter = 4;
+        rowColumnStyle.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(10);
+        rowColumnStyle.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(4);
 
         byte[] topLevelBytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
@@ -2668,17 +2668,17 @@ public partial class PdfFontFamilyTests {
             new[] { PdfStandardFont.TimesRoman });
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 180,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
             .Canvas(canvas => canvas
-                .Text("Canvas Łódź", 18, 16, 180, 28, fontSize: 12)
-                .TextBox("Ramka Zażółć", 18, 54, 190, 42, new PdfCanvasTextBoxStyle {
-                    FontSize = 11,
-                    PaddingX = 4,
-                    PaddingY = 4
+                .Text("Canvas Łódź", global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(28), fontSize: global::OfficeIMO.OfficeLength.Points(12))
+                .TextBox("Ramka Zażółć", global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(190), global::OfficeIMO.OfficeLength.Points(42), new PdfCanvasTextBoxStyle {
+                    FontSize = global::OfficeIMO.OfficeLength.Points(11),
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(4)
                 }))
             .ToBytes();
 
@@ -2703,11 +2703,11 @@ public partial class PdfFontFamilyTests {
             new[] { PdfStandardFont.TimesRoman });
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 180
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Canvas(canvas => canvas.Text(marker, 18, 16, 180, 28, fontSize: 12))
+            .Canvas(canvas => canvas.Text(marker, global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(28), fontSize: global::OfficeIMO.OfficeLength.Points(12)))
             .ToBytes();
 
         PdfReadDocument read = PdfReadDocument.Open(bytes);
@@ -2735,8 +2735,8 @@ public partial class PdfFontFamilyTests {
                 width: 180,
                 height: 44,
                 fontSize: 11,
-                borderColor: PdfColor.Black,
-                fillColor: PdfColor.FromRgb(245, 248, 255))
+                borderColor: global::OfficeIMO.OfficeColor.Black,
+                fillColor: global::OfficeIMO.OfficeColor.FromRgb(245, 248, 255))
             .Paragraph(paragraph => paragraph.Text("Body"))
             .ToBytes();
 
@@ -2769,8 +2769,8 @@ public partial class PdfFontFamilyTests {
                 width: 180,
                 height: 44,
                 fontSize: 11,
-                borderColor: PdfColor.Black,
-                fillColor: PdfColor.FromRgb(245, 248, 255))
+                borderColor: global::OfficeIMO.OfficeColor.Black,
+                fillColor: global::OfficeIMO.OfficeColor.FromRgb(245, 248, 255))
             .Paragraph(paragraph => paragraph.Text("Body"))
             .ToBytes();
 
@@ -2797,7 +2797,7 @@ public partial class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .TextField("Office.City", value: "Łódź Zażółć", width: 180, height: 24)
+            .TextField("Office.City", value: "Łódź Zażółć", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -3217,9 +3217,9 @@ public partial class PdfFontFamilyTests {
             try {
                 bytes = PdfDocument.Create(new PdfCreateOptions {
                     CompressContentStreams = false,
-                    PageWidth = 120,
-                    MarginLeft = 24,
-                    MarginRight = 24
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(120),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(24)
                 })
                 .UseFontFamily("OfficeIMO NonBmp Font", fontPath)
                 .Paragraph(paragraph => paragraph.Text("AAAAAAAAAAAA😀BBBBBBBBBBBB"))

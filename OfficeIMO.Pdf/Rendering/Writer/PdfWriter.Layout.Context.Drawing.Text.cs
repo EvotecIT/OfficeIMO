@@ -105,7 +105,7 @@ internal static partial class PdfWriter {
                     double x = OfficeTextPlacement.ResolveLineLeft(frameX, text.Width, advance, text.Alignment);
                     var run = new PdfTextRun(value, text.Font.IsBold, text.Font.IsUnderline,
                         ToPdfColor(text.Color ?? OfficeColor.Black), text.Font.IsItalic, text.Font.IsStrikethrough,
-                        size, ResolveDrawingTextFont(text.Font.FamilyName), fontFamily: text.Font.FamilyName,
+                        global::OfficeIMO.OfficeLength.Points(size), ResolveDrawingTextFont(text.Font.FamilyName), fontFamily: text.Font.FamilyName,
                         underlineStyle: text.UnderlineStyle, strikeStyle: text.StrikethroughStyle,
                         decorationColor: ToPdfColor(text.DecorationColor))
                         .WithFeatureSettings(text.FeatureSettings)
@@ -198,7 +198,7 @@ internal static partial class PdfWriter {
                 }
                 if (value.Length == 0) return;
                 var run = new PdfTextRun(value, segment.Bold, segment.Underline, ToPdfColor(segment.Color),
-                    segment.Italic, segment.Strikethrough, size, ResolveDrawingTextFont(segment.FontFamily),
+                    segment.Italic, segment.Strikethrough, global::OfficeIMO.OfficeLength.Points(size), ResolveDrawingTextFont(segment.FontFamily),
                     linkUri: segment.LinkUri, linkDestinationName: segment.LinkDestinationName,
                     backgroundColor: ToPdfColor(segment.BackgroundColor),
                     fontFamily: segment.FontFamily, underlineStyle: segment.UnderlineStyle,
@@ -211,7 +211,7 @@ internal static partial class PdfWriter {
         private void WriteDrawingPositionedRun(PdfTextRun run, double x, double baseline, double advance,
             double clipX, double clipY, double clipWidth, double clipHeight, OfficeColor foregroundColor,
             OfficeColor? decorationColor, bool clipToFrame = true) {
-            double size = run.FontSize ?? currentOpts.DefaultFontSize;
+            double size = (run.FontSize?.ToPoints()) ?? currentOpts.DefaultFontSize.ToPoints();
             var runs = new[] { run };
             var line = CreatePositionedTextLine(runs, size, size * 1.2D, currentOpts);
             double actualWidth = MeasureRichLineWidth(line.Lines[0], currentOpts);

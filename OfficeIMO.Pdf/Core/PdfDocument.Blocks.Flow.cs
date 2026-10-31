@@ -5,9 +5,9 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfDocument {
     /// <summary>
     /// Fluent paragraph builder in the style of OfficeIMO.Word.
-    /// Example: Paragraph(p => p.Color(PdfColor.Gray).Text("You can ").Bold("mix ").Italic("styles"));
+    /// Example: Paragraph(p => p.Color(OfficeColor.Gray).Text("You can ").Bold("mix ").Italic("styles"));
     /// </summary>
-    internal PdfDocument Paragraph(System.Action<PdfParagraphBuilder> compose, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null, PdfParagraphStyle? style = null) {
+    internal PdfDocument Paragraph(System.Action<PdfParagraphBuilder> compose, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfParagraphStyle? style = null) {
         Guard.NotNull(compose, nameof(compose));
         var builder = new PdfParagraphBuilder(align, defaultColor);
         compose(builder);
@@ -27,7 +27,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a horizontal rule (line) spanning the content width.</summary>
-    internal PdfDocument HR(double? thickness = null, PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfHorizontalRuleStyle? style = null) {
+    internal PdfDocument HR(double? thickness = null, global::OfficeIMO.OfficeColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfHorizontalRuleStyle? style = null) {
         AddBlock(new HorizontalRuleBlock(CreateHorizontalRuleStyle(thickness, color, spacingBefore, spacingAfter, style)));
         return this;
     }

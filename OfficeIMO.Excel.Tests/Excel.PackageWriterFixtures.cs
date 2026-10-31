@@ -20,7 +20,7 @@ public sealed class ExcelModernPackageWriterTests {
     public async Task NewWorkbookRetainsModernThemeThroughTheExtendedFastWriter(bool asynchronous) {
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create();
-        document.AddWorksheet("Modern").CellValue(1, 1, "Modern workbook");
+        document.AddSheet("Modern").CellValue(1, 1, "Modern workbook");
         string theme = document.OpenXmlDocument.WorkbookPart!.ThemePart!.Theme!.OuterXml;
         var options = new ExcelSaveOptions { ValidateOpenXml = true };
         if (asynchronous) await document.SaveAsync(stream, options: options);

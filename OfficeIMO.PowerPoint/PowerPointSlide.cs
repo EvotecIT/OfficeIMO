@@ -24,12 +24,12 @@ namespace OfficeIMO.PowerPoint {
         private const string P159Namespace = "http://schemas.microsoft.com/office/powerpoint/2015/09/main";
         private const string MarkupCompatibilityNamespace = "http://schemas.openxmlformats.org/markup-compatibility/2006";
 
-        internal PowerPointSlide(SlidePart slidePart, PowerPointPresentation? presentation = null) {
-            OwnerPresentation = presentation;
+        internal PowerPointSlide(SlidePart slidePart, PowerPointDocument? presentation = null) {
+            OwnerDocument = presentation;
             _slidePart = slidePart;
         }
 
-        internal PowerPointPresentation? OwnerPresentation { get; }
+        internal PowerPointDocument? OwnerDocument { get; }
 
         internal SlidePart SlidePart => _slidePart;
 
@@ -77,46 +77,30 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Retrieves shapes that are within or intersect the provided bounds.
         /// </summary>
-        public IReadOnlyList<PowerPointShape> GetShapesInBounds(PowerPointLayoutBox bounds, bool includePartial = true) {
+        public IReadOnlyList<PowerPointShape> GetShapesInBounds(PowerPointLayoutBox bounds, bool includePartial) {
             if (includePartial) {
                 return ShapeList
                     .Where(shape =>
-                        shape.Right >= bounds.Left &&
-                        shape.Left <= bounds.Right &&
-                        shape.Bottom >= bounds.Top &&
-                        shape.Top <= bounds.Bottom)
+                        shape.Right.ToEmus() >= bounds.Left.ToEmus() &&
+                        shape.Left.ToEmus() <= bounds.Right.ToEmus() &&
+                        shape.Bottom.ToEmus() >= bounds.Top.ToEmus() &&
+                        shape.Top.ToEmus() <= bounds.Bottom.ToEmus())
                     .ToList();
             }
 
             return ShapeList
                 .Where(shape =>
-                    shape.Left >= bounds.Left &&
-                    shape.Top >= bounds.Top &&
-                    shape.Right <= bounds.Right &&
-                    shape.Bottom <= bounds.Bottom)
+                    shape.Left.ToEmus() >= bounds.Left.ToEmus() &&
+                    shape.Top.ToEmus() >= bounds.Top.ToEmus() &&
+                    shape.Right.ToEmus() <= bounds.Right.ToEmus() &&
+                    shape.Bottom.ToEmus() <= bounds.Bottom.ToEmus())
                 .ToList();
         }
 
-        /// <summary>
-        ///     Retrieves shapes using bounds defined in centimeters.
-        /// </summary>
-        public IReadOnlyList<PowerPointShape> GetShapesInBoundsCm(double leftCm, double topCm, double widthCm, double heightCm, bool includePartial = true) {
-            return GetShapesInBounds(PowerPointLayoutBox.FromCentimeters(leftCm, topCm, widthCm, heightCm), includePartial);
-        }
-
-        /// <summary>
-        ///     Retrieves shapes using bounds defined in inches.
-        /// </summary>
-        public IReadOnlyList<PowerPointShape> GetShapesInBoundsInches(double leftInches, double topInches, double widthInches, double heightInches, bool includePartial = true) {
-            return GetShapesInBounds(PowerPointLayoutBox.FromInches(leftInches, topInches, widthInches, heightInches), includePartial);
-        }
-
-        /// <summary>
-        ///     Retrieves shapes using bounds defined in points.
-        /// </summary>
-        public IReadOnlyList<PowerPointShape> GetShapesInBoundsPoints(double leftPoints, double topPoints, double widthPoints, double heightPoints, bool includePartial = true) {
-            return GetShapesInBounds(PowerPointLayoutBox.FromPoints(leftPoints, topPoints, widthPoints, heightPoints), includePartial);
-        }
+        /// <summary>Retrieves shapes using an explicit position and size.</summary>
+        public IReadOnlyList<PowerPointShape> GetShapesInBounds(OfficeLength left, OfficeLength top,
+            OfficeLength width, OfficeLength height, bool includePartial = true) =>
+            GetShapesInBounds(new PowerPointLayoutBox(left, top, width, height), includePartial);
 
         /// <summary>
         ///     Notes associated with the slide.

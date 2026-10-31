@@ -105,6 +105,10 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.IWork.AotSmoke" />
+        <InternalsVisibleTo Include="OfficeIMO.Markup.Tests" />
+        <InternalsVisibleTo Include="PSWriteOffice" />
         <InternalsVisibleTo Include="OfficeIMO.Markdown.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" />
@@ -132,4 +136,9 @@
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Word.Benchmarks" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" /></ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.CompatibilityCatalog.Tool" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Word" />
+  </ItemGroup>
 </Project>

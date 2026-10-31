@@ -96,10 +96,10 @@ public partial class Word {
         WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
         WordParagraph outer = story.AddParagraph("MMMMX"); outer.Style = WordParagraphStyles.Normal;
         WordParagraph firstBox = outer.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
-        firstBox.Style = WordParagraphStyles.Normal; firstBox.CharacterScale = 200; firstBox.Spacing = 20;
+        firstBox.Style = WordParagraphStyles.Normal; firstBox.CharacterScale = 200; firstBox.Spacing = OfficeLength.Emus((long)(20) * 635);
         WordParagraph suffix = outer.AddText("MMMMX");
         WordParagraph secondBox = suffix.AddTextBox("MMMMX", WordImageTextWrapping.Square).Paragraphs.Single();
-        secondBox.Style = WordParagraphStyles.Normal; secondBox.CharacterScale = 50; secondBox.Spacing = -10;
+        secondBox.Style = WordParagraphStyles.Normal; secondBox.CharacterScale = 50; secondBox.Spacing = OfficeLength.Emus((long)(-10) * 635);
         // Imported boxes commonly end with the paragraph rather than a hard break.
         // Identical surrounding text must still keep its own run formatting.
         firstBox._paragraph.Descendants<W.Break>().ToList().ForEach(lineBreak => lineBreak.Remove());
@@ -153,7 +153,7 @@ public partial class Word {
             run.RunProperties.RunStyle = new W.RunStyle { Val = "VisibleSpacing" };
         } else {
             paragraph.CharacterScale = scale;
-            paragraph.Spacing = tracking;
+            paragraph.Spacing = OfficeLength.Emus((long)(tracking) * 635);
         }
     }
 }

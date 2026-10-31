@@ -4,10 +4,10 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     /// <summary>Creates a travel handover with an itinerary, arrival instructions and clear time-zone labels.</summary>
     internal static class TravelItinerary {
         internal static void Create(string folder) {
-            PdfColor muted = PdfColor.FromOfficeColor(OfficeTheme.Default.Palette.TextMuted);
+            OfficeColor muted = OfficeTheme.Default.Palette.TextMuted;
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .Title("Workshop travel itinerary")
-                .Paragraph(p => p.FontSize(9).Text("Northwind · Copenhagen · 14–15 October 2026"), defaultColor: muted)
+                .Paragraph(p => p.FontSize(OfficeLength.Points(9)).Text("Northwind · Copenhagen · 14–15 October 2026"), defaultColor: muted)
                 .PanelParagraph(p => p.Bold("All times are local to Copenhagen (CEST).\n").Text("Fictional itinerary: confirm live bookings and transport information before travelling."))
                 .H2("Wednesday: arrival")
                 .Table(new[] {

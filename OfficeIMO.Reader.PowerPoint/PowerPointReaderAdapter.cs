@@ -17,12 +17,12 @@ internal static class PowerPointReaderAdapter {
     };
 
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
-        using PowerPointPresentation presentation = Load(path, readerOptions, cancellationToken);
+        using PowerPointDocument presentation = Load(path, readerOptions, cancellationToken);
         return Project(presentation, path, readerOptions, options, cancellationToken);
     }
 
     internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
-        using PowerPointPresentation presentation = Load(stream, sourceName, readerOptions, cancellationToken);
+        using PowerPointDocument presentation = Load(stream, sourceName, readerOptions, cancellationToken);
         return Project(presentation, string.IsNullOrWhiteSpace(sourceName) ? "presentation.pptx" : sourceName!, readerOptions, options, cancellationToken);
     }
 
@@ -31,7 +31,7 @@ internal static class PowerPointReaderAdapter {
         long position = stream.Position;
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            using PowerPointPresentation presentation = Load(stream, sourceName, options, cancellationToken);
+            using PowerPointDocument presentation = Load(stream, sourceName, options, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return presentation.OpenXmlDocument.GetAllParts().Any(static part =>
                 string.Equals(part.Uri.OriginalString, "/ppt/presentation.xml",
@@ -49,27 +49,27 @@ internal static class PowerPointReaderAdapter {
         }
     }
 
-    internal static PowerPointPresentation Load(string path, ReaderOptions options, CancellationToken cancellationToken) {
+    internal static PowerPointDocument Load(string path, ReaderOptions options, CancellationToken cancellationToken) {
         var loadOptions = CreateLoadOptions(options, path);
         loadOptions.Password = null;
         try {
-            return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(path, loadOptions, cancellationToken));
+            return OpenXmlReaderAdmission.Load(options, () => PowerPointDocument.Load(path, loadOptions, cancellationToken));
         } catch (Exception error) when (OpenXmlReaderAdmission.CanRetryEncrypted(error, options)) {
             loadOptions.Password = options.OpenPassword;
-            return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(path, loadOptions, cancellationToken));
+            return OpenXmlReaderAdmission.Load(options, () => PowerPointDocument.Load(path, loadOptions, cancellationToken));
         }
     }
 
-    internal static PowerPointPresentation Load(Stream stream, string? sourceName, ReaderOptions options, CancellationToken cancellationToken) {
+    internal static PowerPointDocument Load(Stream stream, string? sourceName, ReaderOptions options, CancellationToken cancellationToken) {
         if (stream.CanSeek) stream.Position = 0;
         var loadOptions = CreateLoadOptions(options, sourceName);
         loadOptions.Password = null;
         try {
-            return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(stream, loadOptions, cancellationToken));
+            return OpenXmlReaderAdmission.Load(options, () => PowerPointDocument.Load(stream, loadOptions, cancellationToken));
         } catch (Exception error) when (stream.CanSeek && OpenXmlReaderAdmission.CanRetryEncrypted(error, options)) {
             stream.Position = 0;
             loadOptions.Password = options.OpenPassword;
-            return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(stream, loadOptions, cancellationToken));
+            return OpenXmlReaderAdmission.Load(options, () => PowerPointDocument.Load(stream, loadOptions, cancellationToken));
         }
     }
 
@@ -101,7 +101,7 @@ internal static class PowerPointReaderAdapter {
             string.Equals(format.Extension, extension, StringComparison.OrdinalIgnoreCase));
     }
 
-internal static OfficeDocumentReadResult Project(PowerPointPresentation presentation, string sourceName, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
+internal static OfficeDocumentReadResult Project(PowerPointDocument presentation, string sourceName, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
         IReadOnlyList<string>? legacyWarnings = BuildLegacyWarnings(presentation);
         IReadOnlyList<OfficeDocumentAsset> assets = readerOptions.Projection == ReaderProjection.TextAndMetadata ? Array.Empty<OfficeDocumentAsset>() : OpenXmlImageAssetCollector.CollectPowerPoint(
             presentation.OpenXmlDocument, sourceName, readerOptions, options.IncludeNotes,
@@ -148,7 +148,7 @@ internal static OfficeDocumentReadResult Project(PowerPointPresentation presenta
         return first.Concat(second).ToArray();
     }
 
-    private static IReadOnlyList<string>? BuildLegacyWarnings(PowerPointPresentation presentation) {
+    private static IReadOnlyList<string>? BuildLegacyWarnings(PowerPointDocument presentation) {
         if (presentation.SourceFormat is not PowerPointFileFormat.Ppt and not PowerPointFileFormat.Pot and not PowerPointFileFormat.Pps) return null;
         string[] warnings = presentation.LegacyPptImportDiagnostics
             .Select(static diagnostic => "Legacy PPT import diagnostic: " + diagnostic)

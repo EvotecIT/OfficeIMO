@@ -26,20 +26,20 @@ public partial class PdfDocumentVisualQualityTests {
         double rightRightX = rightX + columnWidth;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = pageWidth,
-                PageHeight = 280,
-                MarginLeft = margin,
-                MarginRight = margin,
-                MarginTop = 30,
-                MarginBottom = 30,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(280),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(margin),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(margin),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Gap(gutter)
+                            row.Gap(global::OfficeIMO.OfficeLength.Points(gutter))
                                 .PercentColumn(50, column => column
                                     .H2("LeftFlow")
                                     .Paragraph(p => p.Text("LeftAlphaOne carries enough ordinary report text to wrap inside its column without touching the neighboring frame."))
@@ -50,11 +50,11 @@ public partial class PdfDocumentVisualQualityTests {
                                     .PanelParagraph(
                                         p => p.Bold("LeftPanel").Text(": spacing remains visible after the list."),
                                         new PdfPanelStyle {
-                                            BorderColor = PdfColor.FromRgb(191, 191, 191),
-                                            BorderWidth = 0.5,
-                                            PaddingX = 6,
-                                            PaddingY = 5,
-                                            Background = PdfColor.FromRgb(248, 250, 252)
+                                            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
+                                            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                                            PaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                                            PaddingY = global::OfficeIMO.OfficeLength.Points(5),
+                                            Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252)
                                         }))
                                 .PercentColumn(50, column => column
                                     .H2("RightFlow")
@@ -66,11 +66,11 @@ public partial class PdfDocumentVisualQualityTests {
                                     .PanelParagraph(
                                         p => p.Bold("RightPanel").Text(": the final note avoids cramped text."),
                                         new PdfPanelStyle {
-                                            BorderColor = PdfColor.FromRgb(191, 191, 191),
-                                            BorderWidth = 0.5,
-                                            PaddingX = 6,
-                                            PaddingY = 5,
-                                            Background = PdfColor.FromRgb(248, 250, 252)
+                                            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
+                                            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                                            PaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                                            PaddingY = global::OfficeIMO.OfficeLength.Points(5),
+                                            Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252)
                                         }))))))
             .ToBytes();
 
@@ -107,7 +107,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void RowColumns_UseBuiltInWordLikeGutterWhenNoGapIsConfigured() {
         const double pageWidth = 360;
         const double margin = 30;
-        const double gutter = PdfRowStyle.DefaultGap;
+        double gutter = PdfRowStyle.DefaultGap.ToPoints();
         double contentWidth = pageWidth - margin - margin;
         double columnWidth = (contentWidth - gutter) / 2;
         double leftX = margin;
@@ -116,14 +116,14 @@ public partial class PdfDocumentVisualQualityTests {
         double rightRightX = rightX + columnWidth;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = pageWidth,
-                PageHeight = 180,
-                MarginLeft = margin,
-                MarginRight = margin,
-                MarginTop = 30,
-                MarginBottom = 30,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(margin),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(margin),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -170,56 +170,56 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 0.75;
 
         var paragraphStyle = new PdfParagraphStyle {
-            SpacingAfter = 10,
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10),
             LineHeight = 1.25
         };
         var panelStyle = new PdfPanelStyle {
-            Background = PdfColor.FromRgb(248, 250, 252),
-            BorderColor = PdfColor.FromRgb(191, 191, 191),
-            BorderWidth = 0.5,
-            PaddingX = 8,
-            PaddingY = 6,
-            SpacingBefore = 2,
-            SpacingAfter = 10
+            Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(6),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10)
         };
         var listStyle = new PdfListStyle {
-            LeftIndent = 10,
-            MarkerGap = 6,
-            SpacingAfter = 10,
-            ItemSpacing = 2
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(10),
+            MarkerGap = global::OfficeIMO.OfficeLength.Points(6),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10),
+            ItemSpacing = global::OfficeIMO.OfficeLength.Points(2)
         };
         var tableStyle = PdfTableStyles.Minimal();
         tableStyle.HeaderRowCount = 0;
-        tableStyle.CellPaddingX = 6;
-        tableStyle.CellPaddingY = 4;
-        tableStyle.SpacingBefore = 2;
-        tableStyle.SpacingAfter = 10;
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(6);
+        tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        tableStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(2);
+        tableStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(10);
         var imageStyle = new PdfImageStyle {
-            SpacingBefore = 4,
-            SpacingAfter = 10
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10)
         };
         var drawingStyle = new PdfDrawingStyle {
-            SpacingBefore = 2,
-            SpacingAfter = 10
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = pageWidth,
-                PageHeight = 620,
-                MarginLeft = margin,
-                MarginRight = margin,
-                MarginTop = 36,
-                MarginBottom = 36,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(620),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(margin),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(margin),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content => {
                         content.Column(column => column.Item()
                             .H1("WordFlowGate", new PdfHeadingStyle {
-                                FontSize = 18,
-                                SpacingAfter = 12
+                                FontSize = global::OfficeIMO.OfficeLength.Points(18),
+                                SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
                             })
                             .Paragraph(p => p.Text("LeadMarker introduces a generic report section without any invoice-specific shape."), style: paragraphStyle)
                             .PanelParagraph(p => p.Bold("PanelMarker").Text(": boxed notes keep visible padding and downstream rhythm."), panelStyle)
@@ -231,15 +231,15 @@ public partial class PdfDocumentVisualQualityTests {
                                 new[] { "TableMarker", "Ready" },
                                 new[] { "Rhythm", "Stable" }
                             }, style: tableStyle)
-                            .Image(png, 24, 24, style: imageStyle)
+                            .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), style: imageStyle)
                             .Shape(shape, style: drawingStyle)
                             .Paragraph(p => p.Text("AfterVisualMarker follows image and shape blocks with deliberate breathing room."), style: paragraphStyle));
 
                         content.Row(row => row
-                            .Gap(gutter)
+                            .Gap(global::OfficeIMO.OfficeLength.Points(gutter))
                             .Style(new PdfRowStyle {
-                                SpacingBefore = 4,
-                                SpacingAfter = 0
+                                SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+                                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                             })
                             .PercentColumn(50, column => column
                                 .H2("LeftMixed")
@@ -292,23 +292,23 @@ public partial class PdfDocumentVisualQualityTests {
         const double margin = 56;
         var style = PdfTableStyles.ListTable1Light();
         style.RightAlignNumeric = true;
-        style.CellPaddingX = 5;
-        style.CellPaddingY = 5.5;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(5);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(5.5);
         style.ColumnWidthWeights = new List<double> { 0.45, 4.2, 1.15, 0.8, 1.2 };
-        style.ColumnMinWidthPoints = new List<double?> { 22, 185, 62, 34, 68 };
+        style.ColumnMinWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(22), global::OfficeIMO.OfficeLength.Points(185), global::OfficeIMO.OfficeLength.Points(62), global::OfficeIMO.OfficeLength.Points(34), global::OfficeIMO.OfficeLength.Points(68) };
         style.FooterRowCount = 1;
-        style.FooterSeparatorColor = PdfColor.Black;
-        style.FooterSeparatorWidth = 0.9;
-        style.SpacingBefore = 8;
-        style.SpacingAfter = 10;
+        style.FooterSeparatorColor = global::OfficeIMO.OfficeColor.Black;
+        style.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.9);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(8);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(10);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = pageWidth,
-                PageHeight = 760,
-                MarginLeft = margin,
-                MarginRight = margin,
-                MarginTop = 56,
-                MarginBottom = 56
+                PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(760),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(margin),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(margin),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(56),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(56)
             })
             .Theme(PdfTheme.WordLike())
             .H1("LineItemGate")

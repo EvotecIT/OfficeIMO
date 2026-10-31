@@ -151,10 +151,10 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies automatic spacing defaults to the textbox paragraphs.
         /// </summary>
         public PowerPointTextBox ApplyAutoSpacing(double lineSpacingMultiplier = 1.2,
-            double? spaceBeforePoints = null, double? spaceAfterPoints = null) {
+            global::OfficeIMO.OfficeLength? spaceBefore = null, global::OfficeIMO.OfficeLength? spaceAfter = null) {
             PowerPointParagraphStyle style = new(lineSpacingMultiplier: lineSpacingMultiplier,
-                spaceBeforePoints: spaceBeforePoints,
-                spaceAfterPoints: spaceAfterPoints);
+                spaceBefore: spaceBefore,
+                spaceAfter: spaceAfter);
             return ApplyParagraphStyle(style);
         }
 
@@ -322,131 +322,45 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets the left text margin in points.
+        ///     Gets or sets the left text margin as a physical length.
         /// </summary>
-        public double? TextMarginLeftPoints {
-            get => FromEmusInt(GetBodyProperties()?.LeftInset?.Value, PowerPointUnits.EmusPerPoint);
-            set => EnsureBodyProperties().LeftInset = ToEmusInt(value, PowerPointUnits.EmusPerPoint);
+        public global::OfficeIMO.OfficeLength? TextMarginLeft {
+            get => GetBodyProperties()?.LeftInset?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
+            set => EnsureBodyProperties().LeftInset = ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint);
         }
 
         /// <summary>
-        ///     Gets or sets the right text margin in points.
+        ///     Gets or sets the right text margin as a physical length.
         /// </summary>
-        public double? TextMarginRightPoints {
-            get => FromEmusInt(GetBodyProperties()?.RightInset?.Value, PowerPointUnits.EmusPerPoint);
-            set => EnsureBodyProperties().RightInset = ToEmusInt(value, PowerPointUnits.EmusPerPoint);
+        public global::OfficeIMO.OfficeLength? TextMarginRight {
+            get => GetBodyProperties()?.RightInset?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
+            set => EnsureBodyProperties().RightInset = ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint);
         }
 
         /// <summary>
-        ///     Gets or sets the top text margin in points.
+        ///     Gets or sets the top text margin as a physical length.
         /// </summary>
-        public double? TextMarginTopPoints {
-            get => FromEmusInt(GetBodyProperties()?.TopInset?.Value, PowerPointUnits.EmusPerPoint);
-            set => EnsureBodyProperties().TopInset = ToEmusInt(value, PowerPointUnits.EmusPerPoint);
+        public global::OfficeIMO.OfficeLength? TextMarginTop {
+            get => GetBodyProperties()?.TopInset?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
+            set => EnsureBodyProperties().TopInset = ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint);
         }
 
         /// <summary>
-        ///     Gets or sets the bottom text margin in points.
+        ///     Gets or sets the bottom text margin as a physical length.
         /// </summary>
-        public double? TextMarginBottomPoints {
-            get => FromEmusInt(GetBodyProperties()?.BottomInset?.Value, PowerPointUnits.EmusPerPoint);
-            set => EnsureBodyProperties().BottomInset = ToEmusInt(value, PowerPointUnits.EmusPerPoint);
+        public global::OfficeIMO.OfficeLength? TextMarginBottom {
+            get => GetBodyProperties()?.BottomInset?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
+            set => EnsureBodyProperties().BottomInset = ToEmusInt(value?.ToPoints(), PowerPointUnits.EmusPerPoint);
         }
 
         /// <summary>
-        ///     Gets or sets the left text margin in centimeters.
+        ///     Sets all text margins as a physical length.
         /// </summary>
-        public double? TextMarginLeftCm {
-            get => FromEmusInt(GetBodyProperties()?.LeftInset?.Value, PowerPointUnits.EmusPerCentimeter);
-            set => EnsureBodyProperties().LeftInset = ToEmusInt(value, PowerPointUnits.EmusPerCentimeter);
-        }
-
-        /// <summary>
-        ///     Gets or sets the right text margin in centimeters.
-        /// </summary>
-        public double? TextMarginRightCm {
-            get => FromEmusInt(GetBodyProperties()?.RightInset?.Value, PowerPointUnits.EmusPerCentimeter);
-            set => EnsureBodyProperties().RightInset = ToEmusInt(value, PowerPointUnits.EmusPerCentimeter);
-        }
-
-        /// <summary>
-        ///     Gets or sets the top text margin in centimeters.
-        /// </summary>
-        public double? TextMarginTopCm {
-            get => FromEmusInt(GetBodyProperties()?.TopInset?.Value, PowerPointUnits.EmusPerCentimeter);
-            set => EnsureBodyProperties().TopInset = ToEmusInt(value, PowerPointUnits.EmusPerCentimeter);
-        }
-
-        /// <summary>
-        ///     Gets or sets the bottom text margin in centimeters.
-        /// </summary>
-        public double? TextMarginBottomCm {
-            get => FromEmusInt(GetBodyProperties()?.BottomInset?.Value, PowerPointUnits.EmusPerCentimeter);
-            set => EnsureBodyProperties().BottomInset = ToEmusInt(value, PowerPointUnits.EmusPerCentimeter);
-        }
-
-        /// <summary>
-        ///     Gets or sets the left text margin in inches.
-        /// </summary>
-        public double? TextMarginLeftInches {
-            get => FromEmusInt(GetBodyProperties()?.LeftInset?.Value, PowerPointUnits.EmusPerInch);
-            set => EnsureBodyProperties().LeftInset = ToEmusInt(value, PowerPointUnits.EmusPerInch);
-        }
-
-        /// <summary>
-        ///     Gets or sets the right text margin in inches.
-        /// </summary>
-        public double? TextMarginRightInches {
-            get => FromEmusInt(GetBodyProperties()?.RightInset?.Value, PowerPointUnits.EmusPerInch);
-            set => EnsureBodyProperties().RightInset = ToEmusInt(value, PowerPointUnits.EmusPerInch);
-        }
-
-        /// <summary>
-        ///     Gets or sets the top text margin in inches.
-        /// </summary>
-        public double? TextMarginTopInches {
-            get => FromEmusInt(GetBodyProperties()?.TopInset?.Value, PowerPointUnits.EmusPerInch);
-            set => EnsureBodyProperties().TopInset = ToEmusInt(value, PowerPointUnits.EmusPerInch);
-        }
-
-        /// <summary>
-        ///     Gets or sets the bottom text margin in inches.
-        /// </summary>
-        public double? TextMarginBottomInches {
-            get => FromEmusInt(GetBodyProperties()?.BottomInset?.Value, PowerPointUnits.EmusPerInch);
-            set => EnsureBodyProperties().BottomInset = ToEmusInt(value, PowerPointUnits.EmusPerInch);
-        }
-
-        /// <summary>
-        ///     Sets all text margins in points.
-        /// </summary>
-        public PowerPointTextBox SetTextMarginsPoints(double left, double top, double right, double bottom) {
-            TextMarginLeftPoints = left;
-            TextMarginTopPoints = top;
-            TextMarginRightPoints = right;
-            TextMarginBottomPoints = bottom;
-            return this;
-        }
-
-        /// <summary>
-        ///     Sets all text margins in centimeters.
-        /// </summary>
-        public PowerPointTextBox SetTextMarginsCm(double leftCm, double topCm, double rightCm, double bottomCm) {
-            TextMarginLeftCm = leftCm;
-            TextMarginTopCm = topCm;
-            TextMarginRightCm = rightCm;
-            TextMarginBottomCm = bottomCm;
-            return this;
-        }
-
-        /// <summary>
-        ///     Sets all text margins in inches.
-        /// </summary>
-        public PowerPointTextBox SetTextMarginsInches(double leftInches, double topInches, double rightInches, double bottomInches) {
-            TextMarginLeftInches = leftInches;
-            TextMarginTopInches = topInches;
-            TextMarginRightInches = rightInches;
-            TextMarginBottomInches = bottomInches;
+        public PowerPointTextBox SetTextMargins(global::OfficeIMO.OfficeLength left, global::OfficeIMO.OfficeLength top, global::OfficeIMO.OfficeLength right, global::OfficeIMO.OfficeLength bottom) {
+            TextMarginLeft = left;
+            TextMarginTop = top;
+            TextMarginRight = right;
+            TextMarginBottom = bottom;
             return this;
         }
 
@@ -585,16 +499,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets the font size in points.
+        ///     Gets or sets the font size as a physical length.
         /// </summary>
-        public int? FontSize {
+        public global::OfficeIMO.OfficeLength? FontSize {
             get {
                 A.Run? run = Runs.FirstOrDefault();
                 int? size = run?.RunProperties?.FontSize?.Value;
-                return size != null ? size / 100 : null;
+                return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
             }
             set {
-                int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value, nameof(value));
+                int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
                 foreach (A.Run run in Runs) {
                     A.RunProperties runProps = run.RunProperties ??= new A.RunProperties();
                     runProps.FontSize = drawingSize;

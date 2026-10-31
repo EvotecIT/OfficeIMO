@@ -11,7 +11,7 @@ public sealed class PowerPointLayoutMetricTests {
     [InlineData(PowerPointLayout.Kpi)]
     [InlineData(PowerPointLayout.CaseStudy)]
     public void LowerIsBetterUsesTheSameChangeInMetricAndCaseStudyLayouts(PowerPointLayout layout) {
-        using var document = PowerPointPresentation.Create(new PowerPointCreateOptions { Theme = OfficeTheme.Modern });
+        using var document = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = OfficeTheme.Modern });
         var metric = PowerPointLayoutKpi.FromDelta("182 ms", "Median response", -0.14D, "%", PowerPointKpiDirection.Down);
         PowerPointLayoutBlock[] blocks = layout == PowerPointLayout.CaseStudy
             ? new PowerPointLayoutBlock[] { new PowerPointLayoutCard("Routing", "Reduce processing time."), metric }
@@ -19,7 +19,7 @@ public sealed class PowerPointLayoutMetricTests {
         var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand("#2563EB", "metric-change"));
         options.ApplyTheme = false;
         document.Compose(new PowerPointDeckPlan().AddContent("Service health", blocks, layout), options);
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         var change = Assert.Single(Assert.Single(saved.Slides).TextBoxes, box => box.Text == "▼ -14%");
         Assert.Equal("▼ -14%", change.Text);
         Assert.Equal(OfficeTheme.Modern.Palette.Success.ToRgbHex(),

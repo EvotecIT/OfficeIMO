@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a selected worksheet cell range decoded from a BIFF Selection record.
     /// </summary>
-    public sealed class LegacyXlsSelectedRange {
+    internal sealed class LegacyXlsSelectedRange {
         /// <summary>
         /// Creates a selected range.
         /// </summary>

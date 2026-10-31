@@ -73,7 +73,7 @@ internal static partial class NativeAdapters {
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged, TargetDpi = suite.Dpi, BackgroundColor = OfficeColor.White,
             DefaultFontFamily = suite.FontFamily, Margins = HtmlRenderMargins.All(0),
-            PageSize = new OfficePageSize(contract.Pages[0].Width / (double)suite.Dpi, contract.Pages[0].Height / (double)suite.Dpi)
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(contract.Pages[0].Width / (double)suite.Dpi), global::OfficeIMO.OfficeLength.Inches(contract.Pages[0].Height / (double)suite.Dpi))
         };
         options.UseRenderingProfile(profile);
         using var output = new MemoryStream();

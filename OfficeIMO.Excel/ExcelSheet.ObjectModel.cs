@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Spreadsheet;
 using System.Text;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
@@ -11,6 +12,16 @@ namespace OfficeIMO.Excel {
         /// Returns a lightweight object wrapper for a single cell.
         /// </summary>
         public ExcelCell CellAt(int row, int column) => new ExcelCell(this, row, column);
+
+        /// <summary>Returns an editable cell addressed within this worksheet.</summary>
+        public ExcelCell CellAt(string reference) {
+            if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentNullException(nameof(reference));
+            var syntax = SpreadsheetRangeReference.Parse(reference, SpreadsheetAddressDialect.ExcelA1);
+            if (syntax.End != null || !syntax.Start.IsCell || syntax.Start.SheetName != null)
+                throw new ArgumentException("Cell reference must identify one cell on the current worksheet.", nameof(reference));
+            return CellAt(checked((int)syntax.Start.Row!.Value), syntax.Start.Column!.Value);
+        }
+
 
         /// <summary>
         /// Returns a lightweight object wrapper for an A1 range.

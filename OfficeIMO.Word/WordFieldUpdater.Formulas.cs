@@ -166,11 +166,11 @@ namespace OfficeIMO.Word {
                 case WordFieldFormat.Arabic:
                     formattedValue = FormatFormulaValue(value);
                     return true;
-                case WordFieldFormat.Roman:
-                case WordFieldFormat.roman:
+                case WordFieldFormat.UpperRoman:
+                case WordFieldFormat.LowerRoman:
                 case WordFieldFormat.Ordinal:
-                case WordFieldFormat.Alphabetical:
-                case WordFieldFormat.ALPHABETICAL:
+                case WordFieldFormat.LowerLetter:
+                case WordFieldFormat.UpperLetter:
                 case WordFieldFormat.Hex:
                 case WordFieldFormat.CardText:
                 case WordFieldFormat.OrdText:
@@ -239,8 +239,7 @@ namespace OfficeIMO.Word {
 
             foreach (Match match in FormulaFormatSwitchPattern.Matches(switchesText)) {
                 string formatSwitch = match.Groups["format"].Value.Trim();
-                bool success = Enum.TryParse(formatSwitch, false, out WordFieldFormat fieldFormat) ||
-                    Enum.TryParse(formatSwitch, true, out fieldFormat);
+                bool success = WordFieldFormatCodec.TryParse(formatSwitch, out WordFieldFormat fieldFormat);
                 if (!success) {
                     formatSwitches = Array.Empty<WordFieldFormat>();
                     diagnostic = $"Formula format switch \\* {formatSwitch} is not recognized by OfficeIMO.";

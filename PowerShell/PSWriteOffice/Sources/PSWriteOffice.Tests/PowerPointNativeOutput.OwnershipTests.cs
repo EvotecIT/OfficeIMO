@@ -8,7 +8,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
     [InlineData(false)]
     [InlineData(true)]
     public void RejectedFirstNotesRemoveTheirAudioFromTheLivePackage(bool wholeSlide) {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         runspace.SessionStateProxy.SetVariable("wholeSlide", wholeSlide);
         Invoke(runspace, """
@@ -40,14 +40,14 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         Assert.Empty(deck.OpenXmlDocument.DataParts);
         Assert.Single(deck.Slides);
         Assert.Null(deck.OpenXmlDocument.PresentationPart!.SlideParts.Single().NotesSlidePart);
-        using var saved = PowerPointPresentation.Load(Save(deck, "rejected-first-notes.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "rejected-first-notes.pptx"));
         Assert.Empty(saved.OpenXmlDocument.DataParts);
         Assert.Empty(saved.ValidateDocument());
     }
 
     [Fact]
     public void RejectedColumnRestoresNotesLinksAndAudioAndRemovesRejectedRelationships() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         byte[] original = { 82, 73, 70, 70, 1, 2, 3, 4 };
         runspace.SessionStateProxy.SetVariable("audio", original);
@@ -71,7 +71,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
             """);
         Assert.True(Get<bool>(runspace, "rejected"));
         string path = Save(deck, "notes-relationships.pptx");
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         var stored = Assert.Single(saved.Slides[0].Notes.Paragraphs).Runs[0];
         Assert.Equal("https://contoso.com/original", stored.Hyperlink?.AbsoluteUri);
         Assert.Equal(original, stored.GetClickSoundBytes());
@@ -86,7 +86,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
 
     [Fact]
     public void ArrangingNativeFramePreservesAuthoredAppearanceAndBodyProperties() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         Invoke(runspace, """
             PowerPointSlide -Document $deck -Title 'Authored frame' {
@@ -98,7 +98,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
             """);
         var list = Get<PowerPointTextBox>(runspace, "list");
         Assert.Contains(deck.Slides[0].TextBoxes, b => ReferenceEquals(b, list));
-        using var saved = PowerPointPresentation.Load(Save(deck, "authored-frame.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "authored-frame.pptx"));
         var stored = Assert.Single(saved.Slides[0].TextBoxes, b => b.Text.Contains("Ready", StringComparison.Ordinal));
         Assert.Equal("127733", stored.FillColor);
         Assert.Equal(PowerPointTextDirection.Vertical, stored.TextDirection);
@@ -111,7 +111,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
 
     [Fact]
     public void FrameInteractionRelationshipsFollowTheFrameToItsContinuationSlide() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         byte[] audio = { 82, 73, 70, 70, 1, 2, 3, 4 };
         runspace.SessionStateProxy.SetVariable("audio", audio);
@@ -128,7 +128,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         Assert.Contains(deck.Slides.Skip(1).SelectMany(s => s.TextBoxes), b => ReferenceEquals(b, frame));
         Assert.Equal("https://contoso.com/frame", frame.Hyperlink?.AbsoluteUri);
         Assert.Equal(audio, frame.GetClickSoundBytes());
-        using var saved = PowerPointPresentation.Load(Save(deck, "frame-interaction.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "frame-interaction.pptx"));
         var stored = Assert.Single(saved.Slides.Skip(1).SelectMany(s => s.TextBoxes), b => b.Text == "Last live frame");
         Assert.Equal("https://contoso.com/frame", stored.Hyperlink?.AbsoluteUri);
         Assert.Equal(audio, stored.GetClickSoundBytes());
@@ -137,7 +137,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
 
     [Fact]
     public void AuthoredWideQuoteUsesTheWidthMeasuredBeforeContinuation() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         string text = string.Join(" ", Enumerable.Repeat("Wide words fill this authored quote", 30));
         runspace.SessionStateProxy.SetVariable("quoteText", text);
@@ -146,7 +146,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
                 PowerPointParagraph { $script:quoteRun = PowerPointText $quoteText -Size 48 -Font 'Courier New' -PassThru }
             }
             """);
-        using var saved = PowerPointPresentation.Load(Save(deck, "wide-quote.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "wide-quote.pptx"));
         Assert.True(saved.Slides.Count > 1);
         Assert.Equal(text, string.Concat(saved.Slides.SelectMany(s => s.TextBoxes).SelectMany(b => b.Paragraphs)
             .Where(p => p.Runs.Any(r => r.FontName == "Courier New")).Select(p => p.Text)));
@@ -156,7 +156,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
 
     [Fact]
     public void RepeatedTableSideListKeepsItsFirstNativeNodesAndClonesLaterPages() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         Invoke(runspace, """
             PowerPointSlide -Document $deck -Title 'Table with context' -Layout TwoContent {
@@ -171,7 +171,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         Assert.Equal(4, deck.Slides.Count);
         var frame = Get<PowerPointTextBox>(runspace, "context");
         Assert.Contains(deck.Slides[0].TextBoxes, b => ReferenceEquals(b, frame));
-        using var saved = PowerPointPresentation.Load(Save(deck, "table-side-list.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "table-side-list.pptx"));
         Assert.Contains(saved.Slides[0].TextBoxes, b => b.Text == "First page context edited");
         Assert.All(saved.Slides.Skip(1), s => Assert.Contains(s.TextBoxes, b => b.Text == "Retained context"));
         Assert.All(saved.Slides, s => Assert.Contains(s.TextBoxes.SelectMany(b => b.Paragraphs).SelectMany(p => p.Runs),
@@ -183,7 +183,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
     [InlineData(false)]
     [InlineData(true)]
     public void CollectedTableReturnsItsNativeTableAndPreservesLiveCellEditsAndStyleAcrossContinuation(bool leadingLists) {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         const string style = "{5940675A-B579-460E-94D1-54222C63F5DA}";
         runspace.SessionStateProxy.SetVariable("tableStyle", style);
@@ -206,7 +206,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         Assert.Contains(deck.Slides[leadingLists ? 1 : 0].Tables, t => ReferenceEquals(t, table));
         Assert.Equal(leadingLists ? 5 : 4, deck.Slides.Count);
         Assert.Equal("https://contoso.com/before-table-continuation", Get<string>(runspace, "beforeLink"));
-        using var saved = PowerPointPresentation.Load(Save(deck, "native-table.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "native-table.pptx"));
         Assert.Equal("Edited after arrangement", saved.Slides[leadingLists ? 1 : 0].Tables.Single().GetCell(1, 0).Text);
         Assert.Equal("Edited on last continuation", saved.Slides.Last().Tables.Single().GetCell(2, 0).Text);
         Assert.Equal("https://contoso.com/after-table-continuation", saved.Slides.Last().Tables.Single().GetCell(2, 0).Paragraphs[0].Runs[0].Hyperlink?.AbsoluteUri);

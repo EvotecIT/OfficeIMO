@@ -24,13 +24,13 @@ public static partial class PowerPointPdfConverterExtensions {
             ? ResolveTableDefaultFontFamily(table)
             : null;
         PdfCore.PdfTableStyle style = CreateTableStyle(table, options);
-        double bodyFontSize = style.FontSize ?? (options.PdfOptions ?? new PdfCore.PdfCreateOptions()).DefaultFontSize;
+        double bodyFontSize = style.FontSize?.ToPoints() ?? (options.PdfOptions ?? new PdfCore.PdfCreateOptions()).DefaultFontSize.ToPoints();
         var rowCells = Enumerable.Range(0, table.Rows).Select(_ => new List<PdfCore.PdfTableCell>()).ToArray();
         foreach (var anchor in table.EnumerateAnchorCells()) {
             options.CancellationToken.ThrowIfCancellationRequested();
             int rowIndex = anchor.Row;
-            double fallbackFontSize = rowIndex < style.HeaderRowCount ? style.HeaderFontSize ?? bodyFontSize
-                : rowIndex >= table.Rows - style.FooterRowCount ? style.FooterFontSize ?? bodyFontSize : bodyFontSize;
+            double fallbackFontSize = rowIndex < style.HeaderRowCount ? style.HeaderFontSize?.ToPoints() ?? bodyFontSize
+                : rowIndex >= table.Rows - style.FooterRowCount ? style.FooterFontSize?.ToPoints() ?? bodyFontSize : bodyFontSize;
             IReadOnlyList<A.TextCharacterPropertiesType> tableDefaults = options.PdfOptions?.HasExplicitDefaultTableStyle == true
                 ? Array.Empty<A.TextCharacterPropertiesType>()
                 : CreateTableTextDefaults(table, rowIndex, anchor.Column);
@@ -44,7 +44,7 @@ public static partial class PowerPointPdfConverterExtensions {
         bool reportedCellOverflow = height > authoredHeight + .001D
             && ReportTableSlideOverflow(x, y, width, height, slideWidth, slideHeight, slideNumber, options);
         try {
-            Action<PdfCore.PdfPageCanvas> render = target => target.Table(rows, x, y, width, height, style, table.Rotation ?? 0D, diagnostic => {
+            Action<PdfCore.PdfPageCanvas> render = target => target.Table(rows, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style, table.Rotation ?? 0D, diagnostic => {
                 if (reportedCellOverflow || diagnostic.Kind != PdfCore.PdfLayoutDiagnosticKind.ClippedContent) {
                     return;
                 }
@@ -59,13 +59,13 @@ public static partial class PowerPointPdfConverterExtensions {
                         PdfCore.PdfLayoutDiagnosticKind.ClippedContent,
                         "PowerPointTableCell",
                         diagnostic.Message,
-                        diagnostic.X ?? x,
-                        diagnostic.Y ?? y,
-                        diagnostic.Width ?? width,
-                        diagnostic.Height ?? height));
+                        global::OfficeIMO.OfficeLength.Points((diagnostic.X?.ToPoints()) ?? x),
+                        global::OfficeIMO.OfficeLength.Points((diagnostic.Y?.ToPoints()) ?? y),
+                        global::OfficeIMO.OfficeLength.Points((diagnostic.Width?.ToPoints()) ?? width),
+                        global::OfficeIMO.OfficeLength.Points((diagnostic.Height?.ToPoints()) ?? height)));
             });
             if (reportedCellOverflow && !hasAncestorPageClip) {
-                canvas.Clip(0D, 0D, slideWidth!.Value, slideHeight!.Value, render);
+                canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(slideWidth!.Value), global::OfficeIMO.OfficeLength.Points(slideHeight!.Value), render);
             } else {
                 render(canvas);
             }
@@ -154,7 +154,7 @@ public static partial class PowerPointPdfConverterExtensions {
             bold: cell.Bold,
             italic: cell.Italic,
             color: ParsePdfColor(cell.Color),
-            fontSize: cell.FontSize,
+            fontSize: ((double?)(cell.FontSize?.ToPoints()) is double physicalLength9 ? global::OfficeIMO.OfficeLength.Points(physicalLength9) : (global::OfficeIMO.OfficeLength?)null),
             font: MapFont(fontFamily),
             fontFamily: fontFamily);
     }
@@ -166,9 +166,9 @@ public static partial class PowerPointPdfConverterExtensions {
         style.RepeatHeaderRowCount = style.HeaderRowCount == 0 ? 0 : style.HeaderRowCount;
         style.FooterRowCount = table.LastRow ? 1 : 0;
         style.RowStripeFill = table.BandedRows ? style.RowStripeFill : null;
-        style.ColumnWidthPoints = CreateColumnWidths(table, table.WidthPoints);
-        style.RowMinHeights = CreateRowHeights(table, table.HeightPoints);
-        Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = CreateTableCellFills(table, includePresentationTableStyle);
+        style.ColumnWidths = (CreateColumnWidths(table, table.Width.ToPoints())) is { } lengths8013 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths8013, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
+        style.RowMinHeights = (CreateRowHeights(table, table.Height.ToPoints())) is { } lengths8094 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths8094, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
+        Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? cellFills = CreateTableCellFills(table, includePresentationTableStyle);
         if (cellFills != null) {
             style.CellFills = MergeTableCellMap(style.CellFills, cellFills);
         }
@@ -208,7 +208,7 @@ public static partial class PowerPointPdfConverterExtensions {
             HeaderFill = null,
             FooterFill = null,
             RowStripeFill = null,
-            TextColor = PdfCore.PdfColor.Black,
+            TextColor = global::OfficeIMO.OfficeColor.Black,
             HeaderBold = false,
             FooterBold = false,
             LineHeight = 1.2D
@@ -216,11 +216,11 @@ public static partial class PowerPointPdfConverterExtensions {
         // Every anchor cell receives its resolved presentation borders. A PDF
         // preset grid would paint over them and restore explicitly hidden edges.
         style.BorderColor = null;
-        style.FontSize = PptCore.PowerPointTextDefaults.DefaultFontSizePoints;
-        style.HeaderFontSize = PptCore.PowerPointTextDefaults.DefaultFontSizePoints;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(PptCore.PowerPointTextDefaults.DefaultFontSizePoints);
+        style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(PptCore.PowerPointTextDefaults.DefaultFontSizePoints);
         // DrawingML tcPr defaults: 0.1in on each side and 0.05in above/below.
-        style.CellPaddingX = 7.2D;
-        style.CellPaddingY = 3.6D;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(7.2D);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(3.6D);
         return style;
     }
 
@@ -239,7 +239,7 @@ public static partial class PowerPointPdfConverterExtensions {
         var widths = new List<double?>(table.Columns);
         double fallbackWidth = table.Columns > 0 ? tableWidth / table.Columns : tableWidth;
         for (int column = 0; column < table.Columns; column++) {
-            double width = table.GetColumnWidthPoints(column);
+            double width = (table.GetColumnWidth(column)).ToPoints();
             widths.Add(width > 0D ? width : fallbackWidth);
         }
 
@@ -250,26 +250,26 @@ public static partial class PowerPointPdfConverterExtensions {
         var heights = new List<double?>(table.Rows);
         double fallbackHeight = table.Rows > 0 ? tableHeight / table.Rows : tableHeight;
         for (int row = 0; row < table.Rows; row++) {
-            double height = table.GetRowHeightPoints(row);
+            double height = (table.GetRowHeight(row)).ToPoints();
             heights.Add(height > 0D ? height : fallbackHeight);
         }
 
         return heights;
     }
 
-    private static Dictionary<(int Row, int Column), PdfCore.PdfColor>? CreateTableCellFills(PptCore.PowerPointTable table, bool includePresentationTableStyle) {
-        var fills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+    private static Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? CreateTableCellFills(PptCore.PowerPointTable table, bool includePresentationTableStyle) {
+        var fills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
         ForEachTableAnchorCell(table, (row, column, cell) => {
             if (includePresentationTableStyle) {
                 OfficeColor fill = PptCore.PowerPointSlideImageRenderer.ResolveTableCellFillColorForExport(table, row, column);
                 if (fill.A > 0) {
-                    fills[(row, column)] = PdfCore.PdfColor.FromOfficeColor(fill);
+                    fills[(row, column)] = fill;
                 }
 
                 return;
             }
 
-            PdfCore.PdfColor? directFill = ParsePdfColor(cell.FillColor);
+            global::OfficeIMO.OfficeColor? directFill = ParsePdfColor(cell.FillColor);
             if (directFill.HasValue) {
                 fills[(row, column)] = directFill.Value;
             }
@@ -281,12 +281,12 @@ public static partial class PowerPointPdfConverterExtensions {
     private static Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>? CreateTableCellPaddings(PptCore.PowerPointTable table) {
         var paddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
         ForEachTableAnchorCell(table, (row, column, cell) => {
-            if (cell.PaddingLeftPoints.HasValue || cell.PaddingRightPoints.HasValue || cell.PaddingTopPoints.HasValue || cell.PaddingBottomPoints.HasValue) {
+            if (cell.PaddingLeft.HasValue || cell.PaddingRight.HasValue || cell.PaddingTop.HasValue || cell.PaddingBottom.HasValue) {
                 paddings[(row, column)] = new PdfCore.PdfCellPadding {
-                    Left = cell.PaddingLeftPoints,
-                    Right = cell.PaddingRightPoints,
-                    Top = cell.PaddingTopPoints,
-                    Bottom = cell.PaddingBottomPoints
+                    Left = cell.PaddingLeft,
+                    Right = cell.PaddingRight,
+                    Top = cell.PaddingTop,
+                    Bottom = cell.PaddingBottom
                 };
             }
         });
@@ -327,11 +327,11 @@ public static partial class PowerPointPdfConverterExtensions {
                 return;
             }
 
-            PdfCore.PdfColor? directBorder = ParsePdfColor(cell.BorderColor);
+            global::OfficeIMO.OfficeColor? directBorder = ParsePdfColor(cell.BorderColor);
             if (directBorder.HasValue) {
                 borders[(row, column)] = new PdfCore.PdfCellBorder {
                     Color = directBorder.Value,
-                    Width = 0.75D
+                    Width = global::OfficeIMO.OfficeLength.Points(0.75D)
                 };
             }
         });
@@ -342,7 +342,7 @@ public static partial class PowerPointPdfConverterExtensions {
     private static PdfCore.PdfCellBorder CreatePdfTableCellBorder(OfficeBorderBox border) {
         return new PdfCore.PdfCellBorder {
             Color = null,
-            Width = 0D,
+            Width = global::OfficeIMO.OfficeLength.Points(0D),
             LeftBorder = CreatePdfTableCellBorderSide(border.Left),
             TopBorder = CreatePdfTableCellBorderSide(border.Top),
             RightBorder = CreatePdfTableCellBorderSide(border.Right),
@@ -361,8 +361,8 @@ public static partial class PowerPointPdfConverterExtensions {
 
         OfficeBorderSide value = side.Value;
         return new PdfCore.PdfCellBorderSide {
-            Color = value.IsVisible ? PdfCore.PdfColor.FromOfficeColor(value.Color) : null,
-            Width = value.Width,
+            Color = value.IsVisible ? value.Color : null,
+            Width = global::OfficeIMO.OfficeLength.Points(value.Width),
             DashStyle = value.DashStyle,
             LineStyle = value.LineKind == OfficeBorderLineKind.Double
                 ? PdfCore.PdfCellBorderLineStyle.TwoLine
@@ -375,10 +375,10 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static (double Width, double Height) ResolveTableGridSize(PptCore.PowerPointTable table, double width, double height) {
-        long frameWidth = table.Width, frameHeight = table.Height;
+        long frameWidth = table.Width.ToEmus(), frameHeight = table.Height.ToEmus();
         long gridWidth = 0, gridHeight = 0;
-        for (int c = 0; c < table.Columns; c++) gridWidth += table.GetColumnWidth(c);
-        for (int r = 0; r < table.Rows; r++) gridHeight += table.GetRowHeight(r);
+        for (int c = 0; c < table.Columns; c++) gridWidth += table.GetColumnWidth(c).ToEmus();
+        for (int r = 0; r < table.Rows; r++) gridHeight += table.GetRowHeight(r).ToEmus();
         double resolvedWidth = gridWidth > 0 && frameWidth > 0 ? width * gridWidth / frameWidth : width;
         double resolvedHeight = gridHeight > 0 && frameHeight > 0 ? height * gridHeight / frameHeight : height;
         return (resolvedWidth, resolvedHeight);

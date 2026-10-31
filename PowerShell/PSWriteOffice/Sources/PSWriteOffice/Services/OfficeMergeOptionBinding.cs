@@ -45,7 +45,7 @@ internal static class OfficeMergeOptionBinding {
             ValidateEnums(pdf.Policy);
             if (pdf.ResizePages is PdfPageResizeOptions resize) {
                 ValidateEnums(resize);
-                double width = resize.PageSize.Width, height = resize.PageSize.Height, margin = resize.Margin;
+                double width = resize.PageSize.Width.ToPoints(), height = resize.PageSize.Height.ToPoints(), margin = resize.Margin.ToPoints();
                 if (!Finite(width) || !Finite(height) || width <= 0 || height <= 0 || !Finite(margin) || margin < 0 ||
                     margin * 2 >= width || margin * 2 >= height)
                     throw new PSArgumentException("PDF resize settings require finite positive dimensions and a margin leaving positive content area.");

@@ -90,7 +90,7 @@ public static partial class OfficeMarkupParser {
 
             case ImageBlock image:
                 return WithLazySourceText(
-                    new OfficeMarkupImageBlock(image.Path, image.PlainAlt ?? image.Alt, image.Title, image.Width, image.Height) { Caption = image.Caption },
+                    new OfficeMarkupImageBlock(image.Path, image.PlainAlt ?? image.Alt, image.Title, image.Width?.ToPixels(), image.Height?.ToPixels()) { Caption = image.Caption },
                     markdownBlock);
 
             case TableBlock table:

@@ -65,7 +65,7 @@ public sealed class AddOfficePowerPointImageCommand : PSWriteOffice.Cmdlets.Offi
 
             var scope = Slide == null ? PowerPointContentScope.Current : null;
             var slide = Slide ?? scope?.NativeSlide ?? PowerPointDslContext.Require(this).RequireSlide();
-            var picture = slide.AddPicturePoints(resolvedPath, X, Y, Width, Height);
+            var picture = slide.AddImage(resolvedPath, OfficeLength.Points(X), OfficeLength.Points(Y), OfficeLength.Points(Width), OfficeLength.Points(Height));
             if (AlternativeText != null) picture.Description = AlternativeText;
             if (scope != null) scope.AddFigure(new PowerPointLayoutImage(resolvedPath, AlternativeText) { NativePicture = picture }, picture);
             WritePassThru(picture);

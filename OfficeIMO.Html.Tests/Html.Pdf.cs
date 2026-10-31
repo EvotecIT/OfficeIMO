@@ -184,9 +184,9 @@ public sealed class HtmlPdfTests {
     public void Pdf_ToHtmlResult_BoundsEncodedSemanticItemsDuringRendering() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 EmbedDefaultFonts = false,
-                PageWidth = 420,
-                PageHeight = 360,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(paragraph => paragraph.Text(new string('&', 100_000)))
             .ToBytes();
@@ -1115,7 +1115,7 @@ public sealed class HtmlPdfTests {
             + "<tfoot><tr><td><input name='summary' value='Totals'></td></tr></tfoot></table>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, 180D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(180D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(16D)
         };
 
@@ -1136,7 +1136,7 @@ public sealed class HtmlPdfTests {
         string html = "<input name='fixed-search' value='Search' style='position:fixed;top:4px;left:4px'>" + body;
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, 180D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(180D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(16D)
         };
 
@@ -1375,12 +1375,12 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_PositionedReviewProfile_PreservesDetectedHeadingLevelsInBothTextLayers() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .H1("Primary heading")
             .H2("Secondary heading")
@@ -1405,13 +1405,13 @@ public sealed class HtmlPdfTests {
     [InlineData(true)]
     public void Pdf_ToHtml_PositionedReviewProfile_PreservesMatchingTextOutsideDetectedTableBounds(bool outsideLeft) {
         var pdfOptions = new PdfCore.PdfCreateOptions {
-            PageWidth = 460,
-            PageHeight = 360,
-            MarginLeft = 36,
-            MarginRight = 36,
-            MarginTop = 36,
-            MarginBottom = 36,
-            DefaultFontSize = 10
+            PageWidth = global::OfficeIMO.OfficeLength.Points(460),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var tableRows = new[] {
             new[] { "Area", "Owner", "Status" },
@@ -1419,10 +1419,10 @@ public sealed class HtmlPdfTests {
             new[] { "PDF", "OfficeIMO.Html.Pdf", "Stable" }
         };
         var tableStyle = new PdfCore.PdfTableStyle {
-            ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
             HeaderRowCount = 1,
-            CellPaddingX = 6,
-            CellPaddingY = 4
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
         };
         byte[] baselinePdf = PdfCore.PdfDocument.Create(pdfOptions)
             .H1("Positioned geometry")
@@ -1439,7 +1439,7 @@ public sealed class HtmlPdfTests {
         byte[] pdf = PdfCore.PdfDocument.Create(pdfOptions)
             .H1("Positioned geometry")
             .Table(tableRows, style: tableStyle)
-            .Canvas(canvas => canvas.Text("Ready", outsideX, outsideY, 50D, 18D, fontSize: matchingLetter.FontSize))
+            .Canvas(canvas => canvas.Text("Ready", global::OfficeIMO.OfficeLength.Points(outsideX), global::OfficeIMO.OfficeLength.Points(outsideY), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(matchingLetter.FontSize)))
             .ToBytes();
         PdfCore.PdfLogicalPage page = PdfCore.PdfDocumentReadResult.Load(pdf).Pages[0];
         PdfCore.PdfLogicalTable table = Assert.Single(page.Tables);
@@ -1569,7 +1569,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtmlResult_ReportsIncludedFormWidgetsAsStaticApproximations() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .TextField("Approval", width: 120, value: "Ready")
+            .TextField("Approval", width: global::OfficeIMO.OfficeLength.Points(120), value: "Ready")
             .ToBytes();
 
         PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf)
@@ -1631,16 +1631,16 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtmlResult_PageRanges_PreserveSourcePageCountAndSelectedFormFields() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
-            .TextField("FirstPageField", width: 120, value: "first")
+            .TextField("FirstPageField", width: global::OfficeIMO.OfficeLength.Points(120), value: "first")
             .PageBreak()
-            .TextField("SecondPageField", width: 120, value: "second")
+            .TextField("SecondPageField", width: global::OfficeIMO.OfficeLength.Points(120), value: "second")
             .ToBytes();
         var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
@@ -1705,15 +1705,15 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_PositionedReviewProfile_ExportsPositionedImagePlaceholders() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), 40, 50, 60, 30))
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30)))
             .ToBytes();
         var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview
@@ -1747,12 +1747,12 @@ public sealed class HtmlPdfTests {
     public void Pdf_ToHtml_LogicalDocumentPageRanges_UsesUniqueAnchorsForDuplicatePageSelections() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .H1("Repeated Page")
             .ToBytes();
@@ -1790,12 +1790,12 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_PageRanges_ExportsSelectedPagesThroughSameBridgePackage() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .Paragraph(paragraph => paragraph.Text("First PDF page"))
             .PageBreak()
@@ -1817,12 +1817,12 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_PageRanges_DoesNotReapplyRangesAfterLoadingSelection() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .Paragraph(paragraph => paragraph.Text("Duplicated selected page"))
             .ToBytes();
@@ -1843,12 +1843,12 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_PageRanges_FilterAlreadyLoadedLogicalDocument() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .Paragraph(paragraph => paragraph.Text("First logical page"))
             .PageBreak()
@@ -2023,19 +2023,19 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToPositionedHtml_ScalesSubUnitImageAndLinkBeforeApplyingMinimumSize() {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 160,
-                PageHeight = 160,
-                MarginLeft = 0,
-                MarginRight = 0,
-                MarginTop = 0,
-                MarginBottom = 0
+                PageWidth = global::OfficeIMO.OfficeLength.Points(160),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
             })
             .Canvas(canvas => canvas.Image(
                 PdfPngTestImages.CreateRgbPng(1, 1),
-                20D,
-                30D,
-                0.5D,
-                0.25D))
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(30D),
+                global::OfficeIMO.OfficeLength.Points(0.5D),
+                global::OfficeIMO.OfficeLength.Points(0.25D)))
             .ToBytes();
         source = WithUserUnit(source, 10D);
 
@@ -2162,15 +2162,15 @@ public sealed class HtmlPdfTests {
 
     private static byte[] CreateImageSamplePdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), 40, 50, 60, 30))
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30)))
             .ToBytes();
     }
 
@@ -2461,13 +2461,13 @@ public sealed class HtmlPdfTests {
 
     private static byte[] CreateLogicalSamplePdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "Logical PDF sample", author: "OfficeIMO")
             .H1("Logical Heading")
@@ -2478,10 +2478,10 @@ public sealed class HtmlPdfTests {
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
     }
@@ -2489,13 +2489,13 @@ public sealed class HtmlPdfTests {
     private static byte[] CreateOutlineSamplePdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Executive summary")
             .Paragraph(paragraph => paragraph.Text("Summary body."))
@@ -2509,13 +2509,13 @@ public sealed class HtmlPdfTests {
 
     private static byte[] CreatePdfHtmlSummarySamplePdf(string linkUri) {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 420,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(420),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "PDF to HTML summary sample", author: "OfficeIMO")
             .H1("Logical Heading")
@@ -2526,8 +2526,8 @@ public sealed class HtmlPdfTests {
                 new[] { "A-100", "Alpha", "2" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, PdfCore.PdfAlign.Left, null, null, 6, 0, null, linkUri, "Summary link")
             .ToBytes();

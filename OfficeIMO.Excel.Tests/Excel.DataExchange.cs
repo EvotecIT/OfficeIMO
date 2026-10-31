@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             const string json = "[{\"Name\":\"Alpha\",\"Amount\":10,\"Active\":true},{\"Name\":\"Beta\",\"Amount\":20.5,\"Active\":false}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 string range = sheet.FromJson(json, startRow: 2, startColumn: 2);
                 Assert.Equal("B2:D4", range);
                 document.Save();
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             const string json = "[{\"FirstName\":\"Alpha\",\"Amount\":42}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.FromJson(json);
                 document.Save();
             }
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             const string json = "[{\"Name\":\"Alpha\"}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.FromJson(json);
                 document.Save();
             }
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_DataExchange_JsonRejectsReferencePreservationThatRequiresWholeTableMaterialization() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(2, 1, "Alpha");
             var options = new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.Preserve };
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_DataExchange_JsonRejectsRootCollectionConvertersThatBypassStreaming() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(2, 1, "Alpha");
             var options = new JsonSerializerOptions();
@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests {
             const string json = "[{\"Name\":\"Alpha\"},{\"name\":\"Beta\",\"Score\":20}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 string range = sheet.FromJson(json);
                 Assert.Equal("A1:B3", range);
                 document.Save();
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
             const string json = "[{\"Name\":\"Alpha\"},{\"Name\":\"Beta\",\"Metric25\":25},{\"Metric50\":50}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 string range = sheet.FromJson(json);
                 Assert.Equal("A1:C4", range);
                 document.Save();
@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests {
             string json = "[{" + columns + "},{\"Metric0\":\"Keep\",\"metric0\":null,\"Metric1\":\"\",\"Metric39\":39}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 string range = sheet.FromJson(json);
                 Assert.Equal("A1:AN3", range);
                 document.Save();

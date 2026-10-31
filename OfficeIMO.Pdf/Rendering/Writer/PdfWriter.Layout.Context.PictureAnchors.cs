@@ -60,8 +60,8 @@ internal static partial class PdfWriter {
 
         private PictureAnchorPlacement ResolvePictureAnchor(PdfCanvasAnchoredImageItem item, double paragraphTop) {
             PdfAnchoredImagePosition position = item.Position;
-            double x = position.X + (position.MarginX ? PageAnchorOptions.MarginLeft - position.AuthoredLeftMargin : 0D);
-            double top = position.ParagraphY ? paragraphTop - position.Y : currentOpts.PageHeight - position.Y;
+            double x = position.X + (position.MarginX ? PageAnchorOptions.MarginLeft.ToPoints() - position.AuthoredLeftMargin : 0D);
+            double top = position.ParagraphY ? paragraphTop - position.Y : currentOpts.PageHeight.ToPoints() - position.Y;
             return new PictureAnchorPlacement(GetPictureAnchorKey(item), PicturePage,
                 pictureStoryOrigin ?? yStart, position.ParagraphY, x, top, item.Width, item.Height, item.Exclusion);
         }
@@ -99,7 +99,7 @@ internal static partial class PdfWriter {
                 pictureAnchors.Working[placement.Key] = placement;
                 pictureAnchors.Observed[placement.Key] = placement;
             }
-            OfficeTransform translation = OfficeTransform.Translate(placement.X, currentOpts.PageHeight - placement.Top);
+            OfficeTransform translation = OfficeTransform.Translate(placement.X, currentOpts.PageHeight.ToPoints() - placement.Top);
             if (item.Content.Items.Count == 1 && item.Content.Items[0] is PdfCanvasBehindTextItem behind) {
                 // Deferred paint must capture the translation together with the image token.
                 // Capturing only the inner image would leave its source coordinates at (0,0).
@@ -180,7 +180,7 @@ internal static partial class PdfWriter {
         private double MeasurePictureParagraph(RichParagraphBlock paragraph, double frameX, double frameWidth,
             double fontSize, bool firstVisualOnly = false) {
             PdfParagraphStyle? style = EffectiveParagraphStyle(paragraph);
-            fontSize = style?.FontSize ?? currentOpts.DefaultFontSize;
+            fontSize = style?.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(style, fontSize);
             double before = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(style));
             var wrapped = WrapPictureParagraph(paragraph, frameX, frameWidth, fontSize, y - before);

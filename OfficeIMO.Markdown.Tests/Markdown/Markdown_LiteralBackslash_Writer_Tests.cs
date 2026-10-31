@@ -40,7 +40,8 @@ public class Markdown_LiteralBackslash_Writer_Tests {
         table.Headers.AddRange(new[] { "Value", "Other" });
         table.Rows.Add(new[] { value, "Kept" });
         table.Rows.Add(new[] { "Short row" });
-        var document = MarkdownDocument.Create().Add(table);
+        var document = MarkdownDocument.Create();
+        document.Add(table);
         string markdown = document.ToMarkdown(LiteralOptions());
         Assert.Contains("| " + escaped + " | Kept |", markdown);
         Assert.Contains("| Short row |  |", markdown);
@@ -60,7 +61,10 @@ public class Markdown_LiteralBackslash_Writer_Tests {
         var table = new TableBlock();
         table.Headers.Add("Value");
         table.Rows.Add(new[] { value });
-        var document = MarkdownDocument.Create().P(value).Ul(list => list.Item(value)).Add(table);
+        var document = MarkdownDocument.Create();
+        document.P(value);
+        document.Ul(list => list.Item(value));
+        document.Add(table);
         string markdown = document.ToMarkdown(LiteralOptions());
         Assert.DoesNotContain("&#58;", markdown);
         Assert.Equal(3, Regex.Matches(markdown, Regex.Escape(@"\[Policy\]: none")).Count);
@@ -87,7 +91,9 @@ public class Markdown_LiteralBackslash_Writer_Tests {
         decoded.ReplaceItems(new IMarkdownInline[] { new DecodedHtmlEntityTextRun("<u>(owner)</u> &amp;") });
         var escaped = new InlineSequence();
         escaped.ReplaceItems(new IMarkdownInline[] { new LineStartEscapedTextRun("1. (owner)") });
-        var document = MarkdownDocument.Create().Add(new ParagraphBlock(decoded)).Add(new ParagraphBlock(escaped));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(decoded));
+        document.Add(new ParagraphBlock(escaped));
         string markdown = document.ToMarkdown(LiteralOptions()).Replace("\r\n", "\n");
         Assert.Equal(@"\<u\>(owner)\</u\> \&amp;" + "\n\n" + @"1\. (owner)" + "\n", markdown);
     }

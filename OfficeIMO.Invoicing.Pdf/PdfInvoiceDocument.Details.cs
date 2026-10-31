@@ -3,13 +3,13 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Invoicing.Pdf;
 
 public sealed partial class PdfInvoiceDocument {
-    private void Paragraph(PdfContentBuilder content, string text) { if (!string.IsNullOrWhiteSpace(text)) content.Paragraph(paragraph => paragraph.Text(text), style: _layout.CompactDetails ? new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 4 } : null); }
+    private void Paragraph(PdfContentBuilder content, string text) { if (!string.IsNullOrWhiteSpace(text)) content.Paragraph(paragraph => paragraph.Text(text), style: _layout.CompactDetails ? new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4) } : null); }
     private void DetailGroup(PdfContentBuilder content, string title, string text, InvoicePdfTheme? theme = null) =>
         content.Flow(group => { DetailHeading(group, title, theme); Paragraph(group, text); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
     private void TableGroup(PdfContentBuilder content, string title, IEnumerable<string[]> rows, InvoicePdfTheme? theme = null) =>
         content.Flow(group => { DetailHeading(group, title, theme); group.Table(rows, style: DetailTableStyle(theme)); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
     private void DetailHeading(PdfContentBuilder content, string title, InvoicePdfTheme? theme) {
-        if (_layout.CompactDetails) content.Paragraph(paragraph => paragraph.Bold(title, theme?.Text), style: new PdfParagraphStyle { SpacingBefore = 4, SpacingAfter = 4 });
+        if (_layout.CompactDetails) content.Paragraph(paragraph => paragraph.Bold(title, theme?.Text), style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(4), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4) });
         else content.H2(title, PdfAlign.Left, theme?.Text, style: SectionHeadingStyle());
     }
     private void ComposeDetails(PdfContentBuilder content, InvoicePdfTheme? theme = null) {
@@ -68,19 +68,19 @@ public sealed partial class PdfInvoiceDocument {
     private PdfTableStyle DetailTableStyle(InvoicePdfTheme? theme) {
         PdfTableStyle style = theme == null ? PlainTable() : new PdfTableStyle {
             HeaderRowCount = 0,
-            FontSize = 9D,
-            SpacingAfter = 10D,
+            FontSize = global::OfficeIMO.OfficeLength.Points(9D),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10D),
             AutoFitColumns = true,
             RowStripeFill = null,
             BorderColor = theme.Border,
-            BorderWidth = 0.6D,
-            CornerRadius = theme.CornerRadius,
-            CellPaddingX = 7D,
-            CellPaddingY = 4D,
-            BodyColumnFills = new List<PdfColor?> { theme.Surface, null },
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6D),
+            CornerRadius = global::OfficeIMO.OfficeLength.Points(theme.CornerRadius),
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(7D),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(4D),
+            BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> { theme.Surface, null },
             ColumnWidthWeights = new List<double> { 1D, 1D }
         };
-        if (_layout.CompactDetails) { style.SpacingAfter = 4; style.CellPaddingY = 2; }
+        if (_layout.CompactDetails) { style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(4); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2); }
         return style;
     }
 }

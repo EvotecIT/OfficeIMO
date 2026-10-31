@@ -22,8 +22,7 @@ public sealed partial class WordPdfInlineContentControlTests {
         using WordDocument source = CreateDocument(false, out WordParagraph paragraph);
         using WordDocument reference = CreateDocument(false, out WordParagraph referenceParagraph);
         foreach (WordParagraph target in new[] { paragraph, referenceParagraph }) {
-            target.LineSpacingPoints = 30;
-            target.LineSpacingRule = WordLineSpacingRule.Exact;
+            target.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(30));
             target._paragraph.ParagraphProperties!.TextAlignment = new W.TextAlignment {
                 Val = new VerticalTextAlignmentValues(alignment)
             };
@@ -212,8 +211,8 @@ public sealed partial class WordPdfInlineContentControlTests {
     }
 
     private static WordPdfExportOptions InlinePaintOptions() => new() {
-        IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(300, 160),
-        Margins = new PdfCore.PdfPageMargins(24, 24, 24, 24)
+        IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(160)),
+        Margins = new PdfCore.PdfPageMargins(OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24))
     };
 
     private static (int Left, int Top, int Right, int Bottom, int Pixels) InlineControlYellowBounds(byte[] bytes) {

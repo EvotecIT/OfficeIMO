@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -18,43 +19,42 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var table = document.AddTable(1, 3);
                 table.Alignment = WordTableAlignment.Right;
-                table.Width = 5000;
-                table.WidthType = WordTableWidthUnit.Pct;
-                table.ColumnWidth = new List<int>() { 1500, 2000, 1500 };
+                table.Width = WordTableWidth.Percent(100);
+                table.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(75)), WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(100)), WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(75)) };
 
                 // add on the left
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "To: ";
-                table.Rows[0].Cells[0].Paragraphs[0].LineSpacingAfter = 0;
-                table.Rows[0].Cells[0].Paragraphs[0].LineSpacingBefore = 0;
+                table.Rows[0].Cells[0].Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                table.Rows[0].Cells[0].Paragraphs[0].LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 
                 table.Rows[0].Cells[0].Paragraphs[0].AddParagraph().AddText("Customer Company");
-                table.Rows[0].Cells[0].Paragraphs[1].LineSpacingAfter = 0;
-                table.Rows[0].Cells[0].Paragraphs[1].LineSpacingBefore = 0;
+                table.Rows[0].Cells[0].Paragraphs[1].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                table.Rows[0].Cells[0].Paragraphs[1].LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 
                 table.Rows[0].Cells[0].Paragraphs[1].AddParagraph().AddText("40-308, Mikołów");
-                table.Rows[0].Cells[0].Paragraphs[2].LineSpacingAfter = 0;
-                table.Rows[0].Cells[0].Paragraphs[2].LineSpacingBefore = 0;
+                table.Rows[0].Cells[0].Paragraphs[2].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                table.Rows[0].Cells[0].Paragraphs[2].LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 
                 table.Rows[0].Cells[0].Paragraphs[2].AddParagraph().AddText("Poland");
-                table.Rows[0].Cells[0].Paragraphs[3].LineSpacingAfter = 0;
-                table.Rows[0].Cells[0].Paragraphs[3].LineSpacingBefore = 0;
+                table.Rows[0].Cells[0].Paragraphs[3].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                table.Rows[0].Cells[0].Paragraphs[3].LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 
                 // add on the right
                 table.Rows[0].Cells[2].Paragraphs[0].Text = "Evotec Services sp. z o.o.";
-                table.Rows[0].Cells[2].Paragraphs[0].LineSpacingAfter = 0;
-                table.Rows[0].Cells[2].Paragraphs[0].LineSpacingBefore = 0;
+                table.Rows[0].Cells[2].Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                table.Rows[0].Cells[2].Paragraphs[0].LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 
                 table.Rows[0].Cells[2].Paragraphs[0].AddParagraph().AddText("ul. Drozdów 6");
-                table.Rows[0].Cells[2].Paragraphs[1].LineSpacingAfter = 0;
-                table.Rows[0].Cells[2].Paragraphs[1].LineSpacingBefore = 0;
+                table.Rows[0].Cells[2].Paragraphs[1].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                table.Rows[0].Cells[2].Paragraphs[1].LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 
                 table.Rows[0].Cells[2].Paragraphs[1].AddParagraph().AddText("40-308, Mikołów");
-                table.Rows[0].Cells[2].Paragraphs[2].LineSpacingAfter = 0;
-                table.Rows[0].Cells[2].Paragraphs[2].LineSpacingBefore = 0;
+                table.Rows[0].Cells[2].Paragraphs[2].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                table.Rows[0].Cells[2].Paragraphs[2].LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 
                 table.Rows[0].Cells[2].Paragraphs[2].AddParagraph().AddText("Poland");
-                table.Rows[0].Cells[2].Paragraphs[3].LineSpacingAfter = 0;
-                table.Rows[0].Cells[2].Paragraphs[3].LineSpacingBefore = 0;
+                table.Rows[0].Cells[2].Paragraphs[3].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                table.Rows[0].Cells[2].Paragraphs[3].LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 
                 // lets hide the table visibility
                 table.Style = WordTableStyle.TableNormal;
@@ -65,19 +65,19 @@ namespace OfficeIMO.Examples.Word {
 
                 // here's alternative way to build above
                 var paragraph1 = document.AddParagraph("Evotec Services sp. z o.o.");
-                paragraph1.LineSpacingAfter = 0;
+                paragraph1.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph1.ParagraphAlignment = WordParagraphAlignment.Right;
                 var paragraph2 = document.AddParagraph("ul. Drozdów 6");
-                paragraph2.LineSpacingBefore = 0;
-                paragraph2.LineSpacingAfter = 0;
+                paragraph2.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                paragraph2.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph2.ParagraphAlignment = WordParagraphAlignment.Right;
                 var paragraph3 = document.AddParagraph("40-308, Mikołów");
-                paragraph3.LineSpacingBefore = 0;
-                paragraph3.LineSpacingAfter = 0;
+                paragraph3.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                paragraph3.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph3.ParagraphAlignment = WordParagraphAlignment.Right;
                 var paragraph4 = document.AddParagraph("Poland");
-                paragraph4.LineSpacingBefore = 0;
-                paragraph4.LineSpacingAfter = 0;
+                paragraph4.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                paragraph4.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph4.ParagraphAlignment = WordParagraphAlignment.Right;
 
                 document.Save();

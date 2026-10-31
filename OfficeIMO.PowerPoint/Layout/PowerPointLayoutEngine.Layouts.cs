@@ -511,9 +511,9 @@ namespace OfficeIMO.PowerPoint {
                     var max = new PowerPointLayoutRect(tile.X + tile.Width * 0.19D, tile.Y + tile.Height * 0.28D, tile.Width * 0.62D, tile.Height * 0.44D);
                     PowerPointPicture picture = RenderImage(context, writer, new PowerPointLayoutImage(logo.Image!, logo.Title), max, cover: false);
                     // Centre the contained logo in its tile.
-                    double pw = PowerPointUnits.ToPoints(picture.Width), ph = PowerPointUnits.ToPoints(picture.Height);
-                    picture.Left = PowerPointUnits.FromPoints(tile.X + (tile.Width - pw) / 2D);
-                    picture.Top = PowerPointUnits.FromPoints(tile.Y + (tile.Height - ph) / 2D);
+                    double pw = picture.Width.ToPoints(), ph = picture.Height.ToPoints();
+                    picture.Left = OfficeLength.Points(tile.X + (tile.Width - pw) / 2D);
+                    picture.Top = OfficeLength.Points(tile.Y + (tile.Height - ph) / 2D);
                     if (!logo.Color.HasValue) picture.SetMonochrome(0.8D);
                 } else {
                     // A name-only logo: keep every word whole by shrinking to the widest word.

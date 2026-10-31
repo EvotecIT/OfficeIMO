@@ -60,13 +60,13 @@ Export PNG, JPEG, or SVG from the converted PDF document so images use its pagin
 ```csharp
 using OfficeIMO.Pdf;
 
-var conversion = document.ToPdf();
-conversion.ToImages().AsPng().SaveFiles("pages");
-conversion.ToImages().AsJpeg().SaveFiles("jpeg-pages");
-conversion.ToImages().AsSvg().SaveFiles("svg-pages");
+using var pdf = document.ToPdf(null, out OfficeIMO.OfficeConversionReport conversionReport);
+pdf.SaveAsImages("pages");
+pdf.SaveAsImages("jpeg-pages", new PdfImageExportOptions { Format = OfficeIMO.Drawing.OfficeImageExportFormat.Jpeg });
+pdf.SaveAsImages("svg-pages", new PdfImageExportOptions { Format = OfficeIMO.Drawing.OfficeImageExportFormat.Svg });
 ```
 
-SVG follows the PDF page renderer's vector and embedded-raster contract. Inspect the conversion report before rendering pages; image export results contain rendering diagnostics.
+SVG follows the PDF page renderer's vector and embedded-raster contract. Inspect the conversion report before rendering pages; each image export report contains rendering diagnostics.
 
 ## Examples
 
@@ -116,8 +116,8 @@ var options = new MarkdownPdfExportOptions {
     BaseDirectory = Path.GetDirectoryName(Path.GetFullPath("Docs/status.md")),
     IncludeImages = true,
     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
-    DefaultImageWidth = 420,
-    DefaultImageHeight = 240,
+    DefaultImageWidth = OfficeIMO.OfficeLength.Points(420),
+    DefaultImageHeight = OfficeIMO.OfficeLength.Points(240),
     Theme = OfficeIMO.Markdown.MarkdownVisualTheme.Report()
 };
 
@@ -127,6 +127,7 @@ MarkdownDocument.Load("Docs/status.md").SaveAsPdf("Artifacts/status.pdf", option
 ### Reuse one visual theme across HTML, PDF, and Word
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Word.Markdown;
@@ -135,8 +136,8 @@ MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
     .WithColorScheme(MarkdownColorSchemeKind.Emerald)
     .WithColors(accent: "SeaGreen", heading: "#064e3b")
     .WithTable(table => {
-        table.BorderWidth = 0.9;
-        table.CellPaddingX = 8;
+        table.BorderWidth = OfficeLength.Points(0.9);
+        table.CellPaddingX = OfficeLength.Points(8);
         table.UseRowStripes = true;
     });
 

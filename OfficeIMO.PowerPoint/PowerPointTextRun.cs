@@ -197,29 +197,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the font size in points.
+        /// Gets or sets the physical font size, preserving DrawingML hundredth-point precision.
+        /// Null removes the override; sizes must be from 1 through 4000 points.
         /// </summary>
-        public int? FontSize {
+        public global::OfficeIMO.OfficeLength? FontSize {
             get {
                 int? size = RunProperties?.FontSize?.Value;
-                return size != null ? size / 100 : null;
+                return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
             }
             set {
-                FontSizePoints = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the font size in points while preserving DrawingML hundredth-point precision.
-        /// </summary>
-        public double? FontSizePoints {
-            get {
-                int? size = RunProperties?.FontSize?.Value;
-                return size.HasValue ? size.Value / 100D : (double?)null;
-            }
-            set {
-                A.RunProperties props = EnsureRunProperties();
-                props.FontSize = PowerPointTextDefaults.ToDrawingFontSize(value, nameof(value));
+                int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
+                EnsureRunProperties().FontSize = drawingSize;
             }
         }
 

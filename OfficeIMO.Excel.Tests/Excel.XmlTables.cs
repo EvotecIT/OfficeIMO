@@ -10,12 +10,12 @@ namespace OfficeIMO.Tests;
 public sealed class ExcelXmlTableTests {
     [Fact]
     public void Positional_tables_keep_literal_text_empty_and_missing_cells_without_formula_execution() {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
         string range = sheet.FromXml("<?xml version='1.0' encoding='UTF-16'?><Table><![CDATA[table label]]><Row><Data>00127</Data><Data>=SUM(A1)</Data><Data></Data></Row><Row><Data>Łódź &amp; &lt;data&gt;</Data></Row></Table>", startRow: 2, startColumn: 3);
         Assert.Equal("C2:E3", range); Assert.Equal("00127", sheet.CellAt(2, 3).GetValue<string>());
         Assert.Equal("=SUM(A1)", sheet.CellAt(2, 4).GetValue<string>()); Assert.Null(sheet.GetFormulaText(2, 4));
         string xml = sheet.ToXml(range);
-        using var copy = ExcelDocument.Create(); var target = copy.AddWorksheet("Data");
+        using var copy = ExcelDocument.Create(); var target = copy.AddSheet("Data");
         Assert.Equal("A1:C2", target.FromXml(xml));
         Assert.Equal("00127", target.CellAt(1, 1).GetValue<string>());
         Assert.Equal("Łódź & <data>", target.CellAt(2, 1).GetValue<string>());
@@ -27,7 +27,7 @@ public sealed class ExcelXmlTableTests {
     [Fact]
     public void Named_columns_support_namespaces_attributes_explicit_types_and_absent_fields() {
         var options = Mapping();
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Mapped");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Mapped");
         string source = "<orders xmlns='urn:orders'><order id='00127'><total>12.5</total><paid>true</paid><date>2026-10-19T12:30:00</date><ignored>Outside the mapping</ignored></order><order id='00002'><total>0</total><paid>0</paid></order></orders>";
         Assert.Equal("A1:D3", sheet.FromXml(source, includeHeaders: true, options: options));
         Assert.Equal("Identifier", sheet.CellAt(1, 1).GetValue<string>()); Assert.Equal("00127", sheet.CellAt(2, 1).GetValue<string>());
@@ -37,7 +37,7 @@ public sealed class ExcelXmlTableTests {
         XNamespace ns = "urn:orders"; var rows = XElement.Parse(xml).Elements(ns + "order").ToArray();
         Assert.Equal("00127", (string?)rows[0].Attribute("id")); Assert.Equal("true", rows[0].Element(ns + "paid")!.Value);
         Assert.Equal("2026-10-19T12:30:00", rows[0].Element(ns + "date")!.Value); Assert.Null(rows[1].Element(ns + "date"));
-        using var copy = ExcelDocument.Create(); var target = copy.AddWorksheet("Mapped"); target.FromXml(xml, options: options);
+        using var copy = ExcelDocument.Create(); var target = copy.AddSheet("Mapped"); target.FromXml(xml, options: options);
         Assert.Equal(12.5, target.CellAt(1, 2).GetValue<double>()); Assert.Empty(copy.ValidateOpenXml());
     }
 
@@ -47,13 +47,13 @@ public sealed class ExcelXmlTableTests {
     [InlineData("<orders xmlns='urn:orders'><order><total><nested>1</nested></total></order></orders>")]
     [InlineData("<orders xmlns='urn:orders'><wrong/></orders>")]
     public void Invalid_mapping_input_is_rejected_before_replacing_destination_cells(string xml) {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data"); sheet.CellValue(1, 1, "Keep");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data"); sheet.CellValue(1, 1, "Keep");
         Assert.Throws<InvalidDataException>(() => sheet.FromXml(xml, options: Mapping())); Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
     }
 
     [Fact]
     public void Xml_table_resource_limits_cancellation_and_stream_ownership_are_enforced() {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
         byte[] bytes = Encoding.UTF8.GetBytes("<Table><Row><Data>A</Data><Data>B</Data></Row></Table>");
         using var input = new MemoryStream(bytes); sheet.FromXml(input); Assert.True(input.CanRead);
         string xml = Encoding.UTF8.GetString(bytes);
@@ -72,7 +72,7 @@ public sealed class ExcelXmlTableTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Row_quota_counts_direct_rows_and_not_a_same_named_scalar(bool stream) {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
         var options = new ExcelXmlTableOptions { MaxRows = 1 }; options.Columns.Add(new() { Name = "Value", XmlName = "Row" });
         const string xml = "<Table><Row><Row>value</Row></Row></Table>";
         if (stream) { using var input = new MemoryStream(Encoding.UTF8.GetBytes(xml)); sheet.FromXml(input, options: options); }
@@ -84,11 +84,11 @@ public sealed class ExcelXmlTableTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Cell_object_reads_materialize_existing_deferred_table_and_json_insertions(bool json) {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
         if (json) sheet.FromJson("[{\"Code\":\"00127\"}]", includeHeaders: false);
         else {
             using var table = new System.Data.DataTable(); table.Columns.Add("Code", typeof(string)); table.Rows.Add("00127");
-            sheet.InsertDataTable(table, includeHeaders: false);
+            sheet.WriteData(table, includeHeaders: false);
         }
         Assert.Equal("00127", sheet.CellAt(1, 1).GetFormattedText());
         Assert.Equal("00127", sheet.CellAt(1, 1).GetValue<string>());
@@ -100,7 +100,7 @@ public sealed class ExcelXmlTableTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void Invalid_nil_values_report_invalid_data_without_replacing_existing_cells(bool mapped, bool stream) {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data"); sheet.CellValue(1, 1, "Keep");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data"); sheet.CellValue(1, 1, "Keep");
         var options = new ExcelXmlTableOptions();
         if (mapped) options.Columns.Add(new() { Name = "Value", XmlName = "Data" });
         const string xml = "<Table xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'><Row><Data xsi:nil='maybe'/></Row></Table>";
@@ -119,7 +119,7 @@ public sealed class ExcelXmlTableTests {
     [InlineData("false", false)]
     [InlineData("0", false)]
     public void Nil_boolean_lexical_forms_keep_missing_and_literal_cells_distinct(string nil, bool missing) {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
         string value = missing ? "" : "Literal";
         sheet.FromXml("<Table xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'><Row><Data xsi:nil='" + nil + "'>" + value + "</Data></Row></Table>");
         Assert.Equal(missing ? null : "Literal", sheet.CellAt(1, 1).GetValue<string>());

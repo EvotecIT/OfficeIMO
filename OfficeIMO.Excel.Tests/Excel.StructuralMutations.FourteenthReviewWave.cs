@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableResize_RemovesAndClampsSortConditionsOutsideShrunkenSchema() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(1, 3, "C");
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ColumnPlan_RejectsFormulaReferenceThatWouldOverflowXfd() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellFormula(1, 1, "XFD1");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ColumnPlan_RejectsDefinedNameThatWouldOverflowXfd() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             document.WorkbookPartRoot.Workbook!.DefinedNames = new DefinedNames(
                 new DefinedName { Name = "Edge", Text = "Data!$XFD$1" });
 
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         public void Test_SparklineRemoval_PrunesEmptyExtensionStructuresAndRemainsValid() {
             using var output = new MemoryStream();
             using (var document = ExcelDocument.Create(output)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.AddSparklines("A1:C1", "D1");
 
                 Assert.Equal(1, sheet.RemoveSparklines("D1"));
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_SparklineClear_PrunesEmptyExtensionStructures() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.AddSparklines("A1:C2", "D1:D2");
 
             Assert.Equal(2, sheet.ClearSparklines());

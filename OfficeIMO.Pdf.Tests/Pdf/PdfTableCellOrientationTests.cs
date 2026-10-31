@@ -11,17 +11,17 @@ public sealed class PdfTableCellOrientationTests {
     [InlineData(false, 90)]
     [InlineData(true, 90)]
     public void Exact_spacing_retains_overlapping_ink_at_the_physical_cell_edge(bool inColumn, int rotation) {
-        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
-            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
-            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { 20 };
-        style.FixedRowHeights = new List<double?> { 100 };
-        style.CellPaddingX = 2; style.CellPaddingY = 2;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
         var paragraphs = new[] { "ABCD", "EFGH", "IJKL", "MNOP", "QRST" }
             .Select(text => new PdfTableCellParagraph(new[] { PdfTextRun.Normal(text) },
-                fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(6))).ToArray();
+                fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6)))).ToArray();
         var cell = new PdfTableCell(paragraphs.SelectMany(paragraph => paragraph.Runs), paragraphs,
             textRotation: rotation, linkUri: "https://example.com/turned-clip");
         var cells = new[] { new[] { cell } };
@@ -46,18 +46,18 @@ public sealed class PdfTableCellOrientationTests {
     [InlineData(false, 90)]
     [InlineData(true, 90)]
     public void Automatic_turned_columns_reserve_each_authored_paragraph_line_box(bool inColumn, int rotation) {
-        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
-            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
-            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.AutoFitColumns = true;
         style.AutoFitWidthUsesContentMinimum = true; style.AutoFitUnspecifiedWidthToContent = true;
-        style.FixedRowHeights = new List<double?> { 100 };
-        style.CellPaddingX = 2; style.CellPaddingY = 2;
-        var first = new[] { new PdfTextRun("ABCD", fontSize: 12) };
-        var second = new[] { new PdfTextRun("EFGH", fontSize: 36) };
-        var paragraphs = new[] { new PdfTableCellParagraph(first, fontSize: 12),
-            new PdfTableCellParagraph(second, fontSize: 36) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
+        var first = new[] { new PdfTextRun("ABCD", fontSize: global::OfficeIMO.OfficeLength.Points(12)) };
+        var second = new[] { new PdfTextRun("EFGH", fontSize: global::OfficeIMO.OfficeLength.Points(36)) };
+        var paragraphs = new[] { new PdfTableCellParagraph(first, fontSize: global::OfficeIMO.OfficeLength.Points(12)),
+            new PdfTableCellParagraph(second, fontSize: global::OfficeIMO.OfficeLength.Points(36)) };
         var cell = new PdfTableCell(first.Concat(second), paragraphs,
             textRotation: rotation, linkUri: "https://example.com/turned-paragraphs");
         var cells = new[] { new[] { cell } };
@@ -78,15 +78,15 @@ public sealed class PdfTableCellOrientationTests {
     [InlineData(false, 90)]
     [InlineData(true, 90)]
     public void Automatic_columns_measure_turned_text_on_the_cross_axis(bool inColumn, int rotation) {
-        var options = new PdfCreateOptions { PageWidth = 260, PageHeight = 180,
-            MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
-            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0; style.AutoFitColumns = true;
         style.AutoFitWidthUsesContentMinimum = true;
         style.AutoFitUnspecifiedWidthToContent = true;
-        style.CellPaddingX = 2; style.CellPaddingY = 2;
-        style.FixedRowHeights = new List<double?> { 100 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
         var cell = new PdfTableCell(new[] { PdfTextRun.Normal("ABCDEFGHIJKLMNOPQRSTUVWXYZ") },
             paragraphs: null, textRotation: rotation, linkUri: "https://example.com/turned-width");
         var cells = new[] { new[] { cell } };
@@ -109,16 +109,16 @@ public sealed class PdfTableCellOrientationTests {
     [InlineData(false, 90)]
     [InlineData(true, 90)]
     public void Turned_content_is_consumed_once_when_a_horizontal_neighbor_continues(bool inColumn, int rotation) {
-        var options = new PdfCreateOptions { PageWidth = 260, PageHeight = 180,
-            MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
-            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 2; style.CellPaddingY = 2;
-        style.ColumnWidthPoints = new List<double?> { 60, null };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), null };
         var turned = new PdfTableCell(new[] { PdfTextRun.Normal("TURNED") }, paragraphs: null,
             linkUri: "https://example.com/turned", textRotation: rotation,
-            images: new[] { new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), 12, 12) });
+            images: new[] { new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12)) });
         var cells = new[] { new[] { turned, new PdfTableCell(string.Join("\n",
             Enumerable.Range(1, 45).Select(line => "Line" + line.ToString("D2")))) } };
         var document = PdfDocument.Create(options);
@@ -146,22 +146,22 @@ public sealed class PdfTableCellOrientationTests {
     }
 
     private static double GetShrunkTurnedFontSize(string surface) {
-        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
-            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24) };
         var style = PdfTableStyles.Minimal();
-        style.HeaderRowCount = 0; style.FontSize = 12;
+        style.HeaderRowCount = 0; style.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         style.ShrinkTextToFit = true;
-        style.ColumnWidthPoints = new List<double?> { 100 };
-        style.FixedRowHeights = new List<double?> { 80 };
-        style.CellPaddingX = 4; style.CellPaddingY = 4;
-        style.SpacingBefore = 0; style.SpacingAfter = 0;
-        var cells = new[] { new[] { new PdfTableCell(new[] { new PdfTextRun("ABCD", fontSize: 48) },
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
+        var cells = new[] { new[] { new PdfTableCell(new[] { new PdfTextRun("ABCD", fontSize: global::OfficeIMO.OfficeLength.Points(48)) },
             paragraphs: null, textRotation: -90) } };
         PdfDocument document = PdfDocument.Create(options);
         byte[] bytes = surface switch {
             "flow" => document.Table(cells, style: style).ToBytes(),
             "column" => document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style))).ToBytes(),
-            "canvas" => document.Canvas(canvas => canvas.Table(cells, 24, 24, 100, 80, style)).ToBytes(),
+            "canvas" => document.Canvas(canvas => canvas.Table(cells, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80), style)).ToBytes(),
             _ => throw new ArgumentOutOfRangeException(nameof(surface))
         };
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
@@ -176,24 +176,24 @@ public sealed class PdfTableCellOrientationTests {
     [InlineData("column", 90)]
     [InlineData("canvas", 90)]
     public void Turned_cell_text_survives_cell_copies_and_each_rendering_surface(string surface, int rotation) {
-        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
-            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
-            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { 100 };
-        style.FixedRowHeights = new List<double?> { 80 };
-        style.CellPaddingX = 4; style.CellPaddingY = 4;
-        style.SpacingBefore = 0; style.SpacingAfter = 0;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         var cell = new PdfTableCell(new[] { PdfTextRun.Normal("ABCD") }, paragraphs: null, textRotation: rotation)
             .WithNoWrap().WithNamedDestination("turned-cell")
-            .WithViewport(new PdfTableCellViewport(100, 80, 100, 80));
+            .WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80)));
         var cells = new[] { new[] { cell } };
         PdfDocument document = PdfDocument.Create(options);
         byte[] bytes = surface switch {
             "flow" => document.Table(cells, style: style).ToBytes(),
             "column" => document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style))).ToBytes(),
-            "canvas" => document.Canvas(canvas => canvas.Table(cells, 24, 24, 100, 80, style)).ToBytes(),
+            "canvas" => document.Canvas(canvas => canvas.Table(cells, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80), style)).ToBytes(),
             _ => throw new ArgumentOutOfRangeException(nameof(surface))
         };
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);

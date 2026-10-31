@@ -868,7 +868,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static double ResolveRunFontSize(ExcelVisualTextRun run, ExcelCellStyleInfo style, double scale) {
-            double fontSize = run.FontSize.GetValueOrDefault(style.FontSize.GetValueOrDefault(CellTextFontSize));
+            double fontSize = run.FontSize?.ToPoints() ?? style.FontSize?.ToPoints() ?? CellTextFontSize;
             if (fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
                 fontSize = CellTextFontSize;
             }
@@ -882,7 +882,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static double ResolveCellFontSize(ExcelCellStyleInfo style, double scale) {
-            double fontSize = style.FontSize.GetValueOrDefault(CellTextFontSize);
+            double fontSize = style.FontSize?.ToPoints() ?? CellTextFontSize;
             if (fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
                 fontSize = CellTextFontSize;
             }

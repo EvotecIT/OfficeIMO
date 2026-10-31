@@ -20,7 +20,7 @@ public partial class Word {
     public void SaveAsPdf_DrawingMlScRgbUsesSharedLinearColorDecoding(bool gradient, bool themeEntry, bool tinted, int expectedChannel) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Before scRGB shape");
-        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 112D, 48D);
+        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(112D), OfficeIMO.OfficeLength.Points(48D));
         document.AddParagraph("After scRGB shape");
         var main = document.MainDocumentPartRoot;
         if (themeEntry) {

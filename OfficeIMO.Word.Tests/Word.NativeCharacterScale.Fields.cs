@@ -94,7 +94,7 @@ public partial class Word {
             StyleName = new StyleName { Val = tableStyleId },
             StyleRunProperties = new StyleRunProperties(new CharacterScale { Val = 125L })
         });
-        WordTable table = source.AddTable(1, 1);
+        WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
         table._table.GetFirstChild<TableProperties>()!.TableStyle = new TableStyle { Val = tableStyleId };
         Paragraph paragraph = table.Rows[0].Cells[0].Paragraphs[0]._paragraph;
         AppendSplitFormattingField(paragraph, complex, true, "FIRST", "SECOND");

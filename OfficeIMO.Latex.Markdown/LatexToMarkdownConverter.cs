@@ -27,7 +27,8 @@ internal static partial class LatexToMarkdownConverter {
         LatexArgument? title = titleCommand?.GetRequiredArgument(0);
         if (title != null && document.Profile != LatexDocumentProfile.PreserveOnly && document.Body != null) {
             var titleDiagnostics = new List<LatexMarkdownConversionDiagnostic>();
-            var titleDoc = MarkdownDocument.Create().Add(new HeadingBlock(1, LatexInlineToMarkdownConverter.Convert(context, title.ContentSpan, titleDiagnostics)));
+            var titleDoc = MarkdownDocument.Create();
+            titleDoc.Add(new HeadingBlock(1, LatexInlineToMarkdownConverter.Convert(context, title.ContentSpan, titleDiagnostics)));
             diagnostics.AddRange(titleDiagnostics);
             aggregateBlocks.AddRange(titleDoc.Blocks);
             blocks.Add(new LatexProjectedBlock(titleCommand!.Syntax.Span, "title", titleDoc, titleDiagnostics));
@@ -52,7 +53,8 @@ internal static partial class LatexToMarkdownConverter {
             var footnoteDiagnostics = new List<LatexMarkdownConversionDiagnostic>();
             var definition = new FootnoteDefinitionBlock(footnote.Label, ConvertContent(context,
                 footnote.Body.ContentSpan, options, footnoteDiagnostics));
-            var footnoteDoc = MarkdownDocument.Create().Add(definition);
+            var footnoteDoc = MarkdownDocument.Create();
+            footnoteDoc.Add(definition);
             aggregateBlocks.Add(definition);
             diagnostics.AddRange(footnoteDiagnostics);
             blocks.Add(new LatexProjectedBlock(footnote.Command.Syntax.Span, "footnote", footnoteDoc, footnoteDiagnostics));

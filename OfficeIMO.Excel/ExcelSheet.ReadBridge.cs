@@ -29,9 +29,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="options">Optional read options.</param>
         /// <param name="cancellationToken">Cancellation token observed during enumeration.</param>
-        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
             ExcelReaderOptions? options = null,
-            CancellationToken cancellationToken = default) where T : new() {
+            CancellationToken cancellationToken = default) {
             return RowsAsUsedRangeIterator<T>(options, cancellationToken);
         }
 
@@ -70,10 +70,10 @@ namespace OfficeIMO.Excel {
         /// Streams the specified A1 range as instances of T using header-to-property mapping.
         /// Enumerate the returned sequence while the owning <see cref="ExcelDocument"/> remains open.
         /// </summary>
-        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        public IEnumerable<T> RowsAs<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
             string a1Range,
             ExcelReaderOptions? options = null,
-            CancellationToken cancellationToken = default) where T : new() {
+            CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             return RowsAsRangeIterator<T>(a1Range, options, cancellationToken);
         }
@@ -169,9 +169,9 @@ namespace OfficeIMO.Excel {
                 : ExcelA1.CellReference(firstRow, firstColumn) + ":" + ExcelA1.CellReference(trimmedLastRow, lastColumn);
         }
 
-        private IEnumerable<T> RowsAsUsedRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        private IEnumerable<T> RowsAsUsedRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
             ExcelReaderOptions? options,
-            CancellationToken ct) where T : new() {
+            CancellationToken ct) {
             ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 ct,
@@ -219,10 +219,10 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private IEnumerable<T> RowsAsRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        private IEnumerable<T> RowsAsRangeIterator<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
             string a1Range,
             ExcelReaderOptions? options,
-            CancellationToken ct) where T : new() {
+            CancellationToken ct) {
             ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 ct,

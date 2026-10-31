@@ -34,13 +34,13 @@ namespace OfficeIMO.Pdf.Excel {
 
             // New import sheets use Excel's application default (8.43 character units)
             // unless the worksheet owner supplies an explicit default width.
-            double defaultWidth = sheet.DefaultColumnWidth ?? 8.43D;
+            double defaultWidth = sheet.DefaultColumnWidth?.ToCharacters(sheet) ?? 8.43D;
             if (!IsPositiveFiniteWidth(defaultWidth)) return false;
             var destinationWidths = Enumerable.Repeat(defaultWidth, columnCount).ToArray();
             foreach (ExcelColumnInfo definition in sheet.GetColumnDefinitions(options.CancellationToken)) {
                 options.CancellationToken.ThrowIfCancellationRequested();
-                if (!definition.CustomWidth || !definition.Width.HasValue) continue;
-                double width = definition.Width.Value;
+                if (!definition.CustomWidth || !definition.StoredWidth.HasValue) continue;
+                double width = definition.StoredWidth.Value;
                 if (!IsPositiveFiniteWidth(width)) return false;
                 int first = Math.Max(1, definition.StartIndex);
                 int last = Math.Min(columnCount, definition.EndIndex);
@@ -50,12 +50,12 @@ namespace OfficeIMO.Pdf.Excel {
             double budget = destinationWidths.Sum();
             if (!IsPositiveFiniteWidth(budget)) return false;
             double scale = Math.Min(budget / totalWeight, 255D);
-            var widths = new Dictionary<int, double>(columnCount);
+            var widths = new Dictionary<int, ExcelColumnWidth>(columnCount);
             for (int index = 0; index < columnCount; index++) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 double width = scale * lengths[index];
                 if (!IsPositiveFiniteWidth(width)) return false;
-                widths.Add(index + 1, width);
+                widths.Add(index + 1, ExcelColumnWidth.Characters(width));
             }
 
             options.CancellationToken.ThrowIfCancellationRequested();

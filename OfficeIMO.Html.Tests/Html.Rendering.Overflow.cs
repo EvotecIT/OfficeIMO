@@ -25,7 +25,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(50D / HtmlRenderOptions.CssPixelsPerInch, 30D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(50D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(30D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
@@ -79,7 +79,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(80D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(80D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(60D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -205,7 +205,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -312,7 +312,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='width:20px;height:50px;background:#0000ff'></div></div>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 30D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(30D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };

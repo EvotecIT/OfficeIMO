@@ -25,7 +25,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica",
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(468, 312), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(36)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(468),OfficeIMO.OfficeLength.Points(312)), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double before = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Before").Letters[0].StartBaseLine.Y;
         var page = pdf.GetPage(2);
@@ -51,7 +51,7 @@ public partial class Word {
         using WordDocument document = CreateParagraphBorderGroupFrameDocument(mode, 30, 3);
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica",
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(468, 300), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(36)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(468),OfficeIMO.OfficeLength.Points(300)), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(2);
         Assert.StartsWith("First", page.GetWords().First().Text);
@@ -69,7 +69,7 @@ public partial class Word {
     [InlineData(true, 24)]
     public void SaveAsPdf_JoinedParagraphSpacingAndBookmarksPreserveFrameSeparators(bool bookmark, int spacingAfter) {
         using WordDocument source = CreateParagraphBorderGroupFrameDocument(WordCompatibilityMode.Word2013, 13, 3);
-        source.Paragraphs[1].LineSpacingAfterPoints = spacingAfter;
+        source.Paragraphs[1].LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter);
         if (bookmark) {
             W.Paragraph paragraph = source.Paragraphs.First(p => p.Text.StartsWith("Second", StringComparison.Ordinal))._paragraph;
             paragraph.InsertAt(new W.BookmarkStart { Id = "1", Name = "SecondParagraph" }, 1);
@@ -78,7 +78,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica",
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(468, 312), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(36)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(468),OfficeIMO.OfficeLength.Points(312)), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         double before = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Before").Letters[0].StartBaseLine.Y;

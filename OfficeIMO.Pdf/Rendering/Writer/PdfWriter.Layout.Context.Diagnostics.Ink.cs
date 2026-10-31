@@ -56,8 +56,8 @@ internal static partial class PdfWriter {
             for (int index = 0; index < _diagnosticCanvasClips.Count; index++) {
                 (_diagnosticCanvasSourceClips[index] ? sourceClips : targetClips).Add(_diagnosticCanvasClips[index]);
             }
-            OfficeTextInkClip pageClip = DiagnosticRectangleClip(new TableCellContentFrame(0D, currentOpts.PageHeight,
-                currentOpts.PageWidth, currentOpts.PageHeight), OfficeTransform.Identity);
+            OfficeTextInkClip pageClip = DiagnosticRectangleClip(new TableCellContentFrame(0D, currentOpts.PageHeight.ToPoints(),
+                currentOpts.PageWidth.ToPoints(), currentOpts.PageHeight.ToPoints()), OfficeTransform.Identity);
             bool clipped = false, outsidePage = false, overflow = false, outerClipped = false;
             string? unmeasuredReason = null;
             double baseline = firstBaseline;
@@ -112,26 +112,26 @@ internal static partial class PdfWriter {
                             foreach (var glyph in DiagnosticGlyphContours(segment, leader, gapX, runY)) Paint(glyph.Contours, nominalGlyphBounds: glyph.NominalBounds);
                         }
                         if (segment.InlineElement is PdfInlineBox box) {
-                            double bottom = lineY + box.BaselineOffset + (box.UsesRunTextMetrics ? segment.LineAlignmentRise : 0D);
+                            double bottom = lineY + box.BaselineOffset.ToPoints() + (box.UsesRunTextMetrics ? segment.LineAlignmentRise : 0D);
                             if (box.SourceRule is { } rule) {
-                                if (box.Width > 0D) {
+                                if (box.Width.ToPoints() > 0D) {
                                     foreach (PdfInlineRule.InkBand band in rule.Bands)
-                                        Paint(DiagnosticRectangle(x, lineY + segment.LineAlignmentRise + band.BaselineOffset, box.Width, band.Height));
+                                        Paint(DiagnosticRectangle(x, lineY + segment.LineAlignmentRise + band.BaselineOffset, box.Width.ToPoints(), band.Height));
                                 }
-                            } else if (box.Background.HasValue) Paint(DiagnosticRectangle(x, bottom, box.Width, box.Height));
-                            if (box.BorderColor.HasValue && box.BorderWidth > 0D) {
-                                double half = box.BorderWidth / 2D;
-                                var ring = DiagnosticRectangle(x - half, bottom - half, box.Width + box.BorderWidth, box.Height + box.BorderWidth);
-                                if (box.Width > box.BorderWidth && box.Height > box.BorderWidth) {
-                                    var hole = DiagnosticRectangle(x + half, bottom + half, box.Width - box.BorderWidth, box.Height - box.BorderWidth)[0];
+                            } else if (box.Background.HasValue) Paint(DiagnosticRectangle(x, bottom, box.Width.ToPoints(), box.Height.ToPoints()));
+                            if (box.BorderColor.HasValue && box.BorderWidth.ToPoints() > 0D) {
+                                double half = box.BorderWidth.ToPoints() / 2D;
+                                var ring = DiagnosticRectangle(x - half, bottom - half, box.Width.ToPoints() + box.BorderWidth.ToPoints(), box.Height.ToPoints() + box.BorderWidth.ToPoints());
+                                if (box.Width.ToPoints() > box.BorderWidth.ToPoints() && box.Height.ToPoints() > box.BorderWidth.ToPoints()) {
+                                    var hole = DiagnosticRectangle(x + half, bottom + half, box.Width.ToPoints() - box.BorderWidth.ToPoints(), box.Height.ToPoints() - box.BorderWidth.ToPoints())[0];
                                     hole.Reverse(); ring.Add(hole);
                                 }
                                 Paint(ring);
                             }
                         } else if (segment.InlineElement is PdfInlineImage image) {
-                            double imageX = image.TableTextRotation > 0 ? origin + available - cursor - image.Width : x;
+                            double imageX = image.TableTextRotation > 0 ? origin + available - cursor - image.Width.ToPoints() : x;
                             var pictureClip = GetImportedPictureClip(image, paragraphLineSpacing,
-                                imageX, lineY, paragraphStartTop, currentOpts.PageWidth);
+                                imageX, lineY, paragraphStartTop, currentOpts.PageWidth.ToPoints());
                             OfficeTextInkClip? intrinsicParagraphClip = pictureClip is { } clip
                                 ? DiagnosticRectangleClip(new TableCellContentFrame(clip.X, clip.Bottom + clip.Height,
                                     clip.Width, clip.Height), OfficeTransform.Identity) : null;

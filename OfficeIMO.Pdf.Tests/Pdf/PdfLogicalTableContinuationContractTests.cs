@@ -382,33 +382,33 @@ public sealed class PdfLogicalTableContinuationContractTests {
         }
 
         return PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(rows, style: new PdfTableStyle {
                 HeaderRowCount = 2,
                 RepeatHeaderRowCount = 2,
-                ColumnWidthPoints = new List<double?> { 120, 120 },
-                CellPaddingX = 5,
-                CellPaddingY = 3
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(120) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
             })
             .ToBytes();
     }
 
     private static byte[] BuildSlashPaginationTablePdf() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 500,
-            PageHeight = 320,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
-            DefaultFontSize = 9
+            PageWidth = global::OfficeIMO.OfficeLength.Points(500),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         });
         for (int index = 0; index < 10; index++) {
             document.Paragraph(paragraph => paragraph.Text("Lead-in line " + index.ToString(CultureInfo.InvariantCulture)));
@@ -422,9 +422,9 @@ public sealed class PdfLogicalTableContinuationContractTests {
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
                 HeaderBold = true,
-                ColumnWidthPoints = new List<double?> { 200, 150, 80 },
-                CellPaddingX = 4,
-                CellPaddingY = 2
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(80) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(2)
             })
             .PageBreak()
             .Table(new[] {
@@ -435,22 +435,27 @@ public sealed class PdfLogicalTableContinuationContractTests {
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
                 HeaderBold = true,
-                ColumnWidthPoints = new List<double?> { 200, 150, 80 },
-                CellPaddingX = 4,
-                CellPaddingY = 2
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(80) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(2)
             })
             .ToBytes();
     }
 
     private static byte[] BuildNativeTableThenBlankPagePdf() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 320,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 20,
-            MarginBottom = 20,
-            DefaultFontSize = 9
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9),
+            // Seven 12.6-point lines with 3.78-point gaps place the native table near the page edge.
+            DefaultParagraphStyle = new PdfParagraphStyle {
+                LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(3.78), WidowControl = false
+            }
         });
         for (int index = 0; index < 7; index++) {
             document.Paragraph(paragraph => paragraph.Text("Lead line " + index.ToString(CultureInfo.InvariantCulture)));
@@ -462,9 +467,9 @@ public sealed class PdfLogicalTableContinuationContractTests {
                 new[] { "A-2", "20" }
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 100D, 100D },
-                CellPaddingX = 4D,
-                CellPaddingY = 2D
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4D),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(2D)
             })
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Scanned page placeholder."))
@@ -477,13 +482,13 @@ public sealed class PdfLogicalTableContinuationContractTests {
         double secondColumnWidth = 100D,
         double pageWidth = 320D) =>
         PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = pageWidth,
-                PageHeight = 220,
-                MarginLeft = marginLeft,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(marginLeft),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { "Description", "Amount" },
@@ -491,9 +496,9 @@ public sealed class PdfLogicalTableContinuationContractTests {
                 new[] { "Second item", "20" }
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { firstColumnWidth, secondColumnWidth },
-                CellPaddingX = 4,
-                CellPaddingY = 2
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(firstColumnWidth), global::OfficeIMO.OfficeLength.Points(secondColumnWidth) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(2)
             })
             .ToBytes();
 

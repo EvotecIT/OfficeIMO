@@ -19,8 +19,8 @@ internal static partial class PdfWriter {
                 int start = Math.Max(consumedLines, range.StartLine);
                 var runs = continued ? BuildTextRunsFromWrappedLines(previous.Lines, start, end - start) : paragraph.Runs;
                 paragraphs.Add(new PdfTableCellParagraph(runs, paragraph.SpacingAfter, paragraph.Align,
-                    continued ? 0D : paragraph.SpacingBefore, paragraph.LeftIndent, paragraph.RightIndent,
-                    continued ? 0D : paragraph.FirstLineIndent, paragraph.LineHeight, paragraph.DefaultTabStopWidth,
+                    global::OfficeIMO.OfficeLength.Points(continued ? 0D : paragraph.SpacingBefore.ToPoints()), paragraph.LeftIndent, paragraph.RightIndent,
+                    global::OfficeIMO.OfficeLength.Points(continued ? 0D : paragraph.FirstLineIndent.ToPoints()), paragraph.LineHeight, paragraph.DefaultTabStopWidth,
                     paragraph.TabStops, paragraph.FontSize, paragraph.LineSpacing,
                     paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext,
                     paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing));

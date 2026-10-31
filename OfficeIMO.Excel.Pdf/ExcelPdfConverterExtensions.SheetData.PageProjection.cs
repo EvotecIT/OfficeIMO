@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel.Pdf {
             double fullHeight = rows[region.Row + region.Span.RowSpan] - rows[region.Row];
             // Accumulating a fragment separately can round a few ulps above the full
             // sum. Keep the viewport contained without changing meaningful geometry.
-            return new PdfCore.PdfTableCellViewport(Math.Max(fullWidth, offsetX + width), Math.Max(fullHeight, offsetY + height), width, height, offsetX, offsetY);
+            return new PdfCore.PdfTableCellViewport(OfficeLength.Points(Math.Max(fullWidth, offsetX + width)), OfficeLength.Points(Math.Max(fullHeight, offsetY + height)), OfficeLength.Points(width), OfficeLength.Points(height), OfficeLength.Points(offsetX), OfficeLength.Points(offsetY));
         }
 
         private static ExcelCellBorderInfo? CreateMergeFragmentBorder(

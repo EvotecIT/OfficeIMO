@@ -33,13 +33,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void WritePreflight_FindingsReferenceNonNativeCapabilityRows() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.Hidden = true;
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             shape.Fill("FF0000");
-            shape.SetGlow("4472C4", radiusPoints: 4D);
+            shape.SetGlow("4472C4", radius: OfficeIMO.OfficeLength.Points(4D));
 
             LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
 
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void WritePreflight_ExposesTypedOmissionsAndStrictAcceptance() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddChart();
 

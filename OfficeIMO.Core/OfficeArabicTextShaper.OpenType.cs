@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Drawing;
 
-public static partial class OfficeArabicTextShaper {
+internal static partial class OfficeArabicTextShaper {
     /// <summary>Projects the existing bounded presentation-form mapping without changing logical Unicode ownership.</summary>
     internal static bool TryGetContextualPresentationScalar(int scalar, string? joiningForm, out int presentation) {
         presentation = scalar;

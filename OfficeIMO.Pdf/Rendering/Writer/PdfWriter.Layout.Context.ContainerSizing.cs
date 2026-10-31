@@ -6,7 +6,7 @@ internal static partial class PdfWriter {
         private bool TryResolveContainerFrame(ContainerBlock? container, PdfPanelStyle style, double parentLeft, double parentWidth,
             out (double X, double Width, double ContentWidth) frame) {
             frame = default;
-            if (container?.FrameTable == null && ResolveContainerOuterWidth(style, parentWidth) - 2D * style.PaddingX <= .001D)
+            if (container?.FrameTable == null && ResolveContainerOuterWidth(style, parentWidth) - 2D * style.PaddingX.ToPoints() <= .001D)
                 return false;
             frame = ResolveContainerFrame(container, style, parentLeft, parentWidth);
             return frame.ContentWidth > .001D;
@@ -30,19 +30,19 @@ internal static partial class PdfWriter {
         /// <summary>Allows a width-dependent first drawing or kept container to start in another valid physical-column width.</summary>
         private bool CanContainerFitAnotherFlowWidth(ContainerBlock container, PdfPanelStyle style, double parentWidth, bool wholeContainer) {
             return CanFitAnotherFixedFlowWidth(parentWidth, candidateWidth => {
-                if (!TryResolveContainerFrame(container, style, currentOpts.MarginLeft, candidateWidth, out var frame) ||
+                if (!TryResolveContainerFrame(container, style, currentOpts.MarginLeft.ToPoints(), candidateWidth, out var frame) ||
                     !HasUsableContainerMeasurementWidths(container.Blocks, frame.ContentWidth, wholeContainer)) return null;
                 if (wholeContainer) {
-                    return MeasureWholeBlockAtFrameStart(container, currentOpts.MarginLeft, candidateWidth, currentOpts.DefaultFontSize);
+                    return MeasureWholeBlockAtFrameStart(container, currentOpts.MarginLeft.ToPoints(), candidateWidth, currentOpts.DefaultFontSize.ToPoints());
                 }
-                var firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX,
+                var firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX.ToPoints(),
                     frame.ContentWidth, GetClosingContainerPadding());
-                return style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisual.Height;
+                return style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset.ToPoints() + firstVisual.Height;
             });
         }
 
         private static double ResolveContainerOuterWidth(PdfPanelStyle style, double parentWidth) =>
-            style.MaxWidth.HasValue ? Math.Min(ResolveContainerAvailableWidth(style, parentWidth), style.MaxWidth.Value) :
+            style.MaxWidth.HasValue ? Math.Min(ResolveContainerAvailableWidth(style, parentWidth), style.MaxWidth.Value.ToPoints()) :
                 ResolveContainerAvailableWidth(style, parentWidth);
 
         private static double ResolveContainerAvailableWidth(PdfPanelStyle style, double parentWidth) =>

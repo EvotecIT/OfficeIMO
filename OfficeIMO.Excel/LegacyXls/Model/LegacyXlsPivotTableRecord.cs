@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a preserve-only PivotTable BIFF record and any shallow fields decoded from it.
     /// </summary>
-    public sealed class LegacyXlsPivotTableRecord {
+    internal sealed class LegacyXlsPivotTableRecord {
         /// <summary>
         /// Creates PivotTable BIFF record metadata.
         /// </summary>

@@ -207,8 +207,8 @@ namespace OfficeIMO.Word.Markdown {
             foreach (string scheme in source.AllowedImageSchemes) copy.AllowedImageSchemes.Add(scheme);
             copy.ImageLayout.FitMode = source.ImageLayout.FitMode;
             copy.ImageLayout.HintPrecedence = source.ImageLayout.HintPrecedence;
-            copy.ImageLayout.MaxWidthPixels = source.ImageLayout.MaxWidthPixels;
-            copy.ImageLayout.MaxHeightPixels = source.ImageLayout.MaxHeightPixels;
+            copy.ImageLayout.MaxWidth = source.ImageLayout.MaxWidth;
+            copy.ImageLayout.MaxHeight = source.ImageLayout.MaxHeight;
             copy.ImageLayout.MaxWidthPercentOfContent = source.ImageLayout.MaxWidthPercentOfContent;
             copy.ImageLayout.AllowUpscale = source.ImageLayout.AllowUpscale;
             return copy;

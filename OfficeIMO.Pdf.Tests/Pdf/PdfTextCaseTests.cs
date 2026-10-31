@@ -2,7 +2,6 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Tests.Pdf;
 using System.Text;
-using System.Reflection;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Xunit;
@@ -57,8 +56,8 @@ public class PdfTextCaseTests {
     public void UnderlinedScriptSpaceUsesTheSourceRunBaseline(PdfTextBaseline baseline) {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Paragraph(paragraph => paragraph.Runs(new[] {
-                new PdfTextRun("Elite ", underlineStyle: OfficeTextDecorationStyle.Single, baseline: baseline, fontSize: 18),
-                new PdfTextRun("Performance", fontSize: 18)
+                new PdfTextRun("Elite ", underlineStyle: OfficeTextDecorationStyle.Single, baseline: baseline, fontSize: global::OfficeIMO.OfficeLength.Points(18)),
+                new PdfTextRun("Performance", fontSize: global::OfficeIMO.OfficeLength.Points(18))
             }))
             .ToBytes();
 
@@ -79,7 +78,7 @@ public class PdfTextCaseTests {
             wrapText, false, false, false, false, null, null,
             OfficeTextDecorationStyle.Words, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
-            .Canvas(canvas => canvas.Drawing(drawing, 10, 10, 240, 45))
+            .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(45)))
             .ToBytes();
 
         MatchCollection strokes = Regex.Matches(Encoding.ASCII.GetString(bytes), @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
@@ -106,7 +105,7 @@ public class PdfTextCaseTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }
                 .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "RTL underline test")
                 .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance))
-            .Canvas(canvas => canvas.Drawing(drawing, 10, 10, 240, 45))
+            .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(45)))
             .ToBytes();
 
         MatchCollection strokes = Regex.Matches(Encoding.ASCII.GetString(bytes), @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
@@ -142,36 +141,14 @@ public class PdfTextCaseTests {
     }
 
     [Fact]
-    public void PreTypographyTabAlignedConstructorRemainsBinaryDiscoverable() {
-        ConstructorInfo? constructor = typeof(PdfTextRun).GetConstructor(new[] {
-            typeof(string), typeof(bool), typeof(bool), typeof(PdfColor?), typeof(bool), typeof(bool),
-            typeof(double?), typeof(PdfStandardFont?), typeof(string), typeof(string), typeof(PdfTextBaseline),
-            typeof(string), typeof(PdfTabLeaderStyle), typeof(PdfTabAlignment), typeof(PdfColor?), typeof(string)
-        });
-
-        Assert.NotNull(constructor);
-    }
-
-    [Fact]
-    public void PreTypographyLinkFactoriesRemainBinaryDiscoverable() {
-        Type[] parameters = {
-            typeof(string), typeof(string), typeof(PdfColor?), typeof(bool), typeof(string),
-            typeof(PdfTextBaseline), typeof(double?), typeof(PdfColor?), typeof(PdfStandardFont?), typeof(string)
-        };
-
-        Assert.NotNull(typeof(PdfTextRun).GetMethod(nameof(PdfTextRun.Link), parameters));
-        Assert.NotNull(typeof(PdfTextRun).GetMethod(nameof(PdfTextRun.LinkToBookmark), parameters));
-    }
-
-    [Fact]
     public void WithTextCasePreservesImmutableRunFormatting() {
         PdfTextRun source = new("Styled", bold: true,
-            color: PdfColor.FromRgb(51, 102, 153), italic: true,
-            fontSize: 14, baseline: PdfTextBaseline.Superscript,
-            backgroundColor: PdfColor.FromRgb(240, 240, 240), fontFamily: "Aptos",
+            color: global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153), italic: true,
+            fontSize: global::OfficeIMO.OfficeLength.Points(14), baseline: PdfTextBaseline.Superscript,
+            backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(240, 240, 240), fontFamily: "Aptos",
             underlineStyle: OfficeTextDecorationStyle.Dashed,
             strikeStyle: OfficeTextDecorationStyle.Double,
-            decorationColor: PdfColor.FromRgb(200, 10, 20));
+            decorationColor: global::OfficeIMO.OfficeColor.FromRgb(200, 10, 20));
 
         PdfTextRun actual = source.WithTextCase(OfficeTextCase.ToggleCase);
 
@@ -181,7 +158,7 @@ public class PdfTextCaseTests {
         Assert.True(actual.Underline);
         Assert.True(actual.Strike);
         Assert.Equal(PdfTextBaseline.Superscript, actual.Baseline);
-        Assert.Equal(14D, actual.FontSize);
+        Assert.Equal(14D, (actual.FontSize?.ToPoints()));
         Assert.Equal("Aptos", actual.FontFamily);
         Assert.Equal(source.Color, actual.Color);
         Assert.Equal(source.BackgroundColor, actual.BackgroundColor);
@@ -194,10 +171,10 @@ public class PdfTextCaseTests {
     public void PdfWriterEmitsNativeDecorationPatterns() {
         PdfTextRun run = new(
             "Decorated",
-            color: PdfColor.FromRgb(10, 20, 30),
+            color: global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
             underlineStyle: OfficeTextDecorationStyle.Dashed,
             strikeStyle: OfficeTextDecorationStyle.Double,
-            decorationColor: PdfColor.FromRgb(255, 0, 0));
+            decorationColor: global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0));
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Header(header => header.Text(text => text.Run(run)))

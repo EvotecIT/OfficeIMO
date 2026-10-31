@@ -68,7 +68,7 @@ internal static class ReaderComparisonCorpus {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-reader-evidence-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Evidence");
+                ExcelSheet sheet = document.AddSheet("Evidence");
                 sheet.Cell(1, 1, "Control");
                 sheet.Cell(1, 2, "Owner");
                 sheet.Cell(1, 3, "Status");
@@ -92,17 +92,17 @@ internal static class ReaderComparisonCorpus {
 
     private static ReaderComparisonCase CreatePowerPoint() {
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox text = slide.AddTextBox("Quarterly evidence");
             text.AddBullet("Presentation list marker");
-            PowerPointTable table = slide.AddTable(2, 2);
+            PowerPointTable table = slide.AddTable(2,2);
             table.GetCell(0, 0).Text = "Measure";
             table.GetCell(0, 1).Text = "Value";
             table.GetCell(1, 0).Text = "Presentation table marker";
             table.GetCell(1, 1).Text = "42";
             using var image = new MemoryStream(Convert.FromBase64String(TinyPngBase64));
-            slide.AddPicture(image, OfficeIMO.Drawing.OfficeImageFormat.Png);
+            slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png);
             slide.Notes.Text = "Presenter notes retention marker";
             presentation.Save();
             presentation.BuiltinDocumentProperties.Created = FixedPackageTimestamp;

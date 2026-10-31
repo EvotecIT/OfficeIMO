@@ -20,9 +20,9 @@ public sealed class ExcelAutoFitCancellationTests {
     public void PreCanceledAutoFitPreservesDeferredValuesAndWidths(string route, bool alreadyFit) {
         using var source = new MemoryStream();
         using var document = ExcelDocument.Create(source);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using DataTable table = CreateTable();
-        sheet.InsertDataTableAsTable(table);
+        sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1);
         if (alreadyFit) sheet.AutoFitColumns();
         // Inspect a separate workbook: inspecting this sheet would materialize its deferred source.
         var widths = ExpectedTableWidths(alreadyFit);
@@ -44,7 +44,7 @@ public sealed class ExcelAutoFitCancellationTests {
     [InlineData("except")]
     public void PreCanceledAutoFitObservesCancellationWhenThereAreNoColumnsToFit(string route) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -67,9 +67,9 @@ public sealed class ExcelAutoFitCancellationTests {
     public void CancellationWhileEnumeratingColumnsDoesNotBecomeNoWorkSuccess(bool except) {
         using var source = new MemoryStream();
         using var document = ExcelDocument.Create(source);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using DataTable table = CreateTable();
-        sheet.InsertDataTableAsTable(table);
+        sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1);
         var widths = Array.Empty<(int Start, int End, double? Width, bool Custom)>();
         using var cancellation = new CancellationTokenSource();
         IEnumerable<int> Columns() {
@@ -101,14 +101,14 @@ public sealed class ExcelAutoFitCancellationTests {
         using var source = new MemoryStream();
         using var document = ExcelDocument.Create(source);
         document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using var table = new DataTable("Data");
         table.Columns.Add("Description", typeof(string));
         table.Columns.Add("When", typeof(DateTimeOffset));
         var date = new DateTimeOffset(2026, 10, 11, 8, 30, 0, TimeSpan.Zero);
         table.Rows.Add("Retained source", date);
         if (hasLaterRow) table.Rows.Add("Retained later row", date.AddDays(1));
-        sheet.InsertDataTableAsTable(table);
+        sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1);
         var widths = Array.Empty<(int Start, int End, double? Width, bool Custom)>();
         using var cancellation = new CancellationTokenSource();
         bool measuredDate = false;
@@ -141,7 +141,7 @@ public sealed class ExcelAutoFitCancellationTests {
     [Fact]
     public void SequentialAutoFitDoesNotApplyWidthsWhenMeasurementCompletionCancels() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "A long ordinary cell value requiring a wider column");
         var widths = ColumnState(sheet);
         using var cancellation = new CancellationTokenSource();
@@ -177,14 +177,14 @@ public sealed class ExcelAutoFitCancellationTests {
 
     private static (int Start, int End, double? Width, bool Custom)[] ColumnState(ExcelSheet sheet) =>
         sheet.GetColumnDefinitions().Select(column =>
-            (column.StartIndex, column.EndIndex, column.Width, column.CustomWidth)).ToArray();
+            (column.StartIndex, column.EndIndex, (column.Width?.CharacterCount), column.CustomWidth)).ToArray();
 
     private static (int Start, int End, double? Width, bool Custom)[] ExpectedTableWidths(bool alreadyFit) {
         using var source = new MemoryStream();
         using var document = ExcelDocument.Create(source);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using DataTable table = CreateTable();
-        sheet.InsertDataTableAsTable(table);
+        sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1);
         if (alreadyFit) sheet.AutoFitColumns();
         using var saved = new MemoryStream();
         document.Save(saved);

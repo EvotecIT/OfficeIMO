@@ -93,7 +93,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Reads the selected layout's authored title frame without creating a provisional slide.</summary>
-        private static PowerPointLayoutBox? TemplateTitleBounds(PowerPointLayoutContext context, PowerPointLayoutSlide slide) {
+        internal static PowerPointLayoutBox? TemplateTitleBounds(PowerPointLayoutContext context, PowerPointLayoutSlide slide) {
             if (context.Document.OwnsLayoutTheme) return null;
             int master, layout;
             if (slide.TemplateLayout != null) {
@@ -105,24 +105,41 @@ namespace OfficeIMO.PowerPoint {
                 master = selected.Value.MasterIndex;
                 layout = selected.Value.LayoutIndex;
             }
-            PowerPointTextBox? title = context.Document.GetLayoutPlaceholderTextBox(master, layout, PowerPointPlaceholderType.Title);
-            if (title == null) return null;
-            if (title.TryGetBoundsPoints(out double left, out double top, out double width, out double height))
-                return PowerPointLayoutBox.FromPoints(left, top, width, height);
-            // A layout title without geometry inherits the master's, as PowerPoint draws it.
-            return context.MasterTitle is PowerPointLayoutRect inherited
-                ? PowerPointLayoutBox.FromPoints(inherited.X, inherited.Y, inherited.Width, inherited.Height) : (PowerPointLayoutBox?)null;
+            return TemplateTitle(context, context.Document.GetSlideLayoutPart(master, layout))?.Bounds;
         }
 
+        private static PowerPointLayoutPlaceholderInfo? TemplateTitle(PowerPointLayoutContext context,
+            DocumentFormat.OpenXml.Packaging.SlideLayoutPart? layout) {
+            var tree = layout?.SlideLayout?.CommonSlideData?.ShapeTree;
+            if (tree == null) return null;
+            foreach (var shape in tree.Elements<DocumentFormat.OpenXml.Presentation.Shape>()) {
+                var placeholder = shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape;
+                var type = placeholder?.Type?.Value;
+                if (placeholder == null || type != DocumentFormat.OpenXml.Presentation.PlaceholderValues.Title &&
+                    type != DocumentFormat.OpenXml.Presentation.PlaceholderValues.CenteredTitle) continue;
+                PowerPointLayoutBox? bounds = PowerPointSlide.GetExportPlaceholderBounds(layout, placeholder);
+                if (!bounds.HasValue || !WithinSlide(context.Document, bounds.Value.Left.ToPoints(), bounds.Value.Top.ToPoints(),
+                        bounds.Value.Width.ToPoints(), bounds.Value.Height.ToPoints())) continue;
+                return new PowerPointLayoutPlaceholderInfo(shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Name?.Value ?? string.Empty,
+                    type.Value.ToOfficeEnum(), placeholder.Index?.Value, bounds);
+            }
+            return null;
+        }
+
+        internal static bool WithinSlide(PowerPointDocument document, double left, double top, double width, double height) =>
+            left >= 0D && top >= 0D && width > 0D && height > 0D &&
+            left + width <= document.SlideSize.Width.ToPoints() + 1D / 12700D &&
+            top + height <= document.SlideSize.Height.ToPoints() + 1D / 12700D;
+
         private static HeaderGeometry MeasureTemplateHeader(PowerPointLayoutContext context, PowerPointLayoutSlide slide, PowerPointLayoutBox titleBox) {
-            double bottom = titleBox.BottomPoints;
+            double bottom = titleBox.Bottom.ToPoints();
             double subtitleY = 0D;
             if (!string.IsNullOrWhiteSpace(slide.Subtitle)) {
                 subtitleY = bottom + 6D;
-                bottom = subtitleY + context.Height(slide.Subtitle!, context.Style(PowerPointTextRole.Subtitle), titleBox.WidthPoints) + 4D;
+                bottom = subtitleY + context.Height(slide.Subtitle!, context.Style(PowerPointTextRole.Subtitle), titleBox.Width.ToPoints()) + 4D;
             }
             return new HeaderGeometry {
-                TitleY = titleBox.TopPoints,
+                TitleY = titleBox.Top.ToPoints(),
                 TitleSize = context.Style(PowerPointTextRole.Title).Size,
                 TitleLines = 1,
                 SubtitleY = subtitleY,
@@ -143,17 +160,17 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>The shared content-slide header: accent mark, eyebrow, title, subtitle.</summary>
         internal static HeaderGeometry RenderHeader(PowerPointLayoutContext context, PowerPointLayoutWriter writer,
-            PowerPointLayoutSlide slide) {
+            PowerPointLayoutSlide slide, bool decorate = true) {
             PowerPointLayoutGrid grid = context.Grid;
-            if (!context.Document.OwnsLayoutTheme && writer.Slide.GetLayoutPlaceholder(PowerPointPlaceholderType.Title) is { } placeholder &&
-                (placeholder.Bounds ?? TemplateTitleBounds(context, slide)) is PowerPointLayoutBox templateTitle) {
+            if (!context.Document.OwnsLayoutTheme &&
+                TemplateTitle(context, writer.Slide.SlidePart.SlideLayoutPart) is PowerPointLayoutPlaceholderInfo templateTitle) {
                 return RenderTemplateHeader(context, writer, slide, templateTitle);
             }
 
             HeaderGeometry header = MeasureHeader(context, slide);
-            writer.Rect("Accent Mark", new PowerPointLayoutRect(grid.X(1), grid.Y(1) - 12D, 28D, 3D), context.Theme.Accent1);
+            if (decorate) writer.Rect("Accent Mark", new PowerPointLayoutRect(grid.X(1), grid.Y(1) - 12D, 28D, 3D), context.Theme.Accent1);
             string? eyebrow = Eyebrow(context, slide, header);
-            if (!string.IsNullOrWhiteSpace(eyebrow)) {
+            if (decorate && !string.IsNullOrWhiteSpace(eyebrow)) {
                 writer.Text("Eyebrow", grid.Box(1, 8, 1, 1), context.Paragraph(eyebrow!, PowerPointTextRole.Eyebrow));
             }
 
@@ -189,9 +206,10 @@ namespace OfficeIMO.PowerPoint {
         ///     colour; the eyebrow sits above it when there is room; content starts below the template title.
         /// </summary>
         private static HeaderGeometry RenderTemplateHeader(PowerPointLayoutContext context, PowerPointLayoutWriter writer,
-            PowerPointLayoutSlide slide, PowerPointLayoutBox titleBox) {
+            PowerPointLayoutSlide slide, PowerPointLayoutPlaceholderInfo placeholder) {
+            PowerPointLayoutBox titleBox = placeholder.Bounds!.Value;
             HeaderGeometry header = MeasureTemplateHeader(context, slide, titleBox);
-            var title = new PowerPointLayoutRect(titleBox.LeftPoints, titleBox.TopPoints, titleBox.WidthPoints, titleBox.HeightPoints);
+            var title = new PowerPointLayoutRect(titleBox.Left.ToPoints(), titleBox.Top.ToPoints(), titleBox.Width.ToPoints(), titleBox.Height.ToPoints());
             string? eyebrow = Eyebrow(context, slide, null);
             PowerPointTextStyleSpec eyebrowStyle = context.Style(PowerPointTextRole.Eyebrow);
             if (!string.IsNullOrWhiteSpace(eyebrow) && title.Y >= eyebrowStyle.Size * 2.4D) {
@@ -200,17 +218,20 @@ namespace OfficeIMO.PowerPoint {
             }
 
             string text = (slide.Title ?? string.Empty) + (slide.ContinuedSuffix ?? string.Empty);
-            if (!string.IsNullOrWhiteSpace(text)) {
+            if (slide.Title != null || !string.IsNullOrWhiteSpace(text)) {
+                string type = placeholder.PlaceholderType == PowerPointPlaceholderType.CenteredTitle ? "ctrTitle" : "title";
+                string index = placeholder.PlaceholderIndex.HasValue
+                    ? " idx=\"" + placeholder.PlaceholderIndex.Value.ToString(CultureInfo.InvariantCulture) + "\"" : string.Empty;
                 PowerPointTextBox shape = writer.Text("Title", title, context.Paragraph(text, PowerPointTextRole.Title),
-                    placeholder: "<p:ph type=\"title\"/>");
+                    placeholder: "<p:ph type=\"" + type + "\"" + index + "/>");
                 // Inherit geometry and character formatting from the template's title placeholder.
                 var element = (DocumentFormat.OpenXml.Presentation.Shape)shape.Element;
                 element.ShapeProperties?.RemoveAllChildren();
-                foreach (DocumentFormat.OpenXml.Drawing.RunProperties run in element.Descendants<DocumentFormat.OpenXml.Drawing.RunProperties>()) {
-                    run.RemoveAllChildren();
-                    run.FontSize = null;
-                    run.Bold = null;
-                    run.Spacing = null;
+                foreach (var properties in element.Descendants().Where(item =>
+                    item is DocumentFormat.OpenXml.Drawing.RunProperties ||
+                    item is DocumentFormat.OpenXml.Drawing.EndParagraphRunProperties).ToArray()) {
+                    properties.RemoveAllChildren();
+                    properties.ClearAllAttributes();
                 }
 
                 DocumentFormat.OpenXml.Drawing.BodyProperties? body = element.TextBody?.BodyProperties;
@@ -284,7 +305,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (number) {
-                int index = writer.Slide.OwnerPresentation?.Slides.Count ?? 1;
+                int index = writer.Slide.OwnerDocument?.Slides.Count ?? 1;
                 var run = new PowerPointLayoutRun(index.ToString(CultureInfo.InvariantCulture), footer, color: color) { Field = true, Alpha = alpha };
                 var p = new PowerPointLayoutParagraph(run) { Align = "r", LineHeight = footer.LineHeight };
                 PowerPointTextBox numberShape = writer.Text("Slide Number", new PowerPointLayoutRect(grid.X(rightText ? 12 : 9), grid.FooterY, grid.W(rightText ? 1 : 4), PowerPointLayoutGrid.FooterHeight), p,

@@ -16,7 +16,7 @@ public static partial class ExcelHtmlConverterExtensions {
         AppendCss(css, "font-family", style.IsFontFamilyExplicit && !string.IsNullOrWhiteSpace(style.FontName)
             ? CssFontFamily(style.FontName!) : null);
         AppendCss(css, "font-size", style.FontSize.HasValue
-            ? style.FontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
+            ? style.FontSize.Value.ToPoints().ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
         AppendCss(css, "color", !suppressFontColor && !string.IsNullOrWhiteSpace(style.FontColorHex) ? "#" + style.FontColorHex : null);
         ExcelUnderlineStyle underlineStyle = style.Underline
             ? style.UnderlineStyle ?? ExcelUnderlineStyle.Single
@@ -51,7 +51,7 @@ public static partial class ExcelHtmlConverterExtensions {
         AppendCss(css, "font-style", run.ItalicSpecified ? (run.Italic ? "italic" : "normal") : null);
         AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(run.FontName) ? CssFontFamily(run.FontName!) : null);
         AppendCss(css, "font-size", run.FontSize.HasValue
-            ? run.FontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
+            ? run.FontSize.Value.ToPoints().ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
         string color = (run.FontColor ?? string.Empty).Trim().TrimStart('#');
         if (color.Length == 8) color = color.Substring(2);
         AppendCss(css, "color", color.Length == 6 ? "#" + color : null);

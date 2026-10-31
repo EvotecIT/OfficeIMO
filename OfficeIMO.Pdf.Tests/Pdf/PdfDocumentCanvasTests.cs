@@ -13,10 +13,10 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasFormDataExportOmitsNoExportFields() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas
-                .TextField("enabled", "included", 20D, 20D, 120D, 20D)
-                .TextField("disabled", "excluded", 20D, 50D, 120D, 20D, style: new PdfFormFieldStyle { IsNoExport = true }))
+                .TextField("enabled", "included", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(20D))
+                .TextField("disabled", "excluded", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(20D), style: new PdfFormFieldStyle { IsNoExport = true }))
             .ToBytes();
 
         PdfFormDataSet data = PdfDocument.Load(bytes).Forms.ExportData();
@@ -31,13 +31,13 @@ public class PdfDocumentCanvasTests {
             IsRequired = true,
             AlternateName = "Contact name"
         };
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas
-                .TextField("ContactName", "Ada", 20D, 30D, 160D, 24D, style: textStyle)
-                .CheckBox("ContactAccept", true, 20D, 70D, 16D, 16D)
-                .ChoiceField("ContactCountry", new[] { "Poland", "Germany" }, new[] { "Poland" }, 20D, 105D, 160D, 24D)
-                .RadioButton("ContactMethod", "Email", false, 20D, 145D, 16D, 16D)
-                .RadioButton("ContactMethod", "Phone", true, 80D, 145D, 16D, 16D))
+                .TextField("ContactName", "Ada", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(24D), style: textStyle)
+                .CheckBox("ContactAccept", true, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(16D), global::OfficeIMO.OfficeLength.Points(16D))
+                .ChoiceField("ContactCountry", new[] { "Poland", "Germany" }, new[] { "Poland" }, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(105D), global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(24D))
+                .RadioButton("ContactMethod", "Email", false, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(145D), global::OfficeIMO.OfficeLength.Points(16D), global::OfficeIMO.OfficeLength.Points(16D))
+                .RadioButton("ContactMethod", "Phone", true, global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(145D), global::OfficeIMO.OfficeLength.Points(16D), global::OfficeIMO.OfficeLength.Points(16D)))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -74,25 +74,25 @@ public class PdfDocumentCanvasTests {
             "Choice",
             options,
             new[] { "x" },
-            20D,
-            20D,
-            120D,
-            24D));
+            global::OfficeIMO.OfficeLength.Points(20D),
+            global::OfficeIMO.OfficeLength.Points(20D),
+            global::OfficeIMO.OfficeLength.Points(120D),
+            global::OfficeIMO.OfficeLength.Points(24D)));
 
         Assert.Contains("export values must be unique", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void CanvasChoiceField_StringMultiSelectNormalizesDuplicateValuesBeforeSerialization() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas.ChoiceField(
                 "Choice",
                 new[] { "A", "B" },
                 new[] { "A", "A" },
-                20D,
-                20D,
-                120D,
-                36D,
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(120D),
+                global::OfficeIMO.OfficeLength.Points(36D),
                 isComboBox: false,
                 allowsMultipleSelection: true))
             .ToBytes();
@@ -110,20 +110,20 @@ public class PdfDocumentCanvasTests {
             "Strings",
             new[] { "A", "B" },
             new[] { "A" },
-            20D,
-            20D,
-            120D,
-            36D,
+            global::OfficeIMO.OfficeLength.Points(20D),
+            global::OfficeIMO.OfficeLength.Points(20D),
+            global::OfficeIMO.OfficeLength.Points(120D),
+            global::OfficeIMO.OfficeLength.Points(36D),
             isComboBox: true,
             allowsMultipleSelection: true));
         Assert.Throws<ArgumentException>(() => canvas.ChoiceField(
             "Options",
             new[] { new PdfFormFieldOption("A", "First"), new PdfFormFieldOption("B", "Second") },
             new[] { "A" },
-            20D,
-            20D,
-            120D,
-            36D,
+            global::OfficeIMO.OfficeLength.Points(20D),
+            global::OfficeIMO.OfficeLength.Points(20D),
+            global::OfficeIMO.OfficeLength.Points(120D),
+            global::OfficeIMO.OfficeLength.Points(36D),
             isComboBox: true,
             allowsMultipleSelection: true));
     }
@@ -131,13 +131,13 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasEditableComboFieldsAllowCustomScalarValues() {
         var style = new PdfFormFieldStyle { IsEditableChoice = true };
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas
-                .ChoiceField("Strings", new[] { "A", "B" }, new[] { "Custom" }, 20D, 20D, 120D, 24D, style: style)
+                .ChoiceField("Strings", new[] { "A", "B" }, new[] { "Custom" }, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(24D), style: style)
                 .ChoiceField("Options", new[] {
                     new PdfFormFieldOption("A", "First"),
                     new PdfFormFieldOption("B", "Second")
-                }, new[] { "Other" }, 20D, 60D, 120D, 24D, style: style))
+                }, new[] { "Other" }, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(24D), style: style))
             .ToBytes();
 
         PdfFormField[] fields = PdfInspector.Inspect(bytes).FormFields.ToArray();
@@ -149,28 +149,28 @@ public class PdfDocumentCanvasTests {
     public void CanvasFormFields_RejectPeriodsInPartialFieldNames() {
         var canvas = new PdfPageCanvas();
 
-        Assert.Throws<ArgumentException>(() => canvas.TextField("user.email", "Ada", 20D, 20D, 120D, 24D));
-        Assert.Throws<ArgumentException>(() => canvas.CheckBox("user.accepted", true, 20D, 20D, 14D, 14D));
-        Assert.Throws<ArgumentException>(() => canvas.ChoiceField("user.country", new[] { "Poland" }, new[] { "Poland" }, 20D, 20D, 120D, 24D));
-        Assert.Throws<ArgumentException>(() => canvas.RadioButton("user.method", "Email", true, 20D, 20D, 14D, 14D));
+        Assert.Throws<ArgumentException>(() => canvas.TextField("user.email", "Ada", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(24D)));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBox("user.accepted", true, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D)));
+        Assert.Throws<ArgumentException>(() => canvas.ChoiceField("user.country", new[] { "Poland" }, new[] { "Poland" }, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(24D)));
+        Assert.Throws<ArgumentException>(() => canvas.RadioButton("user.method", "Email", true, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D)));
     }
 
     [Fact]
     public void CanvasCheckBox_RejectsReservedAndNonAsciiAppearanceStatesWhenAdded() {
         var canvas = new PdfPageCanvas();
 
-        Assert.Throws<ArgumentException>(() => canvas.CheckBox("Check", false, 20D, 20D, 14D, 14D, "Off"));
-        Assert.Throws<ArgumentException>(() => canvas.CheckBoxWithExportValue("Check", false, 20D, 20D, 14D, 14D, "Off", "off-export"));
-        Assert.Throws<ArgumentException>(() => canvas.CheckBox("Check", false, 20D, 20D, 14D, 14D, "Y\u2713"));
-        Assert.Throws<ArgumentException>(() => canvas.CheckBoxWithExportValue("Check", false, 20D, 20D, 14D, 14D, "Y\u2713", "accepted"));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBox("Check", false, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D), "Off"));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBoxWithExportValue("Check", false, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D), "Off", "off-export"));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBox("Check", false, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D), "Y\u2713"));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBoxWithExportValue("Check", false, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D), "Y\u2713", "accepted"));
     }
 
     [Fact]
     public void CanvasRadioButtons_CanStartWithNoSelectedWidget() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas
-                .RadioButton("Preference", "One", false, 20D, 20D, 14D, 14D)
-                .RadioButton("Preference", "Two", false, 50D, 20D, 14D, 14D))
+                .RadioButton("Preference", "One", false, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D))
+                .RadioButton("Preference", "Two", false, global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D)))
             .ToBytes();
 
         PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
@@ -181,9 +181,9 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasRadioButtons_CanShareOneFieldAcrossPages() {
-        byte[] bytes = PdfDocument.Create()
-            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "First", false, 20D, 20D, 14D, 14D)))
-            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "Second", true, 20D, 20D, 14D, 14D)))
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "First", false, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D))))
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "Second", true, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D))))
             .ToBytes();
 
         PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
@@ -195,9 +195,9 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasRadioButtons_NormalizeMultipleCrossPageSelectionsToTheLastOption() {
-        byte[] bytes = PdfDocument.Create()
-            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "First", true, 20D, 20D, 14D, 14D)))
-            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "Second", true, 20D, 20D, 14D, 14D)))
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "First", true, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D))))
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "Second", true, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D))))
             .ToBytes();
 
         PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
@@ -208,10 +208,10 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasRadioButtons_CanUseDifferentWidgetDimensionsWithinOneField() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas
-                .RadioButton("VariableSize", "Small", false, 20D, 20D, 12D, 12D)
-                .RadioButton("VariableSize", "Large", true, 60D, 20D, 24D, 18D))
+                .RadioButton("VariableSize", "Small", false, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(12D))
+                .RadioButton("VariableSize", "Large", true, global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(18D)))
             .ToBytes();
 
         PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
@@ -229,10 +229,10 @@ public class PdfDocumentCanvasTests {
         var disabled = new PdfFormFieldStyle { IsReadOnly = true, IsNoExport = true };
         PdfFormFieldStyle first = disabledFirst ? disabled : enabled;
         PdfFormFieldStyle second = disabledFirst ? enabled : disabled;
-        PdfDocument document = PdfDocument.Create()
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas
-                .RadioButton("MixedState", "First", false, 20D, 20D, 14D, 14D, first)
-                .RadioButton("MixedState", "Second", true, 50D, 20D, 14D, 14D, second));
+                .RadioButton("MixedState", "First", false, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D), first)
+                .RadioButton("MixedState", "Second", true, global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D), second));
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => document.ToBytes());
 
@@ -241,16 +241,16 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasRadioButtons_RejectMixedFieldLevelStateAcrossPages() {
-        PdfDocument document = PdfDocument.Create()
-            .Page(page => page.Canvas(canvas => canvas.RadioButton("MixedPages", "First", false, 20D, 20D, 14D, 14D)))
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("MixedPages", "First", false, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D))))
             .Page(page => page.Canvas(canvas => canvas.RadioButton(
                 "MixedPages",
                 "Second",
                 true,
-                20D,
-                20D,
-                14D,
-                14D,
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(14D),
+                global::OfficeIMO.OfficeLength.Points(14D),
                 new PdfFormFieldStyle { IsReadOnly = true })));
 
         Assert.Throws<ArgumentException>(() => document.ToBytes());
@@ -258,7 +258,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasRadioButtons_CanSeparateAppearanceStatesFromUnicodeExportValues() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Page(page => page.Canvas(canvas => canvas.RadioButtonWithExportValue("Preference", "Option1", "caf\u00E9", false, 20D, 20D, 14D, 14D)))
             .Page(page => page.Canvas(canvas => canvas.RadioButtonWithExportValue("Preference", "Option2", "th\u00E9", true, 50D, 20D, 14D, 14D)))
             .ToBytes();
@@ -272,12 +272,12 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasActualText_PreservesLogicalExtractionForReversePositionedFragments() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.ActualText("ABC", logical => logical
-                .Text("A", 50D, 10D, 10D, 20D)
-                .Text("B", 35D, 10D, 10D, 20D)
-                .Text("C", 20D, 10D, 10D, 20D)))
+                .Text("A", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Text("B", global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Text("C", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D))))
             .ToBytes();
 
         Assert.Contains("ABC", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
@@ -286,11 +286,11 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasActualText_ReplacesTextInsideEffectGroupsWithoutDuplication() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.ActualText("AB", logical => logical
-                .Effect(OfficeIMO.Drawing.OfficeTransform.Identity, .5D, effect => effect.Text("A", 20D, 10D, 10D, 20D))
-                .Text("B", 35D, 10D, 10D, 20D)))
+                .Effect(OfficeIMO.Drawing.OfficeTransform.Identity, .5D, effect => effect.Text("A", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D)))
+                .Text("B", global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D))))
             .ToBytes();
 
         Assert.Equal("AB", string.Concat(PdfReadDocument.Open(bytes).ExtractText().Where(character => !char.IsWhiteSpace(character))));
@@ -302,14 +302,14 @@ public class PdfDocumentCanvasTests {
     public void CanvasActualText_PreservesLogicalExtractionWithEmbeddedDefaultFont() {
         string? fontPath = PdfComplianceTestFonts.FindBundledTrueTypeFont();
         if (fontPath == null) return;
-        var options = new PdfCreateOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false }
             .UseFontFamily(new PdfEmbeddedFontFamily("ActualText Embedded", File.ReadAllBytes(fontPath)));
 
         byte[] bytes = PdfDocument.Create(options)
             .TaggedPdfCatalogMarkers()
-            .Canvas(canvas => canvas.ActualText("VerticalWeb", 20D, 30D, logical => logical
+            .Canvas(canvas => canvas.ActualText("VerticalWeb", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), logical => logical
                 .Effect(OfficeIMO.Drawing.OfficeTransform.RotateDegrees(90D), 1D, effect => effect
-                    .Text("VerticalWeb", 20D, 10D, 80D, 20D))))
+                    .Text("VerticalWeb", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D)))))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains("VerticalWeb", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
@@ -317,14 +317,14 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasActualText_PositionedOverloadPreservesReadingOrderAndCoordinates() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
-                .ActualText("First", 20D, 30D, logical => logical.Shape(
-                    OfficeShape.Rectangle(20D, 10D), 20D, 20D,
+                .ActualText("First", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), logical => logical.Shape(
+                    OfficeShape.Rectangle(20D, 10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D),
                     new PdfDrawingStyle { Decorative = true }))
-                .ActualText("Second", 20D, 60D, logical => logical.Shape(
-                    OfficeShape.Rectangle(20D, 10D), 20D, 50D,
+                .ActualText("Second", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(60D), logical => logical.Shape(
+                    OfficeShape.Rectangle(20D, 10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D),
                     new PdfDrawingStyle { Decorative = true })))
             .ToBytes();
 
@@ -345,16 +345,16 @@ public class PdfDocumentCanvasTests {
         Assert.Throws<ArgumentException>(() => canvas.ActualText(string.Empty, _ => { }));
         Assert.Throws<ArgumentNullException>(() => canvas.ActualText("Text", null!));
         Assert.Throws<ArgumentException>(() => canvas.ActualText("Text", _ => { }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.ActualText("Text", -1D, 0D, nested => nested.Text("x", 0D, 0D, 10D, 10D)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.ActualText("Text", global::OfficeIMO.OfficeLength.Points(-1D), global::OfficeIMO.OfficeLength.Points(0D), nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D))));
     }
 
     [Fact]
     public void CanvasNamedDestinations_CreateReusableInternalNavigation() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 200D, PageHeight = 200D })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, PageWidth = global::OfficeIMO.OfficeLength.Points(200D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D) })
             .Canvas(canvas => canvas
-                .NamedDestination("details", 10D, 120D)
-                .Text("Details", 10D, 120D, 80D, 20D)
-                .LinkToNamedDestination("details", 10D, 10D, 60D, 20D, "Jump to details"))
+                .NamedDestination("details", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(120D))
+                .Text("Details", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D))
+                .LinkToNamedDestination("details", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(20D), "Jump to details"))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -362,21 +362,21 @@ public class PdfDocumentCanvasTests {
         Assert.Contains("details", info.LinkDestinationNames);
 
         var canvas = new PdfPageCanvas();
-        Assert.Throws<ArgumentException>(() => canvas.NamedDestination(" ", 0D, 0D));
-        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.NamedDestination("target", -1D, 0D));
-        Assert.Throws<ArgumentException>(() => canvas.LinkToNamedDestination(" ", 0D, 0D, 10D, 10D));
-        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.LinkToNamedDestination("target", 0D, 0D, 0D, 10D));
+        Assert.Throws<ArgumentException>(() => canvas.NamedDestination(" ", global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.NamedDestination("target", global::OfficeIMO.OfficeLength.Points(-1D), global::OfficeIMO.OfficeLength.Points(0D)));
+        Assert.Throws<ArgumentException>(() => canvas.LinkToNamedDestination(" ", global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.LinkToNamedDestination("target", global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(10D)));
     }
 
     [Fact]
     public void CanvasNamedDestinationsPreserveUnicodeKeysAndByteOrdering() {
         const string name = "Earth’s\u00A0€";
-        byte[] bytes = PdfDocument.Create()
-            .Canvas(canvas => canvas.NamedDestination("Z", 10, 5)
-                .NamedDestination("ÿ", 10, 10)
-                .NamedDestination("’", 10, 20)
-                .NamedDestination(name, 10, 30)
-                .LinkToNamedDestination(name, 10, 40, 80, 20, "Jump"))
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
+            .Canvas(canvas => canvas.NamedDestination("Z", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(5))
+                .NamedDestination("ÿ", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10))
+                .NamedDestination("’", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(20))
+                .NamedDestination(name, global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(30))
+                .LinkToNamedDestination(name, global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(20), "Jump"))
             .ToBytes();
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         Assert.Contains(name, info.NamedDestinationNames);
@@ -394,14 +394,14 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasStructure_GroupsFragmentedHeadingAndParagraphTextUnderSection() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Section, section => section
                     .Structure(PdfCanvasStructureRole.Heading1, heading => heading
-                        .Text(new[] { PdfTextRun.Normal("Heading") }, PdfCanvasTextStructureRole.Span, 10D, 10D, 120D, 20D))
+                        .Text(new[] { PdfTextRun.Normal("Heading") }, PdfCanvasTextStructureRole.Span, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(20D)))
                     .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph
-                        .Text(new[] { PdfTextRun.Normal("Paragraph") }, PdfCanvasTextStructureRole.Span, 10D, 40D, 120D, 20D))))
+                        .Text(new[] { PdfTextRun.Normal("Paragraph") }, PdfCanvasTextStructureRole.Span, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(20D)))))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
@@ -415,10 +415,10 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasStructure_KeepsInteractiveFormWidgetsUnderTheActiveSemanticParent() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
-                .TextField("ContactName", "Ada", 10D, 10D, 100D, 20D)))
+                .TextField("ContactName", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
@@ -435,16 +435,16 @@ public class PdfDocumentCanvasTests {
             HeaderScope = PdfCanvasTableHeaderScope.Column,
             ColumnSpan = 2
         };
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.List, list => list
                     .Structure(PdfCanvasStructureRole.ListItem, item => item
-                        .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", 10D, 10D, 20D, 20D))
-                        .Structure(PdfCanvasStructureRole.ListBody, body => body.Text("First item", 35D, 10D, 100D, 20D))))
+                        .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D)))
+                        .Structure(PdfCanvasStructureRole.ListBody, body => body.Text("First item", global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)))))
                 .Structure(PdfCanvasStructureRole.Table, table => table
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Header", 10D, 40D, 100D, 20D), headerOptions))))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Header", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)), headerOptions))))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
@@ -469,10 +469,10 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasStructure_FormulaRetainsDescriptionAndContentUnderItsDeclaredParent() {
         var options = new PdfCanvasStructureOptions { AlternativeText = "x squared" };
-        PdfDocument document = PdfDocument.Create().TaggedPdfCatalogMarkers().Canvas(canvas => canvas
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).TaggedPdfCatalogMarkers().Canvas(canvas => canvas
             .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph
                 .Structure(PdfCanvasStructureRole.Formula, formula => formula
-                    .ActualText("x^(2)", paint => paint.Text("x2", 10D, 10D, 60D, 20D)), options)));
+                    .ActualText("x^(2)", paint => paint.Text("x2", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(20D))), options)));
         options.AlternativeText = "Changed after snapshot";
         byte[] bytes = document.ToBytes();
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
@@ -493,11 +493,11 @@ public class PdfDocumentCanvasTests {
         Assert.Throws<ArgumentException>(() => canvas.Structure(PdfCanvasStructureRole.List, _ => { }));
         Assert.Throws<ArgumentException>(() => canvas.Structure(
             PdfCanvasStructureRole.List,
-            nested => nested.Text("Item", 0D, 0D, 20D, 20D),
+            nested => nested.Text("Item", global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D)),
             new PdfCanvasStructureOptions { ColumnSpan = 2 }));
         Assert.Throws<ArgumentException>(() => canvas.Structure(
             PdfCanvasStructureRole.TableCell,
-            nested => nested.Text("Cell", 0D, 0D, 20D, 20D),
+            nested => nested.Text("Cell", global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D)),
             new PdfCanvasStructureOptions { HeaderScope = PdfCanvasTableHeaderScope.Row }));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfCanvasStructureOptions { ColumnSpan = 0 });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfCanvasStructureOptions { HeaderScope = (PdfCanvasTableHeaderScope)99 });
@@ -505,15 +505,15 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasArtifact_ExcludesDecorativeContentFromTheStructureTree() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
                 .Artifact(artifact => artifact
-                    .Text("Decoration", 10D, 10D, 100D, 20D)
+                    .Text("Decoration", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))
                     .SearchableText("Searchable decoration", 10D, 30D)
-                    .Table(new[] { new[] { "Decorative header" }, new[] { "Decorative cell" } }, 10D, 40D, 100D, 40D)
-                    .Figure("Decorative figure", figure => figure.Text("Figure decoration", 10D, 85D, 100D, 20D)))
-                .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Meaningful", 10D, 40D, 100D, 20D)))
+                    .Table(new[] { new[] { "Decorative header" }, new[] { "Decorative cell" } }, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(40D))
+                    .Figure("Decorative figure", figure => figure.Text("Figure decoration", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(85D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))))
+                .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Meaningful", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -536,16 +536,16 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasArtifact_SuppressesEveryInteractiveDescendant() {
         const string uri = "https://evotec.xyz/decorative";
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Artifact(artifact => artifact
-                .Text(new[] { PdfTextRun.Link("Decorative link", uri) }, 10D, 10D, 100D, 20D)
-                .TextAnnotation("Decorative note", 10D, 35D)
-                .FreeTextAnnotation("Decorative free text", 35D, 35D, 100D, 20D)
-                .HighlightAnnotation("Decorative highlight", 10D, 60D, 100D, 20D)
-                .Outline("Decorative outline", 1, 10D)
+                .Text(new[] { PdfTextRun.Link("Decorative link", uri) }, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))
+                .TextAnnotation("Decorative note", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(35D))
+                .FreeTextAnnotation("Decorative free text", global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))
+                .HighlightAnnotation("Decorative highlight", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Outline("Decorative outline", 1, global::OfficeIMO.OfficeLength.Points(10D))
                 .Structure(PdfCanvasStructureRole.Paragraph, nested => nested
-                    .TextField("DecorativeField", "Value", 10D, 85D, 100D, 20D))))
+                    .TextField("DecorativeField", "Value", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(85D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)))))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -562,12 +562,12 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasOutline_SupportsPerEntryExpansionState() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { OutlineExpansionLevel = 0 })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, OutlineExpansionLevel = 0 })
             .Canvas(canvas => canvas
-                .Outline("Open parent", 1, 10D, PdfOutlineState.Open)
-                .Outline("Open child", 2, 20D)
-                .Outline("Closed parent", 1, 30D, PdfOutlineState.Closed)
-                .Outline("Closed child", 2, 40D))
+                .Outline("Open parent", 1, global::OfficeIMO.OfficeLength.Points(10D), PdfOutlineState.Open)
+                .Outline("Open child", 2, global::OfficeIMO.OfficeLength.Points(20D))
+                .Outline("Closed parent", 1, global::OfficeIMO.OfficeLength.Points(30D), PdfOutlineState.Closed)
+                .Outline("Closed child", 2, global::OfficeIMO.OfficeLength.Points(40D)))
             .ToBytes();
 
         IReadOnlyList<PdfOutlineItem> outlines = PdfReadDocument.Open(bytes).Outlines;
@@ -575,17 +575,17 @@ public class PdfDocumentCanvasTests {
         Assert.False(outlines[1].IsExpanded);
         Assert.Equal("Open child", Assert.Single(outlines[0].Children).Title);
         Assert.Equal("Closed child", Assert.Single(outlines[1].Children).Title);
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageCanvas().Outline("Invalid", 1, 1D, (PdfOutlineState)99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageCanvas().Outline("Invalid", 1, global::OfficeIMO.OfficeLength.Points(1D), (PdfOutlineState)99));
     }
 
     [Fact]
     public void CanvasFigure_GroupsMixedCanvasContentUnderOneTaggedFigure() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Figure("Composite diagram", figure => figure
-                .Shape(OfficeShape.Rectangle(20D, 10D), 12D, 12D)
-                .Text("Diagram label", 12D, 28D, 100D, 20D)
-                .Image(CreateMinimalRgbPng(), 120D, 12D, 20D, 20D, alternativeText: "Nested image alt")))
+                .Shape(OfficeShape.Rectangle(20D, 10D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(12D))
+                .Text("Diagram label", global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), alternativeText: "Nested image alt")))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
@@ -614,14 +614,14 @@ public class PdfDocumentCanvasTests {
                 "Nested image alternative text");
 
         foreach (double size in new[] { 20D, 40D }) {
-            byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
                 .TaggedPdfCatalogMarkers()
                 .Canvas(canvas => canvas.Drawing(
                     drawing,
-                    10D,
-                    10D,
-                    size,
-                    size,
+                    global::OfficeIMO.OfficeLength.Points(10D),
+                    global::OfficeIMO.OfficeLength.Points(10D),
+                    global::OfficeIMO.OfficeLength.Points(size),
+                    global::OfficeIMO.OfficeLength.Points(size),
                     new PdfDrawingStyle { AlternativeText = "Outer drawing alternative text" }))
                 .ToBytes();
 
@@ -630,13 +630,13 @@ public class PdfDocumentCanvasTests {
             Assert.Equal("Outer drawing alternative text", figure.AlternateText);
             Assert.Equal(1, CountOccurrences(Encoding.ASCII.GetString(bytes), "/Figure <<"));
 
-            byte[] decorative = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+            byte[] decorative = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
                 .Canvas(canvas => canvas.Drawing(
                     drawing,
-                    10D,
-                    10D,
-                    size,
-                    size,
+                    global::OfficeIMO.OfficeLength.Points(10D),
+                    global::OfficeIMO.OfficeLength.Points(10D),
+                    global::OfficeIMO.OfficeLength.Points(size),
+                    global::OfficeIMO.OfficeLength.Points(size),
                     new PdfDrawingStyle { Decorative = true }))
                 .ToBytes();
             Assert.DoesNotContain("/Figure << /Alt", Encoding.ASCII.GetString(decorative), StringComparison.Ordinal);
@@ -645,10 +645,10 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasStructure_RetainedImageKeepsFigureUnderDeclaredParent() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
-                .Image(CreateMinimalRgbPng(), 10D, 10D, 20D, 20D, alternativeText: "Nested image alternative text")))
+                .Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), alternativeText: "Nested image alternative text")))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
@@ -667,19 +667,19 @@ public class PdfDocumentCanvasTests {
                 new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 20D, 20D)),
                 "Clipped image alternative text");
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 120D,
-                PageHeight = 120D,
-                MarginLeft = 0D,
-                MarginRight = 0D,
-                MarginTop = 0D,
-                MarginBottom = 0D,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(120D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(120D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
-            .Canvas(canvas => canvas.Clip(60D, 10D, 20D, 20D, clipped => clipped
-                .Image(CreateMinimalRgbPng(), 10D, 40D, 20D, 20D, alternativeText: "Direct clipped image alternative text")
-                .Drawing(drawing, 10D, 10D, 20D, 20D)))
+            .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), clipped => clipped
+                .Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), alternativeText: "Direct clipped image alternative text")
+                .Drawing(drawing, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D))))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
@@ -691,16 +691,16 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasText_RendersAtFixedTopLeftCoordinatesWithoutMovingFlowContent() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 160,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 72,
-                MarginBottom = 24,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(72),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Text("CanvasTitle", 24, 20, 120, 24, fontSize: 12, color: PdfColor.FromRgb(20, 90, 160)))
+            .Canvas(canvas => canvas.Text("CanvasTitle", global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(24), fontSize: global::OfficeIMO.OfficeLength.Points(12), color: global::OfficeIMO.OfficeColor.FromRgb(20, 90, 160)))
             .Paragraph(paragraph => paragraph.Text("FlowAfterCanvas"))
             .ToBytes();
 
@@ -717,16 +717,16 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasText_EmitsTypedHeadingStructureWhenTagged() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Text(
                 new[] { PdfTextRun.Normal("Canvas semantic heading") },
                 PdfCanvasTextStructureRole.Heading2,
-                24,
-                20,
-                180,
-                24,
-                fontSize: 12))
+                global::OfficeIMO.OfficeLength.Points(24),
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(180),
+                global::OfficeIMO.OfficeLength.Points(24),
+                fontSize: global::OfficeIMO.OfficeLength.Points(12)))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
@@ -736,25 +736,25 @@ public class PdfDocumentCanvasTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageCanvas().Text(
             new[] { PdfTextRun.Normal("Invalid") },
             (PdfCanvasTextStructureRole)99,
-            0,
-            0,
-            10,
-            10));
+            global::OfficeIMO.OfficeLength.Points(0),
+            global::OfficeIMO.OfficeLength.Points(0),
+            global::OfficeIMO.OfficeLength.Points(10),
+            global::OfficeIMO.OfficeLength.Points(10)));
     }
 
     [Fact]
     public void CanvasShape_RendersRectangleAtFixedTopLeftCoordinates() {
         var shape = OfficeShape.Rectangle(60, 20);
-        shape.FillColor = PdfColor.FromRgb(230, 245, 255).ToOfficeColor();
-        shape.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        shape.FillColor = global::OfficeIMO.OfficeColor.FromRgb(230, 245, 255);
+        shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         shape.StrokeWidth = 1.25D;
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Shape(shape, 30, 40))
+            .Canvas(canvas => canvas.Shape(shape, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40)))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(bytes);
@@ -773,16 +773,16 @@ public class PdfDocumentCanvasTests {
         shape.StrokeMiterLimit = 7.5D;
         shape.SetStrokeDashArray(new[] { 9D, 3D, 1D }, 2.5D);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 160D,
-                PageHeight = 80D,
-                MarginLeft = 0D,
-                MarginRight = 0D,
-                MarginTop = 0D,
-                MarginBottom = 0D,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(160D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(80D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Shape(shape, 20D, 30D))
+            .Canvas(canvas => canvas.Shape(shape, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D)))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(bytes);
@@ -797,16 +797,16 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasShape_WithRotation_RendersUsingSharedShapeTransform() {
         var shape = OfficeShape.Rectangle(40, 20);
-        shape.FillColor = PdfColor.FromRgb(230, 245, 255).ToOfficeColor();
-        shape.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        shape.FillColor = global::OfficeIMO.OfficeColor.FromRgb(230, 245, 255);
+        shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         shape.StrokeWidth = 1D;
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Shape(shape, 30, 40, rotationAngle: 90D))
+            .Canvas(canvas => canvas.Shape(shape, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), rotationAngle: 90D))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(bytes);
@@ -818,20 +818,20 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void Shape_AllowsHorizontalAndVerticalLineBounds() {
         OfficeShape horizontalLine = OfficeShape.Line(0, 0, 80, 0);
-        horizontalLine.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        horizontalLine.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         horizontalLine.StrokeWidth = 2D;
 
         OfficeShape verticalLine = OfficeShape.Line(0, 0, 0, 50);
-        verticalLine.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        verticalLine.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         verticalLine.StrokeWidth = 2D;
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
             .Shape(horizontalLine)
@@ -845,8 +845,8 @@ public class PdfDocumentCanvasTests {
     public void CanvasDrawing_RendersSharedVectorSceneInsideFixedFrame() {
         var drawing = new OfficeDrawing(50, 20);
         var shape = OfficeShape.Rectangle(20, 10);
-        shape.FillColor = PdfColor.FromRgb(230, 245, 255).ToOfficeColor();
-        shape.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        shape.FillColor = global::OfficeIMO.OfficeColor.FromRgb(230, 245, 255);
+        shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         shape.StrokeWidth = 1D;
         drawing.AddShape(shape, 5, 5);
         drawing.AddText(
@@ -856,19 +856,19 @@ public class PdfDocumentCanvasTests {
             36,
             10,
             new OfficeFontInfo("Aptos", 6D, OfficeFontStyle.Bold),
-            PdfColor.FromRgb(31, 78, 121).ToOfficeColor(),
+            global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121),
             OfficeTextAlignment.Center);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 140,
-                MarginLeft = 0,
-                MarginRight = 0,
-                MarginTop = 0,
-                MarginBottom = 0,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(140),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Drawing(drawing, 20, 30, 100, 40))
+            .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(40)))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(bytes);
@@ -891,16 +891,16 @@ public class PdfDocumentCanvasTests {
         shape.StrokeWidth = 0D;
         drawing.AddShape(shape, 0D, 0D);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240D,
-                PageHeight = 140D,
-                MarginLeft = 0D,
-                MarginRight = 0D,
-                MarginTop = 0D,
-                MarginBottom = 0D,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(140D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Drawing(drawing, 20D, 30D, 100D, 40D))
+            .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(40D)))
             .ToBytes();
 
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes));
@@ -917,17 +917,17 @@ public class PdfDocumentCanvasTests {
                 "image/png",
                 new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 20D, 20D)));
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 120D,
-                PageHeight = 120D,
-                MarginLeft = 0D,
-                MarginRight = 0D,
-                MarginTop = 0D,
-                MarginBottom = 0D,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(120D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(120D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Clip(60D, 10D, 20D, 80D, clipped =>
-                clipped.Drawing(drawing, 10D, 10D, 80D, 80D)))
+            .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), clipped =>
+                clipped.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(80D))))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -945,17 +945,17 @@ public class PdfDocumentCanvasTests {
         var drawing = new OfficeDrawing(100D, 50D)
             .AddEffectDrawing(source, OfficeTransform.Translate(40D, 0D));
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 120D,
-                PageHeight = 120D,
-                MarginLeft = 0D,
-                MarginRight = 0D,
-                MarginTop = 0D,
-                MarginBottom = 0D,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(120D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(120D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Clip(0D, 18D, 120D, 2D, clipped =>
-                clipped.Drawing(drawing, 10D, 10D, 100D, 50D)))
+            .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(18D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(2D), clipped =>
+                clipped.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(50D))))
             .ToBytes();
 
         Assert.Contains("/Im1 Do", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
@@ -967,13 +967,13 @@ public class PdfDocumentCanvasTests {
             .AddShape(OfficeShape.Line(0, 0, 80, 0), 10, 10)
             .AddShape(OfficeShape.Line(0, 0, 0, 50), 20, 10);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
             .Drawing(drawing)
@@ -992,16 +992,16 @@ public class PdfDocumentCanvasTests {
                 104,
                 16,
                 new OfficeFontInfo("Aptos", 10D, OfficeFontStyle.Bold),
-                PdfColor.FromRgb(31, 78, 121).ToOfficeColor(),
+                global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121),
                 OfficeTextAlignment.Center);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 160,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
             .Drawing(drawing, PdfAlign.Left)
@@ -1014,12 +1014,12 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasImage_RendersImageAtFixedTopLeftCoordinatesWithAltText() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), 30, 40, 60, 30, alternativeText: "Canvas logo"))
+            .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), alternativeText: "Canvas logo"))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(bytes);
@@ -1031,12 +1031,12 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasImage_WithSourceCrop_ClipsAndOffsetsImageInsideDeclaredFrame() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), 40, 50, 60, 30, new PdfImageStyle {
+            .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), new PdfImageStyle {
                 SourceCrop = new PdfImageSourceCrop(left: 0.5D, top: 0D, right: 0D, bottom: 0D)
             }, linkUri: "https://evotec.xyz/cropped"))
             .ToBytes();
@@ -1055,12 +1055,12 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasImage_WithRotation_RendersImageAroundDeclaredFrameCenter() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), 30, 40, 60, 30, rotationAngle: 90D))
+            .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), rotationAngle: 90D))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(bytes);
@@ -1072,18 +1072,18 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasImage_RendersBeforeFollowingShapeInCanvasOrder() {
         var shape = OfficeShape.Rectangle(70, 35);
-        shape.FillColor = PdfColor.FromRgb(255, 255, 255).ToOfficeColor();
-        shape.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        shape.FillColor = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255);
+        shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         shape.StrokeWidth = 1D;
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas
-                .Image(CreateMinimalRgbPng(), 30, 40, 60, 30)
-                .Shape(shape, 25, 35))
+                .Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30))
+                .Shape(shape, global::OfficeIMO.OfficeLength.Points(25), global::OfficeIMO.OfficeLength.Points(35)))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(bytes);
@@ -1097,19 +1097,19 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTextBox_RendersStyledBoxAndClippedTextAtFixedCoordinates() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 180,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.TextBox("Premium text box", 30, 40, 140, 50, new PdfCanvasTextBoxStyle {
-                Background = PdfColor.FromRgb(245, 250, 255),
-                BorderColor = PdfColor.FromRgb(24, 96, 160),
-                BorderWidth = 1.5D,
-                PaddingX = 8D,
-                PaddingY = 6D,
-                FontSize = 10D,
-                TextColor = PdfColor.FromRgb(20, 40, 70),
+            .Canvas(canvas => canvas.TextBox("Premium text box", global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(50), new PdfCanvasTextBoxStyle {
+                Background = global::OfficeIMO.OfficeColor.FromRgb(245, 250, 255),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(24, 96, 160),
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(1.5D),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(8D),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(6D),
+                FontSize = global::OfficeIMO.OfficeLength.Points(10D),
+                TextColor = global::OfficeIMO.OfficeColor.FromRgb(20, 40, 70),
                 Align = PdfAlign.Center
             }))
             .ToBytes();
@@ -1127,69 +1127,29 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
-    public void CanvasDiagnosticOverloads_PreservePreviousClrSignatures() {
-        Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.TextBox), new[] {
-            typeof(string),
-            typeof(double),
-            typeof(double),
-            typeof(double),
-            typeof(double),
-            typeof(PdfCanvasTextBoxStyle),
-            typeof(double)
-        }));
-        Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.TextBox), new[] {
-            typeof(IEnumerable<PdfTextRun>),
-            typeof(double),
-            typeof(double),
-            typeof(double),
-            typeof(double),
-            typeof(PdfCanvasTextBoxStyle),
-            typeof(double)
-        }));
-        Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.Table), new[] {
-            typeof(IEnumerable<string[]>),
-            typeof(double),
-            typeof(double),
-            typeof(double),
-            typeof(double),
-            typeof(PdfTableStyle),
-            typeof(double)
-        }));
-        Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.Table), new[] {
-            typeof(IEnumerable<PdfTableCell[]>),
-            typeof(double),
-            typeof(double),
-            typeof(double),
-            typeof(double),
-            typeof(PdfTableStyle),
-            typeof(double)
-        }));
-    }
-
-    [Fact]
     public void CanvasTextBox_ReportsClippedContentDuringRender() {
         PdfLayoutDiagnostic? diagnostic = null;
-        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 180,
-                PageHeight = 120,
-                MarginLeft = 0,
-                MarginRight = 0,
-                MarginTop = 0,
-                MarginBottom = 0,
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(180),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(120),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0),
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.TextBox(
                 "One two three four five six seven eight nine ten eleven twelve",
-                20,
-                20,
-                80,
-                18,
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(80),
+                global::OfficeIMO.OfficeLength.Points(18),
                 new PdfCanvasTextBoxStyle {
                     Background = null,
                     BorderColor = null,
-                    FontSize = 12D,
-                    PaddingX = 0D,
-                    PaddingY = 0D
+                    FontSize = global::OfficeIMO.OfficeLength.Points(12D),
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(0D)
                 },
                 rotationAngle: 0D,
                 diagnosticHandler: item => diagnostic = item));
@@ -1202,27 +1162,27 @@ public class PdfDocumentCanvasTests {
         Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, diagnostic!.Kind);
         Assert.Equal("PdfCanvasTextBox", diagnostic.Source);
         Assert.True(diagnostic.HasBounds);
-        Assert.Equal(20D, diagnostic.X);
-        Assert.Equal(20D, diagnostic.Y);
-        Assert.Equal(80D, diagnostic.Width);
-        Assert.Equal(18D, diagnostic.Height);
+        Assert.Equal(20D, (diagnostic.X?.ToPoints()));
+        Assert.Equal(20D, (diagnostic.Y?.ToPoints()));
+        Assert.Equal(80D, (diagnostic.Width?.ToPoints()));
+        Assert.Equal(18D, (diagnostic.Height?.ToPoints()));
     }
 
     [Fact]
     public void CanvasTextBox_WithAsymmetricPadding_UsesIndividualEdges() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 180,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.TextBox("Asymmetric", 30, 40, 140, 50, new PdfCanvasTextBoxStyle {
+            .Canvas(canvas => canvas.TextBox("Asymmetric", global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(50), new PdfCanvasTextBoxStyle {
                 Background = null,
                 BorderColor = null,
-                PaddingLeft = 20D,
-                PaddingRight = 4D,
-                PaddingTop = 6D,
-                PaddingBottom = 2D,
-                FontSize = 10D
+                PaddingLeft = global::OfficeIMO.OfficeLength.Points(20D),
+                PaddingRight = global::OfficeIMO.OfficeLength.Points(4D),
+                PaddingTop = global::OfficeIMO.OfficeLength.Points(6D),
+                PaddingBottom = global::OfficeIMO.OfficeLength.Points(2D),
+                FontSize = global::OfficeIMO.OfficeLength.Points(10D)
             }))
             .ToBytes();
 
@@ -1237,22 +1197,22 @@ public class PdfDocumentCanvasTests {
             new PdfCanvasTextBoxStyle {
                 Background = null,
                 BorderColor = null,
-                PaddingX = 0D,
-                PaddingY = 0D,
-                FontSize = 10D,
-                LineHeight = 12D,
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(0D),
+                FontSize = global::OfficeIMO.OfficeLength.Points(10D),
+                LineHeight = global::OfficeIMO.OfficeLength.Points(12D),
                 VerticalAlign = verticalAlign
             };
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 360,
-                PageHeight = 200,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(200),
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas
-                .TextBox("TopAlign", 20, 30, 90, 90, Style(PdfVerticalAlign.Top))
-                .TextBox("MiddleAlign", 130, 30, 90, 90, Style(PdfVerticalAlign.Middle))
-                .TextBox("BottomAlign", 240, 30, 90, 90, Style(PdfVerticalAlign.Bottom)))
+                .TextBox("TopAlign", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(90), Style(PdfVerticalAlign.Top))
+                .TextBox("MiddleAlign", global::OfficeIMO.OfficeLength.Points(130), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(90), Style(PdfVerticalAlign.Middle))
+                .TextBox("BottomAlign", global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(90), Style(PdfVerticalAlign.Bottom)))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -1279,23 +1239,23 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasTextBox_RendersBackgroundBeforeTextAndFollowingShape() {
         var shape = OfficeShape.Rectangle(25, 20);
-        shape.FillColor = PdfColor.FromRgb(255, 255, 255).ToOfficeColor();
-        shape.StrokeColor = PdfColor.FromRgb(30, 64, 175).ToOfficeColor();
+        shape.FillColor = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255);
+        shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175);
         shape.StrokeWidth = 1D;
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 180,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas
-                .TextBox("Layered", 30, 40, 120, 42, new PdfCanvasTextBoxStyle {
-                    Background = PdfColor.FromRgb(250, 250, 250),
-                    BorderColor = PdfColor.FromRgb(75, 85, 99),
-                    BorderWidth = 1D,
-                    FontSize = 10D
+                .TextBox("Layered", global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(42), new PdfCanvasTextBoxStyle {
+                    Background = global::OfficeIMO.OfficeColor.FromRgb(250, 250, 250),
+                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(75, 85, 99),
+                    BorderWidth = global::OfficeIMO.OfficeLength.Points(1D),
+                    FontSize = global::OfficeIMO.OfficeLength.Points(10D)
                 })
-                .Shape(shape, 40, 48))
+                .Shape(shape, global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(48)))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(bytes);
@@ -1313,13 +1273,13 @@ public class PdfDocumentCanvasTests {
         var style = new PdfTableStyle {
             HeaderRowCount = 1,
             RowStripeFill = null,
-            ColumnWidthPoints = new System.Collections.Generic.List<double?> { 70D, 50D },
-            RowMinHeights = new System.Collections.Generic.List<double?> { 24D, 36D },
-            CellFills = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColor> {
-                [(1, 1)] = PdfColor.FromRgb(230, 245, 255)
+            ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(50D) },
+            RowMinHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(36D) },
+            CellFills = new System.Collections.Generic.Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+                [(1, 1)] = global::OfficeIMO.OfficeColor.FromRgb(230, 245, 255)
             },
             CellPaddings = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellPadding> {
-                [(1, 1)] = new PdfCellPadding { Left = 8D, Right = 8D, Top = 4D, Bottom = 4D }
+                [(1, 1)] = new PdfCellPadding { Left = global::OfficeIMO.OfficeLength.Points(8D), Right = global::OfficeIMO.OfficeLength.Points(8D), Top = global::OfficeIMO.OfficeLength.Points(4D), Bottom = global::OfficeIMO.OfficeLength.Points(4D) }
             },
             CellAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign> {
                 [(1, 1)] = PdfColumnAlign.Center
@@ -1329,15 +1289,15 @@ public class PdfDocumentCanvasTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { "Name", "Score" },
                 new[] { "OfficeIMO", "99" }
-            }, 30, 30, 120, 60, style))
+            }, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(60), style))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -1357,7 +1317,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTable_EmitsNestedTableRowAndCellStructure() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
             })
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
@@ -1365,11 +1325,11 @@ public class PdfDocumentCanvasTests {
                     new[] { PdfTableCell.Span("Summary", 2) },
                     new[] { PdfTableCell.Merge("OfficeIMO", rowSpan: 2), PdfTableCell.TextCell("Ready") },
                     new[] { PdfTableCell.TextCell("Released") }
-                }, 30, 30, 180, 90, new PdfTableStyle {
+                }, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(90), new PdfTableStyle {
                     HeaderRowCount = 1,
                     AlternativeText = "Release summary"
                 })
-                .Text("After table", 30, 130, 180, 20)))
+                .Text("After table", global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(130), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(20))))
             .ToBytes();
 
         PdfReadDocument pdf = PdfReadDocument.Open(bytes);
@@ -1401,13 +1361,13 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasTable_ReportsClippedCellContentDuringRender() {
         var diagnostics = new List<PdfLayoutDiagnostic>();
-        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 140,
-                MarginLeft = 0,
-                MarginRight = 0,
-                MarginTop = 0,
-                MarginBottom = 0,
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(140),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0),
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Table(
@@ -1416,15 +1376,15 @@ public class PdfDocumentCanvasTests {
                         PdfTableCell.TextCell("One two three four five six seven eight nine ten eleven twelve")
                     }
                 },
-                20,
-                20,
-                80,
-                22,
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(80),
+                global::OfficeIMO.OfficeLength.Points(22),
                 new PdfTableStyle {
-                    RowMinHeights = new List<double?> { 22D },
-                    ColumnWidthPoints = new List<double?> { 80D },
+                    RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(22D) },
+                    ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80D) },
                     CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
-                        [(0, 0)] = new PdfCellPadding { Left = 2D, Right = 2D, Top = 2D, Bottom = 2D }
+                        [(0, 0)] = new PdfCellPadding { Left = global::OfficeIMO.OfficeLength.Points(2D), Right = global::OfficeIMO.OfficeLength.Points(2D), Top = global::OfficeIMO.OfficeLength.Points(2D), Bottom = global::OfficeIMO.OfficeLength.Points(2D) }
                     }
                 },
                 rotationAngle: 0D,
@@ -1438,23 +1398,23 @@ public class PdfDocumentCanvasTests {
         Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, diagnostic.Kind);
         Assert.Equal("PdfCanvasTableCell", diagnostic.Source);
         Assert.True(diagnostic.HasBounds);
-        Assert.Equal(20D, diagnostic.X);
-        Assert.Equal(20D, diagnostic.Y);
-        Assert.Equal(80D, diagnostic.Width);
-        Assert.Equal(22D, diagnostic.Height);
+        Assert.Equal(20D, (diagnostic.X?.ToPoints()));
+        Assert.Equal(20D, (diagnostic.Y?.ToPoints()));
+        Assert.Equal(80D, (diagnostic.Width?.ToPoints()));
+        Assert.Equal(22D, (diagnostic.Height?.ToPoints()));
     }
 
     [Fact]
     public void CanvasTable_WithRotation_RendersInsideRotatedFrame() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { "Name", "Score" },
                 new[] { "OfficeIMO", "99" }
-            }, 30, 30, 120, 60, PdfTableStyles.Light(), rotationAngle: 90D))
+            }, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(60), PdfTableStyles.Light(), rotationAngle: 90D))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -1471,21 +1431,21 @@ public class PdfDocumentCanvasTests {
             new[] {
                 PdfTableCell.WithImages(
                     "Assets",
-                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 12, 12) },
-                    checkBoxes: new[] { new PdfTableCellCheckBox("Canvas.Approved", isChecked: true, size: 10) },
-                    formFields: new[] { PdfTableCellFormField.TextField("Canvas.Owner", "Ada", width: 44, height: 12, fontSize: 8) })
+                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12)) },
+                    checkBoxes: new[] { new PdfTableCellCheckBox("Canvas.Approved", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(10)) },
+                    formFields: new[] { PdfTableCellFormField.TextField("Canvas.Owner", "Ada", width: global::OfficeIMO.OfficeLength.Points(44), height: global::OfficeIMO.OfficeLength.Points(12), fontSize: global::OfficeIMO.OfficeLength.Points(8)) })
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Table(rows, 24, 24, 120, 86, new PdfTableStyle {
-                RowMinHeights = new System.Collections.Generic.List<double?> { 86D },
-                CellPaddingX = 6D,
-                CellPaddingY = 6D
+            .Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(86), new PdfTableStyle {
+                RowMinHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(86D) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6D),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D)
             }))
             .ToBytes();
 
@@ -1503,21 +1463,21 @@ public class PdfDocumentCanvasTests {
             new[] {
                 PdfTableCell.WithImages(
                     "Assets",
-                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 12, 12) },
-                    checkBoxes: new[] { new PdfTableCellCheckBox("Canvas.Rotated", isChecked: true, size: 10) },
-                    formFields: new[] { PdfTableCellFormField.TextField("Canvas.RotatedOwner", "Ada", width: 44, height: 12, fontSize: 8) })
+                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12)) },
+                    checkBoxes: new[] { new PdfTableCellCheckBox("Canvas.Rotated", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(10)) },
+                    formFields: new[] { PdfTableCellFormField.TextField("Canvas.RotatedOwner", "Ada", width: global::OfficeIMO.OfficeLength.Points(44), height: global::OfficeIMO.OfficeLength.Points(12), fontSize: global::OfficeIMO.OfficeLength.Points(8)) })
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Table(rows, 24, 24, 120, 86, new PdfTableStyle {
-                RowMinHeights = new System.Collections.Generic.List<double?> { 86D },
-                CellPaddingX = 6D,
-                CellPaddingY = 6D
+            .Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(86), new PdfTableStyle {
+                RowMinHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(86D) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6D),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D)
             }, rotationAngle: 90D))
             .ToBytes();
 
@@ -1540,19 +1500,19 @@ public class PdfDocumentCanvasTests {
             new[] {
                 PdfTableCell.WithImages(
                     string.Empty,
-                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 40, 40) })
+                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40)) })
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Clip(50, 24, 34, 86, clipped => clipped.Table(rows, 24, 24, 120, 86, new PdfTableStyle {
-                RowMinHeights = new System.Collections.Generic.List<double?> { 86D },
-                CellPaddingX = 6D,
-                CellPaddingY = 6D
+            .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(34), global::OfficeIMO.OfficeLength.Points(86), clipped => clipped.Table(rows, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(86), new PdfTableStyle {
+                RowMinHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(86D) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6D),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D)
             })))
             .ToBytes();
 
@@ -1568,19 +1528,19 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasClip_RequiresWidgetsToBeFullyContainedByRectangularClips() {
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.Clip(
-            20D,
-            20D,
-            50D,
-            30D,
-            clipped => clipped.TextField("Partial", "Ada", 50D, 10D, 40D, 20D))).ToBytes());
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas => canvas.Clip(
+            global::OfficeIMO.OfficeLength.Points(20D),
+            global::OfficeIMO.OfficeLength.Points(20D),
+            global::OfficeIMO.OfficeLength.Points(50D),
+            global::OfficeIMO.OfficeLength.Points(30D),
+            clipped => clipped.TextField("Partial", "Ada", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(20D)))).ToBytes());
 
-        byte[] contained = PdfDocument.Create().Canvas(canvas => canvas.Clip(
-            20D,
-            20D,
-            80D,
-            40D,
-            clipped => clipped.TextField("Contained", "Ada", 30D, 30D, 40D, 20D))).ToBytes();
+        byte[] contained = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas => canvas.Clip(
+            global::OfficeIMO.OfficeLength.Points(20D),
+            global::OfficeIMO.OfficeLength.Points(20D),
+            global::OfficeIMO.OfficeLength.Points(80D),
+            global::OfficeIMO.OfficeLength.Points(40D),
+            clipped => clipped.TextField("Contained", "Ada", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(20D)))).ToBytes();
         Assert.Single(PdfInspector.Inspect(contained).FormFields);
 
         OfficeClipPath triangle = OfficeClipPath.Path(
@@ -1588,22 +1548,22 @@ public class PdfDocumentCanvasTests {
             OfficePathCommand.LineTo(80D, 0D),
             OfficePathCommand.LineTo(40D, 40D),
             OfficePathCommand.Close());
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.Clip(
-            20D,
-            20D,
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas => canvas.Clip(
+            global::OfficeIMO.OfficeLength.Points(20D),
+            global::OfficeIMO.OfficeLength.Points(20D),
             triangle,
-            clipped => clipped.CheckBox("NonRectangular", true, 50D, 25D, 12D, 12D))).ToBytes());
+            clipped => clipped.CheckBox("NonRectangular", true, global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(25D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(12D)))).ToBytes());
     }
 
     [Fact]
     public void CanvasClip_EmptyPathSuppressesFormFields() {
-        byte[] bytes = PdfDocument.Create().Canvas(canvas => canvas.Clip(
-            20D,
-            20D,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas => canvas.Clip(
+            global::OfficeIMO.OfficeLength.Points(20D),
+            global::OfficeIMO.OfficeLength.Points(20D),
             OfficeClipPath.Empty(),
             clipped => clipped
-                .TextField("HiddenText", "Ada", 20D, 20D, 80D, 20D)
-                .CheckBox("HiddenCheck", true, 20D, 50D, 12D, 12D)))
+                .TextField("HiddenText", "Ada", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D))
+                .CheckBox("HiddenCheck", true, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(12D))))
             .ToBytes();
 
         Assert.Empty(PdfInspector.Inspect(bytes).FormFields);
@@ -1611,16 +1571,16 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasClip_ClipsVisualAnnotationsInsideFrame() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Clip(20, 20, 100, 80, clipped => clipped
-                .TextAnnotation("Clipped text annotation", 10, 10, 40, 30)
-                .TextAnnotation("Outside text annotation", 140, 20, 20, 20)
-                .FreeTextAnnotation("Clipped free text annotation", 30, 50, 160, 50)
-                .HighlightAnnotation("Clipped highlight annotation", 110, 90, 40, 20)))
+            .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80), clipped => clipped
+                .TextAnnotation("Clipped text annotation", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(30))
+                .TextAnnotation("Outside text annotation", global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20))
+                .FreeTextAnnotation("Clipped free text annotation", global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(50))
+                .HighlightAnnotation("Clipped highlight annotation", global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20))))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -1652,18 +1612,18 @@ public class PdfDocumentCanvasTests {
             OfficePathCommand.LineTo(100D, 0D),
             OfficePathCommand.LineTo(0D, 80D),
             OfficePathCommand.Close());
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 160
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160)
             })
-            .Canvas(canvas => canvas.Clip(20D, 20D, triangle, clipped => clipped
-                .TextAnnotation("Visible text", 25D, 25D, 10D, 10D)
-                .TextAnnotation("Hidden text", 100D, 80D, 10D, 10D)
-                .FreeTextAnnotation("Visible free text", 40D, 25D, 15D, 10D)
-                .FreeTextAnnotation("Hidden free text", 85D, 75D, 15D, 10D)
-                .HighlightAnnotation("Visible highlight", 25D, 45D, 15D, 8D)
-                .HighlightAnnotation("Hidden highlight", 90D, 65D, 15D, 8D)
-                .Image(CreateMinimalRgbPng(), 50D, 40D, 40D, 30D, linkUri: "https://example.com/partial")))
+            .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), triangle, clipped => clipped
+                .TextAnnotation("Visible text", global::OfficeIMO.OfficeLength.Points(25D), global::OfficeIMO.OfficeLength.Points(25D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D))
+                .TextAnnotation("Hidden text", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D))
+                .FreeTextAnnotation("Visible free text", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(25D), global::OfficeIMO.OfficeLength.Points(15D), global::OfficeIMO.OfficeLength.Points(10D))
+                .FreeTextAnnotation("Hidden free text", global::OfficeIMO.OfficeLength.Points(85D), global::OfficeIMO.OfficeLength.Points(75D), global::OfficeIMO.OfficeLength.Points(15D), global::OfficeIMO.OfficeLength.Points(10D))
+                .HighlightAnnotation("Visible highlight", global::OfficeIMO.OfficeLength.Points(25D), global::OfficeIMO.OfficeLength.Points(45D), global::OfficeIMO.OfficeLength.Points(15D), global::OfficeIMO.OfficeLength.Points(8D))
+                .HighlightAnnotation("Hidden highlight", global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(65D), global::OfficeIMO.OfficeLength.Points(15D), global::OfficeIMO.OfficeLength.Points(8D))
+                .Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(30D), linkUri: "https://example.com/partial")))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -1685,12 +1645,12 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasClip_PreservesInlineImageClipPathInsideFrame() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Clip(20, 20, 100, 80, clipped => clipped.Image(CreateMinimalRgbPng(), 30, 30, 40, 40, new PdfImageStyle {
+            .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80), clipped => clipped.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40), new PdfImageStyle {
                 ClipPath = OfficeClipPath.Rectangle(20, 20)
             })))
             .ToBytes();
@@ -1703,13 +1663,13 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasClip_AcceptsRoundedSharedClipPath() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Clip(20, 20, OfficeClipPath.RoundedRectangle(100, 80, 10), clipped =>
-                clipped.Image(CreateMinimalRgbPng(), 20, 20, 100, 80)))
+            .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), OfficeClipPath.RoundedRectangle(100, 80, 10), clipped =>
+                clipped.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80))))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -1725,13 +1685,13 @@ public class PdfDocumentCanvasTests {
             OfficePathCommand.LineTo(100, 0),
             OfficePathCommand.LineTo(50, 80),
             OfficePathCommand.Close());
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 160,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Clip(20, 20, triangle, clipped =>
-                clipped.Image(CreateMinimalRgbPng(), 20, 20, 100, 80)))
+            .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), triangle, clipped =>
+                clipped.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80))))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -1741,15 +1701,15 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTable_SkipsVerticalGridDividersInsideMergedCells() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { PdfTableCell.Span("Merged", 2) },
                 new[] { PdfTableCell.TextCell("Left"), PdfTableCell.TextCell("Right") }
-            }, 30, 30, 120, 60, PdfTableStyles.Light()))
+            }, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(60), PdfTableStyles.Light()))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -1761,13 +1721,13 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTable_RejectsUnboundedLogicalGridBeforeRendering() {
-        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
             })
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { PdfTableCell.Span("Oversized", 262145) }
-            }, 30, 30, 120, 60));
+            }, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(60)));
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.ToBytes());
         Assert.Contains("exceeding the supported limit", exception.Message, StringComparison.Ordinal);
@@ -1775,19 +1735,19 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTable_RowSpanSkipsContinuationRowStripeFill() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { PdfTableCell.Merge("Span", rowSpan: 2), PdfTableCell.TextCell("Top") },
                 new[] { PdfTableCell.TextCell("Bottom") }
-            }, 30, 30, 120, 60, new PdfTableStyle {
+            }, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(60), new PdfTableStyle {
                 HeaderRowCount = 0,
-                RowStripeFill = PdfColor.FromRgb(220, 235, 250),
-                ColumnWidthPoints = new System.Collections.Generic.List<double?> { 60D, 60D },
-                RowMinHeights = new System.Collections.Generic.List<double?> { 30D, 30D }
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(220, 235, 250),
+                ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) },
+                RowMinHeights = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(30D) }
             }))
             .ToBytes();
 
@@ -1800,16 +1760,16 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTextBox_WithRotation_RendersBoxAndTextInsideRotatedGroup() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 180,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.TextBox("Rotated box", 30, 40, 120, 42, new PdfCanvasTextBoxStyle {
-                Background = PdfColor.FromRgb(250, 250, 250),
-                BorderColor = PdfColor.FromRgb(75, 85, 99),
-                BorderWidth = 1D,
-                FontSize = 10D
+            .Canvas(canvas => canvas.TextBox("Rotated box", global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(42), new PdfCanvasTextBoxStyle {
+                Background = global::OfficeIMO.OfficeColor.FromRgb(250, 250, 250),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(75, 85, 99),
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(1D),
+                FontSize = global::OfficeIMO.OfficeLength.Points(10D)
             }, rotationAngle: 90D))
             .ToBytes();
 
@@ -1826,12 +1786,12 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasTextBox_InvalidPadding_ThrowsClearDiagnostic() {
         ArgumentException ex = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = 100,
-                    PageHeight = 100
+            PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(100),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(100)
                 })
-                .Canvas(canvas => canvas.TextBox("Bad", 0, 0, 20, 10, new PdfCanvasTextBoxStyle {
-                    PaddingY = 5D
+                .Canvas(canvas => canvas.TextBox("Bad", global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(10), new PdfCanvasTextBoxStyle {
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(5D)
                 })));
 
         Assert.Contains("Canvas text box padding must leave a positive text area.", ex.Message, StringComparison.Ordinal);
@@ -1841,20 +1801,20 @@ public class PdfDocumentCanvasTests {
     public void CanvasRotation_NonFiniteAngle_ThrowsClearDiagnostic() {
         var shape = OfficeShape.Rectangle(10, 10);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Create()
-                .Canvas(canvas => canvas.TextBox("Bad", 0, 0, 10, 10, rotationAngle: double.NegativeInfinity)));
+            PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
+                .Canvas(canvas => canvas.TextBox("Bad", global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), rotationAngle: double.NegativeInfinity)));
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Create()
-                .Canvas(canvas => canvas.Shape(shape, 0, 0, rotationAngle: double.NaN)));
+            PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
+                .Canvas(canvas => canvas.Shape(shape, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), rotationAngle: double.NaN)));
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Create()
-                .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), 0, 0, 10, 10, rotationAngle: double.PositiveInfinity)));
+            PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
+                .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), rotationAngle: double.PositiveInfinity)));
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Create()
-                .Canvas(canvas => canvas.Table(new[] { new[] { "Bad" } }, 0, 0, 10, 10, rotationAngle: double.NaN)));
+            PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
+                .Canvas(canvas => canvas.Table(new[] { new[] { "Bad" } }, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), rotationAngle: double.NaN)));
     }
 
     [Fact]
@@ -1862,18 +1822,18 @@ public class PdfDocumentCanvasTests {
         PdfCreateOptions options = CreateCanvasOptions();
         const string uri = "https://evotec.xyz/canvas-textbox";
         var style = new PdfCanvasTextBoxStyle {
-            FontSize = 10D
+            FontSize = global::OfficeIMO.OfficeLength.Points(10D)
         };
 
         byte[] flatBytes = PdfDocument.Create(options)
             .Canvas(canvas => canvas.TextBox(new[] {
                 PdfTextRun.Link("Linked", uri)
-            }, 30, 40, 120, 42, style))
+            }, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(42), style))
             .ToBytes();
         byte[] rotatedBytes = PdfDocument.Create(options)
             .Canvas(canvas => canvas.TextBox(new[] {
                 PdfTextRun.Link("Linked", uri)
-            }, 30, 40, 120, 42, style, rotationAngle: 90D))
+            }, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(42), style, rotationAngle: 90D))
             .ToBytes();
 
         PdfLinkAnnotation flatLink = Assert.Single(PdfInspector.Inspect(flatBytes).LinkAnnotations);
@@ -1893,10 +1853,10 @@ public class PdfDocumentCanvasTests {
         const string uri = "https://evotec.xyz/canvas-image";
 
         byte[] flatBytes = PdfDocument.Create(options)
-            .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), 30, 40, 60, 30, linkUri: uri))
+            .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), linkUri: uri))
             .ToBytes();
         byte[] rotatedBytes = PdfDocument.Create(options)
-            .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), 30, 40, 60, 30, linkUri: uri, rotationAngle: 90D))
+            .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), linkUri: uri, rotationAngle: 90D))
             .ToBytes();
 
         PdfLinkAnnotation flatLink = Assert.Single(PdfInspector.Inspect(flatBytes).LinkAnnotations);
@@ -1912,21 +1872,21 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasImage_AppliesFitAfterSourceCrop() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 100,
-                PageHeight = 100,
-                MarginLeft = 0,
-                MarginRight = 0,
-                MarginTop = 0,
-                MarginBottom = 0,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(100),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(100),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0),
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Image(
                 CreateMinimalRgbPng(),
-                0,
-                0,
-                100,
-                100,
+                global::OfficeIMO.OfficeLength.Points(0),
+                global::OfficeIMO.OfficeLength.Points(0),
+                global::OfficeIMO.OfficeLength.Points(100),
+                global::OfficeIMO.OfficeLength.Points(100),
                 new PdfImageStyle {
                     Fit = OfficeImageFit.Contain,
                     SourceCrop = new PdfImageSourceCrop(0.5D, 0D, 0D, 0D)
@@ -1942,23 +1902,23 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasEffect_WritesIsolatedFormAndTransformsSearchableLinkedText() {
         const string uri = "https://evotec.xyz/canvas-effect";
-        PdfCreateOptions options = new PdfCreateOptions {
-            PageWidth = 140,
-            PageHeight = 100,
-            MarginLeft = 0,
-            MarginRight = 0,
-            MarginTop = 0,
-            MarginBottom = 0,
+        PdfCreateOptions options = new PdfCreateOptions { BackgroundColor = null,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(140),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(100),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(0),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(0),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(0),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(0),
             CompressContentStreams = false
         };
         byte[] flatBytes = PdfDocument.Create(options)
-            .Canvas(canvas => canvas.Text(new[] { PdfTextRun.Link("EffectText", uri) }, 20, 20, 80, 20, fontSize: 10))
+            .Canvas(canvas => canvas.Text(new[] { PdfTextRun.Link("EffectText", uri) }, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(20), fontSize: global::OfficeIMO.OfficeLength.Points(10)))
             .ToBytes();
         byte[] effectBytes = PdfDocument.Create(options)
             .Canvas(canvas => canvas.Effect(
                 OfficeTransform.Translate(12D, 7D),
                 0.5D,
-                nested => nested.Text(new[] { PdfTextRun.Link("EffectText", uri) }, 20, 20, 80, 20, fontSize: 10)))
+                nested => nested.Text(new[] { PdfTextRun.Link("EffectText", uri) }, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(20), fontSize: global::OfficeIMO.OfficeLength.Points(10))))
             .ToBytes();
 
         PdfLinkAnnotation flatLink = Assert.Single(PdfInspector.Inspect(flatBytes).LinkAnnotations);
@@ -1981,19 +1941,19 @@ public class PdfDocumentCanvasTests {
         highlight.FillColor = OfficeColor.FromRgb(255, 230, 70);
         highlight.StrokeWidth = 0D;
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 180D,
-                PageHeight = 100D,
-                MarginLeft = 0D,
-                MarginRight = 0D,
-                MarginTop = 0D,
-                MarginBottom = 0D,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(180D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(100D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas
-                .Text("Readable text", 20D, 24D, 120D, 20D)
+                .Text("Readable text", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(20D))
                 .WithBlendMode(OfficeBlendMode.Multiply, blended =>
-                    blended.Shape(highlight, 18D, 24D)))
+                    blended.Shape(highlight, global::OfficeIMO.OfficeLength.Points(18D), global::OfficeIMO.OfficeLength.Points(24D))))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -2007,12 +1967,12 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasEffect_CombinesOpacityAndBlendModeInOneGraphicsState() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .Canvas(canvas => canvas.Effect(
                 OfficeTransform.Identity,
                 0.4D,
                 OfficeBlendMode.Screen,
-                blended => blended.Text("SCREENED", 20D, 20D, 100D, 20D)))
+                blended => blended.Text("SCREENED", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -2021,21 +1981,21 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasEffect_RejectsInvalidOpacity() {
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas =>
             canvas.Effect(OfficeTransform.Identity, double.NaN, _ => { })));
-        Assert.Throws<ArgumentNullException>(() => PdfDocument.Create().Canvas(canvas =>
+        Assert.Throws<ArgumentNullException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas =>
             canvas.Effect(OfficeTransform.Identity, 1D, null!)));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas =>
             canvas.WithBlendMode((OfficeBlendMode)99, _ => { })));
     }
 
     [Fact]
     public void CanvasEffect_IdentityOpaqueInlinesContentWithoutRedundantFormXObject() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .Canvas(canvas => canvas.Effect(
                 OfficeTransform.Identity,
                 1D,
-                nested => nested.Text("IDENTITY-EFFECT-TEXT", 20D, 20D, 160D, 20D)))
+                nested => nested.Text("IDENTITY-EFFECT-TEXT", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(20D))))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -2047,11 +2007,11 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasEffect_OpaqueTransformInlinesContentAndTransformsLinks() {
         const string uri = "https://evotec.xyz/opaque-effect";
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .Canvas(canvas => canvas.Effect(
                 OfficeTransform.Translate(12D, 7D),
                 1D,
-                nested => nested.Text(new[] { PdfTextRun.Link("OPAQUE-EFFECT-TEXT", uri) }, 20D, 20D, 160D, 20D)))
+                nested => nested.Text(new[] { PdfTextRun.Link("OPAQUE-EFFECT-TEXT", uri) }, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(20D))))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -2069,7 +2029,7 @@ public class PdfDocumentCanvasTests {
         OfficeDrawing drawing = new OfficeDrawing(120D, 40D)
             .AddEffectDrawing(source, OfficeTransform.Translate(10D, 5D));
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .Drawing(drawing)
             .ToBytes();
 
@@ -2081,29 +2041,29 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasEffect_RejectsInteractiveFieldsInNontrivialEffects() {
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas =>
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas =>
             canvas.Effect(OfficeTransform.RotateDegrees(45D), 0.5D, nested =>
-                nested.TextField("Name", "Ada", 10D, 10D, 80D, 20D))));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas =>
+                nested.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D)))));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas =>
             canvas.WithBlendMode(OfficeBlendMode.Multiply, nested =>
-                nested.TextField("Name", "Ada", 10D, 10D, 80D, 20D))));
+                nested.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D)))));
 
-        byte[] identityBytes = PdfDocument.Create().Canvas(canvas =>
+        byte[] identityBytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas =>
             canvas.Effect(OfficeTransform.Identity, 1D, nested =>
-                nested.TextField("Name", "Ada", 10D, 10D, 80D, 20D))).ToBytes();
+                nested.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D)))).ToBytes();
         Assert.Single(PdfInspector.Inspect(identityBytes).FormFields);
     }
 
     [Fact]
     public void CanvasMultiSelect_SerializesSelectionsInOptionOrder() {
-        byte[] bytes = PdfDocument.Create().Canvas(canvas => canvas.ChoiceField(
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas => canvas.ChoiceField(
             "Letters",
             new[] { "A", "B", "C" },
             new[] { "C", "A" },
-            10D,
-            10D,
-            100D,
-            50D,
+            global::OfficeIMO.OfficeLength.Points(10D),
+            global::OfficeIMO.OfficeLength.Points(10D),
+            global::OfficeIMO.OfficeLength.Points(100D),
+            global::OfficeIMO.OfficeLength.Points(50D),
             isComboBox: false,
             allowsMultipleSelection: true)).ToBytes();
 
@@ -2114,15 +2074,15 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasItem_OutsidePageBounds_ThrowsClearDiagnostic() {
-        var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 100,
-                PageHeight = 100,
-                MarginLeft = 10,
-                MarginRight = 10,
-                MarginTop = 10,
-                MarginBottom = 10
+        var doc = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(100),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(100),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(10),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(10),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(10),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Canvas(canvas => canvas.Text("Out", 90, 10, 20, 20));
+            .Canvas(canvas => canvas.Text("Out", global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20)));
 
         ArgumentException ex = Assert.Throws<ArgumentException>(() => doc.ToBytes());
         Assert.Contains("Canvas text exceeds the current page bounds.", ex.Message, StringComparison.Ordinal);
@@ -2163,9 +2123,9 @@ public class PdfDocumentCanvasTests {
     }
 
     private static PdfCreateOptions CreateCanvasOptions() =>
-        new PdfCreateOptions {
-            PageWidth = 260,
-            PageHeight = 180,
+        new PdfCreateOptions { BackgroundColor = null,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
             CompressContentStreams = false
         };
 

@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "TableParentAccessors.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordTable table = document.AddTable(1, 1);
-                table.Rows[0].Height = 400;
+                table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(20D);
 
                 var row = table.Rows[0];
                 Assert.Same(table, row.Parent);
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
                 var cell = row.Cells[0];
                 Assert.Same(row, cell.Parent);
                 Assert.Same(table, cell.ParentTable);
-                Assert.Equal(row.Height, cell.Parent.Height);
+                Assert.Equal(checked((int?)(row.Height?.ToTwips())), checked((int?)(cell.Parent.Height?.ToTwips())));
 
                 document.Save();
             }
@@ -280,6 +280,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_CreatingWordDocumentWithAllTableStyles() {
+            int styleCount = Enum.GetValues(typeof(WordTableStyle)).Length;
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithAllTableStyles.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 Assert.True(document.Paragraphs.Count == 0, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
@@ -303,22 +304,22 @@ namespace OfficeIMO.Tests {
                     Assert.True(wordTable.Paragraphs.Count == 16, "Number of paragraphs during creation in table is wrong. Current: " + wordTable.Paragraphs.Count);
                 }
 
-                Assert.True(document.Tables.Count == 106, "Tables count matches");
+                Assert.True(document.Tables.Count == styleCount, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
-                Assert.True(document.Paragraphs.Count == 106, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Paragraphs.Count == styleCount, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
-                Assert.True(document.Sections[0].Paragraphs.Count == 106, "Number of paragraphs on 1st section is wrong.");
-                Assert.True(document.Sections[0].Tables.Count == 106, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == styleCount, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[0].Tables.Count == styleCount, "Number of paragraphs on 1st section is wrong.");
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithAllTableStyles.docx"))) {
-                Assert.True(document.Tables.Count == 106, "Tables count matches");
+                Assert.True(document.Tables.Count == styleCount, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
-                Assert.True(document.Paragraphs.Count == 106, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Paragraphs.Count == styleCount, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
-                Assert.True(document.Sections[0].Paragraphs.Count == 106, "Number of paragraphs on 1st section is wrong.");
-                Assert.True(document.Sections[0].Tables.Count == 106, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == styleCount, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[0].Tables.Count == styleCount, "Number of paragraphs on 1st section is wrong.");
 
                 // lets read all tables and check their styles
                 var listOfTablesStyles = (WordTableStyle[])Enum.GetValues(typeof(WordTableStyle));
@@ -346,12 +347,12 @@ namespace OfficeIMO.Tests {
                 wordTable2.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
                 wordTable2.Rows[4].Cells[0].Paragraphs[0].Text = "Test 5";
 
-                Assert.True(document.Tables.Count == 107, "Tables count matches");
+                Assert.True(document.Tables.Count == styleCount + 1, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
-                Assert.True(document.Paragraphs.Count == 106, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Paragraphs.Count == styleCount, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
-                Assert.True(document.Sections[0].Paragraphs.Count == 106, "Number of paragraphs on 1st section is wrong.");
-                Assert.True(document.Sections[0].Tables.Count == 107, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == styleCount, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[0].Tables.Count == styleCount + 1, "Number of paragraphs on 1st section is wrong.");
 
 
                 WordTable wordTable3 = document.AddTable(5, 5);
@@ -366,22 +367,22 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithAllTableStyles.docx"))) {
-                Assert.True(document.Tables.Count == 109, "Tables count matches");
+                Assert.True(document.Tables.Count == styleCount + 3, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
-                Assert.True(document.Paragraphs.Count == 106, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Paragraphs.Count == styleCount, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
-                Assert.True(document.Sections[0].Paragraphs.Count == 106, "Number of paragraphs on 1st section is wrong.");
-                Assert.True(document.Sections[0].Tables.Count == 109, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == styleCount, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[0].Tables.Count == styleCount + 3, "Number of paragraphs on 1st section is wrong.");
 
                 var wordTable1 = document.Tables[0];
                 Assert.True(wordTable1.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3", "Text in table matches. Actual text: " + wordTable1.Rows[2].Cells[0].Paragraphs[0].Text);
                 Assert.True(wordTable1.Paragraphs.Count == 16, "Number of paragraphs during creation in table is wrong. Current: " + wordTable1.Paragraphs.Count);
 
-                var wordTable2 = document.Tables[106];
+                var wordTable2 = document.Tables[styleCount];
                 Assert.True(wordTable2.Rows[3].Cells[0].Paragraphs[0].Text == "Test 4", "Text in table matches. Actual text: " + wordTable2.Rows[4].Cells[0].Paragraphs[0].Text);
                 Assert.True(wordTable2.Paragraphs.Count == 25, "Number of paragraphs during creation in table is wrong. Current: " + wordTable2.Paragraphs.Count);
 
-                var wordTable3 = document.Tables[108];
+                var wordTable3 = document.Tables[styleCount + 2];
                 Assert.True(wordTable3.RowsCount == 7);
                 Assert.True(wordTable3.Rows[0].CellsCount == 6);
 
@@ -820,6 +821,22 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CreatingWordDocumentWithTablesAndMoreOptions() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndMoreOptions.docx");
+            var lengths = new (Action<WordTablePosition, OfficeLength?> Set,
+                Func<WordTablePosition, OfficeLength?> Get,
+                Func<TablePositionProperties, long?> Native, long Min, long Max)[] {
+                ((p, v) => p.LeftFromText = v, p => p.LeftFromText,
+                    n => n.LeftFromText?.Value, short.MinValue, short.MaxValue),
+                ((p, v) => p.RightFromText = v, p => p.RightFromText,
+                    n => n.RightFromText?.Value, short.MinValue, short.MaxValue),
+                ((p, v) => p.TopFromText = v, p => p.TopFromText,
+                    n => n.TopFromText?.Value, short.MinValue, short.MaxValue),
+                ((p, v) => p.BottomFromText = v, p => p.BottomFromText,
+                    n => n.BottomFromText?.Value, short.MinValue, short.MaxValue),
+                ((p, v) => p.TablePositionX = v, p => p.TablePositionX,
+                    n => n.TablePositionX?.Value, int.MinValue, int.MaxValue),
+                ((p, v) => p.TablePositionY = v, p => p.TablePositionY,
+                    n => n.TablePositionY?.Value, int.MinValue, int.MaxValue)
+            };
             using (WordDocument document = WordDocument.Create(filePath)) {
 
                 var wordTable1 = document.AddTable(4, 4, WordTableStyle.GridTable1LightAccent1);
@@ -834,8 +851,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable1.Alignment == WordTableAlignment.Center);
 
-                wordTable1.WidthType = WordTableWidthUnit.Pct;
-                wordTable1.Width = 3000;
+                wordTable1.Width = WordTableWidth.Percent((3000) / 50d);
 
                 wordTable1.Title = "This is a title of the table";
                 wordTable1.Description = "This is a table showing some features";
@@ -868,7 +884,8 @@ namespace OfficeIMO.Tests {
                 var wordTable1 = document.Tables[0];
 
                 // add a cell to 3rd row
-                WordTableCell cell = new WordTableCell(document, wordTable1, wordTable1.Rows[2]);
+                WordTableCell cell = wordTable1.Rows[2].AddCell();
+                Assert.Same(cell, wordTable1.Rows[2].Cells[4]);
                 cell.Paragraphs[0].Text = "This cell is outside a bit";
                 cell.TextDirection = WordTextDirection.TopToBottomLeftToRightRotated;
 
@@ -899,20 +916,21 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable1.Position.HorizontalAnchor == null);
 
 
-                wordTable1.Position.LeftFromText = 100;
+                wordTable1.Position.LeftFromText = OfficeLength.Points(5.03);
 
-                wordTable1.Position.RightFromText = 180;
+                wordTable1.Position.RightFromText = OfficeLength.Inches(0.125);
 
 
-                wordTable1.Position.TopFromText = 50;
+                wordTable1.Position.TopFromText = OfficeLength.Millimeters(1);
 
-                wordTable1.Position.BottomFromText = 130;
+                wordTable1.Position.BottomFromText = OfficeLength.Centimeters(0.5);
 
                 wordTable1.Position.TablePositionXAlignment = WordTableHorizontalAlignment.Left;
 
                 wordTable1.Position.HorizontalAnchor = WordTableHorizontalAnchor.Margin;
 
-                wordTable1.Position.TablePositionY = 1;
+                wordTable1.Position.TablePositionX = OfficeLength.Emus(-318);
+                wordTable1.Position.TablePositionY = OfficeLength.Pixels(2);
 
                 document.Save();
             }
@@ -932,12 +950,20 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable1.Description == "This is a table showing some features");
                 Assert.True(wordTable1.Title == "This is a title of the table");
 
-                Assert.True(wordTable1.Position.RightFromText == 180);
-                Assert.True(wordTable1.Position.LeftFromText == 100);
-                Assert.True(wordTable1.Position.TopFromText == 50);
-                Assert.True(wordTable1.Position.BottomFromText == 130);
+                Assert.Equal(OfficeLength.Emus(180L * 635), wordTable1.Position.RightFromText);
+                Assert.Equal(OfficeLength.Emus(101L * 635), wordTable1.Position.LeftFromText);
+                Assert.Equal(OfficeLength.Emus(57L * 635), wordTable1.Position.TopFromText);
+                Assert.Equal(OfficeLength.Emus(283L * 635), wordTable1.Position.BottomFromText);
                 Assert.True(wordTable1.Position.TablePositionXAlignment == WordTableHorizontalAlignment.Left);
-                Assert.True(wordTable1.Position.TablePositionY == 1);
+                Assert.Equal(OfficeLength.Emus(30L * 635), wordTable1.Position.TablePositionY);
+                Assert.Equal(OfficeLength.Emus(-635), wordTable1.Position.TablePositionX);
+                TablePositionProperties native = wordTable1._tableProperties!.TablePositionProperties!;
+                Assert.Equal((short)101, native.LeftFromText!.Value);
+                Assert.Equal((short)180, native.RightFromText!.Value);
+                Assert.Equal((short)57, native.TopFromText!.Value);
+                Assert.Equal((short)283, native.BottomFromText!.Value);
+                Assert.Equal(-1, native.TablePositionX!.Value);
+                Assert.Equal(30, native.TablePositionY!.Value);
                 Assert.True(wordTable1.Position.HorizontalAnchor == WordTableHorizontalAnchor.Margin);
 
                 Assert.True(wordTable1.Rows[1].Cells.Count == 4);
@@ -946,6 +972,102 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable1.Rows[2].Cells[4].Paragraphs[0].Text == "This cell is outside a bit");
                 Assert.True(wordTable1.Rows[2].Cells[4].TextDirection == WordTextDirection.TopToBottomLeftToRightRotated);
 
+            }
+            // Exercise the native ranges through the saved DOCX, including rounding
+            // toward each extreme from just under half a twip outside the range.
+            foreach (bool maximum in new[] { false, true }) {
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    foreach (var length in lengths) {
+                        long boundary = maximum ? length.Max : length.Min;
+                        length.Set(document.Tables[0].Position,
+                            OfficeLength.Emus(boundary * 635 + (maximum ? 317 : -317)));
+                    }
+                    document.Save();
+                }
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    WordTable table = document.Tables[0];
+                    foreach (var length in lengths) {
+                        long boundary = maximum ? length.Max : length.Min;
+                        Assert.Equal(OfficeLength.Emus(boundary * 635), length.Get(table.Position));
+                        Assert.Equal((long?)boundary, length.Native(table._tableProperties!.TablePositionProperties!));
+                    }
+                }
+            }
+
+            // Whole EMUs cannot land exactly on a half twip (635 EMUs per twip).
+            // Check both neighbors on each side and an explicit zero.
+            foreach (var sample in new (long Emus, long Twips)[] {
+                (-318, -1), (-317, 0), (0, 0), (317, 0), (318, 1) }) {
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    foreach (var length in lengths)
+                        length.Set(document.Tables[0].Position, OfficeLength.Emus(sample.Emus));
+                    document.Save();
+                }
+                using (WordDocument document = WordDocument.Load(filePath)) {
+                    WordTable table = document.Tables[0];
+                    foreach (var length in lengths) {
+                        Assert.Equal(OfficeLength.Emus(sample.Twips * 635), length.Get(table.Position));
+                        Assert.Equal((long?)sample.Twips, length.Native(table._tableProperties!.TablePositionProperties!));
+                    }
+                }
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTable table = document.Tables[0];
+                for (int index = 0; index < lengths.Length; index++) {
+                    var length = lengths[index];
+                    // The first rejected EMU beyond either quantized native limit.
+                    foreach (long invalid in new[] { length.Min * 635 - 318,
+                        length.Max * 635 + 318, long.MinValue, long.MaxValue }) {
+                        string before = table._table.OuterXml;
+                        Assert.Throws<OverflowException>(() => length.Set(table.Position, OfficeLength.Emus(invalid)));
+                        Assert.Equal(before, table._table.OuterXml);
+                    }
+                    length.Set(table.Position, null);
+                    Assert.Null(length.Get(table.Position));
+                    Assert.Null(length.Native(table._tableProperties!.TablePositionProperties!));
+                    foreach (var remaining in lengths.Skip(index + 1)) {
+                        Assert.Equal(OfficeLength.Emus(635), remaining.Get(table.Position));
+                        Assert.Equal((long?)1, remaining.Native(table._tableProperties!.TablePositionProperties!));
+                    }
+                }
+                Assert.Equal(WordTableHorizontalAnchor.Margin, table.Position.HorizontalAnchor);
+                Assert.Equal(WordTableVerticalAnchor.Text, table.Position.VerticalAnchor);
+                Assert.Equal(WordTableHorizontalAlignment.Left, table.Position.TablePositionXAlignment);
+                Assert.Equal(WordTableOverlap.Overlap, table.Position.TableOverlap);
+                document.Save();
+            }
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTable table = document.Tables[0];
+                foreach (var length in lengths) {
+                    Assert.Null(length.Get(table.Position));
+                    Assert.Null(length.Native(table._tableProperties!.TablePositionProperties!));
+                }
+                Assert.Equal(WordTableHorizontalAnchor.Margin, table.Position.HorizontalAnchor);
+                Assert.Equal(WordTableVerticalAnchor.Text, table.Position.VerticalAnchor);
+                Assert.Equal(WordTableHorizontalAlignment.Left, table.Position.TablePositionXAlignment);
+                Assert.Equal(WordTableOverlap.Overlap, table.Position.TableOverlap);
+
+                // Imported tables may omit tblPr or just tblpPr. Neither a null
+                // assignment nor a rejected length may materialize those elements.
+                foreach (bool omitTableProperties in new[] { false, true }) {
+                    foreach (var length in lengths) {
+                        WordTable absent = document.AddTable(1, 1);
+                        if (omitTableProperties) absent._tableProperties!.Remove();
+                        else absent._tableProperties!.TablePositionProperties?.Remove();
+                        string before = absent._table.OuterXml;
+                        Assert.Null(length.Get(absent.Position));
+                        length.Set(absent.Position, null);
+                        Assert.Equal(before, absent._table.OuterXml);
+                        foreach (long invalid in new[] { length.Min * 635 - 318, length.Max * 635 + 318 }) {
+                            Assert.Throws<OverflowException>(() => length.Set(absent.Position, OfficeLength.Emus(invalid)));
+                            Assert.Equal(before, absent._table.OuterXml);
+                        }
+                        length.Set(absent.Position, OfficeLength.Zero);
+                        Assert.Equal(OfficeLength.Zero, length.Get(absent.Position));
+                        Assert.Equal((long?)0, length.Native(absent._tableProperties!.TablePositionProperties!));
+                    }
+                }
             }
         }
 
@@ -959,8 +1081,8 @@ namespace OfficeIMO.Tests {
                 WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
-                Assert.True(wordTable.Width == 0);
-                Assert.True(wordTable.WidthType == WordTableWidthUnit.Auto);
+                Assert.True(wordTable.Width?.ToNativeValue() == 0);
+                Assert.True(wordTable.Width?.Kind == WordTableWidthKind.Auto);
 
                 document.AddParagraph();
                 document.AddParagraph();
@@ -968,12 +1090,11 @@ namespace OfficeIMO.Tests {
                 WordTable wordTable1 = document.AddTable(2, 6, WordTableStyle.PlainTable1);
                 wordTable1.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
                 wordTable1.Rows[1].Cells[0].Paragraphs[0].Text = "Test 1 - ok longer text, no autosize right?";
-                wordTable1.WidthType = WordTableWidthUnit.Pct;
-                wordTable1.Width = 2000;
+                wordTable1.Width = WordTableWidth.Percent((2000) / 50d);
                 wordTable1.Alignment = WordTableAlignment.Center;
 
-                Assert.True(wordTable1.Width == 2000);
-                Assert.True(wordTable1.WidthType == WordTableWidthUnit.Pct);
+                Assert.True(wordTable1.Width?.ToNativeValue() == 2000);
+                Assert.True(wordTable1.Width?.Kind == WordTableWidthKind.Percent);
                 Assert.True(wordTable1.Alignment == WordTableAlignment.Center);
 
                 document.AddParagraph();
@@ -982,30 +1103,28 @@ namespace OfficeIMO.Tests {
                 WordTable wordTable2 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
-                Assert.True(wordTable2.Width == 0);
-                Assert.True(wordTable2.WidthType == WordTableWidthUnit.Auto);
+                Assert.True(wordTable2.Width?.ToNativeValue() == 0);
+                Assert.True(wordTable2.Width?.Kind == WordTableWidthKind.Auto);
 
                 document.AddParagraph();
                 document.AddParagraph();
                 document.AddParagraph("Table 4 - Magic number 5000 (full width)");
                 WordTable wordTable3 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
-                wordTable3.WidthType = WordTableWidthUnit.Pct;
-                wordTable3.Width = 5000;
+                wordTable3.Width = WordTableWidth.Percent((5000) / 50d);
                 wordTable3.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
-                Assert.True(wordTable3.Width == 5000);
-                Assert.True(wordTable3.WidthType == WordTableWidthUnit.Pct);
+                Assert.True(wordTable3.Width?.ToNativeValue() == 5000);
+                Assert.True(wordTable3.Width?.Kind == WordTableWidthKind.Percent);
 
                 document.AddParagraph();
                 document.AddParagraph();
                 document.AddParagraph("Table 5 - 50% by using 2500 width (pct)");
                 WordTable wordTable4 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
-                wordTable4.WidthType = WordTableWidthUnit.Pct;
-                wordTable4.Width = 2500;
+                wordTable4.Width = WordTableWidth.Percent((2500) / 50d);
                 wordTable4.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
-                Assert.True(wordTable4.Width == 2500);
-                Assert.True(wordTable4.WidthType == WordTableWidthUnit.Pct);
+                Assert.True(wordTable4.Width?.ToNativeValue() == 2500);
+                Assert.True(wordTable4.Width?.Kind == WordTableWidthKind.Percent);
 
 
                 document.AddParagraph();
@@ -1013,15 +1132,14 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Table 6 - 50% by using 2500 width (pct), that we fix to full width");
                 WordTable wordTable5 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 // this data is temporary just to prove things work
-                wordTable5.WidthType = WordTableWidthUnit.Pct;
-                wordTable5.Width = 2500;
+                wordTable5.Width = WordTableWidth.Percent((2500) / 50d);
                 // lets fix it for full width
                 wordTable5.DistributeColumnsEvenly();
 
                 // Verify the NEW behavior: DistributeColumnsEvenly distributes within the current width context.
                 // Since Width was set to 2500 (Pct), it should remain 2500.
-                Assert.True(wordTable5.Width == 2500, $"Width after DistributeColumnsEvenly should be 2500, but was {wordTable5.Width}");
-                Assert.True(wordTable5.WidthType == WordTableWidthUnit.Pct, $"WidthType after DistributeColumnsEvenly should be Pct, but was {wordTable5.WidthType}");
+                Assert.True(wordTable5.Width?.ToNativeValue() == 2500, $"Width after DistributeColumnsEvenly should be 2500, but was {wordTable5.Width}");
+                Assert.True(wordTable5.Width?.Kind == WordTableWidthKind.Percent, $"WidthType after DistributeColumnsEvenly should be Pct, but was {wordTable5.Width?.Kind}");
 
                 document.AddParagraph();
                 document.AddParagraph();
@@ -1029,8 +1147,8 @@ namespace OfficeIMO.Tests {
                 WordTable wordTable6 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 wordTable6.SetWidthPercentage(50);
 
-                Assert.True(wordTable6.Width == 2500);
-                Assert.True(wordTable6.WidthType == WordTableWidthUnit.Pct);
+                Assert.True(wordTable6.Width?.ToNativeValue() == 2500);
+                Assert.True(wordTable6.Width?.Kind == WordTableWidthKind.Percent);
 
                 document.AddParagraph();
                 document.AddParagraph();
@@ -1038,37 +1156,37 @@ namespace OfficeIMO.Tests {
                 WordTable wordTable7 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 wordTable7.SetWidthPercentage(75);
 
-                Assert.True(wordTable7.Width == 3750);
-                Assert.True(wordTable7.WidthType == WordTableWidthUnit.Pct);
+                Assert.True(wordTable7.Width?.ToNativeValue() == 3750);
+                Assert.True(wordTable7.Width?.Kind == WordTableWidthKind.Percent);
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTablesAndSizes.docx"))) {
-                Assert.True(document.Tables[0].Width == 0);
-                Assert.True(document.Tables[0].WidthType == WordTableWidthUnit.Auto);
+                Assert.True(document.Tables[0].Width?.ToNativeValue() == 0);
+                Assert.True(document.Tables[0].Width?.Kind == WordTableWidthKind.Auto);
 
-                Assert.True(document.Tables[1].Width == 2000);
-                Assert.True(document.Tables[1].WidthType == WordTableWidthUnit.Pct);
+                Assert.True(document.Tables[1].Width?.ToNativeValue() == 2000);
+                Assert.True(document.Tables[1].Width?.Kind == WordTableWidthKind.Percent);
 
-                Assert.True(document.Tables[2].Width == 0);
-                Assert.True(document.Tables[2].WidthType == WordTableWidthUnit.Auto);
+                Assert.True(document.Tables[2].Width?.ToNativeValue() == 0);
+                Assert.True(document.Tables[2].Width?.Kind == WordTableWidthKind.Auto);
 
-                Assert.True(document.Tables[3].Width == 5000);
-                Assert.True(document.Tables[3].WidthType == WordTableWidthUnit.Pct);
+                Assert.True(document.Tables[3].Width?.ToNativeValue() == 5000);
+                Assert.True(document.Tables[3].Width?.Kind == WordTableWidthKind.Percent);
 
-                Assert.True(document.Tables[4].Width == 2500);
-                Assert.True(document.Tables[4].WidthType == WordTableWidthUnit.Pct);
+                Assert.True(document.Tables[4].Width?.ToNativeValue() == 2500);
+                Assert.True(document.Tables[4].Width?.Kind == WordTableWidthKind.Percent);
 
                 // Verify loaded state for the table where DistributeColumnsEvenly was called
-                Assert.True(document.Tables[5].Width == 2500, $"[Load] Width after DistributeColumnsEvenly should be 2500, but was {document.Tables[5].Width}");
-                Assert.True(document.Tables[5].WidthType == WordTableWidthUnit.Pct, $"[Load] WidthType after DistributeColumnsEvenly should be Pct, but was {document.Tables[5].WidthType}");
+                Assert.True(document.Tables[5].Width?.ToNativeValue() == 2500, $"[Load] Width after DistributeColumnsEvenly should be 2500, but was {document.Tables[5].Width}");
+                Assert.True(document.Tables[5].Width?.Kind == WordTableWidthKind.Percent, $"[Load] WidthType after DistributeColumnsEvenly should be Pct, but was {document.Tables[5].Width?.Kind}");
 
-                Assert.True(document.Tables[6].Width == 2500);
-                Assert.True(document.Tables[6].WidthType == WordTableWidthUnit.Pct);
+                Assert.True(document.Tables[6].Width?.ToNativeValue() == 2500);
+                Assert.True(document.Tables[6].Width?.Kind == WordTableWidthKind.Percent);
 
-                Assert.True(document.Tables[7].Width == 3750);
-                Assert.True(document.Tables[7].WidthType == WordTableWidthUnit.Pct);
+                Assert.True(document.Tables[7].Width?.ToNativeValue() == 3750);
+                Assert.True(document.Tables[7].Width?.Kind == WordTableWidthKind.Percent);
 
             }
         }
@@ -1341,16 +1459,16 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "TableRowHeightAutoFit.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordTable table = document.AddTable(2, 2);
-                table.Rows[0].Height = 500;
-                table.Rows[1].Height = 300;
+                table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(25D);
+                table.Rows[1].Height = global::OfficeIMO.OfficeLength.Points(15D);
                 table.AutoFitToWindow();
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordTable table = document.Tables[0];
-                Assert.Equal(500, table.Rows[0].Height);
-                Assert.Equal(300, table.Rows[1].Height);
+                Assert.Equal(500, checked((int?)(table.Rows[0].Height?.ToTwips())));
+                Assert.Equal(300, checked((int?)(table.Rows[1].Height?.ToTwips())));
             }
         }
 

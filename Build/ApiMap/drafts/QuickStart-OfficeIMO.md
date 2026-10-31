@@ -89,7 +89,8 @@ using OfficeIMO;
 using OfficeIMO.Markdown;
 using OfficeIMO.Word.Markdown;
 
-OfficeConverter.Convert("Status.docx", "Status.pdf");
+OfficeConverter.Convert("Status.docx", "Status.pdf",
+    new OfficeConversionOptions { FileConflictPolicy = OfficePublicationPolicy.Replace });
 
 OfficeBatchReport batch = await OfficeConverter.ConvertAsync(
     Directory.EnumerateFiles("Reports", "*.docx"),

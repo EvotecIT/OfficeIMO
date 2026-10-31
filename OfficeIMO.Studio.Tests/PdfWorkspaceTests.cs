@@ -12,7 +12,7 @@ public sealed partial class PdfWorkspaceTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-provider-images-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
-            PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+            PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))));
             document = document.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document;
             using var storage = new OfficeIMO.Studio.Infrastructure.StudioStorageAccess();
             var provider = new TestStorageFile("content://documents/image-export", document.ToBytes(),
@@ -30,7 +30,7 @@ public sealed partial class PdfWorkspaceTests {
 
     [Fact]
     public async Task ImageExportRejectsProviderFoldersWithoutChangingExistingFiles() {
-        PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+        PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))));
         document = document.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document;
         using var storage = new OfficeIMO.Studio.Infrastructure.StudioStorageAccess();
         var source = new TestStorageFile("content://documents/images", document.ToBytes(), name: "images.pdf");
@@ -55,7 +55,7 @@ public sealed partial class PdfWorkspaceTests {
         string source = Path.Combine(root, "image.pdf");
         string output = Path.Combine(root, "images");
         Directory.CreateDirectory(output);
-        PdfDocument baseDocument = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+        PdfDocument baseDocument = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))));
         baseDocument.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document.Save(source);
         string occupied = Path.Combine(output, "image-p1-1.png");
         byte[] sentinel = [1, 2, 3, 4];
@@ -86,8 +86,8 @@ public sealed partial class PdfWorkspaceTests {
         string output = Path.Combine(root, "images");
         try {
             PdfDocument document = PdfDocument.Create(compose => {
-                compose.Page(page => page.Size(600D, 800D));
-                compose.Page(page => page.Size(600D, 800D));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)));
             });
             document = document.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document;
             document.Images.Add(new PdfPageRegion(2, 50D, 60D, 40D, 20D), TinyPng).Document.Save(source);
@@ -115,7 +115,7 @@ public sealed partial class PdfWorkspaceTests {
         Directory.CreateDirectory(root);
         string source = Path.Combine(root, "image.pdf");
         string output = Path.Combine(root, "images");
-        PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+        PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))));
         document.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document.Save(source);
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
@@ -185,7 +185,7 @@ public sealed partial class PdfWorkspaceTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-existing-image-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         string source = Path.Combine(root, "image.pdf");
-        PdfDocument baseDocument = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+        PdfDocument baseDocument = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))));
         baseDocument.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document.Save(source);
 
         try {
@@ -221,7 +221,7 @@ public sealed partial class PdfWorkspaceTests {
         var properties = new PdfEditorProperties(
             "Workspace note",
             "OfficeIMO Studio",
-            PdfColor.FromRgb(229, 72, 77),
+            global::OfficeIMO.OfficeColor.FromRgb(229, 72, 77),
             "Approved",
             "https://officeimo.com",
             14D);
@@ -499,7 +499,7 @@ public sealed partial class PdfWorkspaceTests {
             string text = reopened.Read().Text;
             Assert.Contains("INTERNAL", text, StringComparison.Ordinal);
             Assert.Contains("1 / 1", text, StringComparison.Ordinal);
-            Assert.True(Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg })).Succeeded);
+            Assert.True(Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg })).Succeeded);
         } finally {
             Directory.Delete(root, recursive: true);
         }
@@ -521,7 +521,7 @@ public sealed partial class PdfWorkspaceTests {
         byte[] signed = preparation.Complete(new byte[] { 0x30, 0x01, 0x00 }).ToBytes();
         await File.WriteAllBytesAsync(source, signed);
         var gesture = new PdfEditorGesture(1, 40D, 50D, 60D, 70D, Array.Empty<PdfEditorVisualPoint>());
-        var properties = new PdfEditorProperties("Certified review", "Studio", PdfColor.FromRgb(220, 38, 38), "Approved", "https://officeimo.com", 12D);
+        var properties = new PdfEditorProperties("Certified review", "Studio", global::OfficeIMO.OfficeColor.FromRgb(220, 38, 38), "Approved", "https://officeimo.com", 12D);
 
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
@@ -548,7 +548,7 @@ public sealed partial class PdfWorkspaceTests {
         PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
             item.Paragraph(paragraph => paragraph.Text("Keep this marker")))))).Save(source);
         var gesture = new PdfEditorGesture(1, 300D, 300D, 340D, 340D, Array.Empty<PdfEditorVisualPoint>());
-        var properties = new PdfEditorProperties(string.Empty, "Studio", PdfColor.Black, "Approved", "https://officeimo.com", 12D);
+        var properties = new PdfEditorProperties(string.Empty, "Studio", global::OfficeIMO.OfficeColor.Black, "Approved", "https://officeimo.com", 12D);
 
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
@@ -576,7 +576,7 @@ public sealed partial class PdfWorkspaceTests {
         string source = Path.Combine(root, "source.pdf");
         CreateEditableSource(source);
         var gesture = new PdfEditorGesture(1, 40D, 50D, 180D, 100D, Array.Empty<PdfEditorVisualPoint>());
-        var properties = new PdfEditorProperties("Review", "Studio", PdfColor.Black, "Approved", "https://officeimo.com", 12D);
+        var properties = new PdfEditorProperties("Review", "Studio", global::OfficeIMO.OfficeColor.Black, "Approved", "https://officeimo.com", 12D);
 
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
@@ -978,7 +978,7 @@ PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Pages.Select
             using (PdfWorkspace edited = await PdfWorkspace.OpenAsync(source, CancellationToken.None, recovery)) {
                 await edited.DuplicateAsync([1], CancellationToken.None);
             }
-            PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).Save(source);
+            PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).Save(source);
 
             using PdfWorkspace replaced = await PdfWorkspace.OpenAsync(source, CancellationToken.None, recovery);
 
@@ -1064,7 +1064,7 @@ PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Pages.Select
     }
 
     private static void CreateEditableSource(string path) =>
-        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(path);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(path);
 
     private static X509Certificate2 CreateSigningCertificate() {
         using RSA rsa = RSA.Create(2048);

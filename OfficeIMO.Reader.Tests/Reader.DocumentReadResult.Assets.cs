@@ -66,7 +66,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         try {
             using (WordDocument document = WordDocument.Create(path)) {
                 document.AddParagraph("Policy").Style = WordParagraphStyles.Heading1;
-                WordImage image = document.AddParagraph("Logo:").InsertImage(imagePath);
+                WordImage image = document.AddParagraph("Logo:").AddImage(imagePath);
                 image.Description = "Company logo alt text";
                 image.Title = "Company logo title";
                 document.Save();
@@ -114,10 +114,10 @@ public sealed class ReaderDocumentReadResultAssetTests {
     public void DocumentReader_ReadDocument_EmitsPowerPointSlideImageAssetsFromStream() {
         string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "EvotecLogo.png");
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Intro slide");
-            PowerPointPicture picture = slide.AddPicture(imagePath);
+            PowerPointPicture picture = slide.AddImage(imagePath);
             picture.AltText = "Slide logo alt text";
             presentation.Save();
         }
@@ -154,11 +154,11 @@ public sealed class ReaderDocumentReadResultAssetTests {
     public void DocumentReader_ReadDocument_EmitsPowerPointAssetsForEachVisibleSlidePlacement() {
         string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "EvotecLogo.png");
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide first = presentation.AddSlide();
-            first.AddPicture(imagePath);
+            first.AddImage(imagePath);
             PowerPointSlide second = presentation.AddSlide();
-            second.AddPicture(imagePath);
+            second.AddImage(imagePath);
             presentation.Save();
         }
 
@@ -177,10 +177,10 @@ public sealed class ReaderDocumentReadResultAssetTests {
     public void DocumentReader_ReadDocument_EmitsPowerPointAssetsForEachDuplicateSlidePlacement() {
         string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "EvotecLogo.png");
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddPicture(imagePath);
-            slide.AddPicture(imagePath);
+            slide.AddImage(imagePath);
+            slide.AddImage(imagePath);
             presentation.Save();
         }
 
@@ -199,9 +199,9 @@ public sealed class ReaderDocumentReadResultAssetTests {
     public void DocumentReader_ReadDocument_FlagsImageOnlyPowerPointSlideForOcr() {
         string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "EvotecLogo.png");
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddPicture(imagePath);
+            slide.AddImage(imagePath);
             presentation.Save();
         }
 
@@ -232,12 +232,24 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.Cell(1, 1, "Logo sheet");
-                sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "Logo", altText: "Company logo");
-                ExcelSheet otherSheet = document.AddWorksheet("Other");
+                sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(10),
+                    Name = "Logo",
+                    Description = "Company logo"
+                });
+                ExcelSheet otherSheet = document.AddSheet("Other");
                 otherSheet.Cell(1, 1, "Other sheet");
-                otherSheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "OtherLogo", altText: "Other logo");
+                otherSheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(10),
+                    Name = "OtherLogo",
+                    Description = "Other logo"
+                });
                 document.Save();
             }
 
@@ -288,9 +300,15 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.Cell(1, 1, "Plain workbook");
-                sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "Logo", altText: "Plain logo");
+                sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(10),
+                    Name = "Logo",
+                    Description = "Plain logo"
+                });
                 document.Save();
             }
 
@@ -312,9 +330,21 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "First", altText: "First");
-                sheet.AddImage(3, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "Second", altText: "Second");
+                ExcelSheet sheet = document.AddSheet("Images");
+                sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(10),
+                    Name = "First",
+                    Description = "First"
+                });
+                sheet.AddImage(3, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(10),
+                    Name = "Second",
+                    Description = "Second"
+                });
                 document.Save();
             }
             PointSecondExcelPictureAtFirstImageRelationship(path);
@@ -338,9 +368,21 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "First", altText: "First");
-                sheet.AddImage(3, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "Second", altText: "Second");
+                ExcelSheet sheet = document.AddSheet("Images");
+                sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(10),
+                    Name = "First",
+                    Description = "First"
+                });
+                sheet.AddImage(3, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(10),
+                    Name = "Second",
+                    Description = "Second"
+                });
                 document.Save();
             }
             PointSecondExcelPictureAtFirstImageRelationship(path);
@@ -361,11 +403,23 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.Cell(1, 1, "Inside");
                 sheet.Cell(5, 5, "Outside");
-                sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "InsideLogo", altText: "Inside logo");
-                sheet.AddImage(5, 5, png, "image/png", widthPixels: 12, heightPixels: 10, name: "OutsideLogo", altText: "Outside logo");
+                sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(10),
+                    Name = "InsideLogo",
+                    Description = "Inside logo"
+                });
+                sheet.AddImage(5, 5, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(10),
+                    Name = "OutsideLogo",
+                    Description = "Outside logo"
+                });
                 document.Save();
             }
             PointSecondExcelPictureAtFirstImageRelationship(path);

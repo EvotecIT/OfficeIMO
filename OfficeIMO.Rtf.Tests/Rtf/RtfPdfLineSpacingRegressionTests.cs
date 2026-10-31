@@ -100,7 +100,7 @@ public sealed class RtfPdfLineSpacingRegressionTests {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         PdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = 12
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         }
     };
 }

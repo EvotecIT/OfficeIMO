@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_NotesDoNotReserveRevisionContentOmittedFromOriginalView(bool footnote) {
             using WordDocument document = WordDocument.Create();
             WordParagraph source = document.AddParagraph("Reference");
-            WordParagraph reference = footnote ? source.AddFootNote("Visible") : source.AddEndNote("Visible");
+            WordParagraph reference = footnote ? source.AddFootNote("Visible").Paragraph : source.AddEndNote("Visible").Paragraph;
             WordParagraph note = footnote ? reference.FootNote!.Paragraphs!.Skip(1).First() :
                 reference.EndNote!.Paragraphs!.Skip(1).First();
             note.AddInsertedText(new string('x', 16_384), "Reviewer");
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph();
             for (int index = 0; index < 64; index++) {
-                paragraph.AddText("x").SetFontSize(12);
+                paragraph.AddText("x").SetFontSize(global::OfficeIMO.OfficeLength.Points(12));
             }
             string expected = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false
@@ -244,10 +244,10 @@ namespace OfficeIMO.Tests {
             foreach (WordSection section in document.Sections) {
                 section.PageOrientation = OfficePageOrientation.Landscape;
                 section.PageSettings.PageSize = WordPageSize.Letter;
-                section.Margins.Top = 1440;
-                section.Margins.Right = 1200;
-                section.Margins.Bottom = 720;
-                section.Margins.Left = 1080;
+                section.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
+                section.Margins.Right = global::OfficeIMO.OfficeLength.Points(60D);
+                section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(36D);
+                section.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
             }
 
             string withoutMetadata = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
@@ -318,7 +318,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_OutputBudgetCombinesEarlyImageAndLaterElements() {
             using WordDocument document = WordDocument.Create();
             string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
-            document.AddParagraph().AddImage(assetPath, 20, 20);
+            document.AddParagraph().AddImage(assetPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
             for (int index = 0; index < 800; index++) {
                 document.AddParagraph();
             }
@@ -401,7 +401,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             for (int index = 0; index < 64; index++) {
                 WordList list = document.AddList(WordListStyle.Numbered);
-                list.Numbering.Levels[0].IndentationLeft = 720 + index;
+                list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points((720 + index) / 20D);
                 list.AddItem("Item " + index);
             }
             string expected = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
@@ -448,10 +448,7 @@ namespace OfficeIMO.Tests {
         [InlineData("svg")]
         public void Test_WordToHtml_OutputBudgetReservesExternalImageSource(string extension) {
             using WordDocument document = WordDocument.Create();
-            document.AddParagraph().AddImage(
-                new Uri("https://example.test/" + new string('a', 8192) + "/image." + extension),
-                10,
-                10);
+            document.AddParagraph().AddImage(new Uri("https://example.test/" + new string ('a', 8192) + "/image." + extension), OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>
                 document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
@@ -686,7 +683,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_OutputBudgetReservesRepeatedFootnoteReferenceMetadata() {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph("Notes");
-            WordParagraph reference = paragraph.AddFootNote("shared note");
+            WordParagraph reference = paragraph.AddFootNote("shared note").Paragraph;
             for (int index = 0; index < 256; index++) {
                 paragraph._paragraph.Append(reference._run!.CloneNode(true));
             }

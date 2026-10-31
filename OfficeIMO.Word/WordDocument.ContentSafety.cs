@@ -134,7 +134,7 @@ public partial class WordDocument {
                 } else if (run.Ancestors<W.DeletedRun>().Any()) {
                     kind = OfficeContentConcealmentKind.HiddenByProperty;
                     evidence = "The run is retained as deleted revision content and is not ordinary current text.";
-                } else if (style.FontSizePoints.HasValue && style.FontSizePoints.Value <= builder.Options.MaximumTinyFontSizePoints) {
+                } else if (style.FontSizePoints.HasValue && style.FontSizePoints.Value <= builder.Options.MaximumTinyFontSize.ToPoints()) {
                     kind = OfficeContentConcealmentKind.TinyText;
                     evidence = "The effective Word font size is " + style.FontSizePoints.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
                 } else if (HasZeroDrawingExtent(run)) {

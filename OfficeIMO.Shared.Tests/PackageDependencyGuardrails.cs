@@ -484,6 +484,7 @@ public sealed class PackageDependencyGuardrailTests {
 
         Assert.Equal(
             new[] {
+                "OfficeIMO.SharedSource/Charts/OfficeChartTypeName.cs",
                 "OfficeIMO.SharedSource/Compatibility/TrimmingAttributes.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundDocumentDetector.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFile.cs",

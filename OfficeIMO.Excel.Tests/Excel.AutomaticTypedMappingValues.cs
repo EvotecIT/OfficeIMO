@@ -272,7 +272,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.ParallelCapture.{Guid.NewGuid():N}{extension}");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "NumberText");
                 sheet.CellValue(2, 1, 1.2345678901234567);
                 sheet.CellValue(3, 1, -1.9876543210987654);
@@ -398,7 +398,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.TypedMapping.{Guid.NewGuid():N}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             document.DateSystem = dateSystem;
-            document.AddWorksheet("Data").CellValue(1, 1, "Value");
+            document.AddSheet("Data").CellValue(1, 1, "Value");
             document.Save();
         }
         string headerCells = string.Concat(headers.Select((header, index) =>

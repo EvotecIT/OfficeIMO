@@ -23,13 +23,24 @@ public static partial class OfficeConverter {
     public static IReadOnlyList<OfficeConversionCapability> Routes => Array.AsReadOnly(OfficeConversionCapabilityCatalog.All
         .Where(capability => BuiltinRouteIds.Contains(capability.Id) || Registrations.ContainsKey(capability.Id)).ToArray());
 
+    /// <summary>Converts a file using default conversion options.</summary>
+    public static OfficeConversionReport Convert(string source, string destination) => Convert(source, destination, null);
+
     /// <summary>Converts a file and atomically publishes its completed output.</summary>
-    public static OfficeConversionReport Convert(string source, string destination, OfficeConversionOptions? options = null) =>
+    public static OfficeConversionReport Convert(string source, string destination, OfficeConversionOptions? options) =>
         ConvertAsync(source, destination, options).GetAwaiter().GetResult();
+
+    /// <summary>Converts a file using default conversion options.</summary>
+    public static Task<OfficeConversionReport> ConvertAsync(string source, string destination) =>
+        ConvertAsync(source, destination, null, default);
+
+    /// <summary>Converts a file using the supplied conversion options.</summary>
+    public static Task<OfficeConversionReport> ConvertAsync(string source, string destination, OfficeConversionOptions? options) =>
+        ConvertAsync(source, destination, options, default);
 
     /// <summary>Converts a file, verifies its captured source and atomically publishes completed output.</summary>
     public static Task<OfficeConversionReport> ConvertAsync(string source, string destination,
-        OfficeConversionOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeConversionOptions? options, CancellationToken cancellationToken) =>
         ConvertFileAsync(source, destination, options, null, cancellationToken);
 
     internal static async Task<OfficeConversionReport> ConvertFileAsync(string source, string destination,

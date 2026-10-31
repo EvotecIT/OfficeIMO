@@ -51,7 +51,7 @@ public partial class Word {
             nested.Rows[0].Cells[0].Paragraphs[0].Text = "N1";
 
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-            document.AddParagraph().AddImage(imagePath, 50, 50);
+            document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 
             document.Save();
             document.SaveAsPdf(pdfPath);
@@ -70,8 +70,8 @@ public partial class Word {
             document.AddHeadersAndFooters();
             var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
-            header.AddParagraph().AddImage(imagePath, 20, 20);
-            footer.AddParagraph().AddImage(imagePath, 400, 400);
+            header.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
+            footer.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(400), OfficeIMO.OfficeLength.Pixels(400));
             document.Save();
             document.SaveAsPdf(pdfPath);
         }
@@ -391,7 +391,7 @@ public partial class Word {
     public void Test_WordDocument_SaveAsPdf_CustomPageSize() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfCustomSize.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfCustomSize.pdf");
-        PdfCore.PdfPageSize size = new PdfCore.PdfPageSize(300, 500);
+        PdfCore.PdfPageSize size = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(500));
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
@@ -408,8 +408,8 @@ public partial class Word {
         Assert.True(mediaBox.Success, "MediaBox not found");
         double width = double.Parse(mediaBox.Groups["w"].Value, CultureInfo.InvariantCulture);
         double height = double.Parse(mediaBox.Groups["h"].Value, CultureInfo.InvariantCulture);
-        Assert.True(System.Math.Abs(width - size.Width) < 1);
-        Assert.True(System.Math.Abs(height - size.Height) < 1);
+        Assert.True(System.Math.Abs(width - size.Width.ToPoints()) < 1);
+        Assert.True(System.Math.Abs(height - size.Height.ToPoints()) < 1);
     }
 
     [Fact]
@@ -422,7 +422,7 @@ public partial class Word {
             document.AddParagraph("Hello World");
 
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
-                Margins = PdfCore.PdfPageMargins.UniformCentimeters(marginCm)
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(marginCm))
             });
         }
 
@@ -444,7 +444,7 @@ public partial class Word {
             document.Save();
 
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
-                Margins = PdfCore.PdfPageMargins.FromCentimeters(1, 3, 2, 2)
+                Margins = new OfficeIMO.Pdf.PdfPageMargins(OfficeIMO.OfficeLength.Centimeters(1),OfficeIMO.OfficeLength.Centimeters(3),OfficeIMO.OfficeLength.Centimeters(2),OfficeIMO.OfficeLength.Centimeters(2))
             });
         }
 
@@ -502,13 +502,13 @@ public partial class Word {
         double w1 = double.Parse(boxes[0].Groups["w"].Value, CultureInfo.InvariantCulture);
         double h1 = double.Parse(boxes[0].Groups["h"].Value, CultureInfo.InvariantCulture);
         PdfCore.PdfPageSize a4 = PdfCore.PdfPageSizes.A4.Landscape();
-        Assert.True(System.Math.Abs(w1 - a4.Width) < 1);
-        Assert.True(System.Math.Abs(h1 - a4.Height) < 1);
+        Assert.True(System.Math.Abs(w1 - a4.Width.ToPoints()) < 1);
+        Assert.True(System.Math.Abs(h1 - a4.Height.ToPoints()) < 1);
 
         double w2 = double.Parse(boxes[1].Groups["w"].Value, CultureInfo.InvariantCulture);
         double h2 = double.Parse(boxes[1].Groups["h"].Value, CultureInfo.InvariantCulture);
-        Assert.True(System.Math.Abs(w2 - PdfCore.PdfPageSizes.A5.Width) < 1);
-        Assert.True(System.Math.Abs(h2 - PdfCore.PdfPageSizes.A5.Height) < 1);
+        Assert.True(System.Math.Abs(w2 - PdfCore.PdfPageSizes.A5.Width.ToPoints()) < 1);
+        Assert.True(System.Math.Abs(h2 - PdfCore.PdfPageSizes.A5.Height.ToPoints()) < 1);
 
         Assert.True(w1 > h1);
         Assert.True(h2 > w2);

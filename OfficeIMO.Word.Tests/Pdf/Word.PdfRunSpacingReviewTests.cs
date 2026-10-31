@@ -45,10 +45,10 @@ public sealed class WordPdfRunSpacingReviewTests {
         document.AddParagraph("Main");
         foreach (string literal in new[] { "{page}", "{pages}", "{documentpages}" }) {
             WordParagraph paragraph = document.HeaderDefaultOrCreate.AddParagraph(literal);
-            if (spaced) paragraph.Spacing = 20;
+            if (spaced) paragraph.Spacing = OfficeLength.Emus((long)(20) * 635);
         }
         WordParagraph mixed = document.HeaderDefaultOrCreate.AddParagraph("{page}");
-        mixed.Spacing = 20;
+        mixed.Spacing = OfficeLength.Emus((long)(20) * 635);
         mixed._paragraph.Append(new SimpleField(new Run(new Text("888"))) { Instruction = " PAGE " });
         using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = pdf.GetPage(1).Text;
@@ -63,7 +63,7 @@ public sealed class WordPdfRunSpacingReviewTests {
     public void NaturalDocumentPageFieldKeepsItsValueInAStyledHeaderZone() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Main");
-        document.HeaderDefaultOrCreate.AddParagraph("Styled label").Spacing = 20;
+        document.HeaderDefaultOrCreate.AddParagraph("Styled label").Spacing = OfficeLength.Emus((long)(20) * 635);
         WordParagraph count = document.HeaderDefaultOrCreate.AddParagraph();
         count._paragraph.Append(new SimpleField(new Run(new Text("888"))) { Instruction = " NUMPAGES " });
         using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -118,8 +118,8 @@ public sealed class WordPdfRunSpacingReviewTests {
         level.LevelText = "%1.";
         level.LevelJustification = WordListLevelAlignment.Right;
         level.LevelSuffix = WordListLevelSuffix.Tab;
-        level.IndentationLeft = 1080;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(54D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         if (markerScale.HasValue) {
             var properties = new NumberingSymbolRunProperties(new Spacing { Val = markerSpacing }, new CharacterScale { Val = markerScale.Value });
             if (fullOverride) {

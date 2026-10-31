@@ -112,7 +112,7 @@ public sealed class HtmlEditableLayoutWordTests {
         HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = result.Value;
 
-        Assert.Equal(int.MaxValue, Assert.Single(word.TextBoxes).HorizontalPositionOffset);
+        Assert.Equal(int.MaxValue, Assert.Single(word.TextBoxes).HorizontalPositionOffset?.ToEmus());
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
@@ -127,8 +127,8 @@ public sealed class HtmlEditableLayoutWordTests {
         using WordDocument word = result.Value;
 
         WordTextBox textBox = Assert.Single(word.TextBoxes);
-        Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Width);
-        Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Height);
+        Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Width.ToEmus());
+        Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Height.ToEmus());
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
@@ -270,10 +270,10 @@ public sealed class HtmlEditableLayoutWordTests {
         WordTextBox floating = Assert.Single(reopened.TextBoxes, textBox =>
             textBox.Paragraphs.Any(paragraph => paragraph.Text.Contains("Editable float", StringComparison.Ordinal)));
 
-        Assert.Equal(762000, positioned.HorizontalPositionOffset);
-        Assert.Equal(685800, positioned.VerticalPositionOffset);
-        Assert.Equal(2286000L, positioned.Width);
-        Assert.Equal(685800L, positioned.Height);
+        Assert.Equal(762000, positioned.HorizontalPositionOffset?.ToEmus());
+        Assert.Equal(685800, positioned.VerticalPositionOffset?.ToEmus());
+        Assert.Equal(2286000L, positioned.Width.ToEmus());
+        Assert.Equal(685800L, positioned.Height.ToEmus());
         Assert.Equal("DBEAFE", positioned.FillColorHex);
         Assert.Equal(WordImageTextWrapping.InFrontOfText, positioned.WrapText);
         Assert.Equal(WordImageTextWrapping.Square, floating.WrapText);

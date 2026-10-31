@@ -23,11 +23,11 @@ namespace OfficeIMO.Examples.Excel {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
 
-                ExcelSheet sheet1 = document.AddWorksheet("Test");
+                ExcelSheet sheet1 = document.AddSheet("Test");
 
-                ExcelSheet sheet2 = document.AddWorksheet("Test2");
+                ExcelSheet sheet2 = document.AddSheet("Test2");
 
-                ExcelSheet sheet3 = document.AddWorksheet("Test3");
+                ExcelSheet sheet3 = document.AddSheet("Test3");
 
                 document.Save();
                 if (openExcel) document.OpenInApplication();

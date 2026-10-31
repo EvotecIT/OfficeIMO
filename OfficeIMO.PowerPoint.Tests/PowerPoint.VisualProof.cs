@@ -18,21 +18,21 @@ namespace OfficeIMO.Tests {
                 Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
             };
             using var firstStream = new MemoryStream();
-            using PowerPointPresentation firstPresentation = PowerPointPresentation.Create(firstStream);
-            firstPresentation.SlideSize.SetSizePoints(160, 100);
+            using PowerPointDocument firstPresentation = PowerPointDocument.Create(firstStream);
+            firstPresentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
             PowerPointSlide firstSlide = firstPresentation.AddSlide();
-            firstSlide.AddRectanglePoints(500, 500, 20, 20, "Outside slide bounds");
+            firstSlide.AddRectangle(OfficeIMO.OfficeLength.Points(500), OfficeIMO.OfficeLength.Points(500), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "Outside slide bounds");
 
             PowerPointToHtmlResult first = firstPresentation.ToHtmlResult(options);
             Assert.Contains(first.ImageDiagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds"
                 && diagnostic.LossKind == OfficeConversionLossKind.Omission);
 
             using var secondStream = new MemoryStream();
-            using PowerPointPresentation secondPresentation = PowerPointPresentation.Create(secondStream);
+            using PowerPointDocument secondPresentation = PowerPointDocument.Create(secondStream);
             PowerPointTextBox cleanText = secondPresentation.AddSlide()
-                .AddTextBoxPoints("Clean snapshot", 20, 20, 160, 40);
+                .AddTextBox("Clean snapshot",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(40));
             cleanText.FontName = "Helvetica";
-            cleanText.FontSize = 12;
+            cleanText.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             PowerPointToHtmlResult second = secondPresentation.ToHtmlResult(options);
 
             Assert.DoesNotContain(second.ImageDiagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds");
@@ -45,22 +45,21 @@ namespace OfficeIMO.Tests {
             string presentationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
                 PowerPointVisualProofReport report;
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(presentationPath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.BackgroundColor = "FFFFFF";
-                    PowerPointTextBox title = slide.AddTextBoxPoints("Shared fidelity proof", 40, 36, 480, 46);
+                    PowerPointTextBox title = slide.AddTextBox("Shared fidelity proof",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(36),global::OfficeIMO.OfficeLength.Points(480),global::OfficeIMO.OfficeLength.Points(46));
                     title.Title = "Slide title";
                     title.SetLanguage("en-US");
                     title.Color = "172033";
-                    title.FontSize = 28;
-                    PowerPointTextBox body = slide.AddTextBoxPoints(
-                        "One OfficeDrawing scene feeds PNG, SVG, positioned HTML, and faithful PDF.",
-                        40, 110, 560, 60);
+                    title.FontSize = global::OfficeIMO.OfficeLength.Points(28);
+                    PowerPointTextBox body = slide.AddTextBox(
+                        "One OfficeDrawing scene feeds PNG, SVG, positioned HTML, and faithful PDF.",                        global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(560),global::OfficeIMO.OfficeLength.Points(60));
                     body.Title = "Fidelity statement";
                     body.SetLanguage("en-US");
                     body.Color = "30343B";
-                    body.FontSize = 16;
-                    PowerPointAutoShape accent = slide.AddRectanglePoints(40, 205, 300, 18, "Decorative accent");
+                    body.FontSize = global::OfficeIMO.OfficeLength.Points(16);
+                    PowerPointAutoShape accent = slide.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(205), OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(18), "Decorative accent");
                     accent.FillColor = "0098C8";
                     accent.OutlineColor = "0098C8";
                     accent.Decorative = true;
@@ -113,8 +112,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void VisualReviewSharedSnapshotHonorsTableSuppression() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
-            PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 40, 180, 45);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
+            PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(45));
             table.GetCell(0, 0).Text = "FILTERED REVIEW TABLE";
 
             string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
@@ -133,7 +132,7 @@ namespace OfficeIMO.Tests {
                 "PowerPointWithTablesAndCharts.pptx");
             Assert.True(File.Exists(fixture), "Expected sanitized PowerPoint-authored fixture was not found.");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(fixture, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+            using PowerPointDocument presentation = PowerPointDocument.Load(fixture, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             PowerPointVisualProofReport report = presentation.CreateVisualProofReport("powerpoint-authored-import");
 
             Assert.NotEmpty(report.Slides);
@@ -152,7 +151,7 @@ namespace OfficeIMO.Tests {
             string presentationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string output = Path.Combine(Path.GetTempPath(), "OfficeIMO.PowerPointCompatibility", Guid.NewGuid().ToString("N"));
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(presentationPath)) {
                     presentation.AddSlide().AddTitle("Compatibility proof");
                     presentation.Save();
                 }
@@ -198,10 +197,10 @@ namespace OfficeIMO.Tests {
             string output = Path.Combine(Path.GetTempPath(), "OfficeIMO.PowerPointDesktopReference", Guid.NewGuid().ToString("N"));
             try {
                 byte[] snapshotPng;
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(presentationPath)) {
                     presentation.AddSlide().AddTitle("Native reference");
                     presentation.Save();
-                    snapshotPng = presentation.Slides[0].ToPng();
+                    snapshotPng = presentation.Slides[0].ToImage();
                 }
                 PowerPointReferenceRenderResult result = PowerPointDesktopReferenceRenderer.TryRender(
                     presentationPath, output, enabled: true);

@@ -8,7 +8,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides helper methods for traversing documents and resolving list markers.
     /// </summary>
-    public static partial class WordDocumentTraversal {
+    internal static partial class WordDocumentTraversal {
         private static readonly AsyncLocal<ListInfoSnapshot?> ActiveListInfoSnapshot = new();
 
         private sealed class ListInfoSnapshot {

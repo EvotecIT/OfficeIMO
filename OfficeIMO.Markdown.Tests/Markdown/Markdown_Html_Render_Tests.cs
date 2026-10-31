@@ -128,20 +128,25 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
                 .WithColorScheme(MarkdownColorSchemeKind.Emerald)
                 .WithColors(accent: "SeaGreen", heading: "#064e3b", text: "#102030", background: "#f7fbff");
-            theme.Table.BorderWidth = 1.2;
-            theme.Table.CellPaddingX = 11;
+            theme.Table.BorderWidth = OfficeLength.Points(0.9);
+            theme.Table.CellPaddingX = OfficeLength.Pixels(11);
+            theme.Table.CellPaddingY = OfficeLength.Inches(5D / 96D);
             theme.Table.EmphasizeHeader = false;
             theme.Table.UseRowStripes = false;
 
-            string html = MarkdownDocument.Create()
+            using var document = MarkdownDocument.Create()
                 .H1("Theme")
-                .Table(t => t.Headers("Name", "Value").Row("Accent", "Emerald"))
-                .ToHtml(new MarkdownHtmlExportOptions
+                .Table(t => t.Headers("Name", "Value").Row("Accent", "Emerald"));
+            using var saved = new MemoryStream();
+            document.SaveAsHtml(saved, new MarkdownHtmlExportOptions
                 {
                     Title = "Shared Theme",
                     Theme = theme,
                     Kind = MarkdownHtmlKind.Document
                 });
+            saved.Position = 0;
+            using var reader = new StreamReader(saved);
+            string html = reader.ReadToEnd();
 
             Assert.Contains("body { --md-heading: #064e3b", html, StringComparison.Ordinal);
             Assert.Contains("article.markdown-body h1", html, StringComparison.Ordinal);
@@ -372,12 +377,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 Anchor = "åheading"
             });
 
-            var doc = MarkdownDocument.Create()
-                .Add(toc)
-                .H2("åHeading")
-                .Add(new ImageBlock("https://example.com/image.png", "åAlt", "åTitle") {
-                    Caption = "åCaption"
-                });
+            var doc = MarkdownDocument.Create();
+            doc.Add(toc);
+            doc.H2("åHeading");
+            doc.Add(new ImageBlock("https://example.com/image.png", "åAlt", "åTitle") { Caption = "åCaption" });
 
             string html = doc.ToHtml(new MarkdownHtmlExportOptions
             {
@@ -440,7 +443,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 "image/webp",
                 "åwide",
                 "https://example.com/photo.webp 1x"));
-            var doc = MarkdownDocument.Create().Add(paragraph).Add(image);
+            var doc = MarkdownDocument.Create();
+            doc.Add(paragraph);
+            doc.Add(image);
 
             string html = doc.ToHtml(new MarkdownHtmlExportOptions
             {
@@ -471,18 +476,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 Anchor = "åtoc"
             });
 
-            var doc = MarkdownDocument.Create()
-                .H2("åHeading")
-                .Add(toc)
-                .Add(new ParagraphBlock(new InlineSequence()
-                    .Link("åExternal", "https://example.com/docs", linkTarget: "åtarget", linkRel: "årel")
-                    .Link("åPlainExternal", "https://example.com/plain")
-                    .Image("åImage", "https://example.com/image.png")
-                    .FootnoteRef("ånote")))
-                .Add(new CodeBlock("ålang", "åcode"))
-                .Add(new SemanticFencedBlock("chart", "åsemantic", "åpayload"))
-                .Add(new CalloutBlock("ånote", "åTitle", "åBody"))
-                .Add(new FootnoteDefinitionBlock("ånote", "åFootnote"));
+            var doc = MarkdownDocument.Create();
+            doc.H2("åHeading");
+            doc.Add(toc);
+            doc.Add(new ParagraphBlock(new InlineSequence().Link("åExternal", "https://example.com/docs", linkTarget: "åtarget", linkRel: "årel").Link("åPlainExternal", "https://example.com/plain").Image("åImage", "https://example.com/image.png").FootnoteRef("ånote")));
+            doc.Add(new CodeBlock("ålang", "åcode"));
+            doc.Add(new SemanticFencedBlock("chart", "åsemantic", "åpayload"));
+            doc.Add(new CalloutBlock("ånote", "åTitle", "åBody"));
+            doc.Add(new FootnoteDefinitionBlock("ånote", "åFootnote"));
 
             var options = new MarkdownHtmlExportOptions
             {
@@ -602,12 +603,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [Fact]
         public void Image_With_Dimensions_Renders_Size_And_Caption() {
             var doc = MarkdownDocument.Create()
-                .Image("images/photo.png", alt: "Alt text", title: "Title text", width: 640, height: 480)
+                .Image("images/photo.png", alt: "Alt text", title: "Title text", width: OfficeIMO.OfficeLength.Pixels(640), height: OfficeIMO.OfficeLength.Pixels(480))
                 .Caption("Photo caption");
 
             var block = Assert.IsType<ImageBlock>(Assert.Single(doc.Blocks));
-            Assert.Equal(640d, block.Width.GetValueOrDefault());
-            Assert.Equal(480d, block.Height.GetValueOrDefault());
+            Assert.Equal(640d, block.Width.GetValueOrDefault().ToPixels());
+            Assert.Equal(480d, block.Height.GetValueOrDefault().ToPixels());
             Assert.Equal("Photo caption", block.Caption);
 
             string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
@@ -621,9 +622,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Linked_Image_Block_Renders_Linked_Markdown_And_Html() {
-            var doc = MarkdownDocument.Create()
-                .Add(new ImageBlock("images/photo.png", "Alt text", "Title text", linkUrl: "https://example.com/docs", linkTitle: "Read more", linkTarget: "_self", linkRel: "nofollow"))
-                .Caption("Photo caption");
+            var doc = MarkdownDocument.Create();
+            doc.Add(new ImageBlock("images/photo.png", "Alt text", "Title text", linkUrl: "https://example.com/docs", linkTitle: "Read more", linkTarget: "_self", linkRel: "nofollow"));
+            doc.Caption("Photo caption");
 
             var block = Assert.IsType<ImageBlock>(Assert.Single(doc.Blocks));
             Assert.Equal("https://example.com/docs", block.LinkUrl);
@@ -643,9 +644,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Linked_Image_Block_Hardens_TargetBlank_Rel_In_Html() {
-            var doc = MarkdownDocument.Create()
-                .Add(new ImageBlock("images/photo.png", "Alt text", "Title text", linkUrl: "https://example.com/docs", linkTitle: "Read more", linkTarget: "_blank"))
-                .Caption("Photo caption");
+            var doc = MarkdownDocument.Create();
+            doc.Add(new ImageBlock("images/photo.png", "Alt text", "Title text", linkUrl: "https://example.com/docs", linkTitle: "Read more", linkTarget: "_blank"));
+            doc.Caption("Photo caption");
 
             var block = Assert.IsType<ImageBlock>(Assert.Single(doc.Blocks));
             Assert.Equal("_blank", block.LinkTarget);
@@ -664,8 +665,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Inline_Link_Preserves_Html_Metadata_And_Hardens_TargetBlank() {
-            var doc = MarkdownDocument.Create()
-                .Add(new ParagraphBlock(new InlineSequence().Link("Read more", "https://example.com/docs", "Hero docs", "_blank", "nofollow sponsored")));
+            var doc = MarkdownDocument.Create();
+            doc.Add(new ParagraphBlock(new InlineSequence().Link("Read more", "https://example.com/docs", "Hero docs", "_blank", "nofollow sponsored")));
 
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
             var link = Assert.IsType<LinkInline>(Assert.Single(paragraph.Inlines.Nodes));
@@ -686,7 +687,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Image_Block_Renders_Picture_Sources_Back_To_Html() {
-            var image = new ImageBlock("https://example.com/media/storm-wide.webp", "Flooded street at dawn", "Open full photo", 1280, 720) {
+            var image = new ImageBlock("https://example.com/media/storm-wide.webp", "Flooded street at dawn", "Open full photo", OfficeIMO.OfficeLength.Pixels(1280), OfficeIMO.OfficeLength.Pixels(720)) {
                 PictureFallbackPath = "https://example.com/media/storm-fallback.jpg"
             };
             image.PictureSources.Add(new ImagePictureSource(
@@ -702,7 +703,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 "100vw",
                 "https://example.com/media/storm-mobile.webp 1x, https://example.com/media/storm-mobile@2x.webp 2x"));
 
-            var doc = MarkdownDocument.Create().Add(image).Caption("Residents navigate floodwater after the overnight storm.");
+            var doc = MarkdownDocument.Create();
+            doc.Add(image);
+            doc.Caption("Residents navigate floodwater after the overnight storm.");
 
             string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
             Assert.Contains("![Flooded street at dawn](https://example.com/media/storm-wide.webp \"Open full photo\")", markdown, StringComparison.Ordinal);
@@ -716,7 +719,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Image_Block_Renders_Picture_Sources_With_Width_Descriptors_And_Query_Strings() {
-            var image = new ImageBlock("https://example.com/media/storm-wide.webp?fit=cover&crop=10,20,300,400", "Flooded street at dawn", "Open full photo", 1280, 720) {
+            var image = new ImageBlock("https://example.com/media/storm-wide.webp?fit=cover&crop=10,20,300,400", "Flooded street at dawn", "Open full photo", OfficeIMO.OfficeLength.Pixels(1280), OfficeIMO.OfficeLength.Pixels(720)) {
                 PictureFallbackPath = "https://example.com/media/storm-fallback.jpg?download=1"
             };
             image.PictureSources.Add(new ImagePictureSource(
@@ -732,7 +735,11 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 "100vw",
                 "https://example.com/media/storm-mobile.webp?fit=cover&crop=5,10,200,250 320w, https://example.com/media/storm-mobile.webp?fit=cover&crop=10,20,400,500 640w"));
 
-            string html = MarkdownDocument.Create().Add(image).ToHtml();
+            using var document = MarkdownDocument.Create();
+
+            document.Add(image);
+
+            string html = document.ToHtml();
             Assert.Contains("<source srcset=\"https://example.com/media/storm-wide.webp?fit=cover&amp;crop=10,20,300,400 640w, https://example.com/media/storm-wide.webp?fit=cover&amp;crop=20,40,600,800 1280w\" media=\"(min-width: 960px)\" type=\"image/webp\" sizes=\"(min-width: 960px) 90vw, 100vw\" />", html, StringComparison.Ordinal);
             Assert.Contains("<source srcset=\"https://example.com/media/storm-mobile.webp?fit=cover&amp;crop=5,10,200,250 320w, https://example.com/media/storm-mobile.webp?fit=cover&amp;crop=10,20,400,500 640w\" media=\"(max-width: 959px)\" type=\"image/webp\" sizes=\"100vw\" />", html, StringComparison.Ordinal);
             Assert.DoesNotContain("%20", html, StringComparison.Ordinal);

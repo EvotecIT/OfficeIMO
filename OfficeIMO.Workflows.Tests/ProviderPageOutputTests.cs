@@ -96,7 +96,7 @@ public sealed class ProviderPageOutputTests {
 
     [Fact]
     public void OpenedDocumentPlanningPreservesAuthenticatedPrintingRestrictions() {
-        byte[] bytes = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)),
+        byte[] bytes = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))),
             new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.None
             })).ToBytes();
@@ -108,7 +108,7 @@ public sealed class ProviderPageOutputTests {
     }
 
     private static byte[] CreatePdf(int count) => PdfDocument.Create(compose => {
-        for (int index = 0; index < count; index++) compose.Page(page => page.Size(300, 400));
+        for (int index = 0; index < count; index++) compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
     }).ToBytes();
 
     private sealed class CallbackGuard(Action callback) : IOfficePublicationGuard {

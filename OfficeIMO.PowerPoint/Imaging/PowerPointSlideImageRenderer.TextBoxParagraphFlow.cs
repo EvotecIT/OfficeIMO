@@ -28,12 +28,12 @@ namespace OfficeIMO.PowerPoint {
                 double maxFontSize = richRuns.Count == 0
                     ? ResolveParagraphFont(textBox, paragraph, mapping, defaultFontFamily).Size * fontScale
                     : richRuns.Max(run => run.FontSize);
-                double lineHeight = paragraph.LineSpacingPoints.HasValue
+                double lineHeight = paragraph.LineSpacing.HasValue
                     ? ResolveParagraphLineHeight(paragraph, maxFontSize, mapping)
                     : Math.Max(1D, maxFontSize * Math.Max(0.01D, (paragraph.LineSpacingMultiplier ?? 1.2D) - lineSpaceReduction));
                 double height, paintedHeight, measuredWidth;
                 bool clipped;
-                if (!wrap || paragraph.LineSpacingPoints.HasValue) {
+                if (!wrap || paragraph.LineSpacing.HasValue) {
                     if (richRuns.Count == 0) {
                         OfficeFontInfo font = ResolveParagraphFont(textBox, paragraph, mapping, defaultFontFamily);
                         richRuns.Add(new OfficeRichTextRun(string.Empty, font.Size * fontScale,
@@ -104,7 +104,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.ResolveParagraph(
                 paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle);
             return new OfficeFontInfo(effective.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
-                mapping.MapFontSize(effective.FontSizePoints ?? textBox.FontSize ?? 18),
+                mapping.MapFontSize(effective.FontSizePoints ?? textBox.FontSize?.ToPoints() ?? 18),
                 ResolveEffectiveFontStyle(effective, textBox.Bold, textBox.Italic));
         }
 
@@ -124,8 +124,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static double ResolveParagraphLineHeight(PowerPointParagraph paragraph, double fontSize, PowerPointShapeBoundsMapping mapping) {
-            if (paragraph.LineSpacingPoints.HasValue) {
-                return Math.Max(1D, mapping.MapVerticalLength(paragraph.LineSpacingPoints.Value));
+            if (paragraph.LineSpacing.HasValue) {
+                return Math.Max(1D, mapping.MapVerticalLength(paragraph.LineSpacing.Value.ToPoints()));
             }
 
             if (paragraph.LineSpacingMultiplier.HasValue) {
@@ -279,11 +279,11 @@ namespace OfficeIMO.PowerPoint {
                     lineHeight,
                     height,
                     paintedHeight,
-                    Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBeforePoints ?? 0D)),
-                    Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfterPoints ?? 0D)),
+                    Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBefore?.ToPoints() ?? 0D)),
+                    Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfter?.ToPoints() ?? 0D)),
                     measuredWidth,
                     clipped,
-                    paragraph.LineSpacingPoints.HasValue);
+                    paragraph.LineSpacing.HasValue);
 
             internal static PowerPointParagraphDrawing FromRichText(
                 PowerPointParagraph paragraph,
@@ -304,11 +304,11 @@ namespace OfficeIMO.PowerPoint {
                     lineHeight,
                     height,
                     paintedHeight,
-                    Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBeforePoints ?? 0D)),
-                    Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfterPoints ?? 0D)),
+                    Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBefore?.ToPoints() ?? 0D)),
+                    Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfter?.ToPoints() ?? 0D)),
                     measuredWidth,
                     clipped,
-                    paragraph.LineSpacingPoints.HasValue);
+                    paragraph.LineSpacing.HasValue);
         }
     }
 }

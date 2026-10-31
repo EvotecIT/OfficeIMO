@@ -286,14 +286,14 @@ namespace OfficeIMO.Examples.Html {
 
             File.WriteAllText(htmlPath, html);
             document.SaveAsPdf(pdfPath, options);
-            document.ToImage(options)
-                .AsPng()
-                .OnFileConflict(OfficeImageExportFileConflictPolicy.Replace)
-                .Save(pngPath);
-            document.ToImage(options)
-                .AsSvg()
-                .OnFileConflict(OfficeImageExportFileConflictPolicy.Replace)
-                .Save(svgPath);
+            var imageOptions1 = options.Clone();
+            imageOptions1.Format = OfficeImageExportFormat.Png;
+            imageOptions1.FileConflictPolicy = OfficeImageExportFileConflictPolicy.Replace;
+            document.SaveAsImage(pngPath, imageOptions1);
+            var imageOptions2 = options.Clone();
+            imageOptions2.Format = OfficeImageExportFormat.Svg;
+            imageOptions2.FileConflictPolicy = OfficeImageExportFileConflictPolicy.Replace;
+            document.SaveAsImage(svgPath, imageOptions2);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
             int formFieldCount = global::OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Inspect().FormFieldCount;

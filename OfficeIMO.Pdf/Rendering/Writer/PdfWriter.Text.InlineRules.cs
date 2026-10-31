@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
 
     private static PdfInlineBox ResolveInlineRule(PdfInlineRule rule, double availableWidth, RichWrapPurpose purpose) {
         double width = purpose == RichWrapPurpose.IntrinsicMeasurement ? 0D : Math.Max(0D, availableWidth);
-        if (rule.MaximumWidth is double maximum) width = Math.Min(width, maximum);
+        if ((rule.MaximumWidth?.ToPoints()) is double maximum) width = Math.Min(width, maximum);
         return PdfInlineBox.FromRule(rule, width);
     }
 }

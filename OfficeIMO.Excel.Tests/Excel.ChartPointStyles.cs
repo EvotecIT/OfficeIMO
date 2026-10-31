@@ -14,11 +14,11 @@ public sealed class ExcelChartPointStylesTests {
     [Fact]
     public void MarkerOwnedPointHatchRemainsExportable() {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Line", new[] { 1d, 2d })
+            new OfficeSeries("Line", new[] { 1d, 2d })
         });
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Markers");
-        ExcelChart chart = sheet.AddChart(OfficeChartKind.Line, data, 1, 4);
+        ExcelSheet sheet = document.AddSheet("Markers");
+        ExcelChart chart = sheet.AddChart(OfficeChartType.Line, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
         ChartPart part = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
         C.LineChartSeries nativeSeries = Assert.Single(part.ChartSpace!.Descendants<C.LineChartSeries>());
         nativeSeries.InsertBefore(new C.DataPoint(new C.Index { Val = 0U },
@@ -38,18 +38,18 @@ public sealed class ExcelChartPointStylesTests {
     [Fact]
     public void SharedComboPointStylesFollowNativeChartIndexesAcrossLayers() {
         var data = new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
-            new OfficeChartSeries("Columns A", new[] { 12D, 18D }, null, null, null, true,
-                renderKind: OfficeChartKind.ColumnClustered),
-            new OfficeChartSeries("Trend", new[] { 14D, 20D }, null, null, null, true,
-                renderKind: OfficeChartKind.Line)
+            new OfficeSeries("Columns A", new[] { 12D, 18D }, null, null, null, true,
+                renderKind: OfficeChartType.ColumnClustered),
+            new OfficeSeries("Trend", new[] { 14D, 20D }, null, null, null, true,
+                renderKind: OfficeChartType.Line)
                 .WithPointStyles(new OfficeChartPointStyle?[] {
                     new(fillColor: OfficeColor.Parse("#AABBCC")), null
                 }),
-            new OfficeChartSeries("Columns B", new[] { 10D, 16D }, null, null, null, true,
-                renderKind: OfficeChartKind.ColumnClustered)
+            new OfficeSeries("Columns B", new[] { 10D, 16D }, null, null, null, true,
+                renderKind: OfficeChartType.ColumnClustered)
         });
         using ExcelDocument document = ExcelDocument.Create();
-        document.AddWorksheet("Shared").AddChart(OfficeChartKind.ColumnClustered, data, row: 1, column: 4);
+        document.AddSheet("Shared").AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
 
         using SpreadsheetDocument package = SpreadsheetDocument.Open(new MemoryStream(document.ToBytes()), false);
         ChartPart part = Assert.Single(package.WorkbookPart!.WorksheetParts
@@ -66,17 +66,16 @@ public sealed class ExcelChartPointStylesTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    [InlineData(OfficeChartKind.ColumnClustered)]
-    public void PointStyles_PreserveNativeStylesAndRenderHatchesAfterReopen(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    [InlineData(OfficeChartType.ColumnClustered)]
+    public void PointStyles_PreserveNativeStylesAndRenderHatchesAfterReopen(OfficeChartType kind) {
         var hatch = new OfficeChartPointStyle(OfficeColor.White, hatch: OfficeChartHatchPattern.WideForwardDiagonal,
-            hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black, outlineWidth: 2);
-        var series = new OfficeChartSeries("Status", new[] { 3d, 2d, 1d })
-            .WithPointStyles(new OfficeChartPointStyle?[] { new(showOutline: true), new(noFill: true, outlineColor: OfficeColor.Black), hatch });
+            hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black, outlineWidth: global::OfficeIMO.OfficeLength.Pixels(8D / 3D));
+        var series = new OfficeSeries("Status", new[] { 3d, 2d, 1d })
+            .WithPointStyles(new OfficeChartPointStyle?[] { new(showOutline: true, outlineWidth: global::OfficeIMO.OfficeLength.Emus(12701)), new(noFill: true, outlineColor: OfficeColor.Black), hatch });
         using ExcelDocument authored = ExcelDocument.Create();
-        authored.AddWorksheet("Results").AddChart(kind,
-            new OfficeChartData(new[] { "Pass", "Unknown", "Fail" }, new[] { series }), 1, 1);
+        authored.AddSheet("Results").AddChart(kind, new OfficeChartData(new[] { "Pass", "Unknown", "Fail" }, new[] { series }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         using var bytes = new MemoryStream(authored.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(bytes);
         Assert.Empty(reopened.ValidateDocument());
@@ -85,6 +84,14 @@ public sealed class ExcelChartPointStylesTests {
         Assert.True(snapshot.Data.Series[0].PointStyles![0]!.ShowOutline);
         Assert.True(snapshot.Data.Series[0].PointStyles![1]!.NoFill);
         Assert.Equal(hatch.Hatch, snapshot.Data.Series[0].PointStyles![2]!.Hatch);
+        Assert.Equal(12701L, snapshot.Data.Series[0].PointStyles![0]!.OutlineWidth!.Value.ToEmus());
+        Assert.Equal(25400L, snapshot.Data.Series[0].PointStyles![2]!.OutlineWidth!.Value.ToEmus());
+        ChartPart savedPart = Assert.Single(reopened.Sheets.Single(sheet => sheet.Name == "Results")
+            .WorksheetPart.DrawingsPart!.ChartParts);
+        C.DataPoint savedPoint = savedPart.ChartSpace!.Descendants<C.DataPoint>()
+            .Single(point => point.Index?.Val?.Value == 0U);
+        Assert.Equal(12701, savedPoint.ChartShapeProperties!.GetFirstChild<A.Outline>()!.Width!.Value);
+
         string svg = System.Text.Encoding.UTF8.GetString(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
         Assert.Contains("#7300A3", svg, System.StringComparison.OrdinalIgnoreCase);
         Assert.Contains("clipPath", svg, System.StringComparison.Ordinal);
@@ -106,7 +113,7 @@ public sealed class ExcelChartPointStylesTests {
 
     [Fact]
     public void PointStylesAndLegacyPointColorsShareOneNativeRecordPerPoint() {
-        var series = new OfficeChartSeries("Status", new[] { 1d, 2d, 3d, 4d },
+        var series = new OfficeSeries("Status", new[] { 1d, 2d, 3d, 4d },
                 xValues: null, color: null,
                 pointColors: new OfficeColor?[] { OfficeColor.Parse("#AA2200"),
                     OfficeColor.Parse("#22AA00"), null, null })
@@ -115,8 +122,7 @@ public sealed class ExcelChartPointStylesTests {
                 new(fillColor: OfficeColor.Parse("#2244AA"))
             });
         using ExcelDocument document = ExcelDocument.Create();
-        document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
-            new OfficeChartData(new[] { "A", "B", "C", "D" }, new[] { series }), 1, 1);
+        document.AddSheet("Results").AddChart(OfficeChartType.Pie, new OfficeChartData(new[] { "A", "B", "C", "D" }, new[] { series }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         Assert.Empty(document.ValidateDocument());
 
         using var package = SpreadsheetDocument.Open(new MemoryStream(document.ToBytes()), false);

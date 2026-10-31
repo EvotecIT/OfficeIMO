@@ -35,9 +35,9 @@ public partial class Word {
             source.AddHeadersAndFooters();
             target = route == "header" ? source.Header.Default!.AddParagraph("Inherited") : source.Footer.Default!.AddParagraph("Inherited");
         } else if (route == "footnote") {
-            target = source.AddParagraph("Note").AddFootNote("Inherited").FootNote!.Paragraphs!.Last();
+            target = source.AddParagraph("Note").AddFootNote("Inherited").Paragraph.FootNote!.Paragraphs!.Last();
         } else if (route == "endnote") {
-            target = source.AddParagraph("Note").AddEndNote("Inherited").EndNote!.Paragraphs!.Last();
+            target = source.AddParagraph("Note").AddEndNote("Inherited").Paragraph.EndNote!.Paragraphs!.Last();
         } else if (route == "comment") {
             source.AddParagraph("Commented").AddComment("OfficeIMO", "OI", "Inherited");
             target = source.Comments.Single().Paragraphs.Single();
@@ -91,15 +91,15 @@ public partial class Word {
             normal.StyleParagraphProperties ??= new StyleParagraphProperties();
             normal.StyleParagraphProperties.SpacingBetweenLines = new SpacingBetweenLines { LineRule = LineSpacingRuleValues.Auto };
         } else if (!route.StartsWith("table-", StringComparison.Ordinal) || route == "table-value") {
-            target.LineSpacingRule = route == "clear-points" ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
+            target.NativeLineSpacingRule = route == "clear-points" ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
             if (route == "clear-points") {
-                target.LineSpacingPoints = 18; target.LineSpacingPoints = null;
-                Assert.Null(target.LineSpacing);
-                Assert.Equal(WordLineSpacingRule.AtLeast, target.LineSpacingRule);
-                Assert.Null(target._paragraph.ParagraphProperties!.SpacingBetweenLines!.Line);
+                target.NativeLineSpacingValue = 360; target.NativeLineSpacingValue = null;
+                Assert.Null(target.NativeLineSpacingValue);
+                Assert.Equal(WordLineSpacingRule.AtLeast, target.NativeLineSpacingRule);
+                Assert.Null(target._paragraph.ParagraphProperties!.SpacingBetweenLines!.Line?.Value);
             }
         }
-        target.FontSize = 32;
+        target.FontSize = global::OfficeIMO.OfficeLength.Points(32);
         var originalRoots = new[] { mainPart.Document }.Cast<OpenXmlPartRootElement>()
             .Concat(mainPart.Parts.Select(part => part.OpenXmlPart.RootElement).OfType<OpenXmlPartRootElement>())
             .Select(root => (Root: root, Xml: root.OuterXml)).ToArray();

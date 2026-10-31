@@ -271,20 +271,16 @@ public class PdfAdapterSecurityComplianceTests {
 
     private static byte[] ConvertAutomaticXlsx(string text) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Proof");
+        ExcelSheet sheet = document.AddSheet("Proof");
         sheet.Cell(1, 1, text);
         sheet.Cell(2, 1, "Adapter proof");
         return (document.ToPdf()).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     private static byte[] ConvertAutomaticPptx(string text) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.AddSlide().AddTextBoxPoints(
-            text + "\nAdapter proof",
-            leftPoints: 36,
-            topPoints: 36,
-            widthPoints: 420,
-            heightPoints: 100);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.AddSlide().AddTextBox(
+            text + "\nAdapter proof",left: global::OfficeIMO.OfficeLength.Points(36),top: global::OfficeIMO.OfficeLength.Points(36),width: global::OfficeIMO.OfficeLength.Points(420),height: global::OfficeIMO.OfficeLength.Points(100));
         return (presentation.ToPdf()).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
@@ -300,7 +296,7 @@ public class PdfAdapterSecurityComplianceTests {
 
     private static byte[] ConvertXlsx(PdfCore.PdfCreateOptions pdfOptions) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Proof");
+        ExcelSheet sheet = document.AddSheet("Proof");
         sheet.Cell(1, 1, Marker("xlsx"));
         sheet.Cell(2, 1, "Adapter proof");
         return (document.ToPdf(new ExcelPdfExportOptions {
@@ -310,13 +306,9 @@ public class PdfAdapterSecurityComplianceTests {
     }
 
     private static byte[] ConvertPptx(PdfCore.PdfCreateOptions pdfOptions) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.AddSlide().AddTextBoxPoints(
-            Marker("pptx") + "\nAdapter proof",
-            leftPoints: 36,
-            topPoints: 36,
-            widthPoints: 420,
-            heightPoints: 100);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.AddSlide().AddTextBox(
+            Marker("pptx") + "\nAdapter proof",left: global::OfficeIMO.OfficeLength.Points(36),top: global::OfficeIMO.OfficeLength.Points(36),width: global::OfficeIMO.OfficeLength.Points(420),height: global::OfficeIMO.OfficeLength.Points(100));
         return (presentation.ToPdf(new PowerPointPdfExportOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None

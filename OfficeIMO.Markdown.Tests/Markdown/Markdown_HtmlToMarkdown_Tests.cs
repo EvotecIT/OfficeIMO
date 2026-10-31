@@ -1527,9 +1527,9 @@ public sealed class MarkdownHtmlToMarkdownTests {
         MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
-        Assert.Equal(2, table.ColumnWidthPoints.Count);
-        Assert.Equal(60D, table.ColumnWidthPoints[0]);
-        Assert.Null(table.ColumnWidthPoints[1]);
+        Assert.Equal(2, table.ColumnWidths.Count);
+        Assert.Equal(60D, table.ColumnWidths[0]!.Value.ToPoints());
+        Assert.Null(table.ColumnWidths[1]);
         Assert.Equal(new[] { 1D, 75D }, table.ColumnWidthWeights);
 
         string renderedHtml = ((IMarkdownBlock)table).RenderHtml();
@@ -1551,10 +1551,10 @@ public sealed class MarkdownHtmlToMarkdownTests {
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(new[] { MarkdownColumnAlignment.None, MarkdownColumnAlignment.Center, MarkdownColumnAlignment.Right }, table.Alignments);
-        Assert.Equal(3, table.ColumnWidthPoints.Count);
-        Assert.Null(table.ColumnWidthPoints[0]);
-        Assert.Equal(50D, table.ColumnWidthPoints[1]);
-        Assert.Equal(40D, table.ColumnWidthPoints[2]);
+        Assert.Equal(3, table.ColumnWidths.Count);
+        Assert.Null(table.ColumnWidths[0]);
+        Assert.Equal(50D, table.ColumnWidths[1]!.Value.ToPoints());
+        Assert.Equal(40D, table.ColumnWidths[2]!.Value.ToPoints());
     }
 
     [Fact]
@@ -1691,8 +1691,8 @@ public sealed class MarkdownHtmlToMarkdownTests {
         var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
         Assert.Equal("https://example.com/img/demo.png", image.Path);
         Assert.Equal("Demo", image.Alt);
-        Assert.Equal(640d, image.Width);
-        Assert.Equal(480d, image.Height);
+        Assert.Equal(640d, image.Width?.ToPixels());
+        Assert.Equal(480d, image.Height?.ToPixels());
 
         string markdown = document.ToMarkdown();
         Assert.Contains("width=640", markdown, StringComparison.Ordinal);
@@ -1846,8 +1846,8 @@ public sealed class MarkdownHtmlToMarkdownTests {
 
         Assert.Equal("https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png", image.Path);
         Assert.Equal("GPO Registry Add", image.Alt);
-        Assert.Equal(440d, image.Width);
-        Assert.Equal(482d, image.Height);
+        Assert.Equal(440d, image.Width?.ToPixels());
+        Assert.Equal(482d, image.Height?.ToPixels());
         Assert.Equal("https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png", image.LinkUrl);
 
         string markdown = document.ToMarkdown();
@@ -1867,8 +1867,8 @@ public sealed class MarkdownHtmlToMarkdownTests {
 
         Assert.Equal("https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-large.jpg", image.Path);
         Assert.Equal("Automating Network Diagnostics with Globalping PowerShell Module", image.Alt);
-        Assert.Equal(256d, image.Width);
-        Assert.Equal(256d, image.Height);
+        Assert.Equal(256d, image.Width?.ToPixels());
+        Assert.Equal(256d, image.Height?.ToPixels());
         Assert.Equal("https://example.com/automating-network-diagnostics-with-globalping-powershell-module/", image.LinkUrl);
 
         string markdown = document.ToMarkdown();
@@ -2647,8 +2647,8 @@ x^2 + 1
                 Assert.Equal("https://example.com/news/2026/media/storm-center.webp", image.Path);
                 Assert.Equal("Flooded street at dawn", image.Alt);
                 Assert.Equal("Open full photo", image.Title);
-                Assert.Equal(1280d, image.Width);
-                Assert.Equal(720d, image.Height);
+                Assert.Equal(1280d, image.Width?.ToPixels());
+                Assert.Equal(720d, image.Height?.ToPixels());
                 Assert.Equal("https://example.com/news/2026/gallery/storm-center", image.LinkUrl);
                 Assert.Equal("Open photo", image.LinkTitle);
                 Assert.Equal("_blank", image.LinkTarget);
@@ -2706,8 +2706,8 @@ Inspect the [flood map](https://example.com/news/maps/flood-zones.html) for the 
                 Assert.Equal("https://example.com/news/2026/media/storm-center.webp", image.Path);
                 Assert.Equal("Flooded street at dawn", image.Alt);
                 Assert.Equal("Open full photo", image.Title);
-                Assert.Equal(1280d, image.Width);
-                Assert.Equal(720d, image.Height);
+                Assert.Equal(1280d, image.Width?.ToPixels());
+                Assert.Equal(720d, image.Height?.ToPixels());
                 Assert.Equal("https://example.com/news/2026/gallery/storm-center", image.LinkUrl);
                 Assert.Equal("Open photo", image.LinkTitle);
                 Assert.Equal("_blank", image.LinkTarget);
@@ -2758,8 +2758,8 @@ Photo credit: City Desk
                 Assert.Equal("https://example.com/news/2026/media/storm-fallback.jpg", image.PictureFallbackPath);
                 Assert.Equal("Flooded street at dawn", image.Alt);
                 Assert.Equal("Open full photo", image.Title);
-                Assert.Equal(1280d, image.Width);
-                Assert.Equal(720d, image.Height);
+                Assert.Equal(1280d, image.Width?.ToPixels());
+                Assert.Equal(720d, image.Height?.ToPixels());
                 Assert.Equal("Residents navigate floodwater after the overnight storm.", image.Caption);
                 Assert.Collection(image.PictureSources,
                     source => {
@@ -2819,8 +2819,8 @@ _Residents navigate floodwater after the overnight storm._
                 Assert.Equal("https://example.com/news/2026/media/storm-fallback.jpg", image.PictureFallbackPath);
                 Assert.Equal("Flooded street at dawn", image.Alt);
                 Assert.Equal("Open full photo", image.Title);
-                Assert.Equal(1280d, image.Width);
-                Assert.Equal(720d, image.Height);
+                Assert.Equal(1280d, image.Width?.ToPixels());
+                Assert.Equal(720d, image.Height?.ToPixels());
                 Assert.Equal("Residents navigate floodwater after the overnight storm.", image.Caption);
                 Assert.Collection(image.PictureSources,
                     source => {
@@ -2865,8 +2865,8 @@ _Residents navigate floodwater after the overnight storm._
                 Assert.Equal("https://example.com/news/2026/media/storm-fallback.jpg?download=1", image.PictureFallbackPath);
                 Assert.Equal("Flooded street at dawn", image.Alt);
                 Assert.Equal("Open full photo", image.Title);
-                Assert.Equal(1280d, image.Width);
-                Assert.Equal(720d, image.Height);
+                Assert.Equal(1280d, image.Width?.ToPixels());
+                Assert.Equal(720d, image.Height?.ToPixels());
                 Assert.Equal("Residents navigate floodwater after the overnight storm.", image.Caption);
                 Assert.Collection(image.PictureSources,
                     source => {

@@ -439,11 +439,10 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             WordParagraph heading = document.AddParagraph(string.Join(" ", Enumerable.Repeat("Native declared heading formatting", 12)))
                 .SetStyle(WordParagraphStyles.Heading1);
-            heading.FontSize = 30;
-            heading.LineSpacingBeforePoints = 12D;
-            heading.LineSpacingAfterPoints = 3D;
-            heading.LineSpacingPoints = 36D;
-            heading.LineSpacingRule = WordLineSpacingRule.Exact;
+            heading.FontSize = global::OfficeIMO.OfficeLength.Points(30);
+            heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+            heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
+            heading.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(36D));
             using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             var letters = pdf.GetPage(1).Letters;
             Assert.All(letters, letter => Assert.Equal(30D, letter.FontSize, 3));

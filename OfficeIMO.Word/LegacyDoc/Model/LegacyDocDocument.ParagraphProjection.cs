@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
-    public sealed partial class LegacyDocDocument {
+    internal sealed partial class LegacyDocDocument {
         /// <summary>Projects a non-body story through the shared paragraph/table parser.</summary>
         internal static IReadOnlyList<LegacyDocBodyBlock> BuildStoryBlocks(
             IReadOnlyList<LegacyDocTextCharacter> characters,

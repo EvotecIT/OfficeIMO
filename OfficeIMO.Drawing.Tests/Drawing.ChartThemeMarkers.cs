@@ -14,8 +14,8 @@ public sealed class DrawingChartThemeMarkerTests {
             : new[] { double.NaN, 5D, double.NaN };
         OfficeColor ink = OfficeColor.Parse("#55AA77");
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Sales", null,
-            OfficeChartKind.Line, new OfficeChartData(values.Select((_, index) => index.ToString()),
-                new[] { new OfficeChartSeries("Sales", values) }), 320, 240,
+            OfficeChartType.Line, new OfficeChartData(values.Select((_, index) => index.ToString()),
+                new[] { new OfficeSeries("Sales", values) }), 320, 240,
             new OfficeChartStyle(palette: new[] { ink }), new OfficeChartLayout(showLegend: false)));
         Assert.Equal(threeIslands ? 3 : 1, drawing.Shapes.Count(shape => shape.Shape.FillColor == ink));
     }
@@ -28,11 +28,11 @@ public sealed class DrawingChartThemeMarkerTests {
     public void LinePaintingUsesAutomaticMarkersOnlyForSparseSeries(int count, bool? visible, int expected) {
         OfficeColor ink = OfficeColor.Parse("#55AA77");
         double[] values = Enumerable.Range(1, count).Select(value => (double)value).ToArray();
-        OfficeChartSeries series = visible.HasValue
-            ? new OfficeChartSeries("Sales", values, null, null, null, visible.Value)
-            : new OfficeChartSeries("Sales", values).WithLegendVisibility(true);
+        OfficeSeries series = visible.HasValue
+            ? new OfficeSeries("Sales", values, null, null, null, visible.Value)
+            : new OfficeSeries("Sales", values).WithLegendVisibility(true);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Sales", null,
-            OfficeChartKind.Line, new OfficeChartData(Enumerable.Range(1, count).Select(value => value.ToString()),
+            OfficeChartType.Line, new OfficeChartData(Enumerable.Range(1, count).Select(value => value.ToString()),
                 new[] { series }), 320, 240, new OfficeChartStyle(palette: new[] { ink }),
             new OfficeChartLayout(showLegend: false)));
 

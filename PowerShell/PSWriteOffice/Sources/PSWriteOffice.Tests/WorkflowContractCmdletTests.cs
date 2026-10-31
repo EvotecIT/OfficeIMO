@@ -76,7 +76,7 @@ public sealed class WorkflowContractCmdletTests {
                 using var document = OfficeIMO.Word.WordDocument.Load(path);
                 Assert.NotEmpty(document.Tables);
             } else {
-                using var presentation = OfficeIMO.PowerPoint.PowerPointPresentation.Load(path);
+                using var presentation = OfficeIMO.PowerPoint.PowerPointDocument.Load(path);
                 Assert.NotEmpty(presentation.Slides);
             }
         } finally { if (File.Exists(path)) File.Delete(path); }

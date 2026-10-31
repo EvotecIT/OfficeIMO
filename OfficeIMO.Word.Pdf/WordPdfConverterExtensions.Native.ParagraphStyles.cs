@@ -11,6 +11,16 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        // Native line-count spacing can multiply two valid Int32 values beyond the physical length range.
+        // Reject malformed layout data before constructing the PDF style or starting pagination.
+        private static OfficeLength NativeSpacingLength(double points, bool before) {
+            try { return OfficeLength.Points(points); }
+            catch (Exception error) when (error is OverflowException or ArgumentOutOfRangeException) {
+                string source = before ? "Initial paragraph spacing" : "Paragraph spacing after";
+                throw new InvalidDataException(source + " exceeds the supported PDF layout range.", error);
+            }
+        }
+
         private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph) =>
             CreateNativeParagraphStyle(paragraph, GetNativeDocumentDefaults(paragraph._document));
 
@@ -26,68 +36,68 @@ namespace OfficeIMO.Word.Pdf {
             double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(paragraph, nativeDefaults, styleDefaults, nativeFontMap: nativeFontMap);
             NativeLineSpacing lineSpacing = ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults);
             double lineHeight = lineSpacing.Resolve(fontSize, naturalLineHeight) ?? nativeDefaults.ParagraphLineHeight;
-            style.FontSize = ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, styleDefaults);
+            style.FontSize = global::OfficeIMO.OfficeLength.Points(ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, styleDefaults));
             style.LineSpacing = lineSpacing.ToPdfLineSpacing(naturalLineHeight);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             var spacingInLines = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults);
             if (spacingInLines.Before.HasValue) {
-                style.SpacingBefore = spacingInLines.Before.Value;
-            } else if (paragraph.LineSpacingBeforePoints.HasValue) {
-                style.SpacingBefore = paragraph.LineSpacingBeforePoints.Value;
+                style.SpacingBefore = NativeSpacingLength(spacingInLines.Before.Value, before: true);
+            } else if (paragraph.LineSpacingBefore.HasValue) {
+                style.SpacingBefore = paragraph.LineSpacingBefore.Value;
             } else if (GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) is { } directSpacingBefore) {
-                style.SpacingBefore = directSpacingBefore;
+                style.SpacingBefore = NativeSpacingLength(directSpacingBefore, before: true);
             } else if (styleDefaults.SpacingBefore.HasValue) {
-                style.SpacingBefore = styleDefaults.SpacingBefore.Value;
+                style.SpacingBefore = NativeSpacingLength(styleDefaults.SpacingBefore.Value, before: true);
             } else if (nativeDefaults.ParagraphSpacingBeforeDeclared) {
-                style.SpacingBefore = nativeDefaults.ParagraphSpacingBefore;
+                style.SpacingBefore = NativeSpacingLength(nativeDefaults.ParagraphSpacingBefore, before: true);
             }
 
             if (spacingInLines.After.HasValue) {
-                style.SpacingAfter = spacingInLines.After.Value;
-            } else if (paragraph.LineSpacingAfterPoints.HasValue) {
-                style.SpacingAfter = paragraph.LineSpacingAfterPoints.Value;
+                style.SpacingAfter = NativeSpacingLength(spacingInLines.After.Value, before: false);
+            } else if (paragraph.LineSpacingAfter.HasValue) {
+                style.SpacingAfter = paragraph.LineSpacingAfter.Value;
             } else if (GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) is { } directSpacingAfter) {
-                style.SpacingAfter = directSpacingAfter;
+                style.SpacingAfter = NativeSpacingLength(directSpacingAfter, before: false);
             } else if (styleDefaults.SpacingAfter.HasValue) {
-                style.SpacingAfter = styleDefaults.SpacingAfter.Value;
+                style.SpacingAfter = NativeSpacingLength(styleDefaults.SpacingAfter.Value, before: false);
             }
 
-            if (paragraph.IndentationBeforePoints.HasValue) {
-                style.LeftIndent = paragraph.IndentationBeforePoints.Value;
+            if (paragraph.IndentationBefore.HasValue) {
+                style.LeftIndent = paragraph.IndentationBefore.Value;
             } else if (styleDefaults.LeftIndent.HasValue) {
-                style.LeftIndent = styleDefaults.LeftIndent.Value;
+                style.LeftIndent = global::OfficeIMO.OfficeLength.Points(styleDefaults.LeftIndent.Value);
             }
 
-            if (paragraph.IndentationAfterPoints.HasValue) {
-                style.RightIndent = paragraph.IndentationAfterPoints.Value;
+            if (paragraph.IndentationAfter.HasValue) {
+                style.RightIndent = paragraph.IndentationAfter.Value;
             } else if (styleDefaults.RightIndent.HasValue) {
-                style.RightIndent = styleDefaults.RightIndent.Value;
+                style.RightIndent = global::OfficeIMO.OfficeLength.Points(styleDefaults.RightIndent.Value);
             }
 
-            if (paragraph.IndentationFirstLinePoints.HasValue) {
-                style.FirstLineIndent = paragraph.IndentationFirstLinePoints.Value;
+            if (paragraph.IndentationFirstLine.HasValue) {
+                style.FirstLineIndent = paragraph.IndentationFirstLine.Value;
             } else if (styleDefaults.FirstLineIndent.HasValue) {
-                style.FirstLineIndent = styleDefaults.FirstLineIndent.Value;
+                style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(styleDefaults.FirstLineIndent.Value);
             }
 
-            if (paragraph.IndentationHangingPoints.HasValue) {
-                double hangingIndent = paragraph.IndentationHangingPoints.Value;
-                style.FirstLineIndent = -hangingIndent;
+            if (paragraph.IndentationHanging.HasValue) {
+                double hangingIndent = paragraph.IndentationHanging.Value.ToPoints();
+                style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(-hangingIndent);
             }
 
             style.LineHeight = lineHeight;
             if (nativeDefaults.DefaultTabStopWidth.HasValue) {
-                style.DefaultTabStopWidth = nativeDefaults.DefaultTabStopWidth.Value;
+                style.DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(nativeDefaults.DefaultTabStopWidth.Value);
             }
 
-            if (!spacingInLines.After.HasValue && !paragraph.LineSpacingAfterPoints.HasValue &&
+            if (!spacingInLines.After.HasValue && !paragraph.LineSpacingAfter.HasValue &&
                 GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) == null &&
                 !styleDefaults.SpacingAfter.HasValue) {
-                style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
+                style.SpacingAfter = NativeSpacingLength(nativeDefaults.ParagraphSpacingAfter, before: false);
             }
 
             foreach (PdfCore.PdfTabStop tabStop in ResolveNativeParagraphTabStops(
-                paragraph, style.LeftIndent, style.FirstLineIndent)) {
+                paragraph, style.LeftIndent.ToPoints(), style.FirstLineIndent.ToPoints())) {
                 style.TabStops.Add(tabStop);
             }
 
@@ -152,8 +162,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double ResolveNativeParagraphFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults) =>
-            paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0
-                ? paragraph.FontSizePoints.Value
+            paragraph.NativeFontSizePoints.HasValue && paragraph.NativeFontSizePoints.Value > 0
+                ? paragraph.NativeFontSizePoints.Value
                 : styleDefaults.FontSize ?? nativeDefaults.FontSize;
 
         private static double ResolveNativeParagraphEffectiveFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults) =>
@@ -365,14 +375,14 @@ namespace OfficeIMO.Word.Pdf {
             return GetNativeTableOfContentsHeadingLevel(paragraph);
         }
 
-        private static PdfCore.PdfColor? GetNativeHeadingColor(int headingLevel, PdfCore.PdfColor? explicitColor) {
+        private static global::OfficeIMO.OfficeColor? GetNativeHeadingColor(int headingLevel, global::OfficeIMO.OfficeColor? explicitColor) {
             if (explicitColor.HasValue || headingLevel <= 0) {
                 return explicitColor;
             }
 
             // Imported headings with no source color use ordinary automatic text color.
             // Declared run, style and document-default colors remain owned by run resolution.
-            return PdfCore.PdfColor.Black;
+            return global::OfficeIMO.OfficeColor.Black;
         }
 
 
@@ -401,10 +411,10 @@ namespace OfficeIMO.Word.Pdf {
                 section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
                 section.DifferentOddAndEvenPages ? section.ResolveEvenFooter() : null);
 
-            double baseTop = (section.Margins.Top ?? 0) / 20D;
-            if (section._document.Settings.GutterAtTop) baseTop += section.Margins.Gutter / 20D;
-            double baseBottom = (section.Margins.Bottom ?? 0) / 20D;
-            double availableBodyHeight = Math.Max(0D, GetNativePageSize(section, options).Height - baseTop - baseBottom);
+            double baseTop = (checked((int?)(section.Margins.Top?.ToTwips())) ?? 0) / 20D;
+            if (section._document.Settings.GutterAtTop) baseTop += checked((uint)(section.Margins.Gutter.GetValueOrDefault().ToTwips())) / 20D;
+            double baseBottom = (checked((int?)(section.Margins.Bottom?.ToTwips())) ?? 0) / 20D;
+            double availableBodyHeight = Math.Max(0D, GetNativePageSize(section, options).Height.ToPoints() - baseTop - baseBottom);
             double minimumBodyHeight = Math.Min(NativeMinimumBodyHeight, availableBodyHeight);
             double maximumExpansion = Math.Max(0D, availableBodyHeight - minimumBodyHeight);
             double totalExpansion = headerExpansion + footerExpansion;
@@ -577,7 +587,7 @@ namespace OfficeIMO.Word.Pdf {
             return options?.Keywords ?? properties.Keywords;
         }
 
-        private static PdfCore.PdfColor? ParseNativeColor(string? hex) {
+        private static global::OfficeIMO.OfficeColor? ParseNativeColor(string? hex) {
             if (hex == null || string.IsNullOrWhiteSpace(hex) || hex.Equals("auto", StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
@@ -593,10 +603,10 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            return PdfCore.PdfColor.FromOfficeColor(color);
+            return color;
         }
 
-        private static PdfCore.PdfColor? MapNativeHighlight(W.HighlightColorValues? highlight) =>
+        private static global::OfficeIMO.OfficeColor? MapNativeHighlight(W.HighlightColorValues? highlight) =>
             ParseNativeColor(WordRunFormatting.GetHighlightColorHex(highlight));
     }
 }

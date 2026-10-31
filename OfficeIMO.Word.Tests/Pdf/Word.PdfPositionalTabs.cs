@@ -23,10 +23,10 @@ public partial class Word {
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         } else paragraph = storyKind == "footer" ? document.FooterDefaultOrCreate.AddParagraph() : document.AddParagraph();
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 10;
-        paragraph.IndentationBeforePoints = 20;
-        paragraph.LineSpacingBeforePoints = 0;
-        paragraph.LineSpacingAfterPoints = 0;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+        paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(20D);
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph._run!.Append(new W.Text("Footer Left"), CreateNativeInputPositionalTab("center", false));
         if (splitFormatting) {
             paragraph._paragraph.Append(
@@ -76,9 +76,9 @@ public partial class Word {
                 storyKind == "footer" ? document.FooterDefaultOrCreate.AddParagraph() : document.AddParagraph();
         }
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 10;
-        paragraph.IndentationBeforePoints = 20;
-        paragraph.IndentationAfterPoints = rightIndent;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+        paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(20D);
+        paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(rightIndent);
         if (rightIndent > 0) {
             document.MainDocumentPartRoot.StyleDefinitionsPart!.Styles!.Append(new W.Style(
                 new W.StyleName { Val = "Positional inherited indent" },
@@ -88,8 +88,8 @@ public partial class Word {
             paragraph._paragraph.ParagraphProperties!.Indentation = null;
             paragraph._paragraph.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = "PositionalInheritedIndent" };
         }
-        paragraph.LineSpacingBeforePoints = 0;
-        paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph._run!.Append(new W.Text("LEFT"),
             CreateNativeInputPositionalTab("center", relativeToIndent), new W.Text("CENTER"),
             CreateNativeInputPositionalTab("right", relativeToIndent), new W.Text("RIGHT"));
@@ -126,7 +126,7 @@ public partial class Word {
         } else paragraph = storyKind == "footer" ? document.FooterDefaultOrCreate.AddParagraph() : document.AddParagraph();
         paragraph.Text = "BEFORE";
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 10;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         paragraph._paragraph.Append(
             new W.Run(new W.RunProperties(new W.Vanish()), CreateNativeInputPositionalTab("right", false), new W.Text("HIDDEN")),
             new W.Run(new W.Text("AFTER")));
@@ -149,7 +149,7 @@ public partial class Word {
         WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
         WordParagraph paragraph = story.AddParagraph();
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 10;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         paragraph._paragraph.Append(
             new W.Run(new W.Text("Section")),
             new W.Run(CreateNativeInputPositionalTab("right", false)),

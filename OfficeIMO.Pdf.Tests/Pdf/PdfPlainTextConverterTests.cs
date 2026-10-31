@@ -13,7 +13,7 @@ public sealed class PdfPlainTextConverterTests {
     [InlineData("BEFORE")]
     public void WidePreservedWhitespaceWrapsWithoutHidingFollowingText(string prefix) {
         var options = new PdfTextImportOptions();
-        options.PdfOptions.Margins = new PdfPageMargins(72, 72, 72, 72);
+        options.PdfOptions.Margins = new PdfPageMargins(OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(72));
         byte[] bytes = PdfPlainTextConverter.ToPdfDocumentResult(prefix + new string(' ', 100) + "VISIBLE", options).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var page = pdf.GetPage(1);
@@ -90,7 +90,7 @@ public sealed class PdfPlainTextConverterTests {
     public void GeneratedPageLimitIsEnforcedByTheRealWriter() {
         var conversion = PdfPlainTextConverter.ToPdfDocumentResult(new string('x', 4000), new PdfTextImportOptions {
             MaximumPages = 1,
-            PdfOptions = new PdfCreateOptions { PageWidth = 120, PageHeight = 120, MarginLeft = 12, MarginRight = 12, MarginTop = 12, MarginBottom = 12 }
+            PdfOptions = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(120), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(12), MarginRight = global::OfficeIMO.OfficeLength.Points(12), MarginTop = global::OfficeIMO.OfficeLength.Points(12), MarginBottom = global::OfficeIMO.OfficeLength.Points(12) }
         });
         Assert.Throws<System.IO.InvalidDataException>(() => conversion.ToBytes());
     }
@@ -117,7 +117,7 @@ public sealed class PdfPlainTextConverterTests {
     public void PreservedWhitespaceCannotExpandIntoUnboundedBlankLines() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions { PreserveTextWhitespace = true });
         document.Paragraph(paragraph => paragraph.Runs(new[] {
-            new PdfTextRun(new string(' ', 100) + "VISIBLE", fontSize: 1_000_000_000D)
+            new PdfTextRun(new string(' ', 100) + "VISIBLE", fontSize: global::OfficeIMO.OfficeLength.Points(1_000_000_000D))
         }));
 
         var error = Assert.Throws<System.IO.InvalidDataException>(() => document.ToBytes());

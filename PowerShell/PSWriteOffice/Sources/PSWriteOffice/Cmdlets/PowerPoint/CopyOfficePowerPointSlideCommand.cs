@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public sealed class CopyOfficePowerPointSlideCommand : OfficeCmdlet {
     /// <summary>Gets or sets the document for numeric selection; omission uses the enclosing scope or native slide owner.</summary>
     [Parameter, ValidateNotNull]
-    public PowerPointPresentation? Document { get; set; }
+    public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets a native slide or its one-based position.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true), PowerPointSlideTransformation]
     public PowerPointSlideSelector Slide { get; set; } = null!;
@@ -28,7 +28,7 @@ public sealed class CopyOfficePowerPointSlideCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var document = Document ?? OfficeDocumentContext.Find<PowerPointPresentation>() ?? Slide.Slide?.OwnerPresentation;
+        var document = Document ?? OfficeDocumentContext.Find<PowerPointDocument>() ?? Slide.Slide?.OwnerDocument;
         try {
             document = ResolveDocument(document);
             PowerPointSlide source = Slide.Resolve(document);

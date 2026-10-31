@@ -12,7 +12,7 @@ for entry in catalog['entries']:
         raise ValueError('Conflicting catalog member: ' + member)
 groups.setdefault('ChartFlattened', 'chart-flattened')
 for first, last in [('A', 'F'), ('G', 'P'), ('Q', 'Z')]:
-    lines = ['// Generated from diagnostic-code-map.json by generate_diagnostic_catalog.py.',
+    lines = ['// Generated from diagnostic-code-map.json by generate_diagnostic_catalog.py.', '#nullable enable',
              'namespace OfficeIMO;', '',
              '/// <summary>Stable diagnostic codes shared by document formats and converters.</summary>',
              'public static partial class OfficeDiagnosticCodes {']

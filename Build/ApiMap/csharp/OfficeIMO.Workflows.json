@@ -636,6 +636,48 @@
       "phase": "A",
       "applied": "applied",
       "note": "Shared PDF serialization output-limit markers use the existing OutputFailed workflow classification for optimization and sanitization, consistent with other bounded output paths. Tests retain no-publication and exact limit-message checks. Reverse-adapter diagnostic producers use OfficeIMO.Pdf.Word."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Worksheet sizing calls use ExcelColumnWidth.Characters for existing stored column units and ExcelColumnWidth.Length(OfficeLength.Points(...)) for existing row points. Default dimension reads convert explicitly at numeric format boundaries. This is a mechanical consumer migration; conversion/layout behavior is retained."
+    },
+    {
+      "change": "Adapt PowerPoint table sizing to OfficeLength",
+      "reason": "The project report layout passes explicit physical lengths to the unified PowerPoint row sizing API.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "change": "Reference the framework compression assembly on net472",
+      "reason": "The full Windows PowerShell payload graph compiles Workflows publishing and evidence ZIP contracts against .NET Framework. System.IO.Compression is a framework reference, with no package or target change.",
+      "file": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
+      "applied": "phase-b-applied"
+    },
+    {
+      "old": "ProjectImageExportBuilder; ProjectReportWorkflow.Images(view)",
+      "new": "ProjectView.ExportImages(format, options), SaveAsImages(folder, options), asynchronous streaming and saving",
+      "action": "consolidate",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Workflows/Project/ProjectImageExportOptions.cs",
+        "OfficeIMO.Workflows/Project/ProjectReportWorkflow.Images.cs"
+      ],
+      "reason": "Remove the fluent image surface while retaining format renderers, Core execution/persistence, streaming, deadlines, limits and diagnostic evidence.",
+      "qualification": "Static preparation only. Parent applies and qualifies every maintained target; no build or test was run."
+    },
+    {
+      "phase": "B",
+      "action": "internalize",
+      "old": "Duplicate raw PDF checkpoint metadata generated in the front door and Workflows",
+      "new": "Workflows shares the front door raw PDF settings context; outer contexts declare the existing custom PDF fingerprint converter",
+      "reason": "Keep one canonical PDF checkpoint representation, preserve source-generated NativeAOT serialization, and avoid retaining duplicate raw metadata graphs. No runtime dependency or public API is added.",
+      "files": [
+        "OfficeIMO.Workflows/OfficeWorkflowCheckpointSettings.cs",
+        "OfficeIMO.Workflows/OfficeWorkflowCheckpointJsonContext.cs",
+        "OfficeIMO/Batches/OfficeBatchConfigurationJsonContext.cs"
+      ],
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

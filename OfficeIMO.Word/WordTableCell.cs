@@ -242,72 +242,21 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets cell width
-        /// </summary>
-        public int? Width {
-            get {
-                var width = _tableCellProperties?.TableCellWidth?.Width;
-                if (width != null) {
-                    return int.Parse(width!);
-                }
-
-                return null;
-            }
+        /// <summary>Gets or sets the directly authored preferred cell width. Null removes tcW.</summary>
+        /// <remarks>Native lexical and partial declarations are preserved on read. Unsupported values throw
+        /// on public value access while native load/save retains them.</remarks>
+        public WordTableWidth? Width {
+            get => WordTableWidthNative.Read(_tableCellProperties?.TableCellWidth);
             set {
-                AddTableCellProperties();
-                if (value != null) {
-                    _tableCellProperties!.TableCellWidth ??= new TableCellWidth();
-                    _tableCellProperties.TableCellWidth.Width = value.Value.ToString();
-                    NormalizeTableCellPropertiesOrder();
-                } else {
+                if (!value.HasValue) {
                     _tableCellProperties?.TableCellWidth?.Remove();
+                    return;
                 }
-            }
-        }
-
-        //public int? WidthPercentage {
-        //    get {
-        //        if (_tableCellProperties.TableCellWidth != null) {
-        //            var width = _tableCellProperties.TableCellWidth.Width;
-        //            var type = _tableCellProperties.TableCellWidth.Type;
-        //            if (type == TableWidthUnitValues.Pct) {
-        //                if (width.Value.Contains("%")) {
-        //                    return int.Parse(width.Value.Replace("%", ""));
-        //                }
-        //            } else if (type == TableWidthUnitValues.Dxa) {
-        //                throw new NotImplementedException("WidthPercentage is not implemented for TableWidthUnitValues.Dxa");
-        //                //var widthInInches = (double.Parse(width.Value) / 1440);
-        //                //var widthInPercentage = (widthInInches / _wordTable.Width) * 100;
-        //                //return (int)widthInPercentage;
-        //            } else {
-        //                throw new NotImplementedException("WidthPercentage is not implemented for " + type);
-        //            }
-        //        }
-
-        //        return null;
-        //    }
-        //    set {
-
-        //    }
-        //}
-
-        /// <summary>
-        /// Gets or sets cell width type
-        /// </summary>
-        public WordTableWidthUnit? WidthType {
-            get {
-                return _tableCellProperties?.TableCellWidth?.Type?.Value.ToOfficeEnum();
-            }
-            set {
                 AddTableCellProperties();
-                if (value != null) {
-                    _tableCellProperties!.TableCellWidth ??= new TableCellWidth();
-                    _tableCellProperties.TableCellWidth.Type = value.Value.ToOpenXml();
-                    NormalizeTableCellPropertiesOrder();
-                } else {
-                    _tableCellProperties?.TableCellWidth?.Remove();
-                }
+                var width = new TableCellWidth();
+                WordTableWidthNative.Write(width, value.Value);
+                _tableCellProperties!.TableCellWidth = width;
+                NormalizeTableCellPropertiesOrder();
             }
         }
 
@@ -359,19 +308,20 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the top margin in twips for the current cell.
+        /// Gets or sets the top margin as a physical length for the current cell.
         /// </summary>
-        public Int16? MarginTopWidth {
+        public global::OfficeIMO.OfficeLength? MarginTop {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.TopMargin?.Width;
-                return ParseMarginWidth(width?.Value);
+                return ((ParseMarginWidth(width?.Value)) is { } wordLength15016 ? global::OfficeIMO.OfficeLength.Points((wordLength15016) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
             set {
+                var wordNativeValue = checked((short?)(value?.ToTwips()));
                 AddTableCellProperties();
-                if (value != null) {
+                if (wordNativeValue != null) {
                     _tableCellProperties!.TableCellMargin ??= new TableCellMargin();
                     _tableCellProperties.TableCellMargin.TopMargin ??= new TopMargin();
-                    _tableCellProperties.TableCellMargin.TopMargin.Width = value.ToString();
+                    _tableCellProperties.TableCellMargin.TopMargin.Width = wordNativeValue.ToString();
                     _tableCellProperties.TableCellMargin.TopMargin.Type = TableWidthUnitValues.Dxa;
                     NormalizeTableCellPropertiesOrder();
                 } else {
@@ -382,19 +332,20 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the bottom margin in twips for the current cell.
+        /// Gets or sets the bottom margin as a physical length for the current cell.
         /// </summary>
-        public Int16? MarginBottomWidth {
+        public global::OfficeIMO.OfficeLength? MarginBottom {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.BottomMargin?.Width;
-                return ParseMarginWidth(width?.Value);
+                return ((ParseMarginWidth(width?.Value)) is { } wordLength16066 ? global::OfficeIMO.OfficeLength.Points((wordLength16066) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
             set {
+                var wordNativeValue = checked((short?)(value?.ToTwips()));
                 AddTableCellProperties();
-                if (value != null) {
+                if (wordNativeValue != null) {
                     _tableCellProperties!.TableCellMargin ??= new TableCellMargin();
                     _tableCellProperties.TableCellMargin.BottomMargin ??= new BottomMargin();
-                    _tableCellProperties.TableCellMargin.BottomMargin.Width = value.ToString();
+                    _tableCellProperties.TableCellMargin.BottomMargin.Width = wordNativeValue.ToString();
                     _tableCellProperties.TableCellMargin.BottomMargin.Type = TableWidthUnitValues.Dxa;
                     NormalizeTableCellPropertiesOrder();
                 } else {
@@ -405,19 +356,20 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the left margin in twips for the current cell.
+        /// Gets or sets the left margin as a physical length for the current cell.
         /// </summary>
-        public Int16? MarginLeftWidth {
+        public global::OfficeIMO.OfficeLength? MarginLeft {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.LeftMargin?.Width;
-                return ParseMarginWidth(width?.Value);
+                return ((ParseMarginWidth(width?.Value)) is { } wordLength17125 ? global::OfficeIMO.OfficeLength.Points((wordLength17125) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
             set {
+                var wordNativeValue = checked((short?)(value?.ToTwips()));
                 AddTableCellProperties();
-                if (value != null) {
+                if (wordNativeValue != null) {
                     _tableCellProperties!.TableCellMargin ??= new TableCellMargin();
                     _tableCellProperties.TableCellMargin.LeftMargin ??= new LeftMargin();
-                    _tableCellProperties.TableCellMargin.LeftMargin.Width = value.ToString();
+                    _tableCellProperties.TableCellMargin.LeftMargin.Width = wordNativeValue.ToString();
                     _tableCellProperties.TableCellMargin.LeftMargin.Type = TableWidthUnitValues.Dxa;
                     NormalizeTableCellPropertiesOrder();
                 } else {
@@ -428,19 +380,20 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the right margin in twips for the current cell.
+        /// Gets or sets the right margin as a physical length for the current cell.
         /// </summary>
-        public Int16? MarginRightWidth {
+        public global::OfficeIMO.OfficeLength? MarginRight {
             get {
                 var width = _tableCellProperties?.TableCellMargin?.RightMargin?.Width;
-                return ParseMarginWidth(width?.Value);
+                return ((ParseMarginWidth(width?.Value)) is { } wordLength18177 ? global::OfficeIMO.OfficeLength.Points((wordLength18177) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
             set {
+                var wordNativeValue = checked((short?)(value?.ToTwips()));
                 AddTableCellProperties();
-                if (value != null) {
+                if (wordNativeValue != null) {
                     _tableCellProperties!.TableCellMargin ??= new TableCellMargin();
                     _tableCellProperties.TableCellMargin.RightMargin ??= new RightMargin();
-                    _tableCellProperties.TableCellMargin.RightMargin.Width = value.ToString();
+                    _tableCellProperties.TableCellMargin.RightMargin.Width = wordNativeValue.ToString();
                     _tableCellProperties.TableCellMargin.RightMargin.Type = TableWidthUnitValues.Dxa;
                     NormalizeTableCellPropertiesOrder();
                 } else {
@@ -456,88 +409,12 @@ namespace OfficeIMO.Word {
                 : null;
 
         /// <summary>
-        /// Gets or sets the top margin in centimeters for the current cell.
-        /// </summary>
-        public double? MarginTopCentimeters {
-            get {
-                if (MarginTopWidth != null) {
-                    return Helpers.ConvertTwipsToCentimeters(MarginTopWidth.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    MarginTopWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
-                } else {
-                    MarginTopWidth = null;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the bottom margin in centimeters for the current cell.
-        /// </summary>
-        public double? MarginBottomCentimeters {
-            get {
-                if (MarginBottomWidth != null) {
-                    return Helpers.ConvertTwipsToCentimeters(MarginBottomWidth.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    MarginBottomWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
-                } else {
-                    MarginBottomWidth = null;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the left margin in centimeters for the current cell.
-        /// </summary>
-        public double? MarginLeftCentimeters {
-            get {
-                if (MarginLeftWidth != null) {
-                    return Helpers.ConvertTwipsToCentimeters(MarginLeftWidth.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    MarginLeftWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
-                } else {
-                    MarginLeftWidth = null;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the right margin in centimeters for the current cell.
-        /// </summary>
-        public double? MarginRightCentimeters {
-            get {
-                if (MarginRightWidth != null) {
-                    return Helpers.ConvertTwipsToCentimeters(MarginRightWidth.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    MarginRightWidth = (Int16)Helpers.ConvertCentimetersToTwips(value.Value);
-                } else {
-                    MarginRightWidth = null;
-                }
-            }
-        }
-
-        /// <summary>
         /// Create a WordTableCell and add it to given Table Row
         /// </summary>
         /// <param name="document"></param>
         /// <param name="wordTable"></param>
         /// <param name="wordTableRow"></param>
-        public WordTableCell(WordDocument document, WordTable wordTable, WordTableRow wordTableRow) {
+        internal WordTableCell(WordDocument document, WordTable wordTable, WordTableRow wordTableRow) {
             TableCell tableCell = new TableCell();
             // A new cell takes the width of the grid column it lands in.
             int columnIndex = wordTableRow._tableRow.Elements<TableCell>().Count();

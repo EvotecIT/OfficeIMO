@@ -11,9 +11,9 @@ internal static partial class PdfWriter {
             style = PreparePairedTableBorders(table, style);
             double gap = GetTableCellSpacing(style);
             int footerStart = table.Rows.Count - style.FooterRowCount;
-            double fontSize = GetTableBodyFontSize(style, currentOpts.DefaultFontSize);
+            double fontSize = GetTableBodyFontSize(style, currentOpts.DefaultFontSize.ToPoints());
             TableColumnLayout columnLayout = ResolveTableColumnLayout(table, currentOpts, style, columns,
-                currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight,
+                currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints(),
                 fontSize, style.HeaderRowCount, footerStart);
             PreparedFlowTableRows rows = PrepareFlowTableRows(table, style, columns, columnLayout.Widths,
                 gap, gap, style.HeaderRowCount, footerStart);
@@ -31,8 +31,8 @@ internal static partial class PdfWriter {
                 }
             }
             return GetTableRowFootnoteSegments(table, style, rows, columns, columnLayout.Widths, gap, gap,
-                spans, 0, 0, count, y, firstHeight, currentOpts.MarginLeft,
-                GetMeasuredContinuationFrameHeight(), GetClosingTextPadding(style.SpacingAfter));
+                spans, 0, 0, count, y, firstHeight, currentOpts.MarginLeft.ToPoints(),
+                GetMeasuredContinuationFrameHeight(), GetClosingTextPadding(style.SpacingAfter.ToPoints()));
         }
 
         /// <summary>Preflights a breakable first row at its first legal cell boundary instead of requiring the entire row.</summary>

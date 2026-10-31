@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordFontEntityAtomForWrite = 0x0FB7;
 
         internal static bool CanWriteMasterTextStyles(
-            PowerPointPresentation presentation, out string? reason) {
+            PowerPointDocument presentation, out string? reason) {
             if (!TryReadPictureBulletCatalog(presentation,
                     out LegacyPptWriterPictureBulletCatalog pictureBullets,
                     out reason)) return false;
@@ -24,7 +24,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryReadMasterTextStyles(
-            PowerPointPresentation presentation, LegacyPptRecord templateDocument,
+            PowerPointDocument presentation, LegacyPptRecord templateDocument,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out LegacyPptWriterMasterTextStyleCatalog catalog,
             out string? reason) {

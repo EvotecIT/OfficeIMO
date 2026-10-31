@@ -7,7 +7,7 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Capability-gallery helpers for HTML-to-Word-to-HTML roundtrip proof artifacts.
     /// </summary>
-    public static class WordHtmlCapabilityGalleryExtensions {
+    internal static class WordHtmlCapabilityGalleryExtensions {
         private const string WordDocumentMediaType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
         /// <summary>

@@ -6,7 +6,7 @@ using System.Text;
 /// <summary>
 /// Helpers for repairing malformed ordered-list spacing in markdown text.
 /// </summary>
-public static class MarkdownOrderedLists {
+internal static class MarkdownOrderedLists {
     /// <summary>
     /// Inserts a blank line between adjacent ordered-list items that were emitted without paragraph separation.
     /// </summary>

@@ -5,7 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace OfficeIMO.Security;
 
 /// <summary>Well-known XML Digital Signature algorithm identifiers used by document formats.</summary>
-public static class XmlDigitalSignatureAlgorithms {
+internal static class XmlDigitalSignatureAlgorithms {
     /// <summary>XML Digital Signature namespace.</summary>
     public const string Namespace = "http://www.w3.org/2000/09/xmldsig#";
     /// <summary>Inclusive XML canonicalization without comments.</summary>

@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
             string corpus = Path.Combine(AppContext.BaseDirectory, "Documents",
                 "LegacyPptCorpus");
             foreach (string path in Directory.GetFiles(corpus, "*.ppt")) {
-                LegacyPptPresentation presentation = LegacyPptPresentation.Load(path);
+                LegacyPptDocument presentation = LegacyPptDocument.Load(path);
                 Assert.All(presentation.Slides, slide =>
                     Assert.Equal(8, slide.LayoutPlaceholderTypes.Count));
                 Assert.All(presentation.Slides.SelectMany(slide => slide.Shapes)
@@ -125,13 +125,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RoundTripsLayoutAndPlaceholderIdentity() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Text);
-            PowerPointTextBox title = slide.AddTitle("Layout title", 500000, 300000,
-                7000000, 800000);
+            PowerPointTextBox title = slide.AddTitle("Layout title",global::OfficeIMO.OfficeLength.Emus(500000),global::OfficeIMO.OfficeLength.Emus(300000),                global::OfficeIMO.OfficeLength.Emus(7000000),global::OfficeIMO.OfficeLength.Emus(800000));
             title.PlaceholderIndex = 0;
-            PowerPointTextBox body = slide.AddTextBox("Vertical body", 800000, 1500000,
-                5000000, 3000000);
+            PowerPointTextBox body = slide.AddTextBox("Vertical body",global::OfficeIMO.OfficeLength.Emus(800000),global::OfficeIMO.OfficeLength.Emus(1500000),                global::OfficeIMO.OfficeLength.Emus(5000000),global::OfficeIMO.OfficeLength.Emus(3000000));
             body.PlaceholderType = PowerPointPlaceholderType.Body;
             body.PlaceholderIndex = 1;
             body.PlaceholderSize = PowerPointPlaceholderSize.Quarter;
@@ -140,7 +138,7 @@ namespace OfficeIMO.Tests {
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
 
-            LegacyPptSlide binary = Assert.Single(LegacyPptPresentation.Load(bytes).Slides);
+            LegacyPptSlide binary = Assert.Single(LegacyPptDocument.Load(bytes).Slides);
             Assert.Equal(LegacyPptSlideLayoutType.TitleBody, binary.Layout);
             Assert.Equal(LegacyPptPlaceholderKind.Title, binary.LayoutPlaceholderTypes[0]);
             Assert.Equal(LegacyPptPlaceholderKind.VerticalBody,
@@ -155,7 +153,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptPlaceholderSize.Quarter, binaryBody.Size);
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             PowerPointTextBox reopenedBody = Assert.Single(reopened.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Vertical body");
             Assert.Equal(PowerPointPlaceholderType.Body, reopenedBody.ShapePlaceholderType);
@@ -169,34 +167,30 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_ProjectsDistinctBinaryLayoutsUnderSharedMaster() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide titleSlide = presentation.AddSlide(PowerPointSlideLayoutType.Title);
-            PowerPointTextBox centeredTitle = titleSlide.AddTextBox("Centered", 500000,
-                500000, 7000000, 900000);
+            PowerPointTextBox centeredTitle = titleSlide.AddTextBox("Centered",global::OfficeIMO.OfficeLength.Emus(500000),                global::OfficeIMO.OfficeLength.Emus(500000),global::OfficeIMO.OfficeLength.Emus(7000000),global::OfficeIMO.OfficeLength.Emus(900000));
             centeredTitle.PlaceholderType = PowerPointPlaceholderType.CenteredTitle;
             centeredTitle.PlaceholderIndex = 0;
-            PowerPointTextBox subtitle = titleSlide.AddTextBox("Subtitle", 500000,
-                1800000, 7000000, 900000);
+            PowerPointTextBox subtitle = titleSlide.AddTextBox("Subtitle",global::OfficeIMO.OfficeLength.Emus(500000),                global::OfficeIMO.OfficeLength.Emus(1800000),global::OfficeIMO.OfficeLength.Emus(7000000),global::OfficeIMO.OfficeLength.Emus(900000));
             subtitle.PlaceholderType = PowerPointPlaceholderType.SubTitle;
             subtitle.PlaceholderIndex = 1;
 
             PowerPointSlide textSlide = presentation.AddSlide(PowerPointSlideLayoutType.Text);
-            PowerPointTextBox title = textSlide.AddTitle("Title and body", 500000,
-                300000, 7000000, 800000);
+            PowerPointTextBox title = textSlide.AddTitle("Title and body",global::OfficeIMO.OfficeLength.Emus(500000),                global::OfficeIMO.OfficeLength.Emus(300000),global::OfficeIMO.OfficeLength.Emus(7000000),global::OfficeIMO.OfficeLength.Emus(800000));
             title.PlaceholderIndex = 0;
-            PowerPointTextBox body = textSlide.AddTextBox("Body", 700000, 1500000,
-                6000000, 3000000);
+            PowerPointTextBox body = textSlide.AddTextBox("Body",global::OfficeIMO.OfficeLength.Emus(700000),global::OfficeIMO.OfficeLength.Emus(1500000),                global::OfficeIMO.OfficeLength.Emus(6000000),global::OfficeIMO.OfficeLength.Emus(3000000));
             body.PlaceholderType = PowerPointPlaceholderType.Body;
             body.PlaceholderIndex = 1;
 
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             Assert.Equal(binary.Slides[0].MasterId, binary.Slides[1].MasterId);
             Assert.Equal(LegacyPptSlideLayoutType.TitleSlide, binary.Slides[0].Layout);
             Assert.Equal(LegacyPptSlideLayoutType.TitleBody, binary.Slides[1].Layout);
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation projected = PowerPointPresentation.Load(stream);
+            using PowerPointDocument projected = PowerPointDocument.Load(stream);
             Assert.Equal(P.SlideLayoutValues.Title,
                 projected.Slides[0].SlidePart.SlideLayoutPart!.SlideLayout!.Type!.Value);
             Assert.Equal(P.SlideLayoutValues.Text,
@@ -210,12 +204,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_MaterializesLayoutPlaceholderGeometry() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.Text);
-            var titleBounds = new PowerPointLayoutBox(500000, 250000,
-                7200000, 900000);
-            var bodyBounds = new PowerPointLayoutBox(850000, 1450000,
-                6500000, 4100000);
+            var titleBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(500000),OfficeIMO.OfficeLength.Emus(250000),                OfficeIMO.OfficeLength.Emus(7200000),OfficeIMO.OfficeLength.Emus(900000));
+            var bodyBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(850000),OfficeIMO.OfficeLength.Emus(1450000),                OfficeIMO.OfficeLength.Emus(6500000),OfficeIMO.OfficeLength.Emus(4100000));
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex,
                 PowerPointPlaceholderType.Title, titleBounds, index: 0);
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex,
@@ -225,23 +217,23 @@ namespace OfficeIMO.Tests {
 
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptSlide binary = Assert.Single(
-                LegacyPptPresentation.Load(bytes).Slides);
+                LegacyPptDocument.Load(bytes).Slides);
             Assert.Equal(2, binary.Shapes.Count);
             LegacyPptShape title = binary.Shapes.Single(shape =>
                 shape.Placeholder?.Kind == LegacyPptPlaceholderKind.Title);
             LegacyPptShape body = binary.Shapes.Single(shape =>
                 shape.Placeholder?.Kind == LegacyPptPlaceholderKind.Body);
-            Assert.Equal(LayoutToMasterUnits(titleBounds.Left), title.Bounds.Left);
-            Assert.Equal(LayoutToMasterUnits(titleBounds.Top), title.Bounds.Top);
-            Assert.Equal(LayoutToMasterUnits(titleBounds.Width), title.Bounds.Width);
-            Assert.Equal(LayoutToMasterUnits(titleBounds.Height), title.Bounds.Height);
-            Assert.Equal(LayoutToMasterUnits(bodyBounds.Left), body.Bounds.Left);
-            Assert.Equal(LayoutToMasterUnits(bodyBounds.Top), body.Bounds.Top);
-            Assert.Equal(LayoutToMasterUnits(bodyBounds.Width), body.Bounds.Width);
-            Assert.Equal(LayoutToMasterUnits(bodyBounds.Height), body.Bounds.Height);
+            Assert.Equal(LayoutToMasterUnits(titleBounds.Left.ToEmus()), title.Bounds.Left);
+            Assert.Equal(LayoutToMasterUnits(titleBounds.Top.ToEmus()), title.Bounds.Top);
+            Assert.Equal(LayoutToMasterUnits(titleBounds.Width.ToEmus()), title.Bounds.Width);
+            Assert.Equal(LayoutToMasterUnits(titleBounds.Height.ToEmus()), title.Bounds.Height);
+            Assert.Equal(LayoutToMasterUnits(bodyBounds.Left.ToEmus()), body.Bounds.Left);
+            Assert.Equal(LayoutToMasterUnits(bodyBounds.Top.ToEmus()), body.Bounds.Top);
+            Assert.Equal(LayoutToMasterUnits(bodyBounds.Width.ToEmus()), body.Bounds.Width);
+            Assert.Equal(LayoutToMasterUnits(bodyBounds.Height.ToEmus()), body.Bounds.Height);
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             PowerPointSlide projected = Assert.Single(reopened.Slides);
             Assert.Equal(2, projected.Shapes.Count);
             PowerPointTextBox projectedTitle = Assert.IsType<PowerPointTextBox>(
@@ -250,21 +242,19 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox projectedBody = Assert.IsType<PowerPointTextBox>(
                 projected.Shapes.Single(shape =>
                     shape.ShapePlaceholderType == PowerPointPlaceholderType.Body));
-            Assert.Equal(LayoutToEmus(title.Bounds.Left), projectedTitle.Left);
-            Assert.Equal(LayoutToEmus(title.Bounds.Top), projectedTitle.Top);
-            Assert.Equal(LayoutToEmus(body.Bounds.Left), projectedBody.Left);
-            Assert.Equal(LayoutToEmus(body.Bounds.Top), projectedBody.Top);
+            Assert.Equal(LayoutToEmus(title.Bounds.Left), projectedTitle.Left.ToEmus());
+            Assert.Equal(LayoutToEmus(title.Bounds.Top), projectedTitle.Top.ToEmus());
+            Assert.Equal(LayoutToEmus(body.Bounds.Left), projectedBody.Left.ToEmus());
+            Assert.Equal(LayoutToEmus(body.Bounds.Top), projectedBody.Top.ToEmus());
             Assert.Empty(reopened.ValidateDocument());
         }
 
         [Fact]
         public void NativeWriter_PrefersSlidePlaceholderOverLayoutPlaceholder() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.Text);
-            var layoutTitleBounds = new PowerPointLayoutBox(500000, 250000,
-                7200000, 900000);
-            var slideTitleBounds = new PowerPointLayoutBox(900000, 450000,
-                6400000, 700000);
+            var layoutTitleBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(500000),OfficeIMO.OfficeLength.Emus(250000),                OfficeIMO.OfficeLength.Emus(7200000),OfficeIMO.OfficeLength.Emus(900000));
+            var slideTitleBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(900000),OfficeIMO.OfficeLength.Emus(450000),                OfficeIMO.OfficeLength.Emus(6400000),OfficeIMO.OfficeLength.Emus(700000));
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex,
                 PowerPointPlaceholderType.Title, layoutTitleBounds, index: 0);
             PowerPointSlide slide = presentation.AddSlide(0, layoutIndex);
@@ -273,29 +263,28 @@ namespace OfficeIMO.Tests {
                 slideTitleBounds.Width, slideTitleBounds.Height);
             title.PlaceholderIndex = 0;
 
-            LegacyPptSlide binary = Assert.Single(LegacyPptPresentation.Load(
+            LegacyPptSlide binary = Assert.Single(LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })).Slides);
 
             Assert.Equal(2, binary.Shapes.Count);
             LegacyPptShape binaryTitle = Assert.Single(binary.Shapes, shape =>
                 shape.Placeholder?.Kind == LegacyPptPlaceholderKind.Title);
             Assert.Equal("Slide override", binaryTitle.Text);
-            Assert.Equal(LayoutToMasterUnits(slideTitleBounds.Left),
+            Assert.Equal(LayoutToMasterUnits(slideTitleBounds.Left.ToEmus()),
                 binaryTitle.Bounds.Left);
             Assert.DoesNotContain(binary.Shapes, shape =>
                 shape.Placeholder?.Kind == LegacyPptPlaceholderKind.Title
-                && shape.Bounds.Left == LayoutToMasterUnits(layoutTitleBounds.Left));
+                && shape.Bounds.Left == LayoutToMasterUnits(layoutTitleBounds.Left.ToEmus()));
             Assert.Single(binary.Shapes, shape =>
                 shape.Placeholder?.Kind == LegacyPptPlaceholderKind.Body);
         }
 
         [Fact]
         public void NativeWriter_MaterializesLayoutDecorationAndHonorsVisibility() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             int layoutIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.Text);
             PowerPointSlide slide = presentation.AddSlide(0, layoutIndex);
-            var decorationBounds = new PowerPointLayoutBox(200000, 300000,
-                1400000, 240000);
+            var decorationBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(200000),OfficeIMO.OfficeLength.Emus(300000),                OfficeIMO.OfficeLength.Emus(1400000),OfficeIMO.OfficeLength.Emus(240000));
             P.ShapeTree tree = slide.SlidePart.SlideLayoutPart!.SlideLayout!
                 .CommonSlideData!.ShapeTree!;
             tree.Append(new P.Shape(
@@ -309,36 +298,36 @@ namespace OfficeIMO.Tests {
                 new P.ShapeProperties(
                     new A.Transform2D(
                         new A.Offset {
-                            X = decorationBounds.Left,
-                            Y = decorationBounds.Top
+                            X = decorationBounds.Left.ToEmus(),
+                            Y = decorationBounds.Top.ToEmus()
                         },
                         new A.Extents {
-                            Cx = decorationBounds.Width,
-                            Cy = decorationBounds.Height
+                            Cx = decorationBounds.Width.ToEmus(),
+                            Cy = decorationBounds.Height.ToEmus()
                         }),
                     new A.PresetGeometry(new A.AdjustValueList()) {
                         Preset = A.ShapeTypeValues.Rectangle
                     })));
 
-            LegacyPptSlide visible = Assert.Single(LegacyPptPresentation.Load(
+            LegacyPptSlide visible = Assert.Single(LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })).Slides);
             LegacyPptShape decoration = Assert.Single(visible.Shapes,
                 shape => shape.Placeholder == null);
-            Assert.Equal(LayoutToMasterUnits(decorationBounds.Left),
+            Assert.Equal(LayoutToMasterUnits(decorationBounds.Left.ToEmus()),
                 decoration.Bounds.Left);
-            Assert.Equal(LayoutToMasterUnits(decorationBounds.Top),
+            Assert.Equal(LayoutToMasterUnits(decorationBounds.Top.ToEmus()),
                 decoration.Bounds.Top);
 
             slide.SlidePart.Slide!.ShowMasterShapes = false;
             byte[] hiddenBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptSlide hidden = Assert.Single(
-                LegacyPptPresentation.Load(hiddenBytes).Slides);
+                LegacyPptDocument.Load(hiddenBytes).Slides);
             Assert.Empty(hidden.Shapes);
             Assert.False(hidden.FollowsMasterObjects);
 
             using var hiddenStream = new MemoryStream(hiddenBytes);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(hiddenStream);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(hiddenStream);
             Assert.False(reopened.Slides[0].SlidePart.Slide!
                 .ShowMasterShapes!.Value);
             Assert.Empty(reopened.ValidateDocument());
@@ -347,17 +336,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedSlideMasterShapeVisibilityEdit_AppendsPreservingRecord() {
             byte[] sourceBytes;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 created.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original =
-                LegacyPptPresentation.Load(sourceBytes);
+            LegacyPptDocument original =
+                LegacyPptDocument.Load(sourceBytes);
 
             using var input = new MemoryStream(sourceBytes);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(input);
             imported.Slides[0].SlidePart.Slide!.ShowMasterShapes = false;
 
             LegacyPptWritePreflightReport preflight = imported
@@ -365,8 +354,8 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation saved =
-                LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved =
+                LegacyPptDocument.Load(savedBytes);
 
             Assert.False(Assert.Single(saved.Slides).FollowsMasterObjects);
             Assert.Equal(original.Package.UserEdits.Count + 1,
@@ -376,8 +365,8 @@ namespace OfficeIMO.Tests {
                 .SequenceEqual(original.Package.DocumentStream));
 
             using var reopenedInput = new MemoryStream(savedBytes);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(reopenedInput);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(reopenedInput);
             Assert.False(reopened.Slides[0].SlidePart.Slide!
                 .ShowMasterShapes!.Value);
             Assert.Empty(reopened.ValidateDocument());
@@ -385,9 +374,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedLayoutTypeEdit_AppendsPreservingRecord() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 FixturePath);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(FixturePath);
             PowerPointSlide slide = Assert.Single(presentation.Slides);
             SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
             layoutPart.SlideLayout!.Type = P.SlideLayoutValues.FourObjects;
@@ -406,7 +395,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             Assert.Equal(LegacyPptSlideLayoutType.FourObjects,
                 Assert.Single(saved.Slides).Layout);
@@ -419,10 +408,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedSlidePlaceholderContractEdit_AppendsPreservingRecord() {
-            LegacyPptPresentation original =
-                LegacyPptPresentation.Load(FixturePath);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(FixturePath);
+            LegacyPptDocument original =
+                LegacyPptDocument.Load(FixturePath);
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(FixturePath);
             PowerPointTextBox title = Assert.Single(imported.Slides[0]
                 .TextBoxes, textBox =>
                     textBox.Text == "OfficeIMO PowerPoint Basics");
@@ -436,8 +425,8 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation saved =
-                LegacyPptPresentation.Load(savedBytes);
+            LegacyPptDocument saved =
+                LegacyPptDocument.Load(savedBytes);
             LegacyPptSlide savedSlide = Assert.Single(saved.Slides);
             LegacyPptPlaceholder placeholder = Assert.IsType<
                 LegacyPptPlaceholder>(Assert.Single(savedSlide.Shapes,
@@ -458,8 +447,8 @@ namespace OfficeIMO.Tests {
                 .SequenceEqual(original.Package.DocumentStream));
 
             using var reopenedInput = new MemoryStream(savedBytes);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(reopenedInput);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(reopenedInput);
             PowerPointTextBox reopenedTitle = Assert.Single(
                 reopened.Slides[0].TextBoxes, textBox =>
                     textBox.Text == "OfficeIMO PowerPoint Basics");
@@ -476,20 +465,20 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedOrdinaryLayoutEdits_MaterializeIntoAffectedSlides() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank);
                 source.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 sourceBytes);
 
             byte[] savedBytes;
             using (var input = new MemoryStream(sourceBytes,
                        writable: false))
-            using (PowerPointPresentation imported =
-                   PowerPointPresentation.Load(input)) {
+            using (PowerPointDocument imported =
+                   PowerPointDocument.Load(input)) {
                 P.SlideLayout layout = imported.Slides[0].SlidePart
                     .SlideLayoutPart!.SlideLayout!;
                 Assert.All(imported.Slides, slide => Assert.Same(
@@ -549,7 +538,7 @@ namespace OfficeIMO.Tests {
                 savedBytes = imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 savedBytes);
             Assert.Equal(original.Package.UserEdits.Count + 1,
                 saved.Package.UserEdits.Count);
@@ -577,7 +566,7 @@ namespace OfficeIMO.Tests {
 
             using var reopenedInput = new MemoryStream(savedBytes,
                 writable: false);
-            using PowerPointPresentation reopened = PowerPointPresentation
+            using PowerPointDocument reopened = PowerPointDocument
                 .Load(reopenedInput);
             Assert.All(reopened.Slides, slide =>
                 Assert.Equal(2, slide.Shapes.Count));
@@ -587,15 +576,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedOrdinaryLayoutUnsupportedPicture_IsLossBlocked() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using var input = new MemoryStream(sourceBytes,
                 writable: false);
-            using PowerPointPresentation imported = PowerPointPresentation
+            using PowerPointDocument imported = PowerPointDocument
                 .Load(input);
             SlideLayoutPart layoutPart = imported.Slides[0].SlidePart
                 .SlideLayoutPart!;
@@ -642,14 +631,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedOrdinaryLayoutBaselineShapeMutation_IsLossBlocked() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Text);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             using var input = new MemoryStream(sourceBytes,
                 writable: false);
-            using PowerPointPresentation imported = PowerPointPresentation
+            using PowerPointDocument imported = PowerPointDocument
                 .Load(input);
             P.Shape layoutPlaceholder = Assert.Single(imported.Slides[0]
                 .SlidePart.SlideLayoutPart!.SlideLayout!.CommonSlideData!

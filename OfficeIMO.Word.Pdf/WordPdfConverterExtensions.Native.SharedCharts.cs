@@ -16,7 +16,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
             var size = GetNativeWordChartSizePoints(chart);
-            snapshot = shared.WithSize(size.Width, size.Height);
+            snapshot = shared.WithSize(OfficeLength.Points(size.Width), OfficeLength.Points(size.Height));
             return true;
         }
     }

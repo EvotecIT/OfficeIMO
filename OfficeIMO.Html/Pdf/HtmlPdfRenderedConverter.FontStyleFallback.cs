@@ -117,7 +117,7 @@ internal static partial class HtmlPdfRenderedConverter {
         foreach (NamedFaceStyleRun run in PlanNamedFaceStyleRuns(text, family, bold, italic, options)) {
             double? measured = PdfCore.PdfWriter.MeasurePositionedText(
                 new PdfCore.PdfTextRun(run.Text, bold: run.Bold, italic: run.Italic,
-                    fontSize: fontSize, fontFamily: family), options);
+                    fontSize: global::OfficeIMO.OfficeLength.Points(fontSize), fontFamily: family), options);
             if (!measured.HasValue) return null;
             width += measured.Value;
         }

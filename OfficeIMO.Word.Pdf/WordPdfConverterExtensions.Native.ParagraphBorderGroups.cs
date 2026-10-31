@@ -14,7 +14,7 @@ public static partial class WordPdfConverterExtensions {
         // Each explicit side is already mapped. A uniform fallback would restore
         // a top or bottom edge that the shared frame deliberately suppresses.
         style.BorderColor = null;
-        style.BorderWidth = 0D;
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0D);
         double separatorWidth = HasNativeBorder(borders.Between.Style) ? (borders.Between.Size ?? 4U) / 8D : 0D;
         if (previous) {
             style.TopBorder = null;
@@ -26,7 +26,7 @@ public static partial class WordPdfConverterExtensions {
             style.PaddingTopOverride = previousSpace + previousWidth / 2D;
             style.FrameStartPaddingTopOverride = previousSpace + previousWidth;
             style.FrameStartTopBorder = CreateNativePanelBorder(previousSeparator);
-            if (style.FrameStartTopBorder is { } frameStartBorder) frameStartBorder.Offset = -previousWidth / 2D;
+            if (style.FrameStartTopBorder is { } frameStartBorder) frameStartBorder.Offset = global::OfficeIMO.OfficeLength.Points(-previousWidth / 2D);
             // The group's final outer edge closes the joined frame. Unlike an
             // intermediate separator, its full closing decoration must fit.
             if (!next) style.AllowTrailingPaddingOverflow = false;
@@ -38,15 +38,15 @@ public static partial class WordPdfConverterExtensions {
                 ? Math.Min(nextSeparator.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) : 0D;
             style.BorderContinuesWithNext = true;
             style.BottomBorder = CreateNativePanelBorder(borders.Between);
-            if (style.BottomBorder is { } separator) separator.Offset = 0D;
+            if (style.BottomBorder is { } separator) separator.Offset = global::OfficeIMO.OfficeLength.Points(0D);
             // The preceding paragraph supplies the stroke; the following
             // paragraph supplies the space above that stroke. The preceding
             // space is reserved below it by the following paragraph's panel.
             style.PaddingBottomOverride = nextSpace + separatorWidth / 2D;
             // Modern layout may overflow the trailing stroke, but reserves its
             // text-to-border space. Legacy layout also reserves half the stroke.
-            style.FragmentBottomInset = UsesModernNativeWordLayout(paragraph._document)
-                ? nextSpace : nextSpace + separatorWidth / 2D;
+            style.FragmentBottomInset = global::OfficeIMO.OfficeLength.Points(UsesModernNativeWordLayout(paragraph._document)
+                ? nextSpace : nextSpace + separatorWidth / 2D);
         }
     }
 
@@ -68,8 +68,8 @@ public static partial class WordPdfConverterExtensions {
         NativeParagraphStyleDefaults neighborDefaults = GetNativeParagraphStyleDefaults(neighbor);
         return ResolveNativeParagraphBorderGroupLeft(paragraph, currentDefaults) ==
                 ResolveNativeParagraphBorderGroupLeft(neighbor, neighborDefaults) &&
-            (paragraph.IndentationAfterPoints ?? currentDefaults.RightIndent ?? 0D) ==
-                (neighbor.IndentationAfterPoints ?? neighborDefaults.RightIndent ?? 0D);
+            (paragraph.IndentationAfter?.ToPoints() ?? currentDefaults.RightIndent ?? 0D) ==
+                (neighbor.IndentationAfter?.ToPoints() ?? neighborDefaults.RightIndent ?? 0D);
     }
 
     private static bool HasNativeParagraphBorderFlowBreak(WordParagraph paragraph) =>
@@ -87,9 +87,9 @@ public static partial class WordPdfConverterExtensions {
         !source.Descendants<W.TextBoxContent>().Any() && WordDocumentTraversal.GetListInfo(paragraph) == null;
 
     private static double ResolveNativeParagraphBorderGroupLeft(WordParagraph paragraph, NativeParagraphStyleDefaults defaults) {
-        double firstLine = paragraph.IndentationHangingPoints is { } hanging ? -hanging :
-            paragraph.IndentationFirstLinePoints ?? defaults.FirstLineIndent ?? 0D;
-        return (paragraph.IndentationBeforePoints ?? defaults.LeftIndent ?? 0D) + Math.Min(firstLine, 0D);
+        double firstLine = paragraph.IndentationHanging?.ToPoints() is { } hanging ? -hanging :
+            paragraph.IndentationFirstLine?.ToPoints() ?? defaults.FirstLineIndent ?? 0D;
+        return (paragraph.IndentationBefore?.ToPoints() ?? defaults.LeftIndent ?? 0D) + Math.Min(firstLine, 0D);
     }
 
     private static bool NativeParagraphBordersMatch(NativeParagraphBorderSide first, NativeParagraphBorderSide second) {

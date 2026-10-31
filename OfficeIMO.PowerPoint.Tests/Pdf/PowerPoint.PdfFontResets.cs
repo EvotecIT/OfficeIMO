@@ -15,21 +15,21 @@ public sealed class PowerPointPdfFontResetTests {
     [InlineData("cell")]
     public void Explicit_regular_font_overrides_inherited_bold_and_italic_after_save(string surface) {
         using var saved = new MemoryStream();
-        using (var presentation = PowerPointPresentation.Create()) {
-            presentation.SlideSize.SetSizePoints(260, 180);
+        using (var presentation = PowerPointDocument.Create()) {
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
             var slide = presentation.AddSlide();
             PowerPointParagraph paragraph;
             if (surface == "cell") {
-                var table = slide.AddTablePoints(1, 1, 30, 34, 160, 80);
+                var table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(80));
                 table.ApplyStyle(PowerPointTableStylePreset.Plain);
                 var cell = table.GetCell(0, 0);
-                cell.Text = "Plain"; cell.FontName = "Helvetica"; cell.FontSize = 18;
+                cell.Text = "Plain"; cell.FontName = "Helvetica"; cell.FontSize = global::OfficeIMO.OfficeLength.Points(18);
                 paragraph = cell.Paragraphs[0];
                 paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(new A.DefaultRunProperties { Bold = true, Italic = true });
                 cell.Bold = false; cell.Italic = false;
             } else {
-                var box = slide.AddTextBoxPoints("Plain", 30, 34, 160, 80);
-                box.FontName = "Helvetica"; box.FontSize = 18;
+                var box = slide.AddTextBox("Plain",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(80));
+                box.FontName = "Helvetica"; box.FontSize = global::OfficeIMO.OfficeLength.Points(18);
                 paragraph = box.Paragraphs[0];
                 paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(new A.DefaultRunProperties { Bold = true, Italic = true });
                 if (surface == "run") { paragraph.Runs[0].Bold = false; paragraph.Runs[0].Italic = false; }
@@ -38,7 +38,7 @@ public sealed class PowerPointPdfFontResetTests {
             presentation.Save(saved);
         }
         saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         var actual = surface == "cell" ? reopened.Slides[0].Tables.Single().GetCell(0, 0).Paragraphs[0]
             : reopened.Slides[0].TextBoxes.Single().Paragraphs[0];

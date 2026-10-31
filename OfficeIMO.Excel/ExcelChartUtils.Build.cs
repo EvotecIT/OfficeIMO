@@ -9,8 +9,8 @@ using ChartIndex = DocumentFormat.OpenXml.Drawing.Charts.Index;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
-        internal static void PopulateChart(ChartPart chartPart, ExcelChartType type, ExcelChartDataRange range,
-            ExcelChartData? data, string? title = null) {
+        internal static void PopulateChart(ChartPart chartPart, OfficeChartType type, ExcelChartDataRange range,
+            ExcelChartData? data, string? title = null, IReadOnlyList<string>? nativeSeriesNames = null) {
             if (chartPart == null) {
                 throw new ArgumentNullException(nameof(chartPart));
             }
@@ -70,179 +70,179 @@ namespace OfficeIMO.Excel {
             } else if (summary.HasMultipleTypes || summary.HasSecondary) {
                 BuildComboPlotArea(plotArea, range, descriptors, summary);
             } else {
-                ExcelChartType chartType = descriptors.Count > 0 ? descriptors[0].ChartType : type;
+                OfficeChartType chartType = descriptors.Count > 0 ? descriptors[0].ChartType : type;
                 uint categoryAxisId = ExcelChartAxisIdGenerator.GetNextId();
                 uint valueAxisId = ExcelChartAxisIdGenerator.GetNextId();
-                uint seriesAxisId = IsSurfaceChartType(chartType) || chartType == ExcelChartType.Line3D || IsBar3DChartType(chartType) || IsArea3DChartType(chartType) ? ExcelChartAxisIdGenerator.GetNextId() : 0;
+                uint seriesAxisId = IsSurfaceChartType(chartType) || chartType == OfficeChartType.Line3D || IsBar3DChartType(chartType) || IsArea3DChartType(chartType) ? ExcelChartAxisIdGenerator.GetNextId() : 0;
 
                 switch (chartType) {
-                    case ExcelChartType.ColumnClustered:
+                    case OfficeChartType.ColumnClustered:
                         plotArea.Append(CreateBarChart(range, descriptors, BarDirectionValues.Column, BarGroupingValues.Clustered, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
-                    case ExcelChartType.ColumnStacked:
+                    case OfficeChartType.ColumnStacked:
                         plotArea.Append(CreateBarChart(range, descriptors, BarDirectionValues.Column, BarGroupingValues.Stacked, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
-                    case ExcelChartType.ColumnStacked100:
+                    case OfficeChartType.ColumnStacked100:
                         plotArea.Append(CreateBarChart(range, descriptors, BarDirectionValues.Column, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
-                    case ExcelChartType.BarClustered:
+                    case OfficeChartType.BarClustered:
                         plotArea.Append(CreateBarChart(range, descriptors, BarDirectionValues.Bar, BarGroupingValues.Clustered, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId, AxisPositionValues.Left));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId, AxisPositionValues.Bottom));
                         break;
-                    case ExcelChartType.BarStacked:
+                    case OfficeChartType.BarStacked:
                         plotArea.Append(CreateBarChart(range, descriptors, BarDirectionValues.Bar, BarGroupingValues.Stacked, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId, AxisPositionValues.Left));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId, AxisPositionValues.Bottom));
                         break;
-                    case ExcelChartType.BarStacked100:
+                    case OfficeChartType.BarStacked100:
                         plotArea.Append(CreateBarChart(range, descriptors, BarDirectionValues.Bar, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId, AxisPositionValues.Left));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId, AxisPositionValues.Bottom));
                         break;
-                    case ExcelChartType.Column3DClustered:
+                    case OfficeChartType.Column3DClustered:
                         plotArea.Append(CreateBar3DChart(range, descriptors, BarDirectionValues.Column, BarGroupingValues.Clustered, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Column3DStacked:
+                    case OfficeChartType.Column3DStacked:
                         plotArea.Append(CreateBar3DChart(range, descriptors, BarDirectionValues.Column, BarGroupingValues.Stacked, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Column3DStacked100:
+                    case OfficeChartType.Column3DStacked100:
                         plotArea.Append(CreateBar3DChart(range, descriptors, BarDirectionValues.Column, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Bar3DClustered:
+                    case OfficeChartType.Bar3DClustered:
                         plotArea.Append(CreateBar3DChart(range, descriptors, BarDirectionValues.Bar, BarGroupingValues.Clustered, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId, AxisPositionValues.Left));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId, AxisPositionValues.Bottom));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Bar3DStacked:
+                    case OfficeChartType.Bar3DStacked:
                         plotArea.Append(CreateBar3DChart(range, descriptors, BarDirectionValues.Bar, BarGroupingValues.Stacked, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId, AxisPositionValues.Left));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId, AxisPositionValues.Bottom));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Bar3DStacked100:
+                    case OfficeChartType.Bar3DStacked100:
                         plotArea.Append(CreateBar3DChart(range, descriptors, BarDirectionValues.Bar, BarGroupingValues.PercentStacked, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId, AxisPositionValues.Left));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId, AxisPositionValues.Bottom));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Line:
+                    case OfficeChartType.Line:
                         plotArea.Append(CreateLineChart(range, descriptors, GroupingValues.Standard, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
-                    case ExcelChartType.LineStacked:
+                    case OfficeChartType.LineStacked:
                         plotArea.Append(CreateLineChart(range, descriptors, GroupingValues.Stacked, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
-                    case ExcelChartType.LineStacked100:
+                    case OfficeChartType.LineStacked100:
                         plotArea.Append(CreateLineChart(range, descriptors, GroupingValues.PercentStacked, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
-                    case ExcelChartType.Line3D:
+                    case OfficeChartType.Line3D:
                         plotArea.Append(CreateLine3DChart(range, descriptors, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Area:
+                    case OfficeChartType.Area:
                         plotArea.Append(CreateAreaChart(range, descriptors, GroupingValues.Standard, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
-                    case ExcelChartType.AreaStacked:
+                    case OfficeChartType.AreaStacked:
                         plotArea.Append(CreateAreaChart(range, descriptors, GroupingValues.Stacked, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
-                    case ExcelChartType.AreaStacked100:
+                    case OfficeChartType.AreaStacked100:
                         plotArea.Append(CreateAreaChart(range, descriptors, GroupingValues.PercentStacked, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
-                    case ExcelChartType.Area3D:
+                    case OfficeChartType.Area3D:
                         plotArea.Append(CreateArea3DChart(range, descriptors, GroupingValues.Standard, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Area3DStacked:
+                    case OfficeChartType.Area3DStacked:
                         plotArea.Append(CreateArea3DChart(range, descriptors, GroupingValues.Stacked, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Area3DStacked100:
+                    case OfficeChartType.Area3DStacked100:
                         plotArea.Append(CreateArea3DChart(range, descriptors, GroupingValues.PercentStacked, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Radar:
+                    case OfficeChartType.Radar:
                         plotArea.Append(CreateRadarChart(range, descriptors, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
-                    case ExcelChartType.Stock:
+                    case OfficeChartType.Stock:
                         plotArea.Append(CreateStockChart(range, descriptors, categoryAxisId, valueAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
-                    case ExcelChartType.Surface:
+                    case OfficeChartType.Surface:
                         plotArea.Append(CreateSurface3DChart(range, descriptors, false, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.SurfaceWireframe:
+                    case OfficeChartType.SurfaceWireframe:
                         plotArea.Append(CreateSurface3DChart(range, descriptors, true, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.SurfaceContour:
+                    case OfficeChartType.SurfaceContour:
                         plotArea.Append(CreateSurfaceChart(range, descriptors, false, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.SurfaceContourWireframe:
+                    case OfficeChartType.SurfaceContourWireframe:
                         plotArea.Append(CreateSurfaceChart(range, descriptors, true, categoryAxisId, valueAxisId, seriesAxisId));
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         plotArea.Append(CreateSeriesAxis(seriesAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Pie:
+                    case OfficeChartType.Pie:
                         plotArea.Append(CreatePieChart(range, descriptors));
                         break;
-                    case ExcelChartType.Pie3D:
+                    case OfficeChartType.Pie3D:
                         plotArea.Append(CreatePie3DChart(range, descriptors));
                         break;
-                    case ExcelChartType.PieOfPie:
+                    case OfficeChartType.PieOfPie:
                         plotArea.Append(CreateOfPieChart(range, descriptors, OfPieValues.Pie));
                         break;
-                    case ExcelChartType.BarOfPie:
+                    case OfficeChartType.BarOfPie:
                         plotArea.Append(CreateOfPieChart(range, descriptors, OfPieValues.Bar));
                         break;
-                    case ExcelChartType.Doughnut:
+                    case OfficeChartType.Doughnut:
                         plotArea.Append(CreateDoughnutChart(range, descriptors));
                         break;
                     default:
@@ -250,6 +250,15 @@ namespace OfficeIMO.Excel {
                         plotArea.Append(CreateCategoryAxis(categoryAxisId, valueAxisId));
                         plotArea.Append(CreateValueAxis(valueAxisId, categoryAxisId));
                         break;
+                }
+            }
+
+            if (data != null) {
+                foreach (CategoryAxisData categories in plotArea.Descendants<CategoryAxisData>()) {
+                    if (categories.GetFirstChild<StringReference>() is StringReference reference) {
+                        reference.RemoveAllChildren<StringCache>();
+                        reference.Append(CreateStringCache(data.Categories));
+                    }
                 }
             }
 
@@ -262,11 +271,28 @@ namespace OfficeIMO.Excel {
             chart.Append(new DisplayBlanksAs { Val = DisplayBlanksAsValues.Gap });
             chart.Append(new ShowDataLabelsOverMaximum { Val = false });
 
+            // Table names remain available independently of optional numeric caches.
+            // Series indexes identify the same columns across native chart families and groups.
+            if (nativeSeriesNames != null) {
+                foreach (SeriesText text in plotArea.Descendants<SeriesText>()) {
+                    uint? index = text.Parent?.GetFirstChild<ChartIndex>()?.Val?.Value;
+                    if (index.HasValue && index.Value < (uint)nativeSeriesNames.Count) {
+                        string name = nativeSeriesNames[(int)index.Value];
+                        if (range.HasHeaderRow && text.GetFirstChild<StringReference>() is StringReference reference) {
+                            reference.RemoveAllChildren<StringCache>();
+                            reference.Append(CreateSingleStringCache(name));
+                        } else {
+                            text.RemoveAllChildren();
+                            text.Append(new NumericValue { Text = name });
+                        }
+                    }
+                }
+            }
             chartSpace.Append(chart);
             chartPart.ChartSpace = chartSpace;
         }
 
-        internal static void PopulateChartFromSeriesRanges(ChartPart chartPart, ExcelChartType type, string defaultSheetName,
+        internal static void PopulateChartFromSeriesRanges(ChartPart chartPart, OfficeChartType type, string defaultSheetName,
             IReadOnlyList<ExcelChartSeriesRange> seriesRanges, string? title = null) {
             if (chartPart == null) {
                 throw new ArgumentNullException(nameof(chartPart));
@@ -280,10 +306,10 @@ namespace OfficeIMO.Excel {
             if (seriesRanges.Count == 0) {
                 throw new ArgumentException("At least one series range is required.", nameof(seriesRanges));
             }
-            if (type != ExcelChartType.Scatter && type != ExcelChartType.Bubble) {
+            if (type != OfficeChartType.Scatter && type != OfficeChartType.Bubble) {
                 throw new NotSupportedException("Only scatter and bubble charts support explicit X/Y range definitions.");
             }
-            if (type == ExcelChartType.Bubble && HasMissingBubbleSizeRange(seriesRanges)) {
+            if (type == OfficeChartType.Bubble && HasMissingBubbleSizeRange(seriesRanges)) {
                 throw new ArgumentException("Bubble charts require bubble size ranges for each series.", nameof(seriesRanges));
             }
 
@@ -305,7 +331,7 @@ namespace OfficeIMO.Excel {
             uint xAxisId = ExcelChartAxisIdGenerator.GetNextId();
             uint yAxisId = ExcelChartAxisIdGenerator.GetNextId();
 
-            if (type == ExcelChartType.Scatter) {
+            if (type == OfficeChartType.Scatter) {
                 plotArea.Append(CreateScatterChartFromRanges(seriesRanges, defaultSheetName, xAxisId, yAxisId));
             } else {
                 plotArea.Append(CreateBubbleChartFromRanges(seriesRanges, defaultSheetName, xAxisId, yAxisId));
@@ -374,24 +400,24 @@ namespace OfficeIMO.Excel {
                 uint valueAxisId = group.AxisGroup == OfficeChartAxisGroup.Secondary ? secondaryValueId : primaryValueId;
 
                 switch (group.ChartType) {
-                    case ExcelChartType.ColumnClustered:
-                    case ExcelChartType.ColumnStacked:
-                    case ExcelChartType.ColumnStacked100:
-                    case ExcelChartType.BarClustered:
-                    case ExcelChartType.BarStacked:
-                    case ExcelChartType.BarStacked100: {
+                    case OfficeChartType.ColumnClustered:
+                    case OfficeChartType.ColumnStacked:
+                    case OfficeChartType.ColumnStacked100:
+                    case OfficeChartType.BarClustered:
+                    case OfficeChartType.BarStacked:
+                    case OfficeChartType.BarStacked100: {
                         var settings = GetBarChartSettings(group.ChartType);
                         plotArea.Append(CreateBarChart(range, group.Descriptors, settings.Direction, settings.Grouping, categoryAxisId, valueAxisId));
                         break;
                     }
-                    case ExcelChartType.Line:
-                    case ExcelChartType.LineStacked:
-                    case ExcelChartType.LineStacked100:
+                    case OfficeChartType.Line:
+                    case OfficeChartType.LineStacked:
+                    case OfficeChartType.LineStacked100:
                         plotArea.Append(CreateLineChart(range, group.Descriptors, GetLineGrouping(group.ChartType), categoryAxisId, valueAxisId));
                         break;
-                    case ExcelChartType.Area:
-                    case ExcelChartType.AreaStacked:
-                    case ExcelChartType.AreaStacked100:
+                    case OfficeChartType.Area:
+                    case OfficeChartType.AreaStacked:
+                    case OfficeChartType.AreaStacked100:
                         plotArea.Append(CreateAreaChart(range, group.Descriptors, GetAreaGrouping(group.ChartType), categoryAxisId, valueAxisId));
                         break;
                     default:

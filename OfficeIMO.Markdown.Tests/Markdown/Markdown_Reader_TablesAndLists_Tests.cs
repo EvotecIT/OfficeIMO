@@ -104,7 +104,7 @@ First paragraph
             var image = Assert.IsType<ImageBlock>(Assert.Single(doc.Blocks));
 
             Assert.Equal("a}b", image.Attributes.Attributes["title"]);
-            Assert.Equal(320, image.Width);
+            Assert.Equal(320, image.Width?.ToPixels());
             Assert.Contains("{title=\"a}b\"}", doc.ToMarkdown(), StringComparison.Ordinal);
         }
 

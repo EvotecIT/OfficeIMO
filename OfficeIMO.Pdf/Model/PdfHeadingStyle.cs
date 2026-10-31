@@ -4,10 +4,10 @@ namespace OfficeIMO.Pdf;
 /// Reusable heading style for levels 1 through 9, including typography and vertical rhythm.
 /// </summary>
 public sealed class PdfHeadingStyle {
-    private double? _fontSize;
+    private global::OfficeIMO.OfficeLength? _fontSize;
     private double? _lineHeight;
-    private double _spacingBefore;
-    private double? _spacingAfter;
+    private global::OfficeIMO.OfficeLength _spacingBefore;
+    private global::OfficeIMO.OfficeLength? _spacingAfter;
     private string? _fontFamily;
     private readonly System.Collections.Generic.List<PdfTabStop> _tabStops = new();
 
@@ -15,10 +15,10 @@ public sealed class PdfHeadingStyle {
     public PdfLineSpacing? LineSpacing { get; set; }
 
     /// <summary>Heading font size in points. When null the writer uses the built-in size for the heading level.</summary>
-    public double? FontSize {
+    public global::OfficeIMO.OfficeLength? FontSize {
         get => _fontSize;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(FontSize), "Heading font size must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue(value?.ToPoints(), nameof(FontSize), "Heading font size must be a positive finite value.");
             _fontSize = value;
         }
     }
@@ -33,25 +33,25 @@ public sealed class PdfHeadingStyle {
     }
 
     /// <summary>Vertical space before the heading, in points.</summary>
-    public double SpacingBefore {
+    public global::OfficeIMO.OfficeLength SpacingBefore {
         get => _spacingBefore;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingBefore), "Heading spacing before must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingBefore), "Heading spacing before must be a non-negative finite value.");
             _spacingBefore = value;
         }
     }
 
     /// <summary>Vertical space after the heading, in points. When null the writer uses the built-in heading spacing.</summary>
-    public double? SpacingAfter {
+    public global::OfficeIMO.OfficeLength? SpacingAfter {
         get => _spacingAfter;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(SpacingAfter), "Heading spacing after must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue(value?.ToPoints(), nameof(SpacingAfter), "Heading spacing after must be a non-negative finite value.");
             _spacingAfter = value;
         }
     }
 
     /// <summary>Heading text color. A heading block color overrides this value.</summary>
-    public PdfColor? Color { get; set; }
+    public global::OfficeIMO.OfficeColor? Color { get; set; }
 
     /// <summary>Heading font slot. When null the writer uses the document default font family.</summary>
     public PdfStandardFont? Font { get; set; }
@@ -72,7 +72,7 @@ public sealed class PdfHeadingStyle {
     public System.Collections.Generic.IList<PdfTabStop> TabStops => _tabStops;
 
     /// <summary>Adds a text stop or stationary bar rule at the specified finite position.</summary>
-    public PdfTabStop AddTabStop(double position, PdfTabAlignment alignment = PdfTabAlignment.Left, PdfTabLeaderStyle leader = PdfTabLeaderStyle.None) {
+    public PdfTabStop AddTabStop(global::OfficeIMO.OfficeLength position, PdfTabAlignment alignment = PdfTabAlignment.Left, PdfTabLeaderStyle leader = PdfTabLeaderStyle.None) {
         var stop = new PdfTabStop(position, alignment, leader);
         _tabStops.Add(stop);
         return stop;
@@ -138,7 +138,7 @@ public sealed class PdfHeadingStyle {
     internal PdfCanvasBlock? AnchoredCanvas { get; set; }
 
     internal double GetFontSize(int level) {
-        return FontSize ?? GetDefaultFontSize(level);
+        return (FontSize?.ToPoints()) ?? GetDefaultFontSize(level);
     }
 
     internal double GetLeading(double fontSize) {
@@ -146,7 +146,7 @@ public sealed class PdfHeadingStyle {
     }
 
     internal double GetSpacingAfter(double leading) {
-        return SpacingAfter ?? leading * 0.25D;
+        return (SpacingAfter?.ToPoints()) ?? leading * 0.25D;
     }
 
     internal static double GetDefaultFontSize(int level) {

@@ -26,7 +26,7 @@ namespace OfficeIMO.PowerPoint {
                 ? TrackShape(new PowerPointTextBox(shape, _slidePart))
                 : TrackShape(new PowerPointAutoShape(shape));
         }
-    
+
         /// <summary>Name of the slide layout this slide uses, or null.</summary>
         internal string? SlideLayoutName => _slidePart.SlideLayoutPart?.SlideLayout?.CommonSlideData?.Name?.Value;
     }

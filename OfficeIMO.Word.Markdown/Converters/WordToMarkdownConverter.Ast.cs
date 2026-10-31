@@ -560,8 +560,8 @@ namespace OfficeIMO.Word.Markdown {
             void AppendStandaloneBlock(IMarkdownBlock block) {
                 if (allowQuoteHeuristic &&
                     paragraph.IndentationBefore.HasValue &&
-                    paragraph.IndentationBefore.Value > 0) {
-                    int depth = GetBoundedBlockquoteDepth(paragraph.IndentationBefore.Value);
+                    checked((int)(paragraph.IndentationBefore.Value.ToTwips())) > 0) {
+                    int depth = GetBoundedBlockquoteDepth(checked((int)(paragraph.IndentationBefore.Value.ToTwips())));
                     if (depth > 0) {
                         block = WrapQuotedBlock(block, depth);
                     }
@@ -933,8 +933,8 @@ namespace OfficeIMO.Word.Markdown {
                 ? new HeadingBlock(headingLevel, inlines)
                 : new ParagraphBlock(inlines);
 
-            if (allowQuoteHeuristic && paragraph.IndentationBefore.HasValue && paragraph.IndentationBefore.Value > 0) {
-                int depth = GetBoundedBlockquoteDepth(paragraph.IndentationBefore.Value);
+            if (allowQuoteHeuristic && paragraph.IndentationBefore.HasValue && checked((int)(paragraph.IndentationBefore.Value.ToTwips())) > 0) {
+                int depth = GetBoundedBlockquoteDepth(checked((int)(paragraph.IndentationBefore.Value.ToTwips())));
                 if (depth > 0) {
                     block = WrapQuotedBlock(block, depth);
                 }

@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 foreach (ColdStartRecord record in parser.Parse(workbook.FirstSheet)) ColdStartWorkload.ValidateRecord(record, ++rows);
                 if (rows != ColdStartWorkload.Rows) throw new InvalidDataException("Cold parser strategy count differs.");
             }
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(_workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_workbook, writable: false));
             int count = 0;
             foreach (ColdStartRecord record in reader.RowsAs<ColdStartRecord>()) ColdStartWorkload.ValidateRecord(record, ++count);
             if (count != ColdStartWorkload.Rows) throw new InvalidDataException("Cold projection count differs.");

@@ -13,11 +13,11 @@ public class PdfMergerTests {
         byte[] first = BuildPdf(
             "First document",
             "First page",
-            ("First second page", new PdfPageSize(300, 500)));
+            ("First second page", new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(500))));
         byte[] second = BuildPdf(
             "Second document",
             "Second document page",
-            ("Second second page", new PdfPageSize(792, 612)));
+            ("Second second page", new PdfPageSize(OfficeIMO.OfficeLength.Points(792),OfficeIMO.OfficeLength.Points(612))));
 
         byte[] merged = PdfMerger.Merge(first, second);
 
@@ -99,7 +99,7 @@ public class PdfMergerTests {
         byte[] first = BuildPdf(
             "Mixed size first",
             "Letter source page",
-            ("Small source page", new PdfPageSize(300, 500)));
+            ("Small source page", new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(500))));
         byte[] second = BuildPdf(
             "Mixed size second",
             "Landscape source page",
@@ -108,7 +108,7 @@ public class PdfMergerTests {
         byte[] merged = PdfMerger.Merge(
             new PdfMergeOptions {
                 ResizePages = new PdfPageResizeOptions(PdfPageSizes.A4) {
-                    Margin = 12,
+                    Margin = OfficeIMO.OfficeLength.Points(12),
                     Mode = PdfPageResizeMode.Fit
                 }
             },
@@ -387,10 +387,10 @@ public class PdfMergerTests {
                 "Merge review note",
                 width: 150,
                 height: 44,
-                borderColor: new PdfColor(0.2D, 0.4D, 0.8D),
-                fillColor: new PdfColor(0.95D, 0.98D, 1D),
+                borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.4D, 0.8D),
+                fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95D, 0.98D, 1D),
                 textAlign: PdfAlign.Center)
-            .HighlightAnnotation("Merge highlight", width: 120, height: 14, color: new PdfColor(1D, 0.9D, 0.1D))
+            .HighlightAnnotation("Merge highlight", width: 120, height: 14, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D))
             .ToBytes();
     }
 

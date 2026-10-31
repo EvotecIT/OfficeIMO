@@ -13,13 +13,13 @@ namespace OfficeIMO.PowerPoint {
     /// the normal layout engine; disposal before completion removes only this operation's appended slides.
     /// </summary>
     internal sealed class PowerPointLayoutMaterialization : IDisposable {
-        private readonly PowerPointPresentation _document;
+        private readonly PowerPointDocument _document;
         private readonly int _start;
         private readonly Action _rollback;
         private readonly Action _rollbackNotes;
         private bool _completed;
 
-        internal PowerPointLayoutMaterialization(PowerPointPresentation document) {
+        internal PowerPointLayoutMaterialization(PowerPointDocument document) {
             _document = document;
             _start = document.Slides.Count;
             _rollback = document.LayoutDeck.CaptureRollback();

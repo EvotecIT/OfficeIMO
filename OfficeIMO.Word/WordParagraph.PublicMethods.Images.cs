@@ -1,150 +1,45 @@
-using DocumentFormat.OpenXml;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using System;
-using System.Reflection;
-using System.Linq;
-using System.Xml.Linq;
-using MathParagraph = DocumentFormat.OpenXml.Math.Paragraph;
-using OfficeMath = DocumentFormat.OpenXml.Math.OfficeMath;
-using V = DocumentFormat.OpenXml.Vml;
-using W14 = DocumentFormat.OpenXml.Office2010.Word;
+namespace OfficeIMO.Word;
 
-namespace OfficeIMO.Word {
-    // Contains public methods for editing paragraphs.
-    public partial class WordParagraph {
-        /// <summary>
-        /// Add image from file with ability to provide width and height of the image
-        /// The image will be resized given new dimensions
-        /// </summary>
-        /// <param name="filePathImage">Path to file to import to Word Document</param>
-        /// <param name="width">Optional width of the image. If not given the actual image width will be used.</param>
-        /// <param name="height">Optional height of the image. If not given the actual image height will be used.</param>
-        /// <param name="wrapImageText">Optional text wrapping rule. If not given the image will be inserted inline to the text.</param>
-        /// <param name="description">The description for this image.</param>
-        /// <returns>The WordParagraph that AddImage was called on.</returns>
-        public WordParagraph AddImage(string filePathImage, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = WordImageTextWrapping.InLineWithText, string description = "") {
-            var wordImage = new WordImage(_document, this, filePathImage, width, height, wrapImageText, description);
-            var run = VerifyRun();
-            run.Append(wordImage._Image);
-            return this;
+public partial class WordParagraph {
+    /// <summary>Embeds an image file and returns its editable occurrence.</summary>
+    public WordImage AddImage(string path, OfficeLength? width = null, OfficeLength? height = null,
+        WordImageOptions? options = null) {
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        var resolved = options ?? new WordImageOptions();
+        if (resolved.Vml) {
+            using var stream = File.OpenRead(path);
+            return resolved.Apply(InsertImageVml(stream, Path.GetFileName(path), width?.ToPoints(), height?.ToPoints(), resolved.Description));
         }
+        return AttachImage(new WordImage(_document, this, path, width?.ToPixels(), height?.ToPixels(), resolved.Wrapping, resolved.Description), resolved);
+    }
 
-        /// <summary>
-        /// Inserts an image and returns the created <see cref="WordImage"/> for immediate configuration.
-        /// This is a convenience alternative to <see cref="AddImage(string,double?,double?,WordImageTextWrapping,string)"/>
-        /// when you want to set properties on the inserted image without accessing <see cref="Image"/>.
-        /// </summary>
-        public WordImage InsertImage(string filePathImage, double? width = null, double? height = null,
-            WordImageTextWrapping wrapImageText = WordImageTextWrapping.InLineWithText, string description = "") {
-            var wordImage = new WordImage(_document, this, filePathImage, width, height, wrapImageText, description);
-            var run = VerifyRun();
-            run.Append(wordImage._Image);
-            return wordImage;
-        }
-        /// <summary>
-        /// Add image from Stream with ability to provide width and height of the image
-        /// The image will be resized given new dimensions
-        /// </summary>
-        /// <param name="imageStream">The stream to load the image from.</param>
-        /// <param name="fileName">The name of the file.</param>
-        /// <param name="width">Optional width of the image. If not given the actual image width will be used.</param>
-        /// <param name="height">Optional height of the image. If not give the actual image height will be used.</param>
-        /// <param name="wrapImageText">Optional text wrapping rule. If not given the image will be inserted inline to the text.</param>
-        /// <param name="description">The description for this image.</param>
-        /// <returns>The WordParagraph that AddImage was called on.</returns>
-        public WordParagraph AddImage(Stream imageStream, string fileName, double? width, double? height, WordImageTextWrapping wrapImageText = WordImageTextWrapping.InLineWithText, string description = "") {
-            var wordImage = new WordImage(_document, this, imageStream, fileName, width, height, wrapImageText, description);
-            var run = VerifyRun();
-            run.Append(wordImage._Image);
-            return this;
-        }
+    /// <summary>Embeds an image stream without disposing the caller's stream.</summary>
+    public WordImage AddImage(Stream stream, string fileName, OfficeLength? width = null, OfficeLength? height = null,
+        WordImageOptions? options = null) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        var resolved = options ?? new WordImageOptions();
+        if (resolved.Vml) return resolved.Apply(InsertImageVml(stream, fileName, width?.ToPoints(), height?.ToPoints(), resolved.Description));
+        return AttachImage(new WordImage(_document, this, stream, fileName, width?.ToPixels(), height?.ToPixels(), resolved.Wrapping, resolved.Description), resolved);
+    }
 
-        /// <summary>
-        /// Inserts an image from a stream and returns the created <see cref="WordImage"/>.
-        /// </summary>
-        public WordImage InsertImage(Stream imageStream, string fileName, double? width = null, double? height = null,
-            WordImageTextWrapping wrapImageText = WordImageTextWrapping.InLineWithText, string description = "") {
-            var wordImage = new WordImage(_document, this, imageStream, fileName, width, height, wrapImageText, description);
-            var run = VerifyRun();
-            run.Append(wordImage._Image);
-            return wordImage;
-        }
+    /// <summary>Adds a linked external image. The image remains an external relationship.</summary>
+    public WordImage AddImage(Uri uri, OfficeLength width, OfficeLength height, WordImageOptions? options = null) {
+        var resolved = options ?? new WordImageOptions();
+        if (resolved.Vml) throw new ArgumentException("VML images must be embedded from a file or stream.", nameof(options));
+        return AttachImage(new WordImage(_document, this, uri, width.ToPixels(), height.ToPixels(), resolved.Wrapping, resolved.Description), resolved);
+    }
 
-        /// <summary>
-        /// Add an image that is stored outside the package.
-        /// </summary>
-        public WordParagraph AddImage(Uri imageUri, double width, double height, WordImageTextWrapping wrapImageText = WordImageTextWrapping.InLineWithText, string description = "") {
-            var wordImage = new WordImage(_document, this, imageUri, width, height, wrapImageText, description);
-            var run = VerifyRun();
-            run.Append(wordImage._Image);
-            return this;
-        }
+    private WordImage AttachImage(WordImage image, WordImageOptions options) {
+        VerifyRun().Append(image._Image);
+        return options.Apply(image);
+    }
 
-        internal WordParagraph AddTrustedExternalImage(Uri imageUri, double width, double height, WordImageTextWrapping wrapImageText = WordImageTextWrapping.InLineWithText, string description = "") {
-            if (imageUri == null) throw new ArgumentNullException(nameof(imageUri));
-            if (!imageUri.IsFile) throw new ArgumentException("Trusted local external images must use the file scheme.", nameof(imageUri));
-            var wordImage = new WordImage(_document, this, imageUri, width, height, wrapImageText, description, shape: null, compressionQuality: null, allowFileUri: true);
-            var run = VerifyRun();
-            run.Append(wordImage._Image);
-            return this;
-        }
-
-        /// <summary>
-        /// Inserts an external image (by URI) and returns the created <see cref="WordImage"/>.
-        /// </summary>
-        public WordImage InsertImage(Uri imageUri, double width, double height,
-            WordImageTextWrapping wrapImageText = WordImageTextWrapping.InLineWithText, string description = "") {
-            var wordImage = new WordImage(_document, this, imageUri, width, height, wrapImageText, description);
-            var run = VerifyRun();
-            run.Append(wordImage._Image);
-            return wordImage;
-        }
-
-        /// <summary>
-        /// Add image from a Base64 encoded string.
-        /// </summary>
-        public WordParagraph AddImageFromBase64(string base64String, string fileName, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = WordImageTextWrapping.InLineWithText, string description = "") {
-            var wordImage = new WordImage(_document, this, base64String, fileName, width, height, wrapImageText, description);
-            var run = VerifyRun();
-            run.Append(wordImage._Image);
-            return this;
-        }
-
-        /// <summary>
-        /// Inserts an image from a Base64 payload and returns the created <see cref="WordImage"/>.
-        /// </summary>
-        public WordImage InsertImageFromBase64(string base64String, string fileName, double? width = null, double? height = null,
-            WordImageTextWrapping wrapImageText = WordImageTextWrapping.InLineWithText, string description = "") {
-            var wordImage = new WordImage(_document, this, base64String, fileName, width, height, wrapImageText, description);
-            var run = VerifyRun();
-            run.Append(wordImage._Image);
-            return wordImage;
-        }
-
-        /// <summary>
-        /// Add image from an embedded resource.
-        /// </summary>
-        /// <param name="assembly">Assembly that contains the resource.</param>
-        /// <param name="resourceName">Full name of the embedded resource.</param>
-        /// <param name="width">Optional width of the image.</param>
-        /// <param name="height">Optional height of the image.</param>
-        /// <param name="wrapImageText">Optional text wrapping rule.</param>
-        /// <param name="description">The description for this image.</param>
-        /// <returns>The WordParagraph that AddImage was called on.</returns>
-        public WordParagraph AddImageFromResource(Assembly assembly, string resourceName, double? width = null, double? height = null, WordImageTextWrapping wrapImageText = WordImageTextWrapping.InLineWithText, string description = "") {
-            assembly ??= Assembly.GetCallingAssembly();
-            var stream = assembly.GetManifestResourceStream(resourceName);
-            if (stream == null) {
-                throw new ArgumentException($"Resource '{resourceName}' was not found in assembly '{assembly.FullName}'.", nameof(resourceName));
-            }
-            using (stream) {
-                var fileName = Path.GetFileName(resourceName);
-                var wordImage = new WordImage(_document, this, stream, fileName, width, height, wrapImageText, description);
-                var run = VerifyRun();
-                run.Append(wordImage._Image);
-            }
-            return this;
-        }
+    internal WordParagraph AddTrustedExternalImage(Uri uri, double width, double height,
+        WordImageTextWrapping wrapping = WordImageTextWrapping.InLineWithText, string description = "") {
+        if (uri == null) throw new ArgumentNullException(nameof(uri));
+        if (!uri.IsFile) throw new ArgumentException("Trusted local external images must use the file scheme.", nameof(uri));
+        var image = new WordImage(_document, this, uri, width, height, wrapping, description, shape: null, compressionQuality: null, allowFileUri: true);
+        VerifyRun().Append(image._Image);
+        return this;
     }
 }

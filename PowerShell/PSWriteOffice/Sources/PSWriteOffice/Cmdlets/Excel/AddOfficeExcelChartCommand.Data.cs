@@ -68,7 +68,7 @@ public sealed partial class AddOfficeExcelChartCommand {
         int categoryIndex = FindColumn(names, Category!, nameof(Category));
         int[] valueIndexes = SelectValues(names, categoryIndex, _ => false);
         var categories = table.Rows.Cast<DataRow>().Select(row => CategoryText(row[categoryIndex])).ToArray();
-        var series = valueIndexes.Select(index => new OfficeChartSeries(names[index],
+        var series = valueIndexes.Select(index => new OfficeSeries(names[index],
             table.Rows.Cast<DataRow>().Select(row => RequireNumber(row[index], names[index])))).ToArray();
         var chartData = new OfficeChartData(categories, series);
 
@@ -112,7 +112,7 @@ public sealed partial class AddOfficeExcelChartCommand {
         int[] valueColumns, string[] seriesNames) {
         int count = lastRow - firstRow + 1;
         var categories = Enumerable.Range(firstRow, count).Select(row => CategoryText(ReadText(sheet, row, categoryColumn))).ToArray();
-        var series = valueColumns.Select((column, index) => new OfficeChartSeries(seriesNames[index],
+        var series = valueColumns.Select((column, index) => new OfficeSeries(seriesNames[index],
             Enumerable.Range(firstRow, count).Select(row => TryReadNumber(sheet, row, column, out double value)
                 ? value : throw new PSArgumentException($"Column '{seriesNames[index]}' contains a blank, nonnumeric or nonfinite value at {ExcelA1.CellReference(row, column)}.", nameof(Value))))).ToArray();
         return new OfficeChartData(categories, series);

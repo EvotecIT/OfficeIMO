@@ -44,9 +44,9 @@ public partial class Word {
         using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
         WordParagraph paragraph = reopened.Tables.Single().Rows[0].Cells[0].Paragraphs[0];
         Assert.Equal("Inherited", paragraph.Text);
-        Assert.Equal(420, paragraph.LineSpacing);
-        Assert.Equal(WordLineSpacingRule.Auto, paragraph.LineSpacingRule);
-        Assert.Equal(4, paragraph.LineSpacingAfterPoints);
+        Assert.Equal(420, paragraph.NativeLineSpacingValue);
+        Assert.Equal(WordLineSpacingRule.Auto, paragraph.NativeLineSpacingRule);
+        Assert.Equal(4, paragraph.LineSpacingAfter?.ToPoints());
         Assert.Equal(JustificationValues.Center, paragraph._paragraph.ParagraphProperties!.Justification!.Val!.Value);
     }
 }

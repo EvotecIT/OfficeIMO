@@ -6,8 +6,8 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class EventBadges {
         internal static void Create(string folder) {
             OfficeTheme theme = OfficeTheme.Default;
-            PdfColor accent = PdfColor.FromOfficeColor(theme.Palette.Accent1);
-            PdfColor muted = PdfColor.FromOfficeColor(theme.Palette.TextMuted);
+            OfficeColor accent = theme.Palette.Accent1;
+            OfficeColor muted = theme.Palette.TextMuted;
             // Each badge is trimmed from a slightly larger sheet: 3 pt of bleed and crop marks in an 18 pt slug.
             const double width = 340, height = 255, slug = 18, bleed = 3, markLength = 12, markGap = 3;
             double sheetWidth = width + slug * 2, sheetHeight = height + slug * 2;
@@ -26,17 +26,17 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 content.PageBreak();
                 Badge("Leon Brooks", "Participant", "Operations");
                 void Badge(string name, string role, string team) {
-                    content.Paragraph(p => p.FontSize(8.5).Text("Northwind · Community workshop"), defaultColor: muted)
-                        .HR(2, accent, 8, 14)
+                    content.Paragraph(p => p.FontSize(OfficeLength.Points(8.5)).Text("Northwind · Community workshop"), defaultColor: muted)
+                        .HR(OfficeLength.Points(2), accent, OfficeLength.Points(8), OfficeLength.Points(14))
                         .Title(name)
-                        .Paragraph(p => p.FontSize(13).Bold(role, accent))
+                        .Paragraph(p => p.FontSize(OfficeLength.Points(13)).Bold(role, accent))
                         .Paragraph(p => p.Text(team), defaultColor: muted)
                         .PanelParagraph(p => p.Text("14 October 2026 · Copenhagen"));
                 }
             }), new PdfCreateOptions {
-                PageWidth = sheetWidth, PageHeight = sheetHeight,
-                MarginLeft = slug + 24, MarginRight = slug + 24, MarginTop = slug + 24, MarginBottom = slug + 24, DefaultFontSize = 10,
-                PrintProductionPageBoxes = new PdfPrintProductionPageBoxes(PdfPageMargins.Uniform(slug), PdfPageMargins.Uniform(slug - bleed)),
+                PageWidth = OfficeLength.Points(sheetWidth), PageHeight = OfficeLength.Points(sheetHeight),
+                MarginLeft = OfficeLength.Points(slug + 24), MarginRight = OfficeLength.Points(slug + 24), MarginTop = OfficeLength.Points(slug + 24), MarginBottom = OfficeLength.Points(slug + 24), DefaultFontSize = OfficeLength.Points(10),
+                PrintProductionPageBoxes = new PdfPrintProductionPageBoxes(PdfPageMargins.Uniform(OfficeLength.Points(slug)), PdfPageMargins.Uniform(OfficeLength.Points(slug - bleed))),
                 PageBackgroundShapes = cropMarks
             })
                 .Meta(title: "Workshop event badges", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
@@ -45,7 +45,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
         private static PdfPageBackgroundShape CropMark(OfficeShape line, double x, double y) {
             line.StrokeColor = OfficeColor.Black;
             line.StrokeWidth = 0.25;
-            return new PdfPageBackgroundShape(line, x, y);
+            return new PdfPageBackgroundShape(line, OfficeLength.Points(x), OfficeLength.Points(y));
         }
     }
 }

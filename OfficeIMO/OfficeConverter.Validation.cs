@@ -48,7 +48,7 @@ public static partial class OfficeConverter {
                 options.MaxInputBytes = settings.MaximumOutputBytes;
                 options.PackageSecurity!.MaxPackageBytes = settings.MaximumOutputBytes;
                 options.Password = settings.PowerPointSave?.ResolvePassword(null);
-                using PowerPointPresentation document = await PowerPointPresentation.LoadAsync(output, options, token).ConfigureAwait(false);
+                using PowerPointDocument document = await PowerPointDocument.LoadAsync(output, options, token).ConfigureAwait(false);
                 break;
             }
             case OfficeDocumentFormat.Html:

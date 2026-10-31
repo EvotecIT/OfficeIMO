@@ -287,15 +287,15 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         bool hasFixedWidths = false;
-        table.ColumnWidthPoints.Clear();
+        table.ColumnWidths.Clear();
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
             double? width = columnIndex < widthPoints.Count ? widthPoints[columnIndex] : null;
-            table.ColumnWidthPoints.Add(width);
+            table.ColumnWidths.Add(width.HasValue ? OfficeLength.Points(width.Value) : null);
             hasFixedWidths |= width.HasValue;
         }
 
         if (!hasFixedWidths) {
-            table.ColumnWidthPoints.Clear();
+            table.ColumnWidths.Clear();
         }
 
         bool hasWeights = false;

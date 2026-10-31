@@ -16,7 +16,7 @@ public sealed class StudioRecoveryManagementTests {
             Directory.CreateDirectory(root);
             try {
                 string source = Path.Combine(root, "source.pdf");
-                PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800))).Save(source);
+                PdfDocument.Create(builder => builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(source);
                 byte[] original = File.ReadAllBytes(source);
                 byte[] edited = PdfDocument.Load(new System.IO.MemoryStream(original)).Pages.Rotate(90, 1).ToBytes();
                 var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "profile")));
@@ -48,7 +48,7 @@ public sealed class StudioRecoveryManagementTests {
             Directory.CreateDirectory(root);
             try {
                 string source = Path.Combine(root, "source.pdf");
-                PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800))).Save(source);
+                PdfDocument.Create(builder => builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(source);
                 byte[] original = File.ReadAllBytes(source);
                 string fingerprint = PdfWorkspaceRecoveryStore.Fingerprint(original);
                 var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "profile")));

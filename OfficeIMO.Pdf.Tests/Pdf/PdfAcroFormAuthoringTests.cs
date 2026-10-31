@@ -862,7 +862,7 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void Create_PreservesCheckBoxMarkColorThroughInitialRefill() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Styled checkbox")).ToBytes();
-        var style = new PdfFormFieldStyle { MarkColor = PdfColor.FromRgb(22, 101, 52) };
+        var style = new PdfFormFieldStyle { MarkColor = global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52) };
 
         PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "accepted",

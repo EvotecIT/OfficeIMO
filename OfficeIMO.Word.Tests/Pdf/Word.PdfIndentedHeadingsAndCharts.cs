@@ -11,9 +11,9 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         var heading = document.AddParagraph("Headline");
         heading.Style = WordParagraphStyles.Heading1;
-        heading.IndentationBefore = 720;
+        heading.IndentationBefore = OfficeLength.Points((720) / 20d);
         var body = document.AddParagraph("Bodytext");
-        body.IndentationBefore = 720;
+        body.IndentationBefore = OfficeLength.Points((720) / 20d);
 
         using PdfPigDocument pdf = OpenAuditPdf(document);
         var words = pdf.GetPage(1).GetWords().ToList();

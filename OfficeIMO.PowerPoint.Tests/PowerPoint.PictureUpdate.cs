@@ -22,16 +22,16 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", image);
             Assert.Equal(expectedType, PowerPointImageFormatExtensions.FromImagePath(imagePath));
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture picture = slide.AddPicture(imagePath);
+                PowerPointPicture picture = slide.AddImage(imagePath);
 
                 Assert.Equal(expectedContentType, picture.ContentType);
                 Assert.Equal(expectedContentType, picture.MimeType);
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointPicture picture = Assert.Single(presentation.Slides.Single().Pictures);
                 Assert.Equal(expectedContentType, picture.ContentType);
                 Assert.Equal(expectedContentType, picture.MimeType);
@@ -60,8 +60,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
-                    presentation.AddSlide().AddPicture(imagePath);
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
+                    presentation.AddSlide().AddImage(imagePath);
                     presentation.Save();
                 }
                 using (PresentationDocument package = PresentationDocument.Open(filePath, true)) {
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
                     package.PresentationPart.SlideParts.Single().Slide.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath);
+                using PowerPointDocument reopened = PowerPointDocument.Load(filePath);
                 PowerPointPicture pictureModel = Assert.Single(reopened.Slides.Single().Pictures);
                 Assert.Null(pictureModel.ContentType);
                 Assert.Null(pictureModel.MimeType);
@@ -87,9 +87,9 @@ namespace OfficeIMO.Tests {
             string originalImage = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
             string newImagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", newImage);
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture picture = slide.AddPicture(originalImage);
+                PowerPointPicture picture = slide.AddImage(originalImage);
                 using FileStream stream = new(newImagePath, FileMode.Open, FileAccess.Read);
                 picture.UpdateImage(stream, type);
                 Assert.Equal(expectedContentType, picture.ContentType);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
                 PowerPointPicture picture = slide.Pictures.First();
                 Assert.Equal(expectedContentType, picture.ContentType);
@@ -113,10 +113,10 @@ namespace OfficeIMO.Tests {
             string originalImage = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
             string replacementImage = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "Kulek.jpg");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture original = slide.AddPicture(originalImage);
-                PowerPointPicture duplicate = Assert.IsType<PowerPointPicture>(slide.DuplicateShape(original, 250000, 0));
+                PowerPointPicture original = slide.AddImage(originalImage);
+                PowerPointPicture duplicate = Assert.IsType<PowerPointPicture>(slide.DuplicateShape(original, OfficeIMO.OfficeLength.Emus(250000), OfficeIMO.OfficeLength.Emus(0)));
 
                 using FileStream stream = new(replacementImage, FileMode.Open, FileAccess.Read);
                 original.UpdateImage(stream, OfficeImageFormat.Jpeg);
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointPicture[] pictures = presentation.Slides.Single().Pictures.ToArray();
                 Assert.Equal(2, pictures.Length);
                 Assert.Contains(pictures, picture => picture.ContentType == "image/jpeg");

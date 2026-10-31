@@ -227,7 +227,7 @@ public sealed partial class BrowserConversionService {
 
     private static PdfConversionPayload ConvertPowerPointToPdfBytes(SelectedDocument file, BrowserPdfProfile profile) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(stream,
+        using PowerPointDocument presentation = PowerPointDocument.Load(stream,
             new PowerPointLoadOptions {
                 AccessMode = DocumentAccessMode.ReadOnly,
                 PackageSecurity = CreateBrowserPackageSecurity()

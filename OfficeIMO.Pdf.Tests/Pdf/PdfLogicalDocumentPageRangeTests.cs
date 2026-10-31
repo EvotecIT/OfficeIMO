@@ -40,18 +40,18 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void LoadPageRanges_FiltersAcroFormFieldsToSelectedSourcePages() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
-            .TextField("First.Page", width: 120, height: 20, value: "one")
+            .TextField("First.Page", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "one")
             .PageBreak()
-            .TextField("Second.Page", width: 120, height: 20, value: "two")
+            .TextField("Second.Page", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "two")
             .PageBreak()
-            .TextField("Third.Page", width: 120, height: 20, value: "three")
+            .TextField("Third.Page", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "three")
             .ToBytes();
 
         PdfDocumentReadResult logical = PdfDocumentReadResult.LoadPageRanges(pdf, PdfPageRange.ParseMany("2,1,2"));

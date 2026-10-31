@@ -92,12 +92,12 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 120D,
-                PageHeight = 180D,
-                MarginLeft = 0D,
-                MarginRight = 0D,
-                MarginTop = 0D,
-                MarginBottom = 0D
+                PageWidth = global::OfficeIMO.OfficeLength.Points(120D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
             }
             .ReportDiagnosticsTo(report, "HarfBuzz vertical PDF")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
@@ -106,7 +106,7 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
 
         byte[] pdf = PdfDocument.Create(
                 document => document.Content(content => content.Canvas(
-                    canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))), options)
+                    canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D)))), options)
             .ToBytes();
         string raw = System.Text.Encoding.ASCII.GetString(pdf);
         string extracted = PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
@@ -144,15 +144,15 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 120D, PageHeight = 180D,
-                MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D
+                PageWidth = global::OfficeIMO.OfficeLength.Points(120D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
             }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, fontData))
             .SetLanguage("ja")
             .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance)
             .ReportDiagnosticsTo(report, "Japanese vertical glyphs");
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content.Canvas(
-            canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))), options).ToBytes();
+            canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D)))), options).ToBytes();
         string? evidencePath = Environment.GetEnvironmentVariable("OFFICEIMO_VERTICAL_PDF_EVIDENCE");
         if (!string.IsNullOrEmpty(evidencePath)) File.WriteAllBytes(evidencePath, pdf);
         string raw = System.Text.Encoding.ASCII.GetString(pdf);

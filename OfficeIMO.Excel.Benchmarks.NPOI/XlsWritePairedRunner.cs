@@ -194,7 +194,7 @@ internal static class XlsWriteBenchmarkScenario {
         using ExcelDocument document = ExcelDocument.Create();
         document.Execution.OnTiming = onTiming;
         document.Execution.OnInfo = onInfo;
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         WriteOfficeImoRows(sheet, records);
         return document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
     }

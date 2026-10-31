@@ -101,9 +101,9 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal static PowerPointLayoutGrid ForRegion(PowerPointLayoutGrid parent, PowerPointLayoutRect region) => new(parent, region);
 
-        internal static PowerPointLayoutGrid For(PowerPointPresentation presentation, PowerPointLayoutTheme theme) {
+        internal static PowerPointLayoutGrid For(PowerPointDocument presentation, PowerPointLayoutTheme theme) {
             PowerPointSlideSize size = presentation.SlideSize;
-            return new PowerPointLayoutGrid(PowerPointUnits.ToPoints(size.WidthEmus), PowerPointUnits.ToPoints(size.HeightEmus),
+            return new PowerPointLayoutGrid(PowerPointUnits.ToPoints(size.Width.ToEmus()), PowerPointUnits.ToPoints(size.Height.ToEmus()),
                 theme.MarginLeft, theme.MarginRight, theme.MarginTop, theme.Scale);
         }
 

@@ -56,7 +56,7 @@
     <Using Include="DocumentFormat.OpenXml" />
   </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odt.Pdf" /></ItemGroup>
-  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /><InternalsVisibleTo Include="PSWriteOffice" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.IWork" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Web.Converter" /><InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" /></ItemGroup>

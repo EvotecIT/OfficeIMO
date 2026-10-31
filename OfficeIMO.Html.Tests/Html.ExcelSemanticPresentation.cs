@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests;
 public class HtmlExcelSemanticPresentation {
     private static ExcelDocument CreateReportWorkbook() {
         ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Report");
+        ExcelSheet sheet = workbook.AddSheet("Report");
         sheet.Cell(1, 1, "Title band");
         sheet.CellFontColor(1, 1, "FFFFFF");
         sheet.CellBackground(1, 1, "17365D");
@@ -56,12 +56,12 @@ public class HtmlExcelSemanticPresentation {
     [Fact]
     public void SemanticTablesDrawChartsAndKeepDebugMetadataOptIn() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Sales");
+        ExcelSheet sheet = workbook.AddSheet("Sales");
         sheet.Cell(1, 1, "Quarter"); sheet.Cell(1, 2, "Actual");
         sheet.Cell(2, 1, "Q1"); sheet.Cell(2, 2, 42);
         sheet.Cell(3, 1, "Q2"); sheet.Cell(3, 2, 58);
         sheet.CellFormula(4, 2, "SUM(B2:B3)");
-        sheet.AddChartFromRange("A1:B3", row: 6, column: 1, widthPixels: 320, heightPixels: 200, type: ExcelChartType.ColumnClustered, title: "Actual by quarter");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new ExcelChartOptions { Row = 6, Column = 1, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(200), Title = "Actual by quarter" });
 
         string html = workbook.ToHtml();
 

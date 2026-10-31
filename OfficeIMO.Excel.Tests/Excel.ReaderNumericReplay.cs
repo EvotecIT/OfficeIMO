@@ -144,7 +144,7 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
         using var document = ExcelDocument.Create(path);
         document.DateSystem = system;
-        var sheet = document.AddWorksheet("Data");
+        var sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Value");
         sheet.CellValue(2, 1, 1.5d);
         sheet.CellValue(3, 1, 60.5d);

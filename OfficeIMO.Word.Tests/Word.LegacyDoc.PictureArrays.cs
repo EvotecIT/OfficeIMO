@@ -13,8 +13,8 @@ public partial class Word {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
         using WordDocument source = WordDocument.Create();
         using var imageStream = new MemoryStream(png);
-        source.AddParagraph("Inline picture").AddImage(imageStream, "picture.png", 40, 20);
-        source.Images[0].CropLeft = 25000;
+        source.AddParagraph("Inline picture").AddImage(imageStream, "picture.png", OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(20));
+        source.Images[0].CropLeftRatio = ((double?)(25000)) / 100000D;
         byte[] original = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         using WordDocument control = WordDocument.Load(new MemoryStream(original));
         Assert.Equal(png, Assert.Single(control.Images).ToBytes());
@@ -42,7 +42,7 @@ public partial class Word {
             Assert.Empty(imported.Images);
         } else {
             Assert.Equal(png, Assert.Single(imported.Images).ToBytes());
-            Assert.Equal(25000, imported.Images[0].CropLeft);
+            Assert.Equal(25000, (imported.Images[0].CropLeftRatio is double cropRatio3 ? (int?)System.Math.Round(cropRatio3 * 100000D, System.MidpointRounding.AwayFromZero) : null));
             Assert.Empty(imported.LegacyDocUnsupportedFeatures);
         }
     }

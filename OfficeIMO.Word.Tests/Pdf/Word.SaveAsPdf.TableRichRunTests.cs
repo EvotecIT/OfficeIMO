@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText(" ");
                 paragraph.AddText("CellMarked").SetHighlight(WordHighlightColor.Yellow);
                 paragraph.AddText(" ");
-                paragraph.AddText("CellLarge").SetFontSize(18);
+                paragraph.AddText("CellLarge").SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -51,9 +51,9 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.Contains("1 0 0 rg", content, StringComparison.Ordinal);
-            Assert.Matches(@"/F\d+\s+(10|11)\s+Tf", content);
+            Assert.Matches(@"/[^\s/]+\s+(10|11)\s+Tf", content);
             Assert.Contains("1 1 0 rg", content, StringComparison.Ordinal);
-            Assert.Matches(@"/F\d+\s+18\s+Tf", content);
+            Assert.Matches(@"/[^\s/]+\s+18\s+Tf", content);
         }
     }
 }

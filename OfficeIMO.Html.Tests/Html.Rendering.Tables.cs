@@ -254,7 +254,7 @@ public sealed partial class HtmlRenderingTests {
             """;
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(2D, 70D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(2D), global::OfficeIMO.OfficeLength.Inches(70D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -291,7 +291,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 50D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(50D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
@@ -585,7 +585,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(110D / HtmlRenderOptions.CssPixelsPerInch, 30D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(110D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(30D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -621,7 +621,7 @@ public sealed partial class HtmlRenderingTests {
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         })).ToBytes();

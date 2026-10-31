@@ -327,14 +327,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
         }
 
-        private static bool TryMapChartType(ExcelChartType type, out string chartType) {
+        private static bool TryMapChartType(OfficeChartType type, out string chartType) {
             chartType = type switch {
-                ExcelChartType.ColumnClustered or ExcelChartType.ColumnStacked or ExcelChartType.ColumnStacked100 => "COLUMN",
-                ExcelChartType.BarClustered or ExcelChartType.BarStacked or ExcelChartType.BarStacked100 => "BAR",
-                ExcelChartType.Line or ExcelChartType.LineStacked or ExcelChartType.LineStacked100 => "LINE",
-                ExcelChartType.Area or ExcelChartType.AreaStacked or ExcelChartType.AreaStacked100 => "AREA",
-                ExcelChartType.Pie or ExcelChartType.Doughnut => "PIE",
-                ExcelChartType.Scatter => "SCATTER",
+                OfficeChartType.ColumnClustered or OfficeChartType.ColumnStacked or OfficeChartType.ColumnStacked100 => "COLUMN",
+                OfficeChartType.BarClustered or OfficeChartType.BarStacked or OfficeChartType.BarStacked100 => "BAR",
+                OfficeChartType.Line or OfficeChartType.LineStacked or OfficeChartType.LineStacked100 => "LINE",
+                OfficeChartType.Area or OfficeChartType.AreaStacked or OfficeChartType.AreaStacked100 => "AREA",
+                OfficeChartType.Pie or OfficeChartType.Doughnut => "PIE",
+                OfficeChartType.Scatter => "SCATTER",
                 _ => string.Empty,
             };
             return chartType.Length > 0;

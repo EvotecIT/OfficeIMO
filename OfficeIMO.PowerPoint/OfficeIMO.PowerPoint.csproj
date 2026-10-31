@@ -101,6 +101,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Tests" />
+        <InternalsVisibleTo Include="PSWriteOffice" />
         <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
@@ -110,6 +111,7 @@
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.GoogleSlides" />
         <InternalsVisibleTo Include="OfficeIMO.Markup.PowerPoint" />
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.IWork" />
+        <InternalsVisibleTo Include="OfficeIMO.PowerPoint.OpenDocument" />
     </ItemGroup>
 
   <ItemGroup>
@@ -131,4 +133,9 @@
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Shared.Tests" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" /></ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.CompatibilityCatalog.Tool" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.PowerPoint" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+  </ItemGroup>
 </Project>

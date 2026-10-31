@@ -65,7 +65,7 @@ internal static partial class RtfPdfConverter {
             return false;
         }
 
-        public OfficeIMO.Pdf.PdfTextRun CreateDefaultRun(string text, bool bold = false, double? fontSize = null) =>
+        public OfficeIMO.Pdf.PdfTextRun CreateDefaultRun(string text, bool bold = false, OfficeIMO.OfficeLength? fontSize = null) =>
             new OfficeIMO.Pdf.PdfTextRun(text, bold: bold, fontSize: fontSize,
                 font: ResolveFont(null, bold, italic: false), fontFamily: ResolveFontFamily(null));
 

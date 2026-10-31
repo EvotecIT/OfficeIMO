@@ -89,18 +89,18 @@ public sealed class LegacyWordImportTests {
         LegacyWordStyleContent style = Assert.Single(imported.Content.Styles);
         Assert.Equal("Body Text", style.Name);
         Assert.Equal("Arial", style.FontFamily);
-        Assert.Equal(12d, style.FontSizePoints);
+        Assert.Equal(12d, style.FontSize?.ToPoints());
         Assert.Equal("FF0000", style.ColorHex);
         Assert.True(style.Bold);
         Assert.Equal(OfficeIMO.Word.WordParagraphAlignment.Left, style.Alignment);
-        Assert.Equal(12d, style.LineSpacingPoints);
+        Assert.Equal(12d, style.LineSpacing?.ToPoints());
         Assert.True(style.KeepWithNext);
         Assert.True(style.KeepLinesTogether);
         LegacyWordParagraphContent first = imported.Content.Paragraphs[0];
         Assert.Equal("Body Text", first.StyleName);
         Assert.Contains(first.Runs, run => run.Bold && run.Text == "bold");
         Assert.True(first.KeepWithNext);
-        Assert.Equal(12d, first.LineSpacingPoints);
+        Assert.Equal(12d, first.LineSpacing?.ToPoints());
         Assert.Contains(imported.Content.Paragraphs, paragraph => paragraph.Alignment == OfficeIMO.Word.WordParagraphAlignment.Center);
 
         DocumentFormat.OpenXml.Wordprocessing.Style projectedStyle = imported.Value.OpenXmlDocument.MainDocumentPart!
@@ -227,8 +227,12 @@ public sealed class LegacyWordImportTests {
         Assert.False(properties.Bold!.Val!.Value);
         Assert.False(properties.Italic!.Val!.Value);
         Assert.Equal(DocumentFormat.OpenXml.Wordprocessing.UnderlineValues.None, properties.Underline!.Val!.Value);
-        Assert.Equal(DocumentFormat.OpenXml.Wordprocessing.ThemeFontValues.MinorHighAnsi, properties.RunFonts!.AsciiTheme!.Value);
-        Assert.Equal("22", properties.FontSize!.Val!.Value);
+        Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, properties.RunFonts!.Ascii!.Value);
+        Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, properties.RunFonts.HighAnsi!.Value);
+        Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, properties.RunFonts.EastAsia!.Value);
+        Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, properties.RunFonts.ComplexScript!.Value);
+        Assert.Equal(OfficeTheme.Default.TypeScale.Body.ToHalfPoints().ToString(System.Globalization.CultureInfo.InvariantCulture),
+            properties.FontSize!.Val!.Value);
         Assert.Equal("auto", properties.Color!.Val!.Value);
         imported.Report.RequireNoLoss();
     }
@@ -351,10 +355,10 @@ public sealed class LegacyWordImportTests {
 
         LegacyWordParagraphContent paragraph = Assert.Single(imported.Content.Paragraphs);
         LegacyWordRunContent run = Assert.Single(paragraph.Runs);
-        Assert.Null(run.FontSizePoints);
+        Assert.Null(run.FontSize);
         Assert.Null(run.FontFamily);
         Assert.Null(run.ColorHex);
-        Assert.Null(paragraph.LineSpacingPoints);
+        Assert.Null(paragraph.LineSpacing);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "amipro-inline-tag-malformed");
         Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
     }
@@ -486,13 +490,13 @@ public sealed class LegacyWordImportTests {
         using LegacyWordImportResult styled = LegacyWordImporter.Import(
             Encoding.ASCII.GetBytes(styledSource),
             new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
-        Assert.Equal(10.5d, styled.Content.Paragraphs[0].Runs[0].FontSizePoints);
+        Assert.Equal(10.5d, styled.Content.Paragraphs[0].Runs[0].FontSize?.ToPoints());
 
         byte[] inlineSource = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n<:f210,Arial,0,0,0>X\n");
         using LegacyWordImportResult inline = LegacyWordImporter.Import(
             inlineSource,
             new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
-        Assert.Equal(10.5d, inline.Content.Paragraphs[0].Runs[0].FontSizePoints);
+        Assert.Equal(10.5d, inline.Content.Paragraphs[0].Runs[0].FontSize?.ToPoints());
     }
 
     [Fact]

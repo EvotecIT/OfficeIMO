@@ -63,7 +63,7 @@ public partial class Word {
                 new W.SpacingBetweenLines { Before = "0", After = "0" },
                 new W.ParagraphMarkRunProperties(new W.RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new W.FontSize { Val = "24" }));
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         }
         if (running != null) document.AddParagraph("C");
         return document;
@@ -76,8 +76,8 @@ public partial class Word {
             IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = options,
-            Margins = PdfPageMargins.Uniform(30D),
-            PageSize = new PdfPageSize(300D, 300D)
+            Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D)),
+            PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300D),OfficeIMO.OfficeLength.Points(300D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 }

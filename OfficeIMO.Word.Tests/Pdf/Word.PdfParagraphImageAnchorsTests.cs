@@ -13,11 +13,11 @@ public sealed class PdfParagraphImageAnchorsTests {
         var paragraph = word.AddParagraph("First line\nAnchor line");
         using var source = new MemoryStream(OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(16, 16, OfficeColor.Red), OfficeImageExportFormat.Png));
-        var image = paragraph.InsertImage(source, "line-anchor.png", 32, 32, WordImageTextWrapping.InFrontOfText);
+        var image = paragraph.AddImage(source, "line-anchor.png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-        image.HorizontalPositionOffset = 30 * 12700;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(30 * 12700);
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Line;
-        image.VerticalPositionOffset = 0;
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(0);
         var conversion = word.ConvertToPdfWithEvidence();
         Assert.Contains(conversion.Warnings, warning => warning.Code == "native-anchored-image-flowed");
         var pdf = PdfCore.PdfDocument.Load(conversion.ToBytes());
@@ -30,22 +30,21 @@ public sealed class PdfParagraphImageAnchorsTests {
     [InlineData(true)]
     public void NonWrappingImageRetainsMarginAlignmentAndParagraphOffset(bool behind) {
         using WordDocument word = WordDocument.Create();
-        word.Sections[0].PageSettings.Width = 6000;
-        word.Sections[0].PageSettings.Height = 6000;
+        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
+        word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
         word.AddParagraph("Earlier text");
         var anchor = word.AddParagraph("Anchor text");
         using var source = new MemoryStream(OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(16, 16, OfficeColor.Red), OfficeImageExportFormat.Png));
-        var image = anchor.InsertImage(source, "anchor.png", 40, 40,
-            behind ? WordImageTextWrapping.BehindText : WordImageTextWrapping.InFrontOfText);
+        var image = anchor.AddImage(source, "anchor.png", OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Wrapping = behind ? WordImageTextWrapping.BehindText : WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Margin;
         image.HorizontalPositionOffset = null;
         image._Image.Anchor!.HorizontalPosition!.HorizontalAlignment =
             new DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalAlignment { Text = "right" };
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
-        image.VerticalPositionOffset = -5 * 12700;
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(-5 * 12700);
         var conversion = word.ConvertToPdfWithEvidence(new WordPdfExportOptions {
-            Margins = PdfCore.PdfPageMargins.Uniform(30),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
         var pdf = PdfCore.PdfDocument.Load(conversion.ToBytes());

@@ -133,7 +133,7 @@ public static partial class PdfPowerPointConverterExtensions {
         }
         ValidateLogicalPageCount(selected, operation);
         using var presentationOwner = new PresentationConstructionScope();
-        PptCore.PowerPointPresentation presentation = presentationOwner.Value;
+        PptCore.PowerPointDocument presentation = presentationOwner.Value;
         IReadOnlyList<PdfPowerPointTableImportEntry> entries = ImportTables(selected, presentation, operation, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfCore.PdfTableExtractionScopeReport sourceScope = PdfCore.PdfLogicalTableAnalysis.AnalyzeExtractionScope(selected);
@@ -149,7 +149,7 @@ public static partial class PdfPowerPointConverterExtensions {
 
     private static IReadOnlyList<PdfPowerPointTableImportEntry> ImportTables(
         PdfCore.PdfDocumentReadResult document,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         PowerPointPdfImportOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -190,13 +190,7 @@ public static partial class PdfPowerPointConverterExtensions {
                 }
 
                 PptCore.PowerPointTable table = slide.AddTable(
-                    tableRowCount,
-                    segment.ColumnCount,
-                    ResolveReconstructedTableStyle(options.TableStyle),
-                    options.TableLeft,
-                    options.TableTop,
-                    options.TableWidth,
-                    options.TableHeight);
+                    tableRowCount,                    segment.ColumnCount,                    ResolveReconstructedTableStyle(options.TableStyle),                    global::OfficeIMO.OfficeLength.Emus(options.TableLeft),                    global::OfficeIMO.OfficeLength.Emus(options.TableTop),                    global::OfficeIMO.OfficeLength.Emus(options.TableWidth),                    global::OfficeIMO.OfficeLength.Emus(options.TableHeight));
                 PopulateTable(table, extraction.Table, data, segment, headerRowIncluded, options, cancellationToken);
 
                 results.Add(new PdfPowerPointTableImportEntry(
@@ -235,7 +229,7 @@ public static partial class PdfPowerPointConverterExtensions {
         CancellationToken cancellationToken) {
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered = RenderPages(document, options, cancellationToken);
         using var presentationOwner = new PresentationConstructionScope();
-        PptCore.PowerPointPresentation presentation = presentationOwner.Value;
+        PptCore.PowerPointDocument presentation = presentationOwner.Value;
         ConfigureSlideSize(presentation, rendered);
 
         var entries = new List<PdfPowerPointVisualPageEntry>(rendered.Count);
@@ -267,7 +261,7 @@ public static partial class PdfPowerPointConverterExtensions {
         PdfCore.PdfDocumentReadResult logical = ReadBoundedLogicalDocument(document, options, cancellationToken);
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered = RenderPages(document, options, cancellationToken);
         using var presentationOwner = new PresentationConstructionScope();
-        PptCore.PowerPointPresentation presentation = presentationOwner.Value;
+        PptCore.PowerPointDocument presentation = presentationOwner.Value;
         ConfigureSlideSize(presentation, rendered);
         var visualEntries = new List<PdfPowerPointVisualPageEntry>(rendered.Count);
         var tableEntries = new List<PdfPowerPointTableImportEntry>();
@@ -381,7 +375,7 @@ public static partial class PdfPowerPointConverterExtensions {
     }
 
     private static void AddHybridTableOverlay(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         PptCore.PowerPointSlide slide,
         PdfCore.PdfPageRenderResult render,
         PdfCore.PdfLogicalPage page,
@@ -401,23 +395,17 @@ public static partial class PdfPowerPointConverterExtensions {
             data,
             segment,
             headerRowIncluded,
-            presentation.SlideSize.WidthPoints,
-            presentation.SlideSize.HeightPoints);
+            presentation.SlideSize.Width.ToPoints(),
+            presentation.SlideSize.Height.ToPoints());
         PptCore.PowerPointTable table = slide.AddTable(
-            rowCount,
-            segment.ColumnCount,
-            ResolveReconstructedTableStyle(options.TableStyle),
-            left,
-            top,
-            width,
-            height);
+            rowCount,            segment.ColumnCount,            ResolveReconstructedTableStyle(options.TableStyle),            global::OfficeIMO.OfficeLength.Emus(left),            global::OfficeIMO.OfficeLength.Emus(top),            global::OfficeIMO.OfficeLength.Emus(width),            global::OfficeIMO.OfficeLength.Emus(height));
         PopulateTable(table, sourceTable, data, segment, headerRowIncluded, options, cancellationToken);
         // The overlay sits on the rendered page: size its text like the source and paint unfilled cells white so
         // the editable text replaces, rather than doubles, the rendered table.
         (double pageWidth, double pageHeight) = page.GetVisualPageSize();
         double scale = Math.Min(
-            presentation.SlideSize.WidthPoints / Math.Max(1D, pageWidth),
-            presentation.SlideSize.HeightPoints / Math.Max(1D, pageHeight));
+            presentation.SlideSize.Width.ToPoints() / Math.Max(1D, pageWidth),
+            presentation.SlideSize.Height.ToPoints() / Math.Max(1D, pageHeight));
         ApplyEditableTableTypography(table, page, sourceTable, scale, isContinuation: false, cancellationToken);
         for (int rowIndex = 0; rowIndex < table.Rows; rowIndex++) {
             for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {
@@ -432,7 +420,7 @@ public static partial class PdfPowerPointConverterExtensions {
         PowerPointPdfImportOptions options,
         CancellationToken cancellationToken) {
         var renderOptions = new PdfCore.PdfPageRenderOptions {
-            Format = PdfCore.PdfPageRenderFormat.Png,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             Dpi = options.Dpi,
             MaxPages = options.MaxPages,
             MaxPixelsPerPage = options.MaxPixelsPerPage,
@@ -450,7 +438,7 @@ public static partial class PdfPowerPointConverterExtensions {
     }
 
     private static void ConfigureSlideSize(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered) {
         PdfCore.PdfPageRenderResult? reference = rendered.FirstOrDefault(static page => page.Succeeded);
         if (reference != null) {
@@ -461,25 +449,26 @@ public static partial class PdfPowerPointConverterExtensions {
             double height = reference.Height >= reference.Width
                 ? maximumSlideDimensionPoints
                 : maximumSlideDimensionPoints * reference.Height / Math.Max(1D, reference.Width);
-            presentation.SlideSize.SetSizePoints(width, height);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(width),OfficeIMO.OfficeLength.Points(height));
         }
     }
 
     private static void AddVisualPage(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         PptCore.PowerPointSlide slide,
         PdfCore.PdfPageRenderResult page) {
         byte[]? bytes = page.Bytes;
         if (bytes != null && page.Width > 0 && page.Height > 0) {
             VisualPagePlacement placement = GetVisualPagePlacement(
                 page,
-                presentation.SlideSize.WidthPoints,
-                presentation.SlideSize.HeightPoints);
+                presentation.SlideSize.Width.ToPoints(),
+                presentation.SlideSize.Height.ToPoints());
             using var image = new MemoryStream(bytes, writable: false);
-            PptCore.PowerPointPicture picture = slide.AddPicturePoints(image, OfficeImageFormat.Png,
-                placement.Left, placement.Top, placement.Width, placement.Height);
-            picture.Bounds = PptCore.PowerPointLayoutBox.FromPoints(
-                placement.Left, placement.Top, placement.Width, placement.Height);
+            PptCore.PowerPointPicture picture = slide.AddImage(image, OfficeImageFormat.Png,
+                OfficeLength.Points(placement.Left), OfficeLength.Points(placement.Top),
+                OfficeLength.Points(placement.Width), OfficeLength.Points(placement.Height));
+            picture.Bounds = new PptCore.PowerPointLayoutBox(OfficeLength.Points(placement.Left),
+                OfficeLength.Points(placement.Top), OfficeLength.Points(placement.Width), OfficeLength.Points(placement.Height));
         } else {
             slide.AddTitle("PDF page " + page.PageNumber.ToString(CultureInfo.InvariantCulture));
             slide.AddTextBox("This page could not be rendered by the managed PDF renderer.");
@@ -487,7 +476,7 @@ public static partial class PdfPowerPointConverterExtensions {
     }
 
     private static void AddHybridVisualPage(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         PptCore.PowerPointSlide slide,
         PdfCore.PdfPageRenderResult page,
         long maximumBytes,
@@ -573,7 +562,7 @@ public static partial class PdfPowerPointConverterExtensions {
             height);
     }
 
-    private static void AddEmptyPresentationSlide(PptCore.PowerPointPresentation presentation, PowerPointPdfImportOptions options) {
+    private static void AddEmptyPresentationSlide(PptCore.PowerPointDocument presentation, PowerPointPdfImportOptions options) {
         PptCore.PowerPointSlide slide = presentation.AddSlide();
         string title = string.IsNullOrWhiteSpace(options.EmptyPresentationTitle)
             ? "PDF Tables"
@@ -692,7 +681,7 @@ public static partial class PdfPowerPointConverterExtensions {
         for (int rowIndex = 0; rowIndex < table.Rows; rowIndex++) {
             for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                table.GetCell(rowIndex, columnIndex).SetBorders(PptCore.PowerPointTableCellBorders.All, LightRuleColor, LightRuleWidthPoints);
+                table.GetCell(rowIndex, columnIndex).SetBorders(PptCore.PowerPointTableCellBorders.All, LightRuleColor, OfficeLength.Points(LightRuleWidthPoints));
             }
         }
     }
@@ -775,7 +764,7 @@ public static partial class PdfPowerPointConverterExtensions {
         const double CharacterWidthPoints = 5.5D;
         const double PaddingPoints = 2D * EditableCellHorizontalPaddingPoints + 3D;
         double frameWidth = 0D;
-        for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) frameWidth += table.GetColumnWidthPoints(columnIndex);
+        for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) frameWidth += table.GetColumnWidth(columnIndex).ToPoints();
         double ratioTotal = ratios.Sum();
         if (frameWidth <= 0D || ratioTotal <= 0D || ratios.Length != table.Columns) return ratios;
         var widths = new double[ratios.Length];
@@ -880,7 +869,7 @@ public static partial class PdfPowerPointConverterExtensions {
     private sealed class PresentationConstructionScope : IDisposable {
         private bool _ownsPresentation = true;
 
-        internal PptCore.PowerPointPresentation Value { get; } = PptCore.PowerPointPresentation.CreateForImport();
+        internal PptCore.PowerPointDocument Value { get; } = PptCore.PowerPointDocument.CreateForImport();
 
         internal PdfPowerPointConversionResult Release(PdfPowerPointConversionResult result) {
             _ownsPresentation = false;

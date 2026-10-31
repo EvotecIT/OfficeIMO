@@ -43,10 +43,10 @@ public sealed partial class IWorkBoundaryTests {
             Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(2, 2, out _)); // Selected no-fill blank.
             Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(2, 3, out _)); // Inherited-fill blank.
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointDocumentResult(policy);
             Assert.False(result.IsVisualFallback); table = Assert.Single(Assert.Single(result.Projection.Slides).Tables);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             for (int i = 0; i < positions.Length; i++) {
                 var (row, column) = positions[i]; var cell = Assert.Single(reopened.Slides[0].Tables).GetCell(row - 1, column - 1);
                 Assert.Equal(expected[i], cell.FillColor); Assert.Equal(expected[i] == null, cell.NoFill);
@@ -119,7 +119,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(expected.GetProperty("modelIdentifier").GetUInt64(), table.ModelRecord!.Identifier);
         Assert.True(table.FillStyles.Body!.IsNone); Assert.True(table.FillStyles.HeaderRow!.IsNone);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+        using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
         var destination = Assert.Single(reopened.Slides.SelectMany(slide => slide.Tables));
         foreach (var cell in expected.GetProperty("cells").EnumerateArray()) {
             int row = cell.GetProperty("row").GetInt32(), column = cell.GetProperty("column").GetInt32();

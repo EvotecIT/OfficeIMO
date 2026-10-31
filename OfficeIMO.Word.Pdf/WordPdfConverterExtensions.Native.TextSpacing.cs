@@ -41,8 +41,8 @@ namespace OfficeIMO.Word.Pdf {
                 double width = WidthPercentage ?? 100D;
                 double spacing = CharacterSpacing ?? 0D;
                 if (run.HorizontalTextScaling != width) run = run.WithHorizontalTextScaling(width);
-                if (run.CharacterSpacing != spacing) run = run.WithCharacterSpacing(spacing);
-                return run.WithFeatureSettings(ResolveFeatureSettings(run.FontSize ?? defaultFontSize));
+                if ((run.CharacterSpacing.ToPoints()) != spacing) run = run.WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(spacing));
+                return run.WithFeatureSettings(ResolveFeatureSettings((run.FontSize?.ToPoints()) ?? defaultFontSize));
             }
         }
 

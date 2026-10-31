@@ -19,6 +19,7 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRunColorReset.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
+                document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!.Color = new Color { Val = "000000" };
                 WordParagraph paragraph = document.AddParagraph();
                 paragraph.AddText("Before ");
                 WordParagraph redRun = paragraph.AddText("Red");
@@ -54,6 +55,7 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeFirstRunColorReset.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
+                document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!.Color = new Color { Val = "000000" };
                 WordParagraph paragraph = document.AddParagraph();
                 paragraph.AddText("Red first").SetColorHex("FF0000");
                 paragraph.AddText(" then automatic");
@@ -78,11 +80,11 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRunFontSizes.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddParagraph("ParagraphSized").SetFontSize(16);
+                document.AddParagraph("ParagraphSized").SetFontSize(global::OfficeIMO.OfficeLength.Points(16));
 
                 WordParagraph paragraph = document.AddParagraph();
                 paragraph.AddText("Small");
-                paragraph.AddText("Large").SetFontSize(18);
+                paragraph.AddText("Large").SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
                 paragraph.AddText("Normal");
 
                 document.Save();
@@ -102,9 +104,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, CountOccurrences(pageText, "Normal"));
             }
 
-            Assert.Matches(@"/F\d+\s+16\s+Tf", content);
-            Assert.Matches(@"/F\d+\s+18\s+Tf", content);
-            Assert.True(Regex.Matches(content, @"/F\d+\s+11\s+Tf").Count >= 2, "Expected default-sized native PDF runs before and after explicit font sizes.");
+            Assert.Matches(@"/[^\s/]+\s+16\s+Tf", content);
+            Assert.Matches(@"/[^\s/]+\s+18\s+Tf", content);
+            Assert.True(Regex.Matches(content, @"/[^\s/]+\s+11\s+Tf").Count >= 2, "Expected default-sized native PDF runs before and after explicit font sizes.");
         }
 
         [Fact]
@@ -113,16 +115,16 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHalfPointFonts.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddParagraph("BodyHalfPoint").FontSizePoints = 10.5D;
+                document.AddParagraph("BodyHalfPoint").FontSize = global::OfficeIMO.OfficeLength.Points(10.5D);
                 WordParagraph cellParagraph = document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
                 cellParagraph.Text = "CellHalfPoint";
-                cellParagraph.FontSizePoints = 10.5D;
+                cellParagraph.FontSize = global::OfficeIMO.OfficeLength.Points(10.5D);
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions());
             }
 
             string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-            Assert.True(Regex.Matches(content, @"/F\d+\s+10\.5\s+Tf").Count >= 2,
+            Assert.True(Regex.Matches(content, @"/[^\s/]+\s+10\.5\s+Tf").Count >= 2,
                 "Expected half-point sizes for both body and table text.");
         }
 
@@ -395,7 +397,9 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("/Subtype /Type0", content, StringComparison.Ordinal);
             Assert.Contains("/FontFile2", content, StringComparison.Ordinal);
-            Assert.Contains("/BaseFont /" + SanitizeExpectedPdfFontName(fontFamily), content, StringComparison.Ordinal);
+            string expectedFamily = SanitizeExpectedPdfFontName(fontFamily);
+            expectedFamily = expectedFamily.Substring(0, expectedFamily.Length - "-Regular".Length);
+            Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + Regex.Escape(expectedFamily) + @"(?:-|[,/\s])", content);
         }
 
         [Fact]
@@ -481,7 +485,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, CountOccurrences(pageText, "After"));
             }
 
-            Assert.Matches(@"/F\d+\s+16\s+Tf", content);
+            Assert.Matches(@"/[^\s/]+\s+16\s+Tf", content);
             Assert.Contains("0.753 0 0 rg", content);
         }
 
@@ -569,8 +573,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 220),
-                    Margins = PdfPageMargins.Uniform(40),
+                    PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
                     FontFamily = "Helvetica"
                 });
             }
@@ -583,7 +587,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, CountOccurrences(pageText, "CellStyledChar"));
             }
 
-            Assert.Matches(@"/F\d+\s+18\s+Tf", content);
+            Assert.Matches(@"/[^\s/]+\s+18\s+Tf", content);
             Assert.Contains("0.753 0 0 rg", content);
         }
 

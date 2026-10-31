@@ -23,7 +23,7 @@ public sealed class TestOfficePowerPointCommand : OfficeInputCmdlet {
 
     /// <summary>Gets or sets a live document; omission uses the enclosing presentation block.</summary>
     [Parameter(ValueFromPipeline = true, ParameterSetName = "Document")]
-    public PowerPointPresentation? Document { get; set; }
+    public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets inspection, native format or Reader policy objects, including hashtables.</summary>
     [Parameter, OfficeInspectionOptionsTransformation]
     public object[]? Options { get; set; }
@@ -45,7 +45,7 @@ public sealed class TestOfficePowerPointCommand : OfficeInputCmdlet {
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync() {
         if (ParameterSetName == "Document") {
-            var document = Document ?? OfficeDocumentContext.Find<PowerPointPresentation>();
+            var document = Document ?? OfficeDocumentContext.Find<PowerPointDocument>();
             try {
                 if (document == null) throw new PSArgumentException("Supply -Document or invoke Test-OfficePowerPoint inside a presentation block.");
                 WriteObject(Report(OfficeDocument.Inspect(document, _options, CancelToken)));

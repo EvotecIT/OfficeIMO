@@ -16,8 +16,8 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RejectsOutOfRangeCellFillCoordinates() {
         var style = PdfTableStyles.Minimal();
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(2, 0)] = PdfColor.Gray
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(2, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -57,8 +57,8 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void ParagraphKeepWithNext_RejectsFollowingTableWithOutOfRangeCellFillCoordinates() {
         var style = PdfTableStyles.Minimal();
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(0, 2)] = PdfColor.Gray
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(0, 2)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -78,11 +78,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RejectsOutOfRangeRowMinimumHeights() {
         var style = PdfTableStyles.Minimal();
-        style.RowMinHeights = new List<double?> {
-            null,
-            null,
-            24
-        };
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { null, null, global::OfficeIMO.OfficeLength.Points(24) };
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
@@ -118,10 +114,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RejectsOutOfRangeBodyColumnFill() {
         var style = PdfTableStyles.Minimal();
-        style.BodyColumnFills = new List<PdfColor?> {
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             null,
             null,
-            PdfColor.Gray
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -139,8 +135,8 @@ public partial class PdfDocumentVisualQualityTests {
     public void Table_IgnoresCellFillCoordinatesCoveredByColumnSpan() {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(0, 1)] = PdfColor.Gray
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(0, 1)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)
         };
 
         byte[] bytes = PdfDocument.Create()
@@ -335,11 +331,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void ParagraphKeepWithNext_RejectsFollowingTableWithOutOfRangeFixedColumnWidth() {
         var style = PdfTableStyles.Minimal();
-        style.ColumnWidthPoints = new List<double?> {
-            null,
-            null,
-            42
-        };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { null, null, global::OfficeIMO.OfficeLength.Points(42) };
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()

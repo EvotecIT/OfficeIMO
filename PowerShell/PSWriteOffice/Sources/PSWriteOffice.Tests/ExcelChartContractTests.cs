@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.Data;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
@@ -14,7 +15,7 @@ public sealed class ExcelChartContractTests {
     [Fact]
     public void SelectedFormattedNumericAndFormulaColumnsPersistInRequestedOrderAtTheRequestedAddress() {
         using var book = ExcelDocument.Create();
-        var sheet = book.AddWorksheet("Sales");
+        var sheet = book.AddSheet("Sales");
         var rows = new DataTable();
         rows.Columns.Add("Revenue", typeof(double));
         rows.Columns.Add("Note", typeof(string));
@@ -23,7 +24,7 @@ public sealed class ExcelChartContractTests {
         rows.Columns.Add("Forecast", typeof(double));
         rows.Rows.Add(100.125d, "First", "North", 0.125d, 0d);
         rows.Rows.Add(150.875d, "Second", "South", 0.205d, 0d);
-        sheet.InsertDataTableAsTable(rows, startRow: 4, startColumn: 3, tableName: "Sales");
+        sheet.AddTable(rows, new OfficeTableOptions { Name = "Sales" }, row: 4, column: 3);
         sheet.Range("C5:C6").SetNumberFormat("\"$\"#,##0.00");
         sheet.Range("F5:F6").SetNumberFormat("0.0%");
         sheet.CellFormula(5, 7, "C5*2");
@@ -41,7 +42,7 @@ public sealed class ExcelChartContractTests {
             var reopened = saved["Sales"];
             var chart = Assert.Single(reopened.Charts);
             Assert.Equal("Margin", chart.Title);
-            Assert.Equal(ExcelChartType.BarClustered, chart.ChartType);
+            Assert.Equal(OfficeChartType.BarClustered, chart.ChartType);
             AssertData(chart, new[] { "North", "South" }, new[] { "Cost", "Forecast", "Revenue" },
                 new[] { 0.125d, 0.205d }, new[] { 200.25d, 301.75d }, new[] { 100.125d, 150.875d });
             Assert.Equal("C4:G6", reopened.GetTableRange("Sales"));
@@ -64,7 +65,7 @@ public sealed class ExcelChartContractTests {
     [Fact]
     public void InferredValuesUseOnlyNumericColumnsAndExcludeTotalsAndUnrelatedCells() {
         using var book = ExcelDocument.Create();
-        var sheet = book.AddWorksheet("Sales");
+        var sheet = book.AddSheet("Sales");
         var rows = new DataTable();
         rows.Columns.Add("Region", typeof(string));
         rows.Columns.Add("Revenue", typeof(double));
@@ -74,7 +75,7 @@ public sealed class ExcelChartContractTests {
         rows.Columns.Add("Mixed", typeof(string));
         rows.Rows.Add("North", 100d, "First", 40d, DBNull.Value, "5");
         rows.Rows.Add("South", 150d, "Second", 60d, DBNull.Value, "unknown");
-        sheet.InsertDataTableAsTable(rows, startRow: 3, startColumn: 2, tableName: "Sales");
+        sheet.AddTable(rows, new OfficeTableOptions { Name = "Sales" }, row: 3, column: 2);
         sheet.SetTableTotalsByName("Sales", new Dictionary<string, ExcelTableTotalsFunction> { ["Revenue"] = ExcelTableTotalsFunction.Sum });
         sheet.CellValue(30, 3, 999999d);
         using var runspace = Open(book);
@@ -87,7 +88,7 @@ public sealed class ExcelChartContractTests {
     [Fact]
     public void PipelineRowsWriteOneTableWithoutOverwritingExistingCellsAndReturnOneNativeChart() {
         using var book = ExcelDocument.Create();
-        var sheet = book.AddWorksheet("Sales");
+        var sheet = book.AddSheet("Sales");
         sheet.CellValue(8, 1, "Keep this row");
         using var runspace = Open(book);
         var result = Invoke(runspace, """
@@ -111,7 +112,7 @@ public sealed class ExcelChartContractTests {
     [Fact]
     public void ExplicitInputTableIsCopiedAndCacheSuppressionKeepsNativeWorksheetReferences() {
         using var book = ExcelDocument.Create();
-        book.AddWorksheet("Sales");
+        book.AddSheet("Sales");
         var rows = new DataTable();
         rows.Columns.Add("Revenue", typeof(double));
         rows.Columns.Add("Region", typeof(string));
@@ -135,7 +136,7 @@ public sealed class ExcelChartContractTests {
     [Fact]
     public void HeaderlessRangeUsesTheWorkbookPipelineAndReturnsQuietly() {
         using var book = ExcelDocument.Create();
-        var sheet = book.AddWorksheet("Sales");
+        var sheet = book.AddSheet("Sales");
         sheet.CellValue(3, 2, "North");
         sheet.CellValue(3, 3, 100d);
         sheet.CellValue(4, 2, "South");
@@ -155,7 +156,7 @@ public sealed class ExcelChartContractTests {
     [Fact]
     public void TableChartResolvesTheActiveWorksheetCompositionScope() {
         using var book = ExcelDocument.Create();
-        var sheet = book.AddWorksheet("Sales");
+        var sheet = book.AddSheet("Sales");
         SeedSales(sheet);
         using var runspace = Open(book);
         Assert.Empty(Invoke(runspace, """
@@ -181,7 +182,7 @@ public sealed class ExcelChartContractTests {
     [InlineData("-Range A1:D3")]
     public void InvalidSelectionsLeaveTheWorkbookUnchanged(string selection) {
         using var book = ExcelDocument.Create();
-        var sheet = book.AddWorksheet("Sales");
+        var sheet = book.AddSheet("Sales");
         SeedSales(sheet);
         string originalRange = sheet.UsedRangeA1;
         int sheetCount = book.Sheets.Count;
@@ -197,12 +198,12 @@ public sealed class ExcelChartContractTests {
     [Fact]
     public void InferenceDoesNotInventAValueSeriesForATextOnlyTable() {
         using var book = ExcelDocument.Create();
-        var sheet = book.AddWorksheet("Sales");
+        var sheet = book.AddSheet("Sales");
         var rows = new DataTable();
         rows.Columns.Add("Region", typeof(string));
         rows.Columns.Add("Note", typeof(string));
         rows.Rows.Add("North", "No numeric values");
-        sheet.InsertDataTableAsTable(rows, tableName: "Sales");
+        sheet.AddTable(rows, new OfficeTableOptions { Name = "Sales" });
         using var runspace = Open(book);
         Reject(runspace, "Add-OfficeExcelChart -Document $book -Table Sales -Address F2");
         Assert.Empty(sheet.Charts);
@@ -219,7 +220,7 @@ public sealed class ExcelChartContractTests {
     [InlineData("-Category Region -Value Revenue -Address F2 -Type Bubble")]
     public void InvalidInputMappingOrPlacementDoesNotWriteATable(string parameters) {
         using var book = ExcelDocument.Create();
-        var sheet = book.AddWorksheet("Sales");
+        var sheet = book.AddSheet("Sales");
         using var runspace = Open(book);
         Reject(runspace, "Add-OfficeExcelChart -Document $book -InputObject @([pscustomobject]@{ Region = 'North'; Revenue = 100 }) " + parameters);
         Assert.Empty(sheet.GetTables());
@@ -233,7 +234,7 @@ public sealed class ExcelChartContractTests {
     [InlineData("Infinity")]
     public void InvalidLaterPipelineValueDoesNotWriteEarlierRows(string value) {
         using var book = ExcelDocument.Create();
-        var sheet = book.AddWorksheet("Sales");
+        var sheet = book.AddSheet("Sales");
         using var runspace = Open(book);
         runspace.SessionStateProxy.SetVariable("invalid", value);
         Reject(runspace, """
@@ -255,7 +256,7 @@ public sealed class ExcelChartContractTests {
         rows.Columns.Add("Cost", typeof(double));
         rows.Rows.Add("North", 100d, "First", 40d);
         rows.Rows.Add("South", 150d, "Second", 60d);
-        sheet.InsertDataTableAsTable(rows, tableName: "Sales");
+        sheet.AddTable(rows, new OfficeTableOptions { Name = "Sales" });
     }
 
     private static void AssertData(ExcelChart chart, string[] categories, string[] names, params double[][] values) {

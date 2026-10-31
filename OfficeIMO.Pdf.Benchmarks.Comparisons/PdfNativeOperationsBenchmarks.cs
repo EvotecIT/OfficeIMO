@@ -52,15 +52,39 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons {
 
         /// <summary>Runs one operation and returns its observable result.</summary>
         [Benchmark]
-        public object Execute() => Operation switch {
-            "ReadText" => PdfReadDocument.Open(_source).ExtractText(),
-            "ReadStructured" => PdfDocument.Load(_source).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured }).Text,
-            "Select" => PdfDocument.Load(_source).Pages.Extract(_selection).ToBytes(),
-            "Merge" => PdfDocument.MergeBytes(_sources).ToBytes(),
-            "Split" => PdfDocument.Load(_source).Pages.Split().Select(document => document.ToBytes()).ToArray(),
-            "SplitSelections" => PdfDocument.Load(_source).Pages.Split(Enumerable.Range(1, 100).Select(page => PdfPageSelection.From(page)).ToArray()).Select(document => document.ToBytes()).ToArray(),
-            _ => throw new InvalidOperationException()
-        };
+        public object Execute() {
+            if (Operation == "Merge") {
+                var documents = new List<PdfDocument>(_sources.Length);
+                try {
+                    foreach (byte[] bytes in _sources) {
+                        using var sourceInput = new MemoryStream(bytes, writable: false);
+                        documents.Add(PdfDocument.Load(sourceInput));
+                    }
+                    using PdfDocument merged = PdfDocument.Merge(documents);
+                    return merged.ToBytes();
+                } finally {
+                    foreach (PdfDocument document in documents) document.Dispose();
+                }
+            }
+            using var input = new MemoryStream(_source, writable: false);
+            using PdfDocument source = PdfDocument.Load(input);
+            switch (Operation) {
+                case "ReadText": return source.ExtractText();
+                case "ReadStructured": return source.Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured }).Text;
+                case "Select":
+                    using (PdfDocument selected = source.Pages.Extract(_selection)) return selected.ToBytes();
+                case "Split":
+                case "SplitSelections":
+                    IReadOnlyList<PdfDocument> parts = Operation == "Split"
+                        ? source.Pages.Split()
+                        : source.Pages.Split(Enumerable.Range(1, 100).Select(page => PdfPageSelection.From(page)).ToArray());
+                    try {
+                        return parts.Select(document => document.ToBytes()).ToArray();
+                    } finally {
+                        foreach (PdfDocument part in parts) part.Dispose();
+                    }
+                default: throw new InvalidOperationException();
+            }
+        }
     }
 }
-

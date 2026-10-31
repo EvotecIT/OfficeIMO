@@ -35,7 +35,7 @@ public sealed partial class PowerPointSlideEditWorkflowTests {
         Assert.Same(document.Slides[2], Assert.Single(result).BaseObject);
         Assert.NotSame(document.Slides[0], document.Slides[2]);
         document.Slides[2].GetPlaceholder(PowerPointPlaceholderType.Title)!.Text = "Copied appendix";
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Empty(saved.ValidateDocument());
         Assert.Equal("Retained source notes", saved.Slides[2].Notes.Text);
         Assert.Equal("First", saved.Slides[0].GetPlaceholder(PowerPointPlaceholderType.Title)!.Text);
@@ -55,7 +55,7 @@ public sealed partial class PowerPointSlideEditWorkflowTests {
         Assert.Same(document, Assert.Single(result).BaseObject);
         Assert.Same(survivor, Assert.Single(document.Slides));
         document.AddSlide().AddTitle("Replacement");
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Empty(saved.ValidateDocument());
         Assert.Equal(2, saved.Slides.Count);
     }
@@ -74,7 +74,7 @@ public sealed partial class PowerPointSlideEditWorkflowTests {
         Assert.Empty(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
         Assert.Same(survivor, Assert.Single(document.Slides));
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Empty(saved.ValidateDocument());
         Assert.Equal("Second", saved.Slides[0].GetPlaceholder(PowerPointPlaceholderType.Title)!.Text);
     }

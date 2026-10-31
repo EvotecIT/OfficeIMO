@@ -66,11 +66,11 @@ public class PdfDocumentWorkflowTests {
                 new[] { "Name", "Value" },
                 new[] { "Alpha", longValue }
             }, style: new PdfTableStyle {
-                FontSize = 18,
-                HeaderFontSize = 18,
-                MinimumShrinkFontSize = 7,
+                FontSize = global::OfficeIMO.OfficeLength.Points(18),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(18),
+                MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(7),
                 ShrinkTextToFit = true,
-                ColumnWidthPoints = new List<double?> { 54, 108 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(108) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -91,15 +91,15 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
-                FontSize = 18,
-                HeaderFontSize = 18,
-                MinimumShrinkFontSize = 7,
+                FontSize = global::OfficeIMO.OfficeLength.Points(18),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(18),
+                MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(7),
                 ShrinkTextToFit = true,
-                ColumnWidthPoints = new List<double?> { 54, 108 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(108) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -124,15 +124,15 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(longValue, fontSize: 8, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(8), font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
-                FontSize = 18,
-                HeaderFontSize = 18,
-                MinimumShrinkFontSize = 7,
+                FontSize = global::OfficeIMO.OfficeLength.Points(18),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(18),
+                MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(7),
                 ShrinkTextToFit = true,
-                ColumnWidthPoints = new List<double?> { 54, 108 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(108) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -160,15 +160,15 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
-                FontSize = 8,
-                HeaderFontSize = 8,
-                MinimumShrinkFontSize = 8,
+                FontSize = global::OfficeIMO.OfficeLength.Points(8),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
+                MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 ShrinkTextToFit = true,
-                ColumnWidthPoints = new List<double?> { 54, 108 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(108) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -195,16 +195,16 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(tinyValue, fontSize: 4, font: PdfStandardFont.Courier),
+                        PdfTextRun.Normal(tinyValue, fontSize: global::OfficeIMO.OfficeLength.Points(4), font: PdfStandardFont.Courier),
                         PdfTextRun.Normal(longValue)
                     })
                 }
             }, style: new PdfTableStyle {
-                FontSize = 18,
-                HeaderFontSize = 18,
-                MinimumShrinkFontSize = 7,
+                FontSize = global::OfficeIMO.OfficeLength.Points(18),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(18),
+                MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(7),
                 ShrinkTextToFit = true,
-                ColumnWidthPoints = new List<double?> { 54, 108 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(108) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -225,15 +225,15 @@ public class PdfDocumentWorkflowTests {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
                         PdfTextRun.Normal(prefix),
-                        PdfTextRun.Normal(largeValue, fontSize: 30, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(largeValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
-                FontSize = 8,
-                HeaderFontSize = 8,
-                MinimumShrinkFontSize = 8,
+                FontSize = global::OfficeIMO.OfficeLength.Points(8),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(8),
+                MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(8),
                 ShrinkTextToFit = true,
-                ColumnWidthPoints = new List<double?> { 54, 108 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(108) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -260,15 +260,15 @@ public class PdfDocumentWorkflowTests {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
                         PdfTextRun.Normal(prefix),
-                        PdfTextRun.Normal(largeValue, fontSize: 20, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(largeValue, fontSize: global::OfficeIMO.OfficeLength.Points(20), font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
-                FontSize = 10,
-                HeaderFontSize = 10,
-                MinimumShrinkFontSize = 6,
+                FontSize = global::OfficeIMO.OfficeLength.Points(10),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(10),
+                MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(6),
                 ShrinkTextToFit = true,
-                ColumnWidthPoints = new List<double?> { 54, 108 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(108) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -282,8 +282,8 @@ public class PdfDocumentWorkflowTests {
     public void TableStyle_CanShrinkTextToFitInsideRowColumnLayout() {
         const string longValue = "ThisIdentifierShouldShrinkToFit";
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -294,11 +294,11 @@ public class PdfDocumentWorkflowTests {
                                     new[] { "Name", "Value" },
                                     new[] { "Alpha", longValue }
                                 }, style: new PdfTableStyle {
-                                    FontSize = 18,
-                                    HeaderFontSize = 18,
-                                    MinimumShrinkFontSize = 7,
+                                    FontSize = global::OfficeIMO.OfficeLength.Points(18),
+                                    HeaderFontSize = global::OfficeIMO.OfficeLength.Points(18),
+                                    MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(7),
                                     ShrinkTextToFit = true,
-                                    ColumnWidthPoints = new List<double?> { 54, 108 },
+                                    ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(108) },
                                     HeaderRowCount = 1
                                 }))))))
             .ToBytes();
@@ -321,18 +321,18 @@ public class PdfDocumentWorkflowTests {
     public void TableStyle_CanShrinkTextToFitInsideCanvasTable() {
         const string longValue = "ThisIdentifierShouldShrinkToFit";
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
             })
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { "Name", "Value" },
                 new[] { "Alpha", longValue }
-            }, 20, 20, 162, 80, new PdfTableStyle {
-                FontSize = 18,
-                HeaderFontSize = 18,
-                MinimumShrinkFontSize = 7,
+            }, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(162), global::OfficeIMO.OfficeLength.Points(80), new PdfTableStyle {
+                FontSize = global::OfficeIMO.OfficeLength.Points(18),
+                HeaderFontSize = global::OfficeIMO.OfficeLength.Points(18),
+                MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(7),
                 ShrinkTextToFit = true,
-                ColumnWidthPoints = new List<double?> { 54, 108 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(108) },
                 HeaderRowCount = 1
             }))
             .ToBytes();
@@ -347,12 +347,12 @@ public class PdfDocumentWorkflowTests {
     [Fact]
     public void PageSizes_ResolveExpandedStandardNames() {
         Assert.True(PdfPageSizes.TryGet("a0", out PdfPageSize a0));
-        Assert.Equal(2384, a0.Width);
-        Assert.Equal(3370, a0.Height);
+        Assert.Equal(2384, a0.Width.ToPoints());
+        Assert.Equal(3370, a0.Height.ToPoints());
 
         Assert.True(PdfPageSizes.TryGet("B10", out PdfPageSize b10));
-        Assert.Equal(88, b10.Width);
-        Assert.Equal(124, b10.Height);
+        Assert.Equal(88, b10.Width.ToPoints());
+        Assert.Equal(124, b10.Height.ToPoints());
 
         Assert.Equal(PdfPageSizes.Executive, PdfPageSizes.Get("Executive"));
         Assert.Equal(PdfPageSizes.Ledger, PdfPageSizes.Get("LedgerOrTabloid"));
@@ -710,8 +710,8 @@ public class PdfDocumentWorkflowTests {
 
         byte[] imagePdf = PdfStamper.StampImage(source, PdfPngTestImages.CreateRgbPng(255, 0, 0), new PdfImageStampOptions {
             PageNumbers = new[] { 1, 3 },
-            Width = 24,
-            Height = 24
+            Width = global::OfficeIMO.OfficeLength.Points(24),
+            Height = global::OfficeIMO.OfficeLength.Points(24)
         });
         PdfDocument imageDocument = PdfDocument.Load(new System.IO.MemoryStream(imagePdf));
         IReadOnlyList<PdfExtractedImage> selectedImages = imageDocument.Reader.Images("3,1-2");
@@ -752,7 +752,7 @@ public class PdfDocumentWorkflowTests {
         Assert.NotNull(malformedRange.Exception);
         Assert.Contains("Page number cannot be empty", string.Join(" ", malformedRange.Diagnostics), StringComparison.Ordinal);
 
-        PdfOperationResult<PdfDocument> stamped = opened.Stamp.TextResult("Reviewed", new PdfTextStampOptions { X = 72, Y = 72 });
+        PdfOperationResult<PdfDocument> stamped = opened.Stamp.TextResult("Reviewed", new PdfTextStampOptions { X = global::OfficeIMO.OfficeLength.Points(72), Y = global::OfficeIMO.OfficeLength.Points(72) });
         Assert.True(stamped.Succeeded);
         Assert.Equal(3, stamped.RequireValue().Inspect().PageCount);
 
@@ -1201,9 +1201,9 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal("OfficeIMO Tests", metadata.Inspect().Metadata.Author);
 
         var stampOptions = new PdfTextStampOptions {
-            X = 72,
-            Y = 72,
-            FontSize = 12
+            X = global::OfficeIMO.OfficeLength.Points(72),
+            Y = global::OfficeIMO.OfficeLength.Points(72),
+            FontSize = global::OfficeIMO.OfficeLength.Points(12)
         };
 
         Assert.Equal(
@@ -1285,7 +1285,7 @@ public class PdfDocumentWorkflowTests {
         PdfMutationBlockedException mergeException = Assert.Throws<PdfMutationBlockedException>(
             () => PdfDocument.Merge(PdfDocument.Load(new System.IO.MemoryStream(onePage)), constrained));
         PdfMutationBlockedException resizeException = Assert.Throws<PdfMutationBlockedException>(
-            () => constrained.Pages.Resize(new PdfPageSize(612, 792)));
+            () => constrained.Pages.Resize(new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792))));
 
         PdfMutationBlockedException optimizeException = Assert.Throws<PdfMutationBlockedException>(
             () => constrained.Optimize());
@@ -1521,12 +1521,12 @@ public class PdfDocumentWorkflowTests {
                 Caption = "Table caption \u2666"
             })
             .Canvas(canvas => canvas
-                .Text("Canvas \u260e", 10, 10, 120, 24)
-                .FreeTextAnnotation("Callout \u2615", 10, 42, 120, 32)
-                .Table(new[] { new[] { "Canvas table" } }, 10, 84, 120, 42, new PdfTableStyle {
+                .Text("Canvas \u260e", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(24))
+                .FreeTextAnnotation("Callout \u2615", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(42), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(32))
+                .Table(new[] { new[] { "Canvas table" } }, global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(84), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(42), new PdfTableStyle {
                     Caption = "Canvas caption \u273f"
                 }))
-            .TextField("Person.Name", width: 120, height: 20, value: "Field \u2603");
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "Field \u2603");
 
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
 
@@ -1699,7 +1699,7 @@ public class PdfDocumentWorkflowTests {
                     PdfTableCell.WithFormFields(
                         "Table form",
                         new[] {
-                            PdfTableCellFormField.TextField("Table.DueDate", "Due \u2603", width: 120, height: 18)
+                            PdfTableCellFormField.TextField("Table.DueDate", "Due \u2603", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(18))
                         })
                 }
             });
@@ -1857,7 +1857,7 @@ public class PdfDocumentWorkflowTests {
     private static byte[] BuildSimpleFormPdf() {
         return PdfDocument.Create()
             .H1("Form")
-            .TextField("Person.Name", width: 180, height: 24, value: "Original")
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Original")
             .ToBytes();
     }
 }

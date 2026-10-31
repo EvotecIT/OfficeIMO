@@ -44,7 +44,7 @@ public static partial class HtmlExcelConverterExtensions {
                         "The full table caption was omitted because it exceeded a semantic or native Excel cell limit.",
                         lossKind: OfficeConversionLossKind.Omission, detail: captionLimit);
                 }
-                ExcelSheet sheet = workbook.AddWorksheet(sheetName);
+                ExcelSheet sheet = workbook.AddSheet(sheetName);
                 tableSheets[semanticTableNumber] = sheet;
                 result.Sheets++;
                 ImportTableGrid(
@@ -76,8 +76,8 @@ public static partial class HtmlExcelConverterExtensions {
                     "HTML text could not be imported because the shared worksheet limit was reached.",
                     HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, detail: textContainerLimit);
             } else {
-                narrativeSheet = workbook.AddWorksheet(GetUniqueSheetName("Imported", usedNames));
-                narrativeSheet.SetColumnWidth(1, 75D);
+                narrativeSheet = workbook.AddSheet(GetUniqueSheetName("Imported", usedNames));
+                narrativeSheet.SetColumnWidth(1, OfficeIMO.Excel.ExcelColumnWidth.Characters(75D));
                 result.Sheets++;
                 int maxTableCells = budget.Limits.MaxTableCells;
                 int narrativeCells = 0;
@@ -166,7 +166,7 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlImportBudget budget) {
         if (narrativeSheet == null && regions.Any(region => region.SemanticTableNumber == 0)) {
             if (budget.TryReserveSemanticContainer(out string narrativeContainerLimit)) {
-                narrativeSheet = workbook.AddWorksheet(GetUniqueSheetName("Imported", usedNames));
+                narrativeSheet = workbook.AddSheet(GetUniqueSheetName("Imported", usedNames));
                 result.Sheets++;
             } else {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
@@ -289,14 +289,12 @@ public static partial class HtmlExcelConverterExtensions {
                     double imageHeight = NormalizeEditableLayoutGeometry(
                         image.Height, maximumGeometry, 1D, maximumGeometry,
                         budget, result, "editable layout picture height");
-                    ExcelImage nativeImage = sheet.AddImageAbsolute(
-                        (int)Math.Round(imageLeft),
-                        (int)Math.Round(imageTop),
-                        bytes,
-                        contentType,
-                        (int)Math.Round(imageWidth),
-                        (int)Math.Round(imageHeight),
-                        altText: image.AlternativeText);
+                    ExcelImage nativeImage = sheet.AddImage(OfficeIMO.OfficeLength.Pixels(imageLeft), OfficeIMO.OfficeLength.Pixels(imageTop), bytes, new OfficeIMO.Excel.ExcelImageOptions {
+                        ContentType = contentType,
+                        Width = OfficeIMO.OfficeLength.Pixels(imageWidth),
+                        Height = OfficeIMO.OfficeLength.Pixels(imageHeight),
+                        Description = image.AlternativeText
+                    });
                     if (image.Opacity < 0.999D) {
                         nativeImage.TransparencyPercent = (int)Math.Round((1D - image.Opacity) * 100D);
                     }
@@ -361,12 +359,15 @@ public static partial class HtmlExcelConverterExtensions {
     }
 
     private static EditableLayoutCellBounds GetImageCellBounds(ExcelImage image) {
-        if (image.TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels,
-                out int widthPixels, out int heightPixels)) {
-            int firstColumn = PixelToColumn(xPixels);
-            int firstRow = PixelToRow(yPixels);
-            int lastColumn = PixelToColumn((long)xPixels + Math.Max(1, widthPixels) - 1L);
-            int lastRow = PixelToRow((long)yPixels + Math.Max(1, heightPixels) - 1L);
+        if (image.TryGetAbsoluteAnchorBounds(out OfficeLength x, out OfficeLength y,
+                out OfficeLength width, out OfficeLength height)) {
+            int firstColumn = PixelToColumn(x.ToPixels());
+            int firstRow = PixelToRow(y.ToPixels());
+            // Native extents are exclusive endpoints; subtract one EMU rather than one presentation pixel.
+            decimal rightEmus = (decimal)x.ToEmus() + Math.Max(1L, width.ToEmus()) - 1M;
+            decimal bottomEmus = (decimal)y.ToEmus() + Math.Max(1L, height.ToEmus()) - 1M;
+            int lastColumn = PixelToColumn((double)(rightEmus / 9525M));
+            int lastRow = PixelToRow((double)(bottomEmus / 9525M));
             return new EditableLayoutCellBounds(firstRow, firstColumn,
                 Math.Max(firstRow, lastRow), Math.Max(firstColumn, lastColumn));
         }
@@ -379,20 +380,20 @@ public static partial class HtmlExcelConverterExtensions {
                 Math.Max(anchorColumn, Math.Min(ExcelA1.MaxColumns, image.ToColumnIndex.Value)));
         }
 
-        int columnSpan = Math.Max(1, (int)Math.Ceiling(
-            (Math.Max(0, image.OffsetXPixels) + Math.Max(1, image.WidthPixels)) / 64D));
-        int rowSpan = Math.Max(1, (int)Math.Ceiling(
-            (Math.Max(0, image.OffsetYPixels) + Math.Max(1, image.HeightPixels)) / 20D));
+        int columnSpan = Math.Max(1, (int)Math.Min(ExcelA1.MaxColumns, Math.Ceiling(
+            (Math.Max(0, image.OffsetX.ToPixels()) + Math.Max(1, image.Width.ToPixels())) / 64D)));
+        int rowSpan = Math.Max(1, (int)Math.Min(ExcelA1.MaxRows, Math.Ceiling(
+            (Math.Max(0, image.OffsetY.ToPixels()) + Math.Max(1, image.Height.ToPixels())) / 20D)));
         return new EditableLayoutCellBounds(anchorRow, anchorColumn,
             Math.Min(ExcelA1.MaxRows, anchorRow + rowSpan - 1),
             Math.Min(ExcelA1.MaxColumns, anchorColumn + columnSpan - 1));
     }
 
-    private static int PixelToColumn(long pixels) =>
-        Math.Max(1, Math.Min(ExcelA1.MaxColumns, (int)(Math.Max(0L, pixels) / 64L) + 1));
+    private static int PixelToColumn(double pixels) =>
+        1 + (int)Math.Min(ExcelA1.MaxColumns - 1D, Math.Floor(Math.Max(0D, pixels) / 64D));
 
-    private static int PixelToRow(long pixels) =>
-        Math.Max(1, Math.Min(ExcelA1.MaxRows, (int)(Math.Max(0L, pixels) / 20L) + 1));
+    private static int PixelToRow(double pixels) =>
+        1 + (int)Math.Min(ExcelA1.MaxRows - 1D, Math.Floor(Math.Max(0D, pixels) / 20D));
 
     private static bool IsGenericTextBlock(HtmlSemanticBlockKind kind) =>
         kind == HtmlSemanticBlockKind.Heading || kind == HtmlSemanticBlockKind.Paragraph
@@ -512,30 +513,25 @@ public static partial class HtmlExcelConverterExtensions {
                 out byte[] bytes, out string contentType, out HtmlImportBudgetReservation imageReservation)) return;
         using HtmlImportBudgetReservation imageReservationScope = imageReservation;
         if (row > ExcelA1.MaxRows) return;
-        int width = ReadGenericImageDimension(resource.WidthPixels, "width", 160, budget, result);
-        int height = ReadGenericImageDimension(resource.HeightPixels, "height", 90, budget, result);
-        ExcelImage importedImage = sheet.AddImage(row, 1, bytes, contentType, width, height,
-            name: null,
-            altText: string.IsNullOrWhiteSpace(resource.AlternateText) ? null : resource.AlternateText);
+        double width = ReadGenericImageDimension(resource.WidthPixels, "width", 160, budget, result);
+        double height = ReadGenericImageDimension(resource.HeightPixels, "height", 90, budget, result);
+        ExcelImage importedImage = sheet.AddImage(row, 1, bytes, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = contentType,
+            Width = OfficeIMO.OfficeLength.Pixels(width),
+            Height = OfficeIMO.OfficeLength.Pixels(height),
+            Name = null,
+            Description = string.IsNullOrWhiteSpace(resource.AlternateText) ? null : resource.AlternateText
+        });
         ApplyImageHyperlink(importedImage, resource.Hyperlink, result);
         result.Images++;
         imageReservation.Commit();
-        row = Math.Min(ExcelA1.MaxRows + 1, row + Math.Max(2, (height + 19) / 20 + 1));
+        row = Math.Min(ExcelA1.MaxRows + 1, row + Math.Max(2, (int)Math.Ceiling(height / 20D) + 1));
     }
 
-    private static int ReadGenericImageDimension(
-        double? pixels,
-        string property,
-        int fallback,
-        HtmlImportBudget budget,
-        HtmlToExcelResult result) {
-        int value = fallback;
-        if (pixels.HasValue && pixels.Value <= int.MaxValue) {
-            value = (int)Math.Round(pixels.Value);
-        }
-        int maximum = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
-        return NormalizeImportInt(value, fallback, 1, maximum, budget, result, "generic image " + property);
-    }
+    private static double ReadGenericImageDimension(
+        double? pixels, string property, int fallback, HtmlImportBudget budget, HtmlToExcelResult result) =>
+        NormalizeEditableLayoutGeometry(pixels ?? fallback, fallback, 1D,
+            Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry), budget, result, "generic image " + property);
 
     private static void ApplySemanticCellFormatting(
         ExcelSheet sheet,
@@ -567,7 +563,7 @@ public static partial class HtmlExcelConverterExtensions {
         // table authored in one family imports in one family instead of mixing it with the workbook default.
         string cellFont = HtmlRenderCssValues.FirstFontFamily(style?.GetValue("font-family")) ?? string.Empty;
         if (cellFont.Length > 0) cell.SetFontName(cellFont);
-        if (TryParseCssPixels(style?.GetValue("font-size"), out double cellFontPixels)) cell.SetFontSize(cellFontPixels * 0.75D);
+        if (TryParseCssPixels(style?.GetValue("font-size"), out double cellFontPixels)) cell.SetFontSize(OfficeLength.Points(cellFontPixels * 0.75D));
         string fontColor = NormalizeHexColor(style?.GetValue("color"));
         if (fontColor.Length > 0) cell.SetFontColor(fontColor);
         string fillColor = NormalizeHexColor(style?.GetValue("background-color"));
@@ -611,7 +607,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (color.Length > 0) run.FontColor = color;
         string fontName = HtmlRenderCssValues.FirstFontFamily(source.Style?.GetValue("font-family")) ?? string.Empty;
         if (fontName.Length > 0) run.FontName = fontName;
-        if (TryParseCssPixels(source.Style?.GetValue("font-size"), out double pixels)) run.FontSize = pixels * 0.75D;
+        if (TryParseCssPixels(source.Style?.GetValue("font-size"), out double pixels)) run.FontSize = global::OfficeIMO.OfficeLength.Pixels(pixels);
         return run;
     }
 

@@ -96,7 +96,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         DimensionKind = GoogleSheetsDimensionKind.Columns,
                         StartIndex = column.StartIndex - 1,
                         EndIndexExclusive = column.EndIndex,
-                        PixelSize = column.Width.HasValue ? ConvertExcelColumnWidthToPixels(column.Width.Value) : null,
+                        PixelSize = (column.Width?.CharacterCount) is double width ? ConvertExcelColumnWidthToPixels(width) : null,
                         Hidden = column.Hidden,
                         OutlineLevel = column.OutlineLevel,
                     });
@@ -108,7 +108,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         DimensionKind = GoogleSheetsDimensionKind.Rows,
                         StartIndex = row.Index - 1,
                         EndIndexExclusive = row.Index,
-                        PixelSize = row.Height.HasValue ? ConvertPointsToPixels(row.Height.Value) : null,
+                        PixelSize = (row.Height?.PhysicalLength?.ToPoints()) is double height ? ConvertPointsToPixels(height) : null,
                         Hidden = row.Hidden,
                         OutlineLevel = row.OutlineLevel,
                     });

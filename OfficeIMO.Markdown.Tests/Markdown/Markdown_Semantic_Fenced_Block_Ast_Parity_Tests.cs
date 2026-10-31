@@ -99,9 +99,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
         var transform = new MarkdownRegisteredFencedBlockTransform(options.FencedBlockExtensions);
         var item = ListItem.Text("Intro");
         item.NestedBlocks.Add(new CodeBlock("ix-chart", payload));
-        var document = MarkdownDocument.Create().Add(new UnorderedListBlock {
-            Items = { item }
-        });
+        var document = MarkdownDocument.Create();
+        document.Add(new UnorderedListBlock { Items = { item } });
 
         transform.Transform(
             document,
@@ -120,9 +119,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
         var additional = new InlineSequence().Text("Tail");
         var item = new ListItem(lead);
         item.AdditionalParagraphs.Add(additional);
-        var document = MarkdownDocument.Create().Add(new UnorderedListBlock {
-            Items = { item }
-        });
+        var document = MarkdownDocument.Create();
+        document.Add(new UnorderedListBlock { Items = { item } });
 
         transform.Transform(
             document,

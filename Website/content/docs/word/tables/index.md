@@ -170,7 +170,7 @@ var employees = new[] {
     new { Name = "Carol", Role = "Manager", Salary = 105000 },
 };
 
-var table = document.AddTableFromObjects(
+var table = document.AddTable(
     employees,
     WordTableStyle.GridTable4Accent1,
     includeHeader: true

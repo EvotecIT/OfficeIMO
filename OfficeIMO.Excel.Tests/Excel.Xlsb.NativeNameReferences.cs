@@ -28,8 +28,8 @@ public sealed class ExcelXlsbNativeNameReferencesTests {
     [Fact]
     public void Deleting_local_names_does_not_retarget_validation_condition_or_unknown_future_formulas() {
         using var seed = ExcelDocument.Create();
-        var first = seed.AddWorksheet("First"); first.CellValue(1, 1, 10);
-        var retained = seed.AddWorksheet("Retained"); retained.CellValue(1, 1, 20);
+        var first = seed.AddSheet("First"); first.CellValue(1, 1, 10);
+        var retained = seed.AddSheet("Retained"); retained.CellValue(1, 1, 20);
         seed.SetNamedRange("RemovedLocal", "A1", first, save: false);
         seed.SetNamedRange("RetainedValue", "'Retained'!A1", save: false);
         byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });

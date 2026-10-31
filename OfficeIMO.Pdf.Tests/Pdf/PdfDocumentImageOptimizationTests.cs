@@ -43,7 +43,7 @@ public class PdfDocumentImageOptimizationTests {
     public void ImageOptimizationCoversBothStretchedAndCroppedSourceAxes(bool crop, int width, int height) {
         var options = new PdfCreateOptions { ImageOptimization = new() { Enabled = true, TargetDpi = 72, KeepOriginalWhenNotSmaller = false } };
         var document = PdfDocument.Create(options);
-        document.Canvas(canvas => canvas.Image(CreateJpeg(400, 200), 40, 50, 72, crop ? 36 : 72,
+        document.Canvas(canvas => canvas.Image(CreateJpeg(400, 200), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(crop ? 36 : 72),
             new PdfImageStyle { Fit = OfficeImageFit.Stretch, SourceCrop = crop ? new PdfImageSourceCrop(0.5, 0, 0, 0) : null }));
         var image = Assert.Single(PdfImageExtractor.ExtractImages(document.ToBytes()));
         Assert.Equal(width, image.Width);
@@ -107,7 +107,7 @@ public class PdfDocumentImageOptimizationTests {
         byte[] jpeg = CreateJpeg(400, 200);
         PdfDocument document = PdfDocument.Create(_ => { });
         document.Compose(compose => compose.Page(page => page
-            .Content(content => content.Item(item => item.Image(jpeg, 72, 36)))));
+            .Content(content => content.Item(item => item.Image(jpeg, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(36))))));
         document.Compose(compose => compose.Settings(settings => settings.ImageOptimization = new PdfImageOptimizationOptions {
             Enabled = true,
             TargetDpi = 72,

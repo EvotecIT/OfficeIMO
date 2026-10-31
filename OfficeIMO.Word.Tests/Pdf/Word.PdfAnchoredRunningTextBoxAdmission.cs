@@ -17,15 +17,14 @@ public partial class Word {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
         box.Anchor!.RemoveAllChildren<W14.RelativeHeight>();
-        box.Height = 571500L;
+        box.Height = OfficeLength.Emus(571500L);
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cy = 571500L;
         WordParagraph inner = box.Paragraphs.Single();
         foreach (W.Break lineBreak in inner._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();
         inner.Text = "small";
-        inner.FontSize = 6;
-        inner.AddText("LARGE").FontSize = 24;
-        inner.LineSpacingPoints = 6;
-        inner.LineSpacingRule = WordLineSpacingRule.Exact;
+        inner.FontSize = global::OfficeIMO.OfficeLength.Points(6);
+        inner.AddText("LARGE").FontSize = global::OfficeIMO.OfficeLength.Points(24);
+        inner.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6));
         // Short advances fit; the larger run's actual line ink crosses the inner clip.
         string[] before = AnchoredRunningStoryXml(document);
         var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
@@ -128,10 +127,10 @@ public partial class Word {
         foreach (W.Break lineBreak in inner._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();
         inner.Text = "x";
         inner.FontFamily = "Arial";
-        inner.FontSize = 6;
+        inner.FontSize = global::OfficeIMO.OfficeLength.Points(6);
         WordParagraph large = inner.AddText("X");
         large.FontFamily = "Arial";
-        large.FontSize = 144;
+        large.FontSize = global::OfficeIMO.OfficeLength.Points(144);
         large.AddBreak();
         string[] before = AnchoredRunningStoryXml(document);
         var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
@@ -148,8 +147,8 @@ public partial class Word {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         document.Settings.MirrorMargins = true;
         WordSection selectingSection = document.Sections[1];
-        selectingSection.Margins.Left = 1440;
-        selectingSection.Margins.Right = 2880;
+        selectingSection.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
+        selectingSection.Margins.Right = global::OfficeIMO.OfficeLength.Points(144D);
         // This section's first header is on visible page 2. The unswapped 72pt
         // text origin clears the centered box; the actual 144pt origin does not.
         // Preserve the warned flow until admission uses the effective page frame.
@@ -181,16 +180,16 @@ public partial class Word {
         DW.Anchor anchor = document.Sections[1].Header!.First!.ChildElements
             .SelectMany(child => child.Descendants<DW.Anchor>()).Single();
         anchor.RemoveAllChildren<W14.RelativeHeight>();
-        textBox.Height = 571500L; // Authored 45pt frame, not 20% of the margin height.
+        textBox.Height = OfficeLength.Emus(571500L); // Authored 45pt frame, not 20% of the margin height.
         anchor.Descendants<A.Transform2D>().Single().Extents!.Cy = 571500L;
         WordParagraph inner = textBox.Paragraphs.Single();
         foreach (W.Break lineBreak in inner._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();
         inner.Text = "small";
         inner.FontFamily = "Arial";
-        inner.FontSize = 6;
+        inner.FontSize = global::OfficeIMO.OfficeLength.Points(6);
         WordParagraph large = inner.AddText("LARGE");
         large.FontFamily = "Arial";
-        large.FontSize = 24;
+        large.FontSize = global::OfficeIMO.OfficeLength.Points(24);
         string[] before = AnchoredRunningStoryXml(document);
         var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
         Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
@@ -230,9 +229,8 @@ public partial class Word {
         WordParagraph inner = document.Sections[1].Header!.First!.TextBoxes.Single().Paragraphs.Single();
         inner.Text = "SMALL";
         inner.FontFamily = "Arial";
-        inner.FontSize = 6;
-        inner.LineSpacingPoints = 144;
-        inner.LineSpacingRule = rule;
+        inner.FontSize = global::OfficeIMO.OfficeLength.Points(6);
+        inner.LineSpacing = (rule) switch { global::OfficeIMO.Word.WordLineSpacingRule.Exact => global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(144)), global::OfficeIMO.Word.WordLineSpacingRule.AtLeast => global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(144)), _ => global::OfficeIMO.Word.WordLineSpacing.Multiple((144) / 12D) };
         // The unchanged 129.6pt frame has 122.4pt after vertical insets.
         // A 144pt authored advance cannot pass canonical canvas line-box fit.
         string[] before = AnchoredRunningStoryXml(document);

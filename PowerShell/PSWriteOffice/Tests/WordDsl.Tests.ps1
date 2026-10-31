@@ -8,26 +8,6 @@ BeforeAll {
 
     . (Join-Path $PSScriptRoot 'TestHelpers.ps1')
 
-    function Test-OfficeLoadedMethod {
-        param(
-            [Parameter(Mandatory)]
-            [string] $TypeName,
-
-            [Parameter(Mandatory)]
-            [string] $MethodName
-        )
-
-        $type = [AppDomain]::CurrentDomain.GetAssemblies() |
-            ForEach-Object { $_.GetType($TypeName, $false) } |
-            Where-Object { $null -ne $_ } |
-            Select-Object -First 1
-        if ($null -eq $type) {
-            throw "Unable to find loaded type '$TypeName'."
-        }
-
-        @($type.GetMethods() | Where-Object Name -eq $MethodName).Count -gt 0
-    }
-
     function Add-TestWordParagraphStyle {
         param(
             [Parameter(Mandatory)]
@@ -561,11 +541,11 @@ Describe 'Word DSL surface' {
         try {
             $document.Tables.Count | Should -Be 3
             $document.Tables[0].LayoutMode.ToString() | Should -Be 'AutoFit'
-            $document.Tables[0].WidthType.ToString() | Should -Be 'Auto'
-            $document.Tables[0].Width | Should -Be 0
+            $document.Tables[0].Width.Kind.ToString() | Should -Be 'Auto'
+            $document.Tables[0].Width.LengthValue | Should -BeNullOrEmpty
             $document.Tables[1].LayoutMode.ToString() | Should -Be 'Fixed'
-            $document.Tables[1].WidthType.ToString() | Should -Be 'Pct'
-            $document.Tables[1].Width | Should -Be 5000
+            $document.Tables[1].Width.Kind.ToString() | Should -Be 'Percent'
+            $document.Tables[1].Width.PercentValue | Should -Be 100
             $document.Tables[2].LayoutMode.ToString() | Should -Be 'Fixed'
         } finally {
             $document.Dispose()
@@ -1184,7 +1164,7 @@ Describe 'Word DSL surface' {
             $document.Sections[0].PageOrientation.ToString() | Should -Be 'Landscape'
             $document.Sections[0].Margins.Type.ToString() | Should -Be 'Narrow'
             $document.Sections[0].ColumnCount | Should -Be 2
-            $document.Sections[0].ColumnsSpace | Should -Be 720
+            $document.Sections[0].ColumnsSpace.ToTwips() | Should -Be 720
             $document.Sections[0].HasColumnSeparator | Should -BeTrue
             ($document.Paragraphs | Where-Object { $_.TabStops.Count -gt 0 }).Count | Should -BeGreaterThan 0
             $document.Equations.Count | Should -Be 1
@@ -1685,7 +1665,7 @@ Describe 'Word DSL surface' {
                 Set-OfficeWordTableCell -ShadingFillColor '#DDEEFF' -Width 2400 -WidthType Dxa -WrapText $false -FitText $true -PassThru
 
             $cell.ShadingFillColorHex | Should -Be 'DDEEFF'
-            $cell.Width | Should -Be 2400
+            $cell.Width.LengthValue.ToTwips() | Should -Be 2400
             $cell.FitText | Should -BeTrue
         } | Out-Null
 
@@ -1695,8 +1675,8 @@ Describe 'Word DSL surface' {
             $cell = $table | Get-OfficeWordTableCell -Row 1 -Column 1
 
             $cell.ShadingFillColorHex | Should -Be 'DDEEFF'
-            $cell.Width | Should -Be 2400
-            $cell.WidthType.ToString() | Should -Be 'Dxa'
+            $cell.Width.LengthValue.ToTwips() | Should -Be 2400
+            $cell.Width.Kind.ToString() | Should -Be 'Length'
         } finally {
             $document.Dispose()
         }
@@ -1846,9 +1826,9 @@ Describe 'Word DSL surface' {
             $styledParagraph = $document.Paragraphs | Where-Object Text -EQ 'Executive Summary' | Select-Object -First 1
             $styledParagraph.Style.ToString() | Should -Be 'Heading2'
             $styledParagraph.ParagraphAlignment.ToString() | Should -Be 'Center'
-            $styledParagraph.LineSpacingBeforePoints | Should -Be 6
-            $styledParagraph.LineSpacingAfterPoints | Should -Be 12
-            $styledParagraph.IndentationBeforePoints | Should -Be 18
+            $styledParagraph.LineSpacingBefore.ToPoints() | Should -Be 6
+            $styledParagraph.LineSpacingAfter.ToPoints() | Should -Be 12
+            $styledParagraph.IndentationBefore.ToPoints() | Should -Be 18
             $styledParagraph.KeepWithNext | Should -BeTrue
 
             $styledText = $document.Paragraphs |
@@ -1861,7 +1841,7 @@ Describe 'Word DSL surface' {
             $styledText.Italic | Should -BeTrue
             $styledText.Underline.ToString() | Should -Be 'Single'
             $styledText.ColorHex | Should -Be 'c00000'
-            $styledText.FontSize | Should -Be 14
+            $styledText.FontSize.ToPoints() | Should -Be 14
             $styledText.FontFamily | Should -Be 'Aptos'
             $styledText.Highlight.ToString() | Should -Be 'Yellow'
             $styledText.CapsStyle.ToString() | Should -Be 'SmallCaps'
@@ -1878,8 +1858,8 @@ Describe 'Word DSL surface' {
         New-OfficeWord -Path $path {
             WordParagraph -Text 'Report callouts'
             $textBox = WordTextBox -Text 'Service posture is stable' -WidthCentimeters 7 -HeightCentimeters 2 -HorizontalOffsetCentimeters 1 -VerticalOffsetCentimeters 1 -HorizontalAlignment Center -AutoFitToTextSize -PassThru
-            $textBox.WidthCentimeters | Should -BeGreaterThan 6.9
-            $textBox.HeightCentimeters | Should -BeGreaterThan 1.9
+            $textBox.Width.ToCentimeters() | Should -BeGreaterThan 6.9
+            $textBox.Height.ToCentimeters() | Should -BeGreaterThan 1.9
             $textBox.AutoFitToTextSize | Should -BeTrue
         } | Out-Null
 
@@ -1888,8 +1868,8 @@ Describe 'Word DSL surface' {
             $textBoxes = @($document.TextBoxes)
             $textBoxes.Count | Should -Be 1
             $textBoxes[0].Paragraphs.Text -join "`n" | Should -Match 'Service posture is stable'
-            [Math]::Round($textBoxes[0].WidthCentimeters, 1) | Should -Be 7.0
-            [Math]::Round($textBoxes[0].HeightCentimeters, 1) | Should -Be 2.0
+            [Math]::Round($textBoxes[0].Width.ToCentimeters(), 1) | Should -Be 7.0
+            [Math]::Round($textBoxes[0].Height.ToCentimeters(), 1) | Should -Be 2.0
         } finally {
             $document.Dispose()
         }

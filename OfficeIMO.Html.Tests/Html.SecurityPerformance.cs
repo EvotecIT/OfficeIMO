@@ -128,7 +128,7 @@ public partial class Html {
             int expectedWidth = Assert.IsType<int>(estimateMethod!.Invoke(
                 null,
                 new object[] { document, table.Rows[0].Cells[index]._tableCell }));
-            Assert.Equal(expectedWidth / 15D, document.Images[index].Width!.Value, precision: 3);
+            Assert.Equal(expectedWidth / 15D, (document.Images[index].Width?.ToPixels())!.Value, precision: 3);
         }
     }
 }

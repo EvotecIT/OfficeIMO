@@ -230,7 +230,7 @@ public sealed partial class ExportOfficeDocumentPdfCommand : AsyncPSCmdlet {
                 return word.SaveAsPdf(outputPath, WordOptions, CancelToken);
             case ExcelDocument excel:
                 return excel.SaveAsPdf(outputPath, ExcelOptions, CancelToken);
-            case PowerPointPresentation powerPoint:
+            case PowerPointDocument powerPoint:
                 return powerPoint.SaveAsPdf(outputPath, PowerPointOptions, CancelToken);
             case MarkdownDocument markdown:
                 return markdown.SaveAsPdf(outputPath, PrepareMarkdownOptions(sourcePath), CancelToken);

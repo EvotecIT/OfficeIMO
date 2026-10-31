@@ -103,15 +103,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to modify.</param>
         /// <param name="column">The 1-based column index of the cell to modify.</param>
-        /// <param name="fontSize">The font size in points.</param>
-        public void CellFontSize(int row, int column, double fontSize) {
-            if (fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
-                throw new ArgumentOutOfRangeException(nameof(fontSize), "Font size must be a positive finite value.");
+        /// <param name="fontSize">The positive physical font size.</param>
+        public void CellFontSize(int row, int column, OfficeLength fontSize) {
+            if (fontSize <= OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(fontSize), "Font size must be positive.");
             }
 
             WriteLockConditional(() => {
                 var cell = GetCell(row, column);
-                ApplyFontSize(cell, fontSize);
+                ApplyFontSize(cell, fontSize.ToPoints());
             });
         }
 
@@ -134,10 +134,13 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to fill.</param>
         /// <param name="column">The 1-based column index of the cell to fill.</param>
-        /// <param name="color">The <see cref="OfficeIMO.OfficeColor"/> to convert to a hex value.</param>
+        /// <param name="color">Background color. Native theme roles remain linked to the workbook theme.</param>
         public void CellBackground(int row, int column, OfficeIMO.OfficeColor color) {
-            var argb = OfficeIMO.Excel.ExcelColor.ToArgbHex(color);
-            CellBackground(row, column, argb);
+            var spreadsheetColor = ExcelColor.ToSpreadsheetColor(color);
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                ApplyBackground(cell, spreadsheetColor);
+            });
         }
 
         /// <summary>
@@ -457,16 +460,16 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Enables WrapText for the specified column and pins the target column width (in Excel character units).
+        /// Enables WrapText for the specified column and pins the target column width.
         /// Useful when mixed with auto-fit operations so wrapped columns keep a predictable width.
         /// </summary>
         /// <param name="fromRow">The first 1-based row index in the range.</param>
         /// <param name="toRow">The last 1-based row index in the range.</param>
         /// <param name="column">The 1-based column index whose cells should wrap.</param>
-        /// <param name="targetColumnWidth">The column width, in Excel character units, to enforce when wrapping.</param>
-        public void WrapCells(int fromRow, int toRow, int column, double targetColumnWidth) {
+        /// <param name="targetColumnWidth">The character or physical width to enforce when wrapping.</param>
+        public void WrapCells(int fromRow, int toRow, int column, ExcelColumnWidth targetColumnWidth) {
             WrapCells(fromRow, toRow, column);
-            if (targetColumnWidth > 0) {
+            if (targetColumnWidth.ToCharacters(this) > 0) {
                 try { SetColumnWidth(column, targetColumnWidth); } catch { }
             }
         }
@@ -845,7 +848,11 @@ namespace OfficeIMO.Excel {
             return hex.ToUpperInvariant();
         }
 
-        private void ApplyBackground(Cell cell, string hexColor) {
+        private void ApplyBackground(Cell cell, string hexColor) =>
+            ApplyBackground(cell, new Color { Rgb = NormalizeHexColor(hexColor) });
+
+        /// <summary>Applies a solid fill through the shared style cache without flattening theme colors.</summary>
+        private void ApplyBackground(Cell cell, Color color) {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null)
@@ -854,13 +861,12 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            // Create a fill with solid color
-            string argb = NormalizeHexColor(hexColor);
-            ApplyDerivedCellFormat(stylesheet, cell, "fill " + argb, () => {
+            // Create a fill with a literal color or a native theme slot.
+            ApplyDerivedCellFormat(stylesheet, cell, "fill " + (color.Rgb?.Value ?? color.OuterXml), () => {
                 var fill = new Fill(new PatternFill {
                     PatternType = PatternValues.Solid,
-                    ForegroundColor = new ForegroundColor { Rgb = argb },
-                    BackgroundColor = new BackgroundColor { Rgb = argb }
+                    ForegroundColor = new ForegroundColor { Rgb = color.Rgb, Theme = color.Theme },
+                    BackgroundColor = new BackgroundColor { Rgb = color.Rgb, Theme = color.Theme }
                 });
                 var fillId = GetOrCreateFill(stylesheet, fill);
                 ApplyCellFormatOverride(stylesheet, cell, format => {

@@ -60,12 +60,12 @@ namespace OfficeIMO.Tests {
                 placeholder: null, groupStyle, null, null,
                 groupCoordinateBounds: new LegacyPptBounds(0, 0, 400, 300),
                 children: new[] { child });
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             uint nextShapeId = 2;
 
             P.GroupShape group = Assert.IsType<P.GroupShape>(
-                PowerPointPresentation.CreateLegacyOpenXmlShape(slide.SlidePart, source,
+                PowerPointDocument.CreateLegacyOpenXmlShape(slide.SlidePart, source,
                     ref nextShapeId));
             P.Shape projectedChild = Assert.Single(group.Elements<P.Shape>());
 
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NeutralReader_DecodesMicrosoftObjectNamesAndDescriptions() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(AccessibilityFixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(AccessibilityFixturePath);
             LegacyPptSlide slide = Assert.Single(legacy.Slides);
 
             LegacyPptShape summary = Assert.Single(slide.Shapes, shape => shape.Text == "Summary");
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NormalLoad_ProjectsAccessibilityMetadataAndPreservesBinaryExactly() {
             byte[] source = File.ReadAllBytes(AccessibilityFixturePath);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+            using PowerPointDocument presentation = PowerPointDocument.Load(
                 AccessibilityFixturePath);
             PowerPointSlide slide = Assert.Single(presentation.Slides);
 
@@ -131,18 +131,18 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedMicrosoftGeometryEdit_PreservesAccessibilityMetadata() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(AccessibilityFixturePath);
+            LegacyPptDocument original = LegacyPptDocument.Load(AccessibilityFixturePath);
             LegacyPptShape originalSummary = original.Slides[0].Shapes.Single(shape =>
                 shape.Text == "Summary");
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+            using PowerPointDocument presentation = PowerPointDocument.Load(
                 AccessibilityFixturePath);
             PowerPointTextBox summary = presentation.Slides[0].TextBoxes.Single(shape =>
                 shape.Text == "Summary");
 
-            summary.Left += 15875;
+            summary.Left+= OfficeIMO.OfficeLength.Emus(15875);
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedSummary = saved.Slides[0].Shapes.Single(shape =>
                 shape.Text == "Summary");
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
         [InlineData("connector")]
         public void ImportedAccessibilityMetadataEditsRoundTripIncrementally(
             string shapeKind) {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+            using PowerPointDocument presentation = PowerPointDocument.Load(
                 AccessibilityFixturePath);
             PowerPointShape target = shapeKind switch {
                 "text" => Assert.Single(presentation.Slides[0].TextBoxes,
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation reopened = LegacyPptPresentation.Load(
+            LegacyPptDocument reopened = LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             AssertShapeMetadata(reopened.Slides[0].Shapes, editedName,
                 editedDescription);
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedAccessibilityDescriptionCanBeRemoved() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+            using PowerPointDocument presentation = PowerPointDocument.Load(
                 AccessibilityFixturePath);
             PowerPointPicture picture = Assert.Single(
                 presentation.Slides[0].Pictures);
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             LegacyPptShape reopened = Assert.Single(
-                LegacyPptPresentation.Load(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })).Slides[0].Shapes,
+                LegacyPptDocument.Load(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })).Slides[0].Shapes,
                 shape => shape.Kind == LegacyPptShapeKind.Picture);
             Assert.Equal("Four Colors", reopened.Metadata.Name);
             Assert.Null(reopened.Metadata.Description);
@@ -206,7 +206,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedMainMasterAccessibilityMetadataEditIsPreserved() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 AccessibilityFixturePath);
             LegacyPptMaster[] mainMasters = original.Masters
                 .Where(master => master.IsMainMaster).ToArray();
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
                 master => master.Shapes.Count > 0);
             Assert.True(masterIndex >= 0);
             LegacyPptMaster originalMaster = mainMasters[masterIndex];
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+            using PowerPointDocument presentation = PowerPointDocument.Load(
                 AccessibilityFixturePath);
             DocumentFormat.OpenXml.Packaging.SlideMasterPart masterPart =
                 presentation.OpenXmlDocument.PresentationPart!
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
                 presentation.AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation reopened = LegacyPptPresentation.Load(
+            LegacyPptDocument reopened = LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptMaster reopenedMaster = Assert.Single(reopened.Masters,
                 master => master.MasterId == originalMaster.MasterId);
@@ -244,36 +244,36 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_AuthorsShapeNamesAndAlternativeText() {
             byte[] image = PdfPngTestImages.CreateRgbPng(30, 90, 180);
             byte[] bytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                PowerPointTextBox text = slide.AddTextBoxPoints(
-                    "Accessible text", 20, 20, 140, 35);
+                PowerPointTextBox text = slide.AddTextBox(
+                    "Accessible text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(35));
                 text.Name = "Summary object";
                 text.Description = "Summary alternative text";
-                PowerPointPicture picture = slide.AddPicture(
+                PowerPointPicture picture = slide.AddImage(
                     new MemoryStream(image), OfficeIMO.Drawing.OfficeImageFormat.Png,
-                    PowerPointUnits.FromPoints(20),
-                    PowerPointUnits.FromPoints(70),
-                    PowerPointUnits.FromPoints(90),
-                    PowerPointUnits.FromPoints(60));
+                    global::OfficeIMO.OfficeLength.Points(20),
+                    global::OfficeIMO.OfficeLength.Points(70),
+                    global::OfficeIMO.OfficeLength.Points(90),
+                    global::OfficeIMO.OfficeLength.Points(60));
                 picture.Name = "Chart preview";
                 picture.Description = "Blue chart preview";
                 PowerPointConnectionShape connector = slide
                     .AddConnectionShape(A.ShapeTypeValues.StraightConnector1,
-                        PowerPointUnits.FromPoints(25),
-                        PowerPointUnits.FromPoints(145),
-                        PowerPointUnits.FromPoints(170),
-                        PowerPointUnits.FromPoints(145));
+                        global::OfficeIMO.OfficeLength.Points(25).ToEmus(),
+                        global::OfficeIMO.OfficeLength.Points(145).ToEmus(),
+                        global::OfficeIMO.OfficeLength.Points(170).ToEmus(),
+                        global::OfficeIMO.OfficeLength.Points(145).ToEmus());
                 connector.Name = "Trend connector";
                 connector.Description = "Connects the summary to detail";
-                PowerPointAutoShape child = slide.AddShapePoints(
-                    OfficePresetShapeType.Rectangle, 190, 20, 70, 45);
+                PowerPointAutoShape child = slide.AddShape(
+                    OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(190), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(70), OfficeIMO.OfficeLength.Points(45));
                 child.Name = "Grouped child";
                 child.Description = "Child description";
-                PowerPointAutoShape secondChild = slide.AddShapePoints(
-                    OfficePresetShapeType.Ellipse, 205, 75, 45, 35);
+                PowerPointAutoShape secondChild = slide.AddShape(
+                    OfficePresetShapeType.Ellipse, OfficeIMO.OfficeLength.Points(205), OfficeIMO.OfficeLength.Points(75), OfficeIMO.OfficeLength.Points(45), OfficeIMO.OfficeLength.Points(35));
                 secondChild.Name = "Second grouped child";
                 secondChild.Description = "Second child description";
                 PowerPointGroupShape group = slide.GroupShapes(
@@ -290,7 +290,7 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptSlide binary = Assert.Single(
-                LegacyPptPresentation.Load(bytes).Slides);
+                LegacyPptDocument.Load(bytes).Slides);
             AssertShapeMetadata(binary.Shapes, "Summary object",
                 "Summary alternative text");
             AssertShapeMetadata(binary.Shapes, "Chart preview",
@@ -308,8 +308,8 @@ namespace OfficeIMO.Tests {
                 "Second grouped child", "Second child description");
 
             using var input = new MemoryStream(bytes);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             Assert.Contains(projected.Slides[0].Shapes,
                 shape => shape.Name == "Chart preview"
                     && shape.Description == "Blue chart preview");
@@ -318,12 +318,12 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_BlocksModernOnlyAccessibilityFlags() {
-            using PowerPointPresentation source =
-                PowerPointPresentation.Create();
+            using PowerPointDocument source =
+                PowerPointDocument.Create();
             PowerPointAutoShape shape = source.AddSlide(
                     PowerPointSlideLayoutType.Blank)
-                .AddShapePoints(OfficePresetShapeType.Rectangle,
-                    20, 20, 100, 60);
+                .AddShape(OfficePresetShapeType.Rectangle,
+                    OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
             shape.Title = "Concise modern title";
 
             LegacyPptWritePreflightReport titlePreflight =

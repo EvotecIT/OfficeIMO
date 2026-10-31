@@ -74,7 +74,7 @@ internal static partial class HtmlPdfRenderedConverter {
             if (styledWidth.HasValue) return styledWidth.Value;
             return PdfCore.PdfWriter.MeasurePositionedText(
                 new PdfCore.PdfTextRun(text, bold: font.IsBold, italic: font.IsItalic,
-                    fontSize: font.Size, font: MapStandardFont(measuredFamily), fontFamily: measuredFamily),
+                    fontSize: global::OfficeIMO.OfficeLength.Points(font.Size), font: MapStandardFont(measuredFamily), fontFamily: measuredFamily),
                 measurementOptions);
         });
     }

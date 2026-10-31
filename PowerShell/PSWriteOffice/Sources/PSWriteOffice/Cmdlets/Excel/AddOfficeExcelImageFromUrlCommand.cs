@@ -50,7 +50,7 @@ public sealed class AddOfficeExcelImageFromUrlCommand : AsyncPSCmdlet
     [Parameter]
     public int? Column { get; set; }
 
-    /// <summary>A1-style cell address (e.g., ExcelA1, C5).</summary>
+    /// <summary>A1-style cell address (e.g., A1, C5).</summary>
     [Parameter]
     [Alias("Cell")]
     public string? Address { get; set; }
@@ -158,16 +158,36 @@ public sealed class AddOfficeExcelImageFromUrlCommand : AsyncPSCmdlet
         ExcelImage? image;
         if (!string.IsNullOrWhiteSpace(Range))
         {
-            image = await sheet.AddImageFromUrlToRangeAsync(Range!, Url, OffsetXPixels, OffsetYPixels, EndOffsetXPixels, EndOffsetYPixels,
-                Name, Decorative.IsPresent ? null : AltText, Title, !NoLockAspectRatio.IsPresent, Placement, RotationDegrees, CancelToken)
+            image = await sheet.AddImageAsync(Range!.Contains(":") ? Range : Range + ":" + Range, new System.Uri(Url), new OfficeIMO.Excel.ExcelImageOptions {
+                OffsetX = OfficeIMO.OfficeLength.Pixels(OffsetXPixels),
+                OffsetY = OfficeIMO.OfficeLength.Pixels(OffsetYPixels),
+                EndOffsetX = OfficeIMO.OfficeLength.Pixels(EndOffsetXPixels),
+                EndOffsetY = OfficeIMO.OfficeLength.Pixels(EndOffsetYPixels),
+                Name = Name,
+                Description = Decorative.IsPresent ? null : AltText,
+                Title = Title,
+                LockAspectRatio = !NoLockAspectRatio.IsPresent,
+                Placement = Placement,
+                RotationDegrees = RotationDegrees
+            }, cancellationToken: CancelToken)
                 .ConfigureAwait(false);
         }
         else
         {
             var (row, column) = ExcelHostExtensions.ResolveCellAddress(Row, Column, Address);
             var (width, height) = ResolveCellImageSize();
-            image = await sheet.AddImageFromUrlAsync(row, column, Url, width, height, ScalePercent, OffsetXPixels, OffsetYPixels,
-                Name, Decorative.IsPresent ? null : AltText, Title, !NoLockAspectRatio.IsPresent, RotationDegrees, CancelToken)
+            image = await sheet.AddImageAsync(row, column, new System.Uri(Url), new OfficeIMO.Excel.ExcelImageOptions {
+                Width = (width is { } imageWidthValue ? (OfficeIMO.OfficeLength?)OfficeIMO.OfficeLength.Pixels(imageWidthValue) : null),
+                Height = (height is { } imageHeightValue ? (OfficeIMO.OfficeLength?)OfficeIMO.OfficeLength.Pixels(imageHeightValue) : null),
+                ScalePercent = ScalePercent,
+                OffsetX = OfficeIMO.OfficeLength.Pixels(OffsetXPixels),
+                OffsetY = OfficeIMO.OfficeLength.Pixels(OffsetYPixels),
+                Name = Name,
+                Description = Decorative.IsPresent ? null : AltText,
+                Title = Title,
+                LockAspectRatio = !NoLockAspectRatio.IsPresent,
+                RotationDegrees = RotationDegrees
+            }, cancellationToken: CancelToken)
                 .ConfigureAwait(false);
         }
 

@@ -30,7 +30,7 @@ public sealed class WordPdfRunFontInheritanceTests {
         using WordDocument document = WordDocument.Create();
         string family = named && layer != "document" ? ManagedTextShapingTestAssets.FamilyName : "Times New Roman";
         document.Settings.FontFamily = layer == "document" ? family : "Courier New";
-        WordTable? table = story == "table" ? document.AddTable(1, 1) : null;
+        WordTable? table = story == "table" ? document.AddTable(1, 1, WordTableStyle.TableGrid) : null;
         WordParagraph paragraph = story switch {
             "header" => document.HeaderDefaultOrCreate.AddParagraph("LEADING"),
             "footer" => document.FooterDefaultOrCreate.AddParagraph("LEADING"),

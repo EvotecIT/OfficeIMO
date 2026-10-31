@@ -20,12 +20,12 @@ public partial class PdfPageEditorTests {
             });
 
             compose.Page(page => {
-                page.Size(new PdfPageSize(612, 792));
+                page.Size(new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)));
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Second page marker"))));
             });
 
             compose.Page(page => {
-                page.Size(new PdfPageSize(300, 500));
+                page.Size(new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(500)));
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Third page marker"))));
             });
         });

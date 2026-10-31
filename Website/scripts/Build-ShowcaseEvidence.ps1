@@ -4,6 +4,8 @@ Generates and records downloadable showcase evidence.
 .PARAMETER DocumentsRoot
 Uses an explicit output directory for PowerShell-only generation, or reads already generated
 documents with SkipGeneration. The .NET example runner uses its own Documents directory.
+.PARAMETER SourcesOnly
+Refreshes declared source downloads and code excerpts without regenerating documents or previews.
 .PARAMETER ReviewedExampleId
 Records the operator's completed visual review against the current preview hashes.
 Only examples with matching generation evidence can be marked reviewed.
@@ -14,12 +16,16 @@ param(
     [ValidateSet('Debug', 'Release')][string] $Configuration = 'Debug',
     [switch] $SkipGeneration,
     [switch] $ManifestOnly,
+    [switch] $SourcesOnly,
     [string[]] $ExampleId = @(),
     [string] $DocumentsRoot = '',
     [string[]] $ReviewedExampleId = @()
 )
 
 $ErrorActionPreference = 'Stop'
+if ($SourcesOnly -and $ManifestOnly) {
+    throw 'SourcesOnly and ManifestOnly are separate refresh modes.'
+}
 if ($ReviewedExampleId.Count -gt 0 -and -not $ManifestOnly) {
     throw 'Record preview review in a separate manifest-only invocation after inspecting the generated preview.'
 }
@@ -56,7 +62,15 @@ $refreshArtifacts = @($catalog.artifacts | Where-Object {
     $ExampleId.Count -eq 0 -or ('/downloads/showcase/' + $_.destination) -cin $selectedUrls
 })
 
-if (-not $SkipGeneration -and -not $ManifestOnly) {
+if ($SourcesOnly) {
+    $refreshArtifacts = @($refreshArtifacts | Where-Object {
+        $_.sourceRoot -ceq 'repository' -and
+        [IO.Path]::GetExtension($_.source).ToLowerInvariant() -cin @('.cs', '.ps1') -and
+        $_.destination.EndsWith('.txt', [StringComparison]::OrdinalIgnoreCase)
+    })
+}
+
+if (-not $SkipGeneration -and -not $ManifestOnly -and -not $SourcesOnly) {
     if (@($selectedCards | Where-Object generator_switch).Count -gt 0) {
         Invoke-ShowcaseDotNet @('build', (Join-Path $repoRoot 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'), '-c', $Configuration, '-f', $Framework, '--nologo')
     }
@@ -87,7 +101,7 @@ if (-not $SkipGeneration -and -not $ManifestOnly) {
     }
 }
 
-if (-not $ManifestOnly) {
+if (-not $ManifestOnly -and -not $SourcesOnly) {
     $reader = $catalog.artifacts | Where-Object id -eq 'reader-output'
     if ($reader -in $refreshArtifacts) {
         New-ShowcaseReaderProjection `

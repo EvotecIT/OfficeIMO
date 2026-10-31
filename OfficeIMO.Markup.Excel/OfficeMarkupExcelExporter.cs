@@ -114,7 +114,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
             var (sourceSheet, source) = ResolveChartSource(context, sheet, chart.Source!);
             if (source.IndexOf(':') >= 0) {
                 var range = CreateChartDataRange(sourceSheet.Name, source);
-                var excelChart = sheet.AddChart(range, row, column, width, height, type, title: chart.Title);
+                var excelChart = sheet.AddChart(type, range, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = OfficeLength.Pixels(width), Height = OfficeLength.Pixels(height), Title = chart.Title });
                 ApplyChartStyle(context, excelChart, chart, range.SeriesCount);
             } else {
                 var tableRange = sourceSheet.GetTableRange(source);
@@ -123,7 +123,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
                 }
 
                 var range = CreateChartDataRange(sourceSheet.Name, tableRange!);
-                var excelChart = sheet.AddChart(range, row, column, width, height, type, title: chart.Title);
+                var excelChart = sheet.AddChart(type, range, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = OfficeLength.Pixels(width), Height = OfficeLength.Pixels(height), Title = chart.Title });
                 ApplyChartStyle(context, excelChart, chart, range.SeriesCount);
             }
 
@@ -132,7 +132,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
 
         if (chart.Data.Count > 1) {
             var data = ToChartData(chart);
-            var excelChart = sheet.AddChart(data, row, column, width, height, type, chart.Title);
+            var excelChart = sheet.AddChart(type, data, new OfficeIMO.Excel.ExcelChartOptions { Row = row, Column = column, Width = OfficeLength.Pixels(width), Height = OfficeLength.Pixels(height), Title = chart.Title });
             ApplyChartStyle(context, excelChart, chart, data.Series.Count);
         }
     }
@@ -170,7 +170,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
 
             var wrap = GetAttribute(formatting.Attributes, "wrap", "wrap-text", "wrapText");
             if (!string.IsNullOrWhiteSpace(wrap) && IsTruthy(wrap)) {
-                sheet.WrapCells(row, row, column);
+                sheet.WrapCells(row,row,column);
             }
 
             var border = GetAttribute(formatting.Attributes, "border", "border-style", "borderStyle");
@@ -250,12 +250,12 @@ internal sealed partial class OfficeMarkupExcelExporter {
         var normalizedType = Normalize(source.ChartType);
 
         for (var index = 0; index < seriesCount; index++) {
-            var color = seriesColors[index % seriesColors.Count];
+            var color = OfficeColor.ParseHex(seriesColors[index % seriesColors.Count]);
             if (normalizedType == "line") {
-                chart.SetSeriesLineColor(index, color, widthPoints: 2.25);
+                chart.SetSeriesLineColor(index, color, width: OfficeLength.Points(2.25));
             } else {
                 chart.SetSeriesFillColor(index, color);
-                chart.SetSeriesLineColor(index, color, widthPoints: 0.5);
+                chart.SetSeriesLineColor(index, color, width: OfficeLength.Points(0.5));
             }
         }
 
@@ -291,8 +291,8 @@ internal sealed partial class OfficeMarkupExcelExporter {
         ApplyDataLabelOptions(chart, source);
         ApplyGridlineOptions(chart, source, normalizedType);
 
-        chart.SetTitleTextStyle(fontSizePoints: 14, bold: true, color: "172033", fontName: "Aptos Display");
-        chart.SetLegendTextStyle(fontSizePoints: 9, color: "475569", fontName: "Aptos");
+        chart.SetTitleTextStyle(fontSize: OfficeLength.Points(14), bold: true, color: OfficeColor.Parse("172033"), fontName: "Aptos Display");
+        chart.SetLegendTextStyle(fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("475569"), fontName: "Aptos");
     }
 
     private static void ApplyLegendOptions(ExcelChart chart, OfficeMarkupChartBlock source) {
@@ -329,7 +329,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
             position: TryParseDataLabelPosition(labelPosition, out var parsedPosition) ? parsedPosition : null,
             numberFormat: string.IsNullOrWhiteSpace(labelFormat) ? null : labelFormat,
             sourceLinked: false);
-        chart.SetDataLabelTextStyle(fontSizePoints: 9, color: "334155", fontName: "Aptos");
+        chart.SetDataLabelTextStyle(fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("334155"), fontName: "Aptos");
     }
 
     private static void ApplyGridlineOptions(ExcelChart chart, OfficeMarkupChartBlock source, string normalizedType) {
@@ -338,11 +338,11 @@ internal sealed partial class OfficeMarkupExcelExporter {
         var categoryGridlines = GetAttribute(source.Attributes, "category-gridlines", "categoryGridlines", "x-gridlines", "xGridlines");
 
         if (valueGridlines != null) {
-            chart.SetValueAxisGridlines(showMajor: IsTruthy(valueGridlines), showMinor: false, lineColor: "CBD5E1", lineWidthPoints: 0.5);
+            chart.SetValueAxisGridlines(showMajor: IsTruthy(valueGridlines), showMinor: false, lineColor: OfficeColor.Parse("CBD5E1"), lineWidth: OfficeLength.Points(0.5));
         }
 
         if (categoryGridlines != null) {
-            chart.SetCategoryAxisGridlines(showMajor: IsTruthy(categoryGridlines), showMinor: false, lineColor: "E2E8F0", lineWidthPoints: 0.5);
+            chart.SetCategoryAxisGridlines(showMajor: IsTruthy(categoryGridlines), showMinor: false, lineColor: OfficeColor.Parse("E2E8F0"), lineWidth: OfficeLength.Points(0.5));
         }
     }
 
@@ -749,19 +749,19 @@ internal sealed partial class OfficeMarkupExcelExporter {
         return Enum.TryParse<ExcelTableStyle>(normalized, true, out var parsed) ? parsed : ExcelTableStyle.TableStyleMedium2;
     }
 
-    private static ExcelChartType ParseChartType(string value) {
+    private static OfficeChartType ParseChartType(string value) {
         var normalized = (value ?? string.Empty).Trim().Replace("-", string.Empty).Replace("_", string.Empty).ToLowerInvariant();
         return normalized switch {
-            "bar" or "barclustered" => ExcelChartType.BarClustered,
-            "barstacked" or "stackedbar" => ExcelChartType.BarStacked,
-            "columnstacked" or "stackedcolumn" => ExcelChartType.ColumnStacked,
-            "line" => ExcelChartType.Line,
-            "area" => ExcelChartType.Area,
-            "pie" => ExcelChartType.Pie,
-            "doughnut" or "donut" => ExcelChartType.Doughnut,
-            "scatter" or "xy" => ExcelChartType.Scatter,
-            "bubble" => ExcelChartType.Bubble,
-            _ => ExcelChartType.ColumnClustered
+            "bar" or "barclustered" => OfficeChartType.BarClustered,
+            "barstacked" or "stackedbar" => OfficeChartType.BarStacked,
+            "columnstacked" or "stackedcolumn" => OfficeChartType.ColumnStacked,
+            "line" => OfficeChartType.Line,
+            "area" => OfficeChartType.Area,
+            "pie" => OfficeChartType.Pie,
+            "doughnut" or "donut" => OfficeChartType.Doughnut,
+            "scatter" or "xy" => OfficeChartType.Scatter,
+            "bubble" => OfficeChartType.Bubble,
+            _ => OfficeChartType.ColumnClustered
         };
     }
 
@@ -800,7 +800,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
                 return sheet;
             }
 
-            sheet = _workbook.AddWorksheet(sheetName);
+            sheet = _workbook.AddSheet(sheetName);
             _sheets[sheetName] = sheet;
             _sheets[sheet.Name] = sheet;
             _nextRows[sheet.Name] = 1;

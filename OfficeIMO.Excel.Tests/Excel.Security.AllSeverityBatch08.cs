@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.FormulaTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddWorksheet("Source").CellFormula(1, 1, "WEBSERVICE(\"https://attacker.invalid/\")");
+                source.AddSheet("Source").CellFormula(1, 1, "WEBSERVICE(\"https://attacker.invalid/\")");
                 source.Save();
             }
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.TableFormulaTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet sheet = source.AddWorksheet("Source");
+                ExcelSheet sheet = source.AddSheet("Source");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Result");
                 sheet.CellValue(2, 1, "Ada");
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.ExternalTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddWorksheet("External").CellFormula(1, 1, "[1]Sheet1!A1");
+                source.AddSheet("External").CellFormula(1, 1, "[1]Sheet1!A1");
                 source.Save();
             }
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.NamesTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddWorksheet("Names").CellFormula(1, 1, "NameOne");
+                source.AddSheet("Names").CellFormula(1, 1, "NameOne");
                 source.Save();
             }
 
@@ -130,8 +130,8 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.MergeNamesTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddWorksheet("First").CellFormula(1, 1, "FirstName");
-                source.AddWorksheet("Second").CellFormula(1, 1, "ThirdName");
+                source.AddSheet("First").CellFormula(1, 1, "FirstName");
+                source.AddSheet("Second").CellFormula(1, 1, "ThirdName");
                 source.Save();
             }
 
@@ -158,8 +158,8 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.LocalNamesTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddWorksheet("First").CellFormula(1, 1, "Rate");
-                source.AddWorksheet("Second").CellValue(1, 1, 2);
+                source.AddSheet("First").CellFormula(1, 1, "Rate");
+                source.AddSheet("Second").CellValue(1, 1, 2);
                 source.Save();
             }
 
@@ -183,8 +183,8 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.QualifiedLocalNameTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddWorksheet("First").CellFormula(1, 1, "Second!Rate");
-                source.AddWorksheet("Second").CellValue(1, 1, 2);
+                source.AddSheet("First").CellFormula(1, 1, "Second!Rate");
+                source.AddSheet("Second").CellValue(1, 1, 2);
                 source.Save();
             }
 
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.MalformedRowTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet sheet = source.AddWorksheet("Rows");
+                ExcelSheet sheet = source.AddSheet("Rows");
                 sheet.CellValue(1, 1, "safe");
                 sheet.CellBold(1, 1, true);
                 source.Save();
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
         public void Test_MalformedTimePeriodTokenDoesNotCrashRuleProjection() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Rules");
+            ExcelSheet sheet = document.AddSheet("Rules");
             sheet.CellValue(1, 1, DateTime.Today);
             sheet.AddConditionalTimePeriodRule("A1", ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
 
@@ -272,7 +272,7 @@ namespace OfficeIMO.Tests {
         public void Test_PageBreakImageExportRejectsAggregateResultAmplification() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Pages");
+            ExcelSheet sheet = document.AddSheet("Pages");
             for (int row = 1; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {
                     sheet.CellValue(row, column, row * column);
@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests {
             sheet.AddManualRowPageBreak(2, save: false);
             sheet.AddManualColumnPageBreak(2, save: false);
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                     Range = "A1:D4",
                     SplitByManualPageBreaks = true,
                     MaximumPageBreakImages = 3
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
         public void Test_PageBreakImageExportBoundsMalformedRecordInspection() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Pages");
+            ExcelSheet sheet = document.AddSheet("Pages");
             sheet.CellValue(1, 1, "safe");
             var rowBreaks = new RowBreaks();
             for (uint index = 0; index < 65U; index++) {
@@ -306,7 +306,7 @@ namespace OfficeIMO.Tests {
 
             sheet.WorksheetPart.Worksheet.Append(rowBreaks);
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelWorksheetImageExportOptions {
+                sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                     Range = "A1:A1",
                     SplitByManualPageBreaks = true,
                     MaximumPageBreakImages = 1

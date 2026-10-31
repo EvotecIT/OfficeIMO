@@ -28,7 +28,7 @@ public sealed class SetOfficePowerPointNotesCommand : OfficeCmdlet {
 
     /// <summary>Gets or sets the document for numeric selection; omission uses the enclosing document block.</summary>
     [Parameter, ValidateNotNull]
-    public PowerPointPresentation? Document { get; set; }
+    public PowerPointDocument? Document { get; set; }
 
     /// <summary>Gets or sets the notes text; an empty string clears the notes.</summary>
     [Parameter(Mandatory = true, Position = 0), AllowEmptyString]
@@ -40,7 +40,7 @@ public sealed class SetOfficePowerPointNotesCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var document = Document ?? OfficeDocumentContext.Find<PowerPointPresentation>();
+        var document = Document ?? OfficeDocumentContext.Find<PowerPointDocument>();
         try {
             if (Slide == null) {
                 var content = PowerPointContentScope.Current;

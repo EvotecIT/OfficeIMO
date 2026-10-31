@@ -18,7 +18,7 @@ using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Load("deck.pptx");
+using var presentation = PowerPointDocument.Load("deck.pptx");
 presentation.SaveAsPdf("deck.pdf");
 ```
 
@@ -31,7 +31,7 @@ using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Load("board-review.pptx");
+using var presentation = PowerPointDocument.Load("board-review.pptx");
 
 var options = new PowerPointPdfExportOptions {
     IncludeHiddenSlides = false,
@@ -53,7 +53,7 @@ using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Load("training.pptx");
+using var presentation = PowerPointDocument.Load("training.pptx");
 
 using var pdf = presentation.ToPdf();
 byte[] pdfBytes = pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -69,7 +69,7 @@ using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Load("training.pptx");
+using var presentation = PowerPointDocument.Load("training.pptx");
 
 presentation.SaveAsPdf("training-notes.pdf", new PowerPointPdfExportOptions {
     PageLayout = PowerPointPdfPageLayout.NotesPages,
@@ -93,7 +93,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
-using var presentation = PowerPointPresentation.Load("complex-deck.pptx");
+using var presentation = PowerPointDocument.Load("complex-deck.pptx");
 var options = new PowerPointPdfExportOptions {
     IncludeCharts = true,
     IncludeAutoShapes = true

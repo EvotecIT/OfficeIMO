@@ -23,8 +23,8 @@ public sealed class ReaderExcelSheetSelectionTests {
         string path = Path.Combine(Path.GetTempPath(), "reader-sheet-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (var document = ExcelDocument.Create()) {
-                document.AddWorksheet("First").CellValue(1, 1, "Excluded first value");
-                document.AddWorksheet("2").CellValue(1, 1, "Selected second value");
+                document.AddSheet("First").CellValue(1, 1, "Excluded first value");
+                document.AddSheet("2").CellValue(1, 1, "Selected second value");
                 document.Save(path);
             }
             var options = new ReaderOptions { Projection = projection };
@@ -67,8 +67,8 @@ public sealed class ReaderExcelSheetSelectionTests {
         format.SheetNumber = 1;
         foreach (string selectedName in new[] { "2", "Evidence" }) {
             using var document = ExcelDocument.Create();
-            document.AddWorksheet("First").CellValue(1, 1, "Excluded");
-            document.AddWorksheet(selectedName).CellValue(1, 1, "Selected");
+            document.AddSheet("First").CellValue(1, 1, "Excluded");
+            document.AddSheet(selectedName).CellValue(1, 1, "Selected");
             var result = reader.ReadDocument(document.ToBytes(), "source.xlsx");
             Assert.NotEmpty(result.Chunks);
             Assert.All(result.Chunks, chunk => Assert.Equal(selectedName, chunk.Location!.Sheet));
@@ -78,7 +78,7 @@ public sealed class ReaderExcelSheetSelectionTests {
     [Fact]
     public void APositionOutsideTheWorkbookFailsInsteadOfReadingAllSheets() {
         using var document = ExcelDocument.Create();
-        document.AddWorksheet("Evidence").CellValue(1, 1, "Keep private");
+        document.AddSheet("Evidence").CellValue(1, 1, "Keep private");
         var format = new ReaderExcelOptions { SheetNumber = 2 };
         Assert.Throws<ArgumentOutOfRangeException>(() => document.ReadDocument("source.xlsx", formatOptions: format));
         Assert.Equal(2, format.SheetNumber);

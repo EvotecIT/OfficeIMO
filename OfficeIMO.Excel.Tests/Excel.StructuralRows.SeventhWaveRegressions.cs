@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemovesEmptyDataValidationContainer() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(2, 1).SetValue(1);
             sheet.WorksheetPart.Worksheet.Append(
                 new DataValidations(
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemovesEmptyHyperlinkContainer() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(2, 1).SetValue("Link");
             sheet.SetHyperlink(2, 1, "https://example.com", style: false);
 
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsCellWatchReferences() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var watch = new CellWatch { CellReference = $"A{ExcelA1.MaxRows}" };
             sheet.WorksheetPart.Worksheet.Append(new CellWatches(watch));
 
@@ -59,12 +59,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_ClampsDeletedOneCellDrawingAnchor() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Category");
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("One");
             sheet.CellAt(2, 2).SetValue(1);
-            sheet.AddChartFromRange("A1:B2", row: 5, column: 4);
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             Xdr.OneCellAnchor anchor = Assert.Single(
                 sheet.WorksheetPart.DrawingsPart!.WorksheetDrawing!.Elements<Xdr.OneCellAnchor>());
 
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_InvalidatesNamedChartSourceCaches() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Category");
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("One");
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             sheet.CellAt(3, 1).SetValue("Two");
             sheet.CellAt(3, 2).SetValue(2);
             document.SetNamedRange("MySeries", "'Data'!$B$2:$B$3", save: false);
-            sheet.AddChartFromRange("A1:B3", row: 5, column: 4);
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
 
             ChartPart chartPart = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
             C.Formula namedFormula = chartPart.ChartSpace.Descendants<C.Formula>()

@@ -29,7 +29,7 @@ OfficeIMO.PowerPoint creates and edits `.pptx` presentations and supports docume
 - **Images** — insert from file path or stream in PNG, JPEG, GIF, BMP, TIFF, EMF, and WMF formats
 - **Shapes with fill, stroke & effects** — rectangles, circles, arrows, and callouts with fill, line, shadow, glow, and reflection settings
 - **SmartArt and custom geometry** — editable process, hierarchy, cycle, list, matrix, pyramid, relationship, path, and polygon content
-- **Editable shared charts with formatting** — all 17 `OfficeChartKind` families, including bubble charts, plus combo/secondary axes, data labels, legends, axis configuration, and accessibility summaries
+- **Editable shared charts with formatting** — all 17 `OfficeChartType` families, including bubble charts, plus combo/secondary axes, data labels, legends, axis configuration, and accessibility summaries
 - **Review and presentation workflows** — classic comments, modern threaded comments and replies, custom shows, and supported shape/text/chart animations
 - **OLE and macro package workflows** — add or replace embedded OLE storage and bounded opaque VBA projects while keeping macro-enabled formats explicit
 - **Slide sections & transitions** — organize slides into sections and apply transition animations
@@ -58,12 +58,12 @@ using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using DocumentFormat.OpenXml.Drawing.Charts;
 
-using var presentation = PowerPointPresentation.Create("Overview.pptx");
+using var presentation = PowerPointDocument.Create("Overview.pptx");
 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
 var intro = presentation.AddSlide();
-intro.AddTitleCm("Product overview", 1.5, 1.2, 22, 1.4);
-var highlights = intro.AddTextBoxCm(string.Empty, 1.5, 3.0, 12, 5.5);
+intro.AddTitle("Product overview", OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(1.2), OfficeIMO.OfficeLength.Centimeters(22), OfficeIMO.OfficeLength.Centimeters(1.4));
+var highlights = intro.AddTextBox(string.Empty, OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(3.0), OfficeIMO.OfficeLength.Centimeters(12), OfficeIMO.OfficeLength.Centimeters(5.5));
 highlights.AddBullets(new[] {
     "Revenue grew 18% year over year",
     "Customer satisfaction reached 94%",
@@ -72,14 +72,13 @@ highlights.AddBullets(new[] {
 
 var data = new OfficeChartData(
     new[] { "Q1", "Q2", "Q3", "Q4" },
-    new[] { new OfficeChartSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
+    new[] { new OfficeSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
 
 var chartSlide = presentation.AddSlide();
-chartSlide.AddTitleCm("Revenue by quarter", 1.5, 1.2, 22, 1.4);
-chartSlide.AddChartCm(OfficeChartKind.ColumnClustered, data, 1.5, 3.0, 22, 9,
-        new PowerPointChartAccessibilityOptions {
+chartSlide.AddTitle("Revenue by quarter", OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(1.2), OfficeIMO.OfficeLength.Centimeters(22), OfficeIMO.OfficeLength.Centimeters(1.4));
+chartSlide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = OfficeIMO.OfficeLength.Centimeters(1.5), Top = OfficeIMO.OfficeLength.Centimeters(3.0), Width = OfficeIMO.OfficeLength.Centimeters(22), Height = OfficeIMO.OfficeLength.Centimeters(9), Accessibility = new PowerPointChartAccessibilityOptions {
             AlternativeText = "Quarterly revenue increased from 3.2 to 4.9"
-        })
+        } })
     .SetTitle("2025 revenue")
     .SetLegend(OfficeChartLegendPosition.Bottom);
 
@@ -91,13 +90,13 @@ presentation.Save();
 ```csharp
 using OfficeIMO.PowerPoint;
 
-var analysis = PowerPointPresentation.AnalyzeConversion(
+var analysis = PowerPointDocument.AnalyzeConversion(
     "archive-deck.ppt",
     "archive-deck.pptx");
 
 if (!analysis.Compatibility.HasBlockedFeatures)
 {
-    PowerPointPresentation.Convert(
+    PowerPointDocument.Convert(
         "archive-deck.ppt",
         "archive-deck.pptx");
 }

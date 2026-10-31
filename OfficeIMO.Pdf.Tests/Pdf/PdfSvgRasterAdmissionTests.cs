@@ -82,8 +82,8 @@ public sealed class PdfSvgRasterAdmissionTests {
     public void ForegroundSvgRasterFallbackAppliesTheSameWorkLimit(int rectangles, bool accepted) {
         byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'>" +
             string.Concat(Enumerable.Repeat("<rect width='8' height='8' fill='red'/>", rectangles)) + "</svg>");
-        byte[] Export() => PdfDocument.Create(new PdfCreateOptions { PageWidth = 24, PageHeight = 24,
-            MarginLeft = 0, MarginTop = 0, MarginRight = 0, MarginBottom = 0 })
+        byte[] Export() => PdfDocument.Create(new PdfCreateOptions { PageWidth = OfficeLength.Points(24), PageHeight = OfficeLength.Points(24),
+            MarginLeft = OfficeLength.Points(0), MarginTop = OfficeLength.Points(0), MarginRight = OfficeLength.Points(0), MarginBottom = OfficeLength.Points(0) })
             .Canvas(canvas => canvas.ForegroundImage(svg, 0, 0, 8, 8)).ToBytes(new PdfSaveOptions { AllowLoss = true });
         if (accepted) Assert.NotEmpty(Export());
         else Assert.Contains("Cumulative SVG", Assert.Throws<System.NotSupportedException>(() => Export()).Message);

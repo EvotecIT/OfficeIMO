@@ -6,13 +6,13 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class WorkforceRota {
         internal static void Create(string folder) {
             using var document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-            var sheet = document.AddWorksheet("Rota");
+            var sheet = document.AddSheet("Rota");
             // Day columns hold one letter; narrow widths keep the rota on one page at full size.
-            sheet.SetColumnWidth(1, 18);
-            for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, 9);
-            sheet.SetColumnWidth(7, 12);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(9));
+            sheet.SetColumnWidth(7, ExcelColumnWidth.Characters(12));
             sheet.MergeRange("A1:G1"); sheet.Cell(1, 1, "Weekly support rota");
-            sheet.CellFontSize(1, 1, 22); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
+            sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(22)); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
             sheet.MergeRange("A2:G2"); sheet.Cell(2, 1, "One assigned shift per day / D = desk / R = remote / - = off");
             string[] headers = { "Team member", "Mon", "Tue", "Wed", "Thu", "Fri", "Desk days" };
             for (int column = 1; column <= 7; column++) sheet.Cell(4, column, headers[column - 1]);
@@ -40,12 +40,12 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             sheet.MergeRange("A13:G13"); sheet.Cell(13, 1, "This records a rota; it does not check working-time rules or approve leave.");
             sheet.SetGridlinesVisible(false);
             for (int row = 1; row <= 16; row++) {
-                sheet.SetRowHeight(row, row == 1 ? 34 : row == 3 ? 12 : 25);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 1 ? 34 : row == 3 ? 12 : 25)));
                 for (int column = 1; column <= 7; column++) {
-                    if (row > 1) sheet.CellFontSize(row, column, 11);
+                    if (row > 1) sheet.CellFontSize(row, column, OfficeLength.Points(11));
                 }
             }
-            sheet.SetRowHeight(4, 30);
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             for (int column = 1; column <= 7; column++) {
                 sheet.CellFontColor(4, column, "FFFFFF");
                 sheet.CellBold(4, column, true);

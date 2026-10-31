@@ -222,7 +222,7 @@ public sealed class StudioObservedRunHistoryTests {
         string id = Guid.NewGuid().ToString("N"), directory = Path.Combine(paths.WorkflowRecoveryRoot, "output-" + id);
         Directory.CreateDirectory(directory);
         string artifact = Path.Combine(directory, "output.pdf");
-        PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(artifact);
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(artifact);
         byte[] bytes = File.ReadAllBytes(artifact);
         File.WriteAllText(Path.Combine(directory, "record.json"), JsonSerializer.Serialize(new {
             Version = 1, Id = id, Name = "recovered.pdf", Destination = Path.Combine(paths.Root, "recovered.pdf"),

@@ -16,12 +16,12 @@ namespace OfficeIMO.Tests {
         [InlineData("Theme")]
         [InlineData("PresetOverride")]
         public void SavedCustomDashesUseStrokeWidthAndRespectLocalPresetOverrides(string source) {
-            using var presentation = PowerPointPresentation.Create();
-            presentation.SlideSize.SetSizePoints(320, 180);
+            using var presentation = PowerPointDocument.Create();
+            presentation.SlideSize.SetSize(OfficeLength.Points(320), OfficeLength.Points(180));
             var slide = presentation.AddSlide();
-            var line = slide.AddLinePoints(20, 40, 300, 40);
+            var line = slide.AddLine(OfficeLength.Points(20), OfficeLength.Points(40), OfficeLength.Points(300), OfficeLength.Points(40));
             line.OutlineColor = "111111";
-            line.OutlineWidthPoints = 2;
+            line.OutlineWidth = OfficeLength.Points(2);
             var native = Assert.IsType<Shape>(line.Element);
             var outline = native.ShapeProperties!.GetFirstChild<A.Outline>()!;
             outline.RemoveAllChildren<A.PresetDash>();
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 if (source == "PresetOverride") outline.Append(new A.PresetDash { Val = A.PresetLineDashValues.Solid });
             }
 
-            using var saved = PowerPointPresentation.Load(new MemoryStream(presentation.ToBytes()));
+            using var saved = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
             Assert.Empty(saved.ValidateDocument());
             var savedLine = Assert.Single(saved.Slides[0].Shapes);
             var paint = OfficeShape.Line(0, 0, 280, 0);

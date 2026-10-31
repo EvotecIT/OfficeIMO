@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -70,9 +71,9 @@ public partial class Word {
             storyKind == "footer" ? document.FooterDefaultOrCreate : null;
         WordTable table = story == null ? document.AddTable(1, 2, WordTableStyle.TableGrid) : story.AddTable(1, 2, WordTableStyle.TableGrid);
         ConfigureNativeInputTable(table, 4000);
-        table.GridColumnWidth = new List<int> { 1600, 2400 };
-        table.Rows[0].Cells[0].Width = 1600;
-        table.Rows[0].Cells[1].Width = 2400;
+        table.GridColumnWidth = new List<int> { 1600, 2400 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+        table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1600) * 635)));
+        table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
         table.Rows[0].Cells[0].Paragraphs[0].Text = "LeftCell";
         table.Rows[0].Cells[1].Paragraphs[0].Text = "ControlledCell";
         table.Rows[0].Cells[1].VerticalAlignment = WordTableVerticalAlignment.Bottom;
@@ -106,7 +107,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
         ConfigureNativeInputTable(table, 4000);
-        table.GridColumnWidth = new List<int> { 2000, 2000 };
+        table.GridColumnWidth = new List<int> { 2000, 2000 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         WordTableCell anchor = table.Rows[0].Cells[0];
         anchor.VerticalMerge = WordCellMerge.Restart;
         anchor.Paragraphs[0].Text = "MergedAnchor";
@@ -136,26 +137,24 @@ public partial class Word {
 
     private static void ConfigureNativeInputTable(WordTable table, int width) {
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = width;
-        table.GridColumnWidth = new List<int> { width };
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(width) * 635)));
+        table.GridColumnWidth = new List<int> { width }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         foreach (WordTableRow row in table.Rows) {
             foreach (WordTableCell cell in row.Cells) {
-                cell.WidthType = WordTableWidthUnit.Dxa;
-                cell.Width = width / row.Cells.Count;
-                cell.MarginLeftWidth = 0;
-                cell.MarginRightWidth = 0;
+                cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(width / row.Cells.Count) * 635)));
+                cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero;
+                cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
                 cell.Paragraphs[0].FontFamily = "Arial";
-                cell.Paragraphs[0].FontSize = 10;
-                cell.Paragraphs[0].LineSpacingBeforePoints = 0;
-                cell.Paragraphs[0].LineSpacingAfterPoints = 0;
+                cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(10);
+                cell.Paragraphs[0].LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                cell.Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
         }
     }
 
     private static WordPdfExportOptions NativeInputTableOptions() => new() {
         IncludePageNumbers = false,
-        PageSize = new PdfCore.PdfPageSize(400, 500),
-        Margins = PdfCore.PdfPageMargins.Uniform(40)
+        PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)),
+        Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
     };
 }

@@ -105,12 +105,12 @@ public sealed partial class PowerPointContentWorkflowTests {
         object value = runspace.SessionStateProxy.GetVariable("inspection");
         var report = Assert.IsType<PowerPointInspectionReport>(value is PSObject wrapped ? wrapped.BaseObject : value);
         Assert.Equal(1, report.Preflight!.SlideCount);
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         Assert.False(Assert.Single(saved.Slides).HasSpeakerNotes);
     }
 
-    private static PowerPointPresentation CreateValidationDeck() {
-        var document = PowerPointPresentation.Create(new PowerPointCreateOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
+    private static PowerPointDocument CreateValidationDeck() {
+        var document = PowerPointDocument.Create(new PowerPointCreateOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
         document.AddSlide().AddTitle("Saved review");
         return document;
     }

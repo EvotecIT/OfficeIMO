@@ -7,25 +7,30 @@ internal static partial class PdfStamper {
     private static PdfStream BuildStampStream(
         string text,
         string fontResourceName,
-        double pageWidth,
-        double pageHeight,
+        PdfReadPage page,
         PdfTextStampOptions options,
         bool watermarkDefaults,
         string? glyphHex = null,
         double? textWidth = null) {
-        double fontSize = options.FontSize;
-        double width = textWidth ?? PdfWriter.EstimateSimpleTextWidth(text, options.Font, fontSize);
-        double y = options.Y ?? (watermarkDefaults ? pageHeight / 2.0 : 36);
-        double radians = options.RotationDegrees * Math.PI / 180.0;
-        double cos = Math.Cos(radians);
-        double sin = Math.Sin(radians);
+        PdfPageGeometry geometry = page.GetGeometry();
+        var size = PdfReadPage.GetPageSize(geometry);
+        double userUnit = geometry.UserUnit ?? 1D;
+        double fontSize = options.FontSize.ToPoints() / userUnit;
+        // Authoring inputs and measured embedded-font widths are physical points; operators use raw page user space.
+        double width = textWidth.HasValue ? textWidth.Value / userUnit
+            : PdfWriter.EstimateSimpleTextWidth(text, options.Font, fontSize);
+        double left = geometry.EffectiveBox?.Left ?? 0D;
+        double bottom = geometry.EffectiveBox?.Bottom ?? 0D;
+        double y = options.Y?.ToPoints() / userUnit ?? (watermarkDefaults ? bottom + size.Height / 2D : 36D / userUnit);
+        double radians = options.RotationDegrees * Math.PI / 180D;
+        double cos = Math.Cos(radians), sin = Math.Sin(radians);
         double x;
         if (options.Align == PdfAlign.Left) {
-            x = options.X ?? (watermarkDefaults ? (pageWidth - width) / 2.0 : 36);
+            x = options.X?.ToPoints() / userUnit ?? (watermarkDefaults ? left + (size.Width - width) / 2D : 36D / userUnit);
         } else {
-            // The anchor is the text's centre or end; the origin moves back along the text direction.
-            double anchorX = options.X ?? (options.Align == PdfAlign.Center ? pageWidth / 2.0 : pageWidth - 36);
-            double offset = options.Align == PdfAlign.Center ? width / 2.0 : width;
+            double anchorX = options.X?.ToPoints() / userUnit ?? (options.Align == PdfAlign.Center
+                ? left + size.Width / 2D : left + size.Width - 36D / userUnit);
+            double offset = options.Align == PdfAlign.Center ? width / 2D : width;
             x = anchorX - offset * cos;
             y -= offset * sin;
         }
@@ -35,8 +40,8 @@ internal static partial class PdfStamper {
             .SaveState()
             .FillColor(options.Color)
             .BeginText()
-            .Font(fontResourceName, fontSize)
-            .TextMatrix(cos, sin, -sin, cos, x, y)
+            .Font(fontResourceName, fontSize, preserveLogicalPrecision: true)
+            .TextMatrix(cos, sin, -sin, cos, x, y, precisePosition: true)
             .ShowHexText(glyphHex ?? EncodeWinAnsiHex(text))
             .EndText()
             .RestoreState();
@@ -46,17 +51,24 @@ internal static partial class PdfStamper {
 
     private static PdfStream BuildImageStampStream(
         string imageResourceName,
-        double pageWidth,
-        double pageHeight,
+        PdfReadPage page,
         int pixelWidth,
         int pixelHeight,
         OfficeImageOrientation orientation,
         PdfImageStampOptions options,
         bool watermarkDefaults) {
-        double imageWidth = options.Width ?? pixelWidth;
-        double imageHeight = options.Height ?? pixelHeight;
-        double x = options.X ?? (watermarkDefaults ? (pageWidth - imageWidth) / 2.0 : 36);
-        double y = options.Y ?? (watermarkDefaults ? (pageHeight - imageHeight) / 2.0 : 36);
+        PdfPageGeometry geometry = page.GetGeometry();
+        var size = PdfReadPage.GetPageSize(geometry);
+        double userUnit = geometry.UserUnit ?? 1D;
+        // Preserve the intrinsic one-pixel-to-one-physical-point default.
+        double imageWidth = (options.Width?.ToPoints() ?? pixelWidth) / userUnit;
+        double imageHeight = (options.Height?.ToPoints() ?? pixelHeight) / userUnit;
+        double x = options.X?.ToPoints() / userUnit ?? (watermarkDefaults
+            ? (geometry.EffectiveBox?.Left ?? 0D) + (size.Width - imageWidth) / 2D
+            : 36D / userUnit);
+        double y = options.Y?.ToPoints() / userUnit ?? (watermarkDefaults
+            ? (geometry.EffectiveBox?.Bottom ?? 0D) + (size.Height - imageHeight) / 2D
+            : 36D / userUnit);
         OfficeTransform imageTransform = new OfficeImageProjection(
             new OfficeImagePlacement(x, y, imageWidth, imageHeight),
             rotationDegrees: options.RotationDegrees,
@@ -70,7 +82,7 @@ internal static partial class PdfStamper {
         var sb = new StringBuilder();
         new ContentStreamBuilder(sb)
             .SaveState()
-            .TransformMatrix(imageTransform)
+            .TransformMatrix(imageTransform.M11, imageTransform.M12, imageTransform.M21, imageTransform.M22, imageTransform.OffsetX, imageTransform.OffsetY, preciseCoordinates: true)
             .XObject(imageResourceName)
             .RestoreState();
 

@@ -106,13 +106,15 @@ namespace OfficeIMO.Pdf.Excel {
                     columns,
                     rows,
                     options);
-                ExcelSheet sheet = workbook.AddWorksheet(BuildSheetName(options.SheetNamePrefix, extraction, i), ExcelSheetNameValidationMode.Sanitize, options.CancellationToken);
-                string range = sheet.InsertDataTableAsTable(
-                    dataTable,
-                    tableName: requestedTableName,
-                    style: options.TableStyle,
-                    includeAutoFilter: options.IncludeAutoFilter,
-                    ct: options.CancellationToken);
+                ExcelSheet sheet = workbook.AddSheet(BuildSheetName(options.SheetNamePrefix, extraction, i), ExcelSheetNameValidationMode.Sanitize, options.CancellationToken);
+                // Fit once after applying imported number formats, under the import policy.
+                string range = sheet.AddTable(dataTable, new OfficeIMO.Excel.ExcelTableOptions {
+                    Name = requestedTableName,
+                    Style = options.TableStyle,
+                    IncludeAutoFilter = options.IncludeAutoFilter,
+                    AutoFit = false,
+                    CancellationToken = options.CancellationToken
+                }, row: 1, column: 1).Range!;
                 ApplyTypedColumnFormats(
                     sheet,
                     dataTable,
@@ -304,7 +306,7 @@ namespace OfficeIMO.Pdf.Excel {
         }
 
         private static void AddEmptyWorkbookSheet(ExcelDocument workbook, ExcelPdfImportOptions options) {
-            ExcelSheet sheet = workbook.AddWorksheet(options.EmptyWorkbookSheetName, ExcelSheetNameValidationMode.Sanitize, options.CancellationToken);
+            ExcelSheet sheet = workbook.AddSheet(options.EmptyWorkbookSheetName, ExcelSheetNameValidationMode.Sanitize, options.CancellationToken);
             sheet.CellValue(1, 1, "No PDF tables detected.");
         }
 

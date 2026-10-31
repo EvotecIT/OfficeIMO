@@ -13,16 +13,16 @@ internal static partial class PdfWriter {
         private IEnumerable<(List<List<OfficePoint>> Contours, List<OfficeTextInkClip> Clips)> DiagnosticInlineImagePaint(
             PdfInlineImage image, double x, double baseline) {
             ImageBlock block = image.Block;
-            double bottom = baseline + image.BaselineOffset;
+            double bottom = baseline + image.BaselineOffset.ToPoints();
             PageImage placed = CreatePageImage(block, block.Style ?? new PdfImageStyle(),
-                image.TableTextRotation == 0 ? x : x + (image.Width - image.Height) / 2D,
-                image.TableTextRotation == 0 ? bottom : bottom + (image.Height - image.Width) / 2D,
-                image.TableTextRotation == 0 ? image.Width : image.Height,
-                image.TableTextRotation == 0 ? image.Height : image.Width);
+                image.TableTextRotation == 0 ? x : x + (image.Width.ToPoints() - image.Height.ToPoints()) / 2D,
+                image.TableTextRotation == 0 ? bottom : bottom + (image.Height.ToPoints() - image.Width.ToPoints()) / 2D,
+                image.TableTextRotation == 0 ? image.Width.ToPoints() : image.Height.ToPoints(),
+                image.TableTextRotation == 0 ? image.Height.ToPoints() : image.Width.ToPoints());
             if (image.TableTextRotation != 0) {
                 placed.RotationAngle -= image.TableTextRotation;
-                placed.RotationCenterX = x + image.Width / 2D;
-                placed.RotationCenterY = bottom + image.Height / 2D;
+                placed.RotationCenterX = x + image.Width.ToPoints() / 2D;
+                placed.RotationCenterY = bottom + image.Height.ToPoints() / 2D;
             }
             PdfImageStream stream;
             if (block.PreparedStream != null) stream = block.PreparedStream;

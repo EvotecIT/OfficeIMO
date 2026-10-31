@@ -3,7 +3,8 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfCreateOptions {
     /// <summary>Default standard font used for paragraphs.</summary>
     public PdfStandardFont DefaultFont {
-        get => _defaultFont;
+        get => !_hasExplicitDefaultFont && _useOfficeThemeDefaults && !HasDocumentFontConfiguration
+            ? PdfTheme.ResolveStandardFont(EffectiveTheme.Fonts.Body.Family) : _defaultFont;
         set {
             Guard.StandardFont(value, nameof(DefaultFont), "PDF default font must be one of the supported standard PDF fonts.");
             _defaultFont = value;
@@ -13,20 +14,24 @@ public sealed partial class PdfCreateOptions {
     }
     /// <summary>Gets whether the default paragraph font slot was explicitly supplied by the caller or a theme.</summary>
     public bool HasExplicitDefaultFont => _hasExplicitDefaultFont;
-    /// <summary>Default paragraph font size in points. Default 11.</summary>
-    public double DefaultFontSize {
-        get => _defaultFontSize;
+    /// <summary>Default paragraph font size; new composition inherits the theme body size unless assigned.</summary>
+    public OfficeLength DefaultFontSize {
+        get => !_hasExplicitDefaultFontSize && _useOfficeThemeDefaults ? EffectiveTheme.TypeScale.Body : _defaultFontSize;
         set {
             _defaultFontSize = value;
+            _hasExplicitDefaultFontSize = true;
             MarkFontConfigurationAssigned();
             MarkDefaultFontSizeAssigned();
         }
     }
     /// <summary>Default text color for blocks when none is specified.</summary>
-    public PdfColor? DefaultTextColor { get; set; }
+    public global::OfficeIMO.OfficeColor? DefaultTextColor {
+        get => _defaultTextColor ?? (_useOfficeThemeDefaults ? PdfTheme.Resolve(EffectiveTheme.Palette.Text, EffectiveTheme) : (OfficeColor?)null);
+        set => _defaultTextColor = value;
+    }
     /// <summary>Default paragraph style applied when a paragraph does not specify its own style.</summary>
     public PdfParagraphStyle? DefaultParagraphStyle {
-        get => _defaultParagraphStyle?.Clone();
+        get => DefaultParagraphStyleSnapshot?.Clone();
         set => _defaultParagraphStyle = value?.Clone();
     }
     /// <summary>Default table style applied when none is provided. When not assigned, the style comes from <see cref="Theme"/>.</summary>
@@ -51,12 +56,12 @@ public sealed partial class PdfCreateOptions {
     }
     /// <summary>Default panel style applied when panel paragraphs do not specify their own style.</summary>
     public PdfPanelStyle? DefaultPanelStyle {
-        get => _defaultPanelStyle?.Clone();
+        get => DefaultPanelStyleSnapshot?.Clone();
         set => _defaultPanelStyle = value?.Clone();
     }
     /// <summary>Default horizontal rule style applied when horizontal rules do not specify their own style.</summary>
     public PdfHorizontalRuleStyle? DefaultHorizontalRuleStyle {
-        get => _defaultHorizontalRuleStyle?.Clone();
+        get => DefaultHorizontalRuleStyleSnapshot?.Clone();
         set => _defaultHorizontalRuleStyle = value?.Clone();
     }
     /// <summary>Default image placement style applied when images do not specify their own style.</summary>
@@ -101,13 +106,13 @@ public sealed partial class PdfCreateOptions {
         theme.Clone().ApplyTo(this);
         return this;
     }
-    internal PdfParagraphStyle? DefaultParagraphStyleSnapshot => _defaultParagraphStyle;
-    internal PdfTableStyle? DefaultTableStyleSnapshot => _hasExplicitDefaultTableStyle ? _defaultTableStyle : ThemeDefaults.TableStyleSnapshot;
+    internal PdfParagraphStyle? DefaultParagraphStyleSnapshot => _defaultParagraphStyle ?? ThemeDefaults?.ParagraphStyleSnapshot;
+    internal PdfTableStyle? DefaultTableStyleSnapshot => _hasExplicitDefaultTableStyle ? _defaultTableStyle : ThemeDefaults?.TableStyleSnapshot ?? _defaultTableStyle;
     internal bool HasExplicitDefaultTableStyleSnapshot => _hasExplicitDefaultTableStyle;
-    internal PdfHeadingStyles? DefaultHeadingStylesSnapshot => _defaultHeadingStyles ?? ThemeDefaults.HeadingStylesSnapshot;
-    internal PdfListStyle? DefaultListStyleSnapshot => _defaultListStyle ?? ThemeDefaults.ListStyleSnapshot;
-    internal PdfPanelStyle? DefaultPanelStyleSnapshot => _defaultPanelStyle ?? ThemeDefaults.PanelStyleSnapshot;
-    internal PdfHorizontalRuleStyle? DefaultHorizontalRuleStyleSnapshot => _defaultHorizontalRuleStyle;
+    internal PdfHeadingStyles? DefaultHeadingStylesSnapshot => ResolveDefaultHeadingStylesSnapshot();
+    internal PdfListStyle? DefaultListStyleSnapshot => _defaultListStyle ?? ThemeDefaults?.ListStyleSnapshot;
+    internal PdfPanelStyle? DefaultPanelStyleSnapshot => _defaultPanelStyle ?? ThemeDefaults?.PanelStyleSnapshot;
+    internal PdfHorizontalRuleStyle? DefaultHorizontalRuleStyleSnapshot => _defaultHorizontalRuleStyle ?? ThemeDefaults?.HorizontalRuleStyleSnapshot;
     internal PdfImageStyle? DefaultImageStyleSnapshot => _defaultImageStyle;
     internal PdfDrawingStyle? DefaultDrawingStyleSnapshot => _defaultDrawingStyle;
     internal PdfRowStyle? DefaultRowStyleSnapshot => _defaultRowStyle;
@@ -116,7 +121,7 @@ public sealed partial class PdfCreateOptions {
     /// <summary>Sets the default style for a built-in heading level.</summary>
     public PdfCreateOptions SetDefaultHeadingStyle(int level, PdfHeadingStyle style) {
         Guard.NotNull(style, nameof(style));
-        (_defaultHeadingStyles ??= ThemeDefaults.HeadingStylesSnapshot?.Clone() ?? new PdfHeadingStyles()).Set(level, style);
+        (_defaultHeadingStyles ??= ThemeDefaults?.HeadingStylesSnapshot?.Clone() ?? new PdfHeadingStyles()).Set(level, style);
         return this;
     }
 

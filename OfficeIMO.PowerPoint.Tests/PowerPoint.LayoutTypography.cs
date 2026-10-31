@@ -9,12 +9,12 @@ namespace OfficeIMO.Tests;
 public sealed class PowerPointLayoutTypographyTests {
     [Fact]
     public void SavedDisplayTitleRetainsItsEmBasedLeadingInTheVisualSnapshot() {
-        using var document = PowerPointPresentation.Create(new PowerPointCreateOptions { Theme = OfficeTheme.Boardroom });
+        using var document = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = OfficeTheme.Boardroom });
         var plan = new PowerPointDeckPlan().AddContent("FIRST\nSECOND", Array.Empty<PowerPointLayoutBlock>());
         var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand("#205040", "display-leading"));
         options.ApplyTheme = false;
         document.Compose(plan, options);
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         var spans = saved.Slides[0].CreateVisualSnapshot().TextSpans.Where(span =>
             span.Text.Contains("FIRST") || span.Text.Contains("SECOND")).ToArray();
         double[] lines = spans.Select(span => Math.Round(span.Y, 3)).Distinct().OrderBy(value => value).ToArray();

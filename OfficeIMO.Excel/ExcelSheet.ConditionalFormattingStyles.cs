@@ -83,7 +83,7 @@ namespace OfficeIMO.Excel {
                     }, true);
                 }
                 if (definition.DifferentialFontSize.HasValue) {
-                    font.AddChild(new FontSize { Val = definition.DifferentialFontSize.Value }, true);
+                    font.AddChild(new FontSize { Val = definition.DifferentialFontSize.Value.ToPoints() }, true);
                 }
                 if (!string.IsNullOrWhiteSpace(definition.DifferentialFontName)) {
                     font.AddChild(new FontName { Val = definition.DifferentialFontName }, true);

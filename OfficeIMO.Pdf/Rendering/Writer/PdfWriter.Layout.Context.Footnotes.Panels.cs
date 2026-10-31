@@ -41,13 +41,13 @@ internal static partial class PdfWriter {
             Array.Copy(ancestors, panels, ancestors.Length);
             panels[ancestors.Length] = panel;
             IReadOnlyList<IPdfBlock> children = ResolveContainerContentBlocks(container, style,
-                currentOpts.MarginLeft + frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize);
-            AppendFootnoteUnits(children, frame.X + style.PaddingX, frame.ContentWidth, panels, units);
+                currentOpts.MarginLeft.ToPoints() + frame.X + style.PaddingX.ToPoints(), frame.ContentWidth, currentOpts.DefaultFontSize.ToPoints());
+            AppendFootnoteUnits(children, frame.X + style.PaddingX.ToPoints(), frame.ContentWidth, panels, units);
             // Empty static panels still have a measurable decoration/padding box.
             if (start == units.Count) units.Add(new FootnoteUnit { Panels = panels });
             panel.End = units.Count;
-            units[start].PanelBefore += style.SpacingBefore + style.GetFragmentTopPadding(isContinuation: false);
-            units[panel.End - 1].PanelAfter += style.GetFragmentBottomPadding(continues: false) + style.SpacingAfter;
+            units[start].PanelBefore += style.SpacingBefore.ToPoints() + style.GetFragmentTopPadding(isContinuation: false);
+            units[panel.End - 1].PanelAfter += style.GetFragmentBottomPadding(continues: false) + style.SpacingAfter.ToPoints();
             if (style.KeepTogether) AddFootnoteKeepRange(units, start, panel.End, relaxIfOversized: false);
             return style.KeepWithNext;
         }
@@ -69,7 +69,7 @@ internal static partial class PdfWriter {
                 for (int depth = active.Count; depth < unit.Panels.Length; depth++) {
                     FootnotePanel panel = unit.Panels[depth];
                     bool continuation = panel.Start < start || continuedTable && panel.Start == start;
-                    if (!continuation) top -= panel.Style.SpacingBefore;
+                    if (!continuation) top -= panel.Style.SpacingBefore.ToPoints();
                     active.Add(new FootnotePanelPaint(panel, sb.Length, top, continuation));
                     top -= panel.GetTopPadding(continuation, tables);
                 }
@@ -94,9 +94,9 @@ internal static partial class PdfWriter {
                     double bottom = panel.Style.GetFragmentBottomPadding(continues);
                     top -= bottom;
                     PaintFootnotePanel(paint, top, continues, originX);
-                    if (next == end) inset += Math.Max(0D, panel.Style.FragmentBottomInset - bottom);
+                    if (next == end) inset += Math.Max(0D, panel.Style.FragmentBottomInset.ToPoints() - bottom);
                     if (!continues) {
-                        double spacing = panel.Style.SpacingAfter;
+                        double spacing = panel.Style.SpacingAfter.ToPoints();
                         if (next == end && panel.Style.ClipSpacingAfterAtFrameEnd) {
                             double clipped = Math.Min(spacing, clippedSpacing);
                             spacing -= clipped;
@@ -119,11 +119,11 @@ internal static partial class PdfWriter {
             bool final = panel.Style.RepeatFragmentDecoration || !continues;
             var decoration = new StringBuilder();
             if (panel.Style.Background is { } background)
-                DrawRoundedRowFill(decoration, background, (originX ?? currentOpts.MarginLeft) + panel.X, bottom, panel.Width,
-                    height, panel.Style.CornerRadius, first, first, final, final, emitGeneratedStructure);
-            DrawPanelBorder(decoration, panel.Style, (originX ?? currentOpts.MarginLeft) + panel.X, bottom, panel.Width, height,
+                DrawRoundedRowFill(decoration, background, (originX ?? currentOpts.MarginLeft.ToPoints()) + panel.X, bottom, panel.Width,
+                    height, panel.Style.CornerRadius.ToPoints(), first, first, final, final, emitGeneratedStructure);
+            DrawPanelBorder(decoration, panel.Style, (originX ?? currentOpts.MarginLeft.ToPoints()) + panel.X, bottom, panel.Width, height,
                 emitGeneratedStructure, first, final);
-            DrawContainerTableFrame(decoration, panel.Container, (originX ?? currentOpts.MarginLeft) + panel.X, panel.Width,
+            DrawContainerTableFrame(decoration, panel.Container, (originX ?? currentOpts.MarginLeft.ToPoints()) + panel.X, panel.Width,
                 bottom, height, first, final);
             if (decoration.Length > 0) sb.Insert(paint.Insertion, decoration.ToString());
         }

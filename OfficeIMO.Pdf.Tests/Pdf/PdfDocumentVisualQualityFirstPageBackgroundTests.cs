@@ -9,8 +9,8 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void BackgroundShape_FirstPageOnlyIsDrawnOnTheFirstPageOnly() {
         var shape = OfficeShape.Rectangle(500, 60);
-        shape.FillColor = PdfColor.FromRgb(234, 244, 255).ToOfficeColor();
-        var band = new PdfPageBackgroundShape(shape, 41, 700) { FirstPageOnly = true };
+        shape.FillColor = OfficeColor.FromRgb(234, 244, 255);
+        var band = new PdfPageBackgroundShape(shape, OfficeLength.Points(41), OfficeLength.Points(700)) { FirstPageOnly = true };
 
         byte[] bytes = PdfDocument.Create()
             .BackgroundShape(band)

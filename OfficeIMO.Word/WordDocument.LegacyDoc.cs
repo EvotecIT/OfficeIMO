@@ -116,7 +116,7 @@ namespace OfficeIMO.Word {
                 throw new InvalidDataException("Legacy DOC import failed: " + FormatLegacyDocDiagnostics(errors));
             }
 
-            WordDocument document = CreateInternal(filePath: null, stream: null, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, DocumentPersistenceMode.Explicit);
+            WordDocument document = CreateInternal(filePath: null, stream: null, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, DocumentPersistenceMode.Explicit, theme: null);
             ApplyLegacyDocParagraphDefaults(document);
             ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);
             AddLegacyDocNumberingDefinitions(document, legacyDocument.Numbering, legacyDocument.StyleSheet);
@@ -254,27 +254,27 @@ namespace OfficeIMO.Word {
             }
 
             if (sectionFormat.PageWidthTwips != null) {
-                section.PageSettings.Width = (DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageWidthTwips.Value;
+                section.PageSettings.Width= (((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageWidthTwips.Value) is { } wordLength14476 ? global::OfficeIMO.OfficeLength.Points((wordLength14476) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
 
             if (sectionFormat.PageHeightTwips != null) {
-                section.PageSettings.Height = (DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageHeightTwips.Value;
+                section.PageSettings.Height= (((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageHeightTwips.Value) is { } wordLength14672 ? global::OfficeIMO.OfficeLength.Points((wordLength14672) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
 
             if (sectionFormat.MarginTopTwips != null) {
-                section.Margins.Top = sectionFormat.MarginTopTwips.Value;
+                section.Margins.Top = global::OfficeIMO.OfficeLength.Points((sectionFormat.MarginTopTwips.Value) / 20D);
             }
 
             if (sectionFormat.MarginRightTwips != null) {
-                section.Margins.Right = (DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginRightTwips.Value;
+                section.Margins.Right = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginRightTwips.Value) / 20D);
             }
 
             if (sectionFormat.MarginBottomTwips != null) {
-                section.Margins.Bottom = sectionFormat.MarginBottomTwips.Value;
+                section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((sectionFormat.MarginBottomTwips.Value) / 20D);
             }
 
             if (sectionFormat.MarginLeftTwips != null) {
-                section.Margins.Left = (DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginLeftTwips.Value;
+                section.Margins.Left = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginLeftTwips.Value) / 20D);
             }
 
             PageMargin? pageMargin = section._sectionProperties.GetFirstChild<PageMargin>();
@@ -310,7 +310,7 @@ namespace OfficeIMO.Word {
             }
 
             if (sectionFormat.ColumnSpacingTwips != null) {
-                section.ColumnsSpace = sectionFormat.ColumnSpacingTwips.Value;
+                section.ColumnsSpace = OfficeLength.Points(sectionFormat.ColumnSpacingTwips.Value / 20D);
             }
 
             if (sectionFormat.ColumnDefinitions != null) {
@@ -555,10 +555,9 @@ namespace OfficeIMO.Word {
             paragraph.AddImage(
                 stream,
                 picture.FileName,
-                picture.WidthPixels,
-                picture.HeightPixels,
-                WordImageTextWrapping.InLineWithText,
-                "Imported legacy DOC inline picture");
+                OfficeLength.Pixels(picture.WidthPixels),
+                OfficeLength.Pixels(picture.HeightPixels),
+                new WordImageOptions { Description = "Imported legacy DOC inline picture" });
             if (picture.Crop.HasCrop) {
                 var addedPicture = paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Last();
                 addedPicture.BlipFill!.SourceRectangle = new DocumentFormat.OpenXml.Drawing.SourceRectangle {
@@ -728,7 +727,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            WordParagraph reference = paragraph.AddFootNote(footnote.ParagraphRuns[0].Text);
+            WordParagraph reference = paragraph.AddFootNote(footnote.ParagraphRuns[0].Text).Paragraph;
             ApplyLegacyDocReferenceFormatting(paragraph, reference, legacyRun);
             List<WordParagraph>? noteParagraphs = reference.FootNote!.Paragraphs;
             if (noteParagraphs == null || noteParagraphs.Count == 0) {
@@ -761,7 +760,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            WordParagraph reference = paragraph.AddEndNote(endnote.ParagraphRuns[0].Text);
+            WordParagraph reference = paragraph.AddEndNote(endnote.ParagraphRuns[0].Text).Paragraph;
             ApplyLegacyDocReferenceFormatting(paragraph, reference, legacyRun);
             List<WordParagraph>? noteParagraphs = reference.EndNote!.Paragraphs;
             if (noteParagraphs == null || noteParagraphs.Count == 0) {
@@ -1228,11 +1227,11 @@ namespace OfficeIMO.Word {
             }
 
             if (paragraphFormat.SpacingBeforeTwips != null) {
-                paragraph.LineSpacingBefore = paragraphFormat.SpacingBeforeTwips;
+                paragraph.LineSpacingBefore= ((paragraphFormat.SpacingBeforeTwips) is { } wordLength65666 ? global::OfficeIMO.OfficeLength.Points((wordLength65666) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
 
             if (paragraphFormat.SpacingAfterTwips != null) {
-                paragraph.LineSpacingAfter = paragraphFormat.SpacingAfterTwips;
+                paragraph.LineSpacingAfter= ((paragraphFormat.SpacingAfterTwips) is { } wordLength65823 ? global::OfficeIMO.OfficeLength.Points((wordLength65823) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
 
             if (paragraphFormat.LineSpacingTwips != null) {
@@ -1241,18 +1240,18 @@ namespace OfficeIMO.Word {
             }
 
             if (paragraphFormat.LeftIndentTwips != null) {
-                paragraph.IndentationBefore = paragraphFormat.LeftIndentTwips;
+                paragraph.IndentationBefore= ((paragraphFormat.LeftIndentTwips) is { } wordLength66255 ? global::OfficeIMO.OfficeLength.Points((wordLength66255) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
 
             if (paragraphFormat.RightIndentTwips != null) {
-                paragraph.IndentationAfter = paragraphFormat.RightIndentTwips;
+                paragraph.IndentationAfter= ((paragraphFormat.RightIndentTwips) is { } wordLength66408 ? global::OfficeIMO.OfficeLength.Points((wordLength66408) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
 
             if (paragraphFormat.FirstLineIndentTwips != null) {
                 if (paragraphFormat.FirstLineIndentTwips.Value < 0) {
-                    paragraph.IndentationHanging = -paragraphFormat.FirstLineIndentTwips.Value;
+                    paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points((-paragraphFormat.FirstLineIndentTwips.Value) / 20D);
                 } else {
-                    paragraph.IndentationFirstLine = paragraphFormat.FirstLineIndentTwips;
+                    paragraph.IndentationFirstLine= ((paragraphFormat.FirstLineIndentTwips) is { } wordLength66765 ? global::OfficeIMO.OfficeLength.Points((wordLength66765) / 20D) : (global::OfficeIMO.OfficeLength?)null);
                 }
             }
 
@@ -1327,7 +1326,7 @@ namespace OfficeIMO.Word {
             foreach (LegacyDocTabStop tabStop in paragraphFormat.TabStops) {
                 if (TryMapTabStopAlignment(tabStop.Alignment, out TabStopValues tabAlignment)
                     && TryMapTabStopLeader(tabStop.Leader, out TabStopLeaderCharValues leader)) {
-                    paragraph.AddTabStop(tabStop.PositionTwips, tabAlignment.ToOfficeEnum(), leader.ToOfficeEnum());
+                    paragraph.AddTabStop(OfficeLength.Emus((long)tabStop.PositionTwips * 635), tabAlignment.ToOfficeEnum(), leader.ToOfficeEnum());
                 }
             }
         }
@@ -1481,26 +1480,26 @@ namespace OfficeIMO.Word {
                 borders.Top,
                 style => paragraph.Borders.TopStyle = style.ToOfficeEnum(),
                 color => paragraph.Borders.TopColorHex = color,
-                size => paragraph.Borders.TopSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
-                space => paragraph.Borders.TopSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+                size => paragraph.Borders.TopSize = OfficeLength.Points(size / 8D),
+                space => paragraph.Borders.TopSpace = OfficeLength.Points(space));
             ApplyLegacyDocParagraphBorder(
                 borders.Left,
                 style => paragraph.Borders.LeftStyle = style.ToOfficeEnum(),
                 color => paragraph.Borders.LeftColorHex = color,
-                size => paragraph.Borders.LeftSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
-                space => paragraph.Borders.LeftSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+                size => paragraph.Borders.LeftSize = OfficeLength.Points(size / 8D),
+                space => paragraph.Borders.LeftSpace = OfficeLength.Points(space));
             ApplyLegacyDocParagraphBorder(
                 borders.Bottom,
                 style => paragraph.Borders.BottomStyle = style.ToOfficeEnum(),
                 color => paragraph.Borders.BottomColorHex = color,
-                size => paragraph.Borders.BottomSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
-                space => paragraph.Borders.BottomSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+                size => paragraph.Borders.BottomSize = OfficeLength.Points(size / 8D),
+                space => paragraph.Borders.BottomSpace = OfficeLength.Points(space));
             ApplyLegacyDocParagraphBorder(
                 borders.Right,
                 style => paragraph.Borders.RightStyle = style.ToOfficeEnum(),
                 color => paragraph.Borders.RightColorHex = color,
-                size => paragraph.Borders.RightSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
-                space => paragraph.Borders.RightSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+                size => paragraph.Borders.RightSize = OfficeLength.Points(size / 8D),
+                space => paragraph.Borders.RightSpace = OfficeLength.Points(space));
 
             if (borders.Between.HasAny) {
                 ParagraphBorders paragraphBorders = GetOrCreateParagraphBorders(paragraph);

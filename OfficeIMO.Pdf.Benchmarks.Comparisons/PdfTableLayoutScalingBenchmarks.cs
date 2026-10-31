@@ -35,27 +35,27 @@ public class PdfTableLayoutScalingBenchmarks {
         _style = PdfTableStyles.TableGrid();
         _style.HeaderRowCount = 1;
         _style.RepeatHeaderRowCount = 1;
-        _style.ColumnWidthPoints = new List<double?> { 54D, 58D, 72D, 80D, 72D, 78D, 54D };
+        _style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(54D), global::OfficeIMO.OfficeLength.Points(58D), global::OfficeIMO.OfficeLength.Points(72D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(72D), global::OfficeIMO.OfficeLength.Points(78D), global::OfficeIMO.OfficeLength.Points(54D) };
         _style.PreserveWidth = true;
         _style.ShrinkTextToFit = true;
-        _style.MinimumShrinkFontSize = 6D;
-        _style.FontSize = CellFontSize;
+        _style.MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(6D);
+        _style.FontSize = global::OfficeIMO.OfficeLength.Points(CellFontSize);
         _style.HeaderBold = true;
         _style.LineHeight = 1.15D;
-        _style.CellPaddingX = 2D;
-        _style.CellPaddingY = 1D;
+        _style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2D);
+        _style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(1D);
     }
 
     [Benchmark]
     public byte[] ComposeTablePdf() {
         PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => content.Table(_rows, style: _style)), new PdfCreateOptions {
-            PageWidth = 612D,
-            PageHeight = 792D,
-            MarginLeft = 54D,
-            MarginRight = 54D,
-            MarginTop = 54D,
-            MarginBottom = 54D,
-            DefaultFontSize = CellFontSize,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(612D),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(792D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(54D),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(54D),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(54D),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(54D),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(CellFontSize),
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly
         });
@@ -114,7 +114,7 @@ public class PdfTableLayoutScalingBenchmarks {
         cellMode == PdfTableLayoutCellMode.Plain
             ? PdfTableCell.TextCell(text).WithNoWrap()
             : PdfTableCell.RichTextCell(new[] {
-                new PdfTextRun(text, bold: bold, fontSize: CellFontSize)
+                new PdfTextRun(text, bold: bold, fontSize: global::OfficeIMO.OfficeLength.Points(CellFontSize))
             }).WithNoWrap();
 
     private static string CreateMarker(int index) =>

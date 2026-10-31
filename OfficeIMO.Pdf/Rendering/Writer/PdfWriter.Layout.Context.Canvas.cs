@@ -18,11 +18,11 @@ internal static partial class PdfWriter {
                         break;
                     case PdfCanvasParagraphAnchorItem paragraphAnchor:
                         RenderCanvasEffect(new PdfCanvasEffectItem(paragraphAnchor.Items,
-                            OfficeTransform.Translate(0D, currentOpts.PageHeight - (paragraphCanvasTop ?? y)), 1D, OfficeBlendMode.Normal));
+                            OfficeTransform.Translate(0D, currentOpts.PageHeight.ToPoints() - (paragraphCanvasTop ?? y)), 1D, OfficeBlendMode.Normal));
                         break;
                     case PdfCanvasMarginAnchorItem marginAnchor:
                         RenderCanvasEffect(new PdfCanvasEffectItem(marginAnchor.Items,
-                            OfficeTransform.Translate(currentPage!.Options.MarginLeft - marginAnchor.AuthoredLeftMargin, 0D),
+                            OfficeTransform.Translate(currentPage!.Options.MarginLeft.ToPoints() - marginAnchor.AuthoredLeftMargin, 0D),
                             1D, OfficeBlendMode.Normal));
                         break;
                     case PdfCanvasArtifactItem artifact:
@@ -44,51 +44,51 @@ internal static partial class PdfWriter {
                         RenderCanvasNamedDestination(destination);
                         break;
                     case PdfCanvasNamedDestinationLinkItem destinationLink:
-                        ResolveFloatingBookmarks(currentOpts.PageHeight - destinationLink.Y);
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - destinationLink.Y);
                         RenderCanvasNamedDestinationLink(destinationLink);
                         break;
                     case PdfCanvasTextItem text:
-                        ResolveFloatingBookmarks(currentOpts.PageHeight - text.Y);
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - text.Y);
                         RenderCanvasText(text);
                         break;
                     case PdfCanvasSearchableTextItem searchableText:
-                        ResolveFloatingBookmarks(currentOpts.PageHeight - searchableText.Y);
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - searchableText.Y);
                         if (!TryRenderSearchableRun(canvas.Items, ref itemIndex)) RenderCanvasSearchableText(searchableText);
                         break;
                     case PdfCanvasTextBoxItem textBox:
-                        ResolveFloatingBookmarks(currentOpts.PageHeight - textBox.Y);
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - textBox.Y);
                         RenderCanvasTextBox(textBox);
                         break;
                     case PdfCanvasShapeItem shape:
-                        ResolveFloatingBookmarks(currentOpts.PageHeight - shape.Y);
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - shape.Y);
                         RenderCanvasShape(shape);
                         break;
                     case PdfCanvasDrawingItem drawing:
-                        ResolveFloatingBookmarks(currentOpts.PageHeight - drawing.Y);
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - drawing.Y);
                         RenderCanvasDrawing(drawing);
                         break;
                     case PdfCanvasImageItem image:
-                        ResolveFloatingBookmarks(currentOpts.PageHeight - image.Y);
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - image.Y);
                         RenderCanvasImage(image);
                         break;
                     case PdfCanvasTextAnnotationItem textAnnotation:
-                        ResolveFloatingBookmarks(currentOpts.PageHeight - textAnnotation.Y);
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - textAnnotation.Y);
                         RenderCanvasTextAnnotation(textAnnotation);
                         break;
                     case PdfCanvasFreeTextAnnotationItem freeTextAnnotation:
-                        ResolveFloatingBookmarks(currentOpts.PageHeight - freeTextAnnotation.Y);
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - freeTextAnnotation.Y);
                         RenderCanvasFreeTextAnnotation(freeTextAnnotation);
                         break;
                     case PdfCanvasHighlightAnnotationItem highlightAnnotation:
-                        ResolveFloatingBookmarks(currentOpts.PageHeight - highlightAnnotation.Y);
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - highlightAnnotation.Y);
                         RenderCanvasHighlightAnnotation(highlightAnnotation);
                         break;
                     case PdfCanvasFormFieldItem formField:
-                        ResolveFloatingBookmarks(currentOpts.PageHeight - formField.Y);
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - formField.Y);
                         RenderCanvasFormField(formField);
                         break;
                     case PdfCanvasTableItem table:
-                        ResolveFloatingBookmarks(currentOpts.PageHeight - table.Y);
+                        ResolveFloatingBookmarks(currentOpts.PageHeight.ToPoints() - table.Y);
                         RenderCanvasTable(table);
                         break;
                     case PdfCanvasClipItem clip:
@@ -139,7 +139,7 @@ internal static partial class PdfWriter {
 
         private void RenderCanvasNamedDestinationLink(PdfCanvasNamedDestinationLinkItem item) {
             ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas named-destination link");
-            double topY = currentOpts.PageHeight - item.Y;
+            double topY = currentOpts.PageHeight.ToPoints() - item.Y;
             currentPage!.Annotations.Add(new LinkAnnotation {
                 X1 = item.X,
                 Y1 = topY - item.Height,
@@ -169,7 +169,7 @@ internal static partial class PdfWriter {
 
         private void RenderCanvasFormField(PdfCanvasFormFieldItem item) {
             ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas form field");
-            double topY = currentOpts.PageHeight - item.Y;
+            double topY = currentOpts.PageHeight.ToPoints() - item.Y;
             double bottomY = topY - item.Height;
 
             if (item.Kind == PdfCanvasFormFieldKind.RadioButton) {
@@ -238,7 +238,7 @@ internal static partial class PdfWriter {
             if (_suppressCanvasActualTextChildren) return;
             EnsurePage();
             PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
-            double baselineY = currentOpts.PageHeight - item.Y - (item.UsesBounds ? item.Height : 0D);
+            double baselineY = currentOpts.PageHeight.ToPoints() - item.Y - (item.UsesBounds ? item.Height : 0D);
             double baselineX = item.X, textWidth = item.Width, textHeight = item.Height;
             double a = 1D, b = 0D, c = 0D, d = 1D;
             if (item.Geometry is PdfSelectionQuad quad) {
@@ -249,7 +249,7 @@ internal static partial class PdfWriter {
                 Guard.Positive(textWidth, nameof(item)); Guard.Positive(textHeight, nameof(item));
                 a = advanceX / textWidth; b = -advanceY / textWidth;
                 c = upX / textHeight; d = -upY / textHeight;
-                baselineX = quad.BottomLeft.X; baselineY = currentOpts.PageHeight - quad.BottomLeft.Y;
+                baselineX = quad.BottomLeft.X; baselineY = currentOpts.PageHeight.ToPoints() - quad.BottomLeft.Y;
             }
             // One anchor per Unicode scalar keeps reader spacing heuristics proportional
             // to characters instead of presenting the entire word as one stretched space.
@@ -291,7 +291,7 @@ internal static partial class PdfWriter {
             }
             EnsurePage();
             double actualTextX = item.HasPosition ? item.X : 0D;
-            double actualTextY = item.HasPosition ? currentOpts.PageHeight - item.Y - (item.UsesBounds ? item.Height : 0D) : 0D;
+            double actualTextY = item.HasPosition ? currentOpts.PageHeight.ToPoints() - item.Y - (item.UsesBounds ? item.Height : 0D) : 0D;
             RenderLogicalText(item.Text, actualTextX, actualTextY,
                 () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)), item.Width, item.Height, item.LogicalOrder);
         }
@@ -399,7 +399,7 @@ internal static partial class PdfWriter {
 
         private void RenderCanvasText(PdfCanvasTextItem item) {
             ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas text");
-            double size = item.FontSize ?? currentOpts.DefaultFontSize;
+            double size = item.FontSize ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = item.LineHeight ?? size * 1.2D;
             var block = new RichParagraphBlock(item.Runs, item.Align, item.DefaultColor);
             var wrap = item.PreservePositionedText
@@ -412,9 +412,9 @@ internal static partial class PdfWriter {
             if (!item.PreservePositionedText)
                 ReportFullyClippedFrameLine("canvas-text-content-clipped", "PdfCanvasText",
                     wrap.Lines, wrap.LineHeights,
-                    FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), size, currentOpts.PageHeight - item.Y),
-                    size, leading, ChooseNormal(currentOpts.DefaultFont), currentOpts.PageHeight - item.Y - item.Height,
-                    item.Height, item.X, currentOpts.PageHeight - item.Y, item.Width, item.Height);
+                    FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), size, currentOpts.PageHeight.ToPoints() - item.Y),
+                    size, leading, ChooseNormal(currentOpts.DefaultFont), currentOpts.PageHeight.ToPoints() - item.Y - item.Height,
+                    item.Height, item.X, currentOpts.PageHeight.ToPoints() - item.Y, item.Width, item.Height);
 
             double scaleX = 1D;
             if (item.PreservePositionedText && item.PositionedAdvanceWidth is double advance && advance > 0D && !double.IsInfinity(advance)) {
@@ -432,7 +432,7 @@ internal static partial class PdfWriter {
 
         private void WriteCanvasText(PdfCanvasTextItem item, double size, double leading, RichParagraphBlock block,
             List<List<RichSeg>> lines, List<double> lineHeights, double width) {
-            double topY = currentOpts.PageHeight - item.Y;
+            double topY = currentOpts.PageHeight.ToPoints() - item.Y;
             double bottomY = topY - item.Height;
             string? structureType = _suppressCanvasAccessibilityWrappers ? null : MapCanvasTextStructureType(item.StructureRole);
             int? markedContentId = structureType == null ? null : RegisterTextStructureElement(structureType, _canvasStructureParentElement, logicalOrder: item.LogicalOrder);
@@ -480,7 +480,7 @@ internal static partial class PdfWriter {
         private void RenderCanvasTextBox(PdfCanvasTextBoxItem item) {
             ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas text box");
             PdfCanvasTextBoxStyle style = item.Style;
-            double topY = currentOpts.PageHeight - item.Y;
+            double topY = currentOpts.PageHeight.ToPoints() - item.Y;
             double bottomY = topY - item.Height;
             bool rotated = item.RotationAngle != 0D;
             if (rotated) {
@@ -519,10 +519,10 @@ internal static partial class PdfWriter {
                         PdfLayoutDiagnosticKind.ClippedContent,
                         "PdfCanvasTextBox",
                         "The PDF text box render pass clipped text because wrapped content exceeded the available text area.",
-                        item.X,
-                        item.Y,
-                        item.Width,
-                        item.Height));
+                        global::OfficeIMO.OfficeLength.Points(item.X),
+                        global::OfficeIMO.OfficeLength.Points(item.Y),
+                        global::OfficeIMO.OfficeLength.Points(item.Width),
+                        global::OfficeIMO.OfficeLength.Points(item.Height)));
                 }
 
                 ReportRichPaintDiagnostics(PaintDiagnosticCodes.CanvasTextBox, "PdfCanvasTextBox", blockText, prepared.Lines, prepared.LineHeights,
@@ -573,7 +573,7 @@ internal static partial class PdfWriter {
             ValidateCanvasBox(item.X, item.Y, block.Shape.Width, block.Shape.Height, "Canvas shape");
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Canvas shape");
-            double topY = currentOpts.PageHeight - item.Y;
+            double topY = currentOpts.PageHeight.ToPoints() - item.Y;
             int annotationStart = currentPage!.Annotations.Count;
             int? structElementIndex = DrawShapeAt(block, style, item.X, block.Shape.Width, topY);
             if (!string.IsNullOrEmpty(block.LinkUri)) {
@@ -598,7 +598,7 @@ internal static partial class PdfWriter {
             ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas drawing");
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Canvas drawing");
-            double topY = currentOpts.PageHeight - item.Y;
+            double topY = currentOpts.PageHeight.ToPoints() - item.Y;
             double bottomY = topY - item.Height;
             int annotationStart = currentPage!.Annotations.Count;
             int imageStart = currentPage.Images.Count;
@@ -668,7 +668,7 @@ internal static partial class PdfWriter {
             PdfImageStyle imageStyle = ResolveImageStyle(block, currentOpts);
             PdfDocument.ValidateImageStyleForBox(imageStyle, block.Width, block.Height, nameof(imageStyle.ClipPath));
             PdfDocument.ValidateImageFitDimensions(block.Info, imageStyle.Fit, nameof(imageStyle.Fit));
-            double bottomY = currentOpts.PageHeight - item.Y - block.Height;
+            double bottomY = currentOpts.PageHeight.ToPoints() - item.Y - block.Height;
             if (block.Info.Format == OfficeIMO.Drawing.OfficeImageFormat.Svg) {
                 RenderCanvasSvgImage(item, imageStyle, bottomY);
                 return;
@@ -710,7 +710,7 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            if (x + boxWidth > currentOpts.PageWidth + 0.001D || yFromTop + boxHeight > currentOpts.PageHeight + 0.001D) {
+            if (x + boxWidth > currentOpts.PageWidth.ToPoints() + 0.001D || yFromTop + boxHeight > currentOpts.PageHeight.ToPoints() + 0.001D) {
                 throw new ArgumentException(name + " exceeds the current page bounds.");
             }
         }

@@ -65,7 +65,7 @@ public sealed partial class HtmlRenderingTests {
         string positionedHtml = "<section style='position:relative;top:40px'>" + children + "</section>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(2D, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(2D), global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -99,7 +99,7 @@ public sealed partial class HtmlRenderingTests {
         string positionedTable = table.Replace("<table>", "<table style='position:relative;left:6px;top:8px'>");
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(3D, 2D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(3D), global::OfficeIMO.OfficeLength.Inches(2D)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(16D)
         };
@@ -145,7 +145,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(60D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -180,7 +180,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
         pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 50D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(50D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -301,7 +301,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='height:60px;margin:0'>Three</div><div style='height:60px;margin:0'>Four</div>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -620,7 +620,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='height:70px;margin:0'>PageOne</div><div style='height:70px;margin:0'>PageTwo</div>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(120D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(10D)
         };
@@ -818,7 +818,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='height:70px'></div><div style='height:70px'></div>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(200D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(200D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -848,7 +848,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='normal-page-two' style='height:60px;margin:0;background:#0000ff'></div>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(100D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };

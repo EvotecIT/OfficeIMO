@@ -15,17 +15,17 @@ internal static partial class PdfWriter {
             ValidateTableRowSpansWithinRoleBoundaries(table, columns, style.HeaderRowCount, footerStart);
             style = PreparePairedTableBorders(table, style);
             double gap = GetTableCellSpacing(style);
-            double fontSize = GetTableBodyFontSize(style, currentOpts.DefaultFontSize);
+            double fontSize = GetTableBodyFontSize(style, currentOpts.DefaultFontSize.ToPoints());
             TableColumnLayout layout = ResolveTableColumnLayout(table, currentOpts, style, columns, frameWidth, fontSize,
                 style.HeaderRowCount, footerStart);
             PreparedFlowTableRows rows = PrepareFlowTableRows(table, style, columns, layout.Widths, gap, gap, style.HeaderRowCount, footerStart);
-            double before = ResolveTopLevelSpacingBefore(style.SpacingBefore);
+            double before = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
             if (!string.IsNullOrWhiteSpace(style.Caption)) {
-                double size = style.CaptionFontSize ?? fontSize;
+                double size = style.CaptionFontSize?.ToPoints() ?? fontSize;
                 double leading = size * 1.25D;
-                var wrapped = WrapRichRunsCore(new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, size) }, layout.Width,
+                var wrapped = WrapRichRunsCore(new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, global::OfficeIMO.OfficeLength.Points(size)) }, layout.Width,
                     size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts, cancellationToken: cancellationToken);
-                before += MeasureRichLinesHeight(wrapped.LineHeights, wrapped.Lines.Count, leading) + style.CaptionSpacingAfter;
+                before += MeasureRichLinesHeight(wrapped.LineHeights, wrapped.Lines.Count, leading) + style.CaptionSpacingAfter.ToPoints();
             }
             return MeasurePreparedTableColumnBalanceUnits(table, style, rows, columns, layout.Widths, gap,
                 GetMeasuredContinuationFrameHeight(), scope.Options.BalanceTableRowLines, initialHeight: before);
@@ -51,9 +51,9 @@ internal static partial class PdfWriter {
                 double height = GetTableRowsHeight(rows.Heights, row, end - row + 1, gap);
                 // The range helper includes a trailing gap whenever the range ends before the table.
                 double continuation = (row > 0 || consumedLines > 0) && row >= headerCount
-                    ? repeatHeight + style.PageContinuationSpacingBefore : 0D;
+                    ? repeatHeight + style.PageContinuationSpacingBefore.ToPoints() : 0D;
                 double before = row == firstRow ? (firstRow == 0 && consumedLines == 0 ? initialHeight : continuation) : 0D;
-                double after = end == table.Rows.Count - 1 ? style.SpacingAfter : 0D;
+                double after = end == table.Rows.Count - 1 ? style.SpacingAfter.ToPoints() : 0D;
                 int fragmentRow = -1;
                 if (balanceRowLines && !style.KeepTogether) {
                     int fragmentCount = 0;
@@ -70,7 +70,7 @@ internal static partial class PdfWriter {
                         bool hasViewport = Enumerable.Range(row, end - row + 1).Any(member => viewportGroups[member] >= member);
                         if (height > fullFrameHeight + 0.001D && !hasViewport) {
                             end = fragmentRow;
-                            after = end == table.Rows.Count - 1 ? style.SpacingAfter : 0D;
+                            after = end == table.Rows.Count - 1 ? style.SpacingAfter.ToPoints() : 0D;
                         } else fragmentRow = -1;
                     }
                 }
@@ -79,7 +79,7 @@ internal static partial class PdfWriter {
                     double suffix = GetTableRowsHeight(rows.Heights, fragmentRow + 1, end - fragmentRow, gap) + after +
                         GetTableRowGapAfter(fragmentRow, table.Rows.Count, gap);
                     int startLine = fragmentRow == firstRow ? consumedLines : 0;
-                    double splitBefore = (fragmentRow >= headerCount ? repeatHeight : 0D) + style.PageContinuationSpacingBefore;
+                    double splitBefore = (fragmentRow >= headerCount ? repeatHeight : 0D) + style.PageContinuationSpacingBefore.ToPoints();
                     if (row == firstRow && consumedLines > 0) before = splitBefore;
                     units.Add(new ColumnBalanceUnit(new ColumnBalanceRowFragment(table, style, rows, columns,
                         columnWidths, gap, fragmentRow, startLine, fullFrameHeight, prefix + before,

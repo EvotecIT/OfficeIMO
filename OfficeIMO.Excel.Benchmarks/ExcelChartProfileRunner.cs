@@ -80,8 +80,8 @@ internal static class ExcelChartProfileRunner {
         }
 
         stageWatch.Restart();
-        var sheet = document.AddWorksheet("Data");
-        AddStage(totals, "AddWorksheet", stageWatch.Elapsed.TotalMilliseconds);
+        var sheet = document.AddSheet("Data");
+        AddStage(totals, "AddSheet", stageWatch.Elapsed.TotalMilliseconds);
 
         stageWatch.Restart();
         ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
@@ -101,7 +101,7 @@ internal static class ExcelChartProfileRunner {
         AddStage(totals, "BuildChartData", stageWatch.Elapsed.TotalMilliseconds);
 
         stageWatch.Restart();
-        sheet.AddChart(chartData, row: 18, column: 10, widthPixels: 720, heightPixels: 360, type: ExcelChartType.ColumnClustered, title: "Regional Sales");
+        sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 10, Width = OfficeLength.Pixels(720), Height = OfficeLength.Pixels(360), Title = "Regional Sales" });
         AddStage(totals, "AddChart", stageWatch.Elapsed.TotalMilliseconds);
 
         stageWatch.Restart();

@@ -38,12 +38,21 @@ namespace OfficeIMO.Reader.Dbf.Tests {
         [InlineData("fp", false)]
         [InlineData("vfp", false)]
         [InlineData("vfp", true)]
-        public void ExcelReopensTypedRowsThroughStreamingAndBufferedWriters(string profile, bool buffered) {
+        public void ExcelReopensTypedRowsThroughStreamingAndEditableWorkbooks(string profile, bool buffered) {
             using DbfDataReader reader = DbfDataReader.Open(DbfReaderTests.Fixture(profile + ".dbf"));
             using MemoryStream output = new MemoryStream();
-            ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(output, reader,
-                new ExcelWriterOptions { UseSharedStrings = buffered, RequireStreaming = !buffered });
-            Assert.Equal(2, result.RowCount);
+            int rowCount;
+            if (buffered) {
+                using var document = ExcelDocument.Create();
+                rowCount = document.AddSheet("Data")
+                    .InsertDataReaderWithResult(reader, createTable: false).RowCount;
+                document.Save(output);
+            } else {
+                using var writer = ExcelDocument.CreateWriter(output, leaveOpen: true);
+                rowCount = writer.WriteTable("Data", reader).RowCount;
+            }
+            output.Position = 0;
+            Assert.Equal(2, rowCount);
             Assert.False(reader.IsClosed);
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(output, false)) {
                 Assert.Empty(new OpenXmlValidator().Validate(package));
@@ -58,7 +67,8 @@ namespace OfficeIMO.Reader.Dbf.Tests {
                 Assert.Equal("AP8B", reopened.GetString(7));
                 Assert.Equal(Convert.ToBase64String(new byte[] { 0, 255, 1, 32, 65, 66, 67, 32 }), reopened.GetString(6));
                 Assert.Equal(-123.4567, Convert.ToDouble(reopened.GetValue(3), CultureInfo.InvariantCulture));
-            } else {
+            }
+            else {
                 Assert.Equal("First memo\r\nSecond line: naïve", reopened.GetString(4));
                 Assert.Equal(1234.50, Convert.ToDouble(reopened.GetValue(1), CultureInfo.InvariantCulture));
             }
@@ -78,7 +88,9 @@ namespace OfficeIMO.Reader.Dbf.Tests {
             using MemoryStream output = new MemoryStream();
             DataSet dataSet = new DataSet();
             dataSet.Tables.Add(table);
-            ExcelDocument.WriteDataSet(output, dataSet);
+            using (var writer = ExcelDocument.CreateWriter(output, leaveOpen: true)) {
+                foreach (DataTable source in dataSet.Tables) writer.WriteTable(source.TableName, source);
+            }
             output.Position = 0;
             using ExcelWorkbookDataReader reopened = ExcelDocument.OpenReader(output);
             Assert.True(reopened.Read());

@@ -23,9 +23,9 @@ public partial class Word {
         paragraph._paragraph.RemoveAllChildren<Run>();
         for (int index = 0; index < count; index++)
             paragraph._paragraph.Append(TextLine(((char)('A' + index)).ToString(), 10, index + 1 < count));
-        paragraph.FontFamily = "Arial"; paragraph.FontSize = 10;
-        paragraph.LineSpacing = 480; paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((480) / 240D);
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.AvoidWidowAndOrphanOverride = false;
         paragraph._paragraph.ParagraphProperties!.KeepLines = new KeepLines { Val = keep };
         paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties = new ParagraphMarkRunProperties(
@@ -35,7 +35,7 @@ public partial class Word {
         options.EmbedStandardFont(PdfStandardFont.Helvetica, CreateBaselineMetricFont(), "OfficeIMO-LineFit-Regular");
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(200D, (count == 1 ? 20D : 91D) + 40D), Margins = PdfPageMargins.Uniform(20D)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(200D),OfficeIMO.OfficeLength.Points((count == 1 ? 20D : 91D) + 40D)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var letters = page.Letters.Where(letter => "ABCD".Contains(letter.Value)).ToArray();

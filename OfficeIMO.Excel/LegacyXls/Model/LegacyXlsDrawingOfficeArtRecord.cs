@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes an OfficeArt record header discovered while traversing an XLS MsoDrawing payload.
     /// </summary>
-    public sealed class LegacyXlsDrawingOfficeArtRecord {
+    internal sealed class LegacyXlsDrawingOfficeArtRecord {
         /// <summary>
         /// Creates preserve-only metadata for a nested OfficeArt record.
         /// </summary>

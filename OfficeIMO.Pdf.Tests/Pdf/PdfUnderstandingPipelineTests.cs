@@ -119,23 +119,23 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void StructuredPipeline_PromotesTableBeforeGeneralSegmentation() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 320,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Year", "Region", "Value" },
                 new[] { "2025", "North", "1250" },
                 new[] { "2024", "West", "980" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 120, 90 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(90) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -201,7 +201,7 @@ public partial class PdfUnderstandingPipelineTests {
     public void Pipeline_UsesCallerSuppliedStageAndRecordsItsProvider() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(p => p.Text("Top region"))
-            .Paragraph(p => p.Text("Bottom region"), style: new PdfParagraphStyle { SpacingBefore = 40 })
+            .Paragraph(p => p.Text("Bottom region"), style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(40) })
             .ToBytes();
         var custom = new ReverseReadingOrderStage();
         var options = new PdfUnderstandingPipelineOptions { ReadingOrder = custom };
@@ -1931,8 +1931,8 @@ public partial class PdfUnderstandingPipelineTests {
             pdf,
             options,
             layoutOptions: new PdfTextLayoutOptions {
-                IgnoreHeaderHeight = 80D,
-                IgnoreFooterHeight = 80D
+                IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(80D),
+                IgnoreFooterHeight = OfficeIMO.OfficeLength.Points(80D)
             }).Pages);
 
         Assert.Equal("Retained body evidence", Assert.Single(page.Analysis.DecodedRuns).Text);
@@ -1956,8 +1956,8 @@ public partial class PdfUnderstandingPipelineTests {
             pdf,
             options,
             layoutOptions: new PdfTextLayoutOptions {
-                IgnoreHeaderHeight = 60D,
-                IgnoreFooterHeight = 60D
+                IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(60D),
+                IgnoreFooterHeight = OfficeIMO.OfficeLength.Points(60D)
             }).Pages);
 
         Assert.Equal("Retained visual body", Assert.Single(page.Analysis.DecodedRuns).Text);
@@ -2061,7 +2061,7 @@ public partial class PdfUnderstandingPipelineTests {
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => Read(
             pdf,
             options,
-            layoutOptions: new PdfTextLayoutOptions { IgnoreHeaderHeight = 20D }));
+            layoutOptions: new PdfTextLayoutOptions { IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(20D) }));
 
         Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, exception.Kind);
         Assert.Equal(2, exception.Limit);
@@ -2079,7 +2079,7 @@ public partial class PdfUnderstandingPipelineTests {
         Assert.Throws<OperationCanceledException>(() => TextLayoutEngine.FilterIgnoredPageBands(
             spans,
             PdfReadDocument.Open(PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes()).Pages[0],
-            new PdfTextLayoutOptions { IgnoreHeaderHeight = 20D },
+            new PdfTextLayoutOptions { IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(20D) },
             consumeWork: null,
             cancellationCheck: () => {
                 if (++polls == 5) cancellation.Cancel();
@@ -2190,21 +2190,21 @@ public partial class PdfUnderstandingPipelineTests {
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Table, table => table
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Code", 40D, 100D, 45D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Area", 150D, 100D, 35D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 190D, 100D, 38D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("State", 232D, 100D, 42D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Code", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(45D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Area", global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", global::OfficeIMO.OfficeLength.Points(190D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(38D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("State", global::OfficeIMO.OfficeLength.Points(232D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(42D), global::OfficeIMO.OfficeLength.Points(16D))))
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("A-01", 40D, 120D, 45D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("SE", 150D, 120D, 35D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("1250.5", 190D, 120D, 38D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Ready", 232D, 120D, 42D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("A-01", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(45D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("SE", global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("1250.5", global::OfficeIMO.OfficeLength.Points(190D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(38D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Ready", global::OfficeIMO.OfficeLength.Points(232D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(42D), global::OfficeIMO.OfficeLength.Points(16D))))
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("B-02", 40D, 140D, 45D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("PL", 150D, 140D, 35D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("980.25", 190D, 140D, 38D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Done", 232D, 140D, 42D, 16D))))
-                .Figure("Chart axis", figure => figure.Text("1200", 340D, 121D, 40D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("B-02", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(45D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("PL", global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("980.25", global::OfficeIMO.OfficeLength.Points(190D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(38D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Done", global::OfficeIMO.OfficeLength.Points(232D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(42D), global::OfficeIMO.OfficeLength.Points(16D)))))
+                .Figure("Chart axis", figure => figure.Text("1200", global::OfficeIMO.OfficeLength.Points(340D), global::OfficeIMO.OfficeLength.Points(121D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(16D))))
             .ToBytes();
 
         PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
@@ -2228,11 +2228,11 @@ public partial class PdfUnderstandingPipelineTests {
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Table, table => table
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", 40D, 100D, 80D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 160D, 100D, 80D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D))))
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", 40D, 120D, 80D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", 160D, 120D, 80D, 16D)))))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D))))))
             .ToBytes();
 
         PdfDocumentReadResult result = PdfDocument.Load(pdf).Read(new PdfLoadOptions {
@@ -2722,7 +2722,7 @@ public partial class PdfUnderstandingPipelineTests {
             }, style: new PdfTableStyle {
                 HeaderBold = false,
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 220D, 220D }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
             .ToBytes();
 

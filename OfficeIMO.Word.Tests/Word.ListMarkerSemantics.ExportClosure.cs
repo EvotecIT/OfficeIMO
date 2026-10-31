@@ -56,8 +56,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomBulletList('*', "Arial", "000000");
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 360;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         level.OpenXmlElement.GetFirstChild<LevelSuffix>()?.Remove();
         WordParagraph item = document.AddParagraph("DefaultTabSuffix");
         AttachToList(item, list.NumberId);
@@ -73,8 +73,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = WordListLevelAlignment.Right;
         level.LevelSuffix = WordListLevelSuffix.Nothing;
         WordTable table = document.AddTable(2, 1);
@@ -98,10 +98,10 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderNestedTextBoxMarkerStylesFollowFlattenedTextOrder() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList nestedList = document.AddCustomBulletList('*', "Arial", "FF0000", 18);
+        WordList nestedList = document.AddCustomBulletList('*', "Arial", "FF0000", global::OfficeIMO.OfficeLength.Points(18));
         nestedList.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
-        WordList laterList = document.AddCustomBulletList('◆', "Arial", "0000FF", 10);
-        WordList outerList = document.AddCustomBulletList('•', "Arial", "000000", 9);
+        WordList laterList = document.AddCustomBulletList('◆', "Arial", "0000FF", global::OfficeIMO.OfficeLength.Points(10));
+        WordList outerList = document.AddCustomBulletList('•', "Arial", "000000", global::OfficeIMO.OfficeLength.Points(9));
         WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
         WordTextBox outer = host.AddTextBox("Outer styled", WordImageTextWrapping.Square);
         host.AddText(" After");
@@ -203,10 +203,10 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderListMarkerPreservesMarkerSpecificFormatting() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", 18);
+        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", global::OfficeIMO.OfficeLength.Points(18));
         list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
         WordParagraph header = document.Header!.Default!.AddParagraph("HeaderStyledMarker");
-        header.FontSize = 9;
+        header.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
@@ -226,8 +226,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         document.Header!.Default!.AddParagraph("PlainHeaderReference");
         WordList list = document.AddCustomBulletList('*', "Arial", "000000");
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 2160;
-        level.IndentationHanging = 360;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         level.LevelSuffix = WordListLevelSuffix.Tab;
         WordParagraph header = document.Header.Default.AddParagraph("IndentedHeaderItem");
         AttachToList(header, list.NumberId);
@@ -253,18 +253,18 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = alignment;
         level.LevelSuffix = WordListLevelSuffix.Nothing;
         NumberingSymbolRunProperties markerProperties = level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>() ??
             level.OpenXmlElement.AppendChild(new NumberingSymbolRunProperties());
         markerProperties.Append(new Bold(), new FontSize { Val = "36" });
         WordParagraph nineItem = document.Header!.Default!.AddParagraph("HeaderNine");
-        nineItem.FontSize = 9;
+        nineItem.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         AttachToList(nineItem, list.NumberId);
         WordParagraph tenItem = document.Header.Default.AddParagraph("HeaderTen");
-        tenItem.FontSize = 9;
+        tenItem.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         AttachToList(tenItem, list.NumberId);
         document.AddParagraph("Body");
 
@@ -285,8 +285,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         document.AddHeadersAndFooters();
         WordList list = document.AddCustomBulletList('*', "Arial", "000000");
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = int.MaxValue;
-        level.IndentationHanging = 0;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points((int.MaxValue) / 20D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Zero;
         level.LevelSuffix = WordListLevelSuffix.Tab;
         WordParagraph header = document.Header!.Default!.AddParagraph("ExtremeIndentHeader");
         AttachToList(header, list.NumberId);
@@ -302,7 +302,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderTextBoxPreservesInnerMarkerStyle() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", 18);
+        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", global::OfficeIMO.OfficeLength.Points(18));
         list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
         WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
         WordTextBox box = host.AddTextBox("StyledHeaderBox", WordImageTextWrapping.Square);
@@ -343,15 +343,16 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = alignment;
         level.LevelSuffix = WordListLevelSuffix.Nothing;
         NumberingSymbolRunProperties markerProperties = level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>() ??
             level.OpenXmlElement.AppendChild(new NumberingSymbolRunProperties());
         markerProperties.Append(new Bold(), new FontSize { Val = "36" });
         WordTextBox box = document.AddTextBox("TextBoxNine");
-        box.WidthCentimeters = 12D;
+        box.Width = OfficeLength.Centimeters(12D);
+        box.RelativeWidthPercentage = 0;
         box.Content!.Append(new Paragraph(new Run(new Text("TextBoxTen"))));
         AttachToList(box.Paragraphs[0], list.NumberId);
         AttachToList(box.Paragraphs[1], list.NumberId);
@@ -378,8 +379,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomBulletList('*', "Arial", "000000");
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1800;
-        level.IndentationHanging = 360;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         level.LevelSuffix = suffix;
         list.AddItem("ImageSuffixBody");
         WordTextBox box = document.AddTextBox("ImageSuffixBox");
@@ -409,8 +410,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         document.AddParagraph("PlainZeroReference");
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 0;
-        list.Numbering.Levels[0].IndentationHanging = 0;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Zero;
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Zero;
         WordParagraph item = document.AddParagraph("MarkerlessZero");
         AttachToList(item, list.NumberId);
 
@@ -476,13 +477,14 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void TextBoxListIndentationIsKeptPerParagraphInPdfLayout() {
         using WordDocument document = WordDocument.Create();
         WordList bulletList = document.AddCustomBulletList('◆', "Arial", "000000");
-        bulletList.Numbering.Levels[0].IndentationLeft = 1800;
-        bulletList.Numbering.Levels[0].IndentationHanging = 360;
+        bulletList.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        bulletList.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         WordList markerlessList = document.AddCustomList();
         markerlessList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        markerlessList.Numbering.Levels[0].IndentationLeft = 2160;
+        markerlessList.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
         WordTextBox box = document.AddTextBox("PlainBox");
-        box.WidthCentimeters = 12D;
+        box.Width = OfficeLength.Centimeters(12D);
+        box.RelativeWidthPercentage = 0;
         box.Content!.Append(new Paragraph(new Run(new Text("BulletBox"))));
         box.Content.Append(new Paragraph(new Run(new Text("UnmarkedBox"))));
         AttachToList(box.Paragraphs[1], bulletList.NumberId);

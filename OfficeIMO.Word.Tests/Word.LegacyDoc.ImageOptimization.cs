@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Load(GetFixtureDoc(Path.Combine("LegacyDocCorpus", "ComCroppedInlinePicture.doc")));
             Assert.Empty(document.LegacyDocUnsupportedFeatures);
             var picture = Assert.Single(document.Images);
-            int? crop = picture.CropLeft;
+            double? crop = picture.CropLeftRatio;
             Assert.True(crop > 0);
             AssertNormalFont(document);
             var report = document.OptimizeImages(new WordImageOptimizationOptions {
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             using WordDocument reopened = WordDocument.Load(output);
             AssertNormalFont(reopened);
             Assert.Contains("Independent Word producer - cropped image optimization.", reopened.Paragraphs.Select(p => p.Text));
-            Assert.Equal(crop, Assert.Single(reopened.Images).CropLeft);
+            Assert.Equal(crop, Assert.Single(reopened.Images).CropLeftRatio);
             Assert.Empty(reopened.ValidateDocument());
         }
 

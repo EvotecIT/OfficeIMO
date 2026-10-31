@@ -14,17 +14,17 @@ public sealed class PdfTableTextLayoutReuseSpacingTests {
     [InlineData(50D, 1D, true)]
     public void RepeatedCellTextPreservesEachRunsScalingAndSpacing(double scale, double spacing, bool styledFirst) {
         var natural = PdfTextRun.Normal("ABCD");
-        var styled = PdfTextRun.Normal("ABCD").WithHorizontalTextScaling(scale).WithCharacterSpacing(spacing);
+        var styled = PdfTextRun.Normal("ABCD").WithHorizontalTextScaling(scale).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(spacing));
         byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content.Table(new[] {
             new[] { PdfTableCell.RichTextCell(new[] { styledFirst ? styled : natural }) },
             new[] { PdfTableCell.RichTextCell(new[] { styledFirst ? natural : styled }) }
         }, style: new PdfTableStyle {
-            FontSize = 12D,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12D),
             HeaderRowCount = 0,
-            ColumnWidthPoints = new() { 200D },
-            CellPaddingX = 0D,
-            CellPaddingY = 0D
-        })), new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12D }).ToBytes();
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(200D) },
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D)
+        })), new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D) }).ToBytes();
 
         using var document = PdfPigDocument.Open(bytes);
         var rows = document.GetPage(1).Letters

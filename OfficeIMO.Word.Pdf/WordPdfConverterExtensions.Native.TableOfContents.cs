@@ -146,8 +146,8 @@ namespace OfficeIMO.Word.Pdf {
         private static void RenderNativeTableOfContents(INativePdfFlow pdf, WordTableOfContent tableOfContent, IReadOnlyList<NativeTableOfContentsEntry> entries, double? contentWidth, bool renderTitle = true) {
             if (renderTitle) {
                 string title = string.IsNullOrWhiteSpace(tableOfContent.Text) ? "Table of Contents" : tableOfContent.Text;
-                pdf.Paragraph(builder => builder.FontSize(11D).Text(NormalizeNativeDirectText(title)), PdfCore.PdfAlign.Left, null, new PdfCore.PdfParagraphStyle {
-                    SpacingAfter = 5D,
+                pdf.Paragraph(builder => builder.FontSize(global::OfficeIMO.OfficeLength.Points(11D)).Text(NormalizeNativeDirectText(title)), PdfCore.PdfAlign.Left, null, new PdfCore.PdfParagraphStyle {
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(5D),
                     KeepWithNext = true
                 });
             }
@@ -161,7 +161,7 @@ namespace OfficeIMO.Word.Pdf {
                     Title = null,
                     MinimumLevel = tableOfContent.MinLevel,
                     MaximumLevel = tableOfContent.MaxLevel,
-                    IndentPerLevel = 22D,
+                    IndentPerLevel = global::OfficeIMO.OfficeLength.Points(22D),
                     Entries = navigation
                 });
             }
@@ -170,7 +170,7 @@ namespace OfficeIMO.Word.Pdf {
                 string fallback = string.IsNullOrWhiteSpace(tableOfContent.TextNoContent)
                     ? "No table of contents entries found."
                     : tableOfContent.TextNoContent;
-                pdf.Paragraph(builder => builder.FontSize(10.5D).Text(NormalizeNativeDirectText(fallback)));
+                pdf.Paragraph(builder => builder.FontSize(global::OfficeIMO.OfficeLength.Points(10.5D)).Text(NormalizeNativeDirectText(fallback)));
             }
         }
 

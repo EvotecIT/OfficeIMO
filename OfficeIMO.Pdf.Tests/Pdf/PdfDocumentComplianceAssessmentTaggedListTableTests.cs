@@ -71,13 +71,13 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 170,
-                PageHeight = 150,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(170),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(150),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .TaggedPdfCatalogMarkers()
             .Bullets(new[] { longItem })
@@ -161,13 +161,13 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 170,
-                PageHeight = 150,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(170),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(150),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .TaggedPdfCatalogMarkers()
             .Table(new[] {
@@ -245,7 +245,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
             [(1, 1)] = new PdfCellDataBar {
                 Ratio = 0.75,
-                Color = PdfColor.FromRgb(34, 197, 94)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(34, 197, 94)
             }
         };
 
@@ -272,7 +272,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(1, 1)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.Circle,
-                Color = PdfColor.FromRgb(34, 197, 94)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(34, 197, 94)
             }
         };
 
@@ -299,7 +299,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(1, 1)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.TriangleUp,
-                Color = PdfColor.FromRgb(14, 165, 233)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(14, 165, 233)
             }
         };
 

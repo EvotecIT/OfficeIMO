@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel.Pdf {
                 options.RunningLineFontFamily = bodyFont.FamilyName;
                 options.RunningLineFontSize = bodyFont.Size > 0D ? bodyFont.Size : null;
             }
-            var pdf = PdfCore.PdfDocument.Create(pdfOptions);
+            var pdf = PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
             IReadOnlyDictionary<string, string> sheetDestinations = BuildSheetDestinationMap(exportPlans);
             IReadOnlyDictionary<string, string> cellDestinations = BuildCellDestinationMap(exportPlans);
             foreach (var worksheet in exportPlans.GroupBy(plan => plan.SheetName, StringComparer.OrdinalIgnoreCase)) {
@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel.Pdf {
                             foreach (WorksheetImageExportData image in plan.Images) {
                                 cancellationToken.ThrowIfCancellationRequested();
                                 if (!imagesByCellReference.ContainsKey(NormalizeCellReference(image.CellReference))) {
-                                    item.Image(image.Bytes, image.WidthPoints, image.HeightPoints, PdfCore.PdfAlign.Left, spacingBefore: 4, spacingAfter: 6, style: CreateConverterImageStyle(image));
+                                    item.Image(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), PdfCore.PdfAlign.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(4), spacingAfter: global::OfficeIMO.OfficeLength.Points(6), style: CreateConverterImageStyle(image));
                                 }
                             }
 
@@ -100,8 +100,8 @@ namespace OfficeIMO.Excel.Pdf {
                                     int[] pageRows = Enumerable.Range(0, chunk.RowIndexes.Count).ToArray();
                                     PdfCore.PdfTableStyle tableStyle = CreateTableStyle(options, plan.PageSetup, pageRows, chunk.HeaderRowCount, data.Styles, data.ConditionalFills, data.CellReferences, data.StructuredTables, data.ColumnWidths, data.RowHeights, 0, chunk.ColumnIndexes.Count);
                                     ApplyGeneralCellAlignments(tableStyle, data.Values, pageRows);
-                                    double originalFontSize = CreateBaseTableStyle(options).FontSize ?? GetDefaultTableFontSize(options);
-                                    double cellFontScale = (tableStyle.FontSize ?? originalFontSize) / originalFontSize;
+                                    double originalFontSize = CreateBaseTableStyle(options).FontSize?.ToPoints() ?? GetDefaultTableFontSize(options);
+                                    double cellFontScale = (tableStyle.FontSize?.ToPoints() ?? originalFontSize) / originalFontSize;
                                     if (chunkIndex > 0) {
                                         item.PageBreak();
                                     }

@@ -3885,6 +3885,12 @@ Describe 'Excel DSL surface' {
             $backLink = $null
             $doc['Data'].TryGetCellText(5, 1, [ref] $backLink) | Should -BeTrue
             $backLink | Should -Be "$([char]0x2190) TOC"
+            $dataXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
+            $backLinks = $dataXml.SelectNodes("/*[local-name()='worksheet']/*[local-name()='hyperlinks']/*[local-name()='hyperlink']")
+            $backLinks.Count | Should -BeGreaterThan 0
+            foreach ($link in $backLinks) {
+                ($link.GetAttribute('location') -split '!')[-1] | Should -Be 'A1'
+            }
         } finally {
             Close-OfficeExcel -Document $doc
         }
@@ -4352,6 +4358,30 @@ namespace PSWriteOffice.Tests {
         $scaledProperties.GetAttribute('name') | Should -Be 'ScaledLogo'
         $scaledProperties.GetAttribute('descr') | Should -Be 'Scaled logo'
         $oneCellAnchor.SelectSingleNode(".//*[local-name()='xfrm']").GetAttribute('rot') | Should -Be '720000'
+    }
+
+    It 'keeps a single-cell image Range as a two-cell anchor' {
+        $path = Join-Path $TestDrive 'DslExcelSingleCellRangeImages.xlsx'
+        $imagePath = New-TestOfficeImageFile -Directory $TestDrive
+        $imageUrl = [System.Uri]::new($imagePath).AbsoluteUri
+
+        New-OfficeExcel -Path $path {
+            Add-OfficeExcelSheet -Name 'Images' -Content {
+                Add-OfficeExcelImage -Range B2 -Path $imagePath -Name 'LocalRange' -Placement MoveOnly -EndOffsetXPixels 3 -EndOffsetYPixels 5
+                Add-OfficeExcelImageFromUrl -Range D4 -Url $imageUrl -Name 'UrlRange' -Placement FreeFloating -EndOffsetXPixels 3 -EndOffsetYPixels 5
+            }
+        } | Out-Null
+
+        $drawingXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/drawings/drawing1.xml'
+        $anchors = $drawingXml.SelectNodes("/*[local-name()='wsDr']/*[local-name()='twoCellAnchor']")
+        $anchors.Count | Should -Be 2
+        $anchors[0].GetAttribute('editAs') | Should -Be 'oneCell'
+        $anchors[1].GetAttribute('editAs') | Should -Be 'absolute'
+        foreach ($anchor in $anchors) {
+            $anchor.SelectSingleNode("*[local-name()='to']/*[local-name()='colOff']").InnerText | Should -Be '28575'
+            $anchor.SelectSingleNode("*[local-name()='to']/*[local-name()='rowOff']").InnerText | Should -Be '47625'
+        }
+        $drawingXml.SelectNodes("/*[local-name()='wsDr']/*[local-name()='oneCellAnchor']").Count | Should -Be 0
     }
 
     It 'supports internal link helpers for summary sheets' {

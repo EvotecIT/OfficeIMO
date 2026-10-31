@@ -105,13 +105,13 @@ public sealed class ReaderPowerPointExtractionTests {
     [Fact]
     public void RichExtractionRecursesThroughGroupsInDrawingOrder() {
         byte[] bytes;
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create()) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Before group");
             PowerPointTextBox groupedText =
                 slide.AddTextBox("Grouped paragraph");
-            PowerPointTable groupedTable = slide.AddTable(2, 1);
+            PowerPointTable groupedTable = slide.AddTable(2,1);
             groupedTable.GetCell(0, 0).Text = "Header";
             groupedTable.GetCell(1, 0).Text = "Grouped cell";
             slide.GroupShapes(new PowerPointShape[] {
@@ -153,14 +153,18 @@ public sealed class ReaderPowerPointExtractionTests {
     [InlineData(true)]
     public void InternalRunHyperlinksBecomeMarkdownSlideLinks(bool binary) {
         byte[] bytes;
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create()) {
             PowerPointSlide source = presentation.AddSlide();
             PowerPointSlide target = presentation.AddSlide();
             PowerPointTextBox link = source.AddTextBox("Open ");
             link.Paragraphs[0].AddRun("destination")
                 .SetHyperlink(target, "Jump to destination");
-            target.AddTitle("Destination");
+            target.AddTitle("Destination",
+                left: global::OfficeIMO.OfficeLength.Emus(540000),
+                top: global::OfficeIMO.OfficeLength.Emus(360000),
+                width: global::OfficeIMO.OfficeLength.Emus(7200000),
+                height: global::OfficeIMO.OfficeLength.Emus(700000));
             bytes = binary
                 ? presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt })
                 : presentation.ToBytes();
@@ -181,14 +185,14 @@ public sealed class ReaderPowerPointExtractionTests {
     public void TableContractKeepsPptxAndPptSemanticParity() {
         byte[] pptxBytes;
         byte[] pptBytes;
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create()) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Before table");
-            PowerPointTable table = slide.AddTable(2, 2);
+            PowerPointTable table = slide.AddTable(2,2);
             table.HeaderRow = true;
             table.SetCellBorders(PowerPointTableCellBorders.All, "BFBFBF",
-                widthPoints: 0.5D);
+                width: global::OfficeIMO.OfficeLength.Points(0.5D));
             table.GetCell(0, 0).Text = "Region";
             table.GetCell(0, 1).Text = "Revenue";
             table.GetCell(1, 0).Text = "North";
@@ -247,8 +251,8 @@ public sealed class ReaderPowerPointExtractionTests {
     [Fact]
     public void RichNumberingRestartsAtPlainAndParentBoundaries() {
         byte[] bytes;
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create()) {
             PowerPointTextBox text = presentation.AddSlide()
                 .AddTextBox(string.Empty);
             text.SetNumberedList(new[] { "Before one", "Before two" });
@@ -294,8 +298,8 @@ public sealed class ReaderPowerPointExtractionTests {
     [Fact]
     public void RichTitleHeadingDoesNotExposeItsParagraphBullet() {
         byte[] bytes;
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create()) {
             PowerPointTextBox title = presentation.AddSlide()
                 .AddTitle("Bulleted title");
             title.Paragraphs[0].SetBullet();
@@ -316,10 +320,15 @@ public sealed class ReaderPowerPointExtractionTests {
     }
 
     private static byte[] CreateRichPresentation(bool binary) {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddTitle("Reader extraction contract");
+        // Reader parity needs a title placeholder within the base binary text-style contract.
+        slide.AddTitle("Reader extraction contract",
+            left: global::OfficeIMO.OfficeLength.Emus(540000),
+            top: global::OfficeIMO.OfficeLength.Emus(360000),
+            width: global::OfficeIMO.OfficeLength.Emus(7200000),
+            height: global::OfficeIMO.OfficeLength.Emus(700000));
         PowerPointTextBox list = slide.AddTextBox(string.Empty);
         list.SetBullets(new[] { "Parent bullet" });
         list.AddBullets(new[] { "Nested bullet" }, level: 1);

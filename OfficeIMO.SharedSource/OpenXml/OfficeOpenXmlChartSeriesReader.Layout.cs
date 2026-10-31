@@ -8,7 +8,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
-        internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartKind kind, OfficeChartData data, string? axisTitleFont = null, A.ColorScheme? scheme = null) {
+        internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartType kind, OfficeChartData data, string? axisTitleFont = null, A.ColorScheme? scheme = null) {
             if (chart.PlotArea?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
                 chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
                 chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
@@ -27,7 +27,7 @@ namespace OfficeIMO.OpenXml.Internal {
             var sharedPosition = position == C.LegendPositionValues.Left ? OfficeChartLegendPosition.Left :
                 position == C.LegendPositionValues.Bottom ? OfficeChartLegendPosition.Bottom :
                 position == C.LegendPositionValues.Top ? OfficeChartLegendPosition.Top : OfficeChartLegendPosition.Right;
-            bool radial = kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut;
+            bool radial = kind == OfficeChartType.Pie || kind == OfficeChartType.Doughnut;
             var hidden = radial ? legend?.Elements<C.LegendEntry>().Where(entry => entry.GetFirstChild<C.Delete>() is C.Delete delete && delete.Val?.Value != false)
                 .Select(entry => entry.GetFirstChild<C.Index>()?.Val?.Value).Where(value => value.HasValue && value.Value <= int.MaxValue)
                 .Select(value => (int)value!.Value).ToArray() : null;
@@ -52,7 +52,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     element.LocalName.EndsWith("Chart", StringComparison.Ordinal) && groups.Read(element) == OfficeChartAxisGroup.Primary);
                 if (layer != null) {
                     var axes = layer.Elements<C.AxisId>().Select(reference => groups.Resolve(reference.Val?.Value)).ToArray();
-                    bool numeric = kind == OfficeChartKind.Scatter || kind == OfficeChartKind.Bubble;
+                    bool numeric = kind == OfficeChartType.Scatter || kind == OfficeChartType.Bubble;
                     if (axes.Length != 2 || axes.Any(axis => axis == null) || ReferenceEquals(axes[0], axes[1]))
                         throw new NotSupportedException("Chart axes must resolve to two distinct supported axes.");
                     horizontal = numeric ? axes[0] : axes.SingleOrDefault(axis => axis is C.CategoryAxis || axis is C.DateAxis);
@@ -70,21 +70,21 @@ namespace OfficeIMO.OpenXml.Internal {
                     throw new NotSupportedException("The native numeric axis format cannot be projected.");
                 if (axis.GetFirstChild<C.CrossesAt>() != null || axis.GetFirstChild<C.DisplayUnits>() != null)
                     throw new NotSupportedException("Explicit axis crossing values and display units require an independent axis projection.");
-                if (kind is OfficeChartKind.BarClustered or OfficeChartKind.BarStacked or OfficeChartKind.BarStacked100 &&
+                if (kind is OfficeChartType.BarClustered or OfficeChartType.BarStacked or OfficeChartType.BarStacked100 &&
                     axis.GetFirstChild<C.Crosses>()?.Val?.Value == C.CrossesValues.Maximum)
                     throw new NotSupportedException("Maximum crossing for horizontal bar axes cannot be projected.");
             }
-            if (kind == OfficeChartKind.Radar &&
+            if (kind == OfficeChartType.Radar &&
                 (horizontal?.GetFirstChild<C.Title>() != null || vertical?.GetFirstChild<C.Title>() != null ||
                  vertical?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MinAxisValue>() != null ||
                  vertical?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MaxAxisValue>() != null))
                 throw new NotSupportedException("Radar axis titles and explicit scales cannot be projected.");
-            if (kind is OfficeChartKind.BarClustered or OfficeChartKind.BarStacked or OfficeChartKind.BarStacked100 &&
+            if (kind is OfficeChartType.BarClustered or OfficeChartType.BarStacked or OfficeChartType.BarStacked100 &&
                 vertical?.GetFirstChild<C.Crosses>()?.Val?.Value != C.CrossesValues.Minimum &&
                 (ReadLayoutMinimum(vertical) < 0D || data.Series.Any(series => series.Values.Any(value => value < 0D))))
                 throw new NotSupportedException("A horizontal bar axis crossing through negative values cannot be projected.");
-            if (kind is not OfficeChartKind.BarClustered and not OfficeChartKind.BarStacked and not OfficeChartKind.BarStacked100 &&
-                kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut and not OfficeChartKind.Radar &&
+            if (kind is not OfficeChartType.BarClustered and not OfficeChartType.BarStacked and not OfficeChartType.BarStacked100 &&
+                kind is not OfficeChartType.Pie and not OfficeChartType.Doughnut and not OfficeChartType.Radar &&
                 ReadLayoutCrossing(vertical) == OfficeChartAxisCrossingPosition.AutoZero &&
                 (ReadLayoutMinimum(vertical) is double minimum && minimum < 0D ||
                  data.Series.Any(series => series.AxisGroup == OfficeChartAxisGroup.Primary &&
@@ -96,7 +96,7 @@ namespace OfficeIMO.OpenXml.Internal {
             // scales and tick marks describe the physical horizontal/vertical axes.
             var categoryAxis = horizontal;
             var valueAxis = vertical;
-            if (kind == OfficeChartKind.BarClustered || kind == OfficeChartKind.BarStacked || kind == OfficeChartKind.BarStacked100) {
+            if (kind == OfficeChartType.BarClustered || kind == OfficeChartType.BarStacked || kind == OfficeChartType.BarStacked100) {
                 horizontal = valueAxis;
                 vertical = categoryAxis;
             }

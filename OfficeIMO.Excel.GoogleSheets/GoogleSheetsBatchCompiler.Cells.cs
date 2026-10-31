@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 Underline = style.Underline,
                 Strikethrough = style.Strikethrough,
                 FontName = style.FontName,
-                FontSize = style.FontSize,
+                FontSize = style.FontSize?.ToPoints(),
                 FontColorArgb = style.FontColorArgb,
                 FillColorArgb = style.FillColorArgb,
                 Borders = BuildBorders(style.Border),
@@ -156,7 +156,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         Underline = run.Underline,
                         Strikethrough = run.Strikethrough,
                         FontName = run.FontName,
-                        FontSize = run.FontSize,
+                        FontSize = run.FontSize?.ToPoints(),
                         FontColorArgb = run.FontColor,
                     },
                 });

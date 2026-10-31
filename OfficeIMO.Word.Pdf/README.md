@@ -73,7 +73,7 @@ using var document = WordDocument.Load("proposal.docx");
 
 var options = new WordPdfExportOptions {
     Orientation = OfficePageOrientation.Portrait,
-    Margins = PdfPageMargins.UniformCentimeters(1.5),
+    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(1.5)),
     Title = "Customer proposal",
     Author = "Evotec",
     IncludePageNumbers = true,
@@ -188,16 +188,14 @@ using OfficeIMO.Word.Pdf;
 
 using var conversion = document.ToPdf(options: null, out OfficeConversionReport report);
 conversion.Save("document.pdf", new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
-conversion.ToImages(new PdfImageExportOptions { TargetDpi = 144 })
-    .AsPng()
-    .Save("pages");
+conversion.SaveAsImages("pages", new PdfImageExportOptions { TargetDpi = 144 });
 ```
 
-Use `.AsJpeg()` or `.AsSvg()` for those formats, or `conversion.ExportImages(format, options)` for in-memory results. The shared PDF renderer projects the laid-out pages into Drawing scenes and retains conversion and renderer diagnostics. It does not lay out the Word document again or shorten paragraphs with an ellipsis. Managed PDF rendering still has the [PDF renderer's supported-feature limits](../OfficeIMO.Pdf/README.md).
+Set `PdfImageExportOptions.Format` to select JPEG or SVG, or call `conversion.ExportImages(options, out imageReport)` for in-memory `OfficeImageExportResult` pages and rendering findings; each page exposes its encoded payload through `Bytes`. The shared PDF renderer projects the laid-out pages into Drawing scenes and reports rendering diagnostics; the earlier conversion report describes Word-to-PDF findings. It does not lay out the Word document again or shorten paragraphs with an ellipsis. Managed PDF rendering still has the [PDF renderer's supported-feature limits](../OfficeIMO.Pdf/README.md).
 
 High-resolution nearest-neighbour pictures can exceed the SVG rectangle-vectorization budget. Use PNG or JPEG for those pages until bounded SVG image fallback is supported.
 
-`document.ToPng()`, `ToJpeg()`, `ToSvg()` and `ExportImages(...)` use this same layout and page renderer. Set `WordImageExportOptions.LayoutOptions` when sharing customized conversion settings. The forward Word page adapter and options live in `OfficeIMO.Word`; PDF-to-Word import lives in `OfficeIMO.Pdf.Word`.
+`document.ToImage(options)` and `ExportImages(...)` use this same layout and page renderer. Set `options.Format` to select PNG, JPEG, TIFF, WebP or SVG. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`; `ToImage(options, out report)` and `ToImageAsync(options)` also expose the fidelity report. `FailOnLoss` rejects loss before writing an image, and `FileConflictPolicy` controls an existing destination file. Set `WordImageExportOptions.LayoutOptions` when sharing customized conversion settings. The forward Word page adapter and options live in `OfficeIMO.Word`; PDF-to-Word import lives in `OfficeIMO.Pdf.Word`.
 
 SmartArt uses the same drawing projection for PDF and Word images. Supported persisted preset shapes retain node positions; process, cycle and hierarchy diagrams have node-text fallbacks. Header and footer diagrams resolve their parts and cached drawings from the containing story and repeat with its running content. These projections report their approximation because native diagram styles, effects and complete connector geometry are not reconstructed.
 
@@ -435,6 +433,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Convert | 1 | 0 | 0 | 0 | 0 | 0 |
+| Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Word.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

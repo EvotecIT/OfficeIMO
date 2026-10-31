@@ -12,8 +12,7 @@ public sealed class WordChartProjectionQualificationTests {
     [Fact]
     public void Snapshot_RejectsUnrepresentedChartTextColorTransform() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }));
         var space = chart.ChartPart!.ChartSpace!;
         space.AddChild(new C.TextProperties(new A.BodyProperties(), new A.ListStyle(),
             new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties(
@@ -26,8 +25,7 @@ public sealed class WordChartProjectionQualificationTests {
     [Fact]
     public void Snapshot_RejectsDifferentChartScriptTypeface() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }));
         var space = chart.ChartPart!.ChartSpace!;
         space.AddChild(new C.TextProperties(new A.BodyProperties(), new A.ListStyle(),
             new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties(
@@ -38,8 +36,7 @@ public sealed class WordChartProjectionQualificationTests {
     [Fact]
     public void Snapshot_RejectsEmptyNativeLabelSeparator() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.Pie,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        var chart = document.AddChart(OfficeChartType.Pie,            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }));
         chart.ChartPart!.ChartSpace!.Descendants<C.DataLabels>().Single().AddChild(new C.Separator(string.Empty), true);
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
@@ -47,8 +44,7 @@ public sealed class WordChartProjectionQualificationTests {
     [Fact]
     public void Snapshot_RejectsUnresolvedFormulaBasedSeriesName() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }));
         var text = chart.ChartPart!.ChartSpace!.Descendants<C.BarChartSeries>().Single().GetFirstChild<C.SeriesText>()!;
         text.GetFirstChild<C.StringReference>()!.StringCache!.Remove();
         Assert.False(chart.TryGetOfficeSnapshot(out _));
@@ -57,20 +53,18 @@ public sealed class WordChartProjectionQualificationTests {
     [Fact]
     public void Snapshot_TreatsOmittedBarGroupingAsClusteredForOverlap() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }));
         var bars = chart.ChartPart!.ChartSpace!.Descendants<C.BarChart>().Single();
         bars.GetFirstChild<C.BarGrouping>()!.Remove();
         bars.AddChild(new C.Overlap { Val = 0 }, true);
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
-        Assert.Equal(OfficeChartKind.ColumnClustered, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.ColumnClustered, snapshot.ChartKind);
     }
 
     [Fact]
     public void Snapshot_BoundsBubbleOverridesSeparatelyFromCachedPoints() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.Bubble,
-            new OfficeChartData(new[] { "1" }, new[] { OfficeChartSeries.CreateBubble("Values", new[] { 1d }, new[] { 3d }, new[] { 5d }) }));
+        var chart = document.AddChart(OfficeChartType.Bubble,            new OfficeChartData(new[] { "1" }, new[] { OfficeSeries.CreateBubble("Values", new[] { 1d }, new[] { 3d }, new[] { 5d }) }));
         var series = chart.ChartPart!.ChartSpace!.Descendants<C.BubbleChartSeries>().Single();
         for (int index = 0; index < 10001; index++)
             series.InsertBefore(new C.DataPoint(new C.Index { Val = 99 }), series.GetFirstChild<C.XValues>());
@@ -80,18 +74,17 @@ public sealed class WordChartProjectionQualificationTests {
     [Fact]
     public void AuthoredBarDirectionChangeKeepsNativeAxesProjectable() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.BarClustered,
-            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3D, 4D }) }));
+        var chart = document.AddChart(OfficeChartType.BarClustered,            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3D, 4D }) }));
         chart.BarDirection = WordChartBarDirection.Column;
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
-        Assert.Equal(OfficeChartKind.ColumnClustered, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.ColumnClustered, snapshot.ChartKind);
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         Assert.Equal(C.AxisPositionValues.Bottom, plot.GetFirstChild<C.CategoryAxis>()!.AxisPosition!.Val!.Value);
         Assert.Equal(C.AxisPositionValues.Left, plot.GetFirstChild<C.ValueAxis>()!.AxisPosition!.Val!.Value);
         chart.BarDirection = WordChartBarDirection.Bar;
         chart.BarDirection = null;
         Assert.True(chart.TryGetOfficeSnapshot(out var omitted));
-        Assert.Equal(OfficeChartKind.ColumnClustered, omitted.ChartKind);
+        Assert.Equal(OfficeChartType.ColumnClustered, omitted.ChartKind);
         Assert.Equal(C.AxisPositionValues.Bottom, plot.GetFirstChild<C.CategoryAxis>()!.AxisPosition!.Val!.Value);
         Assert.Equal(C.AxisPositionValues.Left, plot.GetFirstChild<C.ValueAxis>()!.AxisPosition!.Val!.Value);
     }
@@ -101,8 +94,7 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData(true)]
     public void Snapshot_RejectsFormulaLinkedTitleWithoutCachedText(bool axisTitle) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }), "Results");
+        var chart = document.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }), new OfficeIMO.Word.WordChartOptions { Title = "Results" });
         if (axisTitle) chart.SetXAxisTitle("Units");
         C.Title title = axisTitle
             ? chart.ChartPart!.ChartSpace!.Descendants<C.CategoryAxis>().Single().GetFirstChild<C.Title>()!
@@ -115,8 +107,7 @@ public sealed class WordChartProjectionQualificationTests {
     [Fact]
     public void Snapshot_RejectsSeparateStackedLayersSharingAnAxisPair() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.ColumnStacked,
-            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("First", new[] { 2d, 3d }) }));
+        var chart = document.AddChart(OfficeChartType.ColumnStacked,            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("First", new[] { 2d, 3d }) }));
         C.PlotArea plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         C.BarChart second = (C.BarChart)plot.GetFirstChild<C.BarChart>()!.CloneNode(true);
         C.BarChartSeries series = second.Elements<C.BarChartSeries>().Single();
@@ -132,7 +123,7 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData(false)]
     public void Snapshot_RejectsHiddenWorkbookValuesOnlyWhenVisibleOnlyIsEnabled(bool visibleOnly) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) }));
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }) }));
         var part = chart.ChartPart!;
         part.ChartSpace!.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotVisibleOnly>()!.Val = visibleOnly;
         var embedded = part.GetPartsOfType<DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart>().Single();
@@ -149,8 +140,7 @@ public sealed class WordChartProjectionQualificationTests {
     [Fact]
     public void Snapshot_IgnoresHiddenRowsAndColumnsOutsideReferencedChartRanges() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) }));
+        var chart = document.AddChart(OfficeChartType.ColumnClustered,            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }) }));
         var part = chart.ChartPart!;
         part.ChartSpace!.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotVisibleOnly>()!.Val = true;
         var embedded = part.GetPartsOfType<DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart>().Single();
@@ -203,13 +193,13 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("autoZeroNegative")]
     public void Snapshot_RejectsUnrepresentedNativeChartContent(string feature) {
         using var document = WordDocument.Create();
-        var kind = feature.StartsWith("radial", StringComparison.Ordinal) ? OfficeChartKind.Pie :
-            feature == "negative" || feature.StartsWith("bar", StringComparison.Ordinal) || feature == "seriesLines" ? OfficeChartKind.ColumnClustered : OfficeChartKind.Line;
+        var kind = feature.StartsWith("radial", StringComparison.Ordinal) ? OfficeChartType.Pie :
+            feature == "negative" || feature.StartsWith("bar", StringComparison.Ordinal) || feature == "seriesLines" ? OfficeChartType.ColumnClustered : OfficeChartType.Line;
         var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Values", new[] { 3d, feature is "negative" or "autoZeroNegative" ? -4d : 4d }) }), title: "Revenue");
+            new OfficeSeries("Values", new[] { 3d, feature is "negative" or "autoZeroNegative" ? -4d : 4d }) }), new OfficeIMO.Word.WordChartOptions { Title = "Revenue" });
         if (feature == "secondaryCategory") chart.SetData(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Values", new[] { 3d, -4d }),
-            new OfficeChartSeries("Secondary", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
+            new OfficeSeries("Values", new[] { 3d, -4d }),
+            new OfficeSeries("Secondary", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
         var space = chart.ChartPart!.ChartSpace!;
         var native = space.GetFirstChild<C.Chart>()!;
         var plot = native.PlotArea!;

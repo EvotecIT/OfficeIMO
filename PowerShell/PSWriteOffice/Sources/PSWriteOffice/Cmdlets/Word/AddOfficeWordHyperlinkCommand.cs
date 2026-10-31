@@ -77,7 +77,7 @@ public sealed class AddOfficeWordHyperlinkCommand : PSCmdlet
                 throw new PSArgumentException("Provide a bookmark anchor.", nameof(Anchor));
             }
 
-            updatedParagraph = paragraph.AddHyperLink(Text, Anchor, Styled.IsPresent, Tooltip ?? string.Empty, !NoHistory.IsPresent);
+            updatedParagraph = paragraph.AddHyperLink(Text, Anchor, Styled.IsPresent, Tooltip ?? string.Empty, !NoHistory.IsPresent).Paragraph;
         }
         else
         {
@@ -86,7 +86,7 @@ public sealed class AddOfficeWordHyperlinkCommand : PSCmdlet
                 throw new PSArgumentException("Provide an absolute URL such as https://example.org or mailto:user@example.org.", nameof(Url));
             }
 
-            updatedParagraph = paragraph.AddHyperLink(Text, uri, Styled.IsPresent, Tooltip ?? string.Empty, !NoHistory.IsPresent);
+            updatedParagraph = paragraph.AddHyperLink(Text, uri, Styled.IsPresent, Tooltip ?? string.Empty, !NoHistory.IsPresent).Paragraph;
         }
 
         if (PassThru.IsPresent)

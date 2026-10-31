@@ -30,7 +30,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         Assert.False(shell.HadErrors, Errors(shell));
         object output = runspace.SessionStateProxy.GetVariable("results");
         var returned = Assert.IsType<PowerPointSectionInfo>(output is PSObject wrapped ? wrapped.BaseObject : output);
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         Assert.Empty(saved.ValidateDocument());
         Assert.True(saved.Slides.Count > (cover ? 4 : 3), "The long paragraph must exercise physical continuation slides.");
         var results = Assert.Single(saved.GetSections(), section => section.Name == "Results");
@@ -47,7 +47,7 @@ public sealed partial class PowerPointContentWorkflowTests {
     [InlineData("PowerPointSection 'Results' -Slide $deck.Slides[1]")]
     [InlineData("$deck | Add-OfficePowerPointSection 'Results' -Slide 2")]
     public void SectionsSelectExistingSlidesByOneBasedPositionOrNativeOwnership(string command) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         document.AddSlide(); document.AddSlide(); document.AddSlide();
         using var runspace = Open(); runspace.SessionStateProxy.SetVariable("deck", document);
         using var shell = PowerShell.Create(); shell.Runspace = runspace;
@@ -61,7 +61,7 @@ public sealed partial class PowerPointContentWorkflowTests {
 
     [Fact]
     public void ARejectedSlideCannotLeaveItsSectionOrAnUnrequestedDefaultSection() {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         document.AddSlide().AddTitle("Keep");
         using var runspace = Open(); runspace.SessionStateProxy.SetVariable("deck", document);
         using var shell = PowerShell.Create(); shell.Runspace = runspace;
@@ -80,14 +80,14 @@ public sealed partial class PowerPointContentWorkflowTests {
         Assert.False(accepted.HadErrors, Errors(accepted));
         Assert.Equal(2, document.Slides.Count);
         Assert.Empty(document.GetSections());
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Empty(saved.ValidateDocument());
         Assert.Empty(saved.GetSections());
     }
 
     [Fact]
     public void ARejectedColumnCannotLeaveItsSectionOnTheAcceptedSlide() {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         document.AddSlide().AddTitle("Keep");
         using var runspace = Open(); runspace.SessionStateProxy.SetVariable("deck", document);
         using var shell = PowerShell.Create(); shell.Runspace = runspace;
@@ -104,7 +104,7 @@ public sealed partial class PowerPointContentWorkflowTests {
             """);
         Assert.Empty(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Empty(saved.ValidateDocument());
         Assert.Equal(2, saved.Slides.Count);
         Assert.Empty(saved.GetSections());
@@ -112,7 +112,7 @@ public sealed partial class PowerPointContentWorkflowTests {
 
     [Fact]
     public void ARejectedFirstSlideLeavesThePendingSectionForTheNextAcceptedSlide() {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         document.AddSlide().AddTitle("Overview");
         using var runspace = Open(); runspace.SessionStateProxy.SetVariable("deck", document);
         using var shell = PowerShell.Create(); shell.Runspace = runspace;
@@ -130,7 +130,7 @@ public sealed partial class PowerPointContentWorkflowTests {
             """);
         Assert.Empty(accepted.Invoke());
         Assert.False(accepted.HadErrors, Errors(accepted));
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Empty(saved.ValidateDocument());
         Assert.Equal(3, saved.Slides.Count);
         Assert.Equal(new[] { 1, 2 }, Assert.Single(saved.GetSections(), section => section.Name == "Results").SlideIndices);
@@ -142,8 +142,8 @@ public sealed partial class PowerPointContentWorkflowTests {
     [InlineData("PowerPointSection 'Rejected' -Document $deck -Slide 0")]
     [InlineData("PowerPointSection 'Rejected' -Document $other -Slide $deck.Slides[0]")]
     public void RejectedSectionInputsCannotModifyEitherDeck(string command) {
-        using var document = PowerPointPresentation.Create(); document.AddSlide();
-        using var other = PowerPointPresentation.Create(); other.AddSlide();
+        using var document = PowerPointDocument.Create(); document.AddSlide();
+        using var other = PowerPointDocument.Create(); other.AddSlide();
         using var runspace = Open(); runspace.SessionStateProxy.SetVariable("deck", document);
         runspace.SessionStateProxy.SetVariable("other", other);
         using var shell = PowerShell.Create(); shell.Runspace = runspace;

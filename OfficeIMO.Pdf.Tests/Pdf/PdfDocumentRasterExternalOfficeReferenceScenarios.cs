@@ -331,7 +331,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 }
                 break;
             case "powerpoint":
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(
+                using (PowerPointDocument presentation = PowerPointDocument.Load(
                     sourcePath,
                     new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })) {
                     var options = new PowerPointPdfExportOptions {

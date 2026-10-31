@@ -1,7 +1,6 @@
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 using OfficeIMO.Word.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
@@ -18,17 +17,8 @@ public sealed class WordAllSeverityBatch16SecurityTests {
             new TopMargin { Width = "not-a-number" },
             new BottomMargin { Width = "999999999999" });
 
-        Assert.Null(cell.MarginTopWidth);
-        Assert.Null(cell.MarginBottomWidth);
-    }
-
-    [Fact]
-    public void FluentCustomPropertyTreatsNullAsEmptyText() {
-        using WordDocument document = WordDocument.Create();
-
-        document.AsFluent().Info(info => info.Custom("Optional", null));
-
-        Assert.Equal(string.Empty, document.CustomDocumentProperties["Optional"].Value);
+        Assert.Null(checked((short?)(cell.MarginTop?.ToTwips())));
+        Assert.Null(checked((short?)(cell.MarginBottom?.ToTwips())));
     }
 
     [Fact]
@@ -134,15 +124,15 @@ public sealed class WordAllSeverityBatch16SecurityTests {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph();
 
-        paragraph.AddImage(new Uri("https://example.test/image.png"), 10, 10);
-        paragraph.AddImage(new Uri("ftp://example.test/image.png"), 10, 10);
-        paragraph.AddImage(new Uri("cid:linked-image@example.test"), 10, 10);
+        paragraph.AddImage(new Uri("https://example.test/image.png"), OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
+        paragraph.AddImage(new Uri("ftp://example.test/image.png"), OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
+        paragraph.AddImage(new Uri("cid:linked-image@example.test"), OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
         Assert.Null(Record.Exception(() => document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         Assert.Throws<ArgumentException>(() =>
-            paragraph.AddImage(new Uri("file:///private/secret.png"), 10, 10));
+            paragraph.AddImage(new Uri("file:///private/secret.png"), OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10)));
         Assert.Throws<ArgumentException>(() =>
-            paragraph.AddImage(new Uri("smb://server/share/image.png"), 10, 10));
-        Assert.Throws<ArgumentNullException>(() => paragraph.AddImage(null!, 10, 10));
+            paragraph.AddImage(new Uri("smb://server/share/image.png"), OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10)));
+        Assert.Throws<ArgumentNullException>(() => paragraph.AddImage(null !, OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10)));
     }
 
     [Fact]
@@ -150,7 +140,7 @@ public sealed class WordAllSeverityBatch16SecurityTests {
         using WordDocument document = WordDocument.Create();
         const string omml = "<!DOCTYPE x [<!ENTITY boom 'expanded'>]><m:oMath xmlns:m='http://schemas.openxmlformats.org/officeDocument/2006/math'><m:r><m:t>&boom;</m:t></m:r></m:oMath>";
 
-        Assert.Throws<System.Xml.XmlException>(() => document.AddParagraph().AddEquation(omml));
+        Assert.Throws<System.Xml.XmlException>(() => document.AddParagraph().AddEquation(omml).Paragraph);
     }
 
     [Fact]

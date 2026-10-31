@@ -163,8 +163,8 @@ internal static partial class PdfWriter {
                 }
                 currentOpts = mirrored;
             }
-            width = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
-            yStart = currentOpts.PageHeight - currentOpts.MarginTop;
+            width = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
+            yStart = currentOpts.PageHeight.ToPoints() - currentOpts.MarginTop.ToPoints();
             y = yStart;
             currentPage = new LayoutResult.Page {
                 Options = currentOpts, PageGroupId = currentPageGroupId,

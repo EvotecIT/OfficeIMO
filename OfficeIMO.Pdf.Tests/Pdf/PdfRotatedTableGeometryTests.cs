@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Pdf.Word;
 using OfficeIMO.Pdf.PowerPoint;
 using OfficeIMO.Pdf;
@@ -88,8 +89,8 @@ public sealed class PdfRotatedTableGeometryTests {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
             OfficeIMO.Word.WordTable wordTable = Assert.Single(reopened.Tables);
-            Assert.Equal(2, wordTable.GridColumnWidth.Count);
-            double gridRatio = (double)wordTable.GridColumnWidth[0] / wordTable.GridColumnWidth[1];
+            Assert.Equal(2, wordTable.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Count);
+            double gridRatio = (double)wordTable.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList()[0] / wordTable.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList()[1];
             Assert.InRange(gridRatio, expectedRatio - 0.01D, expectedRatio + 0.01D);
         }
 
@@ -98,7 +99,7 @@ public sealed class PdfRotatedTableGeometryTests {
         using (powerPoint.Value) {
             OfficeIMO.PowerPoint.PowerPointTable powerPointTable = Assert.Single(
                 powerPoint.Value.Slides.SelectMany(static slide => slide.Tables));
-            double columnRatio = powerPointTable.GetColumnWidthPoints(0) / powerPointTable.GetColumnWidthPoints(1);
+            double columnRatio = (powerPointTable.GetColumnWidth(0)).ToPoints() / (powerPointTable.GetColumnWidth(1)).ToPoints();
             Assert.InRange(columnRatio, expectedRatio - 0.01D, expectedRatio + 0.01D);
         }
     }

@@ -95,7 +95,7 @@ public class WordImageOptimizationTests {
     public void NativeCropThatCollapsesAtBinaryPrecisionIsRejected() {
         using WordDocument word = WordDocument.Create();
         var image = Insert(word.AddParagraph(), 96, 48);
-        image.CropLeft = 49998; image.CropRight = 50001;
+        image.CropLeftRatio = ((double?)(49998)) / 100000D; image.CropRightRatio = ((double?)(50001)) / 100000D;
         Assert.Throws<NotSupportedException>(() => word.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
     }
 
@@ -106,7 +106,7 @@ public class WordImageOptimizationTests {
         byte[] originalJpeg = jpeg.ToBytes();
         byte[] originalBmp = CreateBmp();
         using var stream = new MemoryStream(originalBmp);
-        var bmp = word.AddParagraph().InsertImage(stream, "source.bmp", 96, 48);
+        var bmp = word.AddParagraph().AddImage(stream, "source.bmp", OfficeIMO.OfficeLength.Pixels(96), OfficeIMO.OfficeLength.Pixels(48));
         string id = bmp.RelationshipId!;
         var originalPart = word._wordprocessingDocument.MainDocumentPart!.GetPartById(id);
         word._wordprocessingDocument.AddPartEventsFeature();
@@ -133,7 +133,7 @@ public class WordImageOptimizationTests {
         using WordDocument word = WordDocument.Create();
         byte[] bytes = format == "gif" ? Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=") : CreateBmp();
         using var stream = new MemoryStream(bytes);
-        var image = word.AddParagraph("Converted media").InsertImage(stream, "source." + format, 96, 48);
+        var image = word.AddParagraph("Converted media").AddImage(stream, "source." + format, OfficeIMO.OfficeLength.Pixels(96), OfficeIMO.OfficeLength.Pixels(48));
         string id = image.RelationshipId!;
         word.AddHeadersAndFooters();
         var headerPart = word._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single();
@@ -222,8 +222,8 @@ public class WordImageOptimizationTests {
     public void SharedImageUsesLargestPlacementAndCropDemand() {
         using WordDocument word = WordDocument.Create();
         var first = Insert(word.AddParagraph(), 96, 48);
-        first.CropLeft = 25000;
-        first.CropRight = 25000;
+        first.CropLeftRatio = ((double?)(25000)) / 100000D;
+        first.CropRightRatio = ((double?)(25000)) / 100000D;
         var second = Insert(word.AddParagraph(), 192, 96);
         MainDocumentPart part = word._wordprocessingDocument.MainDocumentPart!;
         string obsoleteId = second.RelationshipId!;
@@ -287,18 +287,18 @@ public class WordImageOptimizationTests {
     public void LegacyInlineCropSurvivesOptimizationAndNativeSave() {
         using WordDocument word = WordDocument.Create();
         var image = Insert(word.AddParagraph("Cropped picture"), 96, 48);
-        image.CropLeft = 25000; image.CropRight = 25000; image.CropTop = 12500;
+        image.CropLeftRatio = ((double?)(25000)) / 100000D; image.CropRightRatio = ((double?)(25000)) / 100000D; image.CropTopRatio = ((double?)(12500)) / 100000D;
         using var source = new MemoryStream(word.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         using WordDocument imported = WordDocument.Load(source);
-        Assert.Equal(25000, imported.Images[0].CropLeft);
-        Assert.Equal(12500, imported.Images[0].CropTop);
+        Assert.Equal(25000, (imported.Images[0].CropLeftRatio is double cropRatio9 ? (int?)System.Math.Round(cropRatio9 * 100000D, System.MidpointRounding.AwayFromZero) : null));
+        Assert.Equal(12500, (imported.Images[0].CropTopRatio is double cropRatio11 ? (int?)System.Math.Round(cropRatio11 * 100000D, System.MidpointRounding.AwayFromZero) : null));
         var report = imported.OptimizeImages(new() { TargetDpi = 96, KeepOriginalWhenNotSmaller = false });
         Assert.Equal(192, Assert.Single(report.Images).Final.Width);
         using var saved = new MemoryStream(imported.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         using WordDocument reopened = WordDocument.Load(saved);
-        Assert.Equal(25000, reopened.Images[0].CropLeft);
-        Assert.Equal(25000, reopened.Images[0].CropRight);
-        Assert.Equal(12500, reopened.Images[0].CropTop);
+        Assert.Equal(25000, (reopened.Images[0].CropLeftRatio is double cropRatio13 ? (int?)System.Math.Round(cropRatio13 * 100000D, System.MidpointRounding.AwayFromZero) : null));
+        Assert.Equal(25000, (reopened.Images[0].CropRightRatio is double cropRatio15 ? (int?)System.Math.Round(cropRatio15 * 100000D, System.MidpointRounding.AwayFromZero) : null));
+        Assert.Equal(12500, (reopened.Images[0].CropTopRatio is double cropRatio17 ? (int?)System.Math.Round(cropRatio17 * 100000D, System.MidpointRounding.AwayFromZero) : null));
         Assert.Equal(192, OfficeImageReader.Identify(reopened.Images[0].ToBytes()).Width);
     }
 
@@ -330,7 +330,7 @@ public class WordImageOptimizationTests {
             Metadata = new OfficeJpegMetadata(xmp: withMetadata ? System.Text.Encoding.UTF8.GetBytes("private image metadata") : null)
         });
         using var stream = new MemoryStream(bytes);
-        return paragraph.InsertImage(stream, "picture.jpg", width, height);
+        return paragraph.AddImage(stream, "picture.jpg", OfficeIMO.OfficeLength.Pixels(width), OfficeIMO.OfficeLength.Pixels(height));
     }
 
     private static byte[] CreateBmp() {

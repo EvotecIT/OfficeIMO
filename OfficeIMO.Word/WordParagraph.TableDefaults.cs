@@ -9,9 +9,11 @@ public partial class WordParagraph {
         if (cell == null || cell.Elements<Paragraph>().Count() != 1 || cell.Elements<Table>().Any()) return;
         Table? table = cell.Ancestors<Table>().FirstOrDefault();
         if (table?.GetFirstChild<TableProperties>()?.TableStyle?.Val?.Value != "OfficeIMOModern") return;
-        WordParagraphAlignment alignment = WordThemeDefaults.Theme.TableStyle.NumberAlignment switch {
+        WordParagraphAlignment alignment = _document.EffectiveCreationTheme.TableStyle.NumberAlignment switch {
             OfficeAlignment.Right => WordParagraphAlignment.Right,
             OfficeAlignment.Center => WordParagraphAlignment.Center,
+            OfficeAlignment.Start => WordParagraphAlignment.Start,
+            OfficeAlignment.End => WordParagraphAlignment.End,
             _ => WordParagraphAlignment.Left
         };
         bool numeric = WordNumericText.IsNumber(Text);

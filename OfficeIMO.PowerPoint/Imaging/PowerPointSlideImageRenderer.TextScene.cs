@@ -60,7 +60,7 @@ namespace OfficeIMO.PowerPoint {
                 var underline = MapUnderlineStyle(style.UnderlineStyle);
                 if (link != null && underline == OfficeTextDecorationStyle.None) underline = OfficeTextDecorationStyle.Single;
                 yield return new OfficeRichTextRun(value,
-                    mapping.MapFontSize(style.FontSizePoints ?? textBox.FontSize ?? PowerPointTextDefaults.DefaultFontSizePoints),
+                    mapping.MapFontSize(style.FontSizePoints ?? textBox.FontSize?.ToPoints() ?? PowerPointTextDefaults.DefaultFontSizePoints),
                     color, style.Bold ?? textBox.Bold, style.Italic ?? textBox.Italic,
                     underline != OfficeTextDecorationStyle.None, style.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
                     style.StrikeStyle is { } strike && strike != PowerPointStrikeStyle.None,

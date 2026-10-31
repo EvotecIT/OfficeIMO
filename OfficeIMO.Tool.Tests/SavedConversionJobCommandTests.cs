@@ -36,7 +36,7 @@ public sealed class SavedConversionJobCommandTests {
 
         var first = await Run("workflow", "job", "run", files.Job);
         Assert.Equal((int)OfficeImoToolExitCode.Success, first.Code);
-        string artifact = Path.Combine(files.Output, "source.txt.pdf");
+        string artifact = Path.Combine(files.Output, "source.pdf");
         byte[] original = File.ReadAllBytes(artifact);
         Assert.Contains("Saved job flow marker", PdfReadDocument.Open(original).ExtractText());
 
@@ -124,7 +124,7 @@ public sealed class SavedConversionJobCommandTests {
             Assert.True(report.RootElement.GetProperty("succeeded").GetBoolean());
             Assert.Equal(1, report.RootElement.GetProperty("summary").GetProperty("completed").GetInt64());
         }
-        using var workbook = OfficeIMO.Excel.ExcelDocument.Load(Path.Combine(files.Output, "source.numbers.xlsx"));
+        using var workbook = OfficeIMO.Excel.ExcelDocument.Load(Path.Combine(files.Output, "source.xlsx"));
         Assert.Equal(42d, Assert.Single(workbook.Sheets).CellAt(1, 1).GetValue<double>());
     }
 
@@ -145,7 +145,7 @@ public sealed class SavedConversionJobCommandTests {
         Assert.Equal(1, report.Summary.Failed);
         Assert.Equal(2, report.Items.Count);
         byte[] retainedReport = File.ReadAllBytes(firstPath);
-        string goodOutput = Path.Combine(files.Output, "good.txt.pdf");
+        string goodOutput = Path.Combine(files.Output, "good.pdf");
         byte[] retainedPdf = File.ReadAllBytes(goodOutput);
         var inspected = await Run("workflow", "job", "report", firstPath);
         Assert.Equal((int)OfficeImoToolExitCode.Success, inspected.Code);

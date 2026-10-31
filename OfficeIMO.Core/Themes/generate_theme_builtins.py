@@ -56,7 +56,7 @@ BORDERS = {'horizontal': 'Horizontal', 'grid': 'Grid', 'none': 'None'}
 ALIGN = {'left': 'Left', 'right': 'Right', 'center': 'Center'}
 
 lines = ['// Generated from Build/Visual/themes.json by generate_theme_builtins.py. Do not edit by hand.',
-         'using OfficeIMO.Drawing;', '', 'namespace OfficeIMO;', '',
+         '#nullable enable', 'using OfficeIMO.Drawing;', '', 'namespace OfficeIMO;', '',
          'public sealed partial class OfficeTheme {']
 for t in themes:
     lines += ['    /// <summary>Gets ' + DOCS[t['name']] + '.</summary>',

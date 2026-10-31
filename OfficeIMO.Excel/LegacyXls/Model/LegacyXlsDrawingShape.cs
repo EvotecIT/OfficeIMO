@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes shallow metadata decoded from an OfficeArtFSP shape record.
     /// </summary>
-    public sealed class LegacyXlsDrawingShape {
+    internal sealed class LegacyXlsDrawingShape {
         private const uint KnownFlagMask = 0x00000FFF;
 
         /// <summary>

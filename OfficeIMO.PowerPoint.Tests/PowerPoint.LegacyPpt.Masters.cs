@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BinaryImport_ProjectsDocumentSettingsAndNotesMasterTopology() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(FixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);
             LegacyPptDocumentSettings settings = Assert.IsType<LegacyPptDocumentSettings>(
                 legacy.DocumentSettings);
             Assert.Equal(settings.NotesMasterPersistId != 0, legacy.NotesMaster != null);
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotEmpty(legacy.NotesMaster.Shapes);
             }
 
-            using PowerPointPresentation projected = PowerPointPresentation.Load(FixturePath);
+            using PowerPointDocument projected = PowerPointDocument.Load(FixturePath);
             P.Presentation root = projected.OpenXmlDocument.PresentationPart!.Presentation;
             Assert.Equal(settings.FirstSlideNumber, root.FirstSlideNum?.Value);
             Assert.Equal(checked((int)Math.Round(100000D
@@ -104,8 +104,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RoundTripsDocumentPageAndDisplaySettings() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            presentation.SlideSize.SetSizeEmus(9906000, 6858000, PowerPointSlideSizeType.A4);
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Emus(9906000),OfficeIMO.OfficeLength.Emus(6858000),PowerPointSlideSizeType.A4);
             P.Presentation root = presentation.OpenXmlDocument.PresentationPart!.Presentation;
             root.NotesSize = new P.NotesSize { Cx = 6858000, Cy = 9906000 };
             root.FirstSlideNum = 7;
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide();
 
             LegacyPptDocumentSettings settings = Assert.IsType<LegacyPptDocumentSettings>(
-                LegacyPptPresentation.Load(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }))
+                LegacyPptDocument.Load(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }))
                     .DocumentSettings);
 
             Assert.Equal(LegacyPptSlideSizeType.A4Paper, settings.SlideSizeType);
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_WritesReferencedMasterTopologyAndClassicColorSchemes() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.SetThemeColors(new Dictionary<PowerPointThemeColor, string> {
                 [PowerPointThemeColor.Light1] = "F1F2F3",
                 [PowerPointThemeColor.Dark1] = "111213",
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide();
 
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             LegacyPptMaster master = Assert.Single(binary.Masters);
             LegacyPptColorScheme scheme = Assert.IsType<LegacyPptColorScheme>(
                 master.ColorScheme);
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("C1C2C3", scheme.Accent3);
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             Assert.Equal("F1F2F3",
                 reopened.GetThemeColor(PowerPointThemeColor.Light1));
             Assert.Equal("111213",
@@ -177,11 +177,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_PreservesDistinctOpenXmlSlideMasters() {
-            using PowerPointPresentation target = PowerPointPresentation.Create();
+            using PowerPointDocument target = PowerPointDocument.Create();
             target.SetThemeColor(PowerPointThemeColor.Accent1, "102030");
             target.AddSlide();
 
-            using PowerPointPresentation source = PowerPointPresentation.Create();
+            using PowerPointDocument source = PowerPointDocument.Create();
             source.SetThemeColor(PowerPointThemeColor.Accent1, "A0B0C0");
             source.OpenXmlDocument.PresentationPart!.SlideMasterParts.First()
                 .ThemePart!.Theme!.Save();
@@ -195,7 +195,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, target.OpenXmlDocument.PresentationPart!
                 .SlideMasterParts.Count());
             byte[] bytes = target.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
 
             Assert.Equal(2, binary.Masters.Count);
             Assert.Equal(2, binary.Slides.Select(slide => slide.MasterId)
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("A0B0C0", binary.Masters[1].ColorScheme!.Accent1);
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             Assert.Equal(2, reopened.OpenXmlDocument.PresentationPart!
                 .SlideMasterParts.Count());
             Assert.Equal("102030",
@@ -217,12 +217,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_ExpandsBeyondEmbeddedSlideMasterScaffold() {
             const int masterCount = 12;
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.SetThemeColor(PowerPointThemeColor.Accent1, "010101");
             presentation.AddSlide();
 
             for (int index = 1; index < masterCount; index++) {
-                using PowerPointPresentation source = PowerPointPresentation.Create();
+                using PowerPointDocument source = PowerPointDocument.Create();
                 source.SetThemeColor(PowerPointThemeColor.Accent1,
                     $"{index + 1:X2}{index + 1:X2}{index + 1:X2}");
                 SlideLayoutPart layout = source.OpenXmlDocument.PresentationPart!
@@ -244,7 +244,7 @@ namespace OfficeIMO.Tests {
                 string.Join(Environment.NewLine, preflight.Findings));
 
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
 
             Assert.Equal(masterCount, binary.Masters.Count);
             Assert.Equal(masterCount, binary.Slides.Count);
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
                 binary.HandoutMaster).PersistId);
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             Assert.Equal(masterCount, reopened.OpenXmlDocument.PresentationPart!
                 .SlideMasterParts.Count());
             Assert.Equal(masterCount, reopened.Slides.Count);
@@ -273,13 +273,14 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_WritesMainMasterShapesAndPlaceholderKinds() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.ClearThemeTextDefaults();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.First();
             P.ShapeTree tree = masterPart.SlideMaster!.CommonSlideData!.ShapeTree!;
-            var titleBounds = new PowerPointLayoutBox(650000, 400000,
-                7600000, 900000);
+            // This fixture supplies the complete master shape set.
+            tree.RemoveAllChildren<P.Shape>();
+            var titleBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(650000),OfficeIMO.OfficeLength.Emus(400000),                OfficeIMO.OfficeLength.Emus(7600000),OfficeIMO.OfficeLength.Emus(900000));
             tree.Append(
                 new P.Shape(
                     new P.NonVisualShapeProperties(
@@ -296,12 +297,12 @@ namespace OfficeIMO.Tests {
                     new P.ShapeProperties(
                         new A.Transform2D(
                             new A.Offset {
-                                X = titleBounds.Left,
-                                Y = titleBounds.Top
+                                X = titleBounds.Left.ToEmus(),
+                                Y = titleBounds.Top.ToEmus()
                             },
                             new A.Extents {
-                                Cx = titleBounds.Width,
-                                Cy = titleBounds.Height
+                                Cx = titleBounds.Width.ToEmus(),
+                                Cy = titleBounds.Height.ToEmus()
                             }),
                         new A.PresetGeometry(new A.AdjustValueList()) {
                             Preset = A.ShapeTypeValues.Rectangle
@@ -335,16 +336,16 @@ namespace OfficeIMO.Tests {
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             LegacyPptMaster master = Assert.Single(
-                LegacyPptPresentation.Load(bytes).Masters);
+                LegacyPptDocument.Load(bytes).Masters);
 
             Assert.Equal(2, master.Shapes.Count);
             LegacyPptShape title = Assert.Single(master.Shapes, shape =>
                 shape.Placeholder?.Kind == LegacyPptPlaceholderKind.MasterTitle);
             Assert.Equal("Master title", title.Text);
             Assert.Equal(LegacyPptTextType.Title, title.TextBody.TextType);
-            Assert.Equal(ToEmus(ToMasterUnits(titleBounds.Left)),
+            Assert.Equal(ToEmus(ToMasterUnits(titleBounds.Left.ToEmus())),
                 ToEmus(title.Bounds.Left));
-            Assert.Equal(ToEmus(ToMasterUnits(titleBounds.Top)),
+            Assert.Equal(ToEmus(ToMasterUnits(titleBounds.Top.ToEmus())),
                 ToEmus(title.Bounds.Top));
             LegacyPptShape decoration = Assert.Single(master.Shapes,
                 shape => shape.Placeholder == null);
@@ -352,7 +353,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(title.ShapeId >> 10, decoration.ShapeId >> 10);
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(
+            using PowerPointDocument reopened = PowerPointDocument.Load(
                 stream);
             P.Shape[] masterShapes = reopened.OpenXmlDocument.PresentationPart!
                 .SlideMasterParts.Single().SlideMaster!.CommonSlideData!.ShapeTree!
@@ -370,13 +371,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BinaryImport_ProjectsMasterFieldsAndLanguageAsRichText() {
             byte[] bytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.ClearThemeTextDefaults();
                 SlideMasterPart masterPart = source.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single();
                 P.ShapeTree tree = masterPart.SlideMaster!
                     .CommonSlideData!.ShapeTree!;
+                // This fixture supplies the complete master shape set.
+                tree.RemoveAllChildren<P.Shape>();
                 tree.Append(
                     new P.Shape(
                         new P.NonVisualShapeProperties(
@@ -428,15 +431,15 @@ namespace OfficeIMO.Tests {
             }
 
             LegacyPptMaster binaryMaster = Assert.Single(
-                LegacyPptPresentation.Load(bytes).Masters);
+                LegacyPptDocument.Load(bytes).Masters);
             Assert.Contains(binaryMaster.Shapes, shape =>
                 shape.TextBody.Fields.Count == 1);
             Assert.Contains(binaryMaster.Shapes, shape =>
                 shape.TextBody.HasLanguageInformation);
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             SlideMasterPart projectedMaster = projected.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.Single();
             Assert.Single(projectedMaster.SlideMaster!
@@ -450,7 +453,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RoundTripsMainMasterBaseTextStylesAndFonts() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.First();
             var titleLevel = new A.Level1ParagraphProperties {
@@ -510,7 +513,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             LegacyPptMaster binaryMaster = Assert.Single(binary.Masters);
             Assert.Equal(3, binaryMaster.TextMasterStyles.Count);
             LegacyPptTextMasterStyle style = Assert.Single(
@@ -568,7 +571,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(binary.Fonts, font => font.Typeface == typeface));
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(
+            using PowerPointDocument reopened = PowerPointDocument.Load(
                 stream);
             A.Level1ParagraphProperties projected = Assert.IsType<
                 A.Level1ParagraphProperties>(reopened.OpenXmlDocument
@@ -603,7 +606,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RejectsUnrepresentableMainMasterTextStyle() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.First();
             var titleLevel = new A.Level1ParagraphProperties(
@@ -624,7 +627,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_RoundTripsSolidGradientAndNoFillSlideBackgrounds() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide solid = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
             solid.BackgroundColor = "123456";
             PowerPointSlide gradient = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
@@ -635,7 +638,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
 
             Assert.Collection(binary.Slides,
                 slide => {
@@ -663,7 +666,7 @@ namespace OfficeIMO.Tests {
                 });
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             PowerPointSlideBackground solidBackground = reopened.Slides[0].GetBackground();
             Assert.Equal(PowerPointSlideBackgroundKind.SolidColor,
                 solidBackground.Kind);
@@ -681,7 +684,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_WritesMasterAndMaterializedLayoutBackgrounds() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument.PresentationPart!
                 .SlideMasterParts.First();
             masterPart.SlideMaster!.CommonSlideData!.Background = new P.Background(
@@ -697,7 +700,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide materialized = presentation.AddSlide(0, blankIndex);
 
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             LegacyPptMaster master = Assert.Single(binary.Masters);
             Assert.Equal("0A0B0C",
                 Assert.IsType<LegacyPptBackground>(master.Background).ForegroundColor);
@@ -707,7 +710,7 @@ namespace OfficeIMO.Tests {
                 binary.Slides[1].Background).ForegroundColor);
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             Assert.Equal("0A0B0C", reopened.Slides[0].GetBackground().Color);
             Assert.Equal("8899AA", reopened.Slides[1].GetBackground().Color);
             Assert.Empty(reopened.ValidateDocument());
@@ -716,8 +719,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_WritesMasterAndMaterializedLayoutPictureBackgrounds() {
             byte[] imageBytes = PdfPngTestImages.CreateRgbPng(82, 113, 255);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument
                 .PresentationPart!.SlideMasterParts.First();
             SetPictureBackground(masterPart,
@@ -736,7 +739,7 @@ namespace OfficeIMO.Tests {
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
             byte[] binaryBytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(
+            LegacyPptDocument binary = LegacyPptDocument.Load(
                 binaryBytes);
 
             LegacyPptBackground masterBackground = Assert.IsType<
@@ -755,8 +758,8 @@ namespace OfficeIMO.Tests {
 
             using var stream = new MemoryStream(binaryBytes,
                 writable: false);
-            using PowerPointPresentation reopened =
-                PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened =
+                PowerPointDocument.Load(stream);
             Assert.All(reopened.Slides, slide => {
                 PowerPointSlideBackground background = slide.GetBackground();
                 Assert.Equal(PowerPointSlideBackgroundKind.Image,
@@ -768,7 +771,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NativeWriter_WritesNotesMasterBackground() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             NotesMasterPart notesMasterPart = presentation.OpenXmlDocument
                 .PresentationPart!.NotesMasterPart!;
             notesMasterPart.NotesMaster!.CommonSlideData!.Background = new P.Background(
@@ -777,13 +780,13 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide();
 
             byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
-            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument binary = LegacyPptDocument.Load(bytes);
             Assert.Equal("445566", Assert.IsType<LegacyPptBackground>(
                 Assert.IsType<LegacyPptSpecialMaster>(binary.NotesMaster)
                     .Background).ForegroundColor);
 
             using var stream = new MemoryStream(bytes);
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             A.SolidFill solid = Assert.IsType<A.SolidFill>(reopened.OpenXmlDocument
                 .PresentationPart!.NotesMasterPart!.NotesMaster!.CommonSlideData!
                 .Background!.BackgroundProperties!.GetFirstChild<A.SolidFill>());
@@ -861,7 +864,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void BinaryImport_DecodesAndProjectsOfficeArtMasterBackground() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(FixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);
             LegacyPptMaster mainMaster = legacy.Masters.First(master => master.IsMainMaster);
             LegacyPptBackground background = Assert.IsType<LegacyPptBackground>(
                 mainMaster.Background);
@@ -872,7 +875,7 @@ namespace OfficeIMO.Tests {
             Assert.True(report.BackgroundCount > 0);
             Assert.True(report.ProjectableBackgroundCount > 0);
 
-            using PowerPointPresentation projected = PowerPointPresentation.Load(FixturePath);
+            using PowerPointDocument projected = PowerPointDocument.Load(FixturePath);
             P.Background projectedBackground = Assert.IsType<P.Background>(projected
                 .OpenXmlDocument.PresentationPart!.SlideMasterParts.First().SlideMaster!
                 .CommonSlideData!.Background);
@@ -885,7 +888,7 @@ namespace OfficeIMO.Tests {
             string corpus = Path.Combine(AppContext.BaseDirectory, "Documents",
                 "LegacyPptCorpus");
             foreach (string path in Directory.GetFiles(corpus, "*.ppt")) {
-                LegacyPptPresentation legacy = LegacyPptPresentation.Load(path);
+                LegacyPptDocument legacy = LegacyPptDocument.Load(path);
                 LegacyPptBackground[] backgrounds = legacy.Slides
                     .Select(slide => slide.Background)
                     .Concat(legacy.Masters.Select(master => master.Background))

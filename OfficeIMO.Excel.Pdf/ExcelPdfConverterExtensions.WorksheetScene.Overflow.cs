@@ -273,23 +273,23 @@ namespace OfficeIMO.Excel.Pdf {
                     HeaderFontSize = sceneStyle.FontSize,
                     FooterFontSize = sceneStyle.FontSize,
                     LineHeight = 1D,
-                    CellPaddingX = WorksheetCellPaddingX * scale,
-                    CellPaddingY = 0D,
-                    ColumnWidthPoints = new List<double?> { width },
-                    FixedRowHeights = new List<double?> { height },
+                    CellPaddingX = OfficeLength.Points(WorksheetCellPaddingX * scale),
+                    CellPaddingY = OfficeLength.Points(0D),
+                    ColumnWidths = new List<OfficeLength?> { OfficeLength.Points(width) },
+                    FixedRowHeights = new List<OfficeLength?> { OfficeLength.Points(height) },
                     Alignments = new List<PdfCore.PdfColumnAlign> { overflow.Alignment },
                     VerticalAlignments = new List<PdfCore.PdfCellVerticalAlign> { verticalAlignment },
-                    MinRowHeight = 0D,
+                    MinRowHeight = OfficeLength.Points(0D),
                     PreserveWidth = true,
-                    SpacingBefore = 0D,
-                    SpacingAfter = 0D,
+                    SpacingBefore = OfficeLength.Points(0D),
+                    SpacingAfter = OfficeLength.Points(0D),
                     AlternativeText = "Worksheet " + plan.SheetName + " cell text"
                 };
                 if (sceneStyle.CellPaddings != null && sceneStyle.CellPaddings.TryGetValue((overflow.Row, overflow.Column), out PdfCore.PdfCellPadding? padding)) {
                     style.CellPaddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding> { [(0, 0)] = padding };
                 }
 
-                canvas.Table(new[] { new[] { cell } }, tableX + overflow.X * scale, tableY + rowTop[overflow.Row] * scale, width, height, style);
+                canvas.Table(new[] { new[] { cell } }, OfficeLength.Points(tableX + overflow.X * scale), OfficeLength.Points(tableY + rowTop[overflow.Row] * scale), OfficeLength.Points(width), OfficeLength.Points(height), style);
             }
         }
     }

@@ -9,7 +9,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
     [Fact]
     public void ExcelHtml_HeaderModeMakesHeaderIntentExplicit() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Data");
+        ExcelSheet sheet = workbook.AddSheet("Data");
         sheet.CellValue(1, 1, "Not a header");
         sheet.CellValue(2, 1, "Second row");
 
@@ -27,7 +27,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
     public void ExcelHtml_RoundTripsDateFormattedSerialAsDateTime() {
         DateTime expected = new(2026, 7, 11, 14, 15, 16, DateTimeKind.Unspecified);
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Dates");
+        ExcelSheet sheet = workbook.AddSheet("Dates");
         sheet.CellValue(1, 1, "When");
         sheet.CellValue(2, 1, expected);
 

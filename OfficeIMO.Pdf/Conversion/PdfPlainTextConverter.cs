@@ -5,7 +5,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Converts literal text through the canonical PDF flow engine without HTML or Markdown parsing.</summary>
-public static class PdfPlainTextConverter {
+internal static class PdfPlainTextConverter {
     /// <summary>Reads a caller-owned stream under a byte limit; seekable position is restored and the stream remains open.</summary>
     internal static PdfDocumentConversionResult ToPdfDocumentResult(Stream source,
         PdfTextImportOptions? options = null, long maximumInputBytes = 64L * 1024 * 1024,
@@ -56,10 +56,10 @@ public static class PdfPlainTextConverter {
         PdfCreateOptions pdfOptions = settings.PdfOptions;
         pdfOptions.PreserveTextWhitespace = true;
         pdfOptions.MaxGeneratedPages = Math.Min(pdfOptions.MaxGeneratedPages ?? settings.MaximumPages, settings.MaximumPages);
-        PdfDocument document = PdfDocument.Create(pdfOptions);
+        PdfDocument document = PdfDocument.CreateForImportedLayout(pdfOptions);
         string[] pages = normalized.ToString().Split('\f');
         if (pages.Length > settings.MaximumPages) throw new InvalidDataException("Plain text exceeds the explicit page limit.");
-        var style = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0, LineHeight = 1.2 };
+        var style = new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineHeight = 1.2 };
         for (int index = 0; index < pages.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (index > 0) document.Content.PageBreak();

@@ -21,8 +21,8 @@ public partial class Word {
             if (columnFallback) source.Sections[0].ColumnCount = 2;
             source.Sections[0].AddEndnoteProperties(WordNumberFormat.Decimal);
             WordParagraph broken = source.AddParagraph("DANGLINGPREFIX");
-            broken.AddFootNote("DELETEDFOOTNOTEBODY").AddText("DANGLINGTAIL");
-            source.AddParagraph("ENDNOTEPREFIX").AddEndNote("KEPTENDNOTEBODY").AddText("ENDNOTETAIL");
+            broken.AddFootNote("DELETEDFOOTNOTEBODY").Paragraph.AddText("DANGLINGTAIL");
+            source.AddParagraph("ENDNOTEPREFIX").AddEndNote("KEPTENDNOTEBODY").Paragraph.AddText("ENDNOTETAIL");
             source.AddParagraph("FOLLOWINGBODY");
             var main = source.OpenXmlDocument.MainDocumentPart!;
             long id = Assert.Single(broken._paragraph.Descendants<W.FootnoteReference>()).Id!.Value;
@@ -111,8 +111,8 @@ public partial class Word {
         string path = Path.Combine(_directoryWithFiles, "UnresolvedContinuationFootnote.docx");
         using (WordDocument source = CreateFootnoteDiagnosticDocument()) {
             WordParagraph broken = source.AddParagraph("DANGLINGPREFIX");
-            broken.AddFootNote("DELETEDFOOTNOTEBODY").AddText("DANGLINGTAIL");
-            source.AddParagraph(ZeroNotePrefix).AddFootNote(ZeroNoteBody).AddText(ZeroNoteSuffix);
+            broken.AddFootNote("DELETEDFOOTNOTEBODY").Paragraph.AddText("DANGLINGTAIL");
+            source.AddParagraph(ZeroNotePrefix).AddFootNote(ZeroNoteBody).Paragraph.AddText(ZeroNoteSuffix);
             source.AddParagraph(ZeroNoteFollowingBody);
             var main = source.OpenXmlDocument.MainDocumentPart!;
             W.FootnoteReference reference = Assert.Single(broken._paragraph.Descendants<W.FootnoteReference>());

@@ -22,8 +22,8 @@ public class PdfNameTreeByteOrderingTests {
 
     [Fact]
     public void MergedDestinationsSortEncodedKeysAndKeepPageTargets() {
-        byte[] first = PdfDocument.Create().Canvas(c => c.NamedDestination("ÿ", 10, 10)).ToBytes();
-        byte[] second = PdfDocument.Create().Canvas(c => c.NamedDestination("’", 20, 20).NamedDestination("space\u00A0key", 30, 30)).ToBytes();
+        byte[] first = PdfDocument.Create().Canvas(c => c.NamedDestination("ÿ", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10))).ToBytes();
+        byte[] second = PdfDocument.Create().Canvas(c => c.NamedDestination("’", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20)).NamedDestination("space\u00A0key", global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30))).ToBytes();
         byte[] merged = PdfMerger.MergeResult(new PdfMergeOptions {
             Policy = new PdfMergePolicy { NamedDestinations = PdfMergeStructureMode.Combine }
         }, first, second).ToBytes();

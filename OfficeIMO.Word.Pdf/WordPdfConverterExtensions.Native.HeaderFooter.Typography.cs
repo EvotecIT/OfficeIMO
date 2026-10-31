@@ -61,15 +61,15 @@ namespace OfficeIMO.Word.Pdf {
             return resolvedFamily;
         }
 
-        private static PdfCore.PdfColor? ResolveNativeHeaderFooterColor(params WordHeaderFooter?[] headerFooters) {
-            PdfCore.PdfColor? resolvedColor = null;
+        private static global::OfficeIMO.OfficeColor? ResolveNativeHeaderFooterColor(params WordHeaderFooter?[] headerFooters) {
+            global::OfficeIMO.OfficeColor? resolvedColor = null;
             foreach (WordHeaderFooter? headerFooter in headerFooters) {
                 foreach (NativeResolvedTextStyle style in EnumerateNativeHeaderFooterTextStyles(headerFooter)) {
                     if (!style.Color.HasValue) {
                         return null;
                     }
 
-                    PdfCore.PdfColor color = style.Color.Value;
+                    global::OfficeIMO.OfficeColor color = style.Color.Value;
                     if (resolvedColor.HasValue && !resolvedColor.Value.Equals(color)) {
                         return null;
                     }
@@ -178,13 +178,13 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static IEnumerable<PdfCore.PdfColor> EnumerateNativeHeaderFooterColors(WordHeaderFooter? headerFooter) {
+        private static IEnumerable<global::OfficeIMO.OfficeColor> EnumerateNativeHeaderFooterColors(WordHeaderFooter? headerFooter) {
             if (headerFooter == null) {
                 yield break;
             }
 
             foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
-                foreach (PdfCore.PdfColor color in EnumerateNativeHeaderFooterElementColors(element)) {
+                foreach (global::OfficeIMO.OfficeColor color in EnumerateNativeHeaderFooterElementColors(element)) {
                     yield return color;
                 }
             }
@@ -286,9 +286,9 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static IEnumerable<PdfCore.PdfColor> EnumerateNativeHeaderFooterElementColors(WordElement element) {
+        private static IEnumerable<global::OfficeIMO.OfficeColor> EnumerateNativeHeaderFooterElementColors(WordElement element) {
             if (element is WordParagraph paragraph) {
-                foreach (PdfCore.PdfColor color in EnumerateNativeParagraphColors(paragraph)) {
+                foreach (global::OfficeIMO.OfficeColor color in EnumerateNativeParagraphColors(paragraph)) {
                     yield return color;
                 }
 
@@ -303,7 +303,7 @@ namespace OfficeIMO.Word.Pdf {
                 foreach (WordTableRow row in currentTable.Rows) {
                     foreach (WordTableCell cell in row.Cells) {
                         foreach (WordParagraph cellParagraph in cell.Paragraphs) {
-                            foreach (PdfCore.PdfColor color in EnumerateNativeParagraphColors(cellParagraph)) {
+                            foreach (global::OfficeIMO.OfficeColor color in EnumerateNativeParagraphColors(cellParagraph)) {
                                 yield return color;
                             }
                         }
@@ -356,18 +356,18 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static IEnumerable<PdfCore.PdfColor> EnumerateNativeParagraphColors(WordParagraph paragraph) {
-            PdfCore.PdfColor? paragraphColor = ParseNativeColor(paragraph.ColorHex);
+        private static IEnumerable<global::OfficeIMO.OfficeColor> EnumerateNativeParagraphColors(WordParagraph paragraph) {
+            global::OfficeIMO.OfficeColor? paragraphColor = ParseNativeColor(paragraph.ColorHex);
             if (paragraphColor.HasValue) {
                 yield return paragraphColor.Value;
             }
 
-            PdfCore.PdfColor? styleColor = ParseNativeColor(GetNativeParagraphStyleDefaults(paragraph).ColorHex);
+            global::OfficeIMO.OfficeColor? styleColor = ParseNativeColor(GetNativeParagraphStyleDefaults(paragraph).ColorHex);
             if (styleColor.HasValue) {
                 yield return styleColor.Value;
             }
 
-            PdfCore.PdfColor? characterStyleColor = ParseNativeColor(GetNativeCharacterStyleDefaults(paragraph._document, GetNativeRunProperties(paragraph)).ColorHex);
+            global::OfficeIMO.OfficeColor? characterStyleColor = ParseNativeColor(GetNativeCharacterStyleDefaults(paragraph._document, GetNativeRunProperties(paragraph)).ColorHex);
             if (characterStyleColor.HasValue) {
                 yield return characterStyleColor.Value;
             }
@@ -377,12 +377,12 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                PdfCore.PdfColor? runColor = ParseNativeColor(run.ColorHex);
+                global::OfficeIMO.OfficeColor? runColor = ParseNativeColor(run.ColorHex);
                 if (runColor.HasValue) {
                     yield return runColor.Value;
                 }
 
-                PdfCore.PdfColor? runCharacterStyleColor = ParseNativeColor(GetNativeCharacterStyleDefaults(run._document, GetNativeRunProperties(run)).ColorHex);
+                global::OfficeIMO.OfficeColor? runCharacterStyleColor = ParseNativeColor(GetNativeCharacterStyleDefaults(run._document, GetNativeRunProperties(run)).ColorHex);
                 if (runCharacterStyleColor.HasValue) {
                     yield return runCharacterStyleColor.Value;
                 }

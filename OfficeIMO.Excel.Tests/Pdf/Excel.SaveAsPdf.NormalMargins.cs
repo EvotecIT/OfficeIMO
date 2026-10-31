@@ -47,7 +47,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Wide" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.SetColumnWidth(1, 120);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(120));
             sheet.Cell(1, 1, "Wide column text that ends past the right margin of a portrait letter page in this export test case");
             document.Save();
             bytes = document.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false })

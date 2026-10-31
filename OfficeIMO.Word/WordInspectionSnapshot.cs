@@ -33,26 +33,26 @@ namespace OfficeIMO.Word {
         public string? SectionBreakType { get; internal set; }
         /// <summary>Gets page orientation.</summary>
         public string? Orientation { get; internal set; }
-        /// <summary>Gets page width in points.</summary>
-        public double? PageWidthPoints { get; internal set; }
-        /// <summary>Gets page height in points.</summary>
-        public double? PageHeightPoints { get; internal set; }
-        /// <summary>Gets the top page margin in points.</summary>
-        public double? MarginTopPoints { get; internal set; }
-        /// <summary>Gets the bottom page margin in points.</summary>
-        public double? MarginBottomPoints { get; internal set; }
-        /// <summary>Gets the left page margin in points.</summary>
-        public double? MarginLeftPoints { get; internal set; }
-        /// <summary>Gets the right page margin in points.</summary>
-        public double? MarginRightPoints { get; internal set; }
-        /// <summary>Gets the header distance from the page edge in points.</summary>
-        public double? HeaderMarginPoints { get; internal set; }
-        /// <summary>Gets the footer distance from the page edge in points.</summary>
-        public double? FooterMarginPoints { get; internal set; }
+        /// <summary>Gets page width.</summary>
+        public OfficeLength? PageWidth { get; internal set; }
+        /// <summary>Gets page height.</summary>
+        public OfficeLength? PageHeight { get; internal set; }
+        /// <summary>Gets the top page margin.</summary>
+        public OfficeLength? MarginTop { get; internal set; }
+        /// <summary>Gets the bottom page margin.</summary>
+        public OfficeLength? MarginBottom { get; internal set; }
+        /// <summary>Gets the left page margin.</summary>
+        public OfficeLength? MarginLeft { get; internal set; }
+        /// <summary>Gets the right page margin.</summary>
+        public OfficeLength? MarginRight { get; internal set; }
+        /// <summary>Gets the header distance from the page edge.</summary>
+        public OfficeLength? HeaderMargin { get; internal set; }
+        /// <summary>Gets the footer distance from the page edge.</summary>
+        public OfficeLength? FooterMargin { get; internal set; }
         /// <summary>Gets the section column count.</summary>
         public int? ColumnCount { get; internal set; }
-        /// <summary>Gets spacing between columns in points.</summary>
-        public double? ColumnSpacingPoints { get; internal set; }
+        /// <summary>Gets spacing between columns.</summary>
+        public OfficeLength? ColumnSpacing { get; internal set; }
         /// <summary>Gets whether a rule separates section columns.</summary>
         public bool HasColumnSeparator { get; internal set; }
         /// <summary>Gets the explicit starting page number.</summary>
@@ -143,20 +143,22 @@ namespace OfficeIMO.Word {
         public string? ListStyleName { get; internal set; }
         /// <summary>Gets the paragraph alignment authored directly on the paragraph, without resolving inherited styles.</summary>
         public string? Alignment { get; internal set; }
-        /// <summary>Gets leading indentation in points.</summary>
-        public double? IndentStartPoints { get; internal set; }
-        /// <summary>Gets trailing indentation in points.</summary>
-        public double? IndentEndPoints { get; internal set; }
-        /// <summary>Gets first-line indentation in points; negative values represent hanging indents.</summary>
-        public double? IndentFirstLinePoints { get; internal set; }
-        /// <summary>Gets spacing above the paragraph in points.</summary>
-        public double? SpaceAbovePoints { get; internal set; }
-        /// <summary>Gets spacing below the paragraph in points.</summary>
-        public double? SpaceBelowPoints { get; internal set; }
+        /// <summary>Gets leading indentation.</summary>
+        public OfficeLength? IndentStart { get; internal set; }
+        /// <summary>Gets trailing indentation.</summary>
+        public OfficeLength? IndentEnd { get; internal set; }
+        /// <summary>Gets first-line indentation; negative values represent hanging indents.</summary>
+        public OfficeLength? IndentFirstLine { get; internal set; }
+        /// <summary>Gets spacing above the paragraph.</summary>
+        public OfficeLength? SpaceAbove { get; internal set; }
+        /// <summary>Gets spacing below the paragraph.</summary>
+        public OfficeLength? SpaceBelow { get; internal set; }
         /// <summary>Gets the raw Word line-spacing value.</summary>
-        public int? LineSpacingValue { get; internal set; }
+        internal int? LineSpacingValue { get; set; }
         /// <summary>Gets the authored line-spacing rule.</summary>
-        public string? LineSpacingRule { get; internal set; }
+        internal string? LineSpacingRule { get; set; }
+        /// <summary>Gets directly authored spacing in line multiples or physical height.</summary>
+        public WordLineSpacing? LineSpacing { get; internal set; }
         /// <summary>Gets the authored OOXML paragraph-shading fill token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
         public string? ShadingFillColorHex { get; internal set; }
         /// <summary>Paragraph shading pattern, when explicitly authored.</summary>
@@ -250,10 +252,8 @@ namespace OfficeIMO.Word {
         public bool Strike { get; internal set; }
         /// <summary>Gets whether double strikethrough is authored directly on the run.</summary>
         public bool DoubleStrike { get; internal set; }
-        /// <summary>Gets the directly authored integral compatibility font size in points, truncated from half-point precision.</summary>
-        public int? FontSize { get; internal set; }
-        /// <summary>Gets the directly authored run font size in points with Word's native half-point precision.</summary>
-        public double? FontSizePoints { get; internal set; }
+        /// <summary>Gets the directly authored run font size with Word's native half-point precision.</summary>
+        public OfficeLength? FontSize { get; internal set; }
         /// <summary>Gets the font family authored directly on the run, without resolving inherited styles.</summary>
         public string? FontFamily { get; internal set; }
         /// <summary>Gets the OOXML text-color token authored directly on the run.</summary>
@@ -335,10 +335,10 @@ namespace OfficeIMO.Word {
         public string? Description { get; internal set; }
         /// <summary>Gets the image title.</summary>
         public string? Title { get; internal set; }
-        /// <summary>Gets rendered width in pixels at 96 pixels per inch.</summary>
-        public double? Width { get; internal set; }
-        /// <summary>Gets rendered height in pixels at 96 pixels per inch.</summary>
-        public double? Height { get; internal set; }
+        /// <summary>Gets the rendered image width.</summary>
+        public OfficeLength? Width { get; internal set; }
+        /// <summary>Gets the rendered image height.</summary>
+        public OfficeLength? Height { get; internal set; }
         /// <summary>Gets whether the image is inline with text instead of anchored.</summary>
         public bool IsInline { get; internal set; }
         /// <summary>Gets the text-wrapping mode for an anchored image.</summary>
@@ -371,7 +371,7 @@ namespace OfficeIMO.Word {
     /// <summary>Structure, accessibility metadata, merges, and widths for one Word table.</summary>
     public sealed class WordTableInfo : WordBlockInfo {
         private readonly List<WordTableRowInfo> _rows = new List<WordTableRowInfo>();
-        private readonly List<double> _columnWidthPoints = new List<double>();
+        private readonly List<OfficeLength> _columnWidths = new List<OfficeLength>();
 
         /// <summary>Creates an empty table snapshot.</summary>
         public WordTableInfo() : base("table") {
@@ -395,16 +395,16 @@ namespace OfficeIMO.Word {
         public bool HasVerticalMerges { get; internal set; }
         /// <summary>Gets rows in source order.</summary>
         public IReadOnlyList<WordTableRowInfo> Rows => _rows;
-        /// <summary>Gets authored grid-column widths in points.</summary>
-        public IReadOnlyList<double> ColumnWidthPoints => _columnWidthPoints;
+        /// <summary>Gets authored grid-column widths.</summary>
+        public IReadOnlyList<OfficeLength> ColumnWidths => _columnWidths;
 
         internal void AddRow(WordTableRowInfo row) {
             if (row == null) throw new ArgumentNullException(nameof(row));
             _rows.Add(row);
         }
 
-        internal void AddColumnWidth(double widthPoints) {
-            _columnWidthPoints.Add(widthPoints);
+        internal void AddColumnWidth(OfficeLength width) {
+            _columnWidths.Add(width);
         }
     }
 
@@ -462,8 +462,8 @@ namespace OfficeIMO.Word {
         public string? Style { get; internal set; }
         /// <summary>Gets the authored OOXML border-color token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
         public string? ColorHex { get; internal set; }
-        /// <summary>Gets the border width in eighths of a point.</summary>
-        public uint? Size { get; internal set; }
+        /// <summary>Gets the physical border width.</summary>
+        public OfficeLength? Size { get; internal set; }
     }
 
     /// <summary>Style, color, width, and spacing of one paragraph border.</summary>
@@ -472,10 +472,10 @@ namespace OfficeIMO.Word {
         public string? Style { get; internal set; }
         /// <summary>Gets the authored OOXML border-color token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
         public string? ColorHex { get; internal set; }
-        /// <summary>Gets the border width in eighths of a point.</summary>
-        public uint? Size { get; internal set; }
-        /// <summary>Gets spacing between the border and paragraph in points.</summary>
-        public uint? Space { get; internal set; }
+        /// <summary>Gets the physical border width.</summary>
+        public OfficeLength? Size { get; internal set; }
+        /// <summary>Gets spacing between the border and paragraph.</summary>
+        public OfficeLength? Space { get; internal set; }
     }
 
     /// <summary>Alignment, leader, and position of an explicit paragraph tab stop.</summary>
@@ -484,7 +484,7 @@ namespace OfficeIMO.Word {
         public string? Alignment { get; internal set; }
         /// <summary>Gets the leader character style.</summary>
         public string? Leader { get; internal set; }
-        /// <summary>Gets tab position from the leading margin in points.</summary>
-        public double PositionPoints { get; internal set; }
+        /// <summary>Gets tab position from the leading margin.</summary>
+        public OfficeLength Position { get; internal set; }
     }
 }

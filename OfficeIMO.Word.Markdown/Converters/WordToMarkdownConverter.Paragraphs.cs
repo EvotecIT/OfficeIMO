@@ -19,8 +19,8 @@ namespace OfficeIMO.Word.Markdown {
 
             var sb = new StringBuilder();
 
-            if (paragraph.IndentationBefore.HasValue && paragraph.IndentationBefore.Value > 0) {
-                int depth = GetBoundedBlockquoteDepth(paragraph.IndentationBefore.Value);
+            if (paragraph.IndentationBefore.HasValue && checked((int)(paragraph.IndentationBefore.Value.ToTwips())) > 0) {
+                int depth = GetBoundedBlockquoteDepth(checked((int)(paragraph.IndentationBefore.Value.ToTwips())));
                 if (depth > 0) {
                     sb.Append(string.Join(" ", Enumerable.Repeat(">", depth))).Append(' ');
                 }

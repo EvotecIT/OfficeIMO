@@ -37,7 +37,7 @@ public sealed class ReaderPlainTextTests {
     [InlineData(ReaderProjection.TextAndMetadata)]
     public void WorksheetTextDoesNotRepeatPromotedChunkTables(ReaderProjection projection) {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Evidence");
+        var sheet = workbook.AddSheet("Evidence");
         sheet.CellValue(1, 1, "Item"); sheet.CellValue(1, 2, "Value");
         sheet.CellValue(2, 1, "Delivery"); sheet.CellValue(2, 2, "42");
         var document = new OfficeDocumentReaderBuilder().AddExcelHandler().Build()

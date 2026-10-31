@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Built-in block render extension registrations for portable or host-specific output shaping.
 /// </summary>
-public static class MarkdownBlockRenderBuiltInExtensions {
+internal static class MarkdownBlockRenderBuiltInExtensions {
     /// <summary>Stable registration name for the portable callout markdown fallback.</summary>
     public const string PortableCalloutMarkdownName = "Portable.Callout.Markdown";
 

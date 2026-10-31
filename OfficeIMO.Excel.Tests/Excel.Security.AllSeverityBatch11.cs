@@ -4,8 +4,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Reader_RejectsWorkbookBufferBeyondConfiguredInputLimit() {
             using var stream = new MemoryStream(new byte[32], writable: false);
@@ -20,21 +22,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PivotTable_RejectsSharedItemDiscoveryBeyondAbsoluteScanBudget() {
+        public void PivotTable_RejectsSharedItemDiscoveryBeyondAbsoluteScanBudget()
+        {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "First");
             sheet.CellValue(1, 2, "Second");
             sheet.CellValue(1, 3, "Value");
-
-            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                sheet.AddPivotTable(
-                    sourceRange: "A1:C1048576",
-                    destinationCell: "E2",
-                    rowFields: new[] { "First", "Second" },
-                    dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) }));
-
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => sheet.AddPivotTable("A1:C1048576", "E2", options: new ExcelPivotTableOptions { RowFields = new[] { "First", "Second" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) } }));
             Assert.Contains("shared-item discovery", exception.Message, StringComparison.Ordinal);
         }
 
@@ -42,8 +38,8 @@ namespace OfficeIMO.Tests {
         public void AppendDataTable_ScansOutOfOrderRowsAndRejectsStyleOnlyTargetCells() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Sales");
-            sheet.InsertDataTableAsTable(CreateSalesTable(), tableName: "SalesTable");
+            ExcelSheet sheet = document.AddSheet("Sales");
+            sheet.AddTable(CreateSalesTable(), new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
 
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             sheetData.Append(new Row { RowIndex = uint.MaxValue });
@@ -66,8 +62,8 @@ namespace OfficeIMO.Tests {
         public void AppendDataTable_RejectsTargetRangeMetadataWithoutMaterializedCells() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Sales");
-            sheet.InsertDataTableAsTable(CreateSalesTable(), tableName: "SalesTable");
+            ExcelSheet sheet = document.AddSheet("Sales");
+            sheet.AddTable(CreateSalesTable(), new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
             sheet.WorksheetPart.Worksheet.AppendChild(new Hyperlinks(new Hyperlink { Reference = "A3" }));
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
@@ -80,7 +76,7 @@ namespace OfficeIMO.Tests {
         public void Save_IgnoresOutOfRangeDeclaredRowsWhenRebuildingWorksheetDimension() {
             string filePath = Path.Combine(_directoryWithFiles, "SecurityBatch11.InvalidDimensionRow.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "safe");
                 SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
                 sheetData.Append(new Row(new Cell(new CellValue("attacker"))) { RowIndex = uint.MaxValue });
@@ -95,7 +91,7 @@ namespace OfficeIMO.Tests {
         public void SharedStringCleanup_ConvertsOutOfRangeIndexesWithoutExpandingTheTable() {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "safe");
             Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single();
             cell.DataType = CellValues.SharedString;
@@ -128,8 +124,8 @@ namespace OfficeIMO.Tests {
         private static void AssertAppendRejectsExplicitTargetCell(uint? declaredRowIndex) {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Sales");
-            sheet.InsertDataTableAsTable(CreateSalesTable(), tableName: "SalesTable");
+            ExcelSheet sheet = document.AddSheet("Sales");
+            sheet.AddTable(CreateSalesTable(), new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
 
             var hostileRow = new Row(new Cell {
                 CellReference = "A3",

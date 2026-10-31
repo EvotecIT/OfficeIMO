@@ -8,13 +8,13 @@ namespace OfficeIMO.Tests;
 public sealed partial class GoogleSlidesTests {
         [Fact]
         public void BatchCompiler_PreservesTextBearingPresetGeometry() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddTextShapePoints(OfficePresetShapeType.RightArrow, "Next step", 20, 30, 180, 60);
-            slide.AddTextBoxPoints("Plain text", 20, 110, 180, 60);
+            slide.AddTextShape(OfficePresetShapeType.RightArrow, "Next step", OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(60));
+            slide.AddTextBox("Plain text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(60));
 
             using MemoryStream saved = new System.IO.MemoryStream(presentation.ToBytes());
-            using PowerPointPresentation reloaded = PowerPointPresentation.Load(saved);
+            using PowerPointDocument reloaded = PowerPointDocument.Load(saved);
             PowerPointTextBox[] sourceShapes = Assert.Single(reloaded.Slides).Shapes.OfType<PowerPointTextBox>().ToArray();
             Assert.True(Assert.Single(sourceShapes, shape => shape.Text == "Plain text").UsesTextBoxGeometry);
             Assert.False(Assert.Single(sourceShapes, shape => shape.Text == "Next step").UsesTextBoxGeometry);

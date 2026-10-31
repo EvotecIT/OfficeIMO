@@ -16,13 +16,13 @@ public sealed class PowerPointChartAxisBindingsTests {
     [InlineData(false, true)]
     [InlineData(true, true)]
     public void CategoryGroups_FollowLayerReferencesWhenPrimaryAxisMovesOrXmlOrderChanges(bool top, bool reverseAxes) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Columns", new[] { 1d, 2d }, null, null, null, false,
-                renderKind: OfficeChartKind.ColumnClustered),
-            new OfficeChartSeries("Line", new[] { 3d, 4d }, null, null, null, false, renderKind: OfficeChartKind.Line,
+            new OfficeSeries("Columns", new[] { 1d, 2d }, null, null, null, false,
+                renderKind: OfficeChartType.ColumnClustered),
+            new OfficeSeries("Line", new[] { 3d, 4d }, null, null, null, false, renderKind: OfficeChartType.Line,
                 axisGroup: OfficeChartAxisGroup.Secondary) });
-        var chart = document.AddSlide().AddChart(OfficeChartKind.ColumnClustered, data);
+        var chart = document.AddSlide().AddChart(OfficeChartType.ColumnClustered, data);
         var plot = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         C.ValueAxis[] values = plot.Elements<C.ValueAxis>().ToArray();
         Assert.Equal(2, values.Length);
@@ -55,11 +55,11 @@ public sealed class PowerPointChartAxisBindingsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void MixedSnapshot_RepositionedSoleValueAxisRemainsPrimaryAndCanUpdate(bool top) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Columns", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartKind.ColumnClustered),
-            new OfficeChartSeries("Line", new[] { 3d, 4d }, null, null, null, true, renderKind: OfficeChartKind.Line) });
-        var chart = document.AddSlide().AddChart(OfficeChartKind.ColumnClustered, data);
+            new OfficeSeries("Columns", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartType.ColumnClustered),
+            new OfficeSeries("Line", new[] { 3d, 4d }, null, null, null, true, renderKind: OfficeChartType.Line) });
+        var chart = document.AddSlide().AddChart(OfficeChartType.ColumnClustered, data);
         var plot = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         plot.GetFirstChild<C.ValueAxis>()!.AxisPosition!.Val = top ? C.AxisPositionValues.Top : C.AxisPositionValues.Right;
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -70,9 +70,9 @@ public sealed class PowerPointChartAxisBindingsTests {
 
     [Fact]
     public void CategoryUpdate_ReversedReferencesPreserveAxisScaleAndPosition() {
-        using var document = PowerPointPresentation.Create();
-        var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }) });
-        var chart = document.AddSlide().AddChart(OfficeChartKind.Line, data);
+        using var document = PowerPointDocument.Create();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }) });
+        var chart = document.AddSlide().AddChart(OfficeChartType.Line, data);
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
         var plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var layer = plot.GetFirstChild<C.LineChart>()!;
@@ -92,10 +92,10 @@ public sealed class PowerPointChartAxisBindingsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ScatterUpdates_RejectConflictingLayerAxesBeforeNativeOrWorkbookMutation(bool shared) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var data = new OfficeChartData(new[] { "1", "2" }, new[] {
-            new OfficeChartSeries("First", new[] { 1d, 2d }, new[] { 1d, 2d }), new OfficeChartSeries("Second", new[] { 3d, 4d }, new[] { 1d, 2d }) });
-        var chart = document.AddSlide().AddChart(OfficeChartKind.Scatter, data);
+            new OfficeSeries("First", new[] { 1d, 2d }, new[] { 1d, 2d }), new OfficeSeries("Second", new[] { 3d, 4d }, new[] { 1d, 2d }) });
+        var chart = document.AddSlide().AddChart(OfficeChartType.Scatter, data);
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
         var plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var first = plot.GetFirstChild<C.ScatterChart>()!;
@@ -123,12 +123,12 @@ public sealed class PowerPointChartAxisBindingsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ScatterUpdates_ReserveASeriesForEachRemainingLayer(bool shared) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var original = new OfficeChartData(new[] { "1", "2" }, new[] {
-            new OfficeChartSeries("First", new[] { 1d, 2d }, new[] { 1d, 2d }),
-            new OfficeChartSeries("Second", new[] { 3d, 4d }, new[] { 1d, 2d }),
-            new OfficeChartSeries("Third", new[] { 5d, 6d }, new[] { 1d, 2d }) });
-        var chart = document.AddSlide().AddChart(OfficeChartKind.Scatter, original);
+            new OfficeSeries("First", new[] { 1d, 2d }, new[] { 1d, 2d }),
+            new OfficeSeries("Second", new[] { 3d, 4d }, new[] { 1d, 2d }),
+            new OfficeSeries("Third", new[] { 5d, 6d }, new[] { 1d, 2d }) });
+        var chart = document.AddSlide().AddChart(OfficeChartType.Scatter, original);
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
         var plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         C.ScatterChart first = plot.GetFirstChild<C.ScatterChart>()!;
@@ -138,8 +138,8 @@ public sealed class PowerPointChartAxisBindingsTests {
         plot.InsertAfter(second, first);
 
         var replacement = new OfficeChartData(new[] { "1", "2" }, new[] {
-            new OfficeChartSeries("Updated first", new[] { 7d, 8d }, new[] { 1d, 2d }),
-            new OfficeChartSeries("Updated second", new[] { 9d, 10d }, new[] { 1d, 2d }) });
+            new OfficeSeries("Updated first", new[] { 7d, 8d }, new[] { 1d, 2d }),
+            new OfficeSeries("Updated second", new[] { 9d, 10d }, new[] { 1d, 2d }) });
         if (shared) chart.UpdateData(replacement);
         else chart.UpdateData(new PowerPointScatterChartData(replacement.Series.Select(series =>
             new PowerPointScatterChartSeries(series.Name, series.XValues!, series.Values))));
@@ -155,9 +155,9 @@ public sealed class PowerPointChartAxisBindingsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void CategoryUpdate_PreservesLayerFormattingWithRepositionedPrimaryAxis(bool top) {
-        using var document = PowerPointPresentation.Create();
-        var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }) });
-        var chart = document.AddSlide().AddChart(OfficeChartKind.Line, data);
+        using var document = PowerPointDocument.Create();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 1d, 2d }) });
+        var chart = document.AddSlide().AddChart(OfficeChartType.Line, data);
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
         var plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var position = top ? C.AxisPositionValues.Top : C.AxisPositionValues.Right;

@@ -29,8 +29,8 @@ internal static partial class RtfPdfConverter {
         PdfCore.PdfPageBorder? requestedBorder = requested.PageBorder;
         PdfCore.PdfPageBorder? currentBorder = current.PageBorder;
         if (requestedBorder == null ? currentBorder != null : currentBorder == null ||
-            !requestedBorder.Color.Equals(currentBorder.Color) || requestedBorder.Width != currentBorder.Width ||
-            requestedBorder.Inset != currentBorder.Inset || requestedBorder.Opacity != currentBorder.Opacity ||
+            !requestedBorder.Color.Equals(currentBorder.Color) || requestedBorder.Width.ToPoints() != currentBorder.Width.ToPoints() ||
+            requestedBorder.Inset.ToPoints() != currentBorder.Inset.ToPoints() || requestedBorder.Opacity != currentBorder.Opacity ||
             requestedBorder.DashStyle != currentBorder.DashStyle) differences.Add("PageBorders");
         if (differences.Count == 0) return;
         AddConversionWarning(options, "ContinuousSectionPageSettingsFlattened", "Section/PageSetup",
@@ -60,9 +60,9 @@ internal static partial class RtfPdfConverter {
         }
         var columns = new PdfCore.PdfMultiColumnOptions {
             ColumnCount = count,
-            Gap = RtfPdfMapping.TwipsToPoints(section.ColumnSpaceTwips ?? 720),
-            SeparatorColor = section.ColumnSeparator ? new PdfCore.PdfColor(0, 0, 0) : null,
-            SeparatorWidth = section.ColumnSeparator ? 0.5 : 0
+            Gap = global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(section.ColumnSpaceTwips ?? 720)),
+            SeparatorColor = section.ColumnSeparator ? global::OfficeIMO.OfficeColor.FromNormalizedRgb(0, 0, 0) : null,
+            SeparatorWidth = global::OfficeIMO.OfficeLength.Points(section.ColumnSeparator ? 0.5 : 0)
         };
         pdf.Columns(_ => {
             state.InColumns = true;

@@ -38,6 +38,19 @@ public sealed class PdfImageDocumentTests {
         } finally { Directory.Delete(directory, recursive: true); }
     }
 
+    [Theory]
+    [InlineData(-1D, 14400D, "Margin")]
+    [InlineData(0D, 0D, "MaximumPageDimension")]
+    [InlineData(0D, -1D, "MaximumPageDimension")]
+    public void ImageImportRejectsInvalidPhysicalGeometryBeforeDecoding(double margin, double maximum, string parameter) {
+        IEnumerable<PdfImageDocumentSource> images = new[] { new PdfImageDocumentSource(new byte[] { 1 }) };
+        var options = new PdfImageImportOptions {
+            Margin = OfficeIMO.OfficeLength.Points(margin), MaximumPageDimension = OfficeIMO.OfficeLength.Points(maximum)
+        };
+        var failure = Assert.Throws<ArgumentOutOfRangeException>(() => images.ToPdf(options));
+        Assert.Equal(parameter, failure.ParamName);
+    }
+
     [Fact]
     public void OrientedTiffIsCheckedAgainstSourcePixelLimitBeforeNormalization() {
         byte[] tiff = OfficeRasterImageEncoder.Encode(
@@ -124,14 +137,14 @@ public sealed class PdfImageDocumentTests {
             new PdfImageImportOptions {
                 FixedPageSize = PdfPageSizes.A4,
                 AutoOrientPage = true,
-                Margin = 24D,
+                Margin = OfficeIMO.OfficeLength.Points(24D),
                 Fit = OfficeImageFit.Contain
             });
 
         PdfDocumentInfo info = document.Inspect();
         Assert.Single(info.Pages);
-        Assert.Equal(PdfPageSizes.A4.Height, info.Pages[0].Width, 2);
-        Assert.Equal(PdfPageSizes.A4.Width, info.Pages[0].Height, 2);
+        Assert.Equal(PdfPageSizes.A4.Height.ToPoints(), info.Pages[0].Width, 2);
+        Assert.Equal(PdfPageSizes.A4.Width.ToPoints(), info.Pages[0].Height, 2);
     }
 
     [Fact]
@@ -150,20 +163,22 @@ public sealed class PdfImageDocumentTests {
             });
 
         PdfPageInfo page = Assert.Single(document.Inspect().Pages);
-        Assert.Equal(PdfPageSizes.A4.Height, page.Width, 2);
-        Assert.Equal(PdfPageSizes.A4.Width, page.Height, 2);
+        Assert.Equal(PdfPageSizes.A4.Height.ToPoints(), page.Width, 2);
+        Assert.Equal(PdfPageSizes.A4.Width.ToPoints(), page.Height, 2);
     }
 
-    [Fact]
-    public void CreateFromImagesAllowsDynamicPageMarginsLargerThanUnusedFallbackPaper() {
+    [Theory]
+    [InlineData(300D)]
+    [InlineData(0.125D)]
+    public void CreateFromImagesPreservesPhysicalMarginsIncludingLargeAndFractionalValues(double margin) {
         byte[] image = PdfPngTestImages.CreateRgbPng(96, 48);
 
         PdfDocument document = ((System.Collections.Generic.IEnumerable<PdfImageDocumentSource>)[new PdfImageDocumentSource(image, "large-margin.png")]).ToPdf(
-            new PdfImageImportOptions { Margin = 300D });
+            new PdfImageImportOptions { Margin = OfficeIMO.OfficeLength.Points(margin) });
 
         PdfPageInfo page = Assert.Single(document.Inspect().Pages);
-        Assert.Equal(672D, page.Width, 2);
-        Assert.Equal(636D, page.Height, 2);
+        Assert.Equal(72D + margin * 2D, page.Width, 2);
+        Assert.Equal(36D + margin * 2D, page.Height, 2);
     }
 
     [Fact]
@@ -186,8 +201,8 @@ public sealed class PdfImageDocumentTests {
 
         PdfDocumentInfo info = document.Inspect();
         Assert.Single(info.Pages);
-        Assert.Equal(PdfPageSizes.A4.Width, info.Pages[0].Width, 2);
-        Assert.Equal(PdfPageSizes.A4.Height, info.Pages[0].Height, 2);
+        Assert.Equal(PdfPageSizes.A4.Width.ToPoints(), info.Pages[0].Width, 2);
+        Assert.Equal(PdfPageSizes.A4.Height.ToPoints(), info.Pages[0].Height, 2);
         PdfExtractedImage extracted = Assert.Single(PdfImageExtractor.ExtractImages(document.ToBytes()));
         Assert.Equal(2, extracted.Width);
         Assert.Equal(1, extracted.Height);

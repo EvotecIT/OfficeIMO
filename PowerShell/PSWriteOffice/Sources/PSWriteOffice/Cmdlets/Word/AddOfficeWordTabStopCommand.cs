@@ -44,7 +44,7 @@ public sealed class AddOfficeWordTabStopCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var paragraph = ResolveParagraph();
-        var tabStop = paragraph.AddTabStop(Position, Alignment, Leader);
+        var tabStop = paragraph.AddTabStop(global::OfficeIMO.OfficeLength.Points(Position / 20D), Alignment, Leader);
 
         if (PassThru.IsPresent)
         {

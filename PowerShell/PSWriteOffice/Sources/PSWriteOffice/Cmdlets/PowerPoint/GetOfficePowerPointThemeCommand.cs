@@ -22,7 +22,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public sealed class GetOfficePowerPointThemeCommand : OfficeCmdlet {
     /// <summary>Gets or sets the live document; omission uses its enclosing content block.</summary>
     [Parameter(Position = 0, ValueFromPipeline = true)]
-    public PowerPointPresentation? Document { get; set; }
+    public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets a one-based master position; defaults to the first.</summary>
     [Parameter, ValidateRange(1, int.MaxValue)]
     public int Master { get; set; } = 1;

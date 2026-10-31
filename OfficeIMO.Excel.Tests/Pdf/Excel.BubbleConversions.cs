@@ -15,7 +15,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
     /// </summary>
     private static ExcelPdfExportOptions WideBubblePage(ExcelPdfExportOptions? options = null) {
         options ??= new ExcelPdfExportOptions();
-        options.PageSize = new PdfCore.PdfPageSize(900, 700);
+        options.PageSize = new PdfCore.PdfPageSize(OfficeLength.Points(900), OfficeLength.Points(700));
         return options;
     }
 
@@ -51,7 +51,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartKindApproximated);
         AssertRasterBubbleRatio(png.Bytes, color, ratio);
         // Exercise the worksheet PNG path as well as standalone chart export.
-        AssertRasterBubbleRatio(document.Sheets[0].Range("A1:M28").ToPng(), color, ratio);
+        AssertRasterBubbleRatio(document.Sheets[0].Range("A1:M28").ToImage(), color, ratio);
 
         // Compare scale to the same input at 100%, independently in PDF and raster output.
         if (scale == 200) {

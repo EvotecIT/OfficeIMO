@@ -41,12 +41,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Path to the object file.</param>
         /// <param name="imageFilePath">Preview image path.</param>
-        /// <param name="width">Optional width in points.</param>
-        /// <param name="height">Optional height in points.</param>
-        /// <returns>The paragraph containing the embedded object.</returns>
-        public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
+        /// <param name="width">Optional physical width; defaults to 64.8 points.</param>
+        /// <param name="height">Optional physical height; defaults to 64.8 points.</param>
+        /// <returns>The created embedded object.</returns>
+        public WordEmbeddedObject AddEmbeddedObject(string filePath, string imageFilePath, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null) {
             var wordEmbeddedObject = new WordEmbeddedObject(this, this._document, filePath, imageFilePath, "", width, height);
-            return this;
+            return wordEmbeddedObject;
         }
 
         /// <summary>
@@ -54,21 +54,21 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Path to the object file.</param>
         /// <param name="options">Embedding options.</param>
-        /// <returns>The paragraph containing the embedded object.</returns>
-        public WordParagraph AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
+        /// <returns>The created embedded object.</returns>
+        public WordEmbeddedObject AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
             var wordEmbeddedObject = new WordEmbeddedObject(this, this._document, filePath, options);
-            return this;
+            return wordEmbeddedObject;
         }
 
         /// <summary>
         /// Provides ability for configuration of Tabs in a paragraph
         /// by adding one or more TabStops
         /// </summary>
-        /// <param name="position">The position of the tabs in the paragraph.</param>
+        /// <param name="position">The signed tab position, rounded to the nearest twip.</param>
         /// <param name="alignment">The optional alignment for the tabs.</param>
         /// <param name="leader">The optional rune to use before the tabs.</param>
         /// <returns>The added tabs.</returns>
-        public WordTabStop AddTabStop(int position, WordTabAlignment? alignment = null, WordTabLeader? leader = null) {
+        public WordTabStop AddTabStop(OfficeLength position, WordTabAlignment? alignment = null, WordTabLeader? leader = null) {
             alignment ??= WordTabAlignment.Left;
             leader ??= WordTabLeader.None;
             var wordTab = new WordTabStop(this);
@@ -115,7 +115,7 @@ namespace OfficeIMO.Word {
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <returns>WordChart</returns>
-        public WordChart AddChart(string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
+        public WordChart AddChart(string title = "", bool roundedCorners = false, OfficeLength? width = null, OfficeLength? height = null) {
             var paragraph = this.AddParagraph();
             var chartInstance = new WordChart(this._document, paragraph, title, roundedCorners, width, height);
             return chartInstance;
@@ -128,7 +128,7 @@ namespace OfficeIMO.Word {
         /// <see cref="WordChart.AddLine"/> to add data. <c>AddChartAxisX</c> must be called before adding any
         /// series so that both chart types share the same axes.
         /// </summary>
-        public WordChart AddComboChart(string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
+        public WordChart AddComboChart(string title = "", bool roundedCorners = false, OfficeLength? width = null, OfficeLength? height = null) {
             return AddChart(title, roundedCorners, width, height);
         }
 
@@ -148,7 +148,7 @@ namespace OfficeIMO.Word {
         /// <param name="text">The text of the note.</param>
         /// <returns>The footnote.</returns>
         /// <exception cref="InvalidOperationException">The paragraph is in a header or footer.</exception>
-        public WordParagraph AddFootNote(string text) {
+        public WordFootNote AddFootNote(string text) {
             var footerWordParagraph = new WordParagraph(this._document, true, true) {
                 Text = text
             };
@@ -162,7 +162,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="text">The text of the end note.</param>
         /// <returns>The end note.</returns>
-        public WordParagraph AddEndNote(string text) {
+        public WordEndNote AddEndNote(string text) {
             var endNoteWordParagraph = new WordParagraph(this._document, true, true);
             endNoteWordParagraph.Text = text;
 

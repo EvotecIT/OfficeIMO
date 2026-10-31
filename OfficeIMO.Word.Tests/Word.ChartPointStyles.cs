@@ -15,9 +15,8 @@ public sealed class WordChartPointStylesTests {
     [Fact]
     public void PointStyles_RejectConflictingDirectAndMarkerShapeOwners() {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Line,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Measured", new[] { 2d, 3d }) }));
+        WordChart chart = document.AddChart(OfficeChartType.Line,            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeSeries("Measured", new[] { 2d, 3d }) }));
         C.LineChartSeries native = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single();
         var point = new C.DataPoint(new C.Index { Val = 0 });
         point.AddChild(new C.Marker(new C.ChartShapeProperties(
@@ -31,9 +30,8 @@ public sealed class WordChartPointStylesTests {
     [Fact]
     public void PointStyles_RejectDuplicateNativeMarkersOnOnePoint() {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Line,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Measured", new[] { 2d, 3d }) }));
+        WordChart chart = document.AddChart(OfficeChartType.Line,            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeSeries("Measured", new[] { 2d, 3d }) }));
         C.LineChartSeries native = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single();
         var point = new C.DataPoint(new C.Index { Val = 0 });
         point.Append(new C.Marker(new C.ChartShapeProperties()), new C.Marker(new C.ChartShapeProperties()));
@@ -45,7 +43,7 @@ public sealed class WordChartPointStylesTests {
     [Fact]
     public void PointStyles_RejectUnprojectedNativeShapeAttributes() {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart("Status", false, 360, 180);
+        WordChart chart = document.AddChart("Status",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(180));
         chart.AddPie("Pass", 3).AddPie("Fail", 1);
         chart.SetDataPointStyle(0, 0, new(OfficeColor.White));
         C.ChartShapeProperties properties = chart.ChartPart!.ChartSpace!
@@ -59,10 +57,10 @@ public sealed class WordChartPointStylesTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
         try {
             using (WordDocument authored = WordDocument.Create(path)) {
-                WordChart authoredChart = authored.AddChart("Status", false, 360, 180);
+                WordChart authoredChart = authored.AddChart("Status",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(180));
                 authoredChart.AddPie("Pass", 3).AddPie("Unknown", 2).AddPie("Fail", 1);
                 authoredChart.SetDataPointStyle(0, 0, new(showOutline: true));
-                authoredChart.SetDataPointStyle(0, 1, new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2,
+                authoredChart.SetDataPointStyle(0, 1, new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: global::OfficeIMO.OfficeLength.Points(2),
                     outlineJoin: OfficeStrokeLineJoin.Round));
                 authoredChart.SetDataPointStyle(0, 2, new(OfficeColor.White, hatch: OfficeChartHatchPattern.WideForwardDiagonal,
                     hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black));

@@ -47,8 +47,7 @@ internal static partial class PdfStamper {
             var stampStream = BuildStampStream(
                 text,
                 fontResourceName,
-                page.GetPageSize().Width,
-                page.GetPageSize().Height,
+                page,
                 effectiveOptions,
                 watermarkDefaults: false,
                 stampFont.GlyphHex,
@@ -166,13 +165,11 @@ internal static partial class PdfStamper {
 
             var page = document.Pages[i];
             if (!effectiveOptions.BehindContent) IsolateExistingContents(objects, pageObjectNumbers[i], ref nextObjectNumber);
-            var size = page.GetPageSize();
             int stampPseudoId = -1000 - pageNumber;
             var stampStream = BuildStampStream(
                 text,
                 fontResourceName,
-                size.Width,
-                size.Height,
+                page,
                 effectiveOptions,
                 watermarkDefaults: true,
                 stampFont.GlyphHex,
@@ -277,7 +274,7 @@ internal static partial class PdfStamper {
                 : italic ? family.ItalicSnapshot
                 : null;
             face ??= family.RegularSnapshot;
-            if (PdfFormFiller.TryCreateEmbeddedTextFont(face, family.FamilyName, text, options.FontSize, objects, ref nextObjectNumber,
+            if (PdfFormFiller.TryCreateEmbeddedTextFont(face, family.FamilyName, text, options.FontSize.ToPoints(), objects, ref nextObjectNumber,
                     out PdfObject type0Font, out string glyphHex, out double textWidth)) {
                 return new StampFont(type0Font, glyphHex, textWidth);
             }
@@ -289,8 +286,8 @@ internal static partial class PdfStamper {
     private static PdfTextStampOptions BuildWatermarkOptions(PdfTextStampOptions? options) {
         if (options is null) {
             return new PdfTextStampOptions {
-                FontSize = 64,
-                Color = PdfColor.LightGray,
+                FontSize = global::OfficeIMO.OfficeLength.Points(64),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D),
                 RotationDegrees = -45,
                 Font = PdfStandardFont.HelveticaBold
             };

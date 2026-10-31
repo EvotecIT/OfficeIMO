@@ -12,22 +12,22 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <example><summary>Preview removal of a native slide.</summary>
 /// <code>$slide | Remove-OfficePowerPointSlide -WhatIf</code></example>
 [Cmdlet(VerbsCommon.Remove, "OfficePowerPointSlide", SupportsShouldProcess = true)]
-[OutputType(typeof(PowerPointPresentation))]
+[OutputType(typeof(PowerPointDocument))]
 public sealed class RemoveOfficePowerPointSlideCommand : OfficeCmdlet {
     /// <summary>Return the live document after at least one slide is removed.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
     /// <summary>Gets or sets the document for numeric selection; omission uses the enclosing scope or native slide owner.</summary>
     [Parameter, ValidateNotNull]
-    public PowerPointPresentation? Document { get; set; }
+    public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets native slides or their one-based positions; each argument array is resolved before removal.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true), PowerPointSlideTransformation, ValidateNotNullOrEmpty]
     public PowerPointSlideSelector[] Slide { get; set; } = Array.Empty<PowerPointSlideSelector>();
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var document = Document ?? OfficeDocumentContext.Find<PowerPointPresentation>()
-            ?? Slide.Select(selection => selection.Slide?.OwnerPresentation).FirstOrDefault(owner => owner != null);
+        var document = Document ?? OfficeDocumentContext.Find<PowerPointDocument>()
+            ?? Slide.Select(selection => selection.Slide?.OwnerDocument).FirstOrDefault(owner => owner != null);
         try {
             document = ResolveDocument(document);
             // Resolve the complete selection before mutation, then remove from the end to preserve numeric positions.

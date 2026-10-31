@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Pdf {
             var doc = PdfDocument.Create(document => {
                 document.Page(page => {
                     page.Size(PdfPageSizes.A5);
-                    page.Margin(36, 42, 36, 42);
+                    page.Margin(OfficeLength.Points(36), OfficeLength.Points(42), OfficeLength.Points(36), OfficeLength.Points(42));
                     page.Header(h => h.AlignLeft().Text("OfficeIMO.Pdf composition"));
 
                     page.Content(c => c
@@ -24,10 +24,10 @@ namespace OfficeIMO.Examples.Pdf {
                                     .LineBreak()
                                     .Text("Each page combines text, panels and lists with a shared header and page count."),
                                 new PdfPanelStyle {
-                                    Background = PdfColor.FromRgb(248, 250, 252),
-                                    BorderColor = PdfColor.FromRgb(183, 194, 207),
-                                    PaddingX = 9,
-                                    PaddingY = 7
+                                    Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
+                                    PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                                    PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                                 });
                             column.Item().PageBreak();
 
@@ -36,19 +36,19 @@ namespace OfficeIMO.Examples.Pdf {
                                 "Each section starts on its own page.",
                                 "The same theme carries through all three pages.",
                                 "Page numbers include the complete report."
-                            }, color: PdfColor.FromRgb(55, 65, 81));
-                            column.Item().HR(0.8, PdfColor.FromRgb(183, 194, 207), 8, 8);
+                            }, color: OfficeColor.FromRgb(55, 65, 81));
+                            column.Item().HR(OfficeLength.Points(0.8), OfficeColor.FromRgb(183, 194, 207), OfficeLength.Points(8), OfficeLength.Points(8));
                             column.Item().Paragraph(p => p
                                 .Text("Status: ")
                                 .Bold("ready for review. ")
-                                .Color(PdfColor.FromRgb(20, 90, 180)).Text("All sections are complete."));
+                                .Color(OfficeColor.FromRgb(20, 90, 180)).Text("All sections are complete."));
                             column.Item().PageBreak();
 
                             column.Item().H2("Color Sections");
-                            column.Item().Paragraph(p => p.Color(PdfColor.FromRgb(185, 28, 28)).Text("Critical items should remain readable when colored inline."));
-                            column.Item().Paragraph(p => p.Color(PdfColor.FromRgb(22, 101, 52)).Text("Healthy items should use calm green without overpowering the page."));
-                            column.Item().Paragraph(p => p.Color(PdfColor.FromRgb(20, 90, 180)).Text("Informational items should keep good contrast on white backgrounds."));
-                            column.Item().Paragraph(p => p.Text("End of compose DSL sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80));
+                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromRgb(185, 28, 28)).Text("Critical items should remain readable when colored inline."));
+                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)).Text("Healthy items should use calm green without overpowering the page."));
+                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180)).Text("Informational items should keep good contrast on white backgrounds."));
+                            column.Item().Paragraph(p => p.Text("End of compose DSL sample."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
                         }));
 
                     page.Footer(f => f.AlignCenter().Text(t => t

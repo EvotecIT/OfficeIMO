@@ -47,7 +47,7 @@ public sealed class PdfPngPassThroughTests {
         PdfStream imageObject = PdfWriter.BuildImageXObject(prepared.CloneForWrite());
         Assert.Equal(bitDepth, imageObject.Dictionary.Get<PdfNumber>("BitsPerComponent")!.Value);
         Assert.Equal(bitDepth, imageObject.Dictionary.Get<PdfDictionary>("DecodeParms")!.Get<PdfNumber>("BitsPerComponent")!.Value);
-        byte[] pdf = PdfDocument.Create(doc => doc.Content(content => content.Image(png, 170, 50))).ToBytes();
+        byte[] pdf = PdfDocument.Create(doc => doc.Content(content => content.Image(png, global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(50)))).ToBytes();
         var extracted = Assert.Single(PdfDocument.Load(pdf).Images.Extract());
         Assert.Equal(bitDepth, extracted.BitsPerComponent);
         Assert.True(OfficePngReader.TryDecode(extracted.Bytes, out var raster));

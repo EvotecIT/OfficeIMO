@@ -30,10 +30,10 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
     public MarkdownSourceSpan? LinkTitleSourceSpan => LinkTitleSyntaxSpan;
     /// <summary>Optional title attribute.</summary>
     public string? Title { get; }
-    /// <summary>Optional width hint (points/pixels as provided).</summary>
-    public double? Width { get; set; }
-    /// <summary>Optional height hint.</summary>
-    public double? Height { get; set; }
+    /// <summary>Optional physical display width. Unitless Markdown and HTML hints are CSS pixels.</summary>
+    public OfficeLength? Width { get; set; }
+    /// <summary>Optional physical display height. Unitless Markdown and HTML hints are CSS pixels.</summary>
+    public OfficeLength? Height { get; set; }
     /// <summary>Optional fallback image URL used when rendering preserved picture sources back to HTML.</summary>
     public string? PictureFallbackPath { get; set; }
     /// <summary>HTML-only responsive picture source metadata preserved from imported &lt;picture&gt; elements.</summary>
@@ -52,7 +52,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
     }
 
     /// <summary>Create an image block with optional size hints.</summary>
-    public ImageBlock(string path, string? alt = null, string? title = null, double? width = null, double? height = null, string? linkUrl = null, string? linkTitle = null, string? linkTarget = null, string? linkRel = null, string? plainAlt = null) {
+    public ImageBlock(string path, string? alt = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null, string? linkUrl = null, string? linkTitle = null, string? linkTarget = null, string? linkRel = null, string? plainAlt = null) {
         Path = path;
         Alt = alt;
         PlainAlt = plainAlt ?? alt;
@@ -83,8 +83,8 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         }
         sb.Append(MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes));
         if (imageRenderingMode == MarkdownImageRenderingMode.RichMarkdown && (Width != null || Height != null)) {
-            var w = Width != null ? $"width={Width.Value}" : string.Empty;
-            var h = Height != null ? $"height={Height.Value}" : string.Empty;
+            var w = Width != null ? $"width={Width.Value.ToPixels().ToString("R", System.Globalization.CultureInfo.InvariantCulture)}" : string.Empty;
+            var h = Height != null ? $"height={Height.Value.ToPixels().ToString("R", System.Globalization.CultureInfo.InvariantCulture)}" : string.Empty;
             var sep = (w != string.Empty && h != string.Empty) ? " " : string.Empty;
             sb.Append($"{{{w}{sep}{h}}}");
         }
@@ -99,14 +99,28 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         string alt = HtmlTextEncoder.Encode(PlainAlt ?? string.Empty, o);
         string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{HtmlTextEncoder.Encode(Title!, o)}\"";
         string size = string.Empty;
-        if (Width != null) size += $" width=\"{Width.Value}\"";
-        if (Height != null) size += $" height=\"{Height.Value}\"";
+        string sizeStyle = string.Empty;
+        AppendHtmlDimension("width", Width, ref size, ref sizeStyle);
+        AppendHtmlDimension("height", Height, ref size, ref sizeStyle);
         if (!UrlOriginPolicy.IsAllowedHttpImage(o, Path)) {
             string captionBlocked = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{HtmlTextEncoder.Encode(Caption!, o)}</div>";
             return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt, o) + captionBlocked;
         }
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Path);
-        var attributes = MarkdownHtmlAttributes.Render(Attributes, o);
+        var imageAttributes = Attributes;
+        if (sizeStyle.Length > 0) {
+            var values = Attributes.Attributes.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+            values.TryGetValue("style", out string? existingStyle);
+            values.Remove("style");
+            // Generated numeric dimensions remain safe when raw HTML styles are filtered.
+            string retainedStyle = (o?.RawHtmlHandling ?? MarkdownRawHtmlHandling.Allow) == MarkdownRawHtmlHandling.Allow
+                ? (existingStyle ?? string.Empty).TrimEnd().TrimEnd(';')
+                : string.Empty;
+            string style = (retainedStyle.Length == 0 ? string.Empty : retainedStyle + ";") + sizeStyle;
+            size += " style=\"" + HtmlTextEncoder.Encode(style, o) + "\"";
+            imageAttributes = MarkdownAttributeSet.Create(Attributes.ElementId, Attributes.Classes, values);
+        }
+        var attributes = MarkdownHtmlAttributes.Render(imageAttributes, o);
         string img = $"<img src=\"{HtmlAttributeUrlEncoder.Encode(GetRenderedFallbackImagePath(o), o)}\" alt=\"{alt}\"{title}{size}{extra}{attributes} />";
         if (PictureSources.Count > 0) {
             img = BuildPictureHtml(o, img);
@@ -118,6 +132,18 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         }
         string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{HtmlTextEncoder.Encode(Caption!, o)}</div>";
         return img + caption;
+    }
+
+    // HTML dimensions are integer CSS pixels; preserve fractional pixels in CSS instead.
+    private static void AppendHtmlDimension(string name, OfficeLength? length, ref string attributes, ref string style) {
+        if (!length.HasValue) return;
+        double pixels = length.Value.ToPixels();
+        string value = pixels.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        if (pixels >= 0 && pixels == Math.Truncate(pixels)) {
+            attributes += " " + name + "=\"" + value + "\"";
+        } else {
+            style += name + ":" + value + "px;";
+        }
     }
 
     private string GetRenderedFallbackImagePath(MarkdownHtmlExportOptions? options) {

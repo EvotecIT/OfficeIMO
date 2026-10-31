@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                var sheet = doc.AddWorksheet("Data");
+                var sheet = doc.AddSheet("Data");
                 sheet.Cell(1, 1, "Present");
 
                 sheet.SetByHeader(2, "Missing", "value");
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                var sheet = doc.AddWorksheet("Data");
+                var sheet = doc.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.SetByHeader(2, "Name", null);
 
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                var sheet = doc.AddWorksheet("Data");
+                var sheet = doc.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "Alice");
 
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                var sheet = doc.AddWorksheet("Summary");
+                var sheet = doc.AddSheet("Summary");
                 sheet.Cell(1, 1, "Existing");
                 sheet.Cell(2, 1, "value");
 
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                var sheet = doc.AddWorksheet("Data");
+                var sheet = doc.AddSheet("Data");
                 sheet.Cell(1, 1, "Existing");
                 sheet.CellValue(2, 1, 10);
 

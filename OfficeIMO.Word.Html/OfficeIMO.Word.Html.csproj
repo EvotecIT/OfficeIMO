@@ -82,4 +82,5 @@
   <ItemGroup>
     <Compile Include="..\OfficeIMO.SharedSource\Html\OfficeThemeCssTokens.cs" Link="SharedSource\Html\OfficeThemeCssTokens.cs" />
   </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Html.EditableEvidence" /></ItemGroup>
 </Project>

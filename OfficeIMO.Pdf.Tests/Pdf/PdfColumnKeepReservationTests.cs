@@ -16,17 +16,17 @@ public sealed class PdfColumnKeepReservationTests {
     [InlineData("panel", false, false)]
     public void Columns_BalancedKeepNextLeadersRetainTheirTerminalGroupWithoutEmptyPageRetries(
         string kind, bool interveningBookmark, bool balanceKeptLines) {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 500, PageHeight = 400,
-            MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
             MaxGeneratedPages = 4 }).Columns(content => {
                 if (kind == "heading") content.H1("Heading001", style: new PdfHeadingStyle {
-                    FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0,
+                    FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
                     KeepWithNext = true });
                 if (kind == "list") content.RichNumbered(Enumerable.Range(1, 3).Select(index => new PdfListItem($"Lead{index:D3}")),
-                    style: new PdfListStyle { LineSpacing = PdfLineSpacing.Exactly(20), ItemSpacing = 0,
-                        SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = true });
+                    style: new PdfListStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0),
+                        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = true });
                 else if (kind == "panel") content.Panel(panel => panel.Paragraph(p => p.Text("Lead001\nLead002\nLead003"), style: Style()),
-                    new PdfPanelStyle { PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0, KeepWithNext = true });
+                    new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = true });
                 else {
                     var leader = Style(); leader.KeepWithNext = true;
                     content.Paragraph(p => p.Text("Lead001\nLead002\nLead003"), style: leader);
@@ -34,7 +34,7 @@ public sealed class PdfColumnKeepReservationTests {
                 if (interveningBookmark) content.Bookmark("kept-next");
                 var body = Style(); body.KeepTogether = true;
                 content.Paragraph(p => p.Text("Body001\nBody002\nBody003\nBody004"), style: body);
-            }, new PdfMultiColumnOptions { Gap = 20, BalanceLastPage = true, BalanceKeptParagraphLines = balanceKeptLines }).ToBytes();
+            }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true, BalanceKeptParagraphLines = balanceKeptLines }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToArray();
@@ -51,6 +51,6 @@ public sealed class PdfColumnKeepReservationTests {
         Assert.True(kind == "panel" ? lastLeaderX < 200 : lastLeaderX > 250);
     }
 
-    private static PdfParagraphStyle Style() => new() { LineSpacing = PdfLineSpacing.Exactly(20),
-        SpacingBefore = 0, SpacingAfter = 0, WidowControl = false };
+    private static PdfParagraphStyle Style() => new() { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
 }

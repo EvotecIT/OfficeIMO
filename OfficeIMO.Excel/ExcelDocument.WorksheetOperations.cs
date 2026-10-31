@@ -53,6 +53,7 @@ namespace OfficeIMO.Excel {
 
             return Locking.ExecuteWrite(EnsureLock(), () => {
                 string validatedName = ValidateOrSanitizeSheetName(newSheetName, validationMode, currentSheetName: null);
+                MaterializeDeferredDataSetImport();
                 WorksheetPart sourcePart = sourceSheet.WorksheetPart;
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);

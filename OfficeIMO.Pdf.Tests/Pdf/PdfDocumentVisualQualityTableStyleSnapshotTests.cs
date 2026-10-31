@@ -47,41 +47,41 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TableStyle_ColumnSizingListsSnapshotAssignedCollections() {
-        var fixedWidths = new List<double?> { 60, null };
-        var minWidths = new List<double?> { 40, null };
-        var maxWidths = new List<double?> { null, 120 };
+        var fixedWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), null };
+        var minWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(40), null };
+        var maxWidths = new List<global::OfficeIMO.OfficeLength?> { null, global::OfficeIMO.OfficeLength.Points(120) };
         var weights = new List<double> { 1, 2 };
-        var rowMinHeights = new List<double?> { 18, null, 36 };
+        var rowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(18), null, global::OfficeIMO.OfficeLength.Points(36) };
         var rowBreakPolicies = new List<bool?> { false, null, true };
         var style = PdfTableStyles.Minimal();
 
-        style.ColumnWidthPoints = fixedWidths;
-        style.ColumnMinWidthPoints = minWidths;
-        style.ColumnMaxWidthPoints = maxWidths;
+        style.ColumnWidths = fixedWidths;
+        style.ColumnMinWidths = minWidths;
+        style.ColumnMaxWidths = maxWidths;
         style.ColumnWidthWeights = weights;
         style.RowMinHeights = rowMinHeights;
         style.RowAllowBreakAcrossPages = rowBreakPolicies;
 
-        fixedWidths[0] = 10;
-        minWidths[0] = 10;
-        maxWidths[1] = 10;
+        fixedWidths[0] = global::OfficeIMO.OfficeLength.Points(10);
+        minWidths[0] = global::OfficeIMO.OfficeLength.Points(10);
+        maxWidths[1] = global::OfficeIMO.OfficeLength.Points(10);
         weights[1] = 10;
-        rowMinHeights[0] = 99;
+        rowMinHeights[0] = global::OfficeIMO.OfficeLength.Points(99);
         rowBreakPolicies[0] = true;
 
-        Assert.NotNull(style.ColumnWidthPoints);
-        Assert.NotNull(style.ColumnMinWidthPoints);
-        Assert.NotNull(style.ColumnMaxWidthPoints);
+        Assert.NotNull(style.ColumnWidths);
+        Assert.NotNull(style.ColumnMinWidths);
+        Assert.NotNull(style.ColumnMaxWidths);
         Assert.NotNull(style.ColumnWidthWeights);
         Assert.NotNull(style.RowMinHeights);
         Assert.NotNull(style.RowAllowBreakAcrossPages);
-        Assert.Equal(60, style.ColumnWidthPoints![0]);
-        Assert.Equal(40, style.ColumnMinWidthPoints![0]);
-        Assert.Equal(120, style.ColumnMaxWidthPoints![1]);
+        Assert.Equal(60, style.ColumnWidths![0]?.ToPoints());
+        Assert.Equal(40, style.ColumnMinWidths![0]?.ToPoints());
+        Assert.Equal(120, style.ColumnMaxWidths![1]?.ToPoints());
         Assert.Equal(2, style.ColumnWidthWeights![1]);
-        Assert.Equal(18, style.RowMinHeights![0]);
-        Assert.Null(style.RowMinHeights![1]);
-        Assert.Equal(36, style.RowMinHeights![2]);
+        Assert.Equal(18, style.RowMinHeights![0]?.ToPoints());
+        Assert.Null(style.RowMinHeights![1]?.ToPoints());
+        Assert.Equal(36, style.RowMinHeights![2]?.ToPoints());
         Assert.False(style.RowAllowBreakAcrossPages![0]);
         Assert.Null(style.RowAllowBreakAcrossPages![1]);
         Assert.True(style.RowAllowBreakAcrossPages![2]);
@@ -89,12 +89,12 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TableStyle_FillAndBorderCollectionsSnapshotAssignedValues() {
-        var columnFills = new List<PdfColor?> { PdfColor.Gray, PdfColor.LightGray };
-        var cellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(1, 1)] = new PdfColor(0.1, 0.2, 0.3)
+        var columnFills = new List<global::OfficeIMO.OfficeColor?> { global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D), global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D) };
+        var cellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(1, 1)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.2, 0.3)
         };
         var cellDataBar = new PdfCellDataBar {
-            Color = new PdfColor(0.2, 0.3, 0.4),
+            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4),
             Ratio = 0.25
         };
         var cellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
@@ -102,29 +102,29 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var cellIcon = new PdfCellIcon {
             Kind = PdfCellIconKind.Circle,
-            Color = new PdfColor(0.25, 0.35, 0.45),
-            Size = 9,
-            OffsetX = 1.25,
-            OffsetY = -0.5
+            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.25, 0.35, 0.45),
+            Size = global::OfficeIMO.OfficeLength.Points(9),
+            OffsetX = global::OfficeIMO.OfficeLength.Points(1.25),
+            OffsetY = global::OfficeIMO.OfficeLength.Points(-0.5)
         };
         var cellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(1, 1)] = cellIcon
         };
         var cellBorder = new PdfCellBorder {
-            Color = new PdfColor(0.4, 0.5, 0.6),
-            Width = 1.25,
+            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.4, 0.5, 0.6),
+            Width = global::OfficeIMO.OfficeLength.Points(1.25),
             DashStyle = OfficeStrokeDashStyle.Dash,
             LineStyle = PdfCellBorderLineStyle.TwoLine,
             Left = false,
             DiagonalUp = true,
             DiagonalUpBorder = new PdfCellBorderSide {
-                Color = new PdfColor(0.11, 0.22, 0.33),
-                Width = 1.75,
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33),
+                Width = global::OfficeIMO.OfficeLength.Points(1.75),
                 LineStyle = PdfCellBorderLineStyle.TwoLine
             },
             TopBorder = new PdfCellBorderSide {
-                Color = new PdfColor(0.7, 0.8, 0.9),
-                Width = 2.25,
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.7, 0.8, 0.9),
+                Width = global::OfficeIMO.OfficeLength.Points(2.25),
                 DashStyle = OfficeStrokeDashStyle.Dot,
                 LineStyle = PdfCellBorderLineStyle.TwoLine
             }
@@ -133,10 +133,10 @@ public partial class PdfDocumentVisualQualityTests {
             [(1, 1)] = cellBorder
         };
         var cellPadding = new PdfCellPadding {
-            Left = 7,
-            Right = 8,
-            Top = 9,
-            Bottom = 10
+            Left = global::OfficeIMO.OfficeLength.Points(7),
+            Right = global::OfficeIMO.OfficeLength.Points(8),
+            Top = global::OfficeIMO.OfficeLength.Points(9),
+            Bottom = global::OfficeIMO.OfficeLength.Points(10)
         };
         var cellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
             [(1, 1)] = cellPadding
@@ -150,25 +150,25 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellBorders = cellBorders;
         style.CellPaddings = cellPaddings;
 
-        columnFills[0] = PdfColor.White;
-        cellFills[(1, 1)] = PdfColor.Black;
+        columnFills[0] = global::OfficeIMO.OfficeColor.White;
+        cellFills[(1, 1)] = global::OfficeIMO.OfficeColor.Black;
         cellDataBar.Ratio = 0.75;
-        cellDataBar.Color = PdfColor.Black;
+        cellDataBar.Color = global::OfficeIMO.OfficeColor.Black;
         cellIcon.Kind = PdfCellIconKind.Diamond;
-        cellIcon.Color = PdfColor.Black;
-        cellIcon.Size = 12;
-        cellIcon.OffsetX = 3;
-        cellIcon.OffsetY = 4;
-        cellBorder.Width = 4;
+        cellIcon.Color = global::OfficeIMO.OfficeColor.Black;
+        cellIcon.Size = global::OfficeIMO.OfficeLength.Points(12);
+        cellIcon.OffsetX = global::OfficeIMO.OfficeLength.Points(3);
+        cellIcon.OffsetY = global::OfficeIMO.OfficeLength.Points(4);
+        cellBorder.Width = global::OfficeIMO.OfficeLength.Points(4);
         cellBorder.LineStyle = PdfCellBorderLineStyle.Standard;
         cellBorder.Left = true;
         cellBorder.DiagonalUp = false;
         cellBorder.TopBorder = new PdfCellBorderSide {
-            Color = PdfColor.Black,
-            Width = 5
+            Color = global::OfficeIMO.OfficeColor.Black,
+            Width = global::OfficeIMO.OfficeLength.Points(5)
         };
-        cellPadding.Left = 30;
-        cellPadding.Top = 31;
+        cellPadding.Left = global::OfficeIMO.OfficeLength.Points(30);
+        cellPadding.Top = global::OfficeIMO.OfficeLength.Points(31);
 
         Assert.NotNull(style.BodyColumnFills);
         Assert.NotNull(style.CellFills);
@@ -176,68 +176,68 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.NotNull(style.CellIcons);
         Assert.NotNull(style.CellBorders);
         Assert.NotNull(style.CellPaddings);
-        Assert.Equal(PdfColor.Gray, style.BodyColumnFills![0]);
-        Assert.Equal(new PdfColor(0.1, 0.2, 0.3), style.CellFills![(1, 1)]);
-        Assert.Equal(new PdfColor(0.2, 0.3, 0.4), style.CellDataBars![(1, 1)].Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D), style.BodyColumnFills![0]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.2, 0.3), style.CellFills![(1, 1)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4), style.CellDataBars![(1, 1)].Color);
         Assert.Equal(0.25, style.CellDataBars![(1, 1)].Ratio);
         Assert.Equal(PdfCellIconKind.Circle, style.CellIcons![(1, 1)].Kind);
-        Assert.Equal(new PdfColor(0.25, 0.35, 0.45), style.CellIcons![(1, 1)].Color);
-        Assert.Equal(9, style.CellIcons![(1, 1)].Size);
-        Assert.Equal(1.25, style.CellIcons![(1, 1)].OffsetX);
-        Assert.Equal(-0.5, style.CellIcons![(1, 1)].OffsetY);
-        Assert.Equal(1.25, style.CellBorders![(1, 1)].Width);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.25, 0.35, 0.45), style.CellIcons![(1, 1)].Color);
+        Assert.Equal(9, style.CellIcons![(1, 1)].Size.ToPoints());
+        Assert.Equal(1.25, style.CellIcons![(1, 1)].OffsetX.ToPoints());
+        Assert.Equal(-0.5, style.CellIcons![(1, 1)].OffsetY.ToPoints());
+        Assert.Equal(1.25, style.CellBorders![(1, 1)].Width.ToPoints());
         Assert.Equal(OfficeStrokeDashStyle.Dash, style.CellBorders![(1, 1)].DashStyle);
         Assert.Equal(PdfCellBorderLineStyle.TwoLine, style.CellBorders![(1, 1)].LineStyle);
         Assert.False(style.CellBorders![(1, 1)].Left);
         Assert.True(style.CellBorders![(1, 1)].DiagonalUp);
-        Assert.Equal(new PdfColor(0.11, 0.22, 0.33), style.CellBorders![(1, 1)].DiagonalUpBorder!.Color);
-        Assert.Equal(1.75, style.CellBorders![(1, 1)].DiagonalUpBorder!.Width);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33), style.CellBorders![(1, 1)].DiagonalUpBorder!.Color);
+        Assert.Equal(1.75, style.CellBorders![(1, 1)].DiagonalUpBorder!.Width.ToPoints());
         Assert.Equal(PdfCellBorderLineStyle.TwoLine, style.CellBorders![(1, 1)].DiagonalUpBorder!.LineStyle);
-        Assert.Equal(new PdfColor(0.7, 0.8, 0.9), style.CellBorders![(1, 1)].TopBorder!.Color);
-        Assert.Equal(2.25, style.CellBorders![(1, 1)].TopBorder!.Width);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.7, 0.8, 0.9), style.CellBorders![(1, 1)].TopBorder!.Color);
+        Assert.Equal(2.25, style.CellBorders![(1, 1)].TopBorder!.Width.ToPoints());
         Assert.Equal(OfficeStrokeDashStyle.Dot, style.CellBorders![(1, 1)].TopBorder!.DashStyle);
         Assert.Equal(PdfCellBorderLineStyle.TwoLine, style.CellBorders![(1, 1)].TopBorder!.LineStyle);
-        Assert.Equal(7, style.CellPaddings![(1, 1)].Left);
-        Assert.Equal(8, style.CellPaddings![(1, 1)].Right);
-        Assert.Equal(9, style.CellPaddings![(1, 1)].Top);
-        Assert.Equal(10, style.CellPaddings![(1, 1)].Bottom);
+        Assert.Equal(7, style.CellPaddings![(1, 1)].Left?.ToPoints());
+        Assert.Equal(8, style.CellPaddings![(1, 1)].Right?.ToPoints());
+        Assert.Equal(9, style.CellPaddings![(1, 1)].Top?.ToPoints());
+        Assert.Equal(10, style.CellPaddings![(1, 1)].Bottom?.ToPoints());
     }
 
     [Fact]
     public void TableStyle_TypographySettingsSurviveClone() {
         var style = PdfTableStyles.Minimal();
-        style.FontSize = 8;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(8);
         style.LineHeight = 1.6;
-        style.HeaderFontSize = 12;
-        style.FooterFontSize = 10;
+        style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(12);
+        style.FooterFontSize = global::OfficeIMO.OfficeLength.Points(10);
         style.HeaderBold = false;
         style.FooterBold = false;
         style.KeepTogether = true;
         style.KeepWithNext = true;
         style.AllowRowBreakAcrossPages = false;
-        style.MaxWidth = 180;
-        style.LeftIndent = 24;
-        style.HorizontalOffset = -12;
-        style.CellPaddingLeft = 7;
-        style.CellPaddingRight = 8;
-        style.CellPaddingTop = 9;
-        style.CellPaddingBottom = 10;
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(180);
+        style.LeftIndent = global::OfficeIMO.OfficeLength.Points(24);
+        style.HorizontalOffset = global::OfficeIMO.OfficeLength.Points(-12);
+        style.CellPaddingLeft = global::OfficeIMO.OfficeLength.Points(7);
+        style.CellPaddingRight = global::OfficeIMO.OfficeLength.Points(8);
+        style.CellPaddingTop = global::OfficeIMO.OfficeLength.Points(9);
+        style.CellPaddingBottom = global::OfficeIMO.OfficeLength.Points(10);
         style.CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
-            [(0, 0)] = new PdfCellPadding { Left = 12, Top = 13 }
+            [(0, 0)] = new PdfCellPadding { Left = global::OfficeIMO.OfficeLength.Points(12), Top = global::OfficeIMO.OfficeLength.Points(13) }
         };
         style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
             [(0, 0)] = new PdfCellDataBar {
-                Color = new PdfColor(0.2, 0.3, 0.4),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4),
                 Ratio = 0.5
             }
         };
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(0, 0)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.Diamond,
-                Color = new PdfColor(0.2, 0.3, 0.4),
-                Size = 9,
-                OffsetX = 1.25,
-                OffsetY = -0.5
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4),
+                Size = global::OfficeIMO.OfficeLength.Points(9),
+                OffsetX = global::OfficeIMO.OfficeLength.Points(1.25),
+                OffsetY = global::OfficeIMO.OfficeLength.Points(-0.5)
             }
         };
         style.CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
@@ -246,51 +246,51 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCellVerticalAlign> {
             [(0, 0)] = PdfCellVerticalAlign.Bottom
         };
-        style.CellSpacing = 11;
-        style.PreferredWidth = 160;
-        style.RowMinHeights = new List<double?> { 16, null, 48 };
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(11);
+        style.PreferredWidth = global::OfficeIMO.OfficeLength.Points(160);
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(16), null, global::OfficeIMO.OfficeLength.Points(48) };
         style.RowAllowBreakAcrossPages = new List<bool?> { false, null, true };
 
         PdfTableStyle clone = style.Clone();
 
-        Assert.Equal(8, clone.FontSize);
+        Assert.Equal(8, clone.FontSize?.ToPoints());
         Assert.Equal(1.6, clone.LineHeight);
-        Assert.Equal(12, clone.HeaderFontSize);
-        Assert.Equal(10, clone.FooterFontSize);
+        Assert.Equal(12, clone.HeaderFontSize?.ToPoints());
+        Assert.Equal(10, clone.FooterFontSize?.ToPoints());
         Assert.False(clone.HeaderBold);
         Assert.False(clone.FooterBold);
         Assert.True(clone.KeepTogether);
         Assert.True(clone.KeepWithNext);
         Assert.False(clone.AllowRowBreakAcrossPages);
-        Assert.Equal(160, clone.PreferredWidth);
-        Assert.Equal(180, clone.MaxWidth);
-        Assert.Equal(24, clone.LeftIndent);
-        Assert.Equal(-12, clone.HorizontalOffset);
-        Assert.Equal(7, clone.CellPaddingLeft);
-        Assert.Equal(8, clone.CellPaddingRight);
-        Assert.Equal(9, clone.CellPaddingTop);
-        Assert.Equal(10, clone.CellPaddingBottom);
+        Assert.Equal(160, clone.PreferredWidth?.ToPoints());
+        Assert.Equal(180, clone.MaxWidth?.ToPoints());
+        Assert.Equal(24, clone.LeftIndent.ToPoints());
+        Assert.Equal(-12, clone.HorizontalOffset.ToPoints());
+        Assert.Equal(7, clone.CellPaddingLeft?.ToPoints());
+        Assert.Equal(8, clone.CellPaddingRight?.ToPoints());
+        Assert.Equal(9, clone.CellPaddingTop?.ToPoints());
+        Assert.Equal(10, clone.CellPaddingBottom?.ToPoints());
         Assert.NotNull(clone.CellPaddings);
-        Assert.Equal(12, clone.CellPaddings![(0, 0)].Left);
-        Assert.Equal(13, clone.CellPaddings![(0, 0)].Top);
+        Assert.Equal(12, clone.CellPaddings![(0, 0)].Left?.ToPoints());
+        Assert.Equal(13, clone.CellPaddings![(0, 0)].Top?.ToPoints());
         Assert.NotNull(clone.CellDataBars);
-        Assert.Equal(new PdfColor(0.2, 0.3, 0.4), clone.CellDataBars![(0, 0)].Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4), clone.CellDataBars![(0, 0)].Color);
         Assert.Equal(0.5, clone.CellDataBars![(0, 0)].Ratio);
         Assert.NotNull(clone.CellIcons);
         Assert.Equal(PdfCellIconKind.Diamond, clone.CellIcons![(0, 0)].Kind);
-        Assert.Equal(new PdfColor(0.2, 0.3, 0.4), clone.CellIcons![(0, 0)].Color);
-        Assert.Equal(9, clone.CellIcons![(0, 0)].Size);
-        Assert.Equal(1.25, clone.CellIcons![(0, 0)].OffsetX);
-        Assert.Equal(-0.5, clone.CellIcons![(0, 0)].OffsetY);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4), clone.CellIcons![(0, 0)].Color);
+        Assert.Equal(9, clone.CellIcons![(0, 0)].Size.ToPoints());
+        Assert.Equal(1.25, clone.CellIcons![(0, 0)].OffsetX.ToPoints());
+        Assert.Equal(-0.5, clone.CellIcons![(0, 0)].OffsetY.ToPoints());
         Assert.NotNull(clone.CellAlignments);
         Assert.NotNull(clone.CellVerticalAlignments);
         Assert.Equal(PdfColumnAlign.Right, clone.CellAlignments![(0, 0)]);
         Assert.Equal(PdfCellVerticalAlign.Bottom, clone.CellVerticalAlignments![(0, 0)]);
-        Assert.Equal(11, clone.CellSpacing);
+        Assert.Equal(11, clone.CellSpacing.ToPoints());
         Assert.NotNull(clone.RowMinHeights);
-        Assert.Equal(16, clone.RowMinHeights![0]);
-        Assert.Null(clone.RowMinHeights![1]);
-        Assert.Equal(48, clone.RowMinHeights![2]);
+        Assert.Equal(16, clone.RowMinHeights![0]?.ToPoints());
+        Assert.Null(clone.RowMinHeights![1]?.ToPoints());
+        Assert.Equal(48, clone.RowMinHeights![2]?.ToPoints());
         Assert.NotNull(clone.RowAllowBreakAcrossPages);
         Assert.False(clone.RowAllowBreakAcrossPages![0]);
         Assert.Null(clone.RowAllowBreakAcrossPages![1]);

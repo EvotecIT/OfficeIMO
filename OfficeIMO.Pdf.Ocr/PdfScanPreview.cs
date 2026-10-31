@@ -35,8 +35,8 @@ public sealed class PdfScanPreview {
     /// <summary>Creates a single-page raster PDF of the reviewed appearance. Interactive content and native text are not copied.</summary>
     public PdfDocument CreateImagePdf(CancellationToken cancellationToken = default) => PdfDocument.CreateFromImages(
         new[] { new PdfImageDocumentSource(_processed) }, new PdfImageImportOptions {
-            FixedPageSize = new PdfPageSize(Width, Height),
-            Margin = 0,
+            FixedPageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(Width),OfficeIMO.OfficeLength.Points(Height)),
+            Margin = OfficeLength.Zero,
             Fit = OfficeImageFit.Stretch
         }, cancellationToken);
 }
@@ -51,7 +51,7 @@ internal static partial class PdfOcr {
             throw new ArgumentException("The preview page does not belong to the selected OCR pages.", nameof(pageNumber));
         var rendered = RenderOcrPage(document, pageNumber, new PdfPageRenderOptions {
             Dpi = options.Dpi,
-            Format = PdfPageRenderFormat.Png,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             ImageCodec = options.ImageCodec,
             MaxPixelsPerPage = options.MaxPixelsPerPage,
             MaxOutputBytesPerPage = options.MaxRenderedBytesPerPage,

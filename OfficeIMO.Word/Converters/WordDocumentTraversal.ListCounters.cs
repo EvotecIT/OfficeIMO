@@ -1,7 +1,7 @@
 using System.Threading;
 
 namespace OfficeIMO.Word {
-    public static partial class WordDocumentTraversal {
+    internal static partial class WordDocumentTraversal {
         /// <summary>
         /// Builds portable marker details for all effective list paragraphs in the document.
         /// </summary>

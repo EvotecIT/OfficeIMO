@@ -553,7 +553,7 @@ namespace OfficeIMO.PowerPoint {
             double width = metrics.Widths.Sum();
             double total = heights.Sum();
             PowerPointTable result = writer.Slide.AddTable(Math.Max(1, table.Rows.Count + (table.IncludeHeaders ? 1 : 0)), Math.Max(1, table.Headers.Count),
-                PowerPointUnits.FromPoints(box.X), PowerPointUnits.FromPoints(box.Y), PowerPointUnits.FromPoints(width), PowerPointUnits.FromPoints(total));
+                OfficeLength.Points(box.X), OfficeLength.Points(box.Y), OfficeLength.Points(width), OfficeLength.Points(total));
             result.Description = !string.IsNullOrWhiteSpace(table.Caption) ? table.Caption :
                 "Table with " + table.Rows.Count.ToString(CultureInfo.InvariantCulture) + " data rows. Columns: " + string.Join(", ", table.Headers) + ".";
             A.Table element = result.TableElement;
@@ -641,37 +641,39 @@ namespace OfficeIMO.PowerPoint {
                 box = new PowerPointLayoutRect(box.X, box.Y + offset, box.Width, Math.Max(40D, box.Height - offset));
             }
 
-            PowerPointChart result = writer.Slide.AddChart(chart.Kind, chart.Data, PowerPointUnits.FromPoints(box.X), PowerPointUnits.FromPoints(box.Y),
-                PowerPointUnits.FromPoints(box.Width), PowerPointUnits.FromPoints(box.Height), new PowerPointChartAccessibilityOptions {
+            PowerPointChart result = writer.Slide.AddChart(chart.Kind, chart.Data, new PowerPointChartOptions {
+                Left = OfficeLength.Points(box.X), Top = OfficeLength.Points(box.Y),
+                Width = OfficeLength.Points(box.Width), Height = OfficeLength.Points(box.Height),
+                Accessibility = new PowerPointChartAccessibilityOptions {
                     Name = "Chart",
                     AlternativeText = chart.AlternativeText ?? chart.Title ?? "Chart",
                     IncludeDataSummaryInAlternativeText = true
-                });
+                }});
             result.ClearTitle();
 
             // The chart sits on the slide surface: no chart-area fill or frame.
             result.SetChartAreaStyle(noFill: true, noLine: true);
-            if (chart.Kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
+            if (chart.Kind is OfficeChartType.Pie or OfficeChartType.Doughnut) {
                 // Readers get the share on each slice; the legend names the slices.
                 result.SetDataLabels(showValue: false, showPercent: true);
                 result.SetDataLabelNumberFormat("0%");
-                result.SetDataLabelTextStyle(fontSizePoints: SliceLabelSize, bold: true, color: SliceLabelColor(context, chart));
+                result.SetDataLabelTextStyle(fontSize: OfficeLength.Points(SliceLabelSize), bold: true, color: SliceLabelColor(context, chart));
                 result.SetLegend(OfficeChartLegendPosition.Bottom);
-                result.SetLegendTextStyle(fontSizePoints: ChartTextSize, color: context.Theme.TextMuted);
+                result.SetLegendTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: context.Theme.TextMuted);
                 return;
             }
 
             // Series follow the theme accents in order; lines are drawn at 2 pt.
             for (int i = 0; i < chart.Data.Series.Count && i < 6; i++) {
-                OfficeChartSeries series = chart.Data.Series[i];
+                OfficeSeries series = chart.Data.Series[i];
                 // The shared writer owns explicit colours, fills and outline visibility.
                 if (series.Color.HasValue || series.SeriesStyle != null) continue;
-                OfficeChartKind kind = series.RenderKind ?? chart.Kind;
-                bool line = kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100
-                    or OfficeChartKind.Scatter or OfficeChartKind.Radar;
+                OfficeChartType kind = series.RenderKind ?? chart.Kind;
+                bool line = kind is OfficeChartType.Line or OfficeChartType.LineStacked or OfficeChartType.LineStacked100
+                    or OfficeChartType.Scatter or OfficeChartType.Radar;
                 string accent = context.Theme.Accent(i + 1);
                 if (line) {
-                    if (series.ConnectLine) result.SetSeriesLineColor(i, accent, series.StrokeWidth ?? 2D);
+                    if (series.ConnectLine) result.SetSeriesLineColor(i, accent, OfficeLength.Points(series.StrokeWidth?.ToPoints() ?? 2D));
                 }
                 else result.SetSeriesFillColor(i, accent);
             }
@@ -685,7 +687,7 @@ namespace OfficeIMO.PowerPoint {
                 result.Save();
             } else {
                 result.SetLegend(OfficeChartLegendPosition.Top);
-                result.SetLegendTextStyle(fontSizePoints: ChartTextSize, color: context.Theme.TextMuted);
+                result.SetLegendTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: context.Theme.TextMuted);
             }
         }
 
@@ -698,28 +700,28 @@ namespace OfficeIMO.PowerPoint {
         ///     open markers.
         /// </summary>
         private static void StyleCategoryChart(PowerPointLayoutContext context, PowerPointChart result, PowerPointLayoutChart chart) {
-            if (chart.Kind is OfficeChartKind.Scatter or OfficeChartKind.Bubble or OfficeChartKind.Radar) return;
+            if (chart.Kind is OfficeChartType.Scatter or OfficeChartType.Bubble or OfficeChartType.Radar) return;
             PowerPointLayoutTheme theme = context.Theme;
-            result.SetCategoryAxisLabelTextStyle(fontSizePoints: ChartTextSize, color: theme.TextMuted);
-            result.SetValueAxisLabelTextStyle(fontSizePoints: ChartTextSize, color: theme.TextMuted);
-            result.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: theme.Hairline, lineWidthPoints: 0.75D);
+            result.SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: theme.TextMuted);
+            result.SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: theme.TextMuted);
+            result.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: theme.Hairline, lineWidth: OfficeLength.Points(0.75D));
             UniformAxisText(result);
 
             bool secondary = chart.Data.Series.Any(series => series.AxisGroup == OfficeChartAxisGroup.Secondary);
-            bool stacked100 = chart.Kind is OfficeChartKind.ColumnStacked100 or OfficeChartKind.BarStacked100 or
-                OfficeChartKind.LineStacked100 or OfficeChartKind.AreaStacked100;
+            bool stacked100 = chart.Kind is OfficeChartType.ColumnStacked100 or OfficeChartType.BarStacked100 or
+                OfficeChartType.LineStacked100 or OfficeChartType.AreaStacked100;
             bool single = chart.Data.Series.Count == 1 && chart.Data.Categories.Count <= 8 && !stacked100;
             if (!secondary && !stacked100 && NiceScale(chart, single) is (double minimum, double maximum, double step)) {
                 result.SetValueAxisScale(minimum, maximum, step);
             }
 
             for (int i = 0; i < chart.Data.Series.Count && i < 6; i++) {
-                OfficeChartSeries series = chart.Data.Series[i];
-                OfficeChartKind kind = series.RenderKind ?? chart.Kind;
-                if (kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100) {
+                OfficeSeries series = chart.Data.Series[i];
+                OfficeChartType kind = series.RenderKind ?? chart.Kind;
+                if (kind is OfficeChartType.Line or OfficeChartType.LineStacked or OfficeChartType.LineStacked100) {
                     if (series.Color == null && series.SeriesStyle == null) {
                         string accent = theme.Accent(i + 1);
-                        if (series.ShowMarkers || single) result.SetSeriesMarker(i, OfficeChartMarkerShape.Circle, 6, theme.Background, accent, 1.5D);
+                        if (series.ShowMarkers || single) result.SetSeriesMarker(i, OfficeChartMarkerShape.Circle, OfficeLength.Points(6), theme.Background, accent, OfficeLength.Points(1.5D));
                     }
                 }
             }
@@ -727,13 +729,13 @@ namespace OfficeIMO.PowerPoint {
             StraightLines(result);
 
             if (single) {
-                OfficeChartKind kind = chart.Data.Series[0].RenderKind ?? chart.Kind;
-                bool line = kind is OfficeChartKind.Line or OfficeChartKind.LineStacked;
-                bool area = kind is OfficeChartKind.Area or OfficeChartKind.AreaStacked;
+                OfficeChartType kind = chart.Data.Series[0].RenderKind ?? chart.Kind;
+                bool line = kind is OfficeChartType.Line or OfficeChartType.LineStacked;
+                bool area = kind is OfficeChartType.Area or OfficeChartType.AreaStacked;
                 if (!area) {
                     result.SetDataLabels(showValue: true);
                     result.SetDataLabelPosition(line ? OfficeChartDataLabelPosition.Top : OfficeChartDataLabelPosition.OutsideEnd);
-                    result.SetDataLabelTextStyle(fontSizePoints: ChartTextSize, bold: true, color: theme.Text);
+                    result.SetDataLabelTextStyle(fontSize: OfficeLength.Points(ChartTextSize), bold: true, color: theme.Text);
                 }
             }
         }
@@ -782,13 +784,13 @@ namespace OfficeIMO.PowerPoint {
         ///     from zero gets a band around its data so the trend is readable. Headroom keeps value labels inside.
         /// </summary>
         internal static (double Minimum, double Maximum, double Step)? NiceScale(PowerPointLayoutChart chart, bool labelled) {
-            bool stacked = chart.Kind is OfficeChartKind.ColumnStacked or OfficeChartKind.BarStacked or OfficeChartKind.LineStacked or
-                OfficeChartKind.AreaStacked;
+            bool stacked = chart.Kind is OfficeChartType.ColumnStacked or OfficeChartType.BarStacked or OfficeChartType.LineStacked or
+                OfficeChartType.AreaStacked;
             var values = new List<double>();
             if (stacked) {
                 for (int c = 0; c < chart.Data.Categories.Count; c++) {
                     double positive = 0D, negative = 0D;
-                    foreach (OfficeChartSeries series in chart.Data.Series) {
+                    foreach (OfficeSeries series in chart.Data.Series) {
                         if (c >= series.Values.Count || double.IsNaN(series.Values[c])) continue;
                         if (series.Values[c] >= 0D) positive += series.Values[c]; else negative += series.Values[c];
                     }
@@ -802,7 +804,7 @@ namespace OfficeIMO.PowerPoint {
             if (values.Count == 0) return null;
             double min = values.Min(), max = values.Max();
             if (max <= min && max == 0D) return null;
-            bool line = chart.Kind is OfficeChartKind.Line or OfficeChartKind.LineStacked;
+            bool line = chart.Kind is OfficeChartType.Line or OfficeChartType.LineStacked;
             double headroom = labelled ? 1.12D : 1.04D;
             if (line && min > 0D && min >= max * 0.5D) {
                 double span = Math.Max(max - min, max * 0.05D);
@@ -849,21 +851,21 @@ namespace OfficeIMO.PowerPoint {
         internal static PowerPointPicture RenderImage(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutImage image,
             PowerPointLayoutRect box, bool cover) {
             if (image.NativePicture != null) return RenderNativeImage(context, writer, image, box, cover);
-            PowerPointPicture picture = writer.Slide.AddPicture(image.Path, PowerPointUnits.FromPoints(box.X), PowerPointUnits.FromPoints(box.Y),
-                PowerPointUnits.FromPoints(box.Width), PowerPointUnits.FromPoints(box.Height));
+            PowerPointPicture picture = writer.Slide.AddImage(image.Path, OfficeLength.Points(box.X), OfficeLength.Points(box.Y),
+                OfficeLength.Points(box.Width), OfficeLength.Points(box.Height));
             if (!PowerPointImageSize.TryRead(image.Path, out int pw, out int ph)) return picture;
             if (cover) {
-                picture.Left = PowerPointUnits.FromPoints(box.X);
-                picture.Top = PowerPointUnits.FromPoints(box.Y);
-                picture.Width = PowerPointUnits.FromPoints(box.Width);
-                picture.Height = PowerPointUnits.FromPoints(box.Height);
+                picture.Left = OfficeLength.Points(box.X);
+                picture.Top = OfficeLength.Points(box.Y);
+                picture.Width = OfficeLength.Points(box.Width);
+                picture.Height = OfficeLength.Points(box.Height);
                 picture.CropToFill(pw, ph, image.FocalX, image.FocalY);
             } else {
                 double scale = Math.Min(box.Width / pw, box.Height / ph);
-                picture.Left = PowerPointUnits.FromPoints(box.X);
-                picture.Top = PowerPointUnits.FromPoints(box.Y);
-                picture.Width = PowerPointUnits.FromPoints(pw * scale);
-                picture.Height = PowerPointUnits.FromPoints(ph * scale);
+                picture.Left = OfficeLength.Points(box.X);
+                picture.Top = OfficeLength.Points(box.Y);
+                picture.Width = OfficeLength.Points(pw * scale);
+                picture.Height = OfficeLength.Points(ph * scale);
             }
 
             if (!string.IsNullOrWhiteSpace(image.AlternativeText)) picture.Description = image.AlternativeText;
@@ -875,8 +877,8 @@ namespace OfficeIMO.PowerPoint {
         private static void RenderAnnotations(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointPicture picture,
             PowerPointLayoutImage image) {
             if (image.Annotations.Count == 0) return;
-            double left = PowerPointUnits.ToPoints(picture.Left), top = PowerPointUnits.ToPoints(picture.Top);
-            double width = PowerPointUnits.ToPoints(picture.Width), height = PowerPointUnits.ToPoints(picture.Height);
+            double left = picture.Left.ToPoints(), top = picture.Top.ToPoints();
+            double width = picture.Width.ToPoints(), height = picture.Height.ToPoints();
             double visibleX = Math.Max(0.0001D, 1D - picture.CropLeftRatio - picture.CropRightRatio);
             double visibleY = Math.Max(0.0001D, 1D - picture.CropTopRatio - picture.CropBottomRatio);
             PowerPointTextStyleSpec caption = context.Style(PowerPointTextRole.Caption);

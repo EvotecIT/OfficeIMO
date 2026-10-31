@@ -18,6 +18,7 @@ public sealed class OfficeConverterBatchTests {
         Assert.True(File.Exists(settings.ResumeFrom));
         OfficeBatchItemReport item = Assert.Single(first.Items);
         string output = item.OutputPath!;
+        Assert.Equal(Path.Combine(settings.OutputDirectory, "source.pdf"), output);
         Assert.Equal(output, Assert.IsType<OfficeConversionReport>(item.Report).OutputPath);
         OfficeBatchReport saved = OfficeBatchReport.Parse(first.ToJson());
         Assert.Equal(output, Assert.IsType<OfficeConversionReport>(Assert.Single(saved.Items).Report).OutputPath);
@@ -58,7 +59,7 @@ public sealed class OfficeConverterBatchTests {
         using var files = new BatchFiles();
         string source = files.Write("source.txt", "Recoverable output");
         OfficeBatchOptions settings = files.Settings(source);
-        string output = Path.Combine(settings.OutputDirectory, "source.txt.pdf");
+        string output = Path.Combine(settings.OutputDirectory, "source.pdf");
         var guard = new DenyFinalPublication(output);
         OfficeBatchReport denied = await OfficeConverter.ConvertAsync(settings with { PublicationGuard = guard });
         Assert.False(denied.Succeeded);

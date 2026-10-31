@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
@@ -31,7 +32,7 @@ public partial class Word {
         WordTableLayoutMode? layout, string? widthType, string? widthValue, bool omitWidth, double expectedColumnWidth) {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 2);
-        table.GridColumnWidth = new List<int> { 1440, 1440 };
+        table.GridColumnWidth = new List<int> { 1440, 1440 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         if (layout.HasValue) table.LayoutMode = layout.Value;
         else table._tableProperties!.TableLayout?.Remove();
         if (omitWidth) table._tableProperties!.TableWidth?.Remove();
@@ -49,10 +50,9 @@ public partial class Word {
         }
         for (int index = 0; index < 2; index++) {
             WordTableCell cell = table.Rows[0].Cells[index];
-            cell.Width = 1440;
-            cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.MarginLeftWidth = cell.MarginRightWidth = 108;
-            cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
+            cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = index == 0 ? "Left" : "Right";
             ConfigurePartialColumnParagraph(paragraph);
@@ -60,8 +60,8 @@ public partial class Word {
         using var input = new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx }));
         using WordDocument loaded = WordDocument.Load(input);
         using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(612, 792),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72)
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToArray();

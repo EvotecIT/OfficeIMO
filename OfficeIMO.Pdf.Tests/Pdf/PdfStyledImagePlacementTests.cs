@@ -16,13 +16,13 @@ public sealed class PdfStyledImagePlacementTests {
         var style = new PdfImageStyle { Fit = OfficeImageFit.Stretch,
             SourceCrop = new PdfImageSourceCrop(.25D, .125D, .125D, .25D),
             RotationAngle = -90D, HorizontalFlip = true, AlternativeText = "Mirrored crop" };
-        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { PageWidth = 300, PageHeight = 300,
-            MarginLeft = 40, MarginRight = 40, MarginTop = 90, MarginBottom = 90 });
-        if (path == "inline") document.Paragraph(paragraph => paragraph.Inline(new PdfInlineImage(source, 60, 30, style, 0)));
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(90), MarginBottom = global::OfficeIMO.OfficeLength.Points(90) });
+        if (path == "inline") document.Paragraph(paragraph => paragraph.Inline(new PdfInlineImage(source, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), style, global::OfficeIMO.OfficeLength.Points(0))));
         else if (path == "flow") document.Image(source, 60, 30, style: style);
-        else if (path == "canvas") document.Canvas(canvas => canvas.Image(source, 100, 100, 60, 30, style));
+        else if (path == "canvas") document.Canvas(canvas => canvas.Image(source, global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), style));
         else {
-            var image = new PdfHeaderFooterImage(source, 60, 30, PdfAlign.Left, style);
+            var image = new PdfHeaderFooterImage(source, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), PdfAlign.Left, style);
             document.Compose(compose => compose.Page(page => {
                 if (path == "header") page.Header(header => header.Image(image));
                 else page.Footer(footer => footer.Image(image));

@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     /// <summary>
     /// Neutral legacy binary Word document model for the supported import subset.
     /// </summary>
-    public sealed partial class LegacyDocDocument {
+    internal sealed partial class LegacyDocDocument {
         private readonly List<LegacyDocImportDiagnostic> _diagnostics = new();
         private readonly List<string> _paragraphs = new();
         private readonly List<IReadOnlyList<LegacyDocTextRun>> _paragraphTextRuns = new();

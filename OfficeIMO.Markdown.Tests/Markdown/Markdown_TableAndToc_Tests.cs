@@ -56,8 +56,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Table_FromSequence_Truncates_And_Counts_Skipped_Rows() {
             var rows = Enumerable.Range(1, 10050).Select(i => new { Index = i, Label = $"Row {i}" });
 
-            var doc = MarkdownDocument.Create()
-                .TableFrom(rows,
+            var doc = MarkdownDocument.Create();
+            doc.AddTable(rows,
                     ("Index", x => x.Index),
                     ("Label", x => x.Label));
 
@@ -73,8 +73,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var rows = Enumerable.Range(1, 10050).Select(i => new { Index = i, Label = $"Row {i}" });
             var limited = new LimitedCollection<(int Index, string Label)>(rows.Select(r => (r.Index, r.Label)), 10005);
 
-            var doc = MarkdownDocument.Create()
-                .TableFrom(limited,
+            var doc = MarkdownDocument.Create();
+            doc.AddTable(limited,
                     ("Index", x => x.Index),
                     ("Label", x => x.Label));
 
@@ -91,7 +91,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .Select(i => ($"H{i}", (Func<WideRow, object?>)(x => x.Values[i])))
                 .ToArray();
 
-            var doc = MarkdownDocument.Create().TableFrom(new[] { wideRow }, columns);
+            var doc = MarkdownDocument.Create();
+            doc.AddTable(new[] { wideRow }, columns);
 
             var table = Assert.IsType<TableBlock>(doc.Blocks.Single());
             Assert.Equal(100, table.Headers.Count);
@@ -203,12 +204,13 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void TableFromAuto_Applies_Heuristics() {
+        public void TypedTable_Applies_Requested_Heuristics() {
             var rows = new [] {
                 new { Date = "2025-01-02", Amount = "12.50" },
                 new { Date = "2025-01-03", Amount = "100.00" },
             };
-            var md = MarkdownDocument.Create().TableFromAuto(rows);
+            var md = MarkdownDocument.Create();
+            md.AddTable(rows, new MarkdownTableOptions());
             var text = md.ToMarkdown().Replace("\r", "");
             Assert.Contains("| :---: | ---: |", text);
         }

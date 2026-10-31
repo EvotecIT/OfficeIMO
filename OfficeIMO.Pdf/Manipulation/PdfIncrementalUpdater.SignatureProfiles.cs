@@ -332,8 +332,8 @@ internal static partial class PdfIncrementalUpdater {
         }
     }
 
-    private static string FormatColor(PdfColor color) =>
-        Format(color.R) + " " + Format(color.G) + " " + Format(color.B);
+    private static string FormatColor(global::OfficeIMO.OfficeColor color) =>
+        Format(color.ToNormalizedRgb().R) + " " + Format(color.ToNormalizedRgb().G) + " " + Format(color.ToNormalizedRgb().B);
 
     private static string Format(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 }

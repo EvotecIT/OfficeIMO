@@ -113,11 +113,11 @@ namespace OfficeIMO.Word.Pdf {
                 section.ResolveDefaultFooter(),
                 section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
                 hasEvenPageStory ? section.ResolveEvenFooter() : null);
-            PdfCore.PdfColor? headerColor = ResolveNativeHeaderFooterColor(
+            global::OfficeIMO.OfficeColor? headerColor = ResolveNativeHeaderFooterColor(
                 section.ResolveDefaultHeader(),
                 section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
                 hasEvenPageStory ? section.ResolveEvenHeader() : null);
-            PdfCore.PdfColor? footerColor = ResolveNativeHeaderFooterColor(
+            global::OfficeIMO.OfficeColor? footerColor = ResolveNativeHeaderFooterColor(
                 section.ResolveDefaultFooter(),
                 section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
                 hasEvenPageStory ? section.ResolveEvenFooter() : null);
@@ -139,7 +139,7 @@ namespace OfficeIMO.Word.Pdf {
                 defaultHeaderShapes.Count > 0 || firstHeaderShapes.Count > 0 || evenHeaderShapes.Count > 0) {
                 page.Header(header => {
                     if (headerMarginExpansion > 0D) {
-                        header.Offset(GetNativeHeaderOffset(options, headerMarginExpansion));
+                        header.Offset(global::OfficeIMO.OfficeLength.Points(GetNativeHeaderOffset(options, headerMarginExpansion)));
                     }
 
                     if (headerFont.HasValue) {
@@ -155,7 +155,7 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     if (headerFontSize.HasValue) {
-                        header.FontSize(headerFontSize.Value);
+                        header.FontSize(global::OfficeIMO.OfficeLength.Points(headerFontSize.Value));
                     }
 
                     if (defaultHeader?.HasStyledZones == true) {
@@ -200,7 +200,7 @@ namespace OfficeIMO.Word.Pdf {
 
             string pageNumberFormat = GetNativePageNumberFormat(options);
             page.Footer(footer => {
-                footer.Offset(GetNativeFooterOffset(options));
+                footer.Offset(global::OfficeIMO.OfficeLength.Points(GetNativeFooterOffset(options)));
                 if (footerFont.HasValue) {
                     footer.Font(footerFont.Value);
                 }
@@ -214,7 +214,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (footerFontSize.HasValue) {
-                    footer.FontSize(footerFontSize.Value);
+                    footer.FontSize(global::OfficeIMO.OfficeLength.Points(footerFontSize.Value));
                 }
 
                 NativeHeaderFooterText? resolvedDefaultFooter = WithNativeFooterPageNumber(defaultFooter, includePageNumbers, pageNumberFormat);
@@ -254,12 +254,12 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double GetNativeHeaderOffset(WordPdfExportOptions? options, double headerMarginExpansion) {
-            double configuredOffset = options?.PdfOptions?.HeaderOffsetY ?? NativeHeaderFooterDefaultOffset;
+            double configuredOffset = options?.PdfOptions?.HeaderOffsetY.ToPoints() ?? NativeHeaderFooterDefaultOffset;
             return configuredOffset + headerMarginExpansion;
         }
 
         private static double GetNativeFooterOffset(WordPdfExportOptions? options) {
-            return options?.PdfOptions?.FooterOffsetY ?? NativeFooterDefaultOffset;
+            return options?.PdfOptions?.FooterOffsetY.ToPoints() ?? NativeFooterDefaultOffset;
         }
 
         private static void AddNativeHeaderImages(PdfCore.PdfHeaderBuilder header, IReadOnlyList<NativeHeaderFooterImage> images, W.HeaderFooterValues variant) {

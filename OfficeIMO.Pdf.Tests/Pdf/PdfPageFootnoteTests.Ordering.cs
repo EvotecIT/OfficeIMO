@@ -10,7 +10,7 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void StaggeredSpanReferencesUseSourceOrderAndOnePageSeparatorAcrossRepeatedSerialization() {
         var options = Options();
-        options.PageHeight = 260;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(260);
         var document = PdfDocument.Create(options);
         // Deliberately create the right-cell definition first. Source order comes from
         // the body inventory; the earlier left-cell reference is admitted in row two.
@@ -55,9 +55,9 @@ public partial class PdfPageFootnoteTests {
             for (int index = 0; index < noteLines; index++) body.Text("WidthNote" + index, style: Style());
         });
         document.Compose(pages => {
-            pages.Page(page => page.Size(260, 140).Content(body =>
+            pages.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(140)).Content(body =>
                 body.Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style())));
-            pages.Page(page => page.Size(240, 140).Content(body => body.Text("NarrowPageBody", style: Style())));
+            pages.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(140)).Content(body => body.Text("NarrowPageBody", style: Style())));
         });
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(expectedPages, pdf.NumberOfPages);

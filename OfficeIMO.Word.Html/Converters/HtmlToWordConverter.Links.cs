@@ -40,8 +40,8 @@ namespace OfficeIMO.Word.Html {
         private WordParagraph AddNoteReference(WordParagraph paragraph, string text, WordHtmlImportOptions options, WordHtmlNoteReferenceType? noteType = null) {
             var resolvedNoteType = noteType ?? options.NoteReferenceType;
             return resolvedNoteType == WordHtmlNoteReferenceType.Endnote
-                ? paragraph.AddEndNote(text)
-                : paragraph.AddFootNote(text);
+                ? paragraph.AddEndNote(text).Paragraph
+                : paragraph.AddFootNote(text).Paragraph;
         }
 
         private WordParagraph AddNoteReference(WordParagraph paragraph, IReadOnlyList<string> paragraphs, WordHtmlImportOptions options, WordHtmlNoteReferenceType? noteType = null) {

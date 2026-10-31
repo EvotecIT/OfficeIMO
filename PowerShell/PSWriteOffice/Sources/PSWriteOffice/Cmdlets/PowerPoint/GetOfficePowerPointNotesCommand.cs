@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public sealed class GetOfficePowerPointNotesCommand : OfficeCmdlet {
     /// <summary>Gets or sets a live document; omission uses the enclosing document block.</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Document { get; set; }
+    public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets a native slide object or one-based slide position.</summary>
     [Parameter, PowerPointSlideTransformation]
     public PowerPointSlideSelector? Slide { get; set; }
@@ -26,7 +26,7 @@ public sealed class GetOfficePowerPointNotesCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var document = Document ?? OfficeDocumentContext.Find<PowerPointPresentation>();
+        var document = Document ?? OfficeDocumentContext.Find<PowerPointDocument>();
         try {
             if (Slide != null) {
                 PowerPointSlide slide = Slide.Resolve(document);

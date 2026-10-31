@@ -80,8 +80,8 @@ public partial class PdfUnderstandingPipelineTests {
     public void StructuredRead_RetainsEveryPageFragmentOfOneTaggedListItem() {
         const string phrase = "Continuation text keeps one logical list item";
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            CompressContentStreams = false, PageWidth = 170, PageHeight = 150,
-            MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24, DefaultFontSize = 10
+            CompressContentStreams = false, PageWidth = global::OfficeIMO.OfficeLength.Points(170), PageHeight = global::OfficeIMO.OfficeLength.Points(150),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         }).TaggedPdfCatalogMarkers().Bullets(new[] { string.Join(" ", Enumerable.Repeat(phrase, 18)) }).ToBytes();
         PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Read();
         Assert.True(result.Pages.Count > 1);
@@ -97,16 +97,16 @@ public partial class PdfUnderstandingPipelineTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }).TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.List, list => list
                 .Structure(PdfCanvasStructureRole.ListItem, item => item
-                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", 20D, 80D, 20D, 16D))
+                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(16D)))
                     .Structure(PdfCanvasStructureRole.ListBody, body => body
-                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Incident table", 50D, 80D, 180D, 16D))
+                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Incident table", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(16D)))
                         .Structure(PdfCanvasStructureRole.Table, table => table
                             .Structure(PdfCanvasStructureRole.TableRow, row => row
-                                .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", 50D, 110D, 80D, 16D))
-                                .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 160D, 110D, 80D, 16D)))
+                                .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(110D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))
+                                .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(110D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D))))
                             .Structure(PdfCanvasStructureRole.TableRow, row => row
-                                .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", 50D, 130D, 80D, 16D))
-                                .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", 160D, 130D, 80D, 16D))))))))
+                                .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))
+                                .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))))))))
             .ToBytes();
         PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Read();
         PdfLogicalPage page = Assert.Single(result.Pages);
@@ -127,13 +127,13 @@ public partial class PdfUnderstandingPipelineTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }).TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.List, list => list
                 .Structure(PdfCanvasStructureRole.ListItem, item => item
-                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", 20D, 100D, 20D, 16D))
+                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(16D)))
                     .Structure(PdfCanvasStructureRole.ListBody, body => body
-                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Left incident", 50D, 100D, 150D, 16D))))
+                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Left incident", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(16D)))))
                 .Structure(PdfCanvasStructureRole.ListItem, item => item
-                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("2.", 250D, 100D, 20D, 16D))
+                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("2.", global::OfficeIMO.OfficeLength.Points(250D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(16D)))
                     .Structure(PdfCanvasStructureRole.ListBody, body => body
-                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Right incident", 280D, 100D, 150D, 16D))))))
+                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Right incident", global::OfficeIMO.OfficeLength.Points(280D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(16D)))))))
             .ToBytes();
         PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Read();
         Assert.Equal(new[] { "Left incident", "Right incident" }, result.ListItems.Select(static item => item.Text));
@@ -192,9 +192,9 @@ public partial class PdfUnderstandingPipelineTests {
                     .Structure(PdfCanvasStructureRole.ListItem, item => item
                         .Structure(PdfCanvasStructureRole.ListBody, body => body
                             .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph
-                                .Text("Left", 50D, 100D, 35D, 16D)
-                                .Text("Tail", 130D, 100D, 35D, 16D)))))
-                .Text("Other", 90D, 100D, 35D, 16D))
+                                .Text("Left", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D))
+                                .Text("Tail", global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D))))))
+                .Text("Other", global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D)))
             .ToBytes();
         PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Read();
         PdfLogicalListItem item = Assert.Single(result.ListItems);
@@ -211,13 +211,13 @@ public partial class PdfUnderstandingPipelineTests {
     private static byte[] CreateSharedLineTaggedListPdf() => PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
         .TaggedPdfCatalogMarkers().Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.List, list => list
             .Structure(PdfCanvasStructureRole.ListItem, item => item
-                .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", 20D, 100D, 20D, 16D))
+                .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(16D)))
                 .Structure(PdfCanvasStructureRole.ListBody, body => body
-                    .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Same", 50D, 100D, 40D, 16D))))
+                    .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Same", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(16D)))))
             .Structure(PdfCanvasStructureRole.ListItem, item => item
-                .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("2.", 100D, 100D, 20D, 16D))
+                .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("2.", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(16D)))
                 .Structure(PdfCanvasStructureRole.ListBody, body => body
-                    .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Same", 130D, 100D, 40D, 16D))))))
+                    .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Same", global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(16D)))))))
         .ToBytes();
 
     private static void AssertConsumerTextOccursOnce(PdfDocumentReadResult result, params string[] values) =>

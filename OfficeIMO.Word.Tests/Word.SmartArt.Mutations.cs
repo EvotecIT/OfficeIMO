@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
                 var sa = document.AddSmartArt(WordSmartArtType.BasicProcess);
                 // Ensure two nodes
                 sa.AddNode("Second");
-                sa.ReplaceTexts(bold: true, italic: true, underline: true, colorHex: "#FF0000", sizePt: 12, texts: new [] {"First", "Second"});
+                sa.ReplaceTexts(bold: true, italic: true, underline: true, colorHex: "#FF0000", fontSize: OfficeIMO.OfficeLength.Points(12), texts: new [] {"First", "Second"});
                 document.Save();
             }
 

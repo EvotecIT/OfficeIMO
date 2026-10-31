@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel.Xlsb {
                             throw new InvalidDataException($"The BrtBundleSh record at offset {record.Offset} does not contain a worksheet name and relationship id.");
                         }
 
-                        workbook.AddWorksheet(new XlsbSheet(name, relationshipId, tabId, state));
+                        workbook.AddSheet(new XlsbSheet(name, relationshipId, tabId, state));
                         break;
                     case BrtWbProp:
                         if (record.Data.Length < 4) {

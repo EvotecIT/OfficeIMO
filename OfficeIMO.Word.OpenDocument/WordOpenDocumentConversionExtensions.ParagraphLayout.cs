@@ -9,11 +9,11 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (source.Alignment != null && TryMapWordAlignment(source.Alignment, out OdtParagraphAlignment alignment)) {
             target.Alignment = alignment;
         }
-        if (source.IndentStartPoints.HasValue) target.IndentStart = OdfLength.Points(source.IndentStartPoints.Value);
-        if (source.IndentEndPoints.HasValue) target.IndentEnd = OdfLength.Points(source.IndentEndPoints.Value);
-        if (source.IndentFirstLinePoints.HasValue) target.FirstLineIndent = OdfLength.Points(source.IndentFirstLinePoints.Value);
-        if (source.SpaceAbovePoints.HasValue) target.SpaceAbove = OdfLength.Points(source.SpaceAbovePoints.Value);
-        if (source.SpaceBelowPoints.HasValue) target.SpaceBelow = OdfLength.Points(source.SpaceBelowPoints.Value);
+        if (source.IndentStart.HasValue) target.IndentStart = OdfLength.Points(source.IndentStart.Value.ToPoints());
+        if (source.IndentEnd.HasValue) target.IndentEnd = OdfLength.Points(source.IndentEnd.Value.ToPoints());
+        if (source.IndentFirstLine.HasValue) target.FirstLineIndent = OdfLength.Points(source.IndentFirstLine.Value.ToPoints());
+        if (source.SpaceAbove.HasValue) target.SpaceAbove = OdfLength.Points(source.SpaceAbove.Value.ToPoints());
+        if (source.SpaceBelow.HasValue) target.SpaceBelow = OdfLength.Points(source.SpaceBelow.Value.ToPoints());
         if (source.IsRightToLeft) target.WritingMode = "rl-tb";
         if (TryMapWordLineHeight(source, out OdfLength lineHeight)) target.LineHeight = lineHeight;
         if (OdfColor.TryParse(source.ShadingFillColorHex, out OdfColor background)) target.BackgroundColor = background;
@@ -31,19 +31,19 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
         target.BiDi = source.IsRightToLeft;
         if (source.IndentStart.HasValue) {
-            if (source.IndentStart.Value.TryToPoints(out double points)) target.IndentationBeforePoints = points; else unsupported++;
+            if (source.IndentStart.Value.TryToPoints(out double points)) target.IndentationBefore = global::OfficeIMO.OfficeLength.Points(points); else unsupported++;
         }
         if (source.IndentEnd.HasValue) {
-            if (source.IndentEnd.Value.TryToPoints(out double points)) target.IndentationAfterPoints = points; else unsupported++;
+            if (source.IndentEnd.Value.TryToPoints(out double points)) target.IndentationAfter = global::OfficeIMO.OfficeLength.Points(points); else unsupported++;
         }
         if (source.FirstLineIndent.HasValue) {
-            if (source.FirstLineIndent.Value.TryToPoints(out double points)) target.IndentationFirstLinePoints = points; else unsupported++;
+            if (source.FirstLineIndent.Value.TryToPoints(out double points)) target.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(points); else unsupported++;
         }
         if (source.SpaceAbove.HasValue) {
-            if (source.SpaceAbove.Value.TryToPoints(out double points)) target.LineSpacingBeforePoints = points; else unsupported++;
+            if (source.SpaceAbove.Value.TryToPoints(out double points)) target.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(points); else unsupported++;
         }
         if (source.SpaceBelow.HasValue) {
-            if (source.SpaceBelow.Value.TryToPoints(out double points)) target.LineSpacingAfterPoints = points; else unsupported++;
+            if (source.SpaceBelow.Value.TryToPoints(out double points)) target.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(points); else unsupported++;
         }
         unsupported += ApplyOdtLineHeight(source.LineHeight, target);
         if (source.BackgroundColor.HasValue) target.ShadingFillColorHex = source.BackgroundColor.Value.ToString();
@@ -58,13 +58,11 @@ public static partial class WordOpenDocumentConversionExtensions {
             && double.TryParse(lexical.Substring(0, lexical.Length - 1), NumberStyles.Float,
                 CultureInfo.InvariantCulture, out double percentage)
             && percentage > 0D && percentage <= int.MaxValue * 100D / 240D) {
-            target.LineSpacingRule = WordLineSpacingRule.Auto;
-            target.LineSpacing = checked((int)Math.Round(percentage * 240D / 100D, MidpointRounding.AwayFromZero));
+            target.LineSpacing = WordLineSpacing.Multiple(percentage / 100D);
             return 0;
         }
         if (lineHeight.Value.TryToPoints(out double points) && points >= 0D) {
-            target.LineSpacingRule = WordLineSpacingRule.Exact;
-            target.LineSpacingPoints = points;
+            target.LineSpacing = WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(points));
             return 0;
         }
         return 1;
@@ -72,15 +70,13 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static bool TryMapWordLineHeight(WordParagraphInfo source, out OdfLength lineHeight) {
         lineHeight = default;
-        if (!source.LineSpacingValue.HasValue || source.LineSpacingValue.Value < 0) return false;
-        if (source.LineSpacingRule == null
-            || string.Equals(source.LineSpacingRule, "auto", StringComparison.OrdinalIgnoreCase)) {
-            double percentage = source.LineSpacingValue.Value * 100D / 240D;
-            lineHeight = OdfLength.Parse(percentage.ToString("0.###", CultureInfo.InvariantCulture) + "%");
+        if (source.LineSpacing is not WordLineSpacing spacing) return false;
+        if (spacing.MultipleValue is double multiple) {
+            lineHeight = OdfLength.Parse((multiple * 100D).ToString("0.###", CultureInfo.InvariantCulture) + "%");
             return true;
         }
-        if (string.Equals(source.LineSpacingRule, "exact", StringComparison.OrdinalIgnoreCase)) {
-            lineHeight = OdfLength.Points(source.LineSpacingValue.Value / 20D);
+        if (spacing.Rule == WordLineSpacingRule.Exact && spacing.Height.HasValue) {
+            lineHeight = OdfLength.Points(spacing.Height.Value.ToPoints());
             return true;
         }
         return false;

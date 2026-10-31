@@ -76,8 +76,8 @@ public partial class Word {
     public void SaveAsPdf_HiddenMarkChainRetainsFirstAlignmentAndFinalSpacing(bool nativeDoc) {
         using WordDocument source = CreateJoinedParagraphDocument();
         WordParagraph alpha = source.AddParagraph("ALPHA"); alpha.ParagraphAlignment = WordParagraphAlignment.Right;
-        alpha.LineSpacingBeforePoints = 20; alpha.LineSpacingAfterPoints = 80; HideJoinMark(alpha, true);
-        WordParagraph beta = source.AddParagraph("BETA"); beta.LineSpacingBeforePoints = 80; beta.LineSpacingAfterPoints = 20;
+        alpha.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(20D); alpha.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(80D); HideJoinMark(alpha, true);
+        WordParagraph beta = source.AddParagraph("BETA"); beta.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(80D); beta.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(20D);
         source.AddParagraph("SECOND");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
         using var pdf = OpenJoinedParagraphPdf(document);

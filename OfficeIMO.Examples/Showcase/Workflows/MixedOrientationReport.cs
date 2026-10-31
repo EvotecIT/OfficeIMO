@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class MixedOrientationReport {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-        document.Settings.FontSize = 11;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
         document.AddParagraph("Supplier evaluation").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("NORTHWIND / PROCUREMENT / ILLUSTRATIVE OPTIONS");
         document.AddParagraph("Decision to make").Style = WordParagraphStyles.Heading2;
@@ -36,12 +36,12 @@ internal static class MixedOrientationReport {
             var cell = table.Rows[row].Cells[column];
             cell.Paragraphs[0].Text = rows[row, column];
             cell.Paragraphs[0].Bold = row == 0;
-            cell.MarginTopCentimeters = cell.MarginBottomCentimeters = 0.15;
+            cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.15D);
             if (row == 0) cell.ShadingFillColorHex = "E8EEF8";
         }
         foreach (var paragraph in document.Paragraphs) {
-            paragraph.FontSize = paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11;
-            paragraph.LineSpacingAfterPoints = 9;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(9D);
         }
         WorkflowFooter.Add(document, "Supplier evaluation");
         document.Save();

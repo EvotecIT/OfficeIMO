@@ -28,7 +28,9 @@ public partial class MarkdownPdfTests {
             block = quote;
         }
         if (wrapper == "footnote") block = new FootnoteDefinitionBlock("note", body.Blocks);
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open((MarkdownDocument.Create().Add(block).ToPdf()).ToBytes()).ExtractText();
+        using var markdown = MarkdownDocument.Create();
+        markdown.Add(block);
+        string text = OfficeIMO.Pdf.PdfReadDocument.Open((markdown.ToPdf()).ToBytes()).ExtractText();
         int previous = -1;
         foreach (string marker in new[] { "Outer first", "Outer second", "Nested alpha", "Nested beta", "Continued second.", "Outer third" }) {
             int current = text.IndexOf(marker, StringComparison.Ordinal);
@@ -44,7 +46,9 @@ public partial class MarkdownPdfTests {
         definition.AddGroup(new DefinitionListGroup(
             new[] { MarkdownReader.ParseInlineText("First term"), MarkdownReader.ParseInlineText("Second term") },
             new[] { new DefinitionListDefinition(MarkdownDocument.Parse("First paragraph.\n\nSecond paragraph.\n\n> Quoted content\n\n- Nested item").Blocks) }));
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open((MarkdownDocument.Create().Add(definition).ToPdf()).ToBytes()).ExtractText();
+        using var markdown = MarkdownDocument.Create();
+        markdown.Add(definition);
+        string text = OfficeIMO.Pdf.PdfReadDocument.Open((markdown.ToPdf()).ToBytes()).ExtractText();
         foreach (string marker in new[] { "First term", "Second term", "First paragraph.", "Second paragraph.", "Quoted content", "Nested item" })
             Assert.Single(System.Text.RegularExpressions.Regex.Matches(text, System.Text.RegularExpressions.Regex.Escape(marker)).Cast<System.Text.RegularExpressions.Match>());
         Assert.DoesNotContain("> Quoted", text);

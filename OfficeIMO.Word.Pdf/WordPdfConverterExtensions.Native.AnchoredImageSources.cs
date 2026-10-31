@@ -26,7 +26,7 @@ public static partial class WordPdfConverterExtensions {
         var content = new PdfCore.PdfPageCanvas();
         PdfCore.PdfImageStyle imageStyle = CreateNativeImageStyle(image, options, source);
         if (layout.BehindDocument)
-            content.Image(bytes, 0D, 0D, width, height, style: imageStyle);
+            content.Image(bytes, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style: imageStyle);
         else
             content.ForegroundImage(bytes, 0D, 0D, width, height,
                 zOrder: layout.RelativeHeight, style: imageStyle);
@@ -35,7 +35,7 @@ public static partial class WordPdfConverterExtensions {
             paint = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasBehindTextItem(paint, layout.RelativeHeight) };
         item = new PdfCore.PdfCanvasAnchoredImageItem(sourceIdentity, new PdfCore.PdfCanvasBlock(paint),
             width, height, new PdfCore.PdfAnchoredImagePosition(placement.X, placement.Y,
-                placement.MarginX, margins.Left, placement.ParagraphY), exclusion);
+                placement.MarginX, margins.Left.ToPoints(), placement.ParagraphY), exclusion);
         return true;
     }
 

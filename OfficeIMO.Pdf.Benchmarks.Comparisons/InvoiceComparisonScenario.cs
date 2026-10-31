@@ -70,7 +70,7 @@ internal sealed class InvoiceComparisonScenario {
         byte[] logo = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Brand", "evotec-logo-horizontal-gradient-2400.png"));
         byte[] regular = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "Carlito-Regular.ttf"));
         byte[] bold = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "Carlito-Bold.ttf"));
-        var options = new PdfCreateOptions { DefaultFontSize = 9.5D }
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9.5D) }
             .UseFontFamily(new PdfEmbeddedFontFamily("Carlito", regular, bold));
         return new InvoiceComparisonScenario(invoice, calculation, options, logo, regular, bold);
     }
@@ -89,7 +89,7 @@ internal sealed class InvoiceComparisonScenario {
 
     private static InvoicePdfLayoutOptions CreateLayout(byte[] logo, DateTime? issueDate = null) {
         var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
-        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        layout.Theme = InvoicePdfTheme.Modern(global::OfficeIMO.OfficeColor.FromRgb(63, 92, 255));
         layout.LogoBytes = logo;
         layout.LogoAlternativeText = "Evotec";
         DateTime approvalDate = issueDate ?? new DateTime(2026, 9, 17);

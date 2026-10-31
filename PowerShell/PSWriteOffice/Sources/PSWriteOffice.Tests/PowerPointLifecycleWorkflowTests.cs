@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using OfficeIMO.PowerPoint;
@@ -20,9 +21,9 @@ public sealed class PowerPointLifecycleWorkflowTests : IDisposable {
         shell.AddCommand("New-OfficePowerPoint").AddParameter("Path", path);
         var result = Assert.Single(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
-        using (var document = Assert.IsType<PowerPointPresentation>(result.BaseObject)) {
+        using (var document = Assert.IsType<PowerPointDocument>(result.BaseObject)) {
             Assert.Equal(path, document.FilePath);
-            document.AddSlide().AddTextBoxPoints("Saved later", 20D, 20D, 200D, 40D);
+            document.AddSlide().AddTextBox("Saved later", OfficeLength.Points(20D), OfficeLength.Points(20D), OfficeLength.Points(200D), OfficeLength.Points(40D));
             Assert.False(File.Exists(path));
         }
         Assert.False(File.Exists(path));
@@ -73,7 +74,7 @@ public sealed class PowerPointLifecycleWorkflowTests : IDisposable {
         var result = Assert.Single(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
         Assert.Equal(path, Assert.IsType<FileInfo>(result.BaseObject).FullName);
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         Assert.Single(saved.Slides);
         Assert.Empty(saved.ValidateDocument());
     }
@@ -84,9 +85,9 @@ public sealed class PowerPointLifecycleWorkflowTests : IDisposable {
         using var runspace = Open();
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;
-        var document = Assert.IsType<PowerPointPresentation>(Assert.Single(shell.AddCommand("New-OfficePowerPoint").Invoke()).BaseObject);
+        var document = Assert.IsType<PowerPointDocument>(Assert.Single(shell.AddCommand("New-OfficePowerPoint").Invoke()).BaseObject);
         try {
-            document.AddSlide().AddTextBoxPoints("Explicit lifecycle", 20D, 20D, 200D, 40D);
+            document.AddSlide().AddTextBox("Explicit lifecycle", OfficeLength.Points(20D), OfficeLength.Points(20D), OfficeLength.Points(200D), OfficeLength.Points(40D));
             shell.Commands.Clear();
             shell.AddCommand("Save-OfficePowerPoint").AddParameter("Document", document).AddParameter("Path", path).AddParameter("PassThru");
             Assert.Equal(path, Assert.IsType<FileInfo>(Assert.Single(shell.Invoke()).BaseObject).FullName);
@@ -97,7 +98,7 @@ public sealed class PowerPointLifecycleWorkflowTests : IDisposable {
             Assert.Throws<ObjectDisposedException>(() => document.OpenXmlDocument);
 
             shell.Commands.Clear();
-            using var opened = Assert.IsType<PowerPointPresentation>(Assert.Single(shell.AddCommand("Open-OfficePowerPoint")
+            using var opened = Assert.IsType<PowerPointDocument>(Assert.Single(shell.AddCommand("Open-OfficePowerPoint")
                 .AddParameter("LiteralPath", path).Invoke()).BaseObject);
             Assert.False(shell.HadErrors, Errors(shell));
             Assert.Contains(opened.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text == "Explicit lifecycle");
@@ -109,21 +110,21 @@ public sealed class PowerPointLifecycleWorkflowTests : IDisposable {
         string path = Path.Combine(_root, "encrypted.pptx");
         string copy = Path.Combine(_root, "encrypted-copy.pptx");
         const string password = "synthetic-lifecycle-password";
-        using (var source = PowerPointPresentation.Create()) {
-            source.AddSlide().AddTextBoxPoints("Encrypted lifecycle", 20D, 20D, 200D, 40D);
+        using (var source = PowerPointDocument.Create()) {
+            source.AddSlide().AddTextBox("Encrypted lifecycle", OfficeLength.Points(20D), OfficeLength.Points(20D), OfficeLength.Points(200D), OfficeLength.Points(40D));
             source.Save(path, new PowerPointSaveOptions { Password = password });
         }
         using var runspace = Open();
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;
-        using var document = Assert.IsType<PowerPointPresentation>(Assert.Single(shell.AddCommand("Open-OfficePowerPoint")
+        using var document = Assert.IsType<PowerPointDocument>(Assert.Single(shell.AddCommand("Open-OfficePowerPoint")
             .AddParameter("LiteralPath", path).AddParameter("Password", password).Invoke()).BaseObject);
         Assert.False(shell.HadErrors, Errors(shell));
         Assert.Single(shell.Streams.Warning);
         shell.Commands.Clear();
         shell.AddCommand("Save-OfficePowerPoint").AddParameter("Document", document).AddParameter("Path", copy).Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
-        using var reopened = PowerPointPresentation.Load(copy, new PowerPointLoadOptions { Password = password });
+        using var reopened = PowerPointDocument.Load(copy, new PowerPointLoadOptions { Password = password });
         Assert.Contains(reopened.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text == "Encrypted lifecycle");
         Assert.Equal(new byte[] { 0xD0, 0xCF, 0x11, 0xE0 }, File.ReadAllBytes(copy).Take(4));
     }
@@ -131,7 +132,7 @@ public sealed class PowerPointLifecycleWorkflowTests : IDisposable {
     [Fact]
     public void FailedOpenBlockKeepsTheOriginalBytesAndCleansItsStagingFile() {
         string path = Path.Combine(_root, "existing-open.pptx");
-        using (var source = PowerPointPresentation.Create()) source.Save(path);
+        using (var source = PowerPointDocument.Create()) source.Save(path);
         byte[] original = File.ReadAllBytes(path);
         using var runspace = Open();
         runspace.SessionStateProxy.SetVariable("entered", false);

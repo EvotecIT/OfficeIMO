@@ -80,6 +80,7 @@ $PowerShellActionLabels = @{
     'remove'       = 'Removed'
 }
 $CSharpActionLabels = @{
+    'keep'        = 'Kept'
     'rename'      = 'Renamed'
     'remove'      = 'Removed'
     'move'        = 'Moved'

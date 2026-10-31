@@ -31,19 +31,19 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.AddHeadersAndFooters();
                 WordParagraph headerLogo = document.Sections[0].Header.Default!.AddParagraph("OfficeIMO");
                 headerLogo.ParagraphAlignment = WordParagraphAlignment.Right;
-                headerLogo.AddImage(logoPath, 48, 24);
+                headerLogo.AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(24));
 
                 document.AddTableOfContent();
                 document.AddParagraph("Native Word PDF Visual Gate").SetStyle(WordParagraphStyles.Heading1);
 
                 WordParagraph summary = document.AddParagraph("This document is generated as DOCX first, then rendered with the first-party OfficeIMO PDF engine.");
-                summary.SetFontSize(10);
+                summary.SetFontSize(global::OfficeIMO.OfficeLength.Points(10));
 
                 document.AddParagraph("Native proof areas").SetStyle(WordParagraphStyles.Heading2);
 
                 WordParagraph styled = document.AddParagraph();
                 styled.AddText("Scoped runs: ");
-                styled.AddText("large blue").SetFontSize(15).ColorHex = "1f4e79";
+                styled.AddText("large blue").SetFontSize(global::OfficeIMO.OfficeLength.Points(15)).ColorHex = "1f4e79";
                 styled.AddText(", ");
                 styled.AddText("highlighted").SetHighlight(WordHighlightColor.Yellow);
                 styled.AddText(", and restored default text.");
@@ -58,10 +58,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 panel.Borders.BottomColorHex = "336699";
                 panel.Borders.LeftColorHex = "336699";
                 panel.Borders.RightColorHex = "336699";
-                panel.Borders.TopSize = 8;
-                panel.Borders.BottomSize = 8;
-                panel.Borders.LeftSize = 8;
-                panel.Borders.RightSize = 8;
+                panel.Borders.TopSize = OfficeLength.Points(1);
+                panel.Borders.BottomSize = OfficeLength.Points(1);
+                panel.Borders.LeftSize = OfficeLength.Points(1);
+                panel.Borders.RightSize = OfficeLength.Points(1);
 
                 WordList bullets = document.AddList(WordListStyle.Bulleted);
                 bullets.AddItem("Native list mapping keeps markers and text aligned.");
@@ -119,26 +119,26 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.Settings.FontFamily = "Calibri";
                 document.Background.SetColorHex("EAF4FF");
                 WordSection section = document.Sections[0];
-                section.Margins.LeftCentimeters = 1.6;
-                section.Margins.RightCentimeters = 1.4;
-                section.Margins.TopCentimeters = 1.4;
-                section.Margins.BottomCentimeters = 1.6;
+                section.Margins.Left = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
+                section.Margins.Right = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
+                section.Margins.Top = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
+                section.Margins.Bottom = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
                 section.ColumnCount = 2;
-                section.ColumnsSpace = 540;
+                section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(27);
                 section.HasColumnSeparator = true;
 
                 document.AddHeadersAndFooters();
                 WordParagraph header = document.Sections[0].Header.Default!.AddParagraph();
                 header.ParagraphAlignment = WordParagraphAlignment.Right;
                 header.AddText("Daily layout gate");
-                header.AddImage(logoPath, 42, 20);
+                header.AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(42), OfficeIMO.OfficeLength.Pixels(20));
                 document.Sections[0].Footer.Default!.AddParagraph("OfficeIMO native Word layout proof");
 
                 document.AddTableOfContent();
                 document.AddParagraph("Daily Word Layout Gate").SetStyle(WordParagraphStyles.Heading1);
 
                 WordParagraph intro = document.AddParagraph("This Word-origin fixture combines margins, section columns, fonts, colors, links, images, lists, a TOC, and a table on one page.");
-                intro.SetFontSize(9);
+                intro.SetFontSize(global::OfficeIMO.OfficeLength.Points(9));
 
                 WordParagraph leftHeading = document.AddParagraph("Column narrative");
                 leftHeading.SetStyle(WordParagraphStyles.Heading2);
@@ -148,9 +148,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 rich.AddText("Styled runs: ");
                 rich.AddText("Calibri default").SetFontFamily("Calibri");
                 rich.AddText(", ");
-                rich.AddText("Courier note").SetFontFamily("Courier New").SetFontSize(8);
+                rich.AddText("Courier note").SetFontFamily("Courier New").SetFontSize(global::OfficeIMO.OfficeLength.Points(8));
                 rich.AddText(", ");
-                rich.AddText("blue emphasis").SetFontSize(11).ColorHex = "1f4e79";
+                rich.AddText("blue emphasis").SetFontSize(global::OfficeIMO.OfficeLength.Points(11)).ColorHex = "1f4e79";
                 rich.AddText(", and ");
                 rich.AddHyperLink("external link", new Uri("https://evotec.xyz/native-daily-layout"), addStyle: true, tooltip: "Native daily layout link");
                 rich.AddText(".");
@@ -159,10 +159,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 shaded.ShadingFillColorHex = "e6f2ff";
                 shaded.Borders.LeftStyle = WordBorderStyle.Single;
                 shaded.Borders.LeftColorHex = "1f4e79";
-                shaded.Borders.LeftSize = 12;
+                shaded.Borders.LeftSize = OfficeLength.Points(1.5);
                 shaded.Borders.BottomStyle = WordBorderStyle.Single;
                 shaded.Borders.BottomColorHex = "b7c9d9";
-                shaded.Borders.BottomSize = 4;
+                shaded.Borders.BottomSize = OfficeLength.Points(0.5);
 
                 WordList bullets = document.AddList(WordListStyle.Bulleted);
                 bullets.AddItem("Bullet markers stay inside the first Word column.");
@@ -173,7 +173,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 steps.AddItem("Collect daily document patterns.");
                 steps.AddItem("Render through OfficeIMO.Pdf.");
 
-                document.AddParagraph().AddImage(logoPath, 54, 26);
+                document.AddParagraph().AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(54), OfficeIMO.OfficeLength.Pixels(26));
                 WordParagraph columnHandoff = document.AddParagraph("Inline column break keeps this text in the first column.");
                 columnHandoff.AddBreak(OfficeIMO.Word.WordBreakType.Column);
                 columnHandoff.AddText("Right column starts here.");
@@ -198,12 +198,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 table.Rows[3].Cells[2].Paragraphs[0].Text = "annotation";
 
                 WordParagraph closing = document.AddParagraph("Footer, header image, TOC link, section separator, and table borders should all survive the native PDF path.");
-                closing.SetFontSize(8);
+                closing.SetFontSize(global::OfficeIMO.OfficeLength.Points(8));
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new PdfPageSize(612, 792),
+                    PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
                     PdfOptions = new PdfCreateOptions { CompressContentStreams = false }
                 });
             }
@@ -234,13 +234,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 WordParagraph pictureCell = table.Rows[1].Cells[1].Paragraphs[0];
                 pictureCell.Text = "Table-cell logo";
                 pictureCell.ParagraphAlignment = WordParagraphAlignment.Center;
-                pictureCell.AddPictureControl(logoPath, 72, 36, "Table Cell Logo", "TableCellLogo");
+                pictureCell.AddPictureControl(logoPath, OfficeLength.Pixels(72), OfficeLength.Pixels(36), "Table Cell Logo", "TableCellLogo");
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false,
-                    PageSize = new PdfPageSize(612, 360),
-                    Margins = PdfPageMargins.Uniform(36)
+                    PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(360)),
+                    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
                 });
             }
 
@@ -260,7 +260,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         try {
             using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet summary = document.AddSheet("Summary");
                 summary.CellAt(1, 1).SetValue("Daily Excel PDF Gate").SetBold().SetFontColor("1F4E79").SetFillColor("DDEEFF");
                 summary.MergeRange("A1:B1");
                 summary.CellAt(2, 1).SetValue("Metric").SetBold().SetFillColor("E6F2FF");
@@ -276,7 +276,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.SetInternalLink(5, 2, "Details!A1", display: "Open Details");
                 summary.Cell(6, 1, "Visual image");
                 summary.Cell(6, 3, "logo above grid");
-                summary.AddImage(6, 2, logoBytes, "image/png", widthPixels: 64, heightPixels: 28, name: "Summary Logo", altText: "Summary visual proof");
+                summary.AddImage(6, 2, logoBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(64),
+                    Height = OfficeIMO.OfficeLength.Pixels(28),
+                    Name = "Summary Logo",
+                    Description = "Summary visual proof"
+                });
                 summary.Cell(8, 1, "HiddenRowValue");
                 summary.Cell(10, 1, "Month");
                 summary.Cell(10, 2, "Actual");
@@ -290,12 +296,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.Cell(13, 1, "Mar");
                 summary.Cell(13, 2, 24);
                 summary.Cell(13, 3, 20);
-                summary.AddChartFromRange("A10:C13", row: 7, column: 1, widthPixels: 300, heightPixels: 140, type: ExcelChartType.ColumnClustered, title: "Revenue Chart");
-                summary.SetColumnWidth(1, 16);
-                summary.SetColumnWidth(2, 18);
-                summary.SetColumnWidth(3, 28);
-                summary.SetRowHeight(1, 28);
-                summary.SetRowHeight(6, 32);
+                summary.AddChart(OfficeChartType.ColumnClustered, "A10:C13", new OfficeIMO.Excel.ExcelChartOptions { Row = 7, Column = 1, Width = OfficeLength.Pixels(300), Height = OfficeLength.Pixels(140), Title = "Revenue Chart" });
+                summary.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
+                summary.SetColumnWidth(2, ExcelColumnWidth.Characters(18));
+                summary.SetColumnWidth(3, ExcelColumnWidth.Characters(28));
+                summary.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
+                summary.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
                 summary.SetColumnHidden(4, true);
                 summary.Cell(2, 4, "HiddenColumnValue");
                 summary.SetRowHidden(8, true);
@@ -310,18 +316,18 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                     headerRight: "Page &P of &N",
                     footerLeft: "OfficeIMO Excel PDF",
                     footerRight: "Visual baseline");
-                summary.SetHeaderImage(ExcelHeaderFooterPosition.Left, logoBytes, "image/png", widthPoints: 28, heightPoints: 14);
+                summary.SetHeaderImage(ExcelHeaderFooterPosition.Left, logoBytes, "image/png", width: OfficeLength.Points(28), height: OfficeLength.Points(14));
                 summary.SetOrientation(OfficePageOrientation.Landscape);
-                summary.SetMargins(left: 0.35, right: 0.35, top: 0.55, bottom: 0.55);
+                summary.SetMargins(left: OfficeLength.Inches(0.35), right: OfficeLength.Inches(0.35), top: OfficeLength.Inches(0.55), bottom: OfficeLength.Inches(0.55));
 
-                ExcelSheet details = document.AddWorksheet("Details");
+                ExcelSheet details = document.AddSheet("Details");
                 details.CellAt(1, 1).SetValue("Details Target").SetBold().SetFillColor("E2F0D9");
                 details.Cell(2, 1, "Owner");
                 details.Cell(2, 2, "OfficeIMO");
                 details.Cell(3, 1, "Status");
                 details.Cell(3, 2, "Linked sheet destination");
-                details.SetColumnWidth(1, 16);
-                details.SetColumnWidth(2, 30);
+                details.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
+                details.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
 
                 document.SetPrintArea(summary, "A1:C7");
                 document.SetPrintTitles(summary, firstRow: 2, lastRow: 2, firstCol: null, lastCol: null);
@@ -331,8 +337,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.SaveAsPdf(pdfPath, new ExcelPdfExportOptions {
                     IncludeSheetHeadings = true,
                     HeaderRowCount = 2,
-                    PageSize = new PdfPageSize(792, 612),
-                    Margins = PdfPageMargins.FromInches(0.35, 0.55, 0.35, 0.55),
+                    PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(792),OfficeIMO.OfficeLength.Points(612)),
+                    Margins = new OfficeIMO.Pdf.PdfPageMargins(OfficeIMO.OfficeLength.Inches(0.35),OfficeIMO.OfficeLength.Inches(0.55),OfficeIMO.OfficeLength.Inches(0.35),OfficeIMO.OfficeLength.Inches(0.55)),
                     PdfOptions = new PdfCreateOptions { CompressContentStreams = false }
                 });
             }
@@ -393,8 +399,8 @@ OfficeIMO.Markdown.MarkdownDoc.Load("README.md").SaveAsPdf("README.pdf");
 """, new UTF8Encoding(false));
 
             var options = new MarkdownPdfExportOptions {
-                DefaultImageWidth = 104,
-                DefaultImageHeight = 36,
+                DefaultImageWidth = global::OfficeIMO.OfficeLength.Points(104),
+                DefaultImageHeight = global::OfficeIMO.OfficeLength.Points(36),
                 ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost(),
                 BaseDirectory = workDir
             };

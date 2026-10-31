@@ -1,219 +1,50 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
-using System.Threading;
-using System.Threading.Tasks;
 using A = DocumentFormat.OpenXml.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        /// <summary>
-        /// Adds an image from disk anchored to a worksheet cell. When <paramref name="scalePercent"/> is provided,
-        /// the image is sized from its original pixel dimensions.
-        /// </summary>
-        /// <param name="row">1-based row index where the top edge of the image will be anchored.</param>
-        /// <param name="column">1-based column index where the left edge of the image will be anchored.</param>
-        /// <param name="path">Image file path.</param>
-        /// <param name="widthPixels">Optional exact image width in pixels. Defaults to the image's original width when known.</param>
-        /// <param name="heightPixels">Optional exact image height in pixels. Defaults to the image's original height when known.</param>
-        /// <param name="scalePercent">Optional percentage of the original image dimensions, for example 20 for 20%.</param>
-        /// <param name="offsetXPixels">Optional horizontal offset in pixels from the cell's left boundary.</param>
-        /// <param name="offsetYPixels">Optional vertical offset in pixels from the cell's top boundary.</param>
-        /// <param name="name">Optional drawing name used by Excel's selection pane.</param>
-        /// <param name="altText">Optional alternative text description for accessibility.</param>
-        /// <param name="title">Optional alternative text title.</param>
-        /// <param name="lockAspectRatio">Whether Excel should keep the picture aspect ratio locked.</param>
-        /// <param name="rotationDegrees">Clockwise image rotation in degrees.</param>
-        /// <example>
-        /// <code>
-        /// using var workbook = ExcelDocument.Create("report.xlsx");
-        /// var sheet = workbook.Sheets[0];
-        /// sheet.AddImageFromFile(2, 2, "logo.png", scalePercent: 20, name: "Logo", altText: "Company logo");
-        /// workbook.Save();
-        /// </code>
-        /// </example>
-        public ExcelImage AddImageFromFile(int row, int column, string path, int? widthPixels = null, int? heightPixels = null,
-            double? scalePercent = null, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null,
-            string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Image path is required.", nameof(path));
-            if (!File.Exists(path)) throw new FileNotFoundException($"Image file '{path}' was not found.", path);
-
-            byte[] bytes = File.ReadAllBytes(path);
-            OfficeImageInfo info = RequireImageContent(bytes, path, nameof(path));
-            var (resolvedWidth, resolvedHeight) = ResolveImageSize(info, widthPixels, heightPixels, scalePercent);
-
-            ExcelImage image = AddImage(row, column, bytes, info.MimeType, resolvedWidth, resolvedHeight, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
-            ApplyImageMetadata(image, title, rotationDegrees);
-            return image;
-        }
-
-        /// <summary>
-        /// Asynchronously downloads an image from a URL, anchors it to a worksheet cell, and optionally sizes it from its original dimensions.
-        /// </summary>
-        /// <param name="row">1-based row index where the top edge of the image will be anchored.</param>
-        /// <param name="column">1-based column index where the left edge of the image will be anchored.</param>
-        /// <param name="url">Remote HTTP or HTTPS image URL.</param>
-        /// <param name="widthPixels">Optional exact image width in pixels. Defaults to the image's original width when known.</param>
-        /// <param name="heightPixels">Optional exact image height in pixels. Defaults to the image's original height when known.</param>
-        /// <param name="scalePercent">Optional percentage of the original image dimensions, for example 20 for 20%.</param>
-        /// <param name="offsetXPixels">Optional horizontal offset in pixels from the cell's left boundary.</param>
-        /// <param name="offsetYPixels">Optional vertical offset in pixels from the cell's top boundary.</param>
-        /// <param name="name">Optional drawing name used by Excel's selection pane.</param>
-        /// <param name="altText">Optional alternative text description for accessibility.</param>
-        /// <param name="title">Optional alternative text title.</param>
-        /// <param name="lockAspectRatio">Whether Excel should keep the picture aspect ratio locked.</param>
-        /// <param name="rotationDegrees">Clockwise image rotation in degrees.</param>
-        /// <param name="cancellationToken">Token used to cancel the remote request.</param>
-        public async Task<ExcelImage> AddImageFromUrlAsync(int row, int column, string url, int? widthPixels, int? heightPixels,
-            double? scalePercent = null, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null,
-            string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0,
-            CancellationToken cancellationToken = default) {
-            return await AddImageFromUrlPlacementCoreAsync(row, column, url, null, widthPixels, heightPixels,
-                scalePercent, offsetXPixels, offsetYPixels, name, altText, title, lockAspectRatio,
-                rotationDegrees, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Downloads and scales an image using an explicit remote-network policy.
-        /// </summary>
-        public Task<ExcelImage> AddImageFromUrlScaledAsync(
-            int row,
-            int column,
-            string url,
-            double scalePercent,
-            OfficeRemoteImageLoadOptions remoteImageOptions,
-            int offsetXPixels = 0,
-            int offsetYPixels = 0,
-            string? name = null,
-            string? altText = null,
-            string? title = null,
-            bool lockAspectRatio = true,
-            double rotationDegrees = 0,
-            CancellationToken cancellationToken = default) {
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
-            return AddImageFromUrlPlacementCoreAsync(row, column, url, remoteImageOptions, null, null,
-                scalePercent, offsetXPixels, offsetYPixels, name, altText, title, lockAspectRatio,
-                rotationDegrees, cancellationToken);
-        }
-
-        private async Task<ExcelImage> AddImageFromUrlPlacementCoreAsync(
-            int row,
-            int column,
-            string url,
-            OfficeRemoteImageLoadOptions? remoteImageOptions,
-            int? widthPixels,
-            int? heightPixels,
-            double? scalePercent,
-            int offsetXPixels,
-            int offsetYPixels,
-            string? name,
-            string? altText,
-            string? title,
-            bool lockAspectRatio,
-            double rotationDegrees,
-            CancellationToken cancellationToken) {
-            OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
-                url,
-                remoteImageOptions,
-                cancellationToken).ConfigureAwait(false);
-            byte[] bytes = remote.ToBytes();
-            OfficeImageInfo info = RequireImageContent(bytes, remote.FileName, nameof(url));
-            var (resolvedWidth, resolvedHeight) = ResolveImageSize(info, widthPixels, heightPixels, scalePercent);
-            ExcelImage image = AddImage(row, column, bytes, ResolveImageContentType(remote.ContentType, info),
-                resolvedWidth, resolvedHeight, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
-            ApplyImageMetadata(image, title, rotationDegrees);
-            return image;
-        }
-
-        /// <summary>
-        /// Asynchronously downloads an image from a URL, scales it from its detected dimensions, and anchors it to a worksheet cell.
-        /// </summary>
-        /// <param name="row">1-based row index where the top edge of the image will be anchored.</param>
-        /// <param name="column">1-based column index where the left edge of the image will be anchored.</param>
-        /// <param name="url">Remote HTTP or HTTPS image URL.</param>
-        /// <param name="scalePercent">Percentage of the original image dimensions, for example 20 for 20%.</param>
-        /// <param name="offsetXPixels">Optional horizontal offset in pixels from the cell's left boundary.</param>
-        /// <param name="offsetYPixels">Optional vertical offset in pixels from the cell's top boundary.</param>
-        /// <param name="name">Optional drawing name used by Excel's selection pane.</param>
-        /// <param name="altText">Optional alternative text description for accessibility.</param>
-        /// <param name="title">Optional alternative text title.</param>
-        /// <param name="lockAspectRatio">Whether Excel should keep the picture aspect ratio locked.</param>
-        /// <param name="rotationDegrees">Clockwise image rotation in degrees.</param>
-        /// <param name="cancellationToken">Token used to cancel the remote request.</param>
-        public Task<ExcelImage> AddImageFromUrlAsync(int row, int column, string url, double scalePercent,
-            int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null,
-            string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0,
-            CancellationToken cancellationToken = default)
-            => AddImageFromUrlAsync(row, column, url, null, null, scalePercent, offsetXPixels, offsetYPixels, name,
-                altText, title, lockAspectRatio, rotationDegrees, cancellationToken);
-
-        /// <summary>
-        /// Adds an image anchored to an A1 range using a two-cell anchor. The image moves and sizes with the
-        /// referenced cells by default, matching Excel's "Move and size with cells" behavior.
-        /// </summary>
-        /// <param name="range">A1 range such as A1:C15. The image is anchored from the top-left of the first cell to the bottom-right boundary of the last cell.</param>
-        /// <param name="imageBytes">Image bytes.</param>
-        /// <param name="contentType">Content type, for example image/png or image/jpeg.</param>
-        /// <param name="offsetXPixels">Optional horizontal offset from the range start.</param>
-        /// <param name="offsetYPixels">Optional vertical offset from the range start.</param>
-        /// <param name="endOffsetXPixels">Optional horizontal offset applied to the range end marker.</param>
-        /// <param name="endOffsetYPixels">Optional vertical offset applied to the range end marker.</param>
-        /// <param name="name">Optional drawing name used by Excel's selection pane.</param>
-        /// <param name="altText">Optional alternative text description for accessibility.</param>
-        /// <param name="title">Optional alternative text title.</param>
-        /// <param name="lockAspectRatio">Whether Excel should keep the picture aspect ratio locked.</param>
-        /// <param name="placement">How the image behaves when cells move or resize.</param>
-        /// <param name="rotationDegrees">Clockwise image rotation in degrees.</param>
-        /// <example>
-        /// <code>
-        /// using var workbook = ExcelDocument.Create("report.xlsx");
-        /// var sheet = workbook.Sheets[0];
-        /// byte[] logo = File.ReadAllBytes("logo.png");
-        /// sheet.AddImageToRange("A1:C15", logo, "image/png", name: "PinnedLogo",
-        ///     altText: "Company logo", placement: ExcelImagePlacement.MoveAndSize);
-        /// workbook.Save();
-        /// </code>
-        /// </example>
-        public ExcelImage AddImageToRange(string range, byte[] imageBytes, string contentType = "image/png",
-            int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0,
+        // Writes native range and absolute anchors without changing their marker or extent arithmetic.
+        private ExcelImage AddRangeImageCore(string range, byte[] imageBytes, string contentType = "image/png",
+            OfficeLength offsetX = default, OfficeLength offsetY = default, OfficeLength endOffsetX = default, OfficeLength endOffsetY = default,
             string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true,
-            ExcelImagePlacement placement = ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0) {
+            ExcelImagePlacement placement = ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0, bool deduplicate = false) {
             if (imageBytes == null || imageBytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(imageBytes));
             var (startRow, startColumn, endRow, endColumn) = ParseImageRange(range);
             ExcelImage? image = null;
             WriteLock(() => {
                 DrawingsPart drawingPart = GetOrCreateDrawingsPart();
-                ImagePart imagePart = drawingPart.AddImagePart(ToImagePartType(contentType));
-                using (var stream = new MemoryStream(imageBytes)) imagePart.FeedData(stream);
+                ImagePart imagePart = GetImagePart(drawingPart, imageBytes, contentType, deduplicate);
                 string imageRelationshipId = drawingPart.GetIdOfPart(imagePart);
 
                 var drawingId = NextDrawingId(drawingPart);
                 string resolvedName = string.IsNullOrWhiteSpace(name) ? $"Picture {drawingId}" : name!.Trim();
-                var (widthPixels, heightPixels) = CalculateRangeAnchorSizePixels(
+                var (width, height) = CalculateRangeAnchorSize(
                     startRow,
                     startColumn,
                     endRow,
                     endColumn,
-                    offsetXPixels,
-                    offsetYPixels,
-                    endOffsetXPixels,
-                    endOffsetYPixels);
+                    offsetX,
+                    offsetY,
+                    endOffsetX,
+                    endOffsetY);
                 var anchor = new Xdr.TwoCellAnchor(
                     new Xdr.FromMarker(
                         new Xdr.ColumnId((startColumn - 1).ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                        new Xdr.ColumnOffset(PxToEmu(offsetXPixels).ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                        new Xdr.ColumnOffset(offsetX.ToEmus().ToString(System.Globalization.CultureInfo.InvariantCulture)),
                         new Xdr.RowId((startRow - 1).ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                        new Xdr.RowOffset(PxToEmu(offsetYPixels).ToString(System.Globalization.CultureInfo.InvariantCulture))
+                        new Xdr.RowOffset(offsetY.ToEmus().ToString(System.Globalization.CultureInfo.InvariantCulture))
                     ),
                     new Xdr.ToMarker(
                         new Xdr.ColumnId(endColumn.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                        new Xdr.ColumnOffset(PxToEmu(endOffsetXPixels).ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                        new Xdr.ColumnOffset(endOffsetX.ToEmus().ToString(System.Globalization.CultureInfo.InvariantCulture)),
                         new Xdr.RowId(endRow.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                        new Xdr.RowOffset(PxToEmu(endOffsetYPixels).ToString(System.Globalization.CultureInfo.InvariantCulture))
+                        new Xdr.RowOffset(endOffsetY.ToEmus().ToString(System.Globalization.CultureInfo.InvariantCulture))
                     ),
                     CreatePicture(drawingId, resolvedName, imageRelationshipId, altText, title, lockAspectRatio,
-                        PxToEmu(widthPixels), PxToEmu(heightPixels), rotationDegrees),
+                        width.ToEmus(), height.ToEmus(), rotationDegrees),
                     new Xdr.ClientData()) {
                     EditAs = ToEditAsValue(placement)
                 };
@@ -229,43 +60,29 @@ namespace OfficeIMO.Excel {
             return image!;
         }
 
-        /// <summary>
-        /// Adds an image positioned with an absolute worksheet drawing anchor.
-        /// </summary>
-        /// <param name="xPixels">Horizontal offset from the worksheet drawing origin, in pixels.</param>
-        /// <param name="yPixels">Vertical offset from the worksheet drawing origin, in pixels.</param>
-        /// <param name="imageBytes">Image bytes.</param>
-        /// <param name="contentType">Content type, for example image/png or image/jpeg.</param>
-        /// <param name="widthPixels">Image width in pixels.</param>
-        /// <param name="heightPixels">Image height in pixels.</param>
-        /// <param name="name">Optional drawing name used by Excel's selection pane.</param>
-        /// <param name="altText">Optional alternative text description for accessibility.</param>
-        /// <param name="title">Optional alternative text title.</param>
-        /// <param name="lockAspectRatio">Whether Excel should keep the picture aspect ratio locked.</param>
-        /// <param name="rotationDegrees">Clockwise image rotation in degrees.</param>
-        public ExcelImage AddImageAbsolute(int xPixels, int yPixels, byte[] imageBytes, string contentType = "image/png",
-            int widthPixels = 96, int heightPixels = 32, string? name = null, string? altText = null, string? title = null,
-            bool lockAspectRatio = true, double rotationDegrees = 0) {
+        /// <summary>Restores a native absolute image, including signed positions bounded by the importing adapter.</summary>
+        internal ExcelImage AddNativeAbsoluteImage(OfficeLength x, OfficeLength y, byte[] imageBytes, string contentType,
+            OfficeLength? width, OfficeLength? height, string? name = null, string? altText = null, string? title = null,
+            bool lockAspectRatio = true, double rotationDegrees = 0, bool deduplicate = false) {
             if (imageBytes == null || imageBytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(imageBytes));
-            if (xPixels < 0) throw new ArgumentOutOfRangeException(nameof(xPixels));
-            if (yPixels < 0) throw new ArgumentOutOfRangeException(nameof(yPixels));
-            if (widthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
-            if (heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(heightPixels));
+            OfficeLength resolvedWidth = width ?? OfficeLength.Pixels(96);
+            OfficeLength resolvedHeight = height ?? OfficeLength.Pixels(32);
+            if (resolvedWidth <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width));
+            if (resolvedHeight <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height));
             ExcelImage? image = null;
             WriteLock(() => {
                 DrawingsPart drawingPart = GetOrCreateDrawingsPart();
-                ImagePart imagePart = drawingPart.AddImagePart(ToImagePartType(contentType));
-                using (var stream = new MemoryStream(imageBytes)) imagePart.FeedData(stream);
+                ImagePart imagePart = GetImagePart(drawingPart, imageBytes, contentType, deduplicate);
                 string imageRelationshipId = drawingPart.GetIdOfPart(imagePart);
 
                 UInt32Value drawingId = NextDrawingId(drawingPart);
                 string resolvedName = string.IsNullOrWhiteSpace(name) ? $"Picture {drawingId}" : name!.Trim();
-                long widthEmu = PxToEmu(widthPixels);
-                long heightEmu = PxToEmu(heightPixels);
+                long widthEmu = resolvedWidth.ToEmus();
+                long heightEmu = resolvedHeight.ToEmus();
                 var anchor = new Xdr.AbsoluteAnchor(
                     new Xdr.Position {
-                        X = PxToEmu(xPixels),
-                        Y = PxToEmu(yPixels)
+                        X = x.ToEmus(),
+                        Y = y.ToEmus()
                     },
                     new Xdr.Extent { Cx = widthEmu, Cy = heightEmu },
                     CreatePicture(drawingId, resolvedName, imageRelationshipId, altText, title, lockAspectRatio, widthEmu, heightEmu, rotationDegrees),
@@ -280,94 +97,6 @@ namespace OfficeIMO.Excel {
             });
 
             return image!;
-        }
-
-        /// <summary>
-        /// Adds an image from disk anchored to an A1 range using a two-cell anchor.
-        /// </summary>
-        /// <param name="range">A1 range such as A1:C15. The image is anchored from the top-left of the first cell to the bottom-right boundary of the last cell.</param>
-        /// <param name="path">Image file path.</param>
-        /// <param name="offsetXPixels">Optional horizontal offset from the range start.</param>
-        /// <param name="offsetYPixels">Optional vertical offset from the range start.</param>
-        /// <param name="endOffsetXPixels">Optional horizontal offset applied to the range end marker.</param>
-        /// <param name="endOffsetYPixels">Optional vertical offset applied to the range end marker.</param>
-        /// <param name="name">Optional drawing name used by Excel's selection pane.</param>
-        /// <param name="altText">Optional alternative text description for accessibility.</param>
-        /// <param name="title">Optional alternative text title.</param>
-        /// <param name="lockAspectRatio">Whether Excel should keep the picture aspect ratio locked.</param>
-        /// <param name="placement">How the image behaves when cells move or resize.</param>
-        /// <param name="rotationDegrees">Clockwise image rotation in degrees.</param>
-        public ExcelImage AddImageFromFileToRange(string range, string path, int offsetXPixels = 0, int offsetYPixels = 0,
-            int endOffsetXPixels = 0, int endOffsetYPixels = 0, string? name = null, string? altText = null, string? title = null,
-            bool lockAspectRatio = true, ExcelImagePlacement placement = ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0) {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Image path is required.", nameof(path));
-            if (!File.Exists(path)) throw new FileNotFoundException($"Image file '{path}' was not found.", path);
-
-            byte[] bytes = File.ReadAllBytes(path);
-            OfficeImageInfo info = RequireImageContent(bytes, path, nameof(path));
-            return AddImageToRange(range, bytes, info.MimeType, offsetXPixels, offsetYPixels, endOffsetXPixels, endOffsetYPixels,
-                name, altText, title, lockAspectRatio, placement, rotationDegrees);
-        }
-
-        /// <summary>
-        /// Asynchronously downloads an image from a URL and anchors it to an A1 range using a two-cell anchor.
-        /// </summary>
-        public async Task<ExcelImage> AddImageFromUrlToRangeAsync(string range, string url, int offsetXPixels = 0, int offsetYPixels = 0,
-            int endOffsetXPixels = 0, int endOffsetYPixels = 0, string? name = null, string? altText = null, string? title = null,
-            bool lockAspectRatio = true, ExcelImagePlacement placement = ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0,
-            CancellationToken cancellationToken = default) {
-            return await AddImageFromUrlToRangeCoreAsync(range, url, null, offsetXPixels, offsetYPixels,
-                endOffsetXPixels, endOffsetYPixels, name, altText, title, lockAspectRatio, placement,
-                rotationDegrees, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Downloads an image with an explicit remote-network policy and anchors it to a range.
-        /// </summary>
-        public Task<ExcelImage> AddImageFromUrlToRangeAsync(
-            string range,
-            string url,
-            OfficeRemoteImageLoadOptions remoteImageOptions,
-            int offsetXPixels = 0,
-            int offsetYPixels = 0,
-            int endOffsetXPixels = 0,
-            int endOffsetYPixels = 0,
-            string? name = null,
-            string? altText = null,
-            string? title = null,
-            bool lockAspectRatio = true,
-            ExcelImagePlacement placement = ExcelImagePlacement.MoveAndSize,
-            double rotationDegrees = 0,
-            CancellationToken cancellationToken = default) {
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
-            return AddImageFromUrlToRangeCoreAsync(range, url, remoteImageOptions, offsetXPixels, offsetYPixels,
-                endOffsetXPixels, endOffsetYPixels, name, altText, title, lockAspectRatio, placement,
-                rotationDegrees, cancellationToken);
-        }
-
-        private async Task<ExcelImage> AddImageFromUrlToRangeCoreAsync(
-            string range,
-            string url,
-            OfficeRemoteImageLoadOptions? remoteImageOptions,
-            int offsetXPixels,
-            int offsetYPixels,
-            int endOffsetXPixels,
-            int endOffsetYPixels,
-            string? name,
-            string? altText,
-            string? title,
-            bool lockAspectRatio,
-            ExcelImagePlacement placement,
-            double rotationDegrees,
-            CancellationToken cancellationToken) {
-            OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
-                url,
-                remoteImageOptions,
-                cancellationToken).ConfigureAwait(false);
-            byte[] bytes = remote.ToBytes();
-            OfficeImageInfo info = RequireImageContent(bytes, remote.FileName, nameof(url));
-            return AddImageToRange(range, bytes, ResolveImageContentType(remote.ContentType, info), offsetXPixels,
-                offsetYPixels, endOffsetXPixels, endOffsetYPixels, name, altText, title, lockAspectRatio, placement, rotationDegrees);
         }
 
         private DrawingsPart GetOrCreateDrawingsPart() {
@@ -419,29 +148,23 @@ namespace OfficeIMO.Excel {
             );
         }
 
-        private static (int Width, int Height) ResolveImageSize(OfficeImageInfo info, int? widthPixels, int? heightPixels, double? scalePercent) {
+        private static (OfficeLength Width, OfficeLength Height) ResolveImageSize(OfficeImageInfo info, OfficeLength? width, OfficeLength? height, double? scalePercent) {
             if (scalePercent.HasValue) {
-                if (widthPixels.HasValue || heightPixels.HasValue) {
+                if (width.HasValue || height.HasValue)
                     throw new ArgumentException("Scale percentage cannot be combined with explicit width or height.");
-                }
-
-                if (double.IsNaN(scalePercent.Value) || double.IsInfinity(scalePercent.Value) || scalePercent.Value <= 0) {
+                if (double.IsNaN(scalePercent.Value) || double.IsInfinity(scalePercent.Value) || scalePercent.Value <= 0)
                     throw new ArgumentOutOfRangeException(nameof(scalePercent), "Scale percentage must be a positive finite number.");
-                }
-
-                if (info.Width <= 0 || info.Height <= 0) {
+                if (info.Width <= 0 || info.Height <= 0)
                     throw new NotSupportedException("Image dimensions could not be detected, so scale percentage cannot be applied.");
-                }
-
-                return (Math.Max(1, (int)Math.Round(info.Width * scalePercent.Value / 100.0)),
-                    Math.Max(1, (int)Math.Round(info.Height * scalePercent.Value / 100.0)));
+                OfficeLength scaledWidth = OfficeLength.Pixels(info.Width) * (scalePercent.Value / 100D);
+                OfficeLength scaledHeight = OfficeLength.Pixels(info.Height) * (scalePercent.Value / 100D);
+                return (OfficeLength.Emus(Math.Max(1L, scaledWidth.ToEmus())), OfficeLength.Emus(Math.Max(1L, scaledHeight.ToEmus())));
             }
-
-            int width = widthPixels ?? (info.Width > 0 ? info.Width : 96);
-            int height = heightPixels ?? (info.Height > 0 ? info.Height : 32);
-            if (width <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
-            if (height <= 0) throw new ArgumentOutOfRangeException(nameof(heightPixels));
-            return (width, height);
+            OfficeLength resolvedWidth = width ?? OfficeLength.Pixels(info.Width > 0 ? info.Width : 96);
+            OfficeLength resolvedHeight = height ?? OfficeLength.Pixels(info.Height > 0 ? info.Height : 32);
+            if (resolvedWidth <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width));
+            if (resolvedHeight <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height));
+            return (resolvedWidth, resolvedHeight);
         }
 
         private static (int StartRow, int StartColumn, int EndRow, int EndColumn) ParseImageRange(string range) {
@@ -460,50 +183,21 @@ namespace OfficeIMO.Excel {
             return (startRow, startColumn, endRow, endColumn);
         }
 
-        private (int WidthPixels, int HeightPixels) CalculateRangeAnchorSizePixels(
-            int startRow,
-            int startColumn,
-            int endRow,
-            int endColumn,
-            int offsetXPixels,
-            int offsetYPixels,
-            int endOffsetXPixels,
-            int endOffsetYPixels) {
-            int width = Math.Max(1, CalculateColumnSpanPixels(startColumn, endColumn) + endOffsetXPixels - offsetXPixels);
-            int height = Math.Max(1, CalculateRowSpanPixels(startRow, endRow) + endOffsetYPixels - offsetYPixels);
-            return (width, height);
-        }
-
-        private int CalculateColumnSpanPixels(int startColumn, int endColumn) {
+        private (OfficeLength Width, OfficeLength Height) CalculateRangeAnchorSize(
+            int startRow, int startColumn, int endRow, int endColumn,
+            OfficeLength offsetX, OfficeLength offsetY, OfficeLength endOffsetX, OfficeLength endOffsetY) {
+            OfficeLength width = OfficeLength.Zero;
+            OfficeLength height = OfficeLength.Zero;
             var geometry = Utilities.ExcelWorksheetGeometryIndex.Create(WorksheetPart);
-            double total = 0;
-            for (int column = startColumn; column <= endColumn; column++) {
-                total += geometry.GetSimpleColumnWidthPixels(column);
-            }
-            return Math.Max(1, (int)Math.Round(total));
-        }
-
-        private int CalculateRowSpanPixels(int startRow, int endRow) {
-            double total = 0;
-            for (int rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
-                total += GetRowHeightPixels(rowIndex);
-            }
-
-            return Math.Max(1, (int)Math.Round(total));
-        }
-
-        private double GetRowHeightPixels(int rowIndex) {
-            var sheetData = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetData>();
-            var row = sheetData?.Elements<DocumentFormat.OpenXml.Spreadsheet.Row>()
-                .FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
-            if (row?.Hidden?.Value == true) {
-                return 0;
-            }
-
-            double heightPoints = row?.Height?.Value > 0 && row.CustomHeight?.Value == true
-                ? row.Height.Value
-                : GetDefaultRowHeightPoints();
-            return heightPoints * 96D / 72D;
+            for (int column = startColumn; column <= endColumn; column++)
+                width += geometry.GetColumnLength(column);
+            for (int row = startRow; row <= endRow; row++)
+                height += geometry.GetRowLength(row);
+            width += endOffsetX - offsetX;
+            height += endOffsetY - offsetY;
+            // Hidden-only or inverted spans retain a positive native extent without pixel quantization.
+            return (width > OfficeLength.Zero ? width : OfficeLength.Emus(1),
+                height > OfficeLength.Zero ? height : OfficeLength.Emus(1));
         }
 
         private static void ApplyImageMetadata(ExcelImage image, string? title, double rotationDegrees) {

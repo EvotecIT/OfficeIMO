@@ -16,15 +16,15 @@ namespace OfficeIMO.Word.Pdf {
             if (GetHeadingLevel(paragraph) > 0) {
                 return false;
             }
-            double left = paragraphStyle.LeftIndent + Math.Min(paragraphStyle.FirstLineIndent, 0D);
+            double left = paragraphStyle.LeftIndent.ToPoints() + Math.Min(paragraphStyle.FirstLineIndent.ToPoints(), 0D);
             return ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph)).HasValue ||
-                Math.Abs(left) > 0.01D || Math.Abs(paragraphStyle.RightIndent) > 0.01D;
+                Math.Abs(left) > 0.01D || Math.Abs(paragraphStyle.RightIndent.ToPoints()) > 0.01D;
         }
 
         private static PdfCore.PdfPanelStyle? CreateNativeParagraphPanelStyle(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
             NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
-            PdfCore.PdfColor? background = ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph));
-            (PdfCore.PdfColor? Color, double Width)? border = GetNativeUniformParagraphBorder(borders);
+            global::OfficeIMO.OfficeColor? background = ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph));
+            (global::OfficeIMO.OfficeColor? Color, double Width)? border = GetNativeUniformParagraphBorder(borders);
             bool renderAsRule = !background.HasValue && !HasNativeBorder(borders.Between.Style) &&
                 !HasNativePanelOwnedRule(paragraph, paragraphStyle) &&
                 (HasNativeOnlyTopParagraphBorder(borders) || HasNativeOnlyBottomParagraphBorder(borders));
@@ -41,19 +41,19 @@ namespace OfficeIMO.Word.Pdf {
             var style = new PdfCore.PdfPanelStyle {
                 Background = background,
                 BorderColor = border?.Color,
-                BorderWidth = border?.Width ?? 0D,
-                PaddingX = 0D,
-                PaddingY = 0D,
-                LeftInset = OfficeLength.Points(paragraphStyle.LeftIndent + Math.Min(paragraphStyle.FirstLineIndent, 0D)),
-                RightInset = OfficeLength.Points(paragraphStyle.RightIndent),
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(border?.Width ?? 0D),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(0D),
+                LeftInset = OfficeLength.Points(paragraphStyle.LeftIndent.ToPoints() + Math.Min(paragraphStyle.FirstLineIndent.ToPoints(), 0D)),
+                RightInset = OfficeLength.Points(paragraphStyle.RightIndent.ToPoints()),
                 PaddingTopOverride = backgroundOnly ? 0D : ResolveNativeParagraphPanelPadding(borders.Top),
                 PaddingBottomOverride = backgroundOnly ? 0D : ResolveNativeParagraphPanelPadding(borders.Bottom),
                 RepeatFragmentDecoration = !hasParagraphBorder,
                 AllowTrailingPaddingOverflow = hasParagraphBorder,
-                FragmentBottomInset = hasParagraphBorder && !UsesModernNativeWordLayout(paragraph._document)
-                    ? ResolveNativeParagraphPanelPadding(borders.Bottom) : 0D,
+                FragmentBottomInset = global::OfficeIMO.OfficeLength.Points(hasParagraphBorder && !UsesModernNativeWordLayout(paragraph._document)
+                    ? ResolveNativeParagraphPanelPadding(borders.Bottom) : 0D),
                 SpacingBefore = paragraphStyle.SpacingBefore,
-                SpacingAfter = paragraphStyle.SpacingAfter ?? 6D,
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points((paragraphStyle.SpacingAfter?.ToPoints()) ?? 6D),
                 ClipSpacingAfterAtFrameEnd = true,
                 KeepWithNext = paragraphStyle.KeepWithNext,
                 Align = ResolveNativeParagraphAlign(paragraph, allowJustify: false)
@@ -65,19 +65,19 @@ namespace OfficeIMO.Word.Pdf {
                 style.BottomBorder = CreateNativePanelBorder(borders.Bottom);
                 style.LeftBorder = CreateNativePanelBorder(borders.Left);
                 if (style.TopBorder is { } top) {
-                    top.Offset = -top.Width / 2D;
+                    top.Offset = global::OfficeIMO.OfficeLength.Points(-top.Width.ToPoints() / 2D);
                     style.TopBorder = top;
                 }
                 if (style.BottomBorder is { } bottom) {
-                    bottom.Offset = -bottom.Width / 2D;
+                    bottom.Offset = global::OfficeIMO.OfficeLength.Points(-bottom.Width.ToPoints() / 2D);
                     style.BottomBorder = bottom;
                 }
                 if (style.LeftBorder is { } left) {
-                    left.Offset = NativeParagraphBorderHorizontalGapPoints + Math.Min(borders.Left.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + left.Width / 2D;
+                    left.Offset = global::OfficeIMO.OfficeLength.Points(NativeParagraphBorderHorizontalGapPoints + Math.Min(borders.Left.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + left.Width.ToPoints() / 2D);
                     style.LeftBorder = left;
                 }
                 if (style.RightBorder is { } right) {
-                    right.Offset = NativeParagraphBorderHorizontalGapPoints + Math.Min(borders.Right.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + right.Width / 2D;
+                    right.Offset = global::OfficeIMO.OfficeLength.Points(NativeParagraphBorderHorizontalGapPoints + Math.Min(borders.Right.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + right.Width.ToPoints() / 2D);
                     style.RightBorder = right;
                 }
             }
@@ -105,10 +105,10 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return new PdfCore.PdfHorizontalRuleStyle {
-                Thickness = (borders.Bottom.Size ?? 4U) / 8D,
-                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Bottom.ColorHex)) ?? PdfCore.PdfColor.Black,
+                Thickness = global::OfficeIMO.OfficeLength.Points((borders.Bottom.Size ?? 4U) / 8D),
+                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Bottom.ColorHex)) ?? global::OfficeIMO.OfficeColor.Black,
                 SpacingBefore = paragraphStyle.SpacingBefore,
-                SpacingAfter = paragraphStyle.SpacingAfter ?? (borders.Bottom.Space ?? 6U),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points((paragraphStyle.SpacingAfter?.ToPoints()) ?? (borders.Bottom.Space ?? 6U)),
                 KeepWithNext = paragraphStyle.KeepWithNext
             };
         }
@@ -123,10 +123,10 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return new PdfCore.PdfHorizontalRuleStyle {
-                Thickness = (borders.Bottom.Size ?? 4U) / 8D,
-                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Bottom.ColorHex)) ?? PdfCore.PdfColor.Black,
-                SpacingBefore = borders.Bottom.Space ?? 0D,
-                SpacingAfter = paragraphStyle.SpacingAfter ?? 6D,
+                Thickness = global::OfficeIMO.OfficeLength.Points((borders.Bottom.Size ?? 4U) / 8D),
+                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Bottom.ColorHex)) ?? global::OfficeIMO.OfficeColor.Black,
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(borders.Bottom.Space ?? 0D),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points((paragraphStyle.SpacingAfter?.ToPoints()) ?? 6D),
                 KeepWithNext = paragraphStyle.KeepWithNext
             };
         }
@@ -141,15 +141,15 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return new PdfCore.PdfHorizontalRuleStyle {
-                Thickness = (borders.Top.Size ?? 4U) / 8D,
-                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Top.ColorHex)) ?? PdfCore.PdfColor.Black,
+                Thickness = global::OfficeIMO.OfficeLength.Points((borders.Top.Size ?? 4U) / 8D),
+                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Top.ColorHex)) ?? global::OfficeIMO.OfficeColor.Black,
                 SpacingBefore = paragraphStyle.SpacingBefore,
-                SpacingAfter = borders.Top.Space ?? 0D,
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(borders.Top.Space ?? 0D),
                 KeepWithNext = true
             };
         }
 
-        private static (PdfCore.PdfColor? Color, double Width)? GetNativeUniformParagraphBorder(NativeParagraphBorders borders) {
+        private static (global::OfficeIMO.OfficeColor? Color, double Width)? GetNativeUniformParagraphBorder(NativeParagraphBorders borders) {
             if (!HasNativeBorder(borders.Top.Style) ||
                 !HasNativeBorder(borders.Bottom.Style) ||
                 !HasNativeBorder(borders.Left.Style) ||
@@ -177,7 +177,7 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            PdfCore.PdfColor color = ParseNativeColor(topColor) ?? PdfCore.PdfColor.Black;
+            global::OfficeIMO.OfficeColor color = ParseNativeColor(topColor) ?? global::OfficeIMO.OfficeColor.Black;
             return (color, topSize / 8D);
         }
 
@@ -200,8 +200,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return new PdfCore.PdfPanelBorder {
-                Color = ParseNativeColor(NormalizeNativeBorderColor(border.ColorHex)) ?? PdfCore.PdfColor.Black,
-                Width = (border.Size ?? 4U) / 8D
+                Color = ParseNativeColor(NormalizeNativeBorderColor(border.ColorHex)) ?? global::OfficeIMO.OfficeColor.Black,
+                Width = global::OfficeIMO.OfficeLength.Points((border.Size ?? 4U) / 8D)
             };
         }
 

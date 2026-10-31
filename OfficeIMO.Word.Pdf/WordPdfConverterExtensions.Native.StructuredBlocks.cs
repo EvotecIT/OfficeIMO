@@ -389,7 +389,7 @@ namespace OfficeIMO.Word.Pdf {
                 pdfWatermark.RotationAngle = watermark.Rotation.Value;
             }
 
-            PdfCore.PdfColor? color = ParseNativeWatermarkColor(watermark.ColorHex);
+            global::OfficeIMO.OfficeColor? color = ParseNativeWatermarkColor(watermark.ColorHex);
             if (color.HasValue) {
                 pdfWatermark.Color = color.Value;
             }
@@ -401,7 +401,7 @@ namespace OfficeIMO.Word.Pdf {
 
             double? fontSize = ResolveNativeWatermarkFontSize(watermark);
             if (fontSize.HasValue) {
-                pdfWatermark.FontSize = fontSize.Value;
+                pdfWatermark.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize.Value);
             }
 
             if (TryResolveNativeMappedFont(watermark.FontFamily, nativeFontMap: null, out PdfCore.PdfStandardFont mappedFont)) {
@@ -440,9 +440,9 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            double width = watermark.Width is > 0D ? watermark.Width.Value : 144D;
-            double height = watermark.Height is > 0D ? watermark.Height.Value : 144D;
-            var pdfWatermark = new PdfCore.PdfImageWatermark(preparedBytes, width, height);
+            double width = watermark.Width?.ToPoints() is double widthPoints && widthPoints > 0D ? widthPoints : 144D;
+            double height = watermark.Height?.ToPoints() is double heightPoints && heightPoints > 0D ? heightPoints : 144D;
+            var pdfWatermark = new PdfCore.PdfImageWatermark(preparedBytes, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height));
             if (watermark.Rotation.HasValue) {
                 pdfWatermark.RotationAngle = watermark.Rotation.Value;
             }
@@ -472,13 +472,13 @@ namespace OfficeIMO.Word.Pdf {
             !string.IsNullOrWhiteSpace(mark.Text) || mark.HasImage;
 
         private static double? ResolveNativeWatermarkFontSize(WordWatermark watermark) {
-            double? fontSize = watermark.FontSize;
+            double? fontSize = watermark.NativeFontSizePoints;
             if (fontSize.HasValue && fontSize.Value > 2D) {
                 return fontSize.Value;
             }
 
-            double? width = watermark.Width;
-            double? height = watermark.Height;
+            double? width = watermark.Width?.ToPoints();
+            double? height = watermark.Height?.ToPoints();
             string text = watermark.Text ?? string.Empty;
             if (!width.HasValue || !height.HasValue || width.Value <= 0D || height.Value <= 0D || text.Length == 0) {
                 return fontSize;
@@ -490,20 +490,20 @@ namespace OfficeIMO.Word.Pdf {
             return derived > 2D ? derived : fontSize;
         }
 
-        private static PdfCore.PdfColor? ParseNativeWatermarkColor(string? color) {
-            PdfCore.PdfColor? parsed = ParseNativeColor(color);
+        private static global::OfficeIMO.OfficeColor? ParseNativeWatermarkColor(string? color) {
+            global::OfficeIMO.OfficeColor? parsed = ParseNativeColor(color);
             if (parsed != null || string.IsNullOrWhiteSpace(color)) {
                 return parsed;
             }
 
             string value = color!.Trim();
-            if (value.Equals("silver", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.FromRgb(192, 192, 192);
-            if (value.Equals("gray", StringComparison.OrdinalIgnoreCase) || value.Equals("grey", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.Gray;
-            if (value.Equals("black", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.Black;
-            if (value.Equals("white", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.White;
-            if (value.Equals("red", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.FromRgb(255, 0, 0);
-            if (value.Equals("green", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.FromRgb(0, 128, 0);
-            if (value.Equals("blue", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.FromRgb(0, 0, 255);
+            if (value.Equals("silver", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.FromRgb(192, 192, 192);
+            if (value.Equals("gray", StringComparison.OrdinalIgnoreCase) || value.Equals("grey", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
+            if (value.Equals("black", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.Black;
+            if (value.Equals("white", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.White;
+            if (value.Equals("red", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
+            if (value.Equals("green", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0);
+            if (value.Equals("blue", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255);
 
             return null;
         }

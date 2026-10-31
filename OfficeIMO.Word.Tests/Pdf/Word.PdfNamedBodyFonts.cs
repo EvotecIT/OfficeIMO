@@ -31,7 +31,7 @@ public partial class Word {
     public void SaveAsPdf_InheritedNamedBodyUsesRegisteredResource(bool profile, string sourceFamily, int bodyOverride) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = sourceFamily;
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("BODY");
         var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
@@ -62,7 +62,7 @@ public partial class Word {
     public void SaveAsPdf_FontBearingProfileAndClonePreserveBodyIntent(bool overlay, bool matchedBody, bool explicitBody) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = matchedBody ? "Arial" : "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("BODY");
         var profile = new OfficeRenderingProfile("named-profile", new OfficeFontFaceCollection()
             .Add("Arial", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray())));
@@ -92,7 +92,7 @@ public partial class Word {
     public void SaveAsPdf_ClearingStandardSlotsRestoresBodyDiscoveryWithNamedResources(bool profile) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("BODY");
         WordPdfExportOptions options = CreateNamedPresentationOptions(profile);
         options.PdfOptions!.RegisterFontFamily(PdfStandardFont.Helvetica,

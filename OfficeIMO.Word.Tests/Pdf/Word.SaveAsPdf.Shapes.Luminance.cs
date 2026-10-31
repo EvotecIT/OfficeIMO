@@ -14,7 +14,7 @@ public partial class Word {
     public void SaveAsPdf_DrawingMlLuminanceSequenceRetainsContinuousHslAcrossAlpha() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Before luminance shape");
-        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 112D, 48D);
+        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(112D), OfficeIMO.OfficeLength.Points(48D));
         document.AddParagraph("After luminance shape");
         Wps.ShapeProperties properties = document.MainDocumentPartRoot.Document.Descendants<Wps.ShapeProperties>().Single();
         A.PresetGeometry? geometry = properties.GetFirstChild<A.PresetGeometry>();

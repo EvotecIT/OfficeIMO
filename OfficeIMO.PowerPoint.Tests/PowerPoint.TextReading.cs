@@ -10,7 +10,7 @@ public sealed class PowerPointTextReadingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void SavedTextRetainsInlineBreaksFieldTextAndParagraphBoundaries(bool tableCell) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var slide = document.AddSlide();
         PowerPointParagraph paragraph;
         if (tableCell) {
@@ -25,7 +25,7 @@ public sealed class PowerPointTextReadingTests {
         }
         paragraph.AddLineBreak().AddField("2", "slidenum").AddText(" tail");
         Assert.Equal("First" + Environment.NewLine + "2 tail", paragraph.Text);
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         string actual = tableCell ? Assert.Single(saved.Slides[0].Tables).GetCell(0, 0).Text : Assert.Single(saved.Slides[0].TextBoxes).Text;
         Assert.Equal("First" + Environment.NewLine + "2 tail" + Environment.NewLine + "Last", actual);
         Assert.Empty(saved.ValidateDocument());

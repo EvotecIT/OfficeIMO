@@ -80,23 +80,23 @@ logical,            workbook,
     [Fact]
     public void PdfTables_Export_ImportsDetectedTablesAsWorkbookTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -141,13 +141,13 @@ logical,            workbook,
     [Fact]
     public void PdfTables_Export_ReportsDocumentActionsOutsideTableScope() {
         var pdfOptions = new PdfCore.PdfCreateOptions {
-            PageWidth = 420,
-            PageHeight = 360,
-            MarginLeft = 36,
-            MarginRight = 36,
-            MarginTop = 36,
-            MarginBottom = 36,
-            DefaultFontSize = 10
+            PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         }.SetOpenAction(1, destinationMode: PdfCore.PdfOpenActionDestinationMode.Fit);
         byte[] tablePdf = PdfCore.PdfDocument.Create(pdfOptions)
             .Table(new[] {
@@ -177,23 +177,23 @@ LoadTables(pdf),            workbook,
     [Fact]
     public void PdfTables_Export_SupportsNonSeekableDestinationStreams() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Code", "Qty" },
                 new[] { "A-100", "2" },
                 new[] { "B-200", "3" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 180, 80 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(80) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
         using var workbook = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
@@ -215,23 +215,23 @@ LoadTables(pdf),            workbook,
     [Fact]
     public void PdfTables_Export_WritesDetectedNumericColumnsAsNumberCells() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
 
@@ -296,18 +296,18 @@ ExportTableFixture(
         var style = new PdfCore.PdfTableStyle {
             HeaderRowCount = 2,
             RepeatHeaderRowCount = 2,
-            ColumnWidthPoints = new List<double?> { 120, 120 },
-            CellPaddingX = 5,
-            CellPaddingY = 3
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(120) },
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
         };
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(rows, style: style)
             .ToBytes();
@@ -390,20 +390,20 @@ logical,            workbook,
         }
 
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(rows, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
                 RepeatHeaderRowCount = 0,
-                ColumnWidthPoints = new List<double?> { 160, 80 },
-                CellPaddingX = 5,
-                CellPaddingY = 3
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(80) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
             })
             .ToBytes();
 
@@ -439,20 +439,20 @@ logical,            workbook,
         for (int index = 0; index < 30; index++) rows.Add(new[] { "Pending", "Team A" });
 
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(rows, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
                 RepeatHeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 160, 80 },
-                CellPaddingX = 5,
-                CellPaddingY = 3
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(80) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
             })
             .ToBytes();
 
@@ -478,13 +478,13 @@ LoadTables(pdf),            workbook,
     [Fact]
     public void PdfTables_Export_WritesBooleanPercentageDateAndNumericColumnsAsTypedCells() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { "Active", "Completion" },
@@ -494,7 +494,7 @@ LoadTables(pdf),            workbook,
                 new[] { "false", "00.0%" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 120, 120 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(120) }
             })
             .PageBreak()
             .Table(new[] {
@@ -505,7 +505,7 @@ LoadTables(pdf),            workbook,
                 new[] { "2026-09-01", "21" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 160, 80 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(80) }
             })
             .ToBytes();
 
@@ -560,7 +560,7 @@ logical,            workbook,
                 new[] { "3/4", "Three quarters" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 120, 160 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(160) }
             })
             .ToBytes();
 
@@ -586,7 +586,7 @@ LoadTables(pdf),            workbook,
                 new[] { "14:45", "16:30", "Afternoon" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 90, 90, 160 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(160) }
             })
             .ToBytes();
 
@@ -619,7 +619,7 @@ LoadTables(pdf),            workbook,
                 new[] { "3/4", "Second" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 120, 160 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(160) }
             })
             .ToBytes();
 
@@ -646,7 +646,7 @@ LoadTables(pdf),            workbook,
                 new[] { secondValue, "Second" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 120, 160 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(160) }
             })
             .ToBytes();
 
@@ -674,7 +674,7 @@ LoadTables(pdf),            workbook,
                 new[] { secondValue, "Second" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 120, 160 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(160) }
             })
             .ToBytes();
 
@@ -698,7 +698,7 @@ LoadTables(pdf),            workbook,
                 new[] { "01.01.2027", "Drugi" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 120, 120 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(120) }
             })
             .ToBytes();
 
@@ -725,7 +725,7 @@ LoadTables(pdf),            workbook,
                 new[] { "30.11.2026", "Zweite" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 120, 120 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(120) }
             })
             .ToBytes();
         var culture = CultureInfo.GetCultureInfo("de-DE");
@@ -761,13 +761,13 @@ LoadTables(pdf),            dateWorkbook,
     [Fact]
     public void PdfTables_Export_KeepsPositionedCellRecoveryBoundedAndTableOnly() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 640,
-                PageHeight = 280,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(640),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(280),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { "Active", "Completion Percentage", "Due Date", "Quantity" },
@@ -775,7 +775,7 @@ LoadTables(pdf),            dateWorkbook,
                 new[] { "No", "100%", "2026-07-31", "14" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 80, 160, 120, 80 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(80) }
             })
             .ToBytes();
 
@@ -1561,22 +1561,22 @@ logical,            workbook,
     [Fact]
     public void PdfTables_Export_AppliesRowCapsAndKeepsWorkbookValidWhenEmpty() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .KeyValueTable(new[] {
                 PdfCore.PdfKeyValueRow.Text("InvoiceId", "INV-001"),
                 PdfCore.PdfKeyValueRow.Text("Customer", "Evotec"),
                 PdfCore.PdfKeyValueRow.Text("Due", "2026-06-30")
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 120, 170 },
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(170) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .PageBreak()
             .Paragraph(p => p.Text("No table on this page."))
@@ -1636,20 +1636,20 @@ logical,            workbook,
             });
         }
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(rows, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
                 RepeatHeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { firstColumnWidth, secondColumnWidth },
-                CellPaddingX = 5,
-                CellPaddingY = 3
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(firstColumnWidth), global::OfficeIMO.OfficeLength.Points(secondColumnWidth) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
             })
             .ToBytes();
     }

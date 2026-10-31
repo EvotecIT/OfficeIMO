@@ -125,7 +125,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            if (parsed.FormatSwitches.Any(format => format is not WordFieldFormat.Mergeformat and not WordFieldFormat.CharFormat)) {
+            if (parsed.FormatSwitches.Any(format => format is not WordFieldFormat.MergeFormat and not WordFieldFormat.CharFormat)) {
                 error = "LISTNUM supports only Mergeformat and CharFormat general format switches in deterministic built-in profiles.";
                 return false;
             }

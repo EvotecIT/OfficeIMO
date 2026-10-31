@@ -43,20 +43,20 @@ public partial class Word {
             table.ConditionalFormattingFirstRow = true;
         } else {
             table.ConditionalFormattingFirstRow = false;
-            table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 16U, OfficeColor.Gray);
+            table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, OfficeLength.Points((16U) / 8d), OfficeColor.Gray);
             var border = table.Rows[side == "bottom" ? 0 : 1].Cells[side == "left" ? 1 : 0].Borders;
             switch (side) {
-                case "top": border.TopStyle = WordBorderStyle.Single; border.TopColorHex = "FF0000"; border.TopSize = 8U; break;
-                case "bottom": border.BottomStyle = WordBorderStyle.Single; border.BottomColorHex = "FF0000"; border.BottomSize = 8U; break;
-                case "left": border.LeftStyle = WordBorderStyle.Single; border.LeftColorHex = "FF0000"; border.LeftSize = 8U; break;
-                case "right": border.RightStyle = WordBorderStyle.Single; border.RightColorHex = "FF0000"; border.RightSize = 8U; break;
+                case "top": border.TopStyle = WordBorderStyle.Single; border.TopColorHex = "FF0000"; border.TopSize = OfficeLength.Points((8U) / 8d); break;
+                case "bottom": border.BottomStyle = WordBorderStyle.Single; border.BottomColorHex = "FF0000"; border.BottomSize = OfficeLength.Points((8U) / 8d); break;
+                case "left": border.LeftStyle = WordBorderStyle.Single; border.LeftColorHex = "FF0000"; border.LeftSize = OfficeLength.Points((8U) / 8d); break;
+                case "right": border.RightStyle = WordBorderStyle.Single; border.RightColorHex = "FF0000"; border.RightSize = OfficeLength.Points((8U) / 8d); break;
             }
         }
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Header";
         table.Rows[1].Cells[0].Paragraphs[0].Text = "Body";
         if (side == "left" || side == "right") {
             var target = table.Rows[1].Cells[side == "right" ? 1 : 0];
-            target.MarginLeftWidth = target.MarginRightWidth = 0;
+            target.MarginLeft = target.MarginRight = OfficeLength.Zero;
             target.Paragraphs[0].Text = "Edge";
             if (side == "left") target.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Right;
         }
@@ -69,8 +69,8 @@ public partial class Word {
         if (side == "repeated-merged-header") table.MergeCells(3, 0, 4, 1);
         var options = new WordPdfExportOptions { IncludePageNumbers = false };
         if (repeated) {
-            options.PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 180);
-            options.Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(20);
+            options.PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeLength.Points(300), OfficeLength.Points(180));
+            options.Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeLength.Points(20));
         }
         using var converted = document.ToPdf(options);
         using var pdf = PdfPigDocument.Open(converted.ToBytes());
@@ -111,21 +111,21 @@ public partial class Word {
         using var document = WordDocument.Create();
         var table = document.AddTable(16, 1, WordTableStyle.TableGrid);
         table.ConditionalFormattingFirstRow = false;
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 16U, OfficeColor.Gray);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, OfficeLength.Points((16U) / 8d), OfficeColor.Gray);
         table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = profile == "header-nil" || profile == "body-cell";
         for (int row = 0; row < table.Rows.Count; row++) {
             var cell = table.Rows[row].Cells[0];
             cell.Paragraphs[0].Text = row == 0 ? "Header" : "Body" + row;
             if (profile == "no-repeat-top") {
-                cell.Borders.BottomStyle = WordBorderStyle.Single; cell.Borders.BottomColorHex = "FF0000"; cell.Borders.BottomSize = 8U;
+                cell.Borders.BottomStyle = WordBorderStyle.Single; cell.Borders.BottomColorHex = "FF0000"; cell.Borders.BottomSize = OfficeLength.Points((8U) / 8d);
             } else if ((profile == "body-cell" && row > 1) || (profile == "no-repeat-bottom" && row > 0)) {
-                cell.Borders.TopStyle = WordBorderStyle.Single; cell.Borders.TopColorHex = "FF0000"; cell.Borders.TopSize = 8U;
+                cell.Borders.TopStyle = WordBorderStyle.Single; cell.Borders.TopColorHex = "FF0000"; cell.Borders.TopSize = OfficeLength.Points((8U) / 8d);
             }
         }
         if (profile == "header-nil") table.Rows[0].Cells[0].Borders.BottomStyle = WordBorderStyle.Nil;
         using var converted = document.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 180),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(20)
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeLength.Points(300), OfficeLength.Points(180)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeLength.Points(20))
         });
         using var pdf = PdfPigDocument.Open(converted.ToBytes());
         Assert.True(pdf.NumberOfPages > 1);

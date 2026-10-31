@@ -70,8 +70,8 @@ namespace OfficeIMO.Word.Pdf {
                 color: ParseNativeColor(properties?.Color?.Val?.Value),
                 italic: HasNativeOnOff(properties?.Italic),
                 strike: HasNativeOnOff(properties?.Strike),
-                fontSize: style.FontSize ?? (style.SmallCaps && !style.AllCaps
-                    ? style.EffectiveFontSize : GetNativeVmlRunFontSize(properties)),
+                fontSize: ((double?)(style.FontSize ?? (style.SmallCaps && !style.AllCaps
+                    ? style.EffectiveFontSize : GetNativeVmlRunFontSize(properties))) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
                 font: GetNativeVmlRunFont(properties)));
 
         private static void AddNativeVmlTextPathRuns(List<PdfCore.PdfTextRun> runs, WordDocument document, OpenXmlElement element) {
@@ -97,7 +97,7 @@ namespace OfficeIMO.Word.Pdf {
                     color: null,
                     italic: false,
                     strike: false,
-                    fontSize: GetNativeVmlTextPathFontSize(textPath),
+                    fontSize: ((double?)(GetNativeVmlTextPathFontSize(textPath)) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
                     font: GetNativeVmlTextPathFont(textPath)));
             }
         }
@@ -167,12 +167,12 @@ namespace OfficeIMO.Word.Pdf {
             var style = new PdfCore.PdfCanvasTextBoxStyle {
                 Background = null,
                 BorderColor = null,
-                BorderWidth = 0D,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0D),
                 TextColor = null,
                 Align = GetNativeVmlTextAlign(element),
                 VerticalAlign = GetNativeVmlVerticalAlign(element),
-                FontSize = GetNativeVmlDefaultFontSize(runs),
-                LineHeight = GetNativeVmlDefaultFontSize(runs) * 1.2D
+                FontSize = global::OfficeIMO.OfficeLength.Points(GetNativeVmlDefaultFontSize(runs)),
+                LineHeight = global::OfficeIMO.OfficeLength.Points(GetNativeVmlDefaultFontSize(runs) * 1.2D)
             };
 
             ApplyNativeVmlTextBoxInset(style, element);
@@ -239,8 +239,8 @@ namespace OfficeIMO.Word.Pdf {
         private static double GetNativeVmlDefaultFontSize(IReadOnlyList<PdfCore.PdfTextRun> runs) {
             double max = 0D;
             foreach (PdfCore.PdfTextRun run in runs) {
-                if (!string.IsNullOrWhiteSpace(run.Text) && run.FontSize.HasValue && run.FontSize.Value > max) {
-                    max = run.FontSize.Value;
+                if (!string.IsNullOrWhiteSpace(run.Text) && run.FontSize is OfficeLength fontSize) {
+                    max = Math.Max(max, fontSize.ToPoints());
                 }
             }
 
@@ -269,8 +269,8 @@ namespace OfficeIMO.Word.Pdf {
             OpenXmlElement? textBox = element.Descendants().FirstOrDefault(child => child.NamespaceUri == "urn:schemas-microsoft-com:vml" && child.LocalName == "textbox");
             string? inset = textBox == null ? null : GetNativeOpenXmlAttribute(textBox, "inset");
             if (string.IsNullOrWhiteSpace(inset)) {
-                style.PaddingX = 0D;
-                style.PaddingY = 0D;
+                style.PaddingX = global::OfficeIMO.OfficeLength.Points(0D);
+                style.PaddingY = global::OfficeIMO.OfficeLength.Points(0D);
                 return;
             }
 
@@ -279,10 +279,10 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            style.PaddingLeft = ResolveNativeVmlLength(parts[0], 0D, 0D) ?? 0D;
-            style.PaddingTop = ResolveNativeVmlLength(parts[1], 0D, 0D) ?? 0D;
-            style.PaddingRight = parts.Length > 2 ? ResolveNativeVmlLength(parts[2], 0D, 0D) ?? style.PaddingLeft : style.PaddingLeft;
-            style.PaddingBottom = parts.Length > 3 ? ResolveNativeVmlLength(parts[3], 0D, 0D) ?? style.PaddingTop : style.PaddingTop;
+            style.PaddingLeft = global::OfficeIMO.OfficeLength.Points(ResolveNativeVmlLength(parts[0], 0D, 0D) ?? 0D);
+            style.PaddingTop = global::OfficeIMO.OfficeLength.Points(ResolveNativeVmlLength(parts[1], 0D, 0D) ?? 0D);
+            style.PaddingRight = parts.Length > 2 && ResolveNativeVmlLength(parts[2], 0D, 0D) is double rightPadding ? global::OfficeIMO.OfficeLength.Points(rightPadding) : style.PaddingLeft;
+            style.PaddingBottom = parts.Length > 3 && ResolveNativeVmlLength(parts[3], 0D, 0D) is double bottomPadding ? global::OfficeIMO.OfficeLength.Points(bottomPadding) : style.PaddingTop;
         }
 
     }

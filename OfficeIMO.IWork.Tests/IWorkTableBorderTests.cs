@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
         AssertBorder(table.GetBorders(4, 3).Bottom, "000000", 2);
         Assert.DoesNotContain(result.Projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using (var reopened = PowerPointPresentation.Load(saved)) {
+        using (var reopened = PowerPointDocument.Load(saved)) {
             Assert.Empty(reopened.ValidateDocument());
             var target = reopened.Slides[0].Tables.Single();
             Assert.False(target.FirstRow); Assert.False(target.FirstColumn); Assert.False(target.LastRow); Assert.False(target.BandedRows);

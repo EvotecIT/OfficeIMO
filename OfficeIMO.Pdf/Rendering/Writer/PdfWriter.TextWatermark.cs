@@ -25,7 +25,7 @@ internal static partial class PdfWriter {
         byte[] bytes = PdfEncoding.Latin1GetBytes(foreground);
         var empty = Array.Empty<(string Name, int Id)>();
         string dictionary = PdfTransparencyGroupDictionaryBuilder.BuildStreamDictionary(
-            0D, 0D, options.PageWidth, options.PageHeight, bytes.Length,
+            0D, 0D, options.PageWidth.ToPoints(), options.PageHeight.ToPoints(), bytes.Length,
             FilterPdfResources(foreground, fonts), empty, empty, empty);
         int objectId = AddStreamObject(objects, dictionary, bytes);
         const string resourceName = "/WmText";
@@ -46,14 +46,14 @@ internal static partial class PdfWriter {
     private static void AppendTextWatermark(StringBuilder sb, PdfCreateOptions options, PdfTextWatermark watermark, string fontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? graphicsStateName) {
         PdfStandardFont baseFont = ChooseNormal(watermark.Font);
         System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildTextWatermarkRuns(watermark, options);
-        double textWidth = MeasureTextWatermarkRuns(runs, baseFont, watermark.FontSize, options);
+        double textWidth = MeasureTextWatermarkRuns(runs, baseFont, watermark.FontSize.ToPoints(), options);
         double angle = watermark.RotationAngle * System.Math.PI / 180D;
         double cos = System.Math.Cos(angle);
         double sin = System.Math.Sin(angle);
-        double centerX = options.PageWidth / 2D;
-        double centerY = options.PageHeight / 2D;
-        double originX = centerX - cos * textWidth / 2D + sin * watermark.FontSize / 2D;
-        double originY = centerY - sin * textWidth / 2D - cos * watermark.FontSize / 2D;
+        double centerX = options.PageWidth.ToPoints() / 2D;
+        double centerY = options.PageHeight.ToPoints() / 2D;
+        double originX = centerX - cos * textWidth / 2D + sin * watermark.FontSize.ToPoints() / 2D;
+        double originY = centerY - sin * textWidth / 2D - cos * watermark.FontSize.ToPoints() / 2D;
 
         var content = new ContentStreamBuilder(sb)
             .SaveState();
@@ -63,7 +63,7 @@ internal static partial class PdfWriter {
 
         content
             .BeginText()
-            .Font(fontAlias, watermark.FontSize, options.NeedsSyntheticOblique(baseFont), syntheticBold: options.NeedsSyntheticBold(baseFont))
+            .Font(fontAlias, watermark.FontSize.ToPoints(), options.NeedsSyntheticOblique(baseFont), syntheticBold: options.NeedsSyntheticBold(baseFont))
             .FillColor(watermark.Color)
             .TextMatrix(cos, sin, -sin, cos, originX, originY);
         // Keep logical replacement inside the text object so redaction of the
@@ -77,7 +77,7 @@ internal static partial class PdfWriter {
 
             PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
             string runFontResource = ResolvePageTextFontResource(fontResources, runFont);
-            double runFontSize = run.FontSize ?? watermark.FontSize;
+            double runFontSize = run.FontSize?.ToPoints() ?? watermark.FontSize.ToPoints();
             content
                 .Font(runFontResource, runFontSize, options.NeedsSyntheticOblique(runFont), syntheticBold: options.NeedsSyntheticBold(runFont))
                 .ShowText(EncodeTextShowCommand(text, runFont, options), runFontSize, suppressActualText: true);
@@ -105,7 +105,7 @@ internal static partial class PdfWriter {
     private static double MeasureTextWatermarkRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfCreateOptions options) {
         double width = 0D;
         foreach (PdfTextRun run in runs) {
-            width += MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), run.FontSize ?? fontSize, run.Baseline, options);
+            width += MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), run.FontSize?.ToPoints() ?? fontSize, run.Baseline, options);
         }
 
         return width;

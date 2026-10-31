@@ -75,12 +75,12 @@ public partial class HtmlWordGapClosure {
 
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord(options);
 
-        Assert.Equal(240, FindParagraph(document, "rem").IndentationBefore);
-        Assert.Equal(1440, FindParagraph(document, "in").LineSpacingBefore);
-        Assert.Equal(567, FindParagraph(document, "cm").IndentationBefore);
-        Assert.Equal(57, FindParagraph(document, "mm").IndentationBefore);
-        Assert.Equal(240, FindParagraph(document, "pc").IndentationBefore);
-        Assert.Equal(14, FindParagraph(document, "q").IndentationBefore);
+        Assert.Equal(240, checked((int?)(FindParagraph(document, "rem").IndentationBefore?.ToTwips())));
+        Assert.Equal(1440, checked((int?)(FindParagraph(document, "in").LineSpacingBefore?.ToTwips())));
+        Assert.Equal(567, checked((int?)(FindParagraph(document, "cm").IndentationBefore?.ToTwips())));
+        Assert.Equal(57, checked((int?)(FindParagraph(document, "mm").IndentationBefore?.ToTwips())));
+        Assert.Equal(240, checked((int?)(FindParagraph(document, "pc").IndentationBefore?.ToTwips())));
+        Assert.Equal(14, checked((int?)(FindParagraph(document, "q").IndentationBefore?.ToTwips())));
     }
 
     private static WordParagraph FindParagraph(WordDocument document, string text) =>

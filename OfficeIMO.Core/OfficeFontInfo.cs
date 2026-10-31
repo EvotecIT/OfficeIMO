@@ -28,7 +28,7 @@ public readonly struct OfficeFontInfo : IEquatable<OfficeFontInfo> {
     /// <summary>Font family name, when known.</summary>
     public string FamilyName { get; }
 
-    /// <summary>Font size in points.</summary>
+    /// <summary>Font size interpreted in the drawing or measurement context.</summary>
     public double Size { get; }
 
     /// <summary>Font style flags.</summary>

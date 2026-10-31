@@ -3,6 +3,9 @@ using OfficeIMO.Word.LegacyDoc;
 namespace OfficeIMO.Word;
 
 public sealed partial class WordCreateOptions {
+    /// <summary>Theme for a new document. Null selects Modern for blank documents and preserves an existing template.</summary>
+    public OfficeTheme? Theme { get; set; }
+
     /// <summary>Optional Word template copied into the new document.</summary>
     public string? Template { get; set; }
 }

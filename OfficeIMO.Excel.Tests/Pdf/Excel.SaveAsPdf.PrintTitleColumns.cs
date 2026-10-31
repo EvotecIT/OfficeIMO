@@ -14,14 +14,14 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable, 3)]
     public void SaveAsPdf_TitleBlockRepeatsOnlyColumnsBeforeTheCurrentBodySegment(ExcelPdfWorksheetLayoutMode layout, int firstBreak) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int column = 1; column <= 8; column++) sheet.Cell(1, column, "Column" + column);
         document.SetPrintArea(sheet, "A1:H2");
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 3, lastCol: 4);
         sheet.AddManualColumnPageBreak(firstBreak); sheet.AddManualColumnPageBreak(6);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(700),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         Assert.DoesNotContain("Column4", pdf.GetPage(1).Text);
@@ -40,7 +40,7 @@ public partial class Excel {
     [Fact]
     public void ToPdfDocument_GeneralAlignmentUsesCellTypesAndRetainsExplicitAlignment() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, 123.45D); sheet.Cell(1, 2, "123.45"); sheet.Cell(1, 3, true);
         sheet.Cell(1, 4, 123.45D); sheet.CellAlign(1, 4, ExcelHorizontalAlignment.Left);
         PdfCore.PdfDocument pdf = document.ToPdf(new ExcelPdfExportOptions {
@@ -57,9 +57,9 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_CanvasUsesDefaultBottomAlignmentAndRetainsExplicitTopAlignment() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, "DefaultBottom"); sheet.Cell(1, 2, "ExplicitTop");
-        sheet.SetRowHeight(1, 40D);
+        sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(40D)));
         sheet.CellVerticalAlign(1, 2, ExcelVerticalAlignment.Top);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions { HeaderRowCount = 0 }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
@@ -73,16 +73,16 @@ public partial class Excel {
     [InlineData(20D, true)]
     public void SaveAsPdf_FlowFitToHeightScalesExplicitCellFontsWithoutLosingRows(double fontSize, bool multiline) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 80; row++) {
             sheet.Cell(row, 1, "Row" + row.ToString("D3") + (multiline ? "\nDetail" + row.ToString("D3") : ""));
-            sheet.CellFontSize(row, 1, fontSize);
-            sheet.SetRowHeight(row, 20D);
+            sheet.CellFontSize(row, 1, global::OfficeIMO.OfficeLength.Points(fontSize));
+            sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20D)));
         }
         sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 2);
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             HeaderRowCount = 0, WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
-            PageSize = new PdfCore.PdfPageSize(300, 300), Margins = PdfCore.PdfPageMargins.Uniform(20)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         string text = string.Join(" ", pdf.GetPages().Select(page => page.Text));
@@ -95,12 +95,12 @@ public partial class Excel {
     [Fact]
     public void ToPdfDocument_RepeatedColumnsPreserveMergedTitleFormattingAndWidths() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, "Merged title");
         sheet.Range("A1:B1").Merge();
         sheet.CellAt(1, 1).SetBold().SetFillColor("DDEEFF").SetFontColor("112233");
         sheet.Cell(1, 3, "First page"); sheet.Cell(1, 5, "Second page");
-        sheet.SetColumnWidth(1, 10); sheet.SetColumnWidth(2, 20);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(10)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 2);
         document.SetPrintArea(sheet, "A1:F2");
         sheet.AddManualColumnPageBreak(3);
@@ -114,8 +114,8 @@ public partial class Excel {
             Assert.Equal(2, table.Cells[0][0].ColumnSpan);
             PdfCore.PdfTextRun run = Assert.Single(table.Cells[0][0].Runs);
             Assert.True(run.Bold);
-            Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), run.Color);
-            Assert.Equal(PdfCore.PdfColor.FromRgb(221, 238, 255), table.Style!.CellFills![(0, 0)]);
+            Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), run.Color);
+            Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(221, 238, 255), table.Style!.CellFills![(0, 0)]);
             Assert.Equal(2D, table.Style.ColumnWidthWeights![1] / table.Style.ColumnWidthWeights[0]);
         }
     }
@@ -130,13 +130,13 @@ public partial class Excel {
         ExcelSheet sheet = document.Sheets[0];
         sheet.Cell(1, 1, "TopLeft"); sheet.Cell(1, 3, "TopRight");
         sheet.Cell(3, 1, "BottomLeft"); sheet.Cell(3, 3, "BottomRight");
-        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, 20);
-        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, 30);
+        for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(20));
+        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         sheet.SetPageSetup(pageOrder: order, fitToWidth: fit ? 2U : null, fitToHeight: fit ? 2U : null);
         document.SetPrintArea(sheet, "A1:D4");
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PdfPageSize(275, 105), Margins = PdfCore.PdfPageMargins.Uniform(20)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(275),OfficeIMO.OfficeLength.Points(105)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(4, pdf.NumberOfPages);
@@ -167,7 +167,7 @@ public partial class Excel {
 
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
-            PageSize = new PdfCore.PdfPageSize(700, 500), Margins = PdfCore.PdfPageMargins.Uniform(20)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(700),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);

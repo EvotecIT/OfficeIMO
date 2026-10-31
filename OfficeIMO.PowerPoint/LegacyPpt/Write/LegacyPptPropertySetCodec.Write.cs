@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[]? CreateSummaryInformation(
-            PowerPointPresentation presentation) {
+            PowerPointDocument presentation) {
             var properties = new List<OfficeOleProperty> {
                 OfficeOleProperty.Int16(
                     OfficeOlePropertySetWriter.CodePagePropertyId, 1200)
@@ -53,7 +53,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryCreateDocumentSummaryInformation(
-            PowerPointPresentation presentation, out byte[]? bytes,
+            PowerPointDocument presentation, out byte[]? bytes,
             out string? reason) {
             var sections = new List<(Guid FormatId, byte[] Section)>();
             var properties = new List<OfficeOleProperty> {

@@ -65,8 +65,8 @@ public sealed class HtmlEditableLayoutReviewWave34Tests {
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         HtmlToPowerPointResult powerPointResult = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using PowerPointPresentation presentation = powerPointResult.Value;
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointDocument presentation = powerPointResult.Value;
 
         Assert.Contains(wordResult.Report.Diagnostics, IsUnsupportedPositionedImageDiagnostic);
         Assert.Contains(rtfResult.Report.Diagnostics, IsUnsupportedPositionedImageDiagnostic);

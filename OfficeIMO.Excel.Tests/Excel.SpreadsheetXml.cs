@@ -64,7 +64,7 @@ public sealed class ExcelSpreadsheetXmlTests {
     [Fact]
     public void Xml_export_reimports_cells_and_formula_references_without_evaluating_them() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("A & B");
+        var sheet = document.AddSheet("A & B");
         sheet.CellValue(2, 2, "00127"); sheet.CellValue(2, 3, false); sheet.CellValue(2, 4, 12.5);
         sheet.CellValue(4, 4, 42d); sheet.CellFormula(4, 4, "D2*2");
         var result = document.ExportSpreadsheetXml();
@@ -84,7 +84,7 @@ public sealed class ExcelSpreadsheetXmlTests {
     public void Xml_text_keeps_carriage_returns_through_export_import_and_package_save() {
         const string text = "A\rB\r\nC\nD";
         using var document = ExcelDocument.Create();
-        document.AddWorksheet("Data").CellValue(1, 1, text);
+        document.AddSheet("Data").CellValue(1, 1, text);
         byte[] xml = document.ExportSpreadsheetXml().Value;
         using var imported = ExcelDocument.ImportSpreadsheetXml(xml).Value;
         Assert.Equal(text, imported.Sheets[0].CellAt(1, 1).GetValue<string>());
@@ -97,7 +97,7 @@ public sealed class ExcelSpreadsheetXmlTests {
     [InlineData(false)]
     public void Xml_export_preserves_caches_and_never_invokes_save_calculation(bool evaluate) {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
+        var sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, 99d); sheet.CellFormula(1, 1, "EXPORTCALL()");
         int calls = 0;
         document.Calculation.RegisterCustomFunction("EXPORTCALL", (_, _) => { calls++; return ExcelFormulaValue.FromNumber(5d); });
@@ -118,7 +118,7 @@ public sealed class ExcelSpreadsheetXmlTests {
 
     [Fact]
     public void Xml_export_accepts_read_only_workbooks_and_does_not_require_saving_the_source() {
-        using var source = ExcelDocument.Create(); source.AddWorksheet("Data").CellValue(1, 1, "Read only");
+        using var source = ExcelDocument.Create(); source.AddSheet("Data").CellValue(1, 1, "Read only");
         using var document = ExcelDocument.Load(new MemoryStream(source.ToBytes()), new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
         byte[] output = document.ExportSpreadsheetXml().Value;
         using var imported = ExcelDocument.ImportSpreadsheetXml(output).Value;
@@ -128,7 +128,7 @@ public sealed class ExcelSpreadsheetXmlTests {
     [Fact]
     public void Xml_export_preserves_source_part_limit_for_unused_shared_strings() {
         using var source = ExcelDocument.Create();
-        source.AddWorksheet("Data").CellValue(1, 1, "safe");
+        source.AddSheet("Data").CellValue(1, 1, "safe");
         using var package = new MemoryStream();
         byte[] sourceBytes = source.ToBytes();
         package.Write(sourceBytes, 0, sourceBytes.Length);
@@ -152,7 +152,7 @@ public sealed class ExcelSpreadsheetXmlTests {
     [Fact]
     public void Xml_export_checks_structure_before_materializing_package_parts() {
         using var document = ExcelDocument.Create();
-        document.AddWorksheet("Data").CellValue(1, 1, "safe");
+        document.AddSheet("Data").CellValue(1, 1, "safe");
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.ExportSpreadsheetXml(new() { MaxXmlElements = 2 }));
         Assert.Contains("MaxXmlElements", error.Message, StringComparison.Ordinal);
     }

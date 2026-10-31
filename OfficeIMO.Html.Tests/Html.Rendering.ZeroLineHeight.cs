@@ -87,7 +87,7 @@ public sealed class HtmlZeroLineHeightTests {
     private static HtmlRenderOptions Options() {
         var options = new HtmlRenderOptions {
             ViewportWidth = 600D, ViewportHeight = 900D,
-            PageSize = new OfficePageSize(600D / 96D, 900D / 96D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(600D / 96D), global::OfficeIMO.OfficeLength.Inches(900D / 96D)),
             Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false,
             UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser,
             ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile()

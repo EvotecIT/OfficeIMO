@@ -172,7 +172,7 @@ public sealed class StudioProtectionPreviewTests {
             return true;
         }, CancellationToken.None);
     }
-    private static PdfDocument CreatePdf() => PdfDocument.Create(document => { document.Page(page => page.Size(200, 300)); document.Page(page => page.Size(210, 300)); });
+    private static PdfDocument CreatePdf() => PdfDocument.Create(document => { document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300))); document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(210), global::OfficeIMO.OfficeLength.Points(300))); });
     private static async Task Layout(Window window) { window.UpdateLayout(); await Task.Delay(30); window.UpdateLayout(); }
     private static void Click(Window window, string label) {
         var button = window.GetVisualDescendants().OfType<Button>().Single(item => Equals(item.Content, label));

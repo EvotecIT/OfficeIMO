@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RewritesPostfixReferencesWithoutTreatingDefinedNamesAsCells() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(3, 1).SetValue(10);
             sheet.CellFormula(1, 2, "A3%+A3#+XFE1+SUM(XFE1:XFE2)");
 
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.AnchoredFormulas.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellAt(2, 1).SetValue(1);
                 sheet.CellAt(3, 1).SetValue(2);
                 sheet.Range("B2:B3").Validation.CustomFormula("A2>$A$2");
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.RangeMetadata.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellAt(2, 1).SetValue(1);
                 sheet.CellAt(3, 1).SetValue(2);
                 sheet.CellAt(4, 2).SetValue(3);
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreservesExternalLinkLocationsAndHonorsOwnedRowMetadata() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Header");
             sheet.CellAt(2, 1).SetValue("Value");
             sheet.CellAt(3, 1).SetValue("Total");
@@ -177,8 +177,8 @@ namespace OfficeIMO.Tests {
                 $"OfficeIMO.Excel.MutationCharacterBudget.{Guid.NewGuid():N}.xlsx");
             try {
                 using (var source = ExcelDocument.Create(path)) {
-                    source.AddWorksheet("Target").CellValue(1, 1, "Value");
-                    ExcelSheet unrelated = source.AddWorksheet("Unrelated");
+                    source.AddSheet("Target").CellValue(1, 1, "Value");
+                    ExcelSheet unrelated = source.AddSheet("Unrelated");
                     unrelated.CellValue(1, 1, "placeholder");
                     Cell cell = Assert.Single(
                         unrelated.WorksheetPart.Worksheet.Descendants<Cell>());
@@ -218,9 +218,9 @@ namespace OfficeIMO.Tests {
                 $"OfficeIMO.Excel.AggregateMutationCharacterBudget.{Guid.NewGuid():N}.xlsx");
             try {
                 using (var source = ExcelDocument.Create(path)) {
-                    source.AddWorksheet("Target").CellValue(1, 1, "Value");
+                    source.AddSheet("Target").CellValue(1, 1, "Value");
                     foreach (string name in new[] { "First", "Second" }) {
-                        ExcelSheet unrelated = source.AddWorksheet(name);
+                        ExcelSheet unrelated = source.AddSheet(name);
                         unrelated.CellValue(1, 1, "placeholder");
                         Cell cell = Assert.Single(
                             unrelated.WorksheetPart.Worksheet.Descendants<Cell>());

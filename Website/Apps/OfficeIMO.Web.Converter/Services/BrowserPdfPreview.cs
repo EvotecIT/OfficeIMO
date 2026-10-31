@@ -44,7 +44,7 @@ internal sealed class BrowserPdfPreview {
         double scale = maximumDimension >= 1280 ? 1.5 : 1.0;
         cancellationToken.ThrowIfCancellationRequested();
         if (_canExtractContent) return _document.Render.Pages(pageNumber.ToString(CultureInfo.InvariantCulture), new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Png,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             Scale = scale,
             ThumbnailMaxDimension = maximumDimension,
             MaxPages = 1,

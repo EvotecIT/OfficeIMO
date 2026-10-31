@@ -41,7 +41,7 @@ public static class XpsPdfExtensions {
         if (document.Pages.Count == 0) throw new InvalidOperationException("PDF export requires at least one page.");
         var navigation = new XpsPdfNavigation(document, cancellationToken);
         var structure = options.PreserveLogicalStructure ? new XpsPdfLogicalStructure(document, cancellationToken) : null;
-        var pdf = PdfDocument.Create(options.PdfOptions);
+        var pdf = PdfDocument.CreateForImportedLayout(options.PdfOptions);
         if (structure?.HasNativeStructure == true) pdf.TaggedStructure(PdfTaggedStructureMode.CatalogMarkers);
         long projectedSvgCharacters = 0, projectedPathCommands = 0;
         pdf.Compose(builder => {
@@ -57,12 +57,12 @@ public static class XpsPdfExtensions {
                 projectedPathCommands += projection.PathCommands;
                 var drawing = XpsPage.ImportDrawing(navigation.MapLinks(projection.Svg, pageIndex, cancellationToken), cancellationToken, structure?.HasNativeStructure == true);
                 double width = page.Width * 72D / 96D, height = page.Height * 72D / 96D;
-                builder.Page(p => p.Size(width, height).Margin(new PdfPageMargins(0, 0, 0, 0))
+                builder.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)).Margin(new PdfPageMargins(OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0)))
                     .Canvas(c => {
                         navigation.AddDestinations(c, projection, pageIndex, width, height, cancellationToken);
                         if (drawing.Elements.Count > 0) {
                             if (structure?.HasNativeStructure == true) c.SourceStructuredDrawing(drawing, width, height, structure.Paint(pageIndex));
-                            else c.Drawing(drawing, 0, 0, width, height);
+                            else c.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height));
                         }
                         if (structure?.HasNativeStructure == true) structure.AddText(c, projection.TextSpans, pageIndex);
                         else foreach (var span in projection.TextSpans) {

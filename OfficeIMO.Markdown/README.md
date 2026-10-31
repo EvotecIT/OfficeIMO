@@ -33,6 +33,71 @@ string htmlFragment = document.ToHtml(new MarkdownHtmlExportOptions { Kind = Mar
 string htmlDocument = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document });
 ```
 
+`Add` returns the same concrete block you append. `AddRange` returns a read-only snapshot of its inputs in source order; input enumeration and null validation finish before the document changes.
+
+```csharp
+using OfficeIMO.Markdown;
+
+using var document = MarkdownDocument.Create();
+ParagraphBlock paragraph = document.Add(new ParagraphBlock(new InlineSequence().Text("Deployment")));
+paragraph.Inlines.Text("complete");
+var added = document.AddRange(new IMarkdownBlock[] {
+    new HeadingBlock(2, "Next steps"),
+    new ParagraphBlock(new InlineSequence().Text("Verify the service."))
+});
+Console.WriteLine(document.ToMarkdown());
+```
+
+`DefinitionListBlock.AddEntry` returns the entry bound to the list. Editing its
+`Term` or `DefinitionBlocks` changes the rendered output. `AddGroup` returns the
+stored group, and `MarkdownTable.AddRow` returns the stored, editable cell array.
+
+## Image display sizes
+
+Image display dimensions use `OfficeLength`. Unitless Markdown hints such as
+`{width=96 height=48}` and HTML image dimensions mean CSS pixels at 96 DPI.
+The same image occupies 72 by 36 points in Word and PDF. Intrinsic raster
+pixels and relative layout percentages are separate from these display lengths.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Markdown;
+
+using var document = MarkdownDocument.Create();
+document.Image("images/badge.png", "Badge",
+    width: OfficeLength.Inches(1), height: OfficeLength.Pixels(48));
+string markdown = document.ToMarkdown(); // ![Badge](images/badge.png){width=96 height=48}
+string html = document.ToHtml();          // width="96" height="48"
+```
+
+`ImageBlock.Width`, `ImageBlock.Height` and the corresponding native image
+properties expose nullable physical lengths. Rich Markdown emits invariant
+pixel numbers; HTML emits whole-pixel attributes and preserves fractional
+pixel dimensions in CSS. HTML import accepts absolute CSS length units;
+percentages stay outside physical image hints.
+
+## Typed tables
+
+`AddTable` returns the added `TableBlock`, which remains editable. The shared `OfficeTableOptions` controls column selection, order, headers, formatting and alignment. `MarkdownTableOptions` also enables numeric and date alignment; explicit column alignments take precedence.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Markdown;
+
+using var document = MarkdownDocument.Create();
+var rows = new[] {
+    new { Product = "Paper", Quantity = 12 },
+    new { Product = "Envelopes", Quantity = 24 }
+};
+var options = new MarkdownTableOptions();
+options.HeaderRenames["Quantity"] = "In stock";
+var table = document.AddTable(rows, options);
+table.Rows.Add(new[] { "Labels", "48" });
+Console.WriteLine(document.ToMarkdown());
+```
+
+Typed rows use declared public properties and fields, or the first dictionary row's string keys. The source is enumerated once. Projection rejects more than 10,000 data rows or 100 selected columns before adding the block. Formatter failures propagate. Explicit selector overloads support trim-safe column selection without reflection. Runtime data can be passed as `object` to retain scalar, property/value and dictionary-union projection.
+
 ## What it does
 
 - Builds Markdown documents with headings, paragraphs, lists, task lists, tables, code blocks, callouts, details, front matter, footnotes, table-of-contents helpers, and semantic fenced blocks.

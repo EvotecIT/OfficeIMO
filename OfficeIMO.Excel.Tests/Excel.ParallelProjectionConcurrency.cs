@@ -15,7 +15,7 @@ public sealed class ExcelParallelProjectionConcurrencyTests {
     [Fact]
     public void RowsAsParallel_FactoryActuallyRunsConcurrentlyAndPreservesOrder() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "OrderId");
         for (int index = 0; index < 8; index++) {
             sheet.CellValue(index + 2, 1, index);

@@ -15,73 +15,6 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentImageValidationTests {
     [Fact]
-    public void ImageApis_PreserveBuilderClrSignaturesWithoutDuplicatingTheDocumentFacade() {
-        Assert.DoesNotContain(
-            typeof(PdfDocument).GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance),
-            method => method.Name == "Image");
-        Assert.NotNull(typeof(PdfContentBuilder).GetMethod(nameof(PdfContentBuilder.Image), new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign?),
-            typeof(OfficeClipPath),
-            typeof(OfficeImageFit?),
-            typeof(double?),
-            typeof(double?),
-            typeof(PdfImageStyle),
-            typeof(string),
-            typeof(string)
-        }));
-        Assert.NotNull(typeof(PdfContentBuilder).GetMethod(nameof(PdfContentBuilder.Image), new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign?),
-            typeof(OfficeClipPath),
-            typeof(OfficeImageFit?),
-            typeof(double?),
-            typeof(double?),
-            typeof(PdfImageStyle),
-            typeof(string),
-            typeof(string)
-        }));
-        Assert.NotNull(typeof(PdfContentBuilder).GetMethod(nameof(PdfContentBuilder.Image), new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign?),
-            typeof(OfficeClipPath),
-            typeof(OfficeImageFit?),
-            typeof(double?),
-            typeof(double?),
-            typeof(PdfImageStyle),
-            typeof(string),
-            typeof(string)
-        }));
-        Assert.NotNull(typeof(PdfHeaderBuilder).GetMethod(nameof(PdfHeaderBuilder.Image), new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign),
-            typeof(OfficeImageFit)
-        }));
-        Assert.NotNull(typeof(PdfFooterBuilder).GetMethod(nameof(PdfFooterBuilder.Image), new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign),
-            typeof(OfficeImageFit)
-        }));
-        Assert.NotNull(typeof(PdfHeaderFooterImage).GetConstructor(new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign),
-            typeof(OfficeImageFit)
-        }));
-    }
-
-    [Fact]
     public void Image_WithNullBytes_ThrowsArgumentNullException() {
         var doc = PdfDocument.Create();
 
@@ -150,7 +83,7 @@ public class PdfDocumentImageValidationTests {
                 new[] {
                     PdfTableCell.WithImages(
                         "Logo",
-                        new[] { new PdfTableCellImage(png, 24, 24) })
+                        new[] { new PdfTableCellImage(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)) })
                 }
             })
             .ToBytes();
@@ -198,23 +131,23 @@ public class PdfDocumentImageValidationTests {
         var tableStyle = new PdfTableStyle {
             HeaderRowCount = 0,
             BorderColor = null,
-            ColumnWidthPoints = new System.Collections.Generic.List<double?> { 80D }
+            ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80D) }
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
             .Table(new[] {
                 new[] {
                     PdfTableCell.WithImages(
                         (string?)null,
                         new[] {
-                            new PdfTableCellImage(jpeg, 144, 72, new PdfImageStyle { ScaleDownToFit = true })
+                            new PdfTableCellImage(jpeg, global::OfficeIMO.OfficeLength.Points(144), global::OfficeIMO.OfficeLength.Points(72), new PdfImageStyle { ScaleDownToFit = true })
                         })
                 }
             }, style: tableStyle)
@@ -231,16 +164,16 @@ public class PdfDocumentImageValidationTests {
         var tableStyle = new PdfTableStyle {
             HeaderRowCount = 0,
             BorderColor = null,
-            ColumnWidthPoints = new System.Collections.Generic.List<double?> { 80D }
+            ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80D) }
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
             .Compose(compose =>
                 compose.Page(page =>
@@ -252,7 +185,7 @@ public class PdfDocumentImageValidationTests {
                                         PdfTableCell.WithImages(
                                             (string?)null,
                                             new[] {
-                                                new PdfTableCellImage(jpeg, 144, 72, new PdfImageStyle { ScaleDownToFit = true })
+                                                new PdfTableCellImage(jpeg, global::OfficeIMO.OfficeLength.Points(144), global::OfficeIMO.OfficeLength.Points(72), new PdfImageStyle { ScaleDownToFit = true })
                                             })
                                     }
                                 }, style: tableStyle))))))
@@ -269,8 +202,8 @@ public class PdfDocumentImageValidationTests {
             Align = PdfAlign.Center,
             Fit = OfficeImageFit.Contain,
             ClipPath = OfficeClipPath.Rectangle(12, 10),
-            SpacingBefore = 4,
-            SpacingAfter = 9,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(9),
             KeepWithNext = true,
             ScaleDownToFit = true,
             RotationAngle = 12
@@ -282,8 +215,8 @@ public class PdfDocumentImageValidationTests {
         style.Align = PdfAlign.Right;
         style.Fit = OfficeImageFit.Cover;
         style.ClipPath = OfficeClipPath.Rectangle(4, 4);
-        style.SpacingBefore = 1;
-        style.SpacingAfter = 2;
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(1);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(2);
         style.KeepWithNext = false;
         style.ScaleDownToFit = false;
         style.RotationAngle = 0;
@@ -299,8 +232,8 @@ public class PdfDocumentImageValidationTests {
         Assert.Equal(PdfAlign.Center, options.DefaultImageStyle!.Align);
         Assert.Equal(OfficeImageFit.Contain, options.DefaultImageStyle.Fit);
         Assert.Equal(12, options.DefaultImageStyle.ClipPath!.Width);
-        Assert.Equal(4, options.DefaultImageStyle.SpacingBefore);
-        Assert.Equal(9, options.DefaultImageStyle.SpacingAfter);
+        Assert.Equal(4, options.DefaultImageStyle.SpacingBefore.ToPoints());
+        Assert.Equal(9, options.DefaultImageStyle.SpacingAfter.ToPoints());
         Assert.True(options.DefaultImageStyle.KeepWithNext);
         Assert.True(options.DefaultImageStyle.ScaleDownToFit);
         Assert.Equal(12, options.DefaultImageStyle.RotationAngle);
@@ -316,8 +249,8 @@ public class PdfDocumentImageValidationTests {
         var imageStyle = new PdfImageStyle {
             Align = PdfAlign.Center,
             Fit = OfficeImageFit.Contain,
-            SpacingBefore = 3,
-            SpacingAfter = 8,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(3),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
             KeepWithNext = true,
             ScaleDownToFit = true
         };
@@ -328,7 +261,7 @@ public class PdfDocumentImageValidationTests {
 
         imageStyle.Align = PdfAlign.Right;
         imageStyle.Fit = OfficeImageFit.Cover;
-        imageStyle.SpacingAfter = 1;
+        imageStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(1);
         imageStyle.KeepWithNext = false;
         imageStyle.ScaleDownToFit = false;
 
@@ -336,7 +269,7 @@ public class PdfDocumentImageValidationTests {
 
         Assert.Equal(PdfAlign.Center, options.DefaultImageStyle!.Align);
         Assert.Equal(OfficeImageFit.Contain, options.DefaultImageStyle.Fit);
-        Assert.Equal(8, options.DefaultImageStyle.SpacingAfter);
+        Assert.Equal(8, options.DefaultImageStyle.SpacingAfter.ToPoints());
         Assert.True(options.DefaultImageStyle.KeepWithNext);
         Assert.True(options.DefaultImageStyle.ScaleDownToFit);
         Assert.Equal(PdfAlign.Center, clone.DefaultImageStyle!.Align);
@@ -479,7 +412,7 @@ public class PdfDocumentImageValidationTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(null!, 24, 24)))))));
+                                column.Image(null!, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24))))))));
 
         Assert.Equal("jpegBytes", exception.ParamName);
     }
@@ -494,7 +427,7 @@ public class PdfDocumentImageValidationTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(Array.Empty<byte>(), 24, 24)))))));
+                                column.Image(Array.Empty<byte>(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24))))))));
 
         Assert.Equal("jpegBytes", exception.ParamName);
         Assert.Contains("Parameter 'jpegBytes' cannot be empty.", exception.Message, StringComparison.Ordinal);
@@ -512,7 +445,7 @@ public class PdfDocumentImageValidationTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, invalidWidth, 24)))))));
+                                column.Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, global::OfficeIMO.OfficeLength.Points(invalidWidth), global::OfficeIMO.OfficeLength.Points(24))))))));
 
         Assert.Equal("width", exception.ParamName);
     }
@@ -529,7 +462,7 @@ public class PdfDocumentImageValidationTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, 24, invalidHeight)))))));
+                                column.Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(invalidHeight))))))));
 
         Assert.Equal("height", exception.ParamName);
     }
@@ -543,7 +476,7 @@ public class PdfDocumentImageValidationTests {
                 page.Content(content =>
                     content.Row(row =>
                         row.PercentColumn(100, column =>
-                            column.Image(CreateMinimalGif(), 24, 24))))));
+                            column.Image(CreateMinimalGif(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)))))));
 
         Assert.Single(PdfImageExtractor.ExtractImages(doc.ToBytes()));
     }
@@ -552,7 +485,7 @@ public class PdfDocumentImageValidationTests {
     public void WordPdfAdapterUsesCanonicalRasterPreparation() {
         using WordDocument document = WordDocument.Create();
         using var image = new MemoryStream(CreateMinimalGif());
-        document.AddParagraph().AddImage(image, "pixel.gif", 24, 24);
+        document.AddParagraph().AddImage(image, "pixel.gif", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(24));
 
         byte[] pdf = (document.ToPdf()).ToBytes();
 
@@ -563,8 +496,12 @@ public class PdfDocumentImageValidationTests {
     [Fact]
     public void ExcelPdfAdapterUsesCanonicalRasterPreparation() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        ExcelSheet sheet = workbook.AddWorksheet("Raster");
-        sheet.AddImage(1, 1, CreateMinimalGif(), "image/gif", 24, 24);
+        ExcelSheet sheet = workbook.AddSheet("Raster");
+        sheet.AddImage(1, 1, CreateMinimalGif(), new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/gif",
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(24)
+        });
 
         byte[] pdf = (workbook.ToPdf()).ToBytes();
 
@@ -614,7 +551,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Image(null!, 24, 24))))));
+                            column.Item().Image(null!, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)))))));
 
         Assert.Equal("jpegBytes", exception.ParamName);
     }
@@ -628,7 +565,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Image(Array.Empty<byte>(), 24, 24))))));
+                            column.Item().Image(Array.Empty<byte>(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)))))));
 
         Assert.Equal("jpegBytes", exception.ParamName);
         Assert.Contains("Parameter 'jpegBytes' cannot be empty.", exception.Message, StringComparison.Ordinal);
@@ -645,7 +582,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, invalidWidth, 24))))));
+                            column.Item().Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, global::OfficeIMO.OfficeLength.Points(invalidWidth), global::OfficeIMO.OfficeLength.Points(24)))))));
 
         Assert.Equal("width", exception.ParamName);
     }
@@ -661,7 +598,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, 24, invalidHeight))))));
+                            column.Item().Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(invalidHeight)))))));
 
         Assert.Equal("height", exception.ParamName);
     }
@@ -684,12 +621,12 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithHeightExceedingContentArea_ThrowsArgumentException() {
         byte[] jpeg = CreateMinimalJpeg(32, 16);
         var options = new PdfCreateOptions {
-            PageWidth = 220,
-            PageHeight = 140,
-            MarginLeft = 20,
-            MarginRight = 20,
-            MarginTop = 20,
-            MarginBottom = 20
+            PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(140),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -704,12 +641,12 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithWidthExceedingContentArea_ThrowsArgumentException() {
         byte[] jpeg = CreateMinimalJpeg(32, 16);
         var options = new PdfCreateOptions {
-            PageWidth = 220,
-            PageHeight = 180,
-            MarginLeft = 20,
-            MarginRight = 20,
-            MarginTop = 20,
-            MarginBottom = 20
+            PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -724,12 +661,12 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithScaleDownToFit_ReducesOversizedImageIntoContentFrame() {
         byte[] jpeg = CreateMinimalJpeg(400, 200);
         var options = new PdfCreateOptions {
-            PageWidth = 220,
-            PageHeight = 180,
-            MarginLeft = 20,
-            MarginRight = 20,
-            MarginTop = 20,
-            MarginBottom = 20
+            PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -928,7 +865,7 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithContainFit_PreservesAspectRatioInsideTargetBox() {
         byte[] jpeg = CreateMinimalJpeg(200, 100);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = new PdfPageMargins(72, 72, 72, 72) })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)) })
             .Image(jpeg, 100, 100, fit: OfficeImageFit.Contain)
             .ToBytes();
 
@@ -942,7 +879,7 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithCoverFit_PreservesAspectRatioAndClipsToTargetBox() {
         byte[] jpeg = CreateMinimalJpeg(200, 100);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = new PdfPageMargins(72, 72, 72, 72) })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)) })
             .Image(jpeg, 100, 100, fit: OfficeImageFit.Cover)
             .ToBytes();
 
@@ -966,7 +903,7 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithClipPath_WritesClippingPathAroundImageXObject() {
         byte[] png = CreateMinimalRgbPng();
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = new PdfPageMargins(72, 72, 72, 72) })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)) })
             .Image(png, 24, 24, clipPath: OfficeClipPath.Rectangle(12, 12))
             .ToBytes();
 
@@ -993,19 +930,19 @@ public class PdfDocumentImageValidationTests {
         var style = new PdfImageStyle {
             Align = PdfAlign.Center,
             Fit = OfficeImageFit.Contain,
-            SpacingBefore = 4,
-            SpacingAfter = 12
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .DefaultImageStyle(style)
             .Image(jpeg, 100, 100)
@@ -1014,7 +951,7 @@ public class PdfDocumentImageValidationTests {
 
         style.Align = PdfAlign.Right;
         style.Fit = OfficeImageFit.Cover;
-        style.SpacingAfter = 0;
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
 
         string pdfContent = PdfTestContentText.ReadDecoded(bytes);
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -1031,17 +968,17 @@ public class PdfDocumentImageValidationTests {
         byte[] png = CreateMinimalRgbPng();
         var style = new PdfImageStyle {
             Align = PdfAlign.Center,
-            SpacingBefore = 4,
-            SpacingAfter = 8
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
             .DefaultImageStyle(style)
             .Compose(compose =>
@@ -1049,7 +986,7 @@ public class PdfDocumentImageValidationTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(png, 24, 24))))))
+                                column.Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)))))))
             .ToBytes();
 
         string pdfContent = PdfTestContentText.ReadDecoded(bytes);
@@ -1062,19 +999,19 @@ public class PdfDocumentImageValidationTests {
         byte[] jpeg = CreateMinimalJpeg(400, 200);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
             .Compose(compose =>
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(jpeg, 360, 180, style: new PdfImageStyle { ScaleDownToFit = true }))))))
+                                column.Image(jpeg, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180), style: new PdfImageStyle { ScaleDownToFit = true }))))))
             .ToBytes();
 
         string pdfContent = PdfTestContentText.ReadDecoded(bytes);
@@ -1086,13 +1023,13 @@ public class PdfDocumentImageValidationTests {
     public void RowColumnImage_WithClipPath_WritesClippingPathAroundImageXObject() {
         byte[] png = CreateMinimalRgbPng();
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = new PdfPageMargins(72, 72, 72, 72) })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)) })
             .Compose(compose =>
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(60, column =>
-                                column.Image(png, 24, 24, clipPath: OfficeClipPath.RoundedRectangle(12, 12, 3)))))))
+                                column.Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), clipPath: OfficeClipPath.RoundedRectangle(12, 12, 3)))))))
             .ToBytes();
 
         string pdfContent = PdfTestContentText.ReadDecoded(bytes);

@@ -83,10 +83,10 @@ public partial class Word {
             document.AddHeadersAndFooters();
             Seed(document.Sections[0].Header.Default!.AddParagraph("HeaderToggleMarker"));
             Seed(document.Sections[0].Footer.Default!.AddParagraph("FooterToggleMarker"));
-            WordParagraph footnote = body.AddFootNote("FootnoteToggleMarker").FootNote!.Paragraphs![1];
+            WordParagraph footnote = body.AddFootNote("FootnoteToggleMarker").Paragraph.FootNote!.Paragraphs![1];
             Seed(footnote);
             Seed(footnote.AddParagraph("LaterFootnoteToggleMarker"));
-            WordParagraph endnote = body.AddEndNote("EndnoteToggleMarker").EndNote!.Paragraphs![1];
+            WordParagraph endnote = body.AddEndNote("EndnoteToggleMarker").Paragraph.EndNote!.Paragraphs![1];
             Seed(endnote);
             Seed(endnote.AddParagraph("LaterEndnoteToggleMarker"));
             body.AddComment("OfficeIMO", "OI", "CommentToggleMarker");

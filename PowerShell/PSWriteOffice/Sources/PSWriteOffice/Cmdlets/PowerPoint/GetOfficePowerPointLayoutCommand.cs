@@ -18,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public sealed class GetOfficePowerPointLayoutCommand : OfficeCmdlet {
     /// <summary>Gets or sets the live document; omission uses the enclosing content scope.</summary>
     [Parameter(Position = 0, ValueFromPipeline = true)]
-    public PowerPointPresentation? Document { get; set; }
+    public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets a one-based master position; omission lists all masters.</summary>
     [Parameter, ValidateRange(1, int.MaxValue)]
     public int? Master { get; set; }

@@ -23,23 +23,23 @@ public sealed class PdfAnchoredImagePaginationTests {
                 new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png));
             using WordDocument word = WordDocument.Create();
             var section = word.Sections[0];
-            section.PageSettings.Width = 6000; section.PageSettings.Height = 6000;
-            if (columns) { section.ColumnCount = 2; section.ColumnsSpace = 120; }
+            section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D); section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+            if (columns) { section.ColumnCount = 2; section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
             var anchor = word.AddParagraph();
-            var control = anchor.AddPictureControl(path, 24, 24);
+            var control = anchor.AddPictureControl(path, OfficeLength.Pixels(24), OfficeLength.Pixels(24));
             var image = control.Image!;
             image.WrapText = WordImageTextWrapping.InFrontOfText;
             image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            image.HorizontalPositionOffset = 10 * 12700; image.VerticalPositionOffset = 10 * 12700;
+            image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700); image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700);
             if (decoration == "top") {
                 anchor.Borders.TopStyle = WordBorderStyle.Single;
                 anchor.Borders.TopColorHex = "FF0000";
-                anchor.Borders.TopSize = 16;
+                anchor.Borders.TopSize = OfficeLength.Points(2);
             } else {
                 anchor.Borders.BottomStyle = WordBorderStyle.Single;
                 anchor.Borders.BottomColorHex = "FF0000";
-                anchor.Borders.BottomSize = 16;
+                anchor.Borders.BottomSize = OfficeLength.Points(2);
             }
             if (decoration == "panel") anchor.ShadingFillColorHex = "E6F2FF";
             if (decoration == "heading") anchor.SetStyle(WordParagraphStyles.Heading1);
@@ -75,16 +75,16 @@ public sealed class PdfAnchoredImagePaginationTests {
     public void ForegroundImageFollowsAnchorParagraphToItsFirstPage(bool columns, string kind) {
         using WordDocument word = WordDocument.Create();
         var section = word.Sections[0];
-        section.PageSettings.Width = 6000;
-        section.PageSettings.Height = 6000;
-        if (columns) { section.ColumnCount = 2; section.ColumnsSpace = 120; }
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        if (columns) { section.ColumnCount = 2; section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
         for (int index = 0; index < 16; index++) {
             var filler = word.AddParagraph("Filler " + index);
-            filler.FontSize = 12;
-            filler.LineSpacingAfterPoints = 0;
+            filler.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            filler.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         var anchor = kind == "list" ? word.AddList(WordListStyle.Bulleted).AddItem(string.Empty) : word.AddParagraph();
-        anchor.FontSize = 12;
+        anchor.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         anchor._paragraph!.ParagraphProperties ??= new ParagraphProperties();
         if (kind != "split") anchor._paragraph.ParagraphProperties.KeepLines = new KeepLines();
         if (kind == "keepnext") anchor._paragraph.ParagraphProperties.KeepNext = new KeepNext();
@@ -93,22 +93,22 @@ public sealed class PdfAnchoredImagePaginationTests {
         byte[] bytes = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(
             new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png);
         using var stream = new MemoryStream(bytes);
-        var image = anchor.InsertImage(stream, "anchored.png", 24, 24, WordImageTextWrapping.InFrontOfText);
+        var image = anchor.AddImage(stream, "anchored.png", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(24), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-        image.HorizontalPositionOffset = 10 * 12700;
-        image.VerticalPositionOffset = 10 * 12700;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700);
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700);
         if (kind == "multiple") {
             using var secondStream = new MemoryStream(bytes);
-            var second = anchor.AddText(string.Empty).InsertImage(secondStream, "second.png", 24, 24, WordImageTextWrapping.InFrontOfText);
+            var second = anchor.AddText(string.Empty).AddImage(secondStream, "second.png", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(24), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
             second.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             second.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            second.HorizontalPositionOffset = 40 * 12700;
-            second.VerticalPositionOffset = 10 * 12700;
+            second.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(40 * 12700);
+            second.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700);
         }
-        anchor.AddText("ANCHOR TEXT " + string.Join(" ", Enumerable.Repeat("wrapped text", kind == "split" ? 80 : 4))).FontSize = 12;
+        anchor.AddText("ANCHOR TEXT " + string.Join(" ", Enumerable.Repeat("wrapped text", kind == "split" ? 80 : 4))).FontSize = global::OfficeIMO.OfficeLength.Points(12);
         word.AddParagraph("Following paragraph");
-        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(30) });
+        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)) });
         var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
         var anchorPage = Assert.Single(pdf.Reader.Pages(), page => pdf.Reader.Text(PdfCore.PdfPageSelection.From(page.PageNumber)).Contains("ANCHOR"));
         var placements = pdf.Images.Placements();
@@ -136,8 +136,8 @@ public sealed class PdfAnchoredImagePaginationTests {
         byte[] bytes = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(
             new OfficeIMO.Drawing.OfficeRasterImage(2, 2, OfficeIMO.OfficeColor.Black),
             OfficeIMO.Drawing.OfficeImageExportFormat.Png);
-        using (var first = new MemoryStream(bytes)) paragraph.InsertImage(first, "first.png", 10, 10);
-        using (var second = new MemoryStream(bytes)) paragraph.AddText(string.Empty).InsertImage(second, "second.png", 10, 10);
+        using (var first = new MemoryStream(bytes)) paragraph.AddImage(first, "first.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
+        using (var second = new MemoryStream(bytes)) paragraph.AddText(string.Empty).AddImage(second, "second.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
 
         Assert.Throws<InvalidDataException>(() => word.ConvertToPdfWithEvidence(
             new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));

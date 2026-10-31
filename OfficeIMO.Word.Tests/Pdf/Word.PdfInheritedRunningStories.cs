@@ -46,8 +46,8 @@ public partial class Word {
         WordPdfExportOptions options = EmptyRunningOptions();
         options.IncludePageNumbers = false;
         if (mode == "override") options.PdfOptions = new PdfCreateOptions {
-            HeaderFont = PdfStandardFont.Courier, HeaderFontSize = 18D, HeaderAlign = PdfAlign.Left,
-            FooterFont = PdfStandardFont.Courier, FooterFontSize = 18D, FooterAlign = PdfAlign.Left
+            HeaderFont = PdfStandardFont.Courier, HeaderFontSize = global::OfficeIMO.OfficeLength.Points(18D), HeaderAlign = PdfAlign.Left,
+            FooterFont = PdfStandardFont.Courier, FooterFontSize = global::OfficeIMO.OfficeLength.Points(18D), FooterAlign = PdfAlign.Left
         };
         using WordDocument? explicitDocument = mode == "override" ? CreateExplicitRunningStoryControl(document) : null;
         using var explicitPdf = explicitDocument == null ? null : PdfPigDocument.Open(explicitDocument.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -117,7 +117,7 @@ public partial class Word {
         int slot = Array.IndexOf(new[] { "default", "first", "even" }, kind);
         WordParagraph marker = (footer ? footers : headers)[slot].AddParagraph("MARK");
         SetInheritedRunningControlStyle(marker);
-        if (mode == "fields") marker.AddText(" P").AddField(WordFieldType.Page).AddText(" S").AddField(WordFieldType.SectionPages);
+        if (mode == "fields") marker.AddText(" P").AddField(WordFieldType.Page).Paragraph.AddText(" S").AddField(WordFieldType.SectionPages);
         SetInheritedRunningControlStyle(source.AddParagraph("S1"));
         WordSection later = source.AddSection(mode == "continuous" ? WordSectionBreakType.Continuous : WordSectionBreakType.NextPage);
         later.DifferentFirstPage = kind == "first";
@@ -147,8 +147,8 @@ public partial class Word {
     }
 
     private static void SetInheritedRunningControlStyle(WordParagraph paragraph) {
-        paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-        paragraph.LineSpacing = 240; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+        paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
     }
 }

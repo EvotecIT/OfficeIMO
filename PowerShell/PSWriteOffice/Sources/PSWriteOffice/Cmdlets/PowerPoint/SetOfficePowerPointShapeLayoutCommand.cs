@@ -137,7 +137,7 @@ public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
     {
         if (MarginPoints.HasValue)
         {
-            slide.AlignShapesToSlideContentPoints(shapes, Align, MarginPoints.Value);
+            slide.AlignShapesToSlideContent(shapes, Align, OfficeIMO.OfficeLength.Points(MarginPoints.Value));
         }
         else if (ToSlide.IsPresent)
         {
@@ -155,11 +155,11 @@ public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
         {
             if (MarginPoints.HasValue)
             {
-                slide.DistributeShapesWithSpacingToSlideContentPoints(shapes, Distribute, SpacingPoints.Value, MarginPoints.Value, Center.IsPresent);
+                slide.DistributeShapesWithSpacingToSlideContent(shapes, Distribute, OfficeIMO.OfficeLength.Points(SpacingPoints.Value), OfficeIMO.OfficeLength.Points(MarginPoints.Value), Center.IsPresent);
             }
             else
             {
-                slide.DistributeShapesWithSpacingPoints(shapes, Distribute, SpacingPoints.Value, Center.IsPresent);
+                slide.DistributeShapesWithSpacing(shapes, Distribute, OfficeIMO.OfficeLength.Points(SpacingPoints.Value), Center.IsPresent);
             }
 
             return;
@@ -169,11 +169,11 @@ public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
         {
             if (CrossAxisAlign.HasValue)
             {
-                slide.DistributeShapesToSlideContentPoints(shapes, Distribute, MarginPoints.Value, CrossAxisAlign.Value);
+                slide.DistributeShapesToSlideContent(shapes, Distribute, OfficeIMO.OfficeLength.Points(MarginPoints.Value), CrossAxisAlign.Value);
             }
             else
             {
-                slide.DistributeShapesToSlideContentPoints(shapes, Distribute, MarginPoints.Value);
+                slide.DistributeShapesToSlideContent(shapes, Distribute, OfficeIMO.OfficeLength.Points(MarginPoints.Value));
             }
         }
         else if (ToSlide.IsPresent)
@@ -209,15 +209,15 @@ public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
         {
             if (MarginPoints.HasValue)
             {
-                slide.ArrangeShapesInGridAutoToSlideContentPoints(shapes, MarginPoints.Value, GutterXPoints, GutterYPoints, resizeToCell, Flow);
+                slide.ArrangeShapesInGridAutoToSlideContent(shapes, OfficeIMO.OfficeLength.Points(MarginPoints.Value), OfficeIMO.OfficeLength.Points(GutterXPoints), OfficeIMO.OfficeLength.Points(GutterYPoints), resizeToCell, Flow);
             }
             else if (ToSlide.IsPresent)
             {
-                slide.ArrangeShapesInGridAutoToSlide(shapes, PowerPointUnits.FromPoints(GutterXPoints), PowerPointUnits.FromPoints(GutterYPoints), resizeToCell, Flow);
+                slide.ArrangeShapesInGridAutoToSlide(shapes, OfficeIMO.OfficeLength.Points(GutterXPoints), OfficeIMO.OfficeLength.Points(GutterYPoints), resizeToCell, Flow);
             }
             else
             {
-                slide.ArrangeShapesInGridAuto(shapes, PowerPointUnits.FromPoints(GutterXPoints), PowerPointUnits.FromPoints(GutterYPoints), resizeToCell, Flow);
+                slide.ArrangeShapesInGridAuto(shapes, OfficeIMO.OfficeLength.Points(GutterXPoints), OfficeIMO.OfficeLength.Points(GutterYPoints), resizeToCell, Flow);
             }
 
             return;
@@ -225,15 +225,15 @@ public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
 
         if (MarginPoints.HasValue)
         {
-            slide.ArrangeShapesInGridToSlideContentPoints(shapes, Columns!.Value, Rows!.Value, MarginPoints.Value, GutterXPoints, GutterYPoints, resizeToCell, Flow);
+            slide.ArrangeShapesInGridToSlideContent(shapes, Columns!.Value, Rows!.Value, OfficeIMO.OfficeLength.Points(MarginPoints.Value), OfficeIMO.OfficeLength.Points(GutterXPoints), OfficeIMO.OfficeLength.Points(GutterYPoints), resizeToCell, Flow);
         }
         else if (ToSlide.IsPresent)
         {
-            slide.ArrangeShapesInGridToSlide(shapes, Columns!.Value, Rows!.Value, PowerPointUnits.FromPoints(GutterXPoints), PowerPointUnits.FromPoints(GutterYPoints), resizeToCell, Flow);
+            slide.ArrangeShapesInGridToSlide(shapes, Columns!.Value, Rows!.Value, OfficeIMO.OfficeLength.Points(GutterXPoints), OfficeIMO.OfficeLength.Points(GutterYPoints), resizeToCell, Flow);
         }
         else
         {
-            slide.ArrangeShapesInGrid(shapes, Columns!.Value, Rows!.Value, PowerPointUnits.FromPoints(GutterXPoints), PowerPointUnits.FromPoints(GutterYPoints), resizeToCell, Flow);
+            slide.ArrangeShapesInGrid(shapes, Columns!.Value, Rows!.Value, OfficeIMO.OfficeLength.Points(GutterXPoints), OfficeIMO.OfficeLength.Points(GutterYPoints), resizeToCell, Flow);
         }
     }
 

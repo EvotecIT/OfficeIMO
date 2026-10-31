@@ -23,7 +23,7 @@ public static partial class PowerPointPdfConverterExtensions {
             // and fixed-frame text may legitimately paint beyond that box.
             if (shape is PptCore.PowerPointGroupShape || IsLineShape(shape) ||
                 x < 0D || y < 0D || x + width > pageWidth || y + height > pageHeight)
-                canvas.Clip(0D, 0D, pageWidth, pageHeight, render);
+                canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(pageWidth), global::OfficeIMO.OfficeLength.Points(pageHeight), render);
             else render(canvas);
         }
     }

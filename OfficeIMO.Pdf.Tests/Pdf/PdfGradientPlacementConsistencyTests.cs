@@ -17,13 +17,13 @@ public class PdfGradientPlacementConsistencyTests {
         shape.StrokeWidth = 0;
         if (transformed) shape.Transform = OfficeTransform.RotateDegrees(17, 100, 50);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 500, PageHeight = 700,
-                MarginLeft = 50, MarginRight = 50, MarginTop = 150, MarginBottom = 150
+                PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(700),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(50), MarginRight = global::OfficeIMO.OfficeLength.Points(50), MarginTop = global::OfficeIMO.OfficeLength.Points(150), MarginBottom = global::OfficeIMO.OfficeLength.Points(150)
             })
             .Compose(document => document.Page(page => page
                 .Header(header => header.Shape(shape))
                 .Footer(footer => footer.Shape(shape))
-                .Content(content => content.Spacer(150).Shape(shape))))
+                .Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(150)).Shape(shape))))
             .ToBytes();
 
         MatchCollection coordinates = Regex.Matches(Encoding.ASCII.GetString(bytes), @"/Coords\s*\[([^\]]+)\]");

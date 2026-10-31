@@ -55,7 +55,7 @@ var parsed = OfficeMarkupParser.Parse(markdown, new OfficeMarkupParserOptions {
     Profile = OfficeMarkupProfile.Presentation,
     MarkdownOptions = reader
 });
-using var presentation = parsed.Document.ToPowerPointPresentation();
+using var presentation = parsed.Document.ToPowerPointDocument();
 presentation.Save("report.pptx");
 ```
 

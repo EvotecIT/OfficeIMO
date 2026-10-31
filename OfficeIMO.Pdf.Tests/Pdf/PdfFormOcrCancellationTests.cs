@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests.Pdf {
         public async Task ModernAuthenticationCancellationStopsFileKeyDecryption(string password, int completedHashes) {
             byte[] original = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes256
-            })).TextField("Name", width: 180, height: 24).ToBytes();
+            })).TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24)).ToBytes();
             using var cancellation = new CancellationTokenSource();
             var provider = new CancellationTrackingAesProvider(cancellation.Token) {
                 Revision6HashToCancel = completedHashes, CancelOnCompletedRevision6Hash = cancellation
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests.Pdf {
             var provider = new CancellationTrackingAesProvider(cancellation.Token) { CancelOnOwnerFileKeyEncryption = cancellation };
             var source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes256, AesCryptographyProvider = provider
-            })).TextField("Name", width: 180, height: 24);
+            })).TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24));
 
             var exception = Assert.ThrowsAny<OperationCanceledException>(() => source.ToBytes(cancellationToken: cancellation.Token));
 
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests.Pdf {
             if (encrypted) options.SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128
             });
-            return PdfDocument.Create(options).TextField("Name", width: 180, height: 24).ToBytes();
+            return PdfDocument.Create(options).TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24)).ToBytes();
         }
 
         // A caller-owned selection cancels at its completion boundary, without a timer or a production hook.

@@ -16,8 +16,7 @@ public partial class Word {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         W.Paragraph body = SetAnchoredControlBodyAutoSpacing(document);
         var paragraph = new WordParagraph(document, body);
-        paragraph.LineSpacingPoints = 6;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph.LineSpacing = WordLineSpacing.Exact(OfficeLength.Points(6));
         foreach (int index in Enumerable.Range(0, 300))
             body.Append(new W.Run(new W.Text("x")));
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
@@ -64,7 +63,7 @@ public partial class Word {
         run.Elements<W.Text>().First().Text += " ORDINARY HIGHLIGHTED BODY PAINT";
         WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
         box.Anchor!.RemoveAllChildren<W14.RelativeHeight>();
-        box.Height = 571500L;
+        box.Height = OfficeLength.Emus(571500L);
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cy = 571500L;
         box.Anchor.VerticalPosition!.PositionOffset!.Text = "341630";
         foreach (W.Break lineBreak in box.Paragraphs.Single()._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();
@@ -126,8 +125,7 @@ public partial class Word {
             bodySource.ParagraphProperties!.RemoveAllChildren<W.SpacingBetweenLines>();
             bodySource.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = "UpwardBody" };
         } else {
-            body.LineSpacingPoints = 6;
-            body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6));
         }
         string[] before = AnchoredRunningStoryXml(document);
         string stylesBefore = main.StyleDefinitionsPart!.Styles!.OuterXml;
@@ -148,7 +146,7 @@ public partial class Word {
         WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
         box.Anchor!.RemoveAllChildren<W14.RelativeWidth>();
         box.Anchor.RemoveAllChildren<W14.RelativeHeight>();
-        box.Width = box.Height = 571500L;
+        box.Width = box.Height = OfficeLength.Emus(571500L);
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cx = 571500L;
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cy = 571500L;
         DW.HorizontalPosition position = box.Anchor.HorizontalPosition!;

@@ -40,7 +40,7 @@ public partial class PdfFontFamilyTests {
             _ => throw new ArgumentOutOfRangeException(nameof(scenario))
         };
         const string decoy = "Component Decoy";
-        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12 }
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = OfficeLength.Points(12) }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(decoy,
                 ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 900, 'B')))
             .RegisterFontFamilySubstitution("Literal", decoy);

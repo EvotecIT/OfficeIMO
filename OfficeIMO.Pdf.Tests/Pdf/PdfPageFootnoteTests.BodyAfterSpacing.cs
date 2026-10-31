@@ -63,7 +63,7 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void OrdinaryFinalParagraphRetainsItsPhysicalPageEndSpacingBehavior() {
         var document = PdfDocument.Create(Options());
-        document.Content.Text("Reference", style: BodyAfterStyle(0)).Spacer(80)
+        document.Content.Text("Reference", style: BodyAfterStyle(0)).Spacer(global::OfficeIMO.OfficeLength.Points(80))
             .Text("FollowingBody", style: BodyAfterStyle(16));
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -91,20 +91,20 @@ public partial class PdfPageFootnoteTests {
                 PdfTextRun.Normal("Reference").WithFootnoteReference(note)
             }), style: BodyAfterStyle(0));
 
-        PdfTextRun run = PdfTextRun.Normal("OwnerBody", fontSize: 8, font: PdfStandardFont.Helvetica);
+        PdfTextRun run = PdfTextRun.Normal("OwnerBody", fontSize: global::OfficeIMO.OfficeLength.Points(8), font: PdfStandardFont.Helvetica);
         if (introducesReference) run = run.WithFootnoteReference(note);
         if (owner == "heading") {
             document.Content.Heading(2, "OwnerBody", paragraph => paragraph.Runs(new[] { run }),
                 PdfAlign.Left, null, new PdfHeadingStyle {
-                    FontSize = 8, Font = PdfStandardFont.Helvetica, Bold = false,
-                    LineSpacing = PdfLineSpacing.Exactly(10), SpacingBefore = 0, SpacingAfter = 8,
+                    FontSize = global::OfficeIMO.OfficeLength.Points(8), Font = PdfStandardFont.Helvetica, Bold = false,
+                    LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
                     KeepWithNext = false
                 });
         } else if (owner == "list") {
             document.Content.RichNumbered(new[] { PdfListItem.Rich(new[] { run }) }, style: new PdfListStyle {
-                FontSize = 8, MarkerFontSize = 8, MarkerFont = PdfStandardFont.Helvetica,
-                LineSpacing = PdfLineSpacing.Exactly(10), SpacingBefore = 0, SpacingAfter = 8,
-                ItemSpacing = 0, KeepTogether = false, KeepWithNext = false
+                FontSize = global::OfficeIMO.OfficeLength.Points(8), MarkerFontSize = global::OfficeIMO.OfficeLength.Points(8), MarkerFont = PdfStandardFont.Helvetica,
+                LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
+                ItemSpacing = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = false, KeepWithNext = false
             });
         } else {
             throw new ArgumentOutOfRangeException(nameof(owner));
@@ -127,7 +127,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData("list")]
     public void ImportedAutoLineAdvanceDoesNotEnterAContinuedNoteRegion(string owner) {
         PdfCreateOptions options = Options();
-        options.PageHeight = 150;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(150);
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
             for (int index = 0; index < 18; index++)
@@ -143,18 +143,18 @@ public partial class PdfPageFootnoteTests {
         var spacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D);
         if (owner == "paragraph") {
             document.Content.Text("OwnerBody", style: new PdfParagraphStyle {
-                FontSize = 10, LineSpacing = spacing, SpacingBefore = 0, SpacingAfter = 8,
+                FontSize = global::OfficeIMO.OfficeLength.Points(10), LineSpacing = spacing, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
                 WidowControl = false
             });
         } else if (owner == "heading") {
             document.Content.Heading(2, "OwnerBody", style: new PdfHeadingStyle {
-                FontSize = 10, Font = PdfStandardFont.Helvetica, Bold = false,
-                LineSpacing = spacing, SpacingBefore = 0, SpacingAfter = 8, KeepWithNext = false
+                FontSize = global::OfficeIMO.OfficeLength.Points(10), Font = PdfStandardFont.Helvetica, Bold = false,
+                LineSpacing = spacing, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8), KeepWithNext = false
             });
         } else if (owner == "list") {
             document.Content.Numbered(new[] { "OwnerBody" }, style: new PdfListStyle {
-                FontSize = 10, MarkerFontSize = 10, MarkerFont = PdfStandardFont.Helvetica,
-                LineSpacing = spacing, SpacingBefore = 0, SpacingAfter = 8, ItemSpacing = 0,
+                FontSize = global::OfficeIMO.OfficeLength.Points(10), MarkerFontSize = global::OfficeIMO.OfficeLength.Points(10), MarkerFont = PdfStandardFont.Helvetica,
+                LineSpacing = spacing, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0),
                 KeepTogether = false, KeepWithNext = false
             });
         } else {
@@ -182,7 +182,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData(true)]
     public void ImportedAutoLineAdvanceRetainsALegalPrefixOrMovesTheKeptParagraph(bool keepTogether) {
         PdfCreateOptions options = Options();
-        options.PageHeight = 175;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(175);
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
             for (int index = 0; index < 20; index++)
@@ -192,8 +192,8 @@ public partial class PdfPageFootnoteTests {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: BodyAfterStyle(0));
         document.Content.Text("FirstBody\nLastBody", style: new PdfParagraphStyle {
-            FontSize = 10, LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D),
-            SpacingBefore = 0, SpacingAfter = 8, WidowControl = false, KeepTogether = keepTogether
+            FontSize = global::OfficeIMO.OfficeLength.Points(10), LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8), WidowControl = false, KeepTogether = keepTogether
         });
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -216,10 +216,10 @@ public partial class PdfPageFootnoteTests {
     }
 
     private static PdfParagraphStyle BodyAfterStyle(double after) => new() {
-        FontSize = 8,
-        LineSpacing = PdfLineSpacing.Exactly(10),
+        FontSize = global::OfficeIMO.OfficeLength.Points(8),
+        LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)),
         WidowControl = false,
-        SpacingBefore = 0,
-        SpacingAfter = after
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(after)
     };
 }

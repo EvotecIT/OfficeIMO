@@ -108,7 +108,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             ViewportWidth = 816D, ViewportHeight = 900D, Margins = HtmlRenderMargins.All(0D),
-            PageSize = new OfficePageSize(816D / 96D, 900D / 96D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(816D / 96D), global::OfficeIMO.OfficeLength.Inches(900D / 96D)),
             UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser, HonorCssPageRules = false
         };
         options.Fonts.Add("Pinned", File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),

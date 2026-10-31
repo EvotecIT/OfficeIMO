@@ -1,4 +1,5 @@
 // Generated from Build/Visual/themes.json by generate_theme_builtins.py. Do not edit by hand.
+#nullable enable
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO;

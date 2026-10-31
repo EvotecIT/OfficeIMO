@@ -145,7 +145,7 @@ public class PdfStampAnnotationEditorTests {
                 Contents = "Reviewed stamp",
                 Title = "OfficeIMO reviewer",
                 Name = "review-stamp-1",
-                FillColor = new PdfColor(1, 0.95, 0.9)
+                FillColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0.95, 0.9)
             });
 
         PdfAnnotation stamp = Assert.Single(PdfInspector.Inspect(result.Bytes).GetAnnotationsBySubtype("Stamp"));

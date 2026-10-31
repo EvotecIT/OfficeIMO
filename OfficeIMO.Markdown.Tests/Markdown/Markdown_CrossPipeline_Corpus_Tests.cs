@@ -107,7 +107,7 @@ all 5 are healthy for directory access** with recommended LDAPS endpoints.
                     preservesGroupedDefinitionLikeParagraphs: false,
                     visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence),
                 createRendererOptions: () => MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal(),
-                createWordOptions: () => MarkdownToWordPresets.CreateIntelligenceXTranscript())
+                createWordOptions: () => WordMarkdownImportOptions.CreateIntelligenceXTranscript())
         };
 
         yield return new object[] {

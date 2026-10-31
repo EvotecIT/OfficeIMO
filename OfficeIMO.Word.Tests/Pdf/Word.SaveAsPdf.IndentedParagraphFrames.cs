@@ -15,16 +15,16 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph(string.Join("\n", Enumerable.Range(1, 24).Select(i => $"Marker{i:D3}")));
         ConfigureAsymmetricBorderParagraph(paragraph);
-        paragraph.IndentationBeforePoints = left;
-        paragraph.IndentationAfterPoints = 18D;
-        if (firstLine < 0D) paragraph.IndentationHangingPoints = -firstLine;
+        paragraph.IndentationBefore = OfficeLength.Points(left);
+        paragraph.IndentationAfter = OfficeLength.Points(18);
+        if (firstLine < 0D) paragraph.IndentationHanging = OfficeLength.Points(-firstLine);
         paragraph.Borders.LeftStyle = paragraph.Borders.RightStyle = WordBorderStyle.Single;
-        paragraph.Borders.LeftSize = paragraph.Borders.RightSize = 8;
+        paragraph.Borders.LeftSize = paragraph.Borders.RightSize = OfficeLength.Points((8) / 8d);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
         using var model = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 260),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30),
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeLength.Points(360), OfficeLength.Points(260)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeLength.Points(30)),
             FontFamily = "Helvetica"
         });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(model.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

@@ -86,7 +86,7 @@ public sealed partial class HtmlRenderingTests {
             + "<p>One</p><p><a href='https://example.test/middle'>Two</a></p><p>Three</p></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             Mode = paged ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous,
-            ViewportWidth = 220D, PageSize = new OfficePageSize(220D / 96D, 100D / 96D),
+            ViewportWidth = 220D, PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(220D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)),
             HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D)
         });
         HtmlRenderText[] text = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();

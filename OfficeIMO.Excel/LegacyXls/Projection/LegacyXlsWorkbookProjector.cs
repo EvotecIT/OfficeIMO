@@ -22,13 +22,13 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     ? ExcelDateSystem.NineteenFour
                     : ExcelDateSystem.NineteenHundred;
                 if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
-                    document.AddWorksheet("Sheet1");
+                    document.AddSheet("Sheet1");
                 }
 
                 foreach (LegacyXlsSheetProjectionEntry sheetEntry in EnumerateSheetsInWorkbookOrder(workbook, cancellationToken)) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (sheetEntry.Worksheet != null) {
-                        ExcelSheet sheet = document.AddWorksheet(sheetEntry.Worksheet.Name);
+                        ExcelSheet sheet = document.AddSheet(sheetEntry.Worksheet.Name);
                         ProjectWorksheet(workbook, sheetEntry.Worksheet, sheet, cancellationToken);
                     } else if (sheetEntry.ChartSheet != null) {
                         ProjectChartSheet(sheetEntry.ChartSheet, document);
@@ -710,7 +710,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 if (legacySheet.DefaultColumnWidth.HasValue) {
-                    currentSheet.SetDefaultColumnWidth(legacySheet.DefaultColumnWidth.Value, save: false);
+                    currentSheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(legacySheet.DefaultColumnWidth.Value), save: false);
                 }
 
                 foreach (LegacyXlsColumnLayout column in legacySheet.Columns) {
@@ -723,7 +723,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     for (int columnIndex = column.StartColumn; columnIndex <= column.EndColumn; columnIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();
                         if (column.Width > 0) {
-                            currentSheet.SetColumnWidth(columnIndex, column.Width);
+                            currentSheet.SetColumnWidth(columnIndex, ExcelColumnWidth.Characters(column.Width));
                         }
 
                         if (column.Hidden) {
@@ -741,13 +741,13 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 if (legacySheet.DefaultRowHeight.HasValue) {
-                    currentSheet.SetDefaultRowHeight(legacySheet.DefaultRowHeight.Value, legacySheet.DefaultRowsHidden, save: false);
+                    currentSheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeLength.Points(legacySheet.DefaultRowHeight.Value)), legacySheet.DefaultRowsHidden, save: false);
                 }
 
                 foreach (LegacyXlsRowLayout row in legacySheet.Rows) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (row.CustomHeight && row.Height > 0) {
-                        currentSheet.SetRowHeight(row.Row, row.Height);
+                        currentSheet.SetRowHeight(row.Row, ExcelColumnWidth.Length(OfficeLength.Points(row.Height)));
                     }
 
                     if (row.Hidden) {
@@ -1886,7 +1886,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     projectedRun.Underline = font.Underline;
                     projectedRun.UnderlineStyle = ToUnderlineStyle(font.UnderlineStyle).ToOfficeEnum();
                     projectedRun.FontName = font.Name;
-                    projectedRun.FontSize = font.Size;
+                    projectedRun.FontSize = font.Size.HasValue ? OfficeLength.Points(font.Size.Value) : (OfficeLength?)null;
                     projectedRun.VerticalTextAlignment = ToVerticalTextAlignment(font.Escapement).ToOfficeEnum();
                     projectedRun.Outline = font.Outline;
                     projectedRun.Shadow = font.Shadow;
@@ -2029,12 +2029,12 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 || pageSetup.HeaderMargin.HasValue
                 || pageSetup.FooterMargin.HasValue) {
                 sheet.SetMargins(
-                    pageSetup.LeftMargin ?? 0.7d,
-                    pageSetup.RightMargin ?? 0.7d,
-                    pageSetup.TopMargin ?? 0.75d,
-                    pageSetup.BottomMargin ?? 0.75d,
-                    pageSetup.HeaderMargin ?? 0.3d,
-                    pageSetup.FooterMargin ?? 0.3d);
+                    OfficeLength.Inches(pageSetup.LeftMargin ?? 0.7d),
+                    OfficeLength.Inches(pageSetup.RightMargin ?? 0.7d),
+                    OfficeLength.Inches(pageSetup.TopMargin ?? 0.75d),
+                    OfficeLength.Inches(pageSetup.BottomMargin ?? 0.75d),
+                    OfficeLength.Inches(pageSetup.HeaderMargin ?? 0.3d),
+                    OfficeLength.Inches(pageSetup.FooterMargin ?? 0.3d));
             }
 
             if (pageSetup.Landscape.HasValue) {

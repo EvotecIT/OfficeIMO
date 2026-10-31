@@ -92,7 +92,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>html,body{margin:0}</style><div style='width:100px;height:250px;transform:translateX(15px);transform-origin:0 0'>"
             + FixedContainingLink("left:20px;top:120px;width:40px;height:20px") + "<div style='height:250px'></div></div>"
             + "<a href='https://example.test/viewport-fixed' style='position:fixed;left:80px;top:10px;width:10px;height:10px;background:blue'></a>";
-        var options = new HtmlToPdfOptions { PageSize = new OfficePageSize(120D / 96D, 100D / 96D),
+        var options = new HtmlToPdfOptions { PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)),
             ViewportWidth = 120, ViewportHeight = 250, Margins = HtmlRenderMargins.All(0), AutoFitWidePrintContent = false };
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
         HtmlRenderRequest request = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, options);

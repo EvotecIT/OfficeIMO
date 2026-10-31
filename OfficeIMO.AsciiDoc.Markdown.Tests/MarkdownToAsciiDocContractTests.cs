@@ -105,7 +105,9 @@ public sealed class MarkdownToAsciiDocContractTests {
         TableBlock table = Assert.Single(MarkdownDocument.Parse("| H |\n| --- |\n| wide |\n").Blocks.OfType<TableBlock>());
         table.GetCell(0, 0)!.ColumnSpan = 2;
 
-        MarkdownToAsciiDocResult result = MarkdownDocument.Create().Add(table).ToAsciiDocDocumentResult();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(table);
+        MarkdownToAsciiDocResult result = addedDocument.ToAsciiDocDocumentResult();
 
         Assert.Contains("[cols=2*", result.Source, StringComparison.Ordinal);
         Assert.Equal(2, Assert.Single(result.Value.BlocksOfType<AsciiDocTableBlock>()).Table.ColumnCount);

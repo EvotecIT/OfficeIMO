@@ -11,7 +11,7 @@ internal static partial class PdfWriter {
             for (int row = 0; row < table.Rows.Count; row++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 bool continued = row == continuingRow && consumedLines > 0 && previous != null;
-                double originalSize = GetTableRowFontSize(style, row, headerCount, footerStart, fallbackFontSize ?? currentOpts.DefaultFontSize);
+                double originalSize = GetTableRowFontSize(style, row, headerCount, footerStart, fallbackFontSize ?? currentOpts.DefaultFontSize.ToPoints());
                 bool bold = GetTableRowBold(style, row, headerCount, footerStart);
                 TableRowTextSizing sizing = ResolveTableRowTextSizing(table, style, row, columns, columnWidths, columnGap, originalSize, bold, currentOpts);
                 double size = continued ? Math.Min(previous!.Sizes[row], sizing.FontSize) : sizing.FontSize;
@@ -40,9 +40,9 @@ internal static partial class PdfWriter {
                     int cellConsumed = mergedCursor ? spanConsumed : consumedLines;
                     TableCellTextLayout lines = continueCell
                         ? ContinueTableCellTextLayout(cell, previous!.Lines[row][cell.Column], cellConsumed, innerWidth, font, size, leading,
-                            currentOpts, continuationScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum,
+                            currentOpts, continuationScale, style.MinimumShrinkFontSize?.ToPoints() ?? 6D, style.AutoFitWidthUsesContentMinimum,
                             cancellationToken)
-                        : textLayouts.Create(cell, innerWidth, font, size, leading, runScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum);
+                        : textLayouts.Create(cell, innerWidth, font, size, leading, runScale, style.MinimumShrinkFontSize?.ToPoints() ?? 6D, style.AutoFitWidthUsesContentMinimum);
                     result.Lines[row][cell.Column] = lines;
                     if (cell.RowSpan <= 1 && cell.Viewport == null) {
                         maxLines = Math.Max(maxLines, cell.TextRotation == 0 ? lines.LineCount : 1);

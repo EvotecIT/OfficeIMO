@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Line-level text block extracted from a PDF page.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
     internal PdfLogicalTextBlock(
         int pageNumber,
@@ -41,13 +42,13 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
     /// <summary>Extracted text for the line-level block.</summary>
     public string Text { get; }
 
-    /// <summary>Leftmost X coordinate in PDF points.</summary>
+    /// <summary>Leftmost X coordinate in page user-space units.</summary>
     public double XStart { get; }
 
-    /// <summary>Rightmost X coordinate in PDF points.</summary>
+    /// <summary>Rightmost X coordinate in page user-space units.</summary>
     public double XEnd { get; }
 
-    /// <summary>Baseline Y coordinate in PDF points from the bottom of the page.</summary>
+    /// <summary>Baseline Y coordinate in page user-space units from the bottom of the page.</summary>
     public double BaselineY { get; }
 
     /// <summary>Largest font size represented by this line-level block.</summary>
@@ -197,6 +198,7 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
 /// <summary>
 /// Semantic text fragment aligned with one positioned PDF text span.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalTextRun {
     internal PdfLogicalTextRun(string text, PdfTextSpan? sourceSpan) {
         Text = text ?? string.Empty;
@@ -218,7 +220,7 @@ public sealed class PdfLogicalTextRun {
     /// <summary>Raw source PDF font descriptor flags, when declared.</summary>
     public int? FontDescriptorFlags => SourceSpan?.FontDescriptorFlags;
 
-    /// <summary>Source font size in points, or zero when no source span was aligned.</summary>
+    /// <summary>Source font size in page user-space units, or zero when no source span was aligned.</summary>
     public double FontSize => SourceSpan?.FontSize ?? 0D;
 
     /// <summary>Source text color, when available.</summary>
@@ -234,6 +236,7 @@ public sealed class PdfLogicalTextRun {
 /// <summary>
 /// Heuristic heading line inferred from text size and geometry.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalHeading {
     internal PdfLogicalHeading(
         int pageNumber,
@@ -263,7 +266,7 @@ public sealed class PdfLogicalHeading {
     /// <summary>Heading text.</summary>
     public string Text { get; }
 
-    /// <summary>Representative font size in points.</summary>
+    /// <summary>Representative font size in page user-space units.</summary>
     public double FontSize { get; }
 
     /// <summary>Line-level text block that produced the heading.</summary>
@@ -425,6 +428,7 @@ public sealed class PdfLogicalListItem {
 /// <summary>
 /// Heuristic paragraph group built from nearby line-level text blocks.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalParagraph {
     private PdfLogicalParagraph(
         int pageNumber,
@@ -452,16 +456,16 @@ public sealed class PdfLogicalParagraph {
     /// <summary>Line-level blocks that make up this paragraph.</summary>
     public IReadOnlyList<PdfLogicalTextBlock> Lines { get; }
 
-    /// <summary>Leftmost X coordinate in PDF points.</summary>
+    /// <summary>Leftmost X coordinate in page user-space units.</summary>
     public double XStart { get; }
 
-    /// <summary>Rightmost X coordinate in PDF points.</summary>
+    /// <summary>Rightmost X coordinate in page user-space units.</summary>
     public double XEnd { get; }
 
-    /// <summary>Top baseline Y coordinate in PDF points.</summary>
+    /// <summary>Top baseline Y coordinate in page user-space units.</summary>
     public double YTop { get; }
 
-    /// <summary>Bottom baseline Y coordinate in PDF points.</summary>
+    /// <summary>Bottom baseline Y coordinate in page user-space units.</summary>
     public double YBottom { get; }
 
     internal static PdfLogicalParagraph From(int pageNumber, PdfStructuredParagraph paragraph, IReadOnlyList<PdfLogicalTextBlock> lines) {

@@ -216,6 +216,10 @@ internal static partial class MarkdownReader {
         }
     }
 
+    // OfficeLength's bare numbers are points; Markdown's bare image dimensions are CSS pixels.
+    private static bool TryParseImageLength(string value, out OfficeLength length) =>
+        OfficeLength.TryParse(value + "px", out length) || OfficeLength.TryParse(value, out length);
+
     private static bool TryApplyImageSizeSpec(string? block, ImageBlock image) {
         bool applied = false;
         foreach (var part in (block ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -226,15 +230,15 @@ internal static partial class MarkdownReader {
 
             var key = part.Substring(0, eq).Trim();
             var val = part.Substring(eq + 1).Trim();
-            if (!double.TryParse(val, NumberStyles.Number, CultureInfo.InvariantCulture, out var num)) {
+            if (!TryParseImageLength(val, out var length)) {
                 continue;
             }
 
             if (string.Equals(key, "width", StringComparison.OrdinalIgnoreCase)) {
-                image.Width = num;
+                image.Width = length;
                 applied = true;
             } else if (string.Equals(key, "height", StringComparison.OrdinalIgnoreCase)) {
-                image.Height = num;
+                image.Height = length;
                 applied = true;
             }
         }

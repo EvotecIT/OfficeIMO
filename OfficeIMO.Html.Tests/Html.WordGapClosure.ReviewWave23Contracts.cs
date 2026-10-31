@@ -43,20 +43,20 @@ public partial class HtmlWordGapClosure {
     [Fact]
     public void AddHtmlToBody_TableContainerWidthUsesTheOwningSection() {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].PageSettings.Width = 12000;
+        document.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(600D);
         WordSection target = document.AddSection();
-        target.PageSettings.Width = 9000;
-        target.Margins.Left = 1000;
-        target.Margins.Right = 1000;
+        target.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(450D);
+        target.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
+        target.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
 
-        document.AddHtmlToBody(HtmlConversionDocument.Parse("""
+        document.AddHtml(HtmlConversionDocument.Parse("""
             <div style="padding-inline-end:20px">
               <table style="width:100%"><tr><td>Value</td></tr></table>
             </div>
             """));
 
         WordTable table = Assert.Single(document.Tables);
-        Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
-        Assert.Equal(6700, table.Width);
+        Assert.Equal(WordTableWidthKind.Length, table.Width?.Kind);
+        Assert.Equal(6700, table.Width?.ToNativeValue());
     }
 }

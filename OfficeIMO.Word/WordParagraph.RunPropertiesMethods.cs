@@ -36,9 +36,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the character spacing for the text.
         /// </summary>
-        /// <param name="spacing">Spacing value in twentieths of a point.</param>
+        /// <param name="spacing">Signed character spacing, or null to remove the local value.</param>
         /// <returns>The current paragraph instance.</returns>
-        public WordParagraph SetSpacing(int spacing) {
+        public WordParagraph SetSpacing(OfficeLength? spacing) {
             this.Spacing = spacing;
             return this;
         }
@@ -105,7 +105,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="fontSize">Font size in points.</param>
         /// <returns>The current paragraph instance.</returns>
-        public WordParagraph SetFontSize(int fontSize) {
+        public WordParagraph SetFontSize(global::OfficeIMO.OfficeLength fontSize) {
             this.FontSize = fontSize;
             return this;
         }

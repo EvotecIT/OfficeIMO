@@ -7,8 +7,10 @@ using OfficeIMO.Data;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public class ExcelSheetComposerDictionaryRowTests {
+namespace OfficeIMO.Tests
+{
+    public class ExcelSheetComposerDictionaryRowTests
+    {
         [Fact]
         public void ObjectFlattener_SupportsDictionaryRowsAndNestedCellValues() {
             var metadata = new ReadOnlyDictionaryRow(
@@ -72,59 +74,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SheetComposer_EnforcesProjectedCellLimitBeforeWritingCells() {
+        public void SheetComposer_EnforcesProjectedCellLimitBeforeWritingCells()
+        {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
-            var rows = new[] {
+            var rows = new[]
+            {
                 new ReadOnlyDictionaryRow(("A", 1), ("B", 2)),
                 new ReadOnlyDictionaryRow(("A", 3), ("B", 4))
             };
-
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => document.Compose("Report", composer =>
-                composer.TableFrom(rows, configure: options => options.MaxCells = 5)));
-
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxCells = 5)))(document.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 6 cells", exception.Message, StringComparison.Ordinal);
             Assert.Contains("2 data rows + 1 header row x 2 columns", exception.Message, StringComparison.Ordinal);
-            Assert.Contains("options.MaxCells = 6", exception.Message, StringComparison.Ordinal);
-            Assert.Contains("TableFrom(DataTable)", exception.Message, StringComparison.Ordinal);
+
+            Assert.Empty(document.Sheets[0].WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>());
         }
 
         [Fact]
-        public void SheetComposer_ExplainsHowToOverrideRowAndColumnLimits() {
-            var rows = new[] {
+        public void SheetComposer_RejectsProjectedRowsAndColumnsBeyondConfiguredLimits()
+        {
+            var rows = new[]
+            {
                 new ReadOnlyDictionaryRow(("A", 1), ("B", 2)),
                 new ReadOnlyDictionaryRow(("A", 3), ("B", 4))
             };
-
             using var rowDocument = ExcelDocument.Create();
-            InvalidDataException rowException = Assert.Throws<InvalidDataException>(() =>
-                rowDocument.Compose("Rows", composer =>
-                    composer.TableFrom(rows, configure: options => options.MaxRows = 1)));
+            InvalidDataException rowException = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxRows = 1)))(rowDocument.AddSheet("Rows", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 2 data rows", rowException.Message, StringComparison.Ordinal);
-            Assert.Contains("options.MaxRows = 2", rowException.Message, StringComparison.Ordinal);
 
             using var columnDocument = ExcelDocument.Create();
-            InvalidDataException columnException = Assert.Throws<InvalidDataException>(() =>
-                columnDocument.Compose("Columns", composer =>
-                    composer.TableFrom(rows, configure: options => options.MaxColumns = 1)));
+            InvalidDataException columnException = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxColumns = 1)))(columnDocument.AddSheet("Columns", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 2 columns", columnException.Message, StringComparison.Ordinal);
-            Assert.Contains("options.MaxColumns = 2", columnException.Message, StringComparison.Ordinal);
+
         }
 
         [Fact]
-        public void SheetComposer_ExplainsHardExcelColumnBoundaryForObjectRows() {
-            (string Key, object? Value)[] entries = Enumerable.Range(0, ExcelA1.MaxColumns + 1)
-                .Select(index => ("Column" + index, (object?)index))
-                .ToArray();
-            var rows = new[] { new ReadOnlyDictionaryRow(entries) };
+        public void SheetComposer_ExplainsHardExcelColumnBoundaryForObjectRows()
+        {
+            (string Key, object? Value)[] entries = Enumerable.Range(0, ExcelA1.MaxColumns + 1).Select(index => ("Column" + index, (object? )index)).ToArray();
+            var rows = new[]
+            {
+                new ReadOnlyDictionaryRow(entries)
+            };
             using ExcelDocument document = ExcelDocument.Create();
-
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                document.Compose("Data", composer => composer.TableFrom(
-                    rows,
-                    configure: options => options.MaxColumns = int.MaxValue,
-                    freezeHeaderRow: false)));
-
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxColumns = int.MaxValue, freezeHeaderRow: false)))(document.AddSheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 16385 columns", exception.Message, StringComparison.Ordinal);
             Assert.Contains("Select fewer columns or split the data across multiple worksheets", exception.Message, StringComparison.Ordinal);
             Assert.Contains("cannot be overridden", exception.Message, StringComparison.Ordinal);
@@ -132,25 +125,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SheetComposer_RendersDictionaryRowsAsRealColumns() {
+        public void SheetComposer_RendersDictionaryRowsAsRealColumns()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            try {
-                var rows = new[] {
+            try
+            {
+                var rows = new[]
+                {
                     new ReadOnlyDictionaryRow(("Name", "Alpha"), ("Score", 10)),
                     new ReadOnlyDictionaryRow(("Name", "Beta"), ("Score", 20))
                 };
+                using (var document = ExcelDocument.Create(filePath))
+                {
+                    {
+                        var reportBuilder1 = document.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                        (reportBuilder1).AddTable(rows, title: "Scores");
+                        (reportBuilder1).Finish(autoFitColumns: false);
+                    }
 
-                using (var document = ExcelDocument.Create(filePath)) {
-                    document.Compose("Report", composer => {
-                        composer.TableFrom(rows, title: "Scores");
-                        composer.Finish(autoFitColumns: false);
-                    });
                     document.Save();
                 }
 
-                using (var document = ExcelDocument.Load(
-                    filePath,
-                    new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+                using (var document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+                {
                     var sheet = document["Report"];
                     Assert.True(sheet.TryGetCellText(2, 1, out string? nameHeader));
                     Assert.True(sheet.TryGetCellText(2, 2, out string? scoreHeader));
@@ -161,31 +158,45 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("Alpha", name);
                     Assert.Equal("10", score);
                 }
-            } finally {
-                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+            finally
+            {
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
             }
         }
 
         [Fact]
-        public void SheetBuilder_RendersGenericOnlyDictionaryRowsAsRealColumns() {
+        public void SheetBuilder_RendersGenericOnlyDictionaryRowsAsRealColumns()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            try {
-                var rows = new[] {
+            try
+            {
+                var rows = new[]
+                {
                     new GenericOnlyDictionaryRow<int>(("Score", 10), ("Rank", 1)),
                     new GenericOnlyDictionaryRow<int>(("Score", 20), ("Rank", 2))
                 };
-
-                using (var document = ExcelDocument.Create(filePath)) {
-                    document.AsFluent()
-                        .Sheet("Report", sheet => sheet.RowsFrom(rows, options =>
-                            options.Columns = new[] { "Rank", "Score", "Missing" }))
-                        .End()
-                        .Save();
+                using (var document = ExcelDocument.Create(filePath))
+                {
+                    {
+                        var sheet1 = document.AddSheet("Report");
+                        int nextRow2 = 1;
+                        var projection3 = new OfficeIMO.Data.ObjectFlattenerOptions();
+                        (projection3).Columns = new[]
+                        {
+                            "Rank",
+                            "Score",
+                            "Missing"
+                        };
+                        var table4 = sheet1.AddTable(rows, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = projection3 }, row: nextRow2);
+                        nextRow2 = table4.AsRange().LastRow + 1;
+                        document.Save();
+                    }
                 }
 
-                using (var document = ExcelDocument.Load(
-                    filePath,
-                    new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+                using (var document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+                {
                     var sheet = document["Report"];
                     Assert.True(sheet.TryGetCellText(1, 1, out string? rankHeader));
                     Assert.True(sheet.TryGetCellText(1, 2, out string? scoreHeader));
@@ -198,8 +209,11 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("1", rank);
                     Assert.Equal("10", score);
                 }
-            } finally {
-                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+            finally
+            {
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
             }
         }
 

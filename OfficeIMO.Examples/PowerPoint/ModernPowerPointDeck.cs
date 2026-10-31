@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg");
 
             OfficeTheme theme = OfficeTheme.Modern;
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath, new PowerPointCreateOptions { Theme = theme });
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath, new PowerPointCreateOptions { Theme = theme });
 
             string[] months = { "Jan", "Feb", "Mar", "Apr", "May", "Jun" };
             var plan = new PowerPointDeckPlan();
@@ -49,9 +49,9 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             plan.Add(new PowerPointContentPlanSlide("Sales grew every month", new PowerPointLayoutBlock[] {
                 new PowerPointLayoutText("Sales nearly tripled from January to June while profit grew at a steadier pace."),
-                new PowerPointLayoutChart(OfficeChartKind.ColumnClustered, new OfficeChartData(months, new[] {
-                    new OfficeChartSeries("Sales", new[] { 10D, 12D, 16D, 19D, 24D, 27D }),
-                    new OfficeChartSeries("Profit", new[] { 4D, 5D, 7D, 9D, 11D, 13D })
+                new PowerPointLayoutChart(OfficeChartType.ColumnClustered, new OfficeChartData(months, new[] {
+                    new OfficeSeries("Sales", new[] { 10D, 12D, 16D, 19D, 24D, 27D }),
+                    new OfficeSeries("Profit", new[] { 4D, 5D, 7D, 9D, 11D, 13D })
                 })) { Title = "Sales and profit (USD m)" }
             }) {
                 Eyebrow = "Performance",
@@ -69,8 +69,8 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             plan.Add(new PowerPointContentPlanSlide("Where new customers came from", new PowerPointLayoutBlock[] {
                 new PowerPointLayoutList(new[] { "Partners bring the largest share", "Self-service grew fastest", "Events stay a small channel" }),
-                new PowerPointLayoutChart(OfficeChartKind.Doughnut, new OfficeChartData(new[] { "Partners", "Self-service", "Direct", "Events" },
-                    new[] { new OfficeChartSeries("Share", new[] { 41D, 29D, 21D, 9D }) })) { Title = "Channel mix (%)" }
+                new PowerPointLayoutChart(OfficeChartType.Doughnut, new OfficeChartData(new[] { "Partners", "Self-service", "Direct", "Events" },
+                    new[] { new OfficeSeries("Share", new[] { 41D, 29D, 21D, 9D }) })) { Title = "Channel mix (%)" }
             }) { Eyebrow = "Growth" });
 
             plan.Add(new PowerPointContentPlanSlide("Next-quarter priorities", new PowerPointLayoutBlock[] {

@@ -252,12 +252,12 @@ namespace OfficeIMO.Word {
         /// Adds a picture content control containing an image to the paragraph.
         /// </summary>
         /// <param name="filePath">Image file path.</param>
-        /// <param name="width">Optional width of the image.</param>
-        /// <param name="height">Optional height of the image.</param>
+        /// <param name="width">Optional physical width of the image.</param>
+        /// <param name="height">Optional physical height of the image.</param>
         /// <param name="alias">Optional alias for the control.</param>
         /// <param name="tag">Optional tag for the control.</param>
         /// <returns>The created <see cref="WordPictureControl"/> instance.</returns>
-        public WordPictureControl AddPictureControl(string filePath, double? width = null, double? height = null, string? alias = null, string? tag = null) {
+        public WordPictureControl AddPictureControl(string filePath, OfficeLength? width = null, OfficeLength? height = null, string? alias = null, string? tag = null) {
             var sdtRun = new SdtRun();
 
             var props = new SdtProperties();

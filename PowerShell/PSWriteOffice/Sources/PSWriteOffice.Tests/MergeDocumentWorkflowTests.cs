@@ -138,7 +138,7 @@ public sealed class MergeDocumentWorkflowTests {
         string second = files.Excel("second.xlsx", "Second", "SECOND");
         string output = files.PathFor("merged.xlsx");
         using var live = ExcelDocument.Create();
-        live.AddWorksheet("Cover").CellValue(1, 1, "COVER");
+        live.AddSheet("Cover").CellValue(1, 1, "COVER");
         var sources = files.Snapshot();
         var settings = new ExcelWorkbookMergeOptions { CopyMode = ExcelWorksheetCopyMode.Package };
         using var runspace = OpenRunspace();
@@ -158,7 +158,7 @@ public sealed class MergeDocumentWorkflowTests {
             if (!liveInput || index > 0) Assert.Equal("0.0000", saved.Sheets[index].CellAt(2, 1).GetStyle().NumberFormatCode);
         }
         Assert.Null(settings.SheetNamePrefix);
-        live.AddWorksheet("Still open");
+        live.AddSheet("Still open");
         files.AssertSourcesUnchanged(sources);
     }
 
@@ -342,7 +342,7 @@ public sealed class MergeDocumentWorkflowTests {
             string marker = index == 0 ? "FIRST" : "SECOND";
             if (excel) {
                 using var workbook = ExcelDocument.Create();
-                workbook.AddWorksheet(marker).CellValue(1, 1, marker);
+                workbook.AddSheet(marker).CellValue(1, 1, marker);
                 workbook.Save(path, new ExcelSaveOptions { Password = password });
             } else {
                 using var document = WordDocument.Create();
@@ -433,7 +433,7 @@ public sealed class MergeDocumentWorkflowTests {
         internal string Excel(string name, string sheet, string text) {
             string path = PathFor(name);
             using var document = ExcelDocument.Create();
-            var worksheet = document.AddWorksheet(sheet);
+            var worksheet = document.AddSheet(sheet);
             worksheet.CellValue(1, 1, text);
             worksheet.CellValue(2, 1, 0.25);
             worksheet.FormatCell(2, 1, "0.0000");

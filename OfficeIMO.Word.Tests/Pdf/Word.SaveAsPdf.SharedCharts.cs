@@ -16,8 +16,8 @@ public sealed class WordSharedChartPdfTests {
     [Fact]
     public void NativeThreeDimensionalPointStyleIsFlattenedForPdf() {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Pie, new OfficeChartData(new[] { "A", "B" },
-            new[] { new OfficeChartSeries("Status", new[] { 7d, 3d }) }));
+        WordChart chart = document.AddChart(OfficeChartType.Pie,new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }));
         C.PlotArea plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         C.PieChart pie = plot.GetFirstChild<C.PieChart>()!;
         var pie3d = new C.Pie3DChart();
@@ -37,13 +37,13 @@ public sealed class WordSharedChartPdfTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void ExplodedSliceSurvivesNativePdfProjection(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void ExplodedSliceSurvivesNativePdfProjection(OfficeChartType kind) {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" },
-            new[] { new OfficeChartSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 }) }));
+        WordChart chart = document.AddChart(kind,new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 }) }));
         MethodInfo factory = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeWordChartSnapshot",
             BindingFlags.NonPublic | BindingFlags.Static)!;
         object?[] arguments = { chart, null, null };
@@ -65,8 +65,7 @@ public sealed class WordSharedChartPdfTests {
     public void DefaultLegendShapeDoesNotDisableSingleChartPdfWithDataTable(string appearance) {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Count", new[] { 4d }) }));
+        WordChart chart = document.AddChart(OfficeChartType.ColumnClustered,            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Count", new[] { 4d }) }));
         C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
         native.PlotArea!.AddChild(new C.DataTable(), true);
         C.Legend legend = native.GetFirstChild<C.Legend>()!;
@@ -124,11 +123,11 @@ public sealed class WordSharedChartPdfTests {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         using var document = WordDocument.Create();
         var data = bubble ? new OfficeChartData(new[] { "1", "2" }, new[] {
-            OfficeChartSeries.CreateBubble("Measured", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 20d }, OfficeColor.Parse("#224466")) }) :
-            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Columns", new[] { 100d, 200d }),
-                new OfficeChartSeries("Ratio", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, true,
-                    renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
-        document.AddChart(bubble ? OfficeChartKind.Bubble : OfficeChartKind.ColumnClustered, data, "Shared chart");
+            OfficeSeries.CreateBubble("Measured", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 20d }, OfficeColor.Parse("#224466")) }) :
+            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Columns", new[] { 100d, 200d }),
+                new OfficeSeries("Ratio", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, true,
+                    renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
+        document.AddChart(bubble ? OfficeChartType.Bubble : OfficeChartType.ColumnClustered, data, new OfficeChartOptions { Title = "Shared chart" });
         var options = new WordPdfExportOptions { IncludePageNumbers = false };
         string path = Path.Combine(Path.GetTempPath(), "officeimo-shared-chart-" + Guid.NewGuid().ToString("N") + ".pdf");
         try {

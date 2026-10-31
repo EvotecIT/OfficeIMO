@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
             double size = text.Font.Size * text.BaselineScale;
             var run = new PdfTextRun(text.Text, text.Font.IsBold, text.Font.IsUnderline,
                     ToPdfColor(text.Color ?? OfficeColor.Black), text.Font.IsItalic, text.Font.IsStrikethrough,
-                    size, ResolveDrawingTextFont(text.Font.FamilyName), fontFamily: text.Font.FamilyName,
+                    global::OfficeIMO.OfficeLength.Points(size), ResolveDrawingTextFont(text.Font.FamilyName), fontFamily: text.Font.FamilyName,
                     underlineStyle: text.UnderlineStyle, strikeStyle: text.StrikethroughStyle,
                     decorationColor: ToPdfColor(text.DecorationColor))
                 .WithFeatureSettings(text.FeatureSettings)
@@ -93,7 +93,7 @@ internal static partial class PdfWriter {
                     .Rectangle(frameX, frameTopY - text.Height, text.Width, text.Height)
                     .ClipPath()
                     .EndPath()
-                    .FillColor(ToPdfColor(paintColor) ?? PdfColor.Black)
+                    .FillColor(ToPdfColor(paintColor) ?? global::OfficeIMO.OfficeColor.Black)
                     .BeginText()
                     .Font(fontResource, size, currentOpts.NeedsSyntheticOblique(font, namedFont), syntheticBold: currentOpts.NeedsSyntheticBold(font, namedFont));
                 for (int index = 0; index < glyphRun.Glyphs.Count; index++) {

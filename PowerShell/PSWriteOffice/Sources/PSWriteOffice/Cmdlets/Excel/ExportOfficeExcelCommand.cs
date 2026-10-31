@@ -556,7 +556,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
         var normalizedItems = PowerShellObjectNormalizer
             .NormalizeItems(items, CreateNormalizerOptions())
             .ToList();
-        sheet.InsertObjects<object?>(normalizedItems, includeHeaders, dataStartRow);
+        sheet.WriteData<object?>(normalizedItems, includeHeaders, dataStartRow);
         range = sheet.UsedRangeA1;
         if (string.IsNullOrWhiteSpace(range))
         {
@@ -942,14 +942,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
 
         if (!NoTable.IsPresent && !appendRawRows)
         {
-            var range = sheet.InsertDataTableAsTable(
-                table,
-                startRow,
-                StartColumn,
-                includeHeaders,
-                tableName,
-                style,
-                includeAutoFilter: !NoAutoFilter.IsPresent);
+            var range = sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { AutoFit = false, UseDefaultHeaderlessColumnNames = true, IncludeHeaders = includeHeaders, Name = tableName, Style = style, IncludeAutoFilter = !NoAutoFilter.IsPresent }, row: startRow, column: StartColumn).Range!;
             ApplyTableStyleOptions(sheet, range, style);
             return range;
         }
@@ -1301,7 +1294,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
     {
         var sheet = document.Sheets.FirstOrDefault(existing =>
             string.Equals(existing.Name, sheetName, StringComparison.OrdinalIgnoreCase));
-        return sheet ?? document.AddWorksheet(sheetName, ExcelSheetNameValidationMode.None);
+        return sheet ?? document.AddSheet(sheetName, ExcelSheetNameValidationMode.None);
     }
 
     private static bool IsInvalidWorksheetNameCharacter(char ch)

@@ -29,9 +29,9 @@ public sealed class WordPdfImageTransformTests {
             _ => document.AddParagraph()
         };
         using var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
-        WordImage image = paragraph.InsertImage(pixels, "image.png", 80, 40, description: "Transformed picture");
-        image.CropLeft = 25000; image.CropTop = 12500;
-        image.CropRight = 12500; image.CropBottom = 25000;
+        WordImage image = paragraph.AddImage(pixels, "image.png", OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Description = "Transformed picture" });
+        image.CropLeftRatio = ((double?)(25000)) / 100000D; image.CropTopRatio = ((double?)(12500)) / 100000D;
+        image.CropRightRatio = ((double?)(12500)) / 100000D; image.CropBottomRatio = ((double?)(25000)) / 100000D;
         image.Rotation = rotation;
         image.HorizontalFlip = horizontal;
         image.VerticalFlip = vertical;
@@ -39,8 +39,8 @@ public sealed class WordPdfImageTransformTests {
             image.WrapText = context == "background" ? WordImageTextWrapping.BehindText : WordImageTextWrapping.InFrontOfText;
             image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            image.HorizontalPositionOffset = 144L * 12700;
-            image.VerticalPositionOffset = 180L * 12700;
+            image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(144L * 12700);
+            image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(180L * 12700);
             if (context == "simple-position") {
                 image._Image.Anchor!.SimplePos = true;
                 image._Image.Anchor.SimplePosition!.X = 144L * 12700;
@@ -52,7 +52,7 @@ public sealed class WordPdfImageTransformTests {
         string original = loaded._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         var options = new WordPdfExportOptions { IncludePageNumbers = false };
         if (context.StartsWith("simple-", StringComparison.Ordinal))
-            options.PdfOptions = new PdfCore.PdfCreateOptions { HeaderFontSize = 10, FooterFontSize = 10 };
+            options.PdfOptions = new PdfCore.PdfCreateOptions { HeaderFontSize = global::OfficeIMO.OfficeLength.Points(10), FooterFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         PdfCore.PdfDocumentConversionResult conversion = loaded.ConvertToPdfWithEvidence(options);
         byte[] pdf = conversion.ToBytes();
         PdfCore.PdfImagePlacement placement = Assert.Single(PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf));

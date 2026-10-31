@@ -36,8 +36,8 @@ internal static partial class PdfWriter {
             _suppressCanvasActualTextChildren = true;
             // Tile-local bounds must survive nested transparency Forms even when
             // the reusable tile is larger than the destination page.
-            _canvasEffectToPage = OfficeTransform.Scale(currentOpts.PageWidth / pattern.InnerTile.Width,
-                currentOpts.PageHeight / pattern.InnerTile.Height);
+            _canvasEffectToPage = OfficeTransform.Scale(currentOpts.PageWidth.ToPoints() / pattern.InnerTile.Width,
+                currentOpts.PageHeight.ToPoints() / pattern.InnerTile.Height);
             try {
                 RenderEffectGroup(OfficeTransform.Identity, pattern.Opacity, OfficeBlendMode.Normal, () => {
                     DrawDrawingElements(pattern.InnerTile, 0D, pattern.InnerTile.Height, metrics);

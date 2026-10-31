@@ -12,7 +12,7 @@ public sealed partial record OfficeBatchOptions {
     public string[]? InputPaths { get; set; }
     /// <summary>Destination tree. Source and output trees must not overlap.</summary>
     public string OutputDirectory { get; set; } = string.Empty;
-    /// <summary>Physical destination extension. Defaults to PDF.</summary>
+    /// <summary>Physical destination extension replacing the final source extension. Relative folders are retained when InputDirectory is supplied. Defaults to PDF.</summary>
     public string TargetExtension { get; set; } = ".pdf";
     /// <summary>Optional exact canonical route identifier.</summary>
     public string? ConversionRouteId { get; set; }

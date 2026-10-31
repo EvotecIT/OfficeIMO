@@ -70,7 +70,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 yield return category;
             }
 
-            foreach (OfficeChartSeries series in snapshot.Data.Series) {
+            foreach (OfficeSeries series in snapshot.Data.Series) {
                 yield return series.Name;
             }
 

@@ -28,15 +28,15 @@ internal static partial class FixtureCorpus {
         }
         using (var excel = ExcelDocument.Create()) {
             for (int page = 1; page <= 2; page++) {
-                var sheet = excel.AddWorksheet("Review " + page);
+                var sheet = excel.AddSheet("Review " + page);
                 sheet.CellValue(1, 1, "SERVICE REVIEW " + page);
                 sheet.CellValue(2, 1, "Availability"); sheet.CellValue(2, 2, 99.95D);
                 sheet.CellValue(3, 1, "Completed"); sheet.CellValue(3, 2, 9);
                 // Author the existing 304px canvas using stored widths, which already
                 // include padding: 196px in column A and 108px in column B at 7px/digit.
-                sheet.SetColumnWidth(1, 28); sheet.SetColumnWidth(2, 108D / 7D);
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(28)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(108D / 7D));
                 for (int row = 1; row <= 3; row++) {
-                    sheet.SetRowHeight(row, 24);
+                    sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                     for (int column = 1; column <= 2; column++) sheet.CellFontName(row, column, family);
                 }
             }
@@ -48,14 +48,14 @@ internal static partial class FixtureCorpus {
             excel.Save(Path.Combine(output, "service-review.xlsx"));
             excel.ToOpenDocumentResult().Value.Save(Path.Combine(output, "service-review.ods"));
         }
-        using (var presentation = PowerPointPresentation.Create()) {
-            presentation.SlideSize.WidthCm = 12.7;
-            presentation.SlideSize.HeightCm = 8.4666666667;
+        using (var presentation = PowerPointDocument.Create()) {
+            presentation.SlideSize.Width= OfficeIMO.OfficeLength.Centimeters(12.7);
+            presentation.SlideSize.Height= OfficeIMO.OfficeLength.Centimeters(8.4666666667);
             for (int page = 1; page <= 2; page++) {
                 var slide = presentation.AddSlide();
-                var heading = slide.AddTextBoxPoints("SERVICE REVIEW " + page, 18, 18, 320, 30);
+                var heading = slide.AddTextBox("SERVICE REVIEW " + page,global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(30));
                 heading.FontName = family; heading.FontSize = 18;
-                var body = slide.AddTextBoxPoints("Completed actions: 9 of 12", 18, 66, 320, 30);
+                var body = slide.AddTextBox("Completed actions: 9 of 12",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(66),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(30));
                 body.FontName = family; body.FontSize = 12;
             }
             presentation.Save(Path.Combine(output, "service-review.pptx"));
@@ -89,7 +89,7 @@ internal static partial class FixtureCorpus {
                         "The OneNote title requests bold. This regular-face fixture profile deliberately exercises synthetic bold and accepts the reported substitution to its pinned regular face."
                     } : new(),
                 AllowedDiagnostics = item.Item1 == "ods" ? new() { "ODF_IMAGE_COLUMN_LAYOUT_APPROXIMATED", "ODF_IMAGE_CELL_STYLES_APPROXIMATED" }
-                    : item.Item1 == "one" ? new() { "IMAGE_FONT_SUBSTITUTED" }
+                    : item.Item1 == "one" ? new() { global::OfficeIMO.OfficeDiagnosticCodes.FontFamilySubstitution }
                     : item.Item1 == "odp" ? new() { "ODF_IMAGE_MASTERS_LAYOUTS_APPROXIMATED" } : new(),
                 Pages = Enumerable.Range(1,2).Select(number => new PageExpectation {
                     Width = item.Item2, Height = item.Item3,

@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 while (await enumerator.MoveNextAsync()) ValidateExcelReaderRow(enumerator.Current, ++count);
                 if (count != RowCount || workbook.SheetCount != 1) throw new InvalidDataException("Incorrect async raw row/sheet count.");
             }
-            await using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(_workbook, new ExcelReaderOptions { HasHeaderRow = false })) {
+            await using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_workbook, writable: false), new ExcelReaderOptions { HasHeaderRow = false })) {
                 int count = 0;
                 while (await reader.ReadAsync()) {
                     if (reader.FieldCount != 4 || reader.GetValue(0) is not string name || reader.GetValue(1) is not double id
@@ -100,7 +100,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
 
         internal async Task<long> OfficeIMOAsync() {
-            await using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(_workbook, new ExcelReaderOptions { HasHeaderRow = false });
+            await using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_workbook, writable: false), new ExcelReaderOptions { HasHeaderRow = false });
             long sum = 0;
             int count = 0;
             while (await reader.ReadAsync()) {

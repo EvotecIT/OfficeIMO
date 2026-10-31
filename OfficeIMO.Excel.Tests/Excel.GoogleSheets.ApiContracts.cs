@@ -24,8 +24,8 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "GoogleSheetsReplacementOrdering.xlsx");
         try {
             using var document = ExcelDocument.Create(path);
-            document.AddWorksheet("Sheet1").CellValue(1, 1, "One");
-            document.AddWorksheet("Data").CellValue(1, 1, "Two");
+            document.AddSheet("Sheet1").CellValue(1, 1, "One");
+            document.AddSheet("Data").CellValue(1, 1, "Two");
             GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
             var existingSheets = new Dictionary<int, string> {
                 [10] = "Sheet1",
@@ -52,7 +52,7 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "GoogleSheetsGridSizing.xlsx");
         try {
             using var document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 27, "AA");
             sheet.CellValue(1001, 1, "Row");
 
@@ -84,7 +84,7 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "GoogleSheetsNumericTable.xlsx");
         try {
             using var document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Amount");
             sheet.CellValue(2, 1, 10.5d);
             sheet.CellValue(3, 1, 20.25d);

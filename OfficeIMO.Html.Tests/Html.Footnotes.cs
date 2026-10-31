@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void FootnotesRoundTripMultipleParagraphs() {
             using var doc = WordDocument.Create();
-            var noteReference = doc.AddParagraph("Hello").AddFootNote("First paragraph");
+            var noteReference = doc.AddParagraph("Hello").AddFootNote("First paragraph").Paragraph;
             noteReference.FootNote!.Paragraphs!.Last().AddParagraph("Second paragraph");
 
             string html = doc.ToHtml(new WordHtmlExportOptions { ExportFootnotes = true });
@@ -99,8 +99,8 @@ namespace OfficeIMO.Tests {
         [InlineData(true, true)]
         public void NestedNotesAreDiscoveredBeforeEitherSectionIsEmitted(bool outerEndnote, bool innerEndnote) {
             using var doc = WordDocument.Create();
-            var outer = outerEndnote ? doc.AddParagraph("Source").AddEndNote("Outer") :
-                doc.AddParagraph("Source").AddFootNote("Outer");
+            var outer = outerEndnote ? doc.AddParagraph("Source").AddEndNote("Outer").Paragraph :
+                doc.AddParagraph("Source").AddFootNote("Outer").Paragraph;
             var paragraph = outerEndnote ? outer.EndNote!.Paragraphs!.Last() : outer.FootNote!.Paragraphs!.Last();
             if (innerEndnote) paragraph.AddEndNote("Nested note");
             else paragraph.AddFootNote("Nested note");

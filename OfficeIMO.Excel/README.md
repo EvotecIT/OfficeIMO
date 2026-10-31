@@ -5,6 +5,75 @@
 
 Create, edit, read and save Excel workbooks (`.xlsx`, and the supported subset of Excel 97–2003 `.xls`) in .NET, without Microsoft Excel or COM. Tables, charts and cell styles follow the workbook's theme; very large exports stream rows with bounded memory.
 
+## Returned authoring objects
+
+Conditional-format Add methods return `ExcelConditionalFormattingInfo`, the same
+editable model used by `AddConditionalFormattingRule`. Edit the returned model
+and call `sheet.UpdateConditionalFormattingRule(rule)` to apply it, or pass it to
+`RemoveConditionalFormattingRule` to remove that exact rule. Pivot conditional
+formats follow the same contract.
+
+`AddAutoFilter` returns an `ExcelAutoFilter` range handle. Its `Inspect()` method
+reads current criteria and table ownership. Creating the handle preserves deferred
+workbook exports. `AddTableOfContents` returns the sheet it creates, and
+`AddPivotManualGrouping` returns the created `ExcelPivotGroupingInfo`.
+
+`CustomDocumentProperties.Add` returns the attached `ExcelCustomProperty`, so edits
+to the returned value are saved with the workbook. The collection also implements
+`IDictionary<string, ExcelCustomProperty>` and `ICollection<KeyValuePair<string, ExcelCustomProperty>>`.
+
+`AddManualRowPageBreak` and `AddManualColumnPageBreak` return an attached
+`ExcelPageBreak` with its worksheet, index, orientation and `Remove()` method.
+`AddMacro` returns the attached `ExcelMacroProject`, which can read, save or remove
+the VBA payload. Removed or replaced handles reject further operations.
+`AddIgnoredErrorRegion` returns the created `ExcelIgnoredErrorRegionInfo`.
+`AddBackLinksToToc` returns hyperlink metadata keyed by the worksheets receiving
+links. Use `AddImage` to create an image and receive its `ExcelImage`.
+Image dimensions and anchor offsets use `OfficeLength`: `image.Width`, `image.Height`,
+`image.OffsetX` and `image.OffsetY` retain whole EMUs. Two-cell ending offsets use
+`ToOffsetX` and `ToOffsetY`. For example, replace `widthPixels: 96` with
+`new ExcelImageOptions { Width = OfficeLength.Pixels(96) }`. `SetSize`, `MoveTo`, `SetTwoCellEndingMarker` and
+`TryGetAbsoluteAnchorBounds` use the same length contract. Cell and ending-marker
+offsets on existing XML remain inspectable when signed; `SetTwoCellEndingMarker`
+requires non-negative ending offsets; the absolute-position `AddImage(x, y, ...)` overload requires non-negative
+authored positions. HTML round trips preserve signed positions and offsets read
+from existing native drawings. Omitted byte-image
+sizes remain 96 by 32 pixels at 96 DPI, while file/scaled placement retains its
+source-dimension defaults. Remote insertion also uses detected source dimensions
+when width, height and scale are omitted; use explicit lengths to request a fixed
+96 by 32 pixel image. Raster export applies its pixel rounding and safety
+limits when rendering. `GetRangeSize` returns `Width` and `Height` as lengths;
+worksheet reports insert images through `sheet.Report().AddImage(...)`.
+
+
+Use `AddImage` with a path, stream or native byte array. `AddImageAsync` reads files
+and streams asynchronously or loads an HTTP or HTTPS `Uri`. Geometry, metadata,
+network policy and stream ownership belong to `ExcelImageOptions`:
+
+```csharp
+ExcelImage logo = sheet.AddImage(2, 3, "logo.png", new ExcelImageOptions {
+    ScalePercent = 20,
+    Description = "Company logo",
+    Title = "Logo"
+});
+sheet.AddImage("A1:C15", File.ReadAllBytes("header.png"), new ExcelImageOptions {
+    Placement = ExcelImagePlacement.MoveAndSize
+});
+await sheet.AddImageAsync(4, 2, new Uri("https://example.org/logo.png"));
+```
+
+A single A1 reference uses a one-cell anchor; a colon-delimited range, including
+`A1:A1`, uses a two-cell anchor. `AddImage(x, y, source, options)` uses an absolute
+anchor. Range anchors determine their own size and reject explicit dimensions or
+scale. `LockAspectRatio` sets Excel's picture lock; it does not calculate an omitted
+dimension. Streams stay open by default and retain their seekable position;
+`LeaveOpen = false` closes them on success, failure or cancellation. Image bytes
+are embedded without re-encoding. `Deduplicate = true` shares identical native
+payloads within the worksheet drawing while each picture keeps its own metadata;
+the default creates separate image parts. `sheet.Report()` uses the same options
+and returns the worksheet's attached image.
+
+
 ## Install
 
 ```sh

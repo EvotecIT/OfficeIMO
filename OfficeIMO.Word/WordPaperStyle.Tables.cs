@@ -14,18 +14,17 @@ public sealed partial class WordPaperStyle {
     public void ApplyTable(WordTable table, bool hasHeader = true, bool allowRowSplit = false, bool alignNumericColumns = true) {
         if (table == null) throw new ArgumentNullException(nameof(table));
         table.Style = WordTableStyle.TableNormal;
-        table.WidthType = WordTableWidthUnit.Pct;
-        table.Width = 5000;
+        table.Width = WordTableWidth.Percent(100);
         table.RepeatHeaderRowAtTheTopOfEachPage = hasHeader;
         table.AllowRowToBreakAcrossPages = allowRowSplit;
         table.StyleDetails!.SetCustomBorders(topStyle: WordBorderStyle.Nil, bottomStyle: WordBorderStyle.Nil,
             leftStyle: WordBorderStyle.Nil, rightStyle: WordBorderStyle.Nil,
             insideHStyle: WordBorderStyle.Single, insideHSize: RuleSize,
             insideHColor: OfficeIMO.OfficeColor.ParseHex(Border), insideVStyle: WordBorderStyle.Nil);
-        table.StyleDetails.MarginDefaultTopWidth = TableCellVerticalPadding;
-        table.StyleDetails.MarginDefaultBottomWidth = TableCellVerticalPadding;
-        table.StyleDetails.MarginDefaultLeftWidth = TableCellHorizontalPadding;
-        table.StyleDetails.MarginDefaultRightWidth = TableCellHorizontalPadding;
+        table.StyleDetails.MarginDefaultTop = TableCellVerticalPadding;
+        table.StyleDetails.MarginDefaultBottom = TableCellVerticalPadding;
+        table.StyleDetails.MarginDefaultLeft = TableCellHorizontalPadding;
+        table.StyleDetails.MarginDefaultRight = TableCellHorizontalPadding;
         int columnCount = table.Rows.Count == 0 ? 0 : table.Rows[0].Cells.Count;
         var numericColumns = new HashSet<int>();
         if (alignNumericColumns) {
@@ -44,14 +43,13 @@ public sealed partial class WordPaperStyle {
                 if (header) cell.ShadingFillColorHex = Surface;
                 foreach (WordParagraph paragraph in cell.Paragraphs) {
                     paragraph.FontFamily = FontFamily;
-                    paragraph.FontSizePoints = header ? 9 : TableFontSizePoints;
+                    paragraph.FontSize = header ? global::OfficeIMO.OfficeLength.Points(9) : TableFontSize;
                     paragraph.Bold = header;
                     paragraph.ColorHex = header ? Muted : Ink;
-                    paragraph.LineSpacingBeforePoints = TableParagraphSpacingPoints;
-                    paragraph.LineSpacingAfterPoints = TableParagraphSpacingPoints;
-                    if (TableLineSpacingPoints.HasValue) {
-                        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-                        paragraph.LineSpacingPoints = TableLineSpacingPoints.Value;
+                    paragraph.LineSpacingBefore = TableParagraphSpacing;
+                    paragraph.LineSpacingAfter = TableParagraphSpacing;
+                    if (TableLineSpacing.HasValue) {
+                        paragraph.LineSpacing = WordLineSpacing.Exact(TableLineSpacing.Value);
                     }
                     paragraph.ParagraphAlignment = numericColumns.Contains(column) ? WordParagraphAlignment.Right : WordParagraphAlignment.Left;
                     if (!header && numericColumns.Contains(column)) {

@@ -251,7 +251,9 @@ public sealed class AdfContractTests {
         var list = new UnorderedListBlock();
         list.Items.Add(task);
 
-        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(MarkdownDocument.Create().Add(list));
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(list);
+        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(addedDocument);
 
         Assert.Equal("bulletList", Assert.Single(result.Value.Content).Type);
         Assert.Contains(result.Report.Diagnostics, item => item.Code == "MARKDOWN_TASK_LIST_FALLBACK");
@@ -467,8 +469,8 @@ public sealed class AdfContractTests {
 
     [Fact]
     public void MarkdownDocumentSoftBreak_StaysTextInsteadOfBecomingHardBreak() {
-        var markdown = MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence().Text("first").SoftBreak().Text("second")));
+        var markdown = MarkdownDocument.Create();
+        markdown.Add(new ParagraphBlock(new InlineSequence().Text("first").SoftBreak().Text("second")));
 
         AdfConversionResult<AdfDocument> adf = AdfConverter.FromMarkdown(markdown);
         AdfConversionResult<string> roundTrip = AdfConverter.ToMarkdown(adf.Value);

@@ -25,8 +25,8 @@ public sealed class PdfNumberingTabCompatibilityTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 720;
-        level.IndentationHanging = 360;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(36D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new Tabs(
             new TabStop { Val = TabStopValues.Number, Position = 3000 }), 0);
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
@@ -34,7 +34,7 @@ public sealed class PdfNumberingTabCompatibilityTests {
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY\nNEXT");
         paragraph.Text = "BODY\nNEXT";
         paragraph.FontFamily = "Courier New";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (inline) paragraph.CharacterScale = 95;
         if (table) paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));

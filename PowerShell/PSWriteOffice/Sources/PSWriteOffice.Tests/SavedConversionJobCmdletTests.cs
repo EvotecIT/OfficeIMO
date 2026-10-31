@@ -51,7 +51,7 @@ public sealed class SavedConversionJobCmdletTests {
             shell.AddCommand("Invoke-OfficeConversionJob").AddParameter("Path", path).AddParameter("ReportPath", firstReportPath);
             var first = Assert.IsType<OfficeBatchSummary>(Assert.Single(shell.Invoke()).BaseObject);
             Assert.Equal(1, first.Completed);
-            string pdf = Path.Combine(output, "report.txt.pdf");
+            string pdf = Path.Combine(output, "report.pdf");
             Assert.Contains("Shared saved conversion job", PdfDocument.Load(pdf).Read().Text);
             byte[] firstBytes = File.ReadAllBytes(pdf);
             byte[] firstReportBytes = File.ReadAllBytes(firstReportPath);

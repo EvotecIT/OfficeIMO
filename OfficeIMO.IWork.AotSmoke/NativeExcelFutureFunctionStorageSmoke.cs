@@ -38,7 +38,7 @@ internal static class NativeExcelFutureFunctionStorageSmoke {
         string oversized = prefix + new string('x', 8181 - prefix.Length - 2) + "\")";
         foreach (bool dynamic in new[] { false, true }) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Limit");
+            ExcelSheet sheet = document.AddSheet("Limit");
             sheet.CellValue(1, 1, 17d); sheet.CellFormula(1, 1, "42");
             sheet.CellValue(2, 1, "keep");
             bool rejected = false;

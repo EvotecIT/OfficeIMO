@@ -116,7 +116,7 @@ public sealed class OfficeWorkflowPublicationGuardTests {
         public Scope() {
             Directory.CreateDirectory(Root);
             File.WriteAllText(Html, "<html><body><p>Publication acceptance</p></body></html>");
-            PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(Pdf);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(Pdf);
         }
         public void Dispose() => Directory.Delete(Root, recursive: true);
     }

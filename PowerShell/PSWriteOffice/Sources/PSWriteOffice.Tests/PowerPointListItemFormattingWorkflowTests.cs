@@ -5,7 +5,7 @@ namespace PSWriteOffice.Tests;
 public sealed partial class PowerPointNativeOutputWorkflowTests {
     [Fact]
     public void PlainListItemFormattingUsesNativeRunsAndSurvivesReopening() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         Invoke(runspace, """
             PowerPointSlide -Document $deck -Title 'Escalation' {
@@ -15,7 +15,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
             }
             """);
         AssertBacked(deck, Get<PowerPointParagraph>(runspace, "item"));
-        using var saved = PowerPointPresentation.Load(Save(deck, "list-item-format.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "list-item-format.pptx"));
         Assert.Empty(saved.ValidateDocument());
         var paragraph = Assert.Single(saved.Slides.SelectMany(slide => slide.TextBoxes).SelectMany(box => box.Paragraphs),
             item => item.Text == "Escalate capacity");
@@ -26,12 +26,12 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         Assert.Equal(saved.GetThemeColor(PowerPointThemeColor.Accent2), run.Color);
         Assert.Equal("FEF3C7", run.HighlightColor);
         Assert.Equal("Aptos", run.FontName);
-        Assert.Equal(18D, run.FontSizePoints);
+        Assert.Equal(18D, run.FontSize?.ToPoints());
     }
 
     [Fact]
     public void RejectedPlainItemStyleDoesNotRetainAPartiallyFormattedParagraph() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         Invoke(runspace, """
             PowerPointSlide -Document $deck -Title 'Accepted items' {
@@ -42,7 +42,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
                 }
             }
             """);
-        using var saved = PowerPointPresentation.Load(Save(deck, "list-item-format-rejected.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "list-item-format-rejected.pptx"));
         Assert.Empty(saved.ValidateDocument());
         var paragraphs = saved.Slides.SelectMany(slide => slide.TextBoxes).SelectMany(box => box.Paragraphs).ToList();
         Assert.Contains(paragraphs, item => item.Text == "Before");

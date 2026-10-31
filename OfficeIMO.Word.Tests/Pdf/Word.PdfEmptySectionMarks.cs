@@ -24,7 +24,7 @@ public partial class Word {
     public void SaveAsPdf_EmptySectionBookmarkPrecedesItsParagraphLine(int columns, int size, bool nextPage) {
         using WordDocument source = WordDocument.Create();
         source.Settings.FontFamily = "Arial";
-        source.Settings.FontSize = 12;
+        source.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         W.Body body = source._wordprocessingDocument.MainDocumentPart!.Document.Body!;
         W.SectionProperties final = body.Elements<W.SectionProperties>().Single();
         var first = (W.SectionProperties)final.CloneNode(true);
@@ -107,14 +107,13 @@ public partial class Word {
             var result = WordDocument.Create();
             result.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
             result.Settings.FontFamily = "Arial";
-            result.Settings.FontSize = 12;
+            result.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             return result;
         }
         static WordParagraph AddLine(WordDocument target, string text) {
             WordParagraph paragraph = target.AddParagraph(text);
-            paragraph.LineSpacingPoints = 12;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12));
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             return paragraph;
         }
     }

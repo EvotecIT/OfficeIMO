@@ -365,7 +365,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            canvas.Clip(0D, 0D, pageWidth, pageHeight, render);
+            canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(pageWidth), global::OfficeIMO.OfficeLength.Points(pageHeight), render);
         }
 
         private readonly struct NativeVmlFrame {

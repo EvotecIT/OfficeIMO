@@ -460,10 +460,10 @@ public partial class Excel {
             $"OfficeIMO.Excel.TruncatedSkippedSheetCell.{Guid.NewGuid():N}.xlsb");
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet first = document.AddWorksheet("First");
+                ExcelSheet first = document.AddSheet("First");
                 first.CellValue(1, 1, "Value");
                 first.CellValue(2, 1, "Ready");
-                ExcelSheet second = document.AddWorksheet("Second");
+                ExcelSheet second = document.AddSheet("Second");
                 second.CellValue(1, 1, "Value");
                 second.CellValue(2, 1, "Never delivered");
                 File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
@@ -494,10 +494,10 @@ public partial class Excel {
             $"OfficeIMO.Excel.InvalidSkippedSheetStyle.{Guid.NewGuid():N}.xlsb");
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet first = document.AddWorksheet("First");
+                ExcelSheet first = document.AddSheet("First");
                 first.CellValue(1, 1, "Value");
                 first.CellValue(2, 1, "Ready");
-                ExcelSheet second = document.AddWorksheet("Second");
+                ExcelSheet second = document.AddSheet("Second");
                 second.CellValue(1, 1, "Value");
                 second.CellValue(2, 1, "Never delivered");
                 File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
@@ -528,10 +528,10 @@ public partial class Excel {
             $"OfficeIMO.Excel.UnsupportedSkippedSheetFormula.{Guid.NewGuid():N}.xlsb");
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet first = document.AddWorksheet("First");
+                ExcelSheet first = document.AddSheet("First");
                 first.CellValue(1, 1, "Value");
                 first.CellValue(2, 1, "Ready");
-                ExcelSheet second = document.AddWorksheet("Second");
+                ExcelSheet second = document.AddSheet("Second");
                 second.CellValue(1, 1, "Value");
                 second.CellFormula(2, 1, "1+1");
                 File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
@@ -560,10 +560,10 @@ public partial class Excel {
             $"OfficeIMO.Excel.DuplicateSkippedSheetRow.{Guid.NewGuid():N}.xlsb");
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet first = document.AddWorksheet("First");
+                ExcelSheet first = document.AddSheet("First");
                 first.CellValue(1, 1, "Value");
                 first.CellValue(2, 1, "Ready");
-                ExcelSheet second = document.AddWorksheet("Second");
+                ExcelSheet second = document.AddSheet("Second");
                 second.CellValue(1, 1, "Value");
                 second.CellValue(2, 1, "Never delivered");
                 File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));

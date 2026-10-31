@@ -19,7 +19,7 @@ Describe 'PowerPoint HTML output controls' {
             $presentation.SlideSize.SetSizePoints(160, 100)
             $slide = $presentation.AddSlide()
             Add-OfficePowerPointTextBox -Slide $slide -Text 'Visible slide content' -X 10 -Y 10 -Width 140 -Height 50 -ErrorAction Stop
-            $slide.AddRectanglePoints(500, 500, 20, 20, 'Outside slide bounds') | Out-Null
+            $slide.AddRectangle([OfficeIMO.OfficeLength]::Points(500), [OfficeIMO.OfficeLength]::Points(500), [OfficeIMO.OfficeLength]::Points(20), [OfficeIMO.OfficeLength]::Points(20), 'Outside slide bounds') | Out-Null
 
             $defaults = ConvertTo-OfficePowerPointHtml -Presentation $presentation -Profile $Profile -ErrorAction Stop
             $defaults | Should -Match '<h1>PowerPoint'

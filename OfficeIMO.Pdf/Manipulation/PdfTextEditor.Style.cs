@@ -11,7 +11,7 @@ internal static partial class PdfTextEditor {
         return new PdfResolvedTextStyle(
             options.Font ?? detected?.SuggestedFont ?? PdfStandardFont.Helvetica,
             options.FontSize ?? detected?.FontSize ?? 12D,
-            options.Color ?? detected?.Color ?? PdfColor.Black,
+            options.Color ?? detected?.Color ?? global::OfficeIMO.OfficeColor.Black,
             options.RotationDegrees ?? detected?.RotationDegrees ?? 0D,
             detected?.Spans.Count > 0 && detected.Spans.All(static span => span.TextRenderingMode == 3) ? 3 : 0,
             sourceFont);
@@ -66,14 +66,14 @@ internal static partial class PdfTextEditor {
     }
 
     private readonly struct PdfResolvedTextStyle : IEquatable<PdfResolvedTextStyle> {
-        internal PdfResolvedTextStyle(PdfStandardFont font, double fontSize, PdfColor color, double rotationDegrees,
+        internal PdfResolvedTextStyle(PdfStandardFont font, double fontSize, global::OfficeIMO.OfficeColor color, double rotationDegrees,
             int textRenderingMode, PdfSourceTextFont? sourceFont = null) {
             Font = font; FontSize = fontSize; Color = color; RotationDegrees = rotationDegrees;
             TextRenderingMode = textRenderingMode; SourceFont = sourceFont;
         }
         internal PdfStandardFont Font { get; }
         internal double FontSize { get; }
-        internal PdfColor Color { get; }
+        internal global::OfficeIMO.OfficeColor Color { get; }
         internal double RotationDegrees { get; }
         internal int TextRenderingMode { get; }
         internal PdfSourceTextFont? SourceFont { get; }

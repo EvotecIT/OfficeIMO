@@ -410,7 +410,7 @@ namespace OfficeIMO.Excel.Tests {
             try {
                 if (multipleSheets) {
                     using var document = ExcelDocument.Load(path);
-                    document.AddWorksheet("Other").CellValue(1, 1, 1);
+                    document.AddSheet("Other").CellValue(1, 1, 1);
                     document.Save();
                 }
                 string headers = headerCells ?? string.Concat(Enumerable.Range(0, columns).Select(column =>

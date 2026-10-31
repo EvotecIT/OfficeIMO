@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// }</code></example>
 [Cmdlet(VerbsCommon.Set, "OfficePowerPointSlideSize", DefaultParameterSetName = "Preset")]
 [OutputType(typeof(PowerPointSlideSize))]
-public sealed class SetOfficePowerPointSlideSizeCommand : OfficeDocumentCmdlet<PowerPointPresentation> {
+public sealed class SetOfficePowerPointSlideSizeCommand : OfficeDocumentCmdlet<PowerPointDocument> {
     /// <summary>Gets or sets a standard slide size.</summary>
     [Parameter(Mandatory = true, ParameterSetName = "Preset")]
     public PowerPointSlideSizePreset Preset { get; set; }
@@ -40,11 +40,11 @@ public sealed class SetOfficePowerPointSlideSizeCommand : OfficeDocumentCmdlet<P
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        PowerPointPresentation document = GetDocument();
+        PowerPointDocument document = GetDocument();
         try {
             var size = document.SlideSize;
             if (ParameterSetName == "Preset") size.SetPreset(Preset, Portrait.IsPresent);
-            else size.SetSizeEmus(Width.ToEmus(), Height.ToEmus());
+            else size.SetSize(Width, Height);
             if (PassThru) WriteObject(size);
         } catch (ArgumentException error) { InvalidArgument(error, document); }
         catch (Exception error) when (error is not (PipelineStoppedException or ActionPreferenceStopException)) {

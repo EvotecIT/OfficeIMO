@@ -9,15 +9,15 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportAddsHyperlinkVisualHintWhenCellStyleDoesNot() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Links");
-            sheet.SetColumnWidth(1, 20);
+            ExcelSheet sheet = document.AddSheet("Links");
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
             sheet.SetHyperlink(1, 1, "https://example.org/spec", display: "Spec", style: false);
 
-            string hintedSvg = sheet.Range("A1:A1").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
-            string plainSvg = sheet.Range("A1:A1").ToSvg(new ExcelImageExportOptions {
+            string hintedSvg = System.Text.Encoding.UTF8.GetString(sheet.Range("A1:A1").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
+            string plainSvg = System.Text.Encoding.UTF8.GetString(sheet.Range("A1:A1").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
                 ShowGridlines = false,
                 ShowHyperlinkHints = false
-            });
+            }).Bytes);
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
 
             Assert.NotNull(snapshot.Cells[0].Hyperlink);
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         public void ExcelInspectionSnapshotExpandsWorksheetHyperlinkRangesToCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Links");
+                ExcelSheet sheet = document.AddSheet("Links");
                 sheet.CellValue(1, 1, "First");
                 sheet.CellValue(1, 2, "Second");
                 sheet.SetHyperlink(1, 1, "https://example.org/range", display: "First", style: false);

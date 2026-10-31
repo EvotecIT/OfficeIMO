@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows;
 
@@ -7,11 +6,6 @@ namespace OfficeIMO.Workflows;
 internal sealed record OfficeConversionRenderingConfiguration(string Route, OfficeConversionProfile OutputProfile,
     OfficeWorkflowRenderingOptions Options, string Host, long MaximumXmlCharactersInPart);
 
-[JsonSourceGenerationOptions(IncludeFields = true, GenerationMode = JsonSourceGenerationMode.Metadata)]
+[JsonSourceGenerationOptions(IncludeFields = true, GenerationMode = JsonSourceGenerationMode.Metadata, Converters = new[] { typeof(OfficeWorkflowCheckpointSettings.PdfConfigurationConverter), typeof(OfficeLengthFingerprintConverter), typeof(OfficeColorFingerprintConverter) })]
 [JsonSerializable(typeof(OfficeConversionRenderingConfiguration))]
 internal partial class OfficeConversionConfigurationJsonContext : JsonSerializerContext { }
-
-// Separate raw PDF metadata avoids recursively invoking the fingerprint converter.
-[JsonSourceGenerationOptions(IncludeFields = true, GenerationMode = JsonSourceGenerationMode.Metadata)]
-[JsonSerializable(typeof(PdfCreateOptions))]
-internal partial class OfficeConversionPdfSettingsJsonContext : JsonSerializerContext { }

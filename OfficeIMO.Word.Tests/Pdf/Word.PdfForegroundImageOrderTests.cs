@@ -17,15 +17,15 @@ public sealed class PdfForegroundImageOrderTests {
         try {
             File.WriteAllBytes(path, OfficeRasterImageEncoder.Encode(new OfficeRasterImage(20, 20, OfficeColor.Blue), OfficeImageExportFormat.Png));
             using WordDocument word = WordDocument.Create();
-            word.Sections[0].PageSettings.Width = 6000; word.Sections[0].PageSettings.Height = 6000;
-            if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = 120; }
+            word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D); word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+            if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
             var paragraph = word.AddParagraph("Anchor text");
             if (!controlFirst) AddImage(paragraph.AddText("red"), OfficeColor.Red, 10, 10);
-            var image = paragraph.AddPictureControl(path, 72, 72).Image!;
+            var image = paragraph.AddPictureControl(path, OfficeLength.Pixels(72), OfficeLength.Pixels(72)).Image!;
             image.WrapText = WordImageTextWrapping.InFrontOfText;
             image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            image.HorizontalPositionOffset = 28 * 12700; image.VerticalPositionOffset = 28 * 12700;
+            image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(28 * 12700); image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(28 * 12700);
             image.ZOrder = 10;
             if (controlFirst) AddImage(paragraph.AddText("red"), OfficeColor.Red, 10, 10);
             var pdf = PdfCore.PdfDocument.Load(word.ToPdf().ToBytes());
@@ -52,14 +52,14 @@ public sealed class PdfForegroundImageOrderTests {
     [InlineData(true, true, 10U, 10U)]
     public void ForegroundStackingUsesZOrderAcrossParagraphsAndColumns(bool sameParagraph, bool columns, uint firstOrder, uint secondOrder) {
         using WordDocument word = WordDocument.Create();
-        word.Sections[0].PageSettings.Width = 6000;
-        word.Sections[0].PageSettings.Height = 6000;
-        if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = 120; }
+        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
+        word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
         var first = word.AddParagraph("First anchor");
         AddImage(first, OfficeColor.Red, firstOrder, 10);
         var second = sameParagraph ? first.AddText("Second anchor") : word.AddParagraph("Second anchor");
         AddImage(second, OfficeColor.Blue, secondOrder, 28);
-        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(30) });
+        var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)) });
         var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
         Assert.Equal(2, pdf.Images.Placements().Count);
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-anchored-image-flowed");
@@ -79,11 +79,11 @@ public sealed class PdfForegroundImageOrderTests {
 
     private static void AddImage(WordParagraph paragraph, OfficeColor color, uint order, int position) {
         using var stream = new MemoryStream(OfficeRasterImageEncoder.Encode(new OfficeRasterImage(20, 20, color), OfficeImageExportFormat.Png));
-        var image = paragraph.InsertImage(stream, "layer.png", 72, 72, WordImageTextWrapping.InFrontOfText);
+        var image = paragraph.AddImage(stream, "layer.png", OfficeIMO.OfficeLength.Pixels(72), OfficeIMO.OfficeLength.Pixels(72), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-        image.HorizontalPositionOffset = position * 12700;
-        image.VerticalPositionOffset = position * 12700;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(position * 12700);
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(position * 12700);
         image.ZOrder = order;
     }
 }

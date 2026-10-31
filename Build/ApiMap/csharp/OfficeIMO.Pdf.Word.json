@@ -36,6 +36,11 @@
       "phase": "A",
       "applied": "applied",
       "note": "InternalsVisibleTo grants the existing browser engine and its tests access to detailed conversion and serialization evidence. This preserves browser diagnostics while keeping conversion kernels outside the public API."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "PDF reconstruction uses the containing Paragraph of created hyperlinks so reconstructed formatting remains attached to the imported run."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

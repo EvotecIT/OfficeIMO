@@ -14,8 +14,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaAuthoring_InvalidatesPreviouslyEvaluatedDependents() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Calc");
-            ExcelSheet crossSheet = document.AddWorksheet("CrossSheet");
+            ExcelSheet sheet = document.AddSheet("Calc");
+            ExcelSheet crossSheet = document.AddSheet("CrossSheet");
             sheet.CellFormula(2, 1, "A1+1");
             crossSheet.CellFormula(1, 1, "Calc!A1+1");
             Cell dependent = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void Test_ArrayFormulaAuthoring_ClearsOwnerAndSpillInCellImages(bool legacy) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Owner");
             sheet.SetInCellImage(1, 2, TinyPng, altText: "Spill");
 
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
         [InlineData("imported-cache")]
         public void Test_RejectedFormulaPrefixExpansion_PreservesExistingInCellImages(string entryPoint) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Owner");
             sheet.SetInCellImage(1, 2, TinyPng, altText: "Spill");
             string formula = "TEXTJOIN(\"\",FALSE,\"" + new string('x', 8190 - "TEXTJOIN(\"\",FALSE,\"\")".Length) + "\")";
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaInspection_BoundsUnloadedCellMetadataBeforeMaterialization() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Calc");
+            ExcelSheet sheet = document.AddSheet("Calc");
             sheet.CellFormula(1, 1, "1+1");
             CellMetadataPart metadataPart = document.WorkbookPartRoot.AddNewPart<CellMetadataPart>();
             using (var payload = new MemoryStream(new byte[16 * 1024 * 1024 + 1], writable: false)) {
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
         public void Test_FileBackedValidationOwner_ObservesCancellationToken() {
             string path = Path.Combine(_directoryWithFiles, "FileBackedValidationCancellation.xlsx");
             using (var document = ExcelDocument.Create()) {
-                document.AddWorksheet("Data").CellValue(1, 1, "value");
+                document.AddSheet("Data").CellValue(1, 1, "value");
                 document.Save(path);
             }
             using var cancellation = new CancellationTokenSource();
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
             bool totalsRow,
             string expectedFilterRange) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "A");
@@ -173,7 +173,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_ModernChartMutations_WaitForWorkbookWriter() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart chart = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A" },
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_PivotInteractionSnapshot_WaitsForWorkbookWriter() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
 
             IReadOnlyList<ExcelPivotInteractionInfo> interactions = await AssertWorkbookReadWaitsForWriter(
                 document,

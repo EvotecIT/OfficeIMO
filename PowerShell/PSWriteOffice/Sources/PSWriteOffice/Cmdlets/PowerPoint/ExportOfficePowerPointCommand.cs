@@ -53,7 +53,7 @@ public sealed class ExportOfficePowerPointCommand : OfficeCmdlet {
 
     /// <summary>Shared native chart kind; defaults to clustered columns.</summary>
     [Parameter]
-    public OfficeChartKind ChartType { get; set; } = OfficeChartKind.ColumnClustered;
+    public OfficeChartType ChartType { get; set; } = OfficeChartType.ColumnClustered;
 
     /// <summary>Chart slide title; omission uses the category property name.</summary>
     [Parameter, ValidateNotNullOrEmpty]
@@ -116,7 +116,7 @@ public sealed class ExportOfficePowerPointCommand : OfficeCmdlet {
                 Subtitle, Property, Category, Value, ChartType, ChartTitle, GroupBy,
                 NoSummary, NoTable, MaxRows, Culture,
                 MyInvocation.BoundParameters.ContainsKey(nameof(ChartType)));
-            using var document = PowerPointObjectExport.CreatePresentation(Theme,
+            using var document = PowerPointObjectExport.CreateDocument(Theme,
                 MyInvocation.BoundParameters.ContainsKey(nameof(Accent)) ? Accent : (OfficeColor?)null);
             var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand(
                 document.GetThemeColor(PowerPointThemeColor.Accent1) ?? "2563EB", "object-export"));

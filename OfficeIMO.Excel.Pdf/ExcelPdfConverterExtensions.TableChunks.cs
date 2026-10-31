@@ -333,7 +333,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PdfTableCell CreatePdfCell(string text, ExcelCellStyleInfo? style, StructuredTableCellVisual? tableVisual, ExcelHyperlinkInfo? hyperlink, MergeSpan? span, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, string? cellDestinationName, IReadOnlyList<WorksheetImageExportData>? cellImages, PdfCore.PdfStandardFont defaultFontFamily, double fontScale, bool preserveWorksheetNoWrap, string? formatColor) {
             int rowSpan = span?.RowSpan ?? 1;
             int columnSpan = span?.ColumnSpan ?? 1;
-            PdfCore.PdfColor? textColor = ToPdfColor(formatColor) ?? ToPdfColor(style?.FontColorHex) ?? ToPdfColor(tableVisual?.Text);
+            global::OfficeIMO.OfficeColor? textColor = ToPdfColor(formatColor) ?? ToPdfColor(style?.FontColorHex) ?? ToPdfColor(tableVisual?.Text);
             bool bold = style?.Bold == true || tableVisual?.Bold == true;
             string? linkUri = hyperlink?.IsExternal == true ? hyperlink.Target : null;
             string? linkDestinationName = TryGetInternalHyperlinkDestinationName(hyperlink, sheetName, sheetDestinations, cellDestinations, out string? destinationName)
@@ -342,8 +342,8 @@ namespace OfficeIMO.Excel.Pdf {
             string? linkContents = linkUri == null && linkDestinationName == null || string.IsNullOrWhiteSpace(text) ? null : text;
             IReadOnlyList<PdfCore.PdfTableCellImage>? pdfImages = ToPdfTableCellImages(cellImages);
             PdfCore.PdfStandardFont? font = MapFont(style?.FontName, defaultFontFamily);
-            double? fontSize = style?.FontSize is double authoredFontSize && authoredFontSize > 0D
-                ? authoredFontSize * fontScale
+            double? fontSize = style?.FontSize is global::OfficeIMO.OfficeLength authoredFontSize && authoredFontSize > global::OfficeIMO.OfficeLength.Zero
+                ? authoredFontSize.ToPoints() * fontScale
                 : null;
             string? fontFamily = string.IsNullOrWhiteSpace(style?.FontName) ? null : style!.FontName;
             IReadOnlyList<PdfCore.PdfTextRun> runs = (style != null && (style.Bold || style.Italic || style.Underline || style.Strikethrough || style.VerticalTextAlignment.HasValue || fontSize.HasValue || font.HasValue || fontFamily != null)) || bold || textColor.HasValue
@@ -354,7 +354,7 @@ namespace OfficeIMO.Excel.Pdf {
                     color: textColor,
                     italic: style?.Italic == true,
                     strike: style?.Strikethrough == true,
-                    fontSize: fontSize,
+                    fontSize: ((double?)(fontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
                     font: font,
                     baseline: MapExcelPdfBaseline(style?.VerticalTextAlignment),
                     fontFamily: fontFamily,
@@ -405,7 +405,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             var pdfImages = new List<PdfCore.PdfTableCellImage>(images.Count);
             foreach (WorksheetImageExportData image in images) {
-                pdfImages.Add(new PdfCore.PdfTableCellImage(image.Bytes, image.WidthPoints, image.HeightPoints, CreateConverterImageStyle(image)));
+                pdfImages.Add(new PdfCore.PdfTableCellImage(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), CreateConverterImageStyle(image)));
             }
 
             return pdfImages;

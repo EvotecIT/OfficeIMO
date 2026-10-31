@@ -22,7 +22,7 @@ public sealed class ExcelXlsbFormulaGroupEditingTests {
         BitConverter.GetBytes(3).CopyTo(group, 17);
         group[21] = 0x1E; // Scalar formula token.
         sheet.FormulaGroups = new[] { new XlsbFormulaGroup(426, group, 1, 1) };
-        workbook.AddWorksheet(sheet);
+        workbook.AddSheet(sheet);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             XlsbWorkbookProjector.ToExcelDocument(workbook, maxCells: 1));
@@ -33,7 +33,7 @@ public sealed class ExcelXlsbFormulaGroupEditingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Native_arrays_keep_their_range_and_all_member_caches_during_repeated_saves(bool encrypted) {
-        using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
+        using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
         sheet.CellValue(1, 1, 2D); sheet.CellValue(2, 1, 3D); sheet.SetArrayFormula("B1:B2", "SUM(A1:A2)");
         sheet.CellValue(1, 2, 5D); sheet.CellValue(2, 2, 5D);
         using var output = new MemoryStream();
@@ -57,7 +57,7 @@ public sealed class ExcelXlsbFormulaGroupEditingTests {
     [InlineData(ExcelFileFormat.Xls)]
     [InlineData(ExcelFileFormat.Xlsb)]
     public void Disjoint_array_groups_keep_followers_and_unrelated_cells_when_caches_are_cleared(ExcelFileFormat format) {
-        using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Arrays");
+        using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Arrays");
         var ranges = new List<(int Row, int Column)>();
         for (int group = 0; group < 12; group++) {
             int row = 1 + group / 4 * 100, column = 2 + group % 4 * 4;
@@ -85,7 +85,7 @@ public sealed class ExcelXlsbFormulaGroupEditingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void First_off_origin_edit_updates_the_native_dimension_for_subsequent_saves(bool encryptedFirst) {
-        using var seed = ExcelDocument.Create(); seed.AddWorksheet("Empty");
+        using var seed = ExcelDocument.Create(); seed.AddSheet("Empty");
         using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })));
         document.Sheets[0].CellValue(7, 4, 12.5D);
         using var first = new MemoryStream();
@@ -100,7 +100,7 @@ public sealed class ExcelXlsbFormulaGroupEditingTests {
 
     [Fact]
     public void Replacing_the_owner_of_a_native_shared_group_preserves_other_relative_formulas() {
-        using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
+        using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
         for (int row = 1; row <= 3; row++) { sheet.CellValue(row, 1, row * 10D); sheet.CellFormula(row, 2, "A" + row + "+5"); }
         sheet.RecalculateSupportedFormulas(); byte[] bytes = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var input = new MemoryStream(bytes); using var archive = new ZipArchive(input, ZipArchiveMode.Read);
@@ -138,7 +138,7 @@ public sealed class ExcelXlsbFormulaGroupEditingTests {
     }
     [Fact]
     public void Repeated_formula_edits_reuse_the_native_self_reference_table() {
-        using var seed = ExcelDocument.Create(); seed.AddWorksheet("Data").CellValue(1, 1, 5D);
+        using var seed = ExcelDocument.Create(); seed.AddSheet("Data").CellValue(1, 1, 5D);
         byte[] bytes = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }); int links = 0, references = 0;
         for (int iteration = 0; iteration < 5; iteration++) {
             using var document = ExcelDocument.Load(new MemoryStream(bytes));
@@ -154,10 +154,10 @@ public sealed class ExcelXlsbFormulaGroupEditingTests {
 
     [Fact]
     public void Native_sheet_selection_respects_the_explicit_active_sheet_and_does_not_group_new_tabs() {
-        using var seed = ExcelDocument.Create(); seed.AddWorksheet("First"); seed.AddWorksheet("Second"); seed.SetActiveWorksheet("Second");
+        using var seed = ExcelDocument.Create(); seed.AddSheet("First"); seed.AddSheet("Second"); seed.SetActiveWorksheet("Second");
         byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         Assert.False(IsSelected(original, "First")); Assert.True(IsSelected(original, "Second"));
-        using var document = ExcelDocument.Load(new MemoryStream(original)); document.AddWorksheet("Added").CellValue(1, 1, "New tab");
+        using var document = ExcelDocument.Load(new MemoryStream(original)); document.AddSheet("Added").CellValue(1, 1, "New tab");
         byte[] saved = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         Assert.False(IsSelected(saved, "First")); Assert.True(IsSelected(saved, "Second")); Assert.False(IsSelected(saved, "Added"));
         static bool IsSelected(byte[] bytes, string name) {

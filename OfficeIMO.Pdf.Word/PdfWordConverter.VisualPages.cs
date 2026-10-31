@@ -108,20 +108,19 @@ internal static partial class PdfWordConverter {
                     throw new NotSupportedException("The selected PDF page is outside Word's supported physical page-size range.");
                 WordSection section = index == 0 ? target.Sections[0] : target.AddSection(WordSectionBreakType.NextPage);
                 section.PageSettings.Orientation = width > height ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
-                section.PageSettings.Width = widthTwips;
-                section.PageSettings.Height = heightTwips;
-                section.Margins.Left = section.Margins.Right = 0;
-                section.Margins.Top = section.Margins.Bottom = 0;
-                section.Margins.HeaderDistance = section.Margins.FooterDistance = 0;
+                section.PageSettings.Width = OfficeLength.Points(widthTwips / 20D);
+                section.PageSettings.Height = OfficeLength.Points(heightTwips / 20D);
+                section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Zero;
+                section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Zero;
+                section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Zero;
                 WordParagraph paragraph = target.AddParagraph();
-                paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = 0;
-                paragraph.LineSpacingPoints = 1;
+                paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                paragraph.LineSpacing = WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(1));
                 using var stream = new MemoryStream(bytes, writable: false);
-                WordImage image = paragraph.InsertImage(stream, "page-" + page.PageNumber + ".png", width * 96D / 72D,
-                    height * 96D / 72D, WordImageTextWrapping.InFrontOfText, "PDF page " + page.PageNumber);
+                WordImage image = paragraph.AddImage(stream, "page-" + page.PageNumber + ".png", OfficeIMO.OfficeLength.Pixels(width * 96D / 72D), OfficeIMO.OfficeLength.Pixels(height * 96D / 72D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText, Description = "PDF page " + page.PageNumber });
                 image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-                image.HorizontalPositionOffset = image.VerticalPositionOffset = 0;
+                image.HorizontalPositionOffset = image.VerticalPositionOffset = OfficeLength.Zero;
                 foreach (string diagnostic in page.Diagnostics)
                     AddWarning(options, "visual-page-rendering", "Page " + page.PageNumber, diagnostic, PdfCore.PdfConversionWarningSeverity.Warning);
             }

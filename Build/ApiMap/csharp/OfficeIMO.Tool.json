@@ -17,6 +17,37 @@
       "change": "Saved job, report and batch command tests use OfficeBatchOptions/OfficeBatchReport and the canonical v2 JSON contract. Removed the duplicate host-retention test now owned by OfficeIMO.Tests.",
       "reason": "The command surface serializes shared library reports and no longer owns a separate collector contract.",
       "status": "applied"
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "The tabular CSV-to-XLSX route uses CreateWriter(...).WriteTable(...) with the existing header policy, cancellation, streaming reader and atomic output commit."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Consumer batch fixtures expect source.txt.pdf rather than the adopted source.pdf output basename.",
+      "new": "Use source.pdf in saved-job, publication, recovery, history and CLI output assertions.",
+      "reason": "The extension-replacement naming rule applies to every batch consumer; source inputs and all output integrity assertions remain unchanged.",
+      "files": [
+        "OfficeIMO.Tool.Tests/ConversionBatchCommandTests.cs",
+        "OfficeIMO.Tool.Tests/ReliableBatchCommandTests.cs",
+        "OfficeIMO.Tool.Tests/SavedConversionJobCommandTests.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Remaining consumer fixtures depend on appended diagram/iWork output extensions or unrelated body-text snapping/dense line geometry.",
+      "new": "Expect drawing.pdf/layers.pdf/source.xlsx; keep group-move text outside horizontal snap guides and use explicit disjoint-line leading in selection fixtures.",
+      "reason": "Preserve publication/checkpoint assertions, original group translation tolerance, exact group offset/undo and strict interline gap assertions under current defaults. No production behavior or typography default is changed.",
+      "files": [
+        "OfficeIMO.Tool.Tests/ConversionBatchCommandTests.cs",
+        "OfficeIMO.Tool.Tests/SavedConversionJobCommandTests.cs",
+        "OfficeIMO.Tool.Tests/ReliableBatchCommandTests.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

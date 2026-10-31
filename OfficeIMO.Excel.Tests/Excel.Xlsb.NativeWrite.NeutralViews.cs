@@ -11,13 +11,13 @@ namespace OfficeIMO.Tests {
         [InlineData(2)]
         public async Task Xlsb_DirectTabularSave_PreservesValuesAfterNeutralViewPreflight(int route) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             document.PreflightWorkbook();
             var table = new DataTable("Input");
             table.Columns.Add("Label", typeof(string));
             table.Columns.Add("Count", typeof(int));
             table.Rows.Add("Retained label", 42);
-            sheet.InsertDataTable(table, includeHeaders: true);
+            sheet.WriteData(table, includeHeaders: true);
 
             byte[] bytes;
             if (route == 0) {

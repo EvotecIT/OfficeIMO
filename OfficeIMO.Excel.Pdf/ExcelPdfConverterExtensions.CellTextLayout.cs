@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel.Pdf {
             public double WorkbookFontSize { get; }
 
             public double GetFontSize(ExcelCellStyleInfo? style) =>
-                style?.FontSize is double size && size > 0D ? size : DefaultFontSize;
+                style?.FontSize is OfficeLength size && size > OfficeLength.Zero ? size.ToPoints() : DefaultFontSize;
 
             /// <summary>Excel's single-line row height for a font size, scaled from the default row.</summary>
             public double GetLineHeight(double fontSize) => DefaultRowHeight * fontSize / WorkbookFontSize;
@@ -159,7 +159,7 @@ namespace OfficeIMO.Excel.Pdf {
             for (int index = geometry.Rows.Count - 1; index >= 0; index--) {
                 ExcelRowInfo definition = geometry.Rows[index];
                 if (definition.Index == sourceRow) {
-                    return definition.Height is double height && height > 0D;
+                    return definition.StoredHeight is double height && height > 0D;
                 }
             }
 

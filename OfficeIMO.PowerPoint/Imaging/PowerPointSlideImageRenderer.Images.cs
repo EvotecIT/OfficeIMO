@@ -11,7 +11,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint;
 
 internal static partial class PowerPointSlideImageRenderer {
-    private static void AddPicture(OfficeDrawing drawing, PowerPointPicture picture,
+    private static void AddImage(OfficeDrawing drawing, PowerPointPicture picture,
         List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
         PowerPointEmbeddedImageReadBudget imageBudget) {
         if (!TryGetBounds(picture, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {

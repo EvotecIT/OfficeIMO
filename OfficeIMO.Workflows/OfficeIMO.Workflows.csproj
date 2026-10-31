@@ -80,6 +80,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Project/ProjectReport.css" LogicalName="OfficeIMO.Workflows.Project.ProjectReport.css" />
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
   <ItemGroup><ProjectReference Include="..\OfficeIMO\OfficeIMO.csproj" /></ItemGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0'">
     <IsAotCompatible>true</IsAotCompatible>

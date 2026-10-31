@@ -9,16 +9,16 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class ExpenseRegister {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-        ExcelSheet sheet = document.AddWorksheet("Expenses");
+        ExcelSheet sheet = document.AddSheet("Expenses");
         sheet.MergeRange("A1:E1");
         sheet.Cell(1, 1, "September expense register");
-        sheet.CellFontSize(1, 1, 20);
+        sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20));
         sheet.CellBold(1, 1, true);
         sheet.CellFontColor(1, 1, "17365D");
         string[] headers = { "Date", "Description", "Category", "Amount (EUR)", "Status" };
         for (int column = 0; column < headers.Length; column++) {
             sheet.Cell(4, column + 1, headers[column]);
-            sheet.SetColumnWidth(column + 1, column == 1 ? 32 : 21);
+            sheet.SetColumnWidth(column + 1, ExcelColumnWidth.Characters(column == 1 ? 32 : 21));
         }
         var expenses = new[] {
             (Day: 2, Description: "Client workshop travel", Category: "Travel", Amount: 184.50),

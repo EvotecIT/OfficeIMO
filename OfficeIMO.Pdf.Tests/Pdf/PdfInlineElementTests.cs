@@ -10,24 +10,24 @@ public class PdfInlineElementTests {
     [InlineData(false)]
     [InlineData(true)]
     public void TableRowShrinkingReservesFixedInlineWidth(bool canvas) {
-        PdfColor fill = new PdfColor(.2D, .5D, .8D);
+        global::OfficeIMO.OfficeColor fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .5D, .8D);
         PdfTableCell cell = new PdfTableCell(new[] {
-            PdfTextRun.Inline(new PdfInlineBox(30, 10, background: fill)),
+            PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(10), background: fill)),
             PdfTextRun.Normal("ABCDE")
         }).WithNoWrap();
         PdfTableStyle style = new PdfTableStyle {
-            FontSize = 12, HeaderRowCount = 0, HeaderBold = false,
-            ColumnWidthPoints = new() { 50 }, MaxWidth = 50, PreserveWidth = true,
-            CellPaddingX = 0, CellPaddingY = 0, MinimumShrinkFontSize = 4,
-            FixedRowHeights = new() { 30 }, BorderColor = null, ShrinkTextToFit = true
+            FontSize = global::OfficeIMO.OfficeLength.Points(12), HeaderRowCount = 0, HeaderBold = false,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(50) }, MaxWidth = global::OfficeIMO.OfficeLength.Points(50), PreserveWidth = true,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(4),
+            FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(30) }, BorderColor = null, ShrinkTextToFit = true
         };
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            DefaultFont = PdfStandardFont.Courier, PageWidth = 200, PageHeight = 150,
-            MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
+            DefaultFont = PdfStandardFont.Courier, PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(150),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
             CompressContentStreams = false
         });
         PdfTableCell[][] rows = new[] { new[] { cell } };
-        if (canvas) document.Canvas(surface => surface.Table(rows, 20, 20, 50, 30, style));
+        if (canvas) document.Canvas(surface => surface.Table(rows, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(30), style));
         else document.Table(rows, style: style);
         byte[] bytes = document.ToBytes();
         using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -46,14 +46,14 @@ public class PdfInlineElementTests {
             })
             .Paragraph(paragraph => paragraph
                 .Text("Before ")
-                .InlineImage(PdfPngTestImages.CreateRgbPng(2, 1), 24, 14, "Inline status image")
+                .InlineImage(PdfPngTestImages.CreateRgbPng(2, 1), global::OfficeIMO.OfficeLength.Inches(1D / 3D), global::OfficeIMO.OfficeLength.Emus(177800), "Inline status image")
                 .Text(" middle ")
                 .InlineBox(
-                    18,
-                    12,
-                    background: new PdfColor(0.2D, 0.7D, 0.3D),
-                    borderColor: PdfColor.Black,
-                    borderWidth: 1D,
+                    global::OfficeIMO.OfficeLength.Pixels(24),
+                    global::OfficeIMO.OfficeLength.Emus(152400),
+                    background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.7D, 0.3D),
+                    borderColor: global::OfficeIMO.OfficeColor.Black,
+                    borderWidth: global::OfficeIMO.OfficeLength.Points(1D),
                     alternativeText: "Inline status box")
                 .Text(" after"))
             .ToBytes();
@@ -74,18 +74,18 @@ public class PdfInlineElementTests {
     [Fact]
     public void RichParagraph_InlineHeightAdvancesFollowingFlow() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(paragraph => paragraph.Text("Prior flow marker"))
             .Paragraph(paragraph => paragraph
                 .Text("Tall inline start ")
-                .InlineBox(20, 34, background: new PdfColor(0.8D, 0.8D, 0.8D))
+                .InlineBox(global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(34), background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8D, 0.8D, 0.8D))
                 .Text(" end"))
             .Paragraph(paragraph => paragraph.Text("Following flow marker"))
             .ToBytes();
@@ -102,11 +102,11 @@ public class PdfInlineElementTests {
     [Fact]
     public void RichParagraph_RejectsInlineElementWiderThanItsFrame() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 160,
-                MarginLeft = 30,
-                MarginRight = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(160),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30)
             })
-            .Paragraph(paragraph => paragraph.InlineBox(101, 12));
+            .Paragraph(paragraph => paragraph.InlineBox(global::OfficeIMO.OfficeLength.Points(101), global::OfficeIMO.OfficeLength.Points(12)));
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => document.ToBytes());
 
@@ -121,7 +121,7 @@ public class PdfInlineElementTests {
             })
             .Paragraph(paragraph => paragraph
                 .Text("Before ")
-                .InlineImage(PdfPngTestImages.CreateRgbPng(2, 1), 24, 14)
+                .InlineImage(PdfPngTestImages.CreateRgbPng(2, 1), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(14))
                 .Text(" after"))
             .ToBytes();
 
@@ -135,14 +135,14 @@ public class PdfInlineElementTests {
 
     [Fact]
     public void RichParagraph_CentersInlineElementUsingItsWidth() {
-        var fill = new PdfColor(0.13D, 0.57D, 0.91D);
+        var fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.13D, 0.57D, 0.91D);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                MarginLeft = 20,
-                MarginRight = 20,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
                 CompressContentStreams = false
             })
-            .Paragraph(paragraph => paragraph.InlineBox(40, 12, background: fill), PdfAlign.Center)
+            .Paragraph(paragraph => paragraph.InlineBox(global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(12), background: fill), PdfAlign.Center)
             .ToBytes();
 
         double x = FindFilledBoxX(PdfEncoding.Latin1GetString(bytes), fill, 40, 12);
@@ -152,16 +152,16 @@ public class PdfInlineElementTests {
 
     [Fact]
     public void RichParagraph_LeadingTabAdvancesInlineElementToNextTabStop() {
-        var fill = new PdfColor(0.17D, 0.61D, 0.83D);
+        var fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.17D, 0.61D, 0.83D);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                MarginLeft = 20,
-                MarginRight = 20,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph
                 .Tab()
-                .InlineBox(18, 12, background: fill))
+                .InlineBox(global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(12), background: fill))
             .ToBytes();
 
         double x = FindFilledBoxX(PdfEncoding.Latin1GetString(bytes), fill, 18, 12);
@@ -172,13 +172,13 @@ public class PdfInlineElementTests {
     [Fact]
     public void RichParagraph_CollapsedSpaceRetainsTabBeforeInlineElement() {
         const double margin = 20D, stop = 72D;
-        var fill = new PdfColor(0.17D, 0.61D, 0.83D);
-        var style = new PdfParagraphStyle { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse, SpacingAfter = 0D };
-        style.AddTabStop(stop, leader: PdfTabLeaderStyle.Dots);
+        var fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.17D, 0.61D, 0.83D);
+        var style = new PdfParagraphStyle { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(stop), leader: PdfTabLeaderStyle.Dots);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 240D, MarginLeft = margin, MarginRight = margin,
-            DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12D, CompressContentStreams = false
-        }).Paragraph(p => p.Text("A").Tab().Text(" ").InlineBox(18, 12, background: fill), style: style)
+            PageWidth = global::OfficeIMO.OfficeLength.Points(240D), MarginLeft = global::OfficeIMO.OfficeLength.Points(margin), MarginRight = global::OfficeIMO.OfficeLength.Points(margin),
+            DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false
+        }).Paragraph(p => p.Text("A").Tab().Text(" ").InlineBox(global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(12), background: fill), style: style)
             .ToBytes();
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -194,22 +194,22 @@ public class PdfInlineElementTests {
     [Fact]
     public void TableShrinkToFit_PreservesInlineElementRuns() {
         const string longValue = "ThisIdentifierShouldShrinkToFit";
-        var fill = new PdfColor(0.19D, 0.63D, 0.87D);
+        var fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.19D, 0.63D, 0.87D);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Table(new[] {
                 new[] {
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier),
-                        PdfTextRun.Inline(new PdfInlineBox(12, 10, background: fill))
+                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier),
+                        PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(10), background: fill))
                     })
                 }
             }, style: new PdfTableStyle {
-                FontSize = 18,
-                MinimumShrinkFontSize = 7,
+                FontSize = global::OfficeIMO.OfficeLength.Points(18),
+                MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(7),
                 ShrinkTextToFit = true,
-                ColumnWidthPoints = new List<double?> { 108 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(108) }
             })
             .ToBytes();
 
@@ -226,8 +226,8 @@ public class PdfInlineElementTests {
         Assert.True(FindFilledBoxX(raw, fill, 12, 10) > 0D);
     }
 
-    private static double FindFilledBoxX(string raw, PdfColor fill, double width, double height) {
-        string color = string.Join(" ", new[] { fill.R, fill.G, fill.B }.Select(value => value.ToString("0.###", CultureInfo.InvariantCulture))) + " rg";
+    private static double FindFilledBoxX(string raw, global::OfficeIMO.OfficeColor fill, double width, double height) {
+        string color = string.Join(" ", new[] { fill.ToNormalizedRgb().R, fill.ToNormalizedRgb().G, fill.ToNormalizedRgb().B }.Select(value => value.ToString("0.###", CultureInfo.InvariantCulture))) + " rg";
         string pattern = Regex.Escape(color) + @"\s+(?<x>-?\d+(?:\.\d+)?)\s+-?\d+(?:\.\d+)?\s+" +
             Regex.Escape(width.ToString("0.###", CultureInfo.InvariantCulture)) + @"\s+" +
             Regex.Escape(height.ToString("0.###", CultureInfo.InvariantCulture)) + @"\s+re\s+f";

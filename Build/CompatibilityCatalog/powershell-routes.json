@@ -195,7 +195,7 @@
     "route": "keynote-pptx",
     "cmdlet": "ConvertFrom-OfficeIWork",
     "example": "ConvertFrom-OfficeIWork -Path ./in.key -OutputPath ./out.pptx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/IWork/ConvertFromOfficeIWorkCommand.cs L32 (-OutputPath .pptx); L95 (source.ToPowerPointPresentationResult(ConversionOptions)). The target is chosen from the detected iWork application (Keynote to .pptx)."
+    "evidence": "Sources/PSWriteOffice/Cmdlets/IWork/ConvertFromOfficeIWorkCommand.cs L32 (-OutputPath .pptx); L95 (source.ToPowerPointDocumentResult(ConversionOptions)). The target is chosen from the detected iWork application (Keynote to .pptx)."
   },
   {
     "route": "latex-markdown",
@@ -255,7 +255,7 @@
     "route": "odp-pptx",
     "cmdlet": "ConvertFrom-OfficeOpenDocument",
     "example": "ConvertFrom-OfficeOpenDocument -Path ./in.odp -OutputPath ./out.pptx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertFromOfficeOpenDocumentCommand.cs L27 (-OutputPath .pptx); L69 (presentation.ToPowerPointPresentationResult(PowerPointOptions))"
+    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertFromOfficeOpenDocumentCommand.cs L27 (-OutputPath .pptx); L69 (presentation.ToPowerPointDocumentResult(PowerPointOptions))"
   },
   {
     "route": "ods-xlsx",

@@ -95,7 +95,7 @@ public static partial class ExcelHtmlConverterExtensions {
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
         body.Append('>');
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetWorkbookTitle(workbook, options, "Excel Visual Review"))).Append("</h1>");
-        ExcelWorkbookImageExportOptions visualOptions = ResolveWorkbookVisualOptions(options.VisualOptions);
+        ExcelImageExportOptions visualOptions = ResolveWorkbookVisualOptions(options.VisualOptions);
         Dictionary<string, ExcelSheet> sheetsByName = workbook.Sheets.ToDictionary(sheet => sheet.Name, StringComparer.OrdinalIgnoreCase);
         var reportedTableSheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int svgIndex = 0;
@@ -119,7 +119,7 @@ public static partial class ExcelHtmlConverterExtensions {
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
         body.Append('>');
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, sheet.Name))).Append("</h1>");
-        AppendSvgResult(body, sheet.ExportImage(OfficeImageExportFormat.Svg, ToWorksheetOptions(ResolveWorkbookVisualOptions(options.VisualOptions))), "officeimo-sheet-svg-1-", diagnostics);
+        AppendSvgResult(body, sheet.ExportImage(OfficeImageExportFormat.Svg, ResolveWorkbookVisualOptions(options.VisualOptions).Clone()), "officeimo-sheet-svg-1-", diagnostics);
         AppendVisualCommentInventory(body, sheet.GetComments());
         if (options.IncludePivotInventory) AppendPivotInventory(body, sheet.GetPivotTables(), diagnostics);
         body.Append("</main>");
@@ -518,13 +518,15 @@ public static partial class ExcelHtmlConverterExtensions {
             body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"chart\" data-officeimo-layer-index=\"")
                 .Append(chart.DrawingOrder.ToString(CultureInfo.InvariantCulture))
                 .Append("\" data-officeimo-chart-type=\"")
-                .Append(OfficeHtmlText.EscapeAttribute(chart.ChartType.ToString()))
+                .Append(OfficeHtmlText.EscapeAttribute(OfficeIMO.Internal.OfficeChartTypeName.Format(chart.ChartType)))
                 .Append('"');
             if (hasSnapshot) {
                 AppendDataAttribute(body, "data-officeimo-row", snapshot.RowIndex);
                 AppendDataAttribute(body, "data-officeimo-column", snapshot.ColumnIndex);
-                AppendDataAttribute(body, "data-officeimo-width", snapshot.WidthPixels);
-                AppendDataAttribute(body, "data-officeimo-height", snapshot.HeightPixels);
+                AppendDataAttribute(body, "data-officeimo-width", snapshot.Width.ToPixels());
+                body.Append(" data-officeimo-width-emu=\"").Append(snapshot.Width.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
+                AppendDataAttribute(body, "data-officeimo-height", snapshot.Height.ToPixels());
+                body.Append(" data-officeimo-height-emu=\"").Append(snapshot.Height.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
             }
 
             body.Append('>');
@@ -536,7 +538,7 @@ public static partial class ExcelHtmlConverterExtensions {
 
             if (options.IncludeObjectMetadata) {
                 body.Append("<div class=\"officeimo-feature-meta\">Type: ")
-                    .Append(OfficeHtmlText.Escape(chart.ChartType.ToString()))
+                    .Append(OfficeHtmlText.Escape(OfficeIMO.Internal.OfficeChartTypeName.Format(chart.ChartType)))
                     .Append("</div>");
             }
 
@@ -550,9 +552,9 @@ public static partial class ExcelHtmlConverterExtensions {
                     .Append(", ")
                     .Append(snapshot.ColumnIndex.ToString(CultureInfo.InvariantCulture))
                     .Append("; Size: ")
-                    .Append(snapshot.WidthPixels.ToString(CultureInfo.InvariantCulture))
+                    .Append(snapshot.Width.ToPixels().ToString(CultureInfo.InvariantCulture))
                     .Append("x")
-                    .Append(snapshot.HeightPixels.ToString(CultureInfo.InvariantCulture))
+                    .Append(snapshot.Height.ToPixels().ToString(CultureInfo.InvariantCulture))
                     .Append("</div>");
             }
 
@@ -581,7 +583,7 @@ public static partial class ExcelHtmlConverterExtensions {
     private static bool AppendChartSvg(StringBuilder body, ExcelChart chart, string label, IList<HtmlDiagnostic> diagnostics) {
         string svg;
         try {
-            svg = chart.ToSvg();
+            svg = Encoding.UTF8.GetString(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
         } catch (Exception exception) when (exception is InvalidOperationException or NotSupportedException or ArgumentException) {
             diagnostics.Add(new HtmlDiagnostic(
                 "OfficeIMO.Excel.Html",
@@ -641,9 +643,9 @@ public static partial class ExcelHtmlConverterExtensions {
 
     private static void AppendChartDataTable(StringBuilder body, ExcelChartInfo snapshot) {
         ExcelChartData data = snapshot.Data;
-        ExcelChartType defaultChartType = snapshot.ChartType;
+        OfficeChartType defaultChartType = snapshot.ChartType;
         body.Append("<table class=\"officeimo-chart-data\"");
-        if (defaultChartType == ExcelChartType.Pie || defaultChartType == ExcelChartType.Doughnut)
+        if (defaultChartType == OfficeChartType.Pie || defaultChartType == OfficeChartType.Doughnut)
             OfficeHtmlChartRadialLayout.AppendAttributes(body, snapshot.RadialLayout);
         body.Append("><thead><tr><th>Series</th>");
         foreach (string category in data.Categories) {
@@ -654,10 +656,10 @@ public static partial class ExcelHtmlConverterExtensions {
 
         body.Append("</tr></thead><tbody>");
         foreach (ExcelChartSeries series in data.Series) {
-            ExcelChartType chartType = series.ChartType ?? defaultChartType;
+            OfficeChartType chartType = series.ChartType ?? defaultChartType;
             body.Append("<tr");
             body.Append(" data-officeimo-chart-type=\"")
-                .Append(OfficeHtmlText.EscapeAttribute(chartType.ToString()))
+                .Append(OfficeHtmlText.EscapeAttribute(OfficeIMO.Internal.OfficeChartTypeName.Format(chartType)))
                 .Append('"');
 
             body.Append("><th>")
@@ -706,10 +708,14 @@ public static partial class ExcelHtmlConverterExtensions {
             }
             AppendDataAttribute(body, "data-officeimo-row", image.RowIndex);
             AppendDataAttribute(body, "data-officeimo-column", image.ColumnIndex);
-            AppendDataAttribute(body, "data-officeimo-width", image.WidthPixels);
-            AppendDataAttribute(body, "data-officeimo-height", image.HeightPixels);
-            AppendDataAttribute(body, "data-officeimo-offset-x", image.OffsetXPixels);
-            AppendDataAttribute(body, "data-officeimo-offset-y", image.OffsetYPixels);
+            AppendDataAttribute(body, "data-officeimo-width", image.Width.ToPixels());
+            body.Append(" data-officeimo-width-emu=\"").Append(image.Width.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
+            AppendDataAttribute(body, "data-officeimo-height", image.Height.ToPixels());
+            body.Append(" data-officeimo-height-emu=\"").Append(image.Height.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
+            AppendDataAttribute(body, "data-officeimo-offset-x", image.OffsetX.ToPixels());
+            body.Append(" data-officeimo-offset-x-emu=\"").Append(image.OffsetX.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
+            AppendDataAttribute(body, "data-officeimo-offset-y", image.OffsetY.ToPixels());
+            body.Append(" data-officeimo-offset-y-emu=\"").Append(image.OffsetY.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
             AppendDataAttribute(body, "data-officeimo-rotation", image.RotationDegrees);
             AppendDataAttribute(body, "data-officeimo-flip-horizontal", image.FlipHorizontal);
             AppendDataAttribute(body, "data-officeimo-flip-vertical", image.FlipVertical);
@@ -717,16 +723,20 @@ public static partial class ExcelHtmlConverterExtensions {
             AppendDataAttribute(body, "data-officeimo-crop-top", image.CropTopRatio);
             AppendDataAttribute(body, "data-officeimo-crop-right", image.CropRightRatio);
             AppendDataAttribute(body, "data-officeimo-crop-bottom", image.CropBottomRatio);
-            if (image.HasAbsoluteAnchor && image.TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels, out _, out _)) {
-                AppendDataAttribute(body, "data-officeimo-x", xPixels);
-                AppendDataAttribute(body, "data-officeimo-y", yPixels);
+            if (image.HasAbsoluteAnchor && image.TryGetAbsoluteAnchorBounds(out OfficeLength x, out OfficeLength y, out _, out _)) {
+                AppendDataAttribute(body, "data-officeimo-x", x.ToPixels());
+                body.Append(" data-officeimo-x-emu=\"").Append(x.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
+                AppendDataAttribute(body, "data-officeimo-y", y.ToPixels());
+                body.Append(" data-officeimo-y-emu=\"").Append(y.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
             }
 
             if (image.HasTwoCellAnchor && image.ToRowIndex.HasValue && image.ToColumnIndex.HasValue) {
                 AppendDataAttribute(body, "data-officeimo-to-row", image.ToRowIndex.Value);
                 AppendDataAttribute(body, "data-officeimo-to-column", image.ToColumnIndex.Value);
-                AppendDataAttribute(body, "data-officeimo-to-offset-x", image.ToOffsetXPixels);
-                AppendDataAttribute(body, "data-officeimo-to-offset-y", image.ToOffsetYPixels);
+                AppendDataAttribute(body, "data-officeimo-to-offset-x", image.ToOffsetX.ToPixels());
+                body.Append(" data-officeimo-to-offset-x-emu=\"").Append(image.ToOffsetX.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
+                AppendDataAttribute(body, "data-officeimo-to-offset-y", image.ToOffsetY.ToPixels());
+                body.Append(" data-officeimo-to-offset-y-emu=\"").Append(image.ToOffsetY.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
             }
 
             body.Append("><span class=\"officeimo-feature-label\">")
@@ -737,13 +747,13 @@ public static partial class ExcelHtmlConverterExtensions {
                 .Append(", ")
                 .Append(image.ColumnIndex.ToString(CultureInfo.InvariantCulture))
                 .Append("; Size: ")
-                .Append(image.WidthPixels.ToString(CultureInfo.InvariantCulture))
+                .Append(image.Width.ToPixels().ToString(CultureInfo.InvariantCulture))
                 .Append("x")
-                .Append(image.HeightPixels.ToString(CultureInfo.InvariantCulture))
+                .Append(image.Height.ToPixels().ToString(CultureInfo.InvariantCulture))
                 .Append("; Offset: ")
-                .Append(image.OffsetXPixels.ToString(CultureInfo.InvariantCulture))
+                .Append(image.OffsetX.ToPixels().ToString(CultureInfo.InvariantCulture))
                 .Append(", ")
-                .Append(image.OffsetYPixels.ToString(CultureInfo.InvariantCulture))
+                .Append(image.OffsetY.ToPixels().ToString(CultureInfo.InvariantCulture))
                 .Append("; Type: ")
                 .Append(OfficeHtmlText.Escape(image.ContentType))
                 .Append("</div>");
@@ -915,36 +925,14 @@ public static partial class ExcelHtmlConverterExtensions {
         return diagnostic.Severity.ToString() + "|" + diagnostic.Code + "|" + diagnostic.Message;
     }
 
-    private static ExcelWorkbookImageExportOptions ResolveWorkbookVisualOptions(ExcelWorkbookImageExportOptions? workbookOptions) {
+    private static ExcelImageExportOptions ResolveWorkbookVisualOptions(ExcelImageExportOptions? workbookOptions) {
         if (workbookOptions == null) {
-            return new ExcelWorkbookImageExportOptions {
+            return new ExcelImageExportOptions {
                 ShowCommentBodies = true
             };
         }
 
         return workbookOptions;
-    }
-
-    private static ExcelWorksheetImageExportOptions ToWorksheetOptions(ExcelWorkbookImageExportOptions workbookOptions) {
-        return new ExcelWorksheetImageExportOptions {
-            Scale = workbookOptions.Scale,
-            BackgroundColor = workbookOptions.BackgroundColor,
-            GridlineColor = workbookOptions.GridlineColor,
-            ShowGridlines = workbookOptions.ShowGridlines,
-            IncludeHidden = workbookOptions.IncludeHidden,
-            IncludeImages = workbookOptions.IncludeImages,
-            IncludeCharts = workbookOptions.IncludeCharts,
-            IncludeDrawingObjects = workbookOptions.IncludeDrawingObjects,
-            IncludeConditionalFormatting = workbookOptions.IncludeConditionalFormatting,
-            ConditionalFormattingDate = workbookOptions.ConditionalFormattingDate,
-            ShowHyperlinkHints = workbookOptions.ShowHyperlinkHints,
-            ShowCommentBodies = workbookOptions.ShowCommentBodies,
-            DefaultColumnWidthPixels = workbookOptions.DefaultColumnWidthPixels,
-            DefaultRowHeightPixels = workbookOptions.DefaultRowHeightPixels,
-            HeaderFooterDateTime = workbookOptions.HeaderFooterDateTime,
-            UsePrintArea = workbookOptions.UseWorksheetPrintAreas,
-            SplitByManualPageBreaks = workbookOptions.SplitWorksheetsByManualPageBreaks
-        };
     }
 
     private static string Wrap(string body, ExcelHtmlSaveOptions options, string title) {

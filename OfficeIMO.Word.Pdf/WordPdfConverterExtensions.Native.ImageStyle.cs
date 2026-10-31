@@ -10,10 +10,10 @@ public static partial class WordPdfConverterExtensions {
         var style = new PdfCore.PdfImageStyle { ScaleDownToFit = true, Fit = OfficeImageFit.Stretch };
         if (image == null) return style;
         // DrawingML percentages use 100000 for 100%; they are not EMU lengths.
-        double left = (image.CropLeft ?? 0) / 100000D;
-        double top = (image.CropTop ?? 0) / 100000D;
-        double right = (image.CropRight ?? 0) / 100000D;
-        double bottom = (image.CropBottom ?? 0) / 100000D;
+        double left = ((image.CropLeftRatio is double cropRatio2 ? (int?)System.Math.Round(cropRatio2 * 100000D, System.MidpointRounding.AwayFromZero) : null) ?? 0) / 100000D;
+        double top = ((image.CropTopRatio is double cropRatio4 ? (int?)System.Math.Round(cropRatio4 * 100000D, System.MidpointRounding.AwayFromZero) : null) ?? 0) / 100000D;
+        double right = ((image.CropRightRatio is double cropRatio6 ? (int?)System.Math.Round(cropRatio6 * 100000D, System.MidpointRounding.AwayFromZero) : null) ?? 0) / 100000D;
+        double bottom = ((image.CropBottomRatio is double cropRatio8 ? (int?)System.Math.Round(cropRatio8 * 100000D, System.MidpointRounding.AwayFromZero) : null) ?? 0) / 100000D;
         if (left >= 0D && top >= 0D && right >= 0D && bottom >= 0D && left + right < 1D && top + bottom < 1D) {
             if (left != 0D || top != 0D || right != 0D || bottom != 0D)
                 style.SourceCrop = new PdfCore.PdfImageSourceCrop(left, top, right, bottom);

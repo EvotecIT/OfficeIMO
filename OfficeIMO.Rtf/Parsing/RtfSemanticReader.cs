@@ -160,7 +160,7 @@ internal static partial class RtfSemanticReader {
             if (destination == "pict") {
                 RtfImage? image = ReadPicture(group);
                 if (image != null) {
-                    AddPicture(image);
+                    AddImage(image);
                 }
 
                 return;

@@ -42,7 +42,7 @@ var options = new ExcelPdfExportOptions {
     UseWorksheetPageBreaks = true,
     UseWorksheetPrintTitleColumns = true,
     PageSize = PdfPageSizes.A4.Landscape(),
-    Margins = PdfPageMargins.UniformCentimeters(1.2)
+    Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Centimeters(1.2))
 };
 
 workbook.SaveAsPdf("monthly-report.pdf", options);

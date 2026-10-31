@@ -9,10 +9,10 @@ internal static partial class PdfWriter {
             PdfHeadingStyle? headingStyle = ResolveHeadingStyle(hb, currentOpts);
             double size = GetHeadingFontSize(hb, headingStyle);
             double leading = GetHeadingLeading(headingStyle, size);
-            double spacingBefore = (y < frameStart - 0.001 || headingStyle?.ApplySpacingBeforeAtTop == true) ? headingStyle?.SpacingBefore ?? 0D : 0D;
+            double spacingBefore = (y < frameStart - 0.001 || headingStyle?.ApplySpacingBeforeAtTop == true) ? (headingStyle?.SpacingBefore.ToPoints()) ?? 0D : 0D;
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, leading);
             var headingFont = GetHeadingFont(currentOpts, headingStyle);
-            PdfColor? headingColor = hb.Color ?? headingStyle?.Color;
+            global::OfficeIMO.OfficeColor? headingColor = hb.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb, headingStyle, headingColor);
             // Paragraph indents narrow the heading's text frame, so an indented heading lines up with its body.
             double headingIndentLeft = Math.Max(0D, headingStyle?.LeftIndent ?? 0D);
@@ -21,7 +21,7 @@ internal static partial class PdfWriter {
                 headingIndentLeft = 0D;
                 headingIndentRight = 0D;
             }
-            double HeadingLeft() => currentOpts.MarginLeft + headingIndentLeft;
+            double HeadingLeft() => currentOpts.MarginLeft.ToPoints() + headingIndentLeft;
             double HeadingWidth() => width - headingIndentLeft - headingIndentRight;
             bool pictureWrapping = HasAnchoredPictures(headingStyle?.AnchoredCanvas) || HasPictureExclusions;
             var (lines, lineHeights) = WrapHeadingForFrame(hb, headingRuns, headingStyle,
@@ -54,7 +54,7 @@ internal static partial class PdfWriter {
                             hb.LinkUri, remainingStyle, hb.LinkContents, hb.LinkDestinationName, remainingRuns);
                     }
                     double before = firstLogicalLine && headingStyle?.ApplySpacingBeforeAtTop == true
-                        ? headingStyle.SpacingBefore : 0D;
+                        ? headingStyle.SpacingBefore.ToPoints() : 0D;
                     (lines, lineHeights) = WrapHeadingForFrame(source, remainingRuns, remainingStyle,
                         HeadingLeft(), HeadingWidth(), size, leading, y - before);
                     lineGaps = lines.Select(line => line is RichLine row ? row.FragmentTopGap : 0D).ToList();
@@ -66,13 +66,13 @@ internal static partial class PdfWriter {
             double needed = spacingBefore + textHeight + spacingAfter;
             bool keepWithNext = headingStyle?.KeepWithNext ?? true;
             if (keepWithNext && nextBlock != null) {
-                double keepHeight = needed + MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
+                double keepHeight = needed + MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, currentOpts.DefaultFontSize.ToPoints(), needed);
                 double availableHeight = GetMaximumBlockContinuationHeight();
                 while (keepHeight > needed + 0.001 && keepHeight <= availableHeight + 0.001 && ShouldAdvanceForBlockHeight(keepHeight)) {
                     NewHeadingFrame();
-                    spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+                    spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore.ToPoints() : 0D;
                     needed = spacingBefore + textHeight + spacingAfter;
-                    keepHeight = needed + MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
+                    keepHeight = needed + MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, currentOpts.DefaultFontSize.ToPoints(), needed);
                     availableHeight = GetMaximumBlockContinuationHeight();
                 }
             }
@@ -80,19 +80,19 @@ internal static partial class PdfWriter {
             double fitNeeded = spacingBefore + MeasureRichLinesFrameFitHeight(lines, lineHeights, leading, lineGaps) + spacingAfter;
             if (y < frameStart - 0.001 && y - fitNeeded < FootnoteBodyBottom) {
                 NewHeadingFrame();
-                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore.ToPoints() : 0D;
                 needed = spacingBefore + textHeight + spacingAfter;
             }
             while (lineHeights.Count > 0 && ShouldAdvanceForBlockHeight(spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0], lineGaps[0]))) {
                 NewHeadingFrame();
-                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore.ToPoints() : 0D;
             }
             while (lineHeights.Count > 0 && spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0], lineGaps[0]) > frameStart - FootnoteBodyBottom + 0.001) {
                 if (!TryAdvanceForRunningContent(ref runningAdmission,
                     spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0], lineGaps[0]),
                     preserve => NewHeadingFrame(preserve)))
                     throw new ArgumentException("Heading spacing and first line exceed the available page content height.");
-                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore.ToPoints() : 0D;
             }
             if (spacingBefore > 0) {
                 y -= spacingBefore;

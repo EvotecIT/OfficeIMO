@@ -19,7 +19,7 @@ public sealed class StudioNativeExternalSaveTests : IDisposable {
         File.WriteAllBytes(path, bytes);
         return path;
     }
-    private static byte[] Source() => PdfDocument.Create(document => document.Page(page => page.Size(300, 400))).ToBytes();
+    private static byte[] Source() => PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).ToBytes();
 
     [Theory]
     [InlineData(false, false)]

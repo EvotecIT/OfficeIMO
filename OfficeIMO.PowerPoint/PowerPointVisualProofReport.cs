@@ -237,7 +237,7 @@ namespace OfficeIMO.PowerPoint {
             .Replace("\"", "\\\"").Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
     }
 
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         /// <summary>Creates structural, extraction, accessibility, PNG, SVG, and snapshot proof for every slide.</summary>
         public PowerPointVisualProofReport InspectVisuals(string sourceKind = "generated") {
             if (string.IsNullOrWhiteSpace(sourceKind)) throw new ArgumentException("Source kind cannot be empty.", nameof(sourceKind));

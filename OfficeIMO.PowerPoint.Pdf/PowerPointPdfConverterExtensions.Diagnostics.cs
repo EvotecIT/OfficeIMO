@@ -6,7 +6,7 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
-    private static void ReportOmittedSpeakerNotes(PptCore.PowerPointPresentation presentation, PowerPointPdfExportOptions options) {
+    private static void ReportOmittedSpeakerNotes(PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions options) {
         if (options.PageLayout != PowerPointPdfPageLayout.Slides && options.IncludeSpeakerNotes) return;
         for (int index = 0; index < presentation.Slides.Count; index++) {
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -45,7 +45,7 @@ public static partial class PowerPointPdfConverterExtensions {
             slideNumber,
             code,
             message,
-            new PdfCore.PdfLayoutDiagnostic(kind, source, diagnosticMessage, x, y, width, height));
+            new PdfCore.PdfLayoutDiagnostic(kind, source, diagnosticMessage, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)));
     }
 
     private static void AddPowerPointPictureAspectRatioDiagnostic(

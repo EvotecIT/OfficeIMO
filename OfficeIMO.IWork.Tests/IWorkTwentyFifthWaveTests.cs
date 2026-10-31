@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         Assert.IsType<PowerPointPicture>(Assert.Single(reopened.Slides).Shapes[0]);
         Assert.IsType<PowerPointTable>(Assert.Single(reopened.Slides).Shapes[1]);
     }
@@ -40,12 +40,12 @@ public sealed partial class IWorkBoundaryTests {
         PowerPointTextBox title = Assert.Single(Assert.Single(result.Value.Slides).TextBoxes);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(720d, result.Value.SlideSize.WidthPoints, 3);
-        Assert.True(title.LeftPoints >= 0);
-        Assert.True(title.TopPoints >= 0);
-        Assert.True(title.RightPoints <= 720d);
-        Assert.True(title.BottomPoints <= 540d);
-        Assert.Equal(648d, title.WidthPoints, 3);
+        Assert.Equal(720d, result.Value.SlideSize.Width.ToPoints(), 3);
+        Assert.True(title.Left.ToPoints() >= 0);
+        Assert.True(title.Top.ToPoints() >= 0);
+        Assert.True(title.Right.ToPoints() <= 720d);
+        Assert.True(title.Bottom.ToPoints() <= 540d);
+        Assert.Equal(648d, title.Width.ToPoints(), 3);
     }
 
     [Theory]

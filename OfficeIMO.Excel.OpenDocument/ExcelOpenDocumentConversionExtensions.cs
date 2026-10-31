@@ -51,7 +51,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 for (int index = Math.Max(1, column.StartIndex); index <= last; index++) {
                     OdsColumn converted = sheet.Column(index - 1L);
                     converted.Hidden = column.Hidden;
-                    if (column.Width.HasValue) converted.Width = OdfLength.Points(ExcelWidthToPoints(column.Width.Value));
+                    if (column.StoredWidth.HasValue) converted.Width = OdfLength.Points(ExcelWidthToPoints(column.StoredWidth.Value));
                     columns++;
                 }
             }
@@ -59,7 +59,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (row.Index < 1 || row.Index > effective.MaximumRows) { skippedRows++; truncated = true; continue; }
                 OdsRow converted = sheet.Row(row.Index - 1L);
                 converted.Hidden = row.Hidden;
-                if (row.Height.HasValue) converted.Height = OdfLength.Points(row.Height.Value);
+                if (row.StoredHeight.HasValue) converted.Height = OdfLength.Points(row.StoredHeight.Value);
                 rows++;
             }
 
@@ -419,7 +419,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var sourceValidations = source.Validations
             .GroupBy(validation => validation.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        var sheetTargets = source.Sheets.Select(ods => (Source: ods, Target: target.AddWorksheet(ods.Name))).ToList();
+        var sheetTargets = source.Sheets.Select(ods => (Source: ods, Target: target.AddSheet(ods.Name))).ToList();
         var sheetNameMap = sheetTargets.ToDictionary(pair => pair.Source.Name, pair => pair.Target.Name, StringComparer.Ordinal);
         OdsNamedRangeConversionPlan namedRangePlan = BuildOdsNamedRangeConversionPlan(source.NamedRanges, sheetNameMap);
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
@@ -497,7 +497,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 ? TryGetUniformColumnWidth(columnRuns) : null;
             double? defaultColumnWidth = uniformDefaultColumnWidth ??
                 (effective.MaximumColumns == 16_384 ? TryGetDominantColumnWidth(columnRuns) : null);
-            if (defaultColumnWidth.HasValue) sheet.SetDefaultColumnWidth(defaultColumnWidth.Value);
+            if (defaultColumnWidth.HasValue) sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(defaultColumnWidth.Value));
             if (uniformDefaultColumnWidth.HasValue)
                 columnLayouts = (int)Math.Min(int.MaxValue, (long)columnLayouts + effective.MaximumColumns);
             foreach (OdsColumnRun columnRun in uniformDefaultColumnWidth.HasValue
@@ -517,7 +517,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     int excelColumn = checked((int)column + 1);
                     if (columnRun.Hidden) sheet.SetColumnHidden(excelColumn, true);
                     if (columnRun.Width.HasValue) {
-                        if (columnRun.Width.Value.TryToPoints(out double points)) sheet.SetColumnWidth(excelColumn, PointsToExcelWidth(points));
+                        if (columnRun.Width.Value.TryToPoints(out double points)) sheet.SetColumnWidth(excelColumn, ExcelColumnWidth.Characters(PointsToExcelWidth(points)));
                         else unsupportedMeasurements++;
                     }
                     columnLayouts++;
@@ -529,7 +529,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             int materializedRowLayouts = 0;
             double? uniformDefaultRowHeight = effective.MaximumRows == 1_048_576
                 ? TryGetUniformRowHeight(rowRuns) : null;
-            if (uniformDefaultRowHeight.HasValue) sheet.SetDefaultRowHeight(uniformDefaultRowHeight.Value);
+            if (uniformDefaultRowHeight.HasValue) sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(uniformDefaultRowHeight.Value)));
             foreach (OdsRowRun rowRun in rowRuns) {
                 IReadOnlyList<OdsCellRun> cellRuns = rowRun.CellRuns;
                 bool hiddenRowRun = rowRun.Hidden;
@@ -587,7 +587,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     else if (needsIndividualLayout) truncated = true;
                     if (hiddenRowRun && canMaterializeLayout) { sheet.SetRowHidden(excelRow, true); rowLayouts++; }
                     if (rowHeight.HasValue && !uniformDefaultRowHeight.HasValue && canMaterializeLayout) {
-                        if (rowHeight.Value.TryToPoints(out double points)) sheet.SetRowHeight(excelRow, points);
+                        if (rowHeight.Value.TryToPoints(out double points)) sheet.SetRowHeight(excelRow, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(points)));
                         else unsupportedMeasurements++;
                         rowLayouts++;
                     } else if (rowHeight.HasValue && uniformDefaultRowHeight.HasValue) {
@@ -736,7 +736,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             conditionalTargetLimitFailures += conditionalTargetLimits.Count;
         }
 
-        if (target.Sheets.Count == 0) activeTarget = target.AddWorksheet("Sheet1");
+        if (target.Sheets.Count == 0) activeTarget = target.AddSheet("Sheet1");
         else if (activeTarget == null) {
             activeTarget = firstTarget!;
             activeTarget.SetHidden(false);

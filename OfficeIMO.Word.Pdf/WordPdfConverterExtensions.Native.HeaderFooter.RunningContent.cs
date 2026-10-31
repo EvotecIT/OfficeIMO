@@ -47,7 +47,7 @@ public static partial class WordPdfConverterExtensions {
         bool hasParagraph = false;
         bool ordinaryStoriesSupported = !HasNativeRunningStoryOverrides(options?.PdfOptions, isFooter);
         PdfCore.PdfPageMargins margins = GetNativeMargins(section, options, (0D, 0D));
-        double width = GetNativePageSize(section, options).Width - margins.Left - margins.Right;
+        double width = GetNativePageSize(section, options).Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints();
         foreach (WordHeaderFooter? story in variants) {
             if (story == null) continue;
             hasParagraph |= !story.ChildElements.Any();
@@ -79,7 +79,7 @@ public static partial class WordPdfConverterExtensions {
                 // combine many source paragraphs into one line box. Ignore
                 // spacing and use the smallest line box in each such chain.
                 joinedLineHeight = Math.Min(joinedLineHeight,
-                    (style.FontSize ?? NativeHeaderFooterFontSize) * (style.LineHeight ?? 1.2D));
+                    ((style.FontSize?.ToPoints()) ?? NativeHeaderFooterFontSize) * (style.LineHeight ?? 1.2D));
                 if (ShouldRenderNativeEmptyParagraphLineBox(paragraph)) {
                     minimumHeight += joinedLineHeight;
                     joinedLineHeight = double.PositiveInfinity;
@@ -88,8 +88,8 @@ public static partial class WordPdfConverterExtensions {
                 // Keep the established bounded simple-story export for indents
                 // that cannot leave both paragraph-flow text frames positive.
                 // Admission switches every paragraph in every active variant.
-                double textWidth = width - style.LeftIndent - style.RightIndent;
-                double firstLineWidth = textWidth - style.FirstLineIndent;
+                double textWidth = width - style.LeftIndent.ToPoints() - style.RightIndent.ToPoints();
+                double firstLineWidth = textWidth - style.FirstLineIndent.ToPoints();
                 if (textWidth <= 0D || firstLineWidth <= 0D ||
                     double.IsNaN(textWidth) || double.IsInfinity(textWidth) ||
                     double.IsNaN(firstLineWidth) || double.IsInfinity(firstLineWidth)) return false;
@@ -97,8 +97,8 @@ public static partial class WordPdfConverterExtensions {
             // Retain the bounded simple-story export for obviously oversized
             // ordinary stories. Its expansion clamp preserves a usable body;
             // bounded running flow cannot create continuation pages for them.
-            double distance = (isFooter ? section.Margins.FooterDistance : section.Margins.HeaderDistance) / 20D;
-            ordinaryStoriesSupported &= minimumHeight + distance < GetNativePageSize(section, options).Height;
+            double distance = (isFooter ? checked((uint)(section.Margins.FooterDistance.GetValueOrDefault().ToTwips())) : checked((uint)(section.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) / 20D;
+            ordinaryStoriesSupported &= minimumHeight + distance < GetNativePageSize(section, options).Height.ToPoints();
         }
         return hasNumberedParagraph || (hasParagraph && ordinaryStoriesSupported);
     }
@@ -133,23 +133,23 @@ public static partial class WordPdfConverterExtensions {
     /// </summary>
     private static bool HasNativeRunningStoryOverrides(PdfCore.PdfCreateOptions? options, bool isFooter) => options != null &&
         (isFooter
-            ? options.FooterOffsetY != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
-                options.FooterFontSize != 9D || options.FooterTextColor.HasValue || options.FooterAlign != PdfCore.PdfAlign.Center
-            : options.HeaderOffsetY != 18D || options.HasExplicitHeaderFont || options.HeaderFontFamily != null ||
-                options.HeaderFontSize != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != PdfCore.PdfAlign.Center);
+            ? options.FooterOffsetY.ToPoints() != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
+                options.FooterFontSize.ToPoints() != 9D || options.FooterTextColor.HasValue || options.FooterAlign != PdfCore.PdfAlign.Center
+            : options.HeaderOffsetY.ToPoints() != 18D || options.HasExplicitHeaderFont || options.HeaderFontFamily != null ||
+                options.HeaderFontSize.ToPoints() != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != PdfCore.PdfAlign.Center);
 
     private static void ConfigureNativeRunningHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section,
         WordPdfExportOptions? options, NativeFontMap fontMap,
         IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeDocumentDefaults defaults) {
         if (UsesNativeRunningHeader(section, options)) {
-            double distance = section.Margins.HeaderDistance / 20D;
+            double distance = checked((uint)(section.Margins.HeaderDistance.GetValueOrDefault().ToTwips())) / 20D;
             page.Header(header => {
                 if (section.ResolveDefaultHeader() != null)
-                    header.Content(CreateNativeRunningStory(section.ResolveDefaultHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
+                    header.Content(CreateNativeRunningStory(section.ResolveDefaultHeader(), section, options, fontMap, listMarkers, defaults, false), global::OfficeIMO.OfficeLength.Points(distance));
                 if (section.DifferentFirstPage && section.ResolveFirstHeader() != null)
-                    header.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
+                    header.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstHeader(), section, options, fontMap, listMarkers, defaults, false), global::OfficeIMO.OfficeLength.Points(distance));
                 if (section.DocumentOddEvenSettingEnabled && section.ResolveEvenHeader() != null)
-                    header.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
+                    header.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenHeader(), section, options, fontMap, listMarkers, defaults, false), global::OfficeIMO.OfficeLength.Points(distance));
             });
             ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: true, section.ResolveDefaultHeader(),
                 section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
@@ -159,14 +159,14 @@ public static partial class WordPdfConverterExtensions {
                 page.Options.AllowRunningContentTextFallback(isHeader: true);
         } else ConfigureNativeImplicitRunningStories(page, section, options, fontMap, listMarkers, defaults, isFooter: false);
         if (UsesNativeRunningFooter(section, options)) {
-            double distance = section.Margins.FooterDistance / 20D;
+            double distance = checked((uint)(section.Margins.FooterDistance.GetValueOrDefault().ToTwips())) / 20D;
             page.Footer(footer => {
                 if (section.ResolveDefaultFooter() != null)
-                    footer.Content(CreateNativeRunningStory(section.ResolveDefaultFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
+                    footer.Content(CreateNativeRunningStory(section.ResolveDefaultFooter(), section, options, fontMap, listMarkers, defaults, true), global::OfficeIMO.OfficeLength.Points(distance));
                 if (section.DifferentFirstPage && section.ResolveFirstFooter() != null)
-                    footer.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
+                    footer.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstFooter(), section, options, fontMap, listMarkers, defaults, true), global::OfficeIMO.OfficeLength.Points(distance));
                 if (section.DocumentOddEvenSettingEnabled && section.ResolveEvenFooter() != null)
-                    footer.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
+                    footer.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenFooter(), section, options, fontMap, listMarkers, defaults, true), global::OfficeIMO.OfficeLength.Points(distance));
             });
             ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: false, section.ResolveDefaultFooter(),
                 section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
@@ -242,7 +242,7 @@ public static partial class WordPdfConverterExtensions {
                 RenderNativeElement(flow, elements[index], section,
                     paragraph => listMarkers.TryGetValue(paragraph, out var marker) ? marker : null,
                     Array.Empty<int>(), notes, options, Array.Empty<NativeTableOfContentsEntry>(), destinations,
-                    context.ContentWidth, runningDefaults, fontMap,
+                    context.ContentWidth.ToPoints(), runningDefaults, fontMap,
                     index + 1 < elements.Count ? elements[index + 1] : null);
             }
             if (addPageNumber)

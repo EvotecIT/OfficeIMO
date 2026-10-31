@@ -139,7 +139,7 @@ public sealed partial class PdfRotationNormalizationTests {
     [InlineData(90)] [InlineData(180)] [InlineData(270)]
     public void InheritedPatternResourcesAreTransformedOnlyForSelectedPages(int rotation) {
         byte[] source = PdfDocument.Create(compose => {
-            for (int index = 0; index < 2; index++) compose.Page(page => page.Size(300, 500));
+            for (int index = 0; index < 2; index++) compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(500)));
         }).ToBytes();
         var read = PdfReadDocument.Open(source);
         var (objects, trailer) = PdfSyntax.ParseObjects(source);
@@ -188,7 +188,7 @@ public sealed partial class PdfRotationNormalizationTests {
     [InlineData(90)] [InlineData(180)] [InlineData(270)]
     public void FormValuesStatesAndEditingSurviveNormalization(int rotation) {
         PdfDocument source = PdfDocument.Create().TaggedPdfCatalogMarkers()
-            .TextField("Person.Name", width: 180, height: 24, value: "Ada")
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada")
             .CheckBox("Accept", isChecked: true, size: 16).Pages.RotateBy(rotation);
         PdfDocument normalized = source.Pages.NormalizeRotation();
         Assert.True(normalized.Inspect().HasTaggedContent);
@@ -314,7 +314,7 @@ public sealed partial class PdfRotationNormalizationTests {
 
     private static byte[] CreateGeometrySource(int rotation) {
         PdfDocument document = PdfDocument.Create(compose => {
-            for (int i = 0; i < 2; i++) compose.Page(page => page.Size(600, 800).Content(content => content.Text("Page geometry")));
+            for (int i = 0; i < 2; i++) compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => content.Text("Page geometry")));
         });
         document = document.Annotations.Add(new PdfAnnotationCreateOptions { PageNumber = 1, Subtype = "Square", Name = "rectangle",
             Rectangle = new[] { 100D, 400D, 160D, 460D }, GenerateAppearance = true }).ToDocument();

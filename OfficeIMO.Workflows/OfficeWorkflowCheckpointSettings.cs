@@ -8,7 +8,7 @@ namespace OfficeIMO.Workflows;
 
 internal static class OfficeWorkflowCheckpointSettings {
     private static readonly JsonSerializerOptions ConfigurationJson = new() { IncludeFields = true,
-        Converters = { new PdfConfigurationConverter() } };
+        Converters = { new PdfConfigurationConverter(), new OfficeLengthFingerprintConverter(), new OfficeColorFingerprintConverter() } };
     private static readonly OfficeConversionConfigurationJsonContext ConfigurationContext = new(ConfigurationJson);
 
     internal static string Capture(OfficeConversionOptions settings, string routeId) {
@@ -28,7 +28,7 @@ internal static class OfficeWorkflowCheckpointSettings {
         return OfficeRuntimeCompatibility.ToHexString(hash.Hash!);
     }
 
-    private sealed class PdfConfigurationConverter : JsonConverter<PdfCreateOptions> {
+    internal sealed class PdfConfigurationConverter : JsonConverter<PdfCreateOptions> {
         public override PdfCreateOptions Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options) => throw new NotSupportedException();
         public override void Write(Utf8JsonWriter writer, PdfCreateOptions value, JsonSerializerOptions options) {
             if (value.TextShapingProvider != null)
@@ -37,7 +37,7 @@ internal static class OfficeWorkflowCheckpointSettings {
                 throw new NotSupportedException("Runtime cryptography providers require an ordinary batch without checkpoints.");
             writer.WriteStartObject();
             writer.WritePropertyName("Settings");
-            JsonSerializer.Serialize(writer, value, OfficeConversionPdfSettingsJsonContext.Default.PdfCreateOptions);
+            JsonSerializer.Serialize(writer, value, OfficeBatchPdfSettingsJsonContext.Default.PdfOptions);
             writer.WriteString("ExplicitSettings", value.CheckpointExplicitSettings);
             writer.WriteStartArray("EmbeddedStandardFonts");
             foreach (PdfEmbeddedFont font in value.CheckpointEmbeddedFonts) {

@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "ExcelCharts.Basic.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-                var sheet = document.AddWorksheet("Summary");
+                var sheet = document.AddSheet("Summary");
                 sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },
@@ -23,8 +23,7 @@ namespace OfficeIMO.Examples.Excel {
                         new ExcelChartSeries("Target", new[] { 12d, 22d, 24d, 32d })
                     });
 
-                sheet.AddChart(data, row: 2, column: 6, widthPixels: 640, heightPixels: 360,
-                    type: ExcelChartType.ColumnClustered, title: "Quarterly Sales");
+                sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Quarterly Sales" });
 
                 document.Save();
                 if (openExcel) document.OpenInApplication();
@@ -36,33 +35,32 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "ExcelCharts.ComboScatter.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-                var sheet = document.AddWorksheet("Summary");
+                var sheet = document.AddSheet("Summary");
                 sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
 
                 var comboData = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },
                     new[] {
-                        new ExcelChartSeries("Sales", new[] { 10500d, 19800d, 25300d, 30100d }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
-                        new ExcelChartSeries("Trend", new[] { 12000d, 18000d, 28000d, 35000d }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
+                        new ExcelChartSeries("Sales", new[] { 10500d, 19800d, 25300d, 30100d }, OfficeChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
+                        new ExcelChartSeries("Trend", new[] { 12000d, 18000d, 28000d, 35000d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                     });
 
-                var comboChart = sheet.AddChart(comboData, row: 2, column: 6, widthPixels: 640, heightPixels: 360,
-                    type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
+                var comboChart = sheet.AddChart(OfficeChartType.ColumnClustered, comboData, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Sales vs Trend" });
                 comboChart.ApplyStylePreset()
-                          .SetSeriesMarker(1, OfficeChartMarkerShape.Circle, size: 6, lineColor: "4472C4");
+                          .SetSeriesMarker(1, OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), lineColor: OfficeColor.Parse("4472C4"));
                 comboChart.SetValueAxisNumberFormat("#,##0", sourceLinked: false, axisGroup: OfficeChartAxisGroup.Secondary)
                           .SetSeriesDataLabels(1, showValue: true, position: OfficeChartDataLabelPosition.Top, numberFormat: "#,##0")
-                          .SetSeriesDataLabelTextStyle(1, fontSizePoints: 9, color: "1F4E79")
-                          .SetSeriesDataLabelShapeStyle(1, fillColor: "FFFFFF", lineColor: "1F4E79", lineWidthPoints: 0.5);
-                comboChart.SetSeriesDataLabelLeaderLines(1, showLeaderLines: true, lineColor: "1F4E79", lineWidthPoints: 0.5);
+                          .SetSeriesDataLabelTextStyle(1, fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("1F4E79"))
+                          .SetSeriesDataLabelShapeStyle(1, fillColor: OfficeColor.Parse("FFFFFF"), lineColor: OfficeColor.Parse("1F4E79"), lineWidth: OfficeLength.Points(0.5));
+                comboChart.SetSeriesDataLabelLeaderLines(1, showLeaderLines: true, lineColor: OfficeColor.Parse("1F4E79"), lineWidth: OfficeLength.Points(0.5));
                 comboChart.SetLegend(OfficeChartLegendPosition.Right)
-                          .SetTitleTextStyle(fontSizePoints: 14, bold: true, color: "1F4E79")
-                          .SetLegendTextStyle(fontSizePoints: 9, color: "404040")
+                          .SetTitleTextStyle(fontSize: OfficeLength.Points(14), bold: true, color: OfficeColor.Parse("1F4E79"))
+                          .SetLegendTextStyle(fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("404040"))
                           .SetCategoryAxisTitle("Quarter")
                           .SetValueAxisTitle("Revenue")
-                          .SetCategoryAxisTitleTextStyle(fontSizePoints: 10, bold: true)
-                          .SetValueAxisLabelTextStyle(fontSizePoints: 9, color: "404040")
-                          .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "C0C0C0", lineWidthPoints: 0.75)
+                          .SetCategoryAxisTitleTextStyle(fontSize: OfficeLength.Points(10), bold: true)
+                          .SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("404040"))
+                          .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("C0C0C0"), lineWidth: OfficeLength.Points(0.75))
                           .SetCategoryAxisLabelRotation(45)
                           .SetValueAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.Low);
                 comboChart.SetCategoryAxisReverseOrder()
@@ -71,30 +69,29 @@ namespace OfficeIMO.Examples.Excel {
                           .SetCategoryAxisCrossing(OfficeChartAxisCrossingPosition.Minimum)
                           .SetValueAxisCrossBetween(OfficeChartAxisCrossBetween.Between)
                           .SetValueAxisDisplayUnits(OfficeChartDisplayUnit.Thousands, "Thousands USD", showLabel: true);
-                comboChart.SetChartAreaStyle(fillColor: "F2F2F2", lineColor: "404040", lineWidthPoints: 1)
-                          .SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "BFBFBF", lineWidthPoints: 0.75);
+                comboChart.SetChartAreaStyle(fillColor: OfficeColor.Parse("F2F2F2"), lineColor: OfficeColor.Parse("404040"), lineWidth: OfficeLength.Points(1))
+                          .SetPlotAreaStyle(fillColor: OfficeColor.Parse("FFFFFF"), lineColor: OfficeColor.Parse("BFBFBF"), lineWidth: OfficeLength.Points(0.75));
                 comboChart.SetSeriesTrendline(1, OfficeChartTrendlineType.Linear, displayEquation: true, displayRSquared: true,
-                    lineColor: "A5A5A5", lineWidthPoints: 1);
+                    lineColor: OfficeColor.Parse("A5A5A5"), lineWidth: OfficeLength.Points(1));
                 var labelTemplate = new ExcelChartDataLabelTemplate {
                     ShowValue = true,
                     Position = OfficeChartDataLabelPosition.Top,
                     NumberFormat = "#,##0",
-                    FontSizePoints = 9,
-                    TextColor = "404040",
+                    FontSize = OfficeLength.Points(9),
+                    TextColor = OfficeColor.Parse("404040"),
                     Separator = " - "
                 };
                 comboChart.SetSeriesDataLabelTemplate(1, labelTemplate)
                           .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: OfficeChartDataLabelPosition.OutsideEnd,
                             numberFormat: "#,##0")
                           .SetSeriesDataLabelSeparatorForPoint(1, 2, " | ")
-                          .SetSeriesDataLabelTextStyleForPoint(1, 2, fontSizePoints: 11, bold: true, color: "FF0000");
+                          .SetSeriesDataLabelTextStyleForPoint(1, 2, fontSize: OfficeLength.Points(11), bold: true, color: OfficeColor.Parse("FF0000"));
 
                 var scatterData = new ExcelChartData(
                     new[] { "1", "2", "3", "4" },
-                    new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d, 5d }, ExcelChartType.Scatter) });
+                    new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d, 5d }, OfficeChartType.Scatter) });
 
-                var scatterChart = sheet.AddChart(scatterData, row: 22, column: 6, widthPixels: 640, heightPixels: 360,
-                    type: ExcelChartType.Scatter, title: "Scatter Sample");
+                var scatterChart = sheet.AddChart(OfficeChartType.Scatter, scatterData, new OfficeIMO.Excel.ExcelChartOptions { Row = 22, Column = 6, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Scatter Sample" });
                 scatterChart.SetScatterXAxisScale(minimum: 1, maximum: 10, majorUnit: 1, logScale: true);
                 scatterChart.SetScatterYAxisScale(minimum: 0, maximum: 6, majorUnit: 1);
                 scatterChart.SetScatterYAxisCrossing(OfficeChartAxisCrossingPosition.Minimum, crossesAt: 2d);
@@ -113,11 +110,11 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.AddScatterChartFromRanges(new[] {
                     new ExcelChartSeriesRange("Series 1", "A31:A33", "B31:B33"),
                     new ExcelChartSeriesRange("Series 2", "A31:A33", "C31:C33")
-                }, row: 42, column: 6, widthPixels: 640, heightPixels: 360, title: "Scatter (Ranges)");
+                }, row: 42, column: 6, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360), title: "Scatter (Ranges)");
 
                 sheet.AddBubbleChartFromRanges(new[] {
                     new ExcelChartSeriesRange("Bubbles", "A31:A33", "B31:B33", "D31:D33")
-                }, row: 62, column: 6, widthPixels: 640, heightPixels: 360, title: "Bubble");
+                }, row: 62, column: 6, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360), title: "Bubble");
 
                 document.Save();
                 if (openExcel) document.OpenInApplication();

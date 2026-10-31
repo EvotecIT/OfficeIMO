@@ -65,7 +65,7 @@ public sealed class SetOfficeExcelChartLegendCommand : PSWriteOffice.Cmdlets.Off
 
             if (FontSizePoints.HasValue || Bold.HasValue || Italic.HasValue ||
                 !string.IsNullOrWhiteSpace(Color) || !string.IsNullOrWhiteSpace(FontName)) {
-                Chart.SetLegendTextStyle(FontSizePoints, Bold, Italic, Color, FontName);
+                Chart.SetLegendTextStyle(FontSizePoints.HasValue ? OfficeLength.Points(FontSizePoints.Value) : (OfficeLength?)null, Bold, Italic, Color != null ? OfficeColor.Parse(Color) : (OfficeColor?)null, FontName);
             }
 
             WritePassThru(Chart);

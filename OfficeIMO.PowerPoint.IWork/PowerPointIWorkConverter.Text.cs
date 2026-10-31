@@ -13,12 +13,12 @@ public static partial class PowerPointIWorkConverter {
         double top = source.Geometry?.TopPoints ?? fallbackTop;
         double width = source.Geometry?.WidthPoints ?? fallbackWidth;
         double height = source.Geometry?.HeightPoints ?? fallbackHeight;
-        PowerPointTextBox textBox = slide.AddTextBoxPoints(string.Empty, left, top, width, height);
+        PowerPointTextBox textBox = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
         if (source.Layout is { } layout) {
-            if (layout.LeftInsetPoints.HasValue) textBox.TextMarginLeftPoints = layout.LeftInsetPoints.Value;
-            if (layout.TopInsetPoints.HasValue) textBox.TextMarginTopPoints = layout.TopInsetPoints.Value;
-            if (layout.RightInsetPoints.HasValue) textBox.TextMarginRightPoints = layout.RightInsetPoints.Value;
-            if (layout.BottomInsetPoints.HasValue) textBox.TextMarginBottomPoints = layout.BottomInsetPoints.Value;
+            if (layout.LeftInsetPoints.HasValue) textBox.TextMarginLeft = global::OfficeIMO.OfficeLength.Points(layout.LeftInsetPoints.Value);
+            if (layout.TopInsetPoints.HasValue) textBox.TextMarginTop = global::OfficeIMO.OfficeLength.Points(layout.TopInsetPoints.Value);
+            if (layout.RightInsetPoints.HasValue) textBox.TextMarginRight = global::OfficeIMO.OfficeLength.Points(layout.RightInsetPoints.Value);
+            if (layout.BottomInsetPoints.HasValue) textBox.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(layout.BottomInsetPoints.Value);
             if (layout.VerticalAlignment.HasValue) textBox.TextVerticalAlignment = layout.VerticalAlignment.Value switch {
                 IWorkTextVerticalAlignment.Middle => PowerPointTextVerticalAlignment.Center,
                 IWorkTextVerticalAlignment.Bottom => PowerPointTextVerticalAlignment.Bottom,
@@ -84,11 +84,11 @@ public static partial class PowerPointIWorkConverter {
             if (source.ListFontName != null) paragraph.BulletFontName = source.ListFontName;
             if (source.ListLayout is { } layout && source.Style.TextStyle.FontSizePoints is double fontSize) {
                 double textOffset = layout.TextIndentEm * fontSize;
-                paragraph.LeftMarginPoints = source.Style.LeftIndentPoints.GetValueOrDefault()
-                    + layout.MarkerIndentPoints + textOffset;
-                paragraph.IndentPoints = source.Style.FirstLineIndentPoints.GetValueOrDefault() - textOffset;
+                paragraph.LeftMargin = global::OfficeIMO.OfficeLength.Points(source.Style.LeftIndentPoints.GetValueOrDefault()
+                    + layout.MarkerIndentPoints + textOffset);
+                paragraph.Indent = global::OfficeIMO.OfficeLength.Points(source.Style.FirstLineIndentPoints.GetValueOrDefault() - textOffset);
                 if (IWorkDecimalListLayout.TryResolve(source, out double markerSize, out _)) {
-                    paragraph.BulletSizePoints = checked((int)markerSize);
+                    paragraph.BulletSize = global::OfficeIMO.OfficeLength.Points(checked((int)markerSize));
                     paragraph.BulletFontName = IWorkDecimalListLayout.MarkerFontName(source);
                 } else paragraph.BulletSizePercent = checked((int)Math.Round(layout.MarkerScale * 100d));
             }
@@ -110,12 +110,12 @@ public static partial class PowerPointIWorkConverter {
                 _ => PowerPointTextAlignment.Left
             };
         }
-        if (style.FirstLineIndentPoints.HasValue) paragraph.IndentPoints = style.FirstLineIndentPoints;
-        if (style.LeftIndentPoints.HasValue) paragraph.LeftMarginPoints = style.LeftIndentPoints;
-        if (style.SpaceBeforePoints.HasValue) paragraph.SpaceBeforePoints = style.SpaceBeforePoints;
-        if (style.SpaceAfterPoints.HasValue) paragraph.SpaceAfterPoints = style.SpaceAfterPoints;
+        if (style.FirstLineIndentPoints.HasValue) paragraph.Indent = global::OfficeIMO.OfficeLength.Points(style.FirstLineIndentPoints.Value);
+        if (style.LeftIndentPoints.HasValue) paragraph.LeftMargin = global::OfficeIMO.OfficeLength.Points(style.LeftIndentPoints.Value);
+        if (style.SpaceBeforePoints.HasValue) paragraph.SpaceBefore = global::OfficeIMO.OfficeLength.Points(style.SpaceBeforePoints.Value);
+        if (style.SpaceAfterPoints.HasValue) paragraph.SpaceAfter = global::OfficeIMO.OfficeLength.Points(style.SpaceAfterPoints.Value);
         if (style.LineSpacingMultiplier.HasValue) paragraph.LineSpacingMultiplier = style.LineSpacingMultiplier;
-        if (style.TabStops != null) paragraph.SetTabStops(style.TabStops.Select(tab => new PowerPointTabStop(tab.PositionPoints,
+        if (style.TabStops != null) paragraph.SetTabStops(style.TabStops.Select(tab => new PowerPointTabStop(global::OfficeIMO.OfficeLength.Points(tab.PositionPoints),
             tab.Alignment switch {
                 IWorkTabAlignment.Center => PowerPointTabAlignment.Center,
                 IWorkTabAlignment.Right => PowerPointTabAlignment.Right,
@@ -322,8 +322,8 @@ public static partial class PowerPointIWorkConverter {
         if (style.Italic.HasValue) run.Italic = style.Italic.Value;
         if (style.Underline.HasValue) run.Underline = style.Underline.Value;
         if (style.Strikethrough.HasValue) run.Strikethrough = style.Strikethrough.Value;
-        if (style.FontSizePoints.HasValue) run.FontSizePoints = style.FontSizePoints.Value;
-        if (style.CharacterSpacingPoints.HasValue) run.CharacterSpacingPoints = style.CharacterSpacingPoints.Value;
+        if (style.FontSizePoints.HasValue) run.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSizePoints.Value);
+        if (style.CharacterSpacingPoints.HasValue) run.CharacterSpacing = global::OfficeIMO.OfficeLength.Points(style.CharacterSpacingPoints.Value);
         if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontName = style.FontName;
         if (style.Color != null) run.Color = style.Color.RgbHex;
         if (style.BackgroundColor != null) run.HighlightColor = style.BackgroundColor.RgbHex;

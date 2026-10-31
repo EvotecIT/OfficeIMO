@@ -26,10 +26,10 @@ Describe 'Word table cell padding' {
             $cells = @($doc.Tables[0] | Get-OfficeWordTableCell)
             $cells.Count | Should -Be 4
             foreach ($cell in $cells) {
-                [math]::Abs($cell.MarginTopCentimeters - 0.12) | Should -BeLessThan 0.002
-                [math]::Abs($cell.MarginBottomCentimeters - 0.14) | Should -BeLessThan 0.002
-                [math]::Abs($cell.MarginLeftCentimeters - 0.16) | Should -BeLessThan 0.002
-                [math]::Abs($cell.MarginRightCentimeters - 0.18) | Should -BeLessThan 0.002
+                [math]::Abs($cell.MarginTop.ToCentimeters() - 0.12) | Should -BeLessThan 0.002
+                [math]::Abs($cell.MarginBottom.ToCentimeters() - 0.14) | Should -BeLessThan 0.002
+                [math]::Abs($cell.MarginLeft.ToCentimeters() - 0.16) | Should -BeLessThan 0.002
+                [math]::Abs($cell.MarginRight.ToCentimeters() - 0.18) | Should -BeLessThan 0.002
             }
             $cells[2].Paragraphs[0].Text | Should -Be 'Warsaw'
             @($doc.ValidateDocument()).Count | Should -Be 0
@@ -47,8 +47,8 @@ Describe 'Word table cell padding' {
         $doc = Open-OfficeWord -Path $path
         try {
             $cell = $doc.Tables[0].Rows[1].Cells[0]
-            $cell.MarginTopWidth | Should -BeNullOrEmpty
-            [math]::Abs($cell.MarginLeftCentimeters - 0.16) | Should -BeLessThan 0.002
+            $cell.MarginTop | Should -BeNullOrEmpty
+            [math]::Abs($cell.MarginLeft.ToCentimeters() - 0.16) | Should -BeLessThan 0.002
             $cell.Paragraphs[0].Text | Should -Be 'Dublin'
         } finally { $doc | Close-OfficeWord }
     }

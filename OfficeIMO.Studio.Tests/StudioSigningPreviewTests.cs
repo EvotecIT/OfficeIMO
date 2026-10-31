@@ -250,8 +250,8 @@ public sealed class StudioSigningPreviewTests {
         frame.Save(Path.Combine(root, name + ".png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
     }
     private static PdfDocument CreatePdf() => PdfDocument.Create(document => {
-        document.Page(page => page.Size(300, 400).Content(content => content.Text("Document for signing review")));
-        document.Page(page => page.Size(300, 400));
+        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Text("Document for signing review")));
+        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
     });
     private static void SelectCertificate(MainWindowViewModel model, X509Certificate2 certificate) {
         model.SelectedSigningCertificate = new(certificate.Thumbprint, "Studio Test Signer", certificate.NotAfter, certificate.Issuer);

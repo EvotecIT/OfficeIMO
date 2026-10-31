@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// </example>
 [Cmdlet(VerbsData.Save, "OfficePowerPoint", SupportsShouldProcess = true)]
 [OutputType(typeof(FileInfo))]
-public sealed class SaveOfficePowerPointCommand : OfficeDocumentCmdlet<PowerPointPresentation> {
+public sealed class SaveOfficePowerPointCommand : OfficeDocumentCmdlet<PowerPointDocument> {
     /// <summary>Optional new destination; omission uses the associated path.</summary>
     [Parameter]
     [ValidateNotNullOrEmpty]
@@ -42,7 +42,7 @@ public sealed class SaveOfficePowerPointCommand : OfficeDocumentCmdlet<PowerPoin
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        PowerPointPresentation document = GetDocument();
+        PowerPointDocument document = GetDocument();
         string? destination = Path ?? document.FilePath;
         if (string.IsNullOrWhiteSpace(destination)) {
             InvalidArgument(new System.ArgumentException("Supply -Path when the document has no associated destination."), document, "destination-required");

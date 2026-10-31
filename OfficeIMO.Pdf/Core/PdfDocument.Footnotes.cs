@@ -62,7 +62,7 @@ public sealed partial class PdfDocument {
                     break;
                 case FlowBlock { IsReplayable: false, StaticBlocks: { } children }:
                     var flow = (FlowBlock)block;
-                    if (flow.Options.KeepTogether || flow.Options.ShowIf != null || flow.Options.MinimumRemainingHeight > 0D || flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)
+                    if (flow.Options.KeepTogether || flow.Options.ShowIf != null || flow.Options.MinimumRemainingHeight.ToPoints() > 0D || flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)
                         throw new NotSupportedException("Footnote flow groups cannot introduce conditional or whole-group pagination constraints.");
                     ValidateFootnoteBlocks(children, options, allowTables);
                     break;

@@ -78,7 +78,7 @@ internal static class ScanQualityCorpus {
             return result;
         }, engine.Capabilities);
         using var sourceInput = new MemoryStream(input, writable: false);
-        using PdfDocument document = PdfDocument.Load(sourceInput);
+        using PdfDocument document = CorpusPdfInput.Load(sourceInput);
         PdfSearchableOcrReview review = await document.PrepareSearchableOcrAsync(recording, new PdfOcrMergeOptions {
             Dpi = 300, MinimumConfidence = 0, DetectOrientation = cleanup, ProviderTimeout = TimeSpan.FromSeconds(35),
             ScanProcessing = cleanup ? new OfficeScanProcessingOptions() : null
@@ -89,14 +89,14 @@ internal static class ScanQualityCorpus {
         await File.WriteAllTextAsync(Path.Combine(output, id + "-provider.txt"), providerText, token);
         await File.WriteAllTextAsync(Path.Combine(output, id + "-extracted.txt"), review.Ocr.Text, token);
         using var readbackInput = new MemoryStream(searchable, writable: false);
-        using var readbackDocument = PdfDocument.Load(readbackInput);
+        using var readbackDocument = CorpusPdfInput.Load(readbackInput);
         string roundTrip = readbackDocument.Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured }).Text;
         await File.WriteAllTextAsync(Path.Combine(output, id + "-roundtrip.txt"), roundTrip, token);
         byte[] Render(byte[] bytes) {
             using var rasterInput = new MemoryStream(bytes, writable: false);
-            using var rasterDocument = PdfDocument.Load(rasterInput);
+            using var rasterDocument = CorpusPdfInput.Load(rasterInput);
             return rasterDocument.Render.Pages(PdfPageSelection.From(new PdfPageRange(1, 1)),
-                new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = 72, ContinueOnError = false })[0].Bytes
+                new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72, ContinueOnError = false })[0].Bytes
                 ?? throw new InvalidOperationException("The preserved page did not render.");
         }
         byte[] sourceRaster = Render(input);

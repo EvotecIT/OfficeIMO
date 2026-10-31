@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     internal static partial class PowerPointLayoutEngine {
         /// <summary>Adds one logical slide; overflow can produce several physical slides.</summary>
-        internal static IReadOnlyList<PowerPointSlide> AddSlides(PowerPointPresentation document, PowerPointLayoutSlide content,
+        internal static IReadOnlyList<PowerPointSlide> AddSlides(PowerPointDocument document, PowerPointLayoutSlide content,
             PowerPointLayoutTheme? theme = null, PowerPointSlide? materialized = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (content == null) throw new ArgumentNullException(nameof(content));
@@ -209,7 +209,7 @@ namespace OfficeIMO.PowerPoint {
                 default: name = "Title Only"; types = new[] { PowerPointSlideLayoutType.TitleOnly }; break;
             }
 
-            PowerPointPresentation document = context.Document;
+            PowerPointDocument document = context.Document;
             List<PowerPointSlideLayoutInfo> layouts = document.GetSlideLayouts().ToList();
             int match = layouts.FindIndex(l => string.Equals(l.Name, "OfficeIMO " + layout, StringComparison.OrdinalIgnoreCase));
             if (match < 0) match = layouts.FindIndex(l => string.Equals(l.Name, layout.ToString(), StringComparison.OrdinalIgnoreCase));

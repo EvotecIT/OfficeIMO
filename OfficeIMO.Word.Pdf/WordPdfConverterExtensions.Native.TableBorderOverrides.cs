@@ -32,7 +32,7 @@ namespace OfficeIMO.Word.Pdf {
                     ? inherited.Clone()
                     : new PdfCore.PdfCellBorder {
                         Color = null,
-                        Width = 0D,
+                        Width = global::OfficeIMO.OfficeLength.Points(0D),
                         Top = false,
                         Right = false,
                         Bottom = false,
@@ -41,27 +41,27 @@ namespace OfficeIMO.Word.Pdf {
 
                 if (source.TopStyle.HasValue) {
                     border.Top = HasNativeBorder(source.TopStyle);
-                    border.TopBorder = CreateNativeCellBorderSide(source.TopStyle, source.TopColorHex, source.TopSize) ?? NativeHiddenCellBorderSide();
+                    border.TopBorder = CreateNativeCellBorderSide(source.TopStyle, source.TopColorHex, WordBorderLengths.ToSize(source.TopSize)) ?? NativeHiddenCellBorderSide();
                 }
                 if (source.RightStyle.HasValue) {
                     border.Right = HasNativeBorder(source.RightStyle);
-                    border.RightBorder = CreateNativeCellBorderSide(source.RightStyle, source.RightColorHex, source.RightSize) ?? NativeHiddenCellBorderSide();
+                    border.RightBorder = CreateNativeCellBorderSide(source.RightStyle, source.RightColorHex, WordBorderLengths.ToSize(source.RightSize)) ?? NativeHiddenCellBorderSide();
                 }
                 if (source.BottomStyle.HasValue) {
                     border.Bottom = HasNativeBorder(source.BottomStyle);
-                    border.BottomBorder = CreateNativeCellBorderSide(source.BottomStyle, source.BottomColorHex, source.BottomSize) ?? NativeHiddenCellBorderSide();
+                    border.BottomBorder = CreateNativeCellBorderSide(source.BottomStyle, source.BottomColorHex, WordBorderLengths.ToSize(source.BottomSize)) ?? NativeHiddenCellBorderSide();
                 }
                 if (source.LeftStyle.HasValue) {
                     border.Left = HasNativeBorder(source.LeftStyle);
-                    border.LeftBorder = CreateNativeCellBorderSide(source.LeftStyle, source.LeftColorHex, source.LeftSize) ?? NativeHiddenCellBorderSide();
+                    border.LeftBorder = CreateNativeCellBorderSide(source.LeftStyle, source.LeftColorHex, WordBorderLengths.ToSize(source.LeftSize)) ?? NativeHiddenCellBorderSide();
                 }
                 if (source.TopLeftToBottomRightStyle.HasValue) {
                     border.DiagonalDown = HasNativeBorder(source.TopLeftToBottomRightStyle);
-                    border.DiagonalDownBorder = CreateNativeCellBorderSide(source.TopLeftToBottomRightStyle, source.TopLeftToBottomRightColorHex, source.TopLeftToBottomRightSize);
+                    border.DiagonalDownBorder = CreateNativeCellBorderSide(source.TopLeftToBottomRightStyle, source.TopLeftToBottomRightColorHex, WordBorderLengths.ToSize(source.TopLeftToBottomRightSize));
                 }
                 if (source.TopRightToBottomLeftStyle.HasValue) {
                     border.DiagonalUp = HasNativeBorder(source.TopRightToBottomLeftStyle);
-                    border.DiagonalUpBorder = CreateNativeCellBorderSide(source.TopRightToBottomLeftStyle, source.TopRightToBottomLeftColorHex, source.TopRightToBottomLeftSize);
+                    border.DiagonalUpBorder = CreateNativeCellBorderSide(source.TopRightToBottomLeftStyle, source.TopRightToBottomLeftColorHex, WordBorderLengths.ToSize(source.TopRightToBottomLeftSize));
                 }
                 effective[entry.Key] = border;
             }
@@ -70,10 +70,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PdfCellBorderSide NativeHiddenCellBorderSide() =>
-            new PdfCore.PdfCellBorderSide { Color = null, Width = 0D };
+            new PdfCore.PdfCellBorderSide { Color = null, Width = global::OfficeIMO.OfficeLength.Points(0D) };
 
         private static bool IsNativeHiddenCellBorderSide(PdfCore.PdfCellBorderSide? side) =>
-            side != null && !side.Color.HasValue && side.Width <= 0D;
+            side != null && !side.Color.HasValue && side.Width.ToPoints() <= 0D;
 
         private static void ReconcileNativeSharedBorders(
             WordTable table,
@@ -289,7 +289,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfTableStyle style,
             TableLayout layout,
             Dictionary<(int Row, int Column), PdfCore.PdfCellBorder> effective) {
-            if (!style.BorderColor.HasValue || style.BorderWidth <= 0D) {
+            if (!style.BorderColor.HasValue || style.BorderWidth.ToPoints() <= 0D) {
                 return;
             }
 
@@ -310,7 +310,7 @@ namespace OfficeIMO.Word.Pdf {
                         if (effective.TryGetValue(key, out PdfCore.PdfCellBorder? existing)) {
                             // A configured cell border is a full cell override. Conditional
                             // Word borders use side overrides and only replace those sides.
-                            inherited = (existing.Color.HasValue && existing.Width > 0D) ||
+                            inherited = (existing.Color.HasValue && existing.Width.ToPoints() > 0D) ||
                                 (!existing.Top && !existing.Right && !existing.Bottom && !existing.Left &&
                                  !existing.DiagonalUp && !existing.DiagonalDown)
                                 ? existing.Clone()
@@ -322,7 +322,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
             style.BorderColor = null;
-            style.BorderWidth = 0D;
+            style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0D);
         }
     }
 }

@@ -104,7 +104,7 @@ public partial class Word {
         if (content == "whitespace") paragraph.AddText(" \t ");
         byte[] picture = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(64, 32, OfficeColor.Green), OfficeImageExportFormat.Png);
         using (var image = new MemoryStream(picture)) {
-            WordImage inserted = paragraph.InsertImage(image, "heading-picture.png", 64, 32);
+            WordImage inserted = paragraph.AddImage(image, "heading-picture.png", OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(32));
             if (content == "picture-control") {
                 // Exercise the separately owned picture-SDT path with the same
                 // valid inline image, without a temporary filesystem asset.
@@ -118,11 +118,11 @@ public partial class Word {
         if (content == "anchor") {
             byte[] pictureBytes = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(16, 16, OfficeColor.Blue), OfficeImageExportFormat.Png);
             using var image = new MemoryStream(pictureBytes);
-            WordImage anchored = paragraph.InsertImage(image, "heading-anchor.png", 16, 16, WordImageTextWrapping.InFrontOfText);
+            WordImage anchored = paragraph.AddImage(image, "heading-anchor.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
             anchored.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             anchored.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            anchored.HorizontalPositionOffset = 240 * 12700;
-            anchored.VerticalPositionOffset = 160 * 12700;
+            anchored.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(240 * 12700);
+            anchored.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(160 * 12700);
         }
         if (content == "date-control") {
             WordDatePicker date = paragraph.AddDatePicker(new DateTime(2026, 10, 20), tag: "HeadingPictureDate");

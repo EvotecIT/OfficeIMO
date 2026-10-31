@@ -27,7 +27,7 @@ internal static class StudioExperienceProbe {
         })));
         if (scenario is "watermark" or "watermark-image") {
             sample = sample.Stamp.Watermark(new PdfWatermarkOptions {
-                Text = "REVIEW COPY", X = 100, Y = 200, Width = 220, Height = 80, FontSize = 28, RotationDegrees = 0,
+                Text = "REVIEW COPY", X = global::OfficeIMO.OfficeLength.Points(100), Y = global::OfficeIMO.OfficeLength.Points(200), Width = global::OfficeIMO.OfficeLength.Points(220), Height = global::OfficeIMO.OfficeLength.Points(80), FontSize = global::OfficeIMO.OfficeLength.Points(28), RotationDegrees = 0,
                 ImageBytes = scenario == "watermark-image"
                     ? Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=") : null
             });

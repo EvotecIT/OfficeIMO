@@ -89,7 +89,7 @@ try {
                 }
                 break;
             case "key":
-                using (var presentation = OfficeIMO.PowerPoint.PowerPointPresentation.Load(output)) {
+                using (var presentation = OfficeIMO.PowerPoint.PowerPointDocument.Load(output)) {
                     if (presentation.Slides.Count != 2
                         || !presentation.Slides[0].TextBoxes.Any(box => box.Text.Contains("hello keynote", StringComparison.Ordinal))
                         || !presentation.Slides[1].TextBoxes.Any(box => box.Text.Contains("second slide", StringComparison.Ordinal)))

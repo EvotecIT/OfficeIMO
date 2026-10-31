@@ -20,7 +20,12 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfOcrTests {
     [Fact]
     public async Task RecognizeAndMergeAsync_NormalizesFiltersAndMergesProviderWords() {
-        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { Margins = new PdfPageMargins(72, 72, 72, 72) })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                // The provider's Native box is authored over this eleven-point, 72-point-origin line.
+                DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(72), MarginRight = global::OfficeIMO.OfficeLength.Points(72), MarginTop = global::OfficeIMO.OfficeLength.Points(72), MarginBottom = global::OfficeIMO.OfficeLength.Points(72),
+                DefaultParagraphStyle = new PdfParagraphStyle { LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }
+            })
             .Paragraph(paragraph => paragraph.Text("Native text"))
             .ToBytes();
         var provider = new StubOcrEngine(request => Result(new[] {
@@ -343,7 +348,7 @@ public class PdfOcrTests {
     [Fact]
     public async Task MakeSearchableAsync_RejectsOcrOverVisibleArtifactTextWithoutExposingArtifactsInTheLogicalResult() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
-            .Canvas(canvas => canvas.Artifact(artifact => artifact.Text("Footer", 50D, 700D, 100D, 20D)))
+            .Canvas(canvas => canvas.Artifact(artifact => artifact.Text("Footer", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(700D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))))
             .ToBytes();
         PdfPageInteractionMap map = PdfPageInteractionMap.Create(
             source,
@@ -378,12 +383,12 @@ public class PdfOcrTests {
     public async Task RecognizeAndMergeAsync_CombinesFragmentedNativeSpansForOverlapRejection() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Canvas(canvas => canvas
-                .Text("N", 50D, 100D, 12D, 20D, fontSize: 12D)
-                .Text("a", 62D, 100D, 12D, 20D, fontSize: 12D)
-                .Text("t", 74D, 100D, 12D, 20D, fontSize: 12D)
-                .Text("i", 86D, 100D, 12D, 20D, fontSize: 12D)
-                .Text("v", 98D, 100D, 12D, 20D, fontSize: 12D)
-                .Text("e", 110D, 100D, 12D, 20D, fontSize: 12D))
+                .Text("N", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(20D), fontSize: global::OfficeIMO.OfficeLength.Points(12D))
+                .Text("a", global::OfficeIMO.OfficeLength.Points(62D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(20D), fontSize: global::OfficeIMO.OfficeLength.Points(12D))
+                .Text("t", global::OfficeIMO.OfficeLength.Points(74D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(20D), fontSize: global::OfficeIMO.OfficeLength.Points(12D))
+                .Text("i", global::OfficeIMO.OfficeLength.Points(86D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(20D), fontSize: global::OfficeIMO.OfficeLength.Points(12D))
+                .Text("v", global::OfficeIMO.OfficeLength.Points(98D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(20D), fontSize: global::OfficeIMO.OfficeLength.Points(12D))
+                .Text("e", global::OfficeIMO.OfficeLength.Points(110D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(20D), fontSize: global::OfficeIMO.OfficeLength.Points(12D)))
             .ToBytes();
         PdfSelectionQuad[] glyphs = PdfPageInteractionMap.Create(source, 1).TextRegions
             .Select(static region => region.Quad)
@@ -409,8 +414,8 @@ public class PdfOcrTests {
     public async Task RecognizeAndMergeAsync_DoesNotDoubleCountOverlappingNativeSpans() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Canvas(canvas => canvas
-                .Text("A", 50D, 100D, 12D, 20D, fontSize: 12D)
-                .Text("A", 50D, 100D, 12D, 20D, fontSize: 12D))
+                .Text("A", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(20D), fontSize: global::OfficeIMO.OfficeLength.Points(12D))
+                .Text("A", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(20D), fontSize: global::OfficeIMO.OfficeLength.Points(12D)))
             .ToBytes();
         PdfSelectionQuad glyph = PdfPageInteractionMap.Create(source, 1).TextRegions[0].Quad;
         var provider = new StubOcrEngine(request => Result(new[] {
@@ -428,8 +433,8 @@ public class PdfOcrTests {
     [Fact]
     public async Task RecognizeAndMergeAsync_DoesNotUseFullyClippedTextForOverlapRejection() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
-            .Canvas(canvas => canvas.Clip(10D, 10D, 10D, 10D, clipped =>
-                clipped.Text("Clipped", 100D, 100D, 80D, 20D, fontSize: 12D)))
+            .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), clipped =>
+                clipped.Text("Clipped", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D), fontSize: global::OfficeIMO.OfficeLength.Points(12D))))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfSelectionQuad[] glyphs = PdfPageInteractionMap.Create(source, 1).TextRegions
             .Select(static region => region.Quad)
@@ -455,14 +460,14 @@ public class PdfOcrTests {
     public async Task RecognizeAndMergeAsync_UsesPaintedAdvanceForActualTextOverlapBounds() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Canvas(canvas => canvas.ActualText("A much longer replacement", logical =>
-                logical.Text("X", 50D, 100D, 12D, 20D, fontSize: 12D)))
+                logical.Text("X", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(20D), fontSize: global::OfficeIMO.OfficeLength.Points(12D))))
             .ToBytes();
         PdfReadPage readPage = PdfReadDocument.Open(source).Pages[0];
         PdfTextSpan nativeSpan = Assert.Single(
             readPage.GetInteractionTextSpans(),
             static span => span.Text == "A much longer replacement");
         byte[] control = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
-            .Canvas(canvas => canvas.Text("X", 50D, 100D, 12D, 20D, fontSize: 12D))
+            .Canvas(canvas => canvas.Text("X", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(20D), fontSize: global::OfficeIMO.OfficeLength.Points(12D)))
             .ToBytes();
         PdfTextSpan paintedSpan = Assert.Single(PdfReadDocument.Open(control).Pages[0].GetInteractionTextSpans());
         Assert.Equal(paintedSpan.X, nativeSpan.X, 6);

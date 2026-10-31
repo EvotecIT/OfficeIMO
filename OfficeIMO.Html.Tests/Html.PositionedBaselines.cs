@@ -43,7 +43,7 @@ public sealed class HtmlPositionedBaselineTests {
 
     [Fact]
     public void TopLevelInlineContentDoesNotReportAChangeOfPageGeometry() {
-        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(5, 4), Margins = HtmlRenderMargins.All(0) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5), global::OfficeIMO.OfficeLength.Inches(4)), Margins = HtmlRenderMargins.All(0) };
         var result = HtmlConversionDocument.Parse("<span>First inline line</span><br><svg width='100' height='30'><text x='0' y='20'>SVG label</text></svg>")
             .ExportImages(OfficeImageExportFormat.Png, options);
         Assert.Single(result);

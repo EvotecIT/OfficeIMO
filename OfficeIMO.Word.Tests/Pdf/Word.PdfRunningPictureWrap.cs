@@ -205,9 +205,9 @@ public sealed class WordPdfRunningPictureWrapTests {
         // The supported page-relative rectangle crosses the physical edge;
         // this remains an omission, independently of its supported wrap mode.
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-        image.HorizontalPositionOffset = 580L * 12700L;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(580L * 12700L);
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-        image.VerticalPositionOffset = 24L * 12700L;
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(24L * 12700L);
         Assert.Empty(document.ValidateDocument());
         string sourceXml = SourceXml(document);
 
@@ -234,10 +234,10 @@ public sealed class WordPdfRunningPictureWrapTests {
     [Fact]
     public void SaveAsPdf_WrappedRunningPictureRetainsCropMirrorsAndOneImagePaint() {
         using WordDocument document = CreateDocument(false, WordImageTextWrapping.Square, out WordImage image);
-        image.CropLeft = 25000;
-        image.CropRight = 12500;
-        image.CropTop = 12500;
-        image.CropBottom = 25000;
+        image.CropLeftRatio = ((double?)(25000)) / 100000D;
+        image.CropRightRatio = ((double?)(12500)) / 100000D;
+        image.CropTopRatio = ((double?)(12500)) / 100000D;
+        image.CropBottomRatio = ((double?)(25000)) / 100000D;
         image.HorizontalFlip = true;
         image.VerticalFlip = true;
         Assert.Empty(document.ValidateDocument());
@@ -267,11 +267,11 @@ public sealed class WordPdfRunningPictureWrapTests {
         document.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         document.AddHeadersAndFooters();
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 12240;
-        section.PageSettings.Height = 15840;
-        section.Margins.Left = section.Margins.Right = 1440;
-        section.Margins.Top = section.Margins.Bottom = 1920;
-        section.Margins.HeaderDistance = section.Margins.FooterDistance = 480;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(612D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(792D);
+        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(96D);
+        section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(24D);
         section.Header.Default!._header!.RemoveAllChildren();
         section.Footer.Default!._footer!.RemoveAllChildren();
         WordHeaderFooter story = footer ? section.Footer.Default! : section.Header.Default!;
@@ -280,11 +280,11 @@ public sealed class WordPdfRunningPictureWrapTests {
             : story.AddParagraph();
         ConfigureParagraph(paragraph, string.Join(" ", FlowTokens));
         using var png = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
-        image = paragraph.AddText(string.Empty).InsertImage(png, "wrapped.png", PictureWidth / .75D, PictureHeight / .75D, wrapping);
+        image = paragraph.AddText(string.Empty).AddImage(png, "wrapped.png", OfficeIMO.OfficeLength.Pixels(PictureWidth / .75D), OfficeIMO.OfficeLength.Pixels(PictureHeight / .75D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping });
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Column;
-        image.HorizontalPositionOffset = (long)((PictureLeft - 72D) * 12700D);
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus((long)((PictureLeft - 72D) * 12700D));
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
-        image.VerticalPositionOffset = 0L;
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(0L);
         DW.Anchor anchor = image._Image.Anchor!;
         anchor.DistanceFromLeft = (uint)(DistanceLeft * 12700D);
         anchor.DistanceFromRight = (uint)(DistanceRight * 12700D);
@@ -301,10 +301,9 @@ public sealed class WordPdfRunningPictureWrapTests {
     private static void ConfigureParagraph(WordParagraph paragraph, string text) {
         paragraph.Text = text;
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        paragraph.FontSize = 12;
-        paragraph.LineSpacingPoints = 15;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(15));
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
     }
 
     private static WordPdfExportOptions Options() {

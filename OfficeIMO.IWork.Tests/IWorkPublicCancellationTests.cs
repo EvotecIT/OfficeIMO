@@ -74,7 +74,7 @@ public sealed partial class IWorkBoundaryTests {
         using IDisposable result = source.Kind switch {
             IWorkDocumentKind.Pages => WordIWorkConverter.ToWordDocumentResult(source),
             IWorkDocumentKind.Numbers => ExcelIWorkConverter.ToExcelDocumentResult(source),
-            IWorkDocumentKind.Keynote => PowerPointIWorkConverter.ToPowerPointPresentationResult(source),
+            IWorkDocumentKind.Keynote => PowerPointIWorkConverter.ToPowerPointDocumentResult(source),
             _ => throw new ArgumentOutOfRangeException()
         };
     }

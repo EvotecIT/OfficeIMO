@@ -51,7 +51,7 @@ public sealed class PdfTrackedBidiRunTests {
         var options = new PdfCreateOptions {
             TextShapingMode = PdfTextShapingMode.UnicodeScalar,
             CompressContentStreams = false,
-            DefaultFontSize = 12D
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
         }.UseFontFamily(new PdfEmbeddedFontFamily("RtlIsolation", font));
         PdfDocument document = PdfDocument.Create(options);
         if (richRuns) {

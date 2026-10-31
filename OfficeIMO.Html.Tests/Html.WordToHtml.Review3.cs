@@ -47,8 +47,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_FixedWidthTableUsesShareOfTextColumn() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 2);
-            table.WidthType = WordTableWidthUnit.Dxa;
-            table.Width = 4680;
+            table.Width = WordTableWidth.Length(OfficeLength.Points(234));
 
             string html = doc.ToHtml();
 
@@ -96,9 +95,9 @@ namespace OfficeIMO.Tests {
             var title = doc.Paragraphs.First(p => p.Text == "Title");
             var body = doc.Paragraphs.First(p => p.Text == "Body text");
             var points = doc.Paragraphs.First(p => p.Text == "Points");
-            Assert.Equal(24D, title.GetRuns().First(r => r.Text.Length > 0).FontSizePoints);
-            Assert.Equal(10.5D, body.GetRuns().First(r => r.Text.Length > 0).FontSizePoints);
-            Assert.Equal(12D, points.GetRuns().First(r => r.Text.Length > 0).FontSizePoints);
+            Assert.Equal(24D, title.GetRuns().First(r => r.Text.Length > 0).FontSize?.ToPoints());
+            Assert.Equal(10.5D, body.GetRuns().First(r => r.Text.Length > 0).FontSize?.ToPoints());
+            Assert.Equal(12D, points.GetRuns().First(r => r.Text.Length > 0).FontSize?.ToPoints());
         }
     }
 }

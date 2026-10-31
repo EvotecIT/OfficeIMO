@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.Pdf {
     /// <summary>
     /// Describes workbook content that could not be mapped faithfully during Excel-to-PDF export.
     /// </summary>
-    public sealed class ExcelPdfExportWarning {
+    internal sealed class ExcelPdfExportWarning {
         /// <summary>Creates a warning for content skipped or simplified during export.</summary>
         public ExcelPdfExportWarning(string sheetName, string feature, string message)
             : this(sheetName, feature, message, OfficeIMO.OfficeConversionLossKind.Approximation) { }

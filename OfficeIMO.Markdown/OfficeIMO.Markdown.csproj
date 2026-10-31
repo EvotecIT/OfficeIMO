@@ -75,5 +75,7 @@
     </ItemGroup>
   <ItemGroup>
     <Compile Include="..\OfficeIMO.SharedSource\Html\OfficeThemeCssTokens.cs" Link="SharedSource\Html\OfficeThemeCssTokens.cs" />
+    <InternalsVisibleTo Include="OfficeIMO.Adf" />
+    <InternalsVisibleTo Include="OfficeIMO.Adf.Tests" />
   </ItemGroup>
 </Project>

@@ -4,6 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Finds and edits image placements on existing PDF pages.</summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfDocumentImageEditor {
     private readonly PdfDocument _document;
 

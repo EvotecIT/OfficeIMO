@@ -2,9 +2,10 @@
   "package": "OfficeIMO.Markdown",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 61,
+    "changes": 78,
     "byAction": {
       "change": 14,
+      "internalize": 17,
       "merge": 16,
       "move": 1,
       "remove": 3,
@@ -13,7 +14,8 @@
     "byCategory": {
       "lifecycle": 27,
       "naming": 30,
-      "options": 4
+      "options": 4,
+      "visibility": 17
     },
     "packageMoves": 1
   },
@@ -209,15 +211,707 @@
     {
       "type": "OfficeIMO.Markdown.MarkdownNative* (MarkdownNativeDocument and ~45 *Snapshot/*Field types)",
       "file": "OfficeIMO.Markdown/Native/",
-      "why": "Native-renderer interchange model; consumed by OfficeIMO.MarkdownRenderer (+IntelligenceX). Keep public only if it is a documented renderer contract, else InternalsVisibleTo."
+      "why": "Retain the exact public MarkdownNative model family, including current *Info names. MarkdownNativeDocument.Parse/ToMarkdown is a documented user contract, and native renderer interchange and extension models remain public. The internal snapshot factory is already hidden.",
+      "reviewDisposition": "retained-public-renderer-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeAbbreviationDefinitionField",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeBlockId",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeBlockKind",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Abstract, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeParagraphBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeCodeBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeThematicBreakBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeVisualBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTableBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTableRow",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTablePipe",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTableAlignmentCell",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTableCell",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeOtherBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeBlockSourceField",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeQuoteBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeCalloutBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeCustomContainerBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDetailsBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeFootnoteDefinitionBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeContainerSourceSpans",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeHeadingBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeListBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeListItem",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeListItemParagraph",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeListItemId",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeImageBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeFrontMatterBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeHtmlBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListGroup",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListTerm",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListDefinition",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDiagnosticSeverity",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDiagnostic",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDocument",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDocumentSourceKind",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeFenceInfoSourceSpans",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInlineId",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInlineKind",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInlineMetadata",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInline",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInlineProjection",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeProjectionFactory",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeReferenceLinkDefinitionField",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeSnapshotFactory",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDocumentInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeSourceTriviaInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeReferenceLinkDefinitionInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeReferenceLinkDefinitionFieldInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeAbbreviationDefinitionInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeAbbreviationDefinitionFieldInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeBlockInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeBlockSourceFieldInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListGroupInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListTermInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListDefinitionInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInlineInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInlineMetadataInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeListItemInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeListItemParagraphInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTableRowInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTableCellInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeSourceSpanInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDiagnosticInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeSourceEdit",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeSourceTriviaKind",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeSourceTrivia",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeVisualPayload",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeVisualPayloadFormat",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Markdown/README.md",
+        "OfficeIMO.MarkdownRenderer/README.md",
+        "OfficeIMO.MarkdownRenderer.SamplePlugin/SampleMarkdownRenderer.cs"
+      ],
+      "reviewStatus": "scratch-only reviewed retention; no source visibility change"
     },
     {
       "type": "OfficeIMO.Markdown.MarkdownIntelligenceX* transforms",
-      "why": "Product-specific (IntelligenceX) transforms in the core Markdown package."
+      "why": "The exact two public transform implementations implement IMarkdownDocumentTransform and occur in MarkdownTranscriptPreparation output and renderer migration. Their material external construction/type-identity boundary is uncertain; leave both public instead of turning the product-specific name into a visibility decision.",
+      "reviewDisposition": "retained-uncertain-public-extension-boundary",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Markdown.MarkdownIntelligenceXCachedToolEvidenceMarkerTransform",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownIntelligenceXLegacyToolHeadingTransform",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Markdown/Utilities/MarkdownTranscriptPreparation.cs",
+        "OfficeIMO.MarkdownRenderer/MarkdownRendererIntelligenceXLegacyMigration.cs"
+      ],
+      "reviewStatus": "scratch-only reviewed retention; no source visibility change"
     },
     {
       "type": "OfficeIMO.Markdown.HtmlAssetMerger / HtmlAsset / HtmlAssetKind / CssDelivery / AssetMode",
-      "why": "HTML rendering plumbing exposed publicly without the Markdown prefix."
+      "why": "The original unprefixed assets are now MarkdownHtmlAssetMerger, MarkdownHtmlAsset, MarkdownHtmlAssetKind, MarkdownCssDelivery and MarkdownAssetMode. Retain the rendering/configuration contract exercised by the fragment/style example; the prefix migration is already done.",
+      "reviewDisposition": "renamed-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Markdown.MarkdownAssetMode",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownCssDelivery",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownHtmlAsset",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownHtmlAssetKind",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownHtmlAssetMerger",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Abstract, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Markdown/Utilities/HtmlAssetMerger.cs",
+        "OfficeIMO.Markdown/Utilities/HtmlAsset.cs",
+        "OfficeIMO.Markdown/Utilities/HtmlAssetKind.cs",
+        "OfficeIMO.Markdown/Options/CssDelivery.cs",
+        "OfficeIMO.Markdown/Options/AssetMode.cs",
+        "OfficeIMO.Examples/Markdown/Markdown03_Html_FragmentsAndStyles.cs"
+      ],
+      "reviewStatus": "scratch-only reviewed retention; no source visibility change"
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownBlankLines",
+      "file": [
+        "OfficeIMO.Markdown/Utilities/MarkdownBlankLines.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownBlankLines",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownBlockRenderBuiltInExtensions",
+      "file": [
+        "OfficeIMO.Markdown/Options/MarkdownBlockRenderBuiltInExtensions.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownBlockRenderBuiltInExtensions",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 35
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownDefinitionLines",
+      "file": [
+        "OfficeIMO.Markdown/Utilities/MarkdownDefinitionLines.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownDefinitionLines",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownDocumentTransformPipeline",
+      "file": [
+        "OfficeIMO.Markdown/Transforms/MarkdownDocumentTransformPipeline.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownDocumentTransformPipeline",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 2
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownEscaper",
+      "file": [
+        "OfficeIMO.Markdown/Utilities/MarkdownEscaper.BackslashLiteral.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownEscaper.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownEscaper",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 7
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownFence",
+      "file": [
+        "OfficeIMO.Markdown/Utilities/MarkdownFence.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownFence",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 7
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownInlineCode",
+      "file": [
+        "OfficeIMO.Markdown/Utilities/MarkdownInlineCode.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownInlineCode",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownInlineRenderBuiltInExtensions",
+      "file": [
+        "OfficeIMO.Markdown/Options/MarkdownInlineRenderBuiltInExtensions.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownInlineRenderBuiltInExtensions",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 16
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownInputNormalizationPresets",
+      "file": [
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizationPresets.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownInputNormalizationPresets",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 5
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownInputNormalizer",
+      "file": [
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.Fences.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.HostLabels.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.Metrics.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.SignalFlow.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.StrongSpans.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.Tables.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.Transforms.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownInputNormalizer",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownJsonVisualPayloadDetector",
+      "file": [
+        "OfficeIMO.Markdown/Utilities/MarkdownJsonVisualPayloadDetector.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownJsonVisualPayloadDetector",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownOrderedLists",
+      "file": [
+        "OfficeIMO.Markdown/Utilities/MarkdownOrderedLists.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownOrderedLists",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownReaderBuiltInExtensions",
+      "file": [
+        "OfficeIMO.Markdown/Reader/MarkdownReaderBuiltInExtensions.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownReaderBuiltInExtensions",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 8
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownRoundtripWriter",
+      "file": [
+        "OfficeIMO.Markdown/Reader/Syntax/MarkdownRoundtripWriter.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownRoundtripWriter",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 3
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownSemanticKinds",
+      "file": [
+        "OfficeIMO.Markdown/MarkdownSemanticKinds.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownSemanticKinds",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 6
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownStreamingPreviewNormalizer",
+      "file": [
+        "OfficeIMO.Markdown/Utilities/MarkdownStreamingPreviewNormalizer.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownStreamingPreviewNormalizer",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownTranscriptPreparation",
+      "file": [
+        "OfficeIMO.Markdown/Utilities/MarkdownTranscriptPreparation.cs"
+      ],
+      "why": "Retained documented transcript factory and external renderer plug-in contract. Existing public APIs stay public; no plug-in friend access.",
+      "applied": "phase-b-retained-public",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownTranscriptPreparation",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 8
+      },
+      "notes": "The public factory or plug-in contract is documented by OfficeIMO.Word.Markdown/README.md. Documentation indexing now includes cross-package READMEs and the supported plug-in example.",
+      "reviewDisposition": "retained-public-factory-or-plugin-contract"
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownTranscriptTransportMarkers",
+      "file": [
+        "OfficeIMO.Markdown/Utilities/MarkdownTranscriptTransportMarkers.cs"
+      ],
+      "why": "No documentation reference or exposed model signature",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownTranscriptTransportMarkers",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Markdown.MarkdownVisualElementContract",
+      "file": [
+        "OfficeIMO.Markdown/Visuals/MarkdownVisualElement.cs"
+      ],
+      "why": "Retained documented transcript factory and external renderer plug-in contract. Existing public APIs stay public; no plug-in friend access.",
+      "applied": "phase-b-retained-public",
+      "analysis": {
+        "id": "T:OfficeIMO.Markdown.MarkdownVisualElementContract",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 17
+      },
+      "notes": "The public factory or plug-in contract is documented by OfficeIMO.MarkdownRenderer.SamplePlugin/SampleMarkdownRenderer.cs. Documentation indexing now includes cross-package READMEs and the supported plug-in example.",
+      "reviewDisposition": "retained-public-factory-or-plugin-contract"
     }
   ],
   "frameworks": {
@@ -305,8 +999,10 @@
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
       "notes": "TableFromOptions merges into the shared table options.",
-      "phase": "A",
-      "applied": "applied"
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "currentFile": "OfficeIMO.Markdown/Core/MarkdownDocument.Tables.cs",
+      "note": "AddTable returns the added TableBlock. OfficeTableOptions retains include/exclude/order, header renames/transforms, formatters and shared column alignment. MarkdownTableOptions retains numeric/date heuristics. Runtime object and explicit selector overloads preserve their existing data shapes; no TableFrom wrappers remain."
     },
     {
       "old": "OfficeIMO.Markdown.MarkdownDoc.TableFromAuto(object data, Action<TableFromOptions> configure = null, bool alignNumeric = True, bool alignDates = True)",
@@ -318,8 +1014,9 @@
       "category": "lifecycle",
       "notes": "TableFromOptions merges into the shared table options.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The typed AddTable and bounded streaming writer are Phase B authoring work."
+      "applied": "phase-b-applied",
+      "note": "AddTable returns the added TableBlock. OfficeTableOptions retains include/exclude/order, header renames/transforms, formatters and shared column alignment. MarkdownTableOptions retains numeric/date heuristics. Runtime object and explicit selector overloads preserve their existing data shapes; no TableFrom wrappers remain.",
+      "currentFile": "OfficeIMO.Markdown/Core/MarkdownDocument.Tables.cs"
     },
     {
       "old": "OfficeIMO.Markdown.MarkdownDoc.TableFrom<T>(IEnumerable<T> items, ValueTuple<string, Func<T, object>>[] columns)",
@@ -330,8 +1027,10 @@
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
       "notes": "TableFromOptions merges into the shared table options.",
-      "phase": "A",
-      "applied": "applied"
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "currentFile": "OfficeIMO.Markdown/Core/MarkdownDocument.Tables.cs",
+      "note": "AddTable returns the added TableBlock. OfficeTableOptions retains include/exclude/order, header renames/transforms, formatters and shared column alignment. MarkdownTableOptions retains numeric/date heuristics. Runtime object and explicit selector overloads preserve their existing data shapes; no TableFrom wrappers remain."
     },
     {
       "old": "OfficeIMO.Markdown.MarkdownDoc.ToHtmlFragment(HtmlOptions options = null)",
@@ -1004,8 +1703,330 @@
       "file": "OfficeIMO.Markdown/Options/TableFromOptions.cs",
       "category": "options",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The typed AddTable and bounded streaming writer are Phase B authoring work."
+      "applied": "phase-b-applied",
+      "note": "AddTable returns the added TableBlock. OfficeTableOptions retains include/exclude/order, header renames/transforms, formatters and shared column alignment. MarkdownTableOptions retains numeric/date heuristics. Runtime object and explicit selector overloads preserve their existing data shapes; no TableFrom wrappers remain.",
+      "currentFile": "OfficeIMO.Core/OfficeTableOptions.cs"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownBlankLines",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Utilities/MarkdownBlankLines.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownBlockRenderBuiltInExtensions",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Options/MarkdownBlockRenderBuiltInExtensions.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDefinitionLines",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Utilities/MarkdownDefinitionLines.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDocumentTransformPipeline",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Transforms/MarkdownDocumentTransformPipeline.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownEscaper",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Utilities/MarkdownEscaper.BackslashLiteral.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownFence",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Utilities/MarkdownFence.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownInlineCode",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Utilities/MarkdownInlineCode.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownInlineRenderBuiltInExtensions",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Options/MarkdownInlineRenderBuiltInExtensions.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownInputNormalizationPresets",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizationPresets.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownInputNormalizer",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.Fences.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownJsonVisualPayloadDetector",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Utilities/MarkdownJsonVisualPayloadDetector.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownOrderedLists",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Utilities/MarkdownOrderedLists.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownReaderBuiltInExtensions",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Reader/MarkdownReaderBuiltInExtensions.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownRoundtripWriter",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Reader/Syntax/MarkdownRoundtripWriter.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownSemanticKinds",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/MarkdownSemanticKinds.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownStreamingPreviewNormalizer",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Utilities/MarkdownStreamingPreviewNormalizer.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownTranscriptTransportMarkers",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the documented document, options and result APIs.",
+      "reason": "Undocumented static implementation helper; no documented public model exposes this type.",
+      "file": "OfficeIMO.Markdown/Utilities/MarkdownTranscriptTransportMarkers.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Markdown.DefinitionListBlock.AddEntry(DefinitionListEntry entry) : void",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.DefinitionListBlock.AddEntry(DefinitionListEntry entry) : DefinitionListEntry",
+      "replacement": "Use the returned value to edit the added content.",
+      "reason": "Add methods return the actual object or row stored by the owning collection.",
+      "file": "OfficeIMO.Markdown/Blocks/DefinitionListBlock.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Definition-list entries are the owner-bound entries created for the stored group, rather than detached input entries. Table rows return their stored editable cells."
+    },
+    {
+      "old": "OfficeIMO.Markdown.DefinitionListBlock.AddEntry(string term, string definition) : void",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.DefinitionListBlock.AddEntry(string term, string definition) : DefinitionListEntry",
+      "replacement": "Use the returned value to edit the added content.",
+      "reason": "Add methods return the actual object or row stored by the owning collection.",
+      "file": "OfficeIMO.Markdown/Blocks/DefinitionListBlock.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Definition-list entries are the owner-bound entries created for the stored group, rather than detached input entries. Table rows return their stored editable cells."
+    },
+    {
+      "old": "OfficeIMO.Markdown.DefinitionListBlock.AddGroup(DefinitionListGroup group) : void",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.DefinitionListBlock.AddGroup(DefinitionListGroup group) : DefinitionListGroup",
+      "replacement": "Use the returned value to edit the added content.",
+      "reason": "Add methods return the actual object or row stored by the owning collection.",
+      "file": "OfficeIMO.Markdown/Blocks/DefinitionListBlock.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Definition-list entries are the owner-bound entries created for the stored group, rather than detached input entries. Table rows return their stored editable cells."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownTable.AddRow(params string[] cells) : void",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownTable.AddRow(params string[] cells) : string[]",
+      "replacement": "Use the returned value to edit the added content.",
+      "reason": "Add methods return the actual object or row stored by the owning collection.",
+      "file": "OfficeIMO.Markdown/Model/Table.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Definition-list entries are the owner-bound entries created for the stored group, rather than detached input entries. Table rows return their stored editable cells."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDocument.Add(IMarkdownBlock block)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Add<T>(T block) : T where T : IMarkdownBlock",
+      "reason": "Authoring Add methods return the attached objects rather than the document or void.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDocument.Blocks.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "note": "Additional collection contracts identified in the final object-model sweep. Generic Add retains the concrete block type; AddRange returns a read-only input snapshot and completes input enumeration/validation before document mutation. Syntax conveniences use the same private append owner."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDocument.AddRange(IEnumerable<IMarkdownBlock> blocks)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.AddRange(IEnumerable<IMarkdownBlock> blocks) : IReadOnlyList<IMarkdownBlock>",
+      "reason": "Authoring Add methods return the attached objects rather than the document or void.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDocument.Blocks.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "note": "Additional collection contracts identified in the final object-model sweep. Generic Add retains the concrete block type; AddRange returns a read-only input snapshot and completes input enumeration/validation before document mutation. Syntax conveniences use the same private append owner."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownUnorderedList.Add(ListItem item)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownUnorderedList.Add(ListItem item) : ListItem",
+      "reason": "Authoring Add methods return the attached objects rather than the document or void.",
+      "file": "OfficeIMO.Markdown/Model/UnorderedList.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "note": "Additional collection contracts identified in the final object-model sweep. Generic Add retains the concrete block type; AddRange returns a read-only input snapshot and completes input enumeration/validation before document mutation. Syntax conveniences use the same private append owner."
     }
   ],
   "packageMoves": [
@@ -1134,6 +2155,219 @@
       "phase": "A",
       "applied": "applied",
       "note": "Canonical SaveAs output failures retain the completed conversion report through the shared internal output helper; cancellation continues to propagate unchanged."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Typed Markdown tables share declared property/field and dictionary projection with Core. They reject more than 10,000 data rows or 100 selected columns before adding a block. Runtime and explicit-selector paths retain the existing clipping counters. Formatter failures now propagate instead of silently falling back to unformatted values. Explicit alignment wins over heuristics; Markdown rejects justified columns. The NativeAOT smoke covers declared properties/fields, generic-only dictionary rows and empty dictionary schemas on net8.0 and net10.0."
+    },
+    {
+      "change": "17 undocumented static helper types are internal after generated candidate review.",
+      "reason": "These types implement rendering, parsing, package metadata or serialization behind the documented object model. Public models, syntax nodes, exceptions, attributes and virtual contracts remain visible.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Markdown/MarkdownSemanticKinds.cs",
+        "OfficeIMO.Markdown/Options/MarkdownBlockRenderBuiltInExtensions.cs",
+        "OfficeIMO.Markdown/Options/MarkdownInlineRenderBuiltInExtensions.cs",
+        "OfficeIMO.Markdown/Reader/MarkdownReaderBuiltInExtensions.cs",
+        "OfficeIMO.Markdown/Reader/Syntax/MarkdownRoundtripWriter.cs",
+        "OfficeIMO.Markdown/Transforms/MarkdownDocumentTransformPipeline.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownBlankLines.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownDefinitionLines.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownEscaper.BackslashLiteral.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownEscaper.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownFence.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInlineCode.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizationPresets.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.Fences.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.HostLabels.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.Metrics.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.SignalFlow.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.StrongSpans.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.Tables.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.Transforms.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownInputNormalizer.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownJsonVisualPayloadDetector.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownOrderedLists.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownStreamingPreviewNormalizer.cs",
+        "OfficeIMO.Markdown/Utilities/MarkdownTranscriptTransportMarkers.cs"
+      ]
+    },
+    {
+      "change": "Implementation access to internal helpers uses explicit friend assemblies.",
+      "reason": "Callers were identified from actual C# identifier syntax in existing projects. Public third-party plug-in contracts remain public and receive no friend access.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Markdown/OfficeIMO.Markdown.csproj"
+      ],
+      "friendAssemblies": [
+        "OfficeIMO.Adf",
+        "OfficeIMO.Adf.Tests"
+      ]
+    },
+    {
+      "change": "Public API declarations and nullable annotations are enforced against shipped compiler baselines.",
+      "reason": "The private Microsoft.CodeAnalysis.PublicApiAnalyzers build asset rejects unrecorded additions and removals without adding a runtime dependency. Existing framework-specific APIs retain separate shipped baselines where needed; target declarations and restore locks are unchanged.",
+      "applied": "phase-b-applied",
+      "files": [
+        "Build/ApiMap/PublicApi.targets",
+        "Directory.Build.targets",
+        "OfficeIMO.Markdown/PublicAPI.Shipped.txt",
+        "OfficeIMO.Markdown/PublicAPI.Unshipped.txt"
+      ]
+    },
+    {
+      "change": "Markdown NativeAOT smoke is qualified on net8.0 and net10.0.",
+      "reason": "The existing smoke publishes for osx-arm64 with PublishAot enabled and its native executable creates, saves, reloads or renders the real document contract. Existing modern trimming and AOT analyzers remain enabled. Windows execution remains a separate qualification.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Markdown.AotSmoke/OfficeIMO.Markdown.AotSmoke.csproj",
+        "OfficeIMO.Markdown.AotSmoke/Program.cs"
+      ],
+      "qualifiedFrameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "runtimeIdentifier": "osx-arm64"
+    },
+    {
+      "change": "Maintained Windows and non-Windows package locks include the public API analyzer.",
+      "reason": "Refreshes the existing release restore graphs for the private build dependency, preserving their runtime identifiers, framework sets and platform-selection mechanism.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Markdown/packages.lock.json",
+        "OfficeIMO.Markdown/packages.nonwindows.lock.json"
+      ]
+    },
+    {
+      "change": "Markdown block append ownership and failure ordering",
+      "reason": "Block mutation moved into a focused partial; the root document stays below 700 lines. Failed AddRange enumeration or a null entry leaves the document unchanged, and single-block/list additions reject null before mutation.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "change": "Migrate Markdown block additions in adapters, renderer extensions, examples and tests",
+      "reason": "Source conversions retain the MarkdownDocument before adding blocks. Add returns the attached concrete block and AddRange returns a read-only snapshot. Failed input enumeration leaves parsed content and parent bindings unchanged. All fifteen direct or transitive consumer projects compile; Markdown, AsciiDoc, LaTeX, ADF and RTF suites pass on net8.0 and net10.0. The Add example compiles and renders on both runtimes; netstandard2.0 and an isolated net472 compile pass without changing framework declarations.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "change": "Internalize MarkdownReaderPipeline and its parser collection mutation methods.",
+      "reason": "Generated surface analysis identified an undocumented reader implementation type. Only MarkdownReader and its paragraph parsing implementation consume it. Public MarkdownLoadOptions.BlockParserExtensions, MarkdownBlockParserExtension and IMarkdownBlockParser remain the supported extension contract; no cross-assembly caller or public model exposes the pipeline.",
+      "phase": "B",
+      "applied": "phase-b"
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Theme-series visual fallback fixtures implicitly rely on the historical Office palette.",
+      "new": "The two conversion controls supply their source palette explicitly.",
+      "reason": "Chart color-transform and theme-alias controls need a known input palette; new Word documents retain Modern defaults.",
+      "note": "The complete Markdown net10.0 suite passes3154 cases after the two source palette fixtures are explicit. No converter or runtime default changes.",
+      "files": [
+        "OfficeIMO.Markdown.Tests/Markdown.WordToMarkdown.cs"
+      ]
+    },
+    {
+      "member": "Markdown image placement hints and native image dimensions",
+      "action": "change",
+      "category": "units",
+      "old": "ImageBlock and native image Width/Height plus image authoring arguments use nullable pixel numbers.",
+      "target": "OfficeLength? Width/Height and image authoring arguments; unitless Markdown/HTML hints use CSS pixels.",
+      "reason": "Word and PDF exports must agree on placed image size: 96px, 1in and 72pt are equivalent. Relative CSS dimensions remain outside the physical length contract.",
+      "applied": "phase-b-applied",
+      "signatures": [
+        {
+          "symbol": "OfficeIMO.Markdown.ImageBlock.Width",
+          "kind": "property",
+          "old": "public double? Width { get; set; }",
+          "new": "public OfficeLength? Width { get; set; }",
+          "map": "Build/ApiMap/csharp/OfficeIMO.Markdown.json"
+        },
+        {
+          "symbol": "OfficeIMO.Markdown.ImageBlock.Height",
+          "kind": "property",
+          "old": "public double? Height { get; set; }",
+          "new": "public OfficeLength? Height { get; set; }",
+          "map": "Build/ApiMap/csharp/OfficeIMO.Markdown.json"
+        },
+        {
+          "symbol": "OfficeIMO.Markdown.MarkdownNativeImageBlock.Width",
+          "kind": "property",
+          "old": "public double? Width { get; }",
+          "new": "public OfficeLength? Width { get; }",
+          "map": "Build/ApiMap/csharp/OfficeIMO.Markdown.json"
+        },
+        {
+          "symbol": "OfficeIMO.Markdown.MarkdownNativeImageBlock.Height",
+          "kind": "property",
+          "old": "public double? Height { get; }",
+          "new": "public OfficeLength? Height { get; }",
+          "map": "Build/ApiMap/csharp/OfficeIMO.Markdown.json"
+        },
+        {
+          "symbol": "OfficeIMO.Markdown.ImageBlock..ctor",
+          "kind": "constructor",
+          "old": "public ImageBlock(string path, string? alt = null, string? title = null, double? width = null, double? height = null, string? linkUrl = null, string? linkTitle = null, string? linkTarget = null, string? linkRel = null, string? plainAlt = null)",
+          "new": "public ImageBlock(string path, string? alt = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null, string? linkUrl = null, string? linkTitle = null, string? linkTarget = null, string? linkRel = null, string? plainAlt = null)",
+          "map": "Build/ApiMap/csharp/OfficeIMO.Markdown.json"
+        },
+        {
+          "symbol": "OfficeIMO.Markdown.MarkdownDocument.Image",
+          "kind": "method",
+          "old": "public MarkdownDocument Image(string path, string? alt = null, string? title = null, double? width = null, double? height = null)",
+          "new": "public MarkdownDocument Image(string path, string? alt = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null)",
+          "map": "Build/ApiMap/csharp/OfficeIMO.Markdown.json"
+        }
+      ],
+      "files": [
+        "OfficeIMO.Markdown/Blocks/ImageBlock.cs",
+        "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
+        "OfficeIMO.Markdown/Native/MarkdownNativeContentBlocks.cs",
+        "OfficeIMO.Markdown/README.md",
+        "OfficeIMO.Markdown/Reader/MarkdownReader.Blocks.Images.cs",
+        "OfficeIMO.Markdown/Reader/Parsers/ImageParser.cs",
+        "OfficeIMO.Markdown.Html/Converters/HtmlToMarkdownConverter.Blocks.ImageSources.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfConverterExtensions.Images.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_CurrentHead_Review_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_HtmlToMarkdown_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_Html_Render_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_Reader_TablesAndLists_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_Write_Profile_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown.Images.cs",
+        "OfficeIMO.Markup/Parsing/OfficeMarkupParser.Markdown.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/Markdown.SaveAsPdf.Visuals.cs",
+        "OfficeIMO.Word.Markdown/Converters/MarkdownToWordConverter.BlockRenderer.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/AddOfficeMarkdownImageCommand.cs",
+        "OfficeIMO.Word.Tests/Markdown.MoreCases.cs"
+      ],
+      "note": "Word package reader fixture also asserts typed CSS-pixel lengths; its original path, alt-text and size expectations remain unchanged."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "Numeric MarkdownTableVisualStyle border/padding and TableBlock.ColumnWidthPoints.",
+      "new": "Physical OfficeLength border/padding and TableBlock.ColumnWidths nullable physical column hints; relative weights remain numeric.",
+      "reason": "Table physical dimensions share one model across Word, PDF and HTML; CSS explicitly converts physical lengths to pixels.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Examples/Markdown/Markdown10_VisualThemesAcrossFormats.cs",
+        "OfficeIMO.Markdown/Blocks/TableBlock.cs",
+        "OfficeIMO.Markdown/Options/MarkdownTableVisualStyle.cs",
+        "OfficeIMO.Markdown/Options/MarkdownVisualTheme.cs",
+        "OfficeIMO.Markdown/Utilities/HtmlRenderer.cs",
+        "OfficeIMO.Markdown.Html/Converters/HtmlToMarkdownConverter.Blocks.Tables.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfConverterExtensions.TablesCodeToc.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfStyle.Markdown.cs",
+        "OfficeIMO.Markdown.Pdf/README.md",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_HtmlToMarkdown_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_Html_Render_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_TableBlock_Render_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown/Markdown_VisualTheme_Tests.cs",
+        "OfficeIMO.Markdown.Tests/Markdown.Tables.cs",
+        "OfficeIMO.Pdf.Tests/Markdown.Pdf.cs",
+        "OfficeIMO.Word.Markdown/Converters/MarkdownToWordConverter.Formatting.cs"
+      ],
+      "note": "Null/nonpositive column hints remain unspecified. Numeric weights retain finite-positive fallback. Native MarkdownNativeTableBlock projects the same typed table, without a second width DTO or numeric compatibility property. HTML now applies the same finite-positive relative-weight fallback to numerator and denominator; infinite weights no longer emit Infinity%."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

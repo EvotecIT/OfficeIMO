@@ -9,12 +9,12 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_WrappedAndShrunkCellsPreserveNeighborFontSizes() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Layout");
-        sheet.SetColumnWidth(1, 12);
-        sheet.SetColumnWidth(2, 25);
-        sheet.SetColumnWidth(3, 15);
-        sheet.SetRowHeight(1, 45);
-        sheet.SetRowHeight(2, 24);
+        ExcelSheet sheet = document.AddSheet("Layout");
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
+        sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(25));
+        sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(15));
+        sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(45)));
+        sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
         sheet.Cell(1, 1, "Neighbor1");
         sheet.Cell(1, 2, "The quick brown fox jumps over the lazy dog with enough words to wrap.");
         sheet.Cell(1, 3, "Amount");
@@ -25,7 +25,7 @@ public partial class Excel {
         sheet.CellShrinkToFit(2, 3);
         for (int row = 1; row <= 2; row++) {
             for (int column = 1; column <= 3; column++) {
-                sheet.CellFontSize(row, column, 11);
+                sheet.CellFontSize(row, column, global::OfficeIMO.OfficeLength.Points(11));
                 sheet.CellFontName(row, column, "Arial");
             }
         }

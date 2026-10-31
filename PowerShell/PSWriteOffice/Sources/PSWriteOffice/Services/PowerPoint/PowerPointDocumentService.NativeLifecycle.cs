@@ -14,7 +14,7 @@ public static partial class PowerPointDocumentService {
     }
 
     /// <summary>Runs authoring on the pipeline thread inside the presentation's content scope.</summary>
-    internal static void InvokeContent(PowerPointPresentation document, ScriptBlock content) {
+    internal static void InvokeContent(PowerPointDocument document, ScriptBlock content) {
         using (PSWriteOffice.Foundation.OfficeDocumentContext.Push(document)) content.Invoke();
     }
 }

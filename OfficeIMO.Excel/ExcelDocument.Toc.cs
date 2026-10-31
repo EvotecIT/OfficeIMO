@@ -10,14 +10,14 @@ namespace OfficeIMO.Excel {
         /// <param name="includeHiddenNamedRanges">When listing defined names, include ones marked Hidden.</param>
         /// <param name="rangeNameFilter">Optional filter to include only matching defined names.</param>
         /// <param name="styled">When true, renders a banner and a formatted table with AutoFilter.</param>
-        public void AddTableOfContents(string sheetName = "TOC", bool placeFirst = true, bool withHyperlinks = true, bool includeNamedRanges = false, bool includeHiddenNamedRanges = false, Predicate<string>? rangeNameFilter = null, bool styled = true) {
+        public ExcelSheet AddTableOfContents(string sheetName = "TOC", bool placeFirst = true, bool withHyperlinks = true, bool includeNamedRanges = false, bool includeHiddenNamedRanges = false, Predicate<string>? rangeNameFilter = null, bool styled = true) {
             // Remove existing TOC sheet if present (recreate clean to avoid leftover elements)
             var existing = SheetNameLookup.FindByRequestedName(this.Sheets, sheetName);
             if (existing != null) {
                 RemoveWorksheet(existing.Name);
             }
 
-            var toc = this.AddWorksheet(sheetName);
+            var toc = this.AddSheet(sheetName);
             string tocName = toc.Name;
             int r = 1;
             // Banner
@@ -100,12 +100,14 @@ namespace OfficeIMO.Excel {
 
             // As a safety net, clean up any broken/duplicate defined names after sheet changes.
             RepairDefinedNames(save: true);
+            return toc;
         }
 
         /// <summary>
         /// Adds a small back link to the TOC on each worksheet at the given cell (default A2).
         /// </summary>
-        public void AddBackLinksToToc(string tocSheetName = "TOC", int row = 2, int col = 1, string text = "← TOC") {
+        public IReadOnlyDictionary<ExcelSheet, ExcelHyperlinkInfo> AddBackLinksToToc(string tocSheetName = "TOC", int row = 2, int col = 1, string text = "← TOC") {
+            var links = new Dictionary<ExcelSheet, ExcelHyperlinkInfo>();
             var tocSheet = SheetNameLookup.FindByRequestedName(this.Sheets, tocSheetName);
             string resolvedTocName = SheetNameLookup.ResolveExistingOrNormalizedOrRequested(this.Sheets, tocSheetName);
             foreach (var sh in this.Sheets) {
@@ -114,7 +116,9 @@ namespace OfficeIMO.Excel {
                     sh.SetInternalLink(row, col, tocSheet, "A1", text);
                 else
                     sh.SetInternalLink(row, col, SheetNameLookup.BuildInternalLocation(this.Sheets, tocSheetName, "A1", normalizeFallback: true), text);
+                links.Add(sh, sh.GetHyperlinks()[ExcelA1.CellReference(row, col)]);
             }
+            return new System.Collections.ObjectModel.ReadOnlyDictionary<ExcelSheet, ExcelHyperlinkInfo>(links);
         }
 
         private void MoveSheetToBeginning(string sheetName) {
@@ -182,6 +186,7 @@ namespace OfficeIMO.Excel {
                     throw new InvalidDataException($"Worksheet '{sheetName}' has no valid package relationship.");
                 }
                 ValidateOwnedChartDataSheetRemoval(sheet.Name?.Value ?? sheetName);
+                DisqualifyDirectDataSetFastSaveState();
                 IReadOnlyList<uint> queryConnectionIds = GetWorksheetQueryConnectionIds(part);
 
                 // The cleanup may touch shared caches, other worksheets, and drawings. Keep it

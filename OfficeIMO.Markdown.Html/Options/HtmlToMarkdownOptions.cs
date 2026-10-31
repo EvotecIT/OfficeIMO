@@ -227,7 +227,7 @@ public sealed class MarkdownHtmlImportOptions {
     /// <summary>
     /// Marks a renderer plugin's HTML-ingestion contract as applied to these options.
     /// </summary>
-    public bool TryMarkPluginApplied(string pluginId) {
+    internal bool TryMarkPluginApplied(string pluginId) {
         if (string.IsNullOrWhiteSpace(pluginId)) {
             throw new ArgumentException("Plugin id is required.", nameof(pluginId));
         }
@@ -239,7 +239,7 @@ public sealed class MarkdownHtmlImportOptions {
     /// Returns <see langword="true"/> when the supplied renderer plugin id has already been
     /// applied as an HTML-ingestion contract to these options.
     /// </summary>
-    public bool HasPluginId(string pluginId) {
+    internal bool HasPluginId(string pluginId) {
         if (string.IsNullOrWhiteSpace(pluginId)) {
             throw new ArgumentException("Plugin id is required.", nameof(pluginId));
         }
@@ -250,7 +250,7 @@ public sealed class MarkdownHtmlImportOptions {
     /// <summary>
     /// Marks a renderer feature pack's HTML-ingestion contract as applied to these options.
     /// </summary>
-    public bool TryMarkFeaturePackApplied(string featurePackId) {
+    internal bool TryMarkFeaturePackApplied(string featurePackId) {
         if (string.IsNullOrWhiteSpace(featurePackId)) {
             throw new ArgumentException("Feature pack id is required.", nameof(featurePackId));
         }
@@ -262,7 +262,7 @@ public sealed class MarkdownHtmlImportOptions {
     /// Returns <see langword="true"/> when the supplied renderer feature-pack id has already been
     /// applied as an HTML-ingestion contract to these options.
     /// </summary>
-    public bool HasFeaturePackId(string featurePackId) {
+    internal bool HasFeaturePackId(string featurePackId) {
         if (string.IsNullOrWhiteSpace(featurePackId)) {
             throw new ArgumentException("Feature pack id is required.", nameof(featurePackId));
         }

@@ -13,7 +13,7 @@ namespace PSWriteOffice.Services.PowerPoint;
 /// <summary>Maps the object-export contract onto shared tabular projection and native semantic slide blocks.</summary>
 internal static partial class PowerPointObjectExport {
     internal static PowerPointDeckPlan CreatePlan(IReadOnlyCollection<object?> input, string title, string? subtitle,
-        string[]? properties, string? category, string[]? values, OfficeChartKind kind, string? chartTitle,
+        string[]? properties, string? category, string[]? values, OfficeChartType kind, string? chartTitle,
         string? groupBy, bool noSummary, bool noTable, int? maximumRows, CultureInfo culture, bool chartTypeBound) {
         var normalization = new PowerShellObjectNormalizerOptions { Culture = culture };
         using var table = ExcelTabularInputService.ToDataTable(TableInputCollector.RequireRows(input, "InputObject"),
@@ -28,7 +28,7 @@ internal static partial class PowerPointObjectExport {
             throw new ArgumentException("ChartType and ChartTitle require Category and Value.");
         if (noTable && !chartRequested)
             throw new ArgumentException("NoTable requires Category and Value; a title alone has no exported content.");
-        if (!Enum.IsDefined(typeof(OfficeChartKind), kind))
+        if (!Enum.IsDefined(typeof(OfficeChartType), kind))
             throw new ArgumentException("Choose a supported shared chart kind.", nameof(kind));
         if (groupBy != null) RequireColumn(table, groupBy, "GroupBy");
 
@@ -55,17 +55,17 @@ internal static partial class PowerPointObjectExport {
         if (chartRequested) {
             DataColumn categoryColumn = RequireColumn(table, category!, "Category");
             var seriesColumns = SelectColumns(table, values, "Value");
-            if ((kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut) && seriesColumns.Length != 1)
+            if ((kind == OfficeChartType.Pie || kind == OfficeChartType.Doughnut) && seriesColumns.Length != 1)
                 throw new ArgumentException("Pie and Doughnut charts require exactly one Value series.", nameof(values));
-            if (kind == OfficeChartKind.Bubble)
+            if (kind == OfficeChartType.Bubble)
                 throw new ArgumentException("Bubble charts require per-point sizes, which Category and Value do not supply.", nameof(kind));
-            double[]? x = kind == OfficeChartKind.Scatter
+            double[]? x = kind == OfficeChartType.Scatter
                 ? table.Rows.Cast<DataRow>().Select(row => ChartNumber(row[categoryColumn], categoryColumn.ColumnName, culture)).ToArray()
                 : null;
             var labels = table.Rows.Cast<DataRow>().Select((row, index) => x == null
                 ? PowerShellObjectNormalizer.NormalizeCellText(row[categoryColumn], normalization)
                 : x[index].ToString("R", CultureInfo.InvariantCulture)).ToArray();
-            var series = seriesColumns.Select(column => new OfficeChartSeries(column.ColumnName,
+            var series = seriesColumns.Select(column => new OfficeSeries(column.ColumnName,
                 table.Rows.Cast<DataRow>().Select(row => ChartNumber(row[column], column.ColumnName, culture)), x)).ToArray();
             string heading = chartTitle ?? categoryColumn.ColumnName;
             plan.AddContent(heading, new[] { new PowerPointLayoutChart(kind, new OfficeChartData(labels, series)) {

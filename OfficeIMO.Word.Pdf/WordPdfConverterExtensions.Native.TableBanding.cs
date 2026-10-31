@@ -27,8 +27,8 @@ namespace OfficeIMO.Word.Pdf {
             int columns = GetNativeTableColumnCount(layout);
             int footerStart = table.ConditionalFormattingLastRow == true && layout.Rows.Count > style.HeaderRowCount
                 ? layout.Rows.Count - 1 : layout.Rows.Count;
-            var fills = style.CellFills == null ? new Dictionary<(int Row, int Column), PdfCore.PdfColor>()
-                : new Dictionary<(int Row, int Column), PdfCore.PdfColor>(style.CellFills);
+            var fills = style.CellFills == null ? new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>()
+                : new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>(style.CellFills);
             for (int row = 0; row < layout.Rows.Count; row++) {
                 int column = GetNativeTableRowStartColumn(layout, row);
                 foreach (WordTableCell cell in layout.Rows[row]) {

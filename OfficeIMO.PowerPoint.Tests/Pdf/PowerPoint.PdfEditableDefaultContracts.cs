@@ -170,7 +170,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
     public void DefaultEditableImportTreatsOmittedInteractiveContentAsLoss() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .H1("Approval")
-            .TextField("Decision", width: 140, value: "Ready")
+            .TextField("Decision", width: global::OfficeIMO.OfficeLength.Points(140), value: "Ready")
             .ToBytes();
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
@@ -189,23 +189,23 @@ public sealed class PowerPointPdfEditableDefaultContracts {
     [Fact]
     public void LogicalPdfAutoProfileResolvesToEditableTablesForNullAndDefaultOptions() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
                 new[] { "Metric", "Value", "Status" },
                 new[] { "Ready", "Yes", "Current" },
                 new[] { "Loss", "Reported", "Current" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 100, 100, 120 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(120) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(

@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 SlideLayoutValues.TwoObjects
             };
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 Assert.Equal("Office Theme", presentation.ThemeName);
                 presentation.ThemeName = "My Theme";
                 Assert.Empty(presentation.Slides);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 Assert.Equal("My Theme", presentation.ThemeName);
                 Assert.Equal(expectedLayouts.Count, presentation.Slides.Count);
 

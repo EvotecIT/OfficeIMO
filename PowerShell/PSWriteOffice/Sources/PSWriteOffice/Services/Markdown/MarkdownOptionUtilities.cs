@@ -216,8 +216,8 @@ internal static class MarkdownOptionUtilities
         if (source.PdfIncludeDataUriImages.HasValue) options.ResourcePolicy.AllowDataUris = source.PdfIncludeDataUriImages.Value;
         if (source.PdfRestrictLocalImagesToBaseDirectory.HasValue) options.RestrictLocalImagesToBaseDirectory = source.PdfRestrictLocalImagesToBaseDirectory.Value;
         if (source.PdfMaximumDataUriImageBytes.HasValue) options.MaximumDataUriImageBytes = source.PdfMaximumDataUriImageBytes.Value;
-        if (source.PdfDefaultImageWidth.HasValue) options.DefaultImageWidth = source.PdfDefaultImageWidth.Value;
-        if (source.PdfDefaultImageHeight.HasValue) options.DefaultImageHeight = source.PdfDefaultImageHeight.Value;
+        if (source.PdfDefaultImageWidth.HasValue) options.DefaultImageWidth = global::OfficeIMO.OfficeLength.Points(source.PdfDefaultImageWidth.Value);
+        if (source.PdfDefaultImageHeight.HasValue) options.DefaultImageHeight = global::OfficeIMO.OfficeLength.Points(source.PdfDefaultImageHeight.Value);
         if (source.PdfFrontMatterRenderMode.HasValue) options.FrontMatterRenderMode = source.PdfFrontMatterRenderMode.Value;
         if (source.PdfUseFrontMatterVisualTheme.HasValue) options.UseFrontMatterTheme = source.PdfUseFrontMatterVisualTheme.Value;
         if (source.PdfUseFrontMatterMetadata.HasValue) options.UseFrontMatterMetadata = source.PdfUseFrontMatterMetadata.Value;

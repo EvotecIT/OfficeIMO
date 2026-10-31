@@ -11,9 +11,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_VisualFallbackKeepsSmallAuthoredChartSize() {
             using var document = WordDocument.Create();
-            var chart = document.AddChart(OfficeChartKind.Pie,
-                new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Share", new[] { 3d, 1d }) }));
-            chart.SetSize(200, 100);
+            var chart = document.AddChart(OfficeChartType.Pie,                new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Share", new[] { 3d, 1d }) }));
+            chart.SetSize(OfficeIMO.OfficeLength.Pixels(200),OfficeIMO.OfficeLength.Pixels(100));
             Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
             string markdown = document.ToMarkdown(new WordMarkdownExportOptions { VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgDataUri }).ToMarkdown();
             const string prefix = "data:image/svg+xml;base64,";
@@ -21,8 +20,8 @@ namespace OfficeIMO.Tests {
             Assert.True(start >= 0, markdown);
             start += prefix.Length;
             string svg = Encoding.UTF8.GetString(Convert.FromBase64String(markdown.Substring(start, markdown.IndexOf(')', start) - start)));
-            Assert.Contains("viewBox=\"0 0 " + snapshot.WidthPoints.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " +
-                snapshot.HeightPoints.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\"", svg);
+            Assert.Contains("viewBox=\"0 0 " + snapshot.Width.ToPoints().ToString(System.Globalization.CultureInfo.InvariantCulture) + " " +
+                snapshot.Height.ToPoints().ToString(System.Globalization.CultureInfo.InvariantCulture) + "\"", svg);
         }
 
         [Theory]
@@ -31,11 +30,11 @@ namespace OfficeIMO.Tests {
         public void WordToMarkdown_VisualFallbackUsesSharedBubbleAndCombinationProjection(bool bubble) {
             using var document = WordDocument.Create();
             var data = bubble ? new OfficeChartData(new[] { "1", "2" }, new[] {
-                OfficeChartSeries.CreateBubble("Measured", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 20d }, OfficeColor.Parse("#224466")) }) :
-                new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Columns", new[] { 100d, 200d }),
-                    new OfficeChartSeries("Ratio", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, true,
-                        renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
-            document.AddChart(bubble ? OfficeChartKind.Bubble : OfficeChartKind.ColumnClustered, data, "Shared chart");
+                OfficeSeries.CreateBubble("Measured", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 20d }, OfficeColor.Parse("#224466")) }) :
+                new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Columns", new[] { 100d, 200d }),
+                    new OfficeSeries("Ratio", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, true,
+                        renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
+            document.AddChart(bubble ? OfficeChartType.Bubble : OfficeChartType.ColumnClustered, data, new OfficeChartOptions { Title = "Shared chart" });
             string markdown = document.ToMarkdown(new WordMarkdownExportOptions { VisualFallbackMode = WordMarkdownVisualFallbackMode.SvgDataUri }).ToMarkdown();
             const string prefix = "data:image/svg+xml;base64,";
             int start = markdown.IndexOf(prefix, StringComparison.Ordinal);

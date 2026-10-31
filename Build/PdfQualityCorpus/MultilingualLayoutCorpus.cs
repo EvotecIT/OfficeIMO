@@ -37,7 +37,7 @@ internal static partial class MultilingualLayoutCorpus {
             string caption = fixture.GetProperty("caption").GetString()!;
             byte[] native = await ReadVerifiedAsync(root, fixture, "native.pdf", deadline.Token);
             using var nativeInput = new MemoryStream(native, writable: false);
-            using var nativeDocument = PdfDocument.Load(nativeInput);
+            using var nativeDocument = CorpusPdfInput.Load(nativeInput);
             PdfDocumentReadResult nativeRead = nativeDocument.Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured });
             await RecordAsync(id, "native", nativeRead, expected, expectedTable, caption, acceptance, output, results, qualifications, deadline.Token);
             if (args.Length == 4 && args[3] == "native") continue;
@@ -57,7 +57,7 @@ internal static partial class MultilingualLayoutCorpus {
             }
             int turn = fixture.GetProperty("clockwiseDegrees").GetInt32() / 90;
             using var scanInput = new MemoryStream(scan, writable: false);
-            using var scanDocument = PdfDocument.Load(scanInput);
+            using var scanDocument = CorpusPdfInput.Load(scanInput);
             PdfSearchableOcrResult searchable = await scanDocument.MakeSearchableAsync(engine,
                 new PdfOcrMergeOptions {
 #if !PDF_LAYOUT_BASELINE
@@ -78,7 +78,7 @@ internal static partial class MultilingualLayoutCorpus {
             byte[] bytes = searchable.Document.ToBytes();
             await File.WriteAllBytesAsync(Path.Combine(output, id + "-searchable.pdf"), bytes, deadline.Token);
             using var readbackInput = new MemoryStream(bytes, writable: false);
-            using var readbackDocument = PdfDocument.Load(readbackInput);
+            using var readbackDocument = CorpusPdfInput.Load(readbackInput);
             PdfDocumentReadResult roundTrip = readbackDocument.Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured });
             await RecordAsync(id, "readback", roundTrip, expected, expectedTable, caption, acceptance, output, results, qualifications, deadline.Token);
         }

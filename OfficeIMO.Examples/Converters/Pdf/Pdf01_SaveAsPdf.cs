@@ -49,11 +49,8 @@ namespace OfficeIMO.Examples.Word.Converters {
             doc.SaveAsPdf(outputPath, new WordPdfExportOptions {
                 Orientation = OfficePageOrientation.Portrait,
                 PageSize = OfficeIMO.Pdf.PdfPageSizes.A4,
-                Margins = OfficeIMO.Pdf.PdfPageMargins.FromCentimeters(
-                    left: 1,
-                    top: 3,
-                    right: 2,
-                    bottom: 2)
+                Margins = new OfficeIMO.Pdf.PdfPageMargins(
+left: OfficeIMO.OfficeLength.Centimeters(1),top: OfficeIMO.OfficeLength.Centimeters(3),right: OfficeIMO.OfficeLength.Centimeters(2),bottom: OfficeIMO.OfficeLength.Centimeters(2))
             });
             
             Console.WriteLine($"✓ Created: {outputPath}");

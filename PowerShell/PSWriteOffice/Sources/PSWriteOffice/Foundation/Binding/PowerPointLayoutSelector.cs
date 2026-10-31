@@ -43,7 +43,7 @@ public sealed class PowerPointLayoutSelector {
         throw OfficeArgumentValue.Invalid("Expected a layout name, one-based integer position, native layout type or layout metadata.");
     }
 
-    internal PowerPointTemplateLayoutInfo Resolve(PowerPointPresentation document, int master, bool masterBound) {
+    internal PowerPointTemplateLayoutInfo Resolve(PowerPointDocument document, int master, bool masterBound) {
         int masterIndex = Layout?.MasterIndex ?? master - 1;
         if (Layout.HasValue && masterBound && masterIndex != master - 1)
             throw new ArgumentException("Master does not match the supplied layout metadata.", nameof(master));

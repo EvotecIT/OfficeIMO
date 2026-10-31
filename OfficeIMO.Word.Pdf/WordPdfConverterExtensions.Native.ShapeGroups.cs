@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     var canvas = new PdfCore.PdfPageCanvas();
-                    if (native) canvas.Drawing(scene, x, y, scene.Width, scene.Height);
+                    if (native) canvas.Drawing(scene, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(scene.Width), global::OfficeIMO.OfficeLength.Points(scene.Height));
                     else {
                         V.Group? fallback = drawing.Ancestors<AlternateContentChoice>().FirstOrDefault()?.Parent?
                             .GetFirstChild<AlternateContentFallback>()?.Descendants<V.Group>().FirstOrDefault();
@@ -89,7 +89,7 @@ namespace OfficeIMO.Word.Pdf {
                         bool rendered = false;
                         canvas.Effect(OfficeTransform.Translate(x, y), 1D, target =>
                             rendered = RenderNativeVmlCoverChildren(target, paragraph._document, fallback.ChildElements,
-                                frame, pageSize.Width, pageSize.Height, options?.CancellationToken ?? default));
+                                frame, pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), options?.CancellationToken ?? default));
                         if (!rendered) {
                             WarnNativeGroup(options, "native-shape-group-unsupported", "The shape group's VML fallback produced no visible content.");
                             continue;
@@ -133,10 +133,10 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
             CountNativeVmlGroupImages(group, options, ref imageCount);
-            var frame = new NativeVmlFrame(0D, 0D, pageSize.Width, pageSize.Height,
-                pageSize.Width, pageSize.Height, 0D, 0D);
+            var frame = new NativeVmlFrame(0D, 0D, pageSize.Width.ToPoints(), pageSize.Height.ToPoints(),
+                pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), 0D, 0D);
             var canvas = new PdfCore.PdfPageCanvas();
-            if (RenderNativeVmlGroup(canvas, paragraph._document, group, frame, pageSize.Width, pageSize.Height, options?.CancellationToken ?? default))
+            if (RenderNativeVmlGroup(canvas, paragraph._document, group, frame, pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), options?.CancellationToken ?? default))
                 AddNativeGroupCanvas(style, canvas, paragraphRelative: !pageY, zOrder: zIndex);
             else WarnNativeGroup(options, "native-shape-group-unsupported", "The legacy shape group produced no visible content.");
         }
@@ -163,18 +163,18 @@ namespace OfficeIMO.Word.Pdf {
             horizontalMarginOrigin = null;
             paragraphRelative = layout.VerticalRelativeFrom == "paragraph";
             if (layout.Wrap != WordDrawingWrapKind.None || !layout.BehindDocument) return false;
-            PdfCore.PdfPageMargins margins = PdfCore.PdfPageMargins.Uniform(0D);
+            PdfCore.PdfPageMargins margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D));
             if (layout.HorizontalRelativeFrom == "margin" || layout.VerticalRelativeFrom == "margin") {
                 if (paragraph.Parent is not WordSection section) return false;
                 margins = GetNativeMargins(section, options);
             }
-            if (layout.HorizontalRelativeFrom == "margin") horizontalMarginOrigin = margins.Left;
+            if (layout.HorizontalRelativeFrom == "margin") horizontalMarginOrigin = margins.Left.ToPoints();
             if (!TryGetNativeGroupAxis(layout.HorizontalRelativeFrom, layout.HorizontalOffsetPoints,
-                    layout.HorizontalAlignment, pageSize.Width, margins.Left, margins.Right, layout.WidthPoints, false, out x) ||
+                    layout.HorizontalAlignment, pageSize.Width.ToPoints(), margins.Left.ToPoints(), margins.Right.ToPoints(), layout.WidthPoints, false, out x) ||
                 !TryGetNativeGroupAxis(layout.VerticalRelativeFrom, layout.VerticalOffsetPoints,
-                    layout.VerticalAlignment, pageSize.Height, margins.Top, margins.Bottom, layout.HeightPoints, true, out y)) return false;
-            return x >= 0D && y >= 0D && x + layout.WidthPoints <= pageSize.Width + 0.001D &&
-                (paragraphRelative || y + layout.HeightPoints <= pageSize.Height + 0.001D);
+                    layout.VerticalAlignment, pageSize.Height.ToPoints(), margins.Top.ToPoints(), margins.Bottom.ToPoints(), layout.HeightPoints, true, out y)) return false;
+            return x >= 0D && y >= 0D && x + layout.WidthPoints <= pageSize.Width.ToPoints() + 0.001D &&
+                (paragraphRelative || y + layout.HeightPoints <= pageSize.Height.ToPoints() + 0.001D);
         }
 
         private static bool TryGetNativeGroupAxis(string? reference, double? offset, string? alignment,

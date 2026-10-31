@@ -69,13 +69,13 @@ namespace OfficeIMO.Tests.Pdf {
             };
 
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = 80,
-                    PageHeight = 180,
-                    MarginLeft = 18,
-                    MarginRight = 18,
-                    MarginTop = 24,
-                    MarginBottom = 24,
-                    DefaultFontSize = 10,
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(80),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(18),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(18),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                     CompressContentStreams = false
                 })
                 .TextLineBreaks(callback)

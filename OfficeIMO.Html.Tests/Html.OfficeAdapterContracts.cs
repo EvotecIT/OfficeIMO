@@ -47,8 +47,8 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointHtml_RendersHeadingOnlySemanticSections() {
         HtmlToPowerPointResult result = HtmlConversionDocument
             .Parse("<p>First slide</p><h1>Heading-only slide</h1>")
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using PowerPointPresentation presentation = result.Value;
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointDocument presentation = result.Value;
 
         Assert.Equal(2, result.Slides);
         PowerPointSlide second = presentation.Slides[1];
@@ -60,8 +60,8 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointHtml_DoesNotRenderAnEmptyHeadingAsAnExtraSection() {
         HtmlToPowerPointResult result = HtmlConversionDocument
             .Parse("<p>Only slide</p><h1>  </h1>")
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using PowerPointPresentation presentation = result.Value;
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointDocument presentation = result.Value;
 
         Assert.Equal(1, result.Slides);
         PowerPointSlide slide = Assert.Single(presentation.Slides);

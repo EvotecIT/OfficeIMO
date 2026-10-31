@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using OfficeIMO.Spreadsheet;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
@@ -178,9 +179,9 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Sets the font size in points.
+        /// Sets a positive physical font size.
         /// </summary>
-        public ExcelCell SetFontSize(double fontSize) {
+        public ExcelCell SetFontSize(OfficeLength fontSize) {
             Sheet.CellFontSize(Row, Column, fontSize);
             return this;
         }
@@ -474,9 +475,10 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Applies a font size in points to every cell in the range.
+        /// Applies a positive physical font size to every cell in the range.
         /// </summary>
-        public ExcelRange SetFontSize(double fontSize) {
+        public ExcelRange SetFontSize(OfficeLength fontSize) {
+            if (fontSize <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(fontSize), "Font size must be positive.");
             ForEachCell((row, column) => Sheet.CellFontSize(row, column, fontSize));
             return this;
         }
@@ -607,17 +609,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static (int r1, int c1, int r2, int c2) ParseRangeOrCell(string address) {
-            string normalizedAddress = address.Replace("$", string.Empty);
-            if (ExcelA1.TryParseRange(normalizedAddress, out int r1, out int c1, out int r2, out int c2)) {
-                return (r1, c1, r2, c2);
-            }
-
-            var cell = ExcelA1.ParseCellRef(normalizedAddress);
-            if (cell.Row <= 0 || cell.Col <= 0) {
-                throw new ArgumentException($"Invalid A1 range or cell reference '{address}'.", nameof(address));
-            }
-
-            return (cell.Row, cell.Col, cell.Row, cell.Col);
+            var syntax = SpreadsheetRangeReference.Parse(address, SpreadsheetAddressDialect.ExcelA1);
+            if (!syntax.Start.IsCell || !(syntax.End ?? syntax.Start).IsCell)
+                throw new ArgumentException("Range must contain cell endpoints.", nameof(address));
+            if (syntax.Start.SheetName != null || syntax.End?.SheetName != null)
+                throw new ArgumentException("Range must not qualify a different worksheet.", nameof(address));
+            var end = syntax.End ?? syntax.Start;
+            return (checked((int)syntax.Start.Row!.Value), syntax.Start.Column!.Value,
+                checked((int)end.Row!.Value), end.Column!.Value);
         }
 
         private static string ToRangeAddress(int r1, int c1, int r2, int c2) {
@@ -630,7 +629,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Lightweight object model wrapper for an Excel table.
     /// </summary>
-    public sealed class ExcelTable {
+    public sealed partial class ExcelTable {
         internal ExcelTable(ExcelSheet sheet, string nameOrRange) {
             Sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
             NameOrRange = string.IsNullOrWhiteSpace(nameOrRange) ? throw new ArgumentNullException(nameof(nameOrRange)) : nameOrRange;
@@ -732,6 +731,7 @@ namespace OfficeIMO.Excel {
         private bool _underline;
         private bool _strikethrough;
         private ExcelUnderlineStyle? _underlineStyle;
+        private OfficeLength? _fontSize;
 
         /// <summary>
         /// Creates a rich text run with the supplied text.
@@ -794,8 +794,15 @@ namespace OfficeIMO.Excel {
         public string? FontColor { get; set; }
         /// <summary>Gets or sets the run font name.</summary>
         public string? FontName { get; set; }
-        /// <summary>Gets or sets the run font size.</summary>
-        public double? FontSize { get; set; }
+        /// <summary>Gets or sets the positive physical run font size; null inherits the cell font size.</summary>
+        public OfficeLength? FontSize {
+            get => _fontSize;
+            set {
+                if (value.HasValue && value.Value <= OfficeLength.Zero)
+                    throw new ArgumentOutOfRangeException(nameof(FontSize), "Font size must be positive.");
+                _fontSize = value;
+            }
+        }
         /// <summary>Gets or sets the run vertical text alignment.</summary>
         public ExcelVerticalTextAlignment? VerticalTextAlignment { get; set; }
         /// <summary>Gets or sets whether the run font uses outline text.</summary>
@@ -834,7 +841,7 @@ namespace OfficeIMO.Excel {
             var result = new ExcelRichTextRun(text) {
                 FontColor = resolvedFontColor ?? properties?.GetFirstChild<Color>()?.Rgb?.Value,
                 FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
-                FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
+                FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value is double points ? OfficeLength.Points(points) : (OfficeLength?)null,
                 VerticalTextAlignment = GetVerticalTextAlignment(properties),
                 Outline = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Outline>()),
                 Shadow = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Shadow>()),

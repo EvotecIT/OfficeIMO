@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
 
         // Page coordinates: the body must end at or above this Y. Running-footer exclusion
         // is already part of currentOpts; the footnote plan never mutates those options.
-        private double FootnoteBodyBottom => currentOpts.MarginBottom + (paintingFootnotes ? 0D : pageFootnoteHeight);
+        private double FootnoteBodyBottom => currentOpts.MarginBottom.ToPoints() + (paintingFootnotes ? 0D : pageFootnoteHeight);
         private bool HasPageFootnotes => pageFootnotes.Count > 0;
 
         private sealed class FootnoteCursor {
@@ -100,7 +100,7 @@ internal static partial class PdfWriter {
             double noticeHeight = MeasureFootnoteUnits(notice);
             double oldNoticeHeight = pageFootnotesContinue || pageReserveContinuationNoticeSpaceOnFinalPage
                 ? MeasureFootnoteUnits(pageFootnoteContinuationNotice) : 0D;
-            double available = bodyBottom - currentOpts.MarginBottom - (pageFootnoteHeight - oldNoticeHeight) - separatorHeight;
+            double available = bodyBottom - currentOpts.MarginBottom.ToPoints() - (pageFootnoteHeight - oldNoticeHeight) - separatorHeight;
             bool noticeAlreadyReserved = pageFootnotesContinue || reserveFinalNotice;
             if (!TryPlanNewFootnoteFragments(notes, available - (noticeAlreadyReserved ? noticeHeight : 0D), out var fragments)) return false;
             bool continues = pageFootnotesContinue || fragments.Any(FootnoteFragmentContinues);
@@ -137,7 +137,7 @@ internal static partial class PdfWriter {
                 PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.ContinuationSeparator, currentOpts, allowTables: false);
                 PdfDocument.ValidateFootnoteBlocks(cursor.Note.Definition.ContinuationNotice, currentOpts, allowTables: false);
             }
-            double usableWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+            double usableWidth = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
             if (continuedFootnotes.Any(cursor => Math.Abs(cursor.Note.UsableWidth - usableWidth) > .001D))
                 throw new NotSupportedException("A continued footnote cannot cross a change in usable page width. Finish the note before changing page geometry.");
             pageFootnoteSeparator = continuedFootnotes[0].Note.ContinuationSeparator;
@@ -145,7 +145,7 @@ internal static partial class PdfWriter {
             pageReserveContinuationNoticeSpaceOnFinalPage = continuedFootnotes[0].Note.Definition.ReserveContinuationNoticeSpaceOnFinalPage;
             double separatorHeight = MeasureFootnoteUnits(pageFootnoteSeparator);
             double noticeHeight = MeasureFootnoteUnits(pageFootnoteContinuationNotice);
-            double available = yStart - currentOpts.MarginBottom - separatorHeight;
+            double available = yStart - currentOpts.MarginBottom.ToPoints() - separatorHeight;
             List<FootnoteFragment> fragments = PlanContinuedFootnoteFragments(available -
                 (pageReserveContinuationNoticeSpaceOnFinalPage ? noticeHeight : 0D));
             pageFootnotesContinue = fragments.Count < continuedFootnotes.Count || fragments.Any(FootnoteFragmentContinues);
@@ -165,7 +165,7 @@ internal static partial class PdfWriter {
             bool beneath = pageFootnotes.All(fragment => fragment.Note.Definition.Placement == PdfFootnotePlacement.BeneathText);
             PdfCreateOptions savedOptions = currentOpts;
             currentOpts = footnotePageOptions ?? currentOpts;
-            double top = beneath ? y : currentOpts.MarginBottom + pageFootnoteHeight;
+            double top = beneath ? y : currentOpts.MarginBottom.ToPoints() + pageFootnoteHeight;
             pageFootnotes.Sort((left, right) => FootnoteSourceOrdinal(left.Note.Definition).CompareTo(FootnoteSourceOrdinal(right.Note.Definition)));
             paintingFootnotes = true;
             try {

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ReferenceOps");
+                    ExcelSheet sheet = document.AddSheet("ReferenceOps");
                     sheet.CellValue(1, 2, 10d);
                     sheet.CellValue(1, 3, 20d);
                     sheet.CellValue(1, 4, 30d);
@@ -62,11 +62,11 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet first = document.AddWorksheet("Region 1");
-                    ExcelSheet second = document.AddWorksheet("Region 2");
-                    ExcelSheet third = document.AddWorksheet("Region 3");
-                    ExcelSheet fourth = document.AddWorksheet("Region 4");
-                    ExcelSheet calc = document.AddWorksheet("Calc");
+                    ExcelSheet first = document.AddSheet("Region 1");
+                    ExcelSheet second = document.AddSheet("Region 2");
+                    ExcelSheet third = document.AddSheet("Region 3");
+                    ExcelSheet fourth = document.AddSheet("Region 4");
+                    ExcelSheet calc = document.AddSheet("Calc");
 
                     first.CellValue(1, 1, 1d);
                     second.CellValue(1, 1, 2d);

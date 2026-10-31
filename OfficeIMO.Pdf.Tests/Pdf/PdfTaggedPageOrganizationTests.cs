@@ -107,7 +107,7 @@ public sealed partial class PdfTaggedPageOrganizationTests {
 
     [Fact]
     public void CopyingAFormPageClonesItsFieldOwnershipAndDeletionPrunesOnlyTheRemovedWidgets() {
-        var source = PdfDocument.Create().TextField("First", 120, 24, "First value").PageBreak().TextField("Second", 120, 24, "Second value");
+        var source = PdfDocument.Create().TextField("First", global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(24), "First value").PageBreak().TextField("Second", global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(24), "Second value");
         PdfDocument copied = source.Pages.Duplicate(1); var fields = copied.Inspect().FormFields;
         Assert.Equal(3, fields.Count); Assert.Equal(3, fields.Select(field => field.Name).Distinct().Count());
         Assert.Equal(new[] { 1, 2, 3 }, fields.SelectMany(field => field.Widgets).Select(widget => widget.PageNumber!.Value).OrderBy(page => page));
@@ -168,7 +168,7 @@ public sealed partial class PdfTaggedPageOrganizationTests {
     [InlineData(true)] [InlineData(false)]
     public void MixedTaggedAndPlainInsertionRetainsTheTaggedStructure(bool taggedTarget) {
         var tagged = PdfDocument.Load(CreateTaggedSource());
-        var plain = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 500).Content(content => content.Text("Plain inserted page"))));
+        var plain = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Plain inserted page"))));
         PdfDocument output = taggedTarget ? tagged.Pages.Insert(2, plain) : plain.Pages.Insert(1, tagged);
         Assert.Equal(3, output.Inspect().PageCount); Assert.True(output.Inspect().HasTaggedContent);
         AssertStructure(PdfReadDocument.Open(output.ToBytes()), 2);
@@ -298,8 +298,8 @@ public sealed partial class PdfTaggedPageOrganizationTests {
 
     internal static byte[] CreateTaggedSource() {
         byte[] source = PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(300, 500).Content(content => content.Text("First tagged page")));
-            compose.Page(page => page.Size(300, 500).Content(content => content.Text("Second tagged page")));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("First tagged page")));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Second tagged page")));
         }).ToBytes();
         return PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
             var parsed = PdfReadDocument.Open(source); var catalog = (PdfDictionary)objects[security.RootObjectNumber!.Value].Value;

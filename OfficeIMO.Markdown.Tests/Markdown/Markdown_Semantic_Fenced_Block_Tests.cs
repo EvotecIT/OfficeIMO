@@ -278,7 +278,8 @@ hello
     [Fact]
     public void SemanticFencedBlock_RenderHtml_Uses_SemanticRenderer_And_RoundTrips_Markdown() {
         var block = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "ix-chart", "{\"type\":\"bar\"}", "Chart caption");
-        var doc = MarkdownDocument.Create().Add(block);
+        var doc = MarkdownDocument.Create();
+        doc.Add(block);
         var html = doc.ToHtml(new MarkdownHtmlExportOptions
         {
             Kind = MarkdownHtmlKind.Fragment,
@@ -296,7 +297,8 @@ hello
     [Fact]
     public void SemanticFencedBlock_RenderHtml_Falls_Back_To_CodeBlockHtmlRenderer_When_Needed() {
         var block = new SemanticFencedBlock("note", "ix-note {#note .wide pinned}", "hello");
-        var doc = MarkdownDocument.Create().Add(block);
+        var doc = MarkdownDocument.Create();
+        doc.Add(block);
         var html = doc.ToHtml(new MarkdownHtmlExportOptions
         {
             Kind = MarkdownHtmlKind.Fragment,

@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Exports workbook sheets as supported raster formats or SVG images.
         /// </summary>
-        public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelWorkbookImageExportOptions? options = null) {
+        public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelImageExportOptions? options = null) {
             var results = new List<OfficeImageExportResult>();
             ExportImages(format, results.Add, options);
             return results.AsReadOnly();
@@ -17,10 +17,10 @@ namespace OfficeIMO.Excel {
         public void ExportImages(
             OfficeImageExportFormat format,
             OfficeImageExportConsumer consumer,
-            ExcelWorkbookImageExportOptions? options = null,
+            ExcelImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
-            ExcelWorkbookImageExportOptions resolved = NormalizeWorkbookOptions(options);
+            ExcelImageExportOptions resolved = NormalizeWorkbookOptions(options);
             var plan = new List<ExcelWorksheetImageExportPlan>();
             var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);
             OfficeImageExportBatchProcessor.RunWithPreflight(
@@ -40,11 +40,7 @@ namespace OfficeIMO.Excel {
                         if (selected != null && !selected.Contains(sheet.Name)) continue;
                         if (selected == null && sheet.Hidden && !resolved.IncludeHiddenSheets) continue;
 
-                        ExcelWorksheetImageExportOptions sheetOptions =
-                            resolved.CopyExcelOptionsTo(new ExcelWorksheetImageExportOptions());
-                        sheetOptions.HeaderFooterDateTime = resolved.HeaderFooterDateTime;
-                        sheetOptions.UsePrintArea = resolved.UseWorksheetPrintAreas;
-                        sheetOptions.SplitByManualPageBreaks = resolved.SplitWorksheetsByManualPageBreaks;
+                        ExcelImageExportOptions sheetOptions = resolved.Clone();
                         int outputCount = sheet.GetImageExportResultCount(sheetOptions, operationCancellationToken);
                         expectedOutputCount = checked(expectedOutputCount + outputCount);
                         plan.Add(new ExcelWorksheetImageExportPlan(sheet, sheetOptions));
@@ -62,45 +58,8 @@ namespace OfficeIMO.Excel {
                 cancellationToken);
         }
 
-        /// <summary>
-        /// Saves workbook sheets as PNG files in a folder.
-        /// </summary>
-        public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath, ExcelWorkbookImageExportOptions? options = null) =>
-            new ExcelWorkbookImageExportBuilder(this, options).AsPng().Save(folderPath);
-
-        /// <summary>
-        /// Saves workbook sheets as image files in a folder.
-        /// </summary>
-        public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath, OfficeImageExportFormat format, ExcelWorkbookImageExportOptions? options = null) {
-            ExcelWorkbookImageExportBuilder builder = new ExcelWorkbookImageExportBuilder(this, options);
-            builder.As(format);
-            return builder.Save(folderPath);
-        }
-
-        /// <summary>
-        /// Asynchronously saves workbook sheets as PNG files in a folder.
-        /// </summary>
-        public Task<IReadOnlyList<OfficeImageExportResult>> SaveAsImagesAsync(
-            string folderPath,
-            ExcelWorkbookImageExportOptions? options = null,
-            CancellationToken cancellationToken = default) =>
-            new ExcelWorkbookImageExportBuilder(this, options).AsPng().SaveAsync(folderPath, cancellationToken);
-
-        /// <summary>
-        /// Asynchronously saves workbook sheets as image files in a folder.
-        /// </summary>
-        public Task<IReadOnlyList<OfficeImageExportResult>> SaveAsImagesAsync(
-            string folderPath,
-            OfficeImageExportFormat format,
-            ExcelWorkbookImageExportOptions? options = null,
-            CancellationToken cancellationToken = default) {
-            ExcelWorkbookImageExportBuilder builder = new ExcelWorkbookImageExportBuilder(this, options);
-            builder.As(format);
-            return builder.SaveAsync(folderPath, cancellationToken);
-        }
-
-        private static ExcelWorkbookImageExportOptions NormalizeWorkbookOptions(ExcelWorkbookImageExportOptions? options) {
-            ExcelWorkbookImageExportOptions resolved = options?.CloneWorkbook() ?? new ExcelWorkbookImageExportOptions();
+        private static ExcelImageExportOptions NormalizeWorkbookOptions(ExcelImageExportOptions? options) {
+            ExcelImageExportOptions resolved = options?.Clone() ?? new ExcelImageExportOptions();
             resolved.ConditionalFormattingDate ??= DateTime.Today;
             resolved.HeaderFooterDateTime ??= DateTime.Now;
             resolved.Validate();
@@ -128,14 +87,14 @@ namespace OfficeIMO.Excel {
         private sealed class ExcelWorksheetImageExportPlan {
             internal ExcelWorksheetImageExportPlan(
                 ExcelSheet sheet,
-                ExcelWorksheetImageExportOptions options) {
+                ExcelImageExportOptions options) {
                 Sheet = sheet;
                 Options = options;
             }
 
             internal ExcelSheet Sheet { get; }
 
-            internal ExcelWorksheetImageExportOptions Options { get; }
+            internal ExcelImageExportOptions Options { get; }
         }
     }
 }

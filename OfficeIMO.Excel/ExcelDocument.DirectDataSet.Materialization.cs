@@ -215,7 +215,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ExcelSheet sheet = TryGetExistingSheet(sheetModel.SheetName)
-                    ?? AddWorksheet(sheetModel.SheetName, ExcelSheetNameValidationMode.Strict);
+                    ?? AddSheet(sheetModel.SheetName, ExcelSheetNameValidationMode.Strict);
                 if (sheetModel.Range.Length == 0) {
                     continue;
                 }
@@ -277,6 +277,9 @@ namespace OfficeIMO.Excel {
                             style: sheetModel.TableStyle,
                             includeAutoFilter: sheetModel.IncludeAutoFilter,
                             ct: cancellationToken);
+                        if (!sheetModel.IncludeHeaders && tableRange.Length > 0) {
+                            sheet.SetTableSchema(tableRange, sheetModel.Table.CreateColumnNameArray());
+                        }
                     }
 
                     if (tableRange.Length > 0) {

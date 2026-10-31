@@ -159,8 +159,8 @@ Lead[^1]
 
     [Fact]
     public void Portable_Write_Profile_Omits_OfficeImo_Image_Size_Suffixes() {
-        var doc = MarkdownDocument.Create()
-            .Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", width: 256, height: 128));
+        var doc = MarkdownDocument.Create();
+        doc.Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", width: OfficeIMO.OfficeLength.Pixels(256), height: OfficeIMO.OfficeLength.Pixels(128)));
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreatePortableProfile()).Replace("\r\n", "\n").Trim();
 
@@ -174,7 +174,8 @@ Lead[^1]
         table.Headers.Add("Name");
         table.Headers.Add("Value");
         table.Rows.Add(new[] { "Area", "Markdown" });
-        var doc = MarkdownDocument.Create().Add(table);
+        var doc = MarkdownDocument.Create();
+        doc.Add(table);
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -189,7 +190,8 @@ Lead[^1]
             .Strike("old")
             .Text("and")
             .Highlight("new"));
-        var doc = MarkdownDocument.Create().Add(paragraph);
+        var doc = MarkdownDocument.Create();
+        doc.Add(paragraph);
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -203,7 +205,8 @@ Lead[^1]
         var list = new UnorderedListBlock();
         list.Items.Add(ListItem.Task("Done", done: true));
         list.Items.Add(ListItem.Task("Open"));
-        var doc = MarkdownDocument.Create().Add(list);
+        var doc = MarkdownDocument.Create();
+        doc.Add(list);
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -219,7 +222,8 @@ Lead[^1]
         list.AddEntry(new DefinitionListEntry(
             new InlineSequence().Text("Term"),
             new IMarkdownBlock[] { new ParagraphBlock(new InlineSequence().Text("Definition")) }));
-        var doc = MarkdownDocument.Create().Add(list);
+        var doc = MarkdownDocument.Create();
+        doc.Add(list);
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -231,9 +235,9 @@ Lead[^1]
 
     [Fact]
     public void CommonMark_Write_Profile_Renders_Footnotes_As_Raw_Html() {
-        var doc = MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence().Text("Lead").FootnoteRef("1")))
-            .Add(new FootnoteDefinitionBlock("1", "Footnote text"));
+        var doc = MarkdownDocument.Create();
+        doc.Add(new ParagraphBlock(new InlineSequence().Text("Lead").FootnoteRef("1")));
+        doc.Add(new FootnoteDefinitionBlock("1", "Footnote text"));
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -251,7 +255,8 @@ Lead[^1]
                 new ParagraphBlock(new InlineSequence().Bold("Hidden"))
             },
             open: true);
-        var doc = MarkdownDocument.Create().Add(details);
+        var doc = MarkdownDocument.Create();
+        doc.Add(details);
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -263,11 +268,8 @@ Lead[^1]
 
     [Fact]
     public void CommonMark_Write_Profile_Renders_CustomContainers_As_Raw_Html() {
-        var doc = MarkdownDocument.Create().Add(new CustomContainerBlock(
-            "note",
-            new IMarkdownBlock[] {
-                new ParagraphBlock(new InlineSequence().Text("Body"))
-            }));
+        var doc = MarkdownDocument.Create();
+        doc.Add(new CustomContainerBlock("note", new IMarkdownBlock[] { new ParagraphBlock(new InlineSequence().Text("Body")) }));
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -277,12 +279,8 @@ Lead[^1]
 
     [Fact]
     public void CommonMark_Write_Profile_Escapes_DirectParagraphLineStarts() {
-        var doc = MarkdownDocument.Create().Add(new ParagraphBlock(new InlineSequence()
-            .Text("# not heading")
-            .SoftBreak()
-            .Text("- not list")
-            .SoftBreak()
-            .Text("1. not ordered")));
+        var doc = MarkdownDocument.Create();
+        doc.Add(new ParagraphBlock(new InlineSequence().Text("# not heading").SoftBreak().Text("- not list").SoftBreak().Text("1. not ordered")));
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -310,11 +308,8 @@ Text
 
     [Fact]
     public void CommonMark_Write_Profile_Renders_NonCommonMark_Inlines_As_Raw_Html() {
-        var scalarDoc = MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence()
-                .Inserted("added")
-                .Superscript("up")
-                .Subscript("down")));
+        var scalarDoc = MarkdownDocument.Create();
+        scalarDoc.Add(new ParagraphBlock(new InlineSequence().Inserted("added").Superscript("up").Subscript("down")));
 
         var scalarMarkdown = scalarDoc.ToMarkdown(MarkdownSaveOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -384,7 +379,8 @@ Text
         parentItem.NestedBlocks.Add(childList);
         var outerList = new UnorderedListBlock();
         outerList.Items.Add(parentItem);
-        var doc = MarkdownDocument.Create().Add(outerList);
+        var doc = MarkdownDocument.Create();
+        doc.Add(outerList);
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -427,9 +423,9 @@ HTML text
         table.Headers.Add("Name");
         table.Headers.Add("Value");
         table.Rows.Add(new[] { "Area", "Markdown" });
-        var doc = MarkdownDocument.Create()
-            .Add(new ImageBlock("https://example.com/logo.png", "Logo", width: 256, height: 128))
-            .Add(table);
+        var doc = MarkdownDocument.Create();
+        doc.Add(new ImageBlock("https://example.com/logo.png", "Logo", width: OfficeIMO.OfficeLength.Pixels(256), height: OfficeIMO.OfficeLength.Pixels(128)));
+        doc.Add(table);
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateGitHubFlavoredMarkdownProfile()).Replace("\r\n", "\n").Trim();
 
@@ -441,13 +437,8 @@ HTML text
 
     [Fact]
     public void GitHubFlavoredMarkdown_Write_Profile_Renders_OfficeOnly_Inlines_As_Raw_Html() {
-        var doc = MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence()
-                .Strike("old")
-                .Highlight("new")
-                .Inserted("added")
-                .Superscript("up")
-                .Subscript("down")));
+        var doc = MarkdownDocument.Create();
+        doc.Add(new ParagraphBlock(new InlineSequence().Strike("old").Highlight("new").Inserted("added").Superscript("up").Subscript("down")));
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateGitHubFlavoredMarkdownProfile()).Replace("\r\n", "\n").Trim();
 
@@ -460,10 +451,8 @@ HTML text
 
     [Fact]
     public void GitHubFlavoredMarkdown_Write_Profile_Escapes_DirectParagraphLineStarts() {
-        var doc = MarkdownDocument.Create().Add(new ParagraphBlock(new InlineSequence()
-            .Text("# not heading")
-            .SoftBreak()
-            .Text("- not list")));
+        var doc = MarkdownDocument.Create();
+        doc.Add(new ParagraphBlock(new InlineSequence().Text("# not heading").SoftBreak().Text("- not list")));
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateGitHubFlavoredMarkdownProfile()).Replace("\r\n", "\n").Trim();
 
@@ -476,13 +465,9 @@ HTML text
         definitionList.AddEntry(new DefinitionListEntry(
             new InlineSequence().Text("Term"),
             new IMarkdownBlock[] { new ParagraphBlock(new InlineSequence().Text("Definition")) }));
-        var doc = MarkdownDocument.Create()
-            .Add(new CustomContainerBlock(
-                "note",
-                new IMarkdownBlock[] {
-                    new ParagraphBlock(new InlineSequence().Text("Body"))
-                }))
-            .Add(definitionList);
+        var doc = MarkdownDocument.Create();
+        doc.Add(new CustomContainerBlock("note", new IMarkdownBlock[] { new ParagraphBlock(new InlineSequence().Text("Body")) }));
+        doc.Add(definitionList);
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateGitHubFlavoredMarkdownProfile()).Replace("\r\n", "\n").Trim();
 
@@ -599,16 +584,8 @@ HTML text
 
     [Fact]
     public void Html_Image_Profile_Renders_Linked_Image_Blocks_As_Raw_Html() {
-        var doc = MarkdownDocument.Create()
-            .Add(new ImageBlock(
-                "https://example.com/logo.png",
-                "Logo",
-                "Example",
-                width: 256,
-                height: 128,
-                linkUrl: "https://example.com/docs",
-                linkTitle: "Documentation",
-                linkTarget: "_blank"));
+        var doc = MarkdownDocument.Create();
+        doc.Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", width: OfficeIMO.OfficeLength.Pixels(256), height: OfficeIMO.OfficeLength.Pixels(128), linkUrl: "https://example.com/docs", linkTitle: "Documentation", linkTarget: "_blank"));
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateHtmlImageProfile()).Replace("\r\n", "\n").Trim();
 
@@ -940,15 +917,8 @@ HTML text
 
     [Fact]
     public void Markdown_Writer_Lengthens_Custom_Container_Fence_Around_Nested_Custom_Container() {
-        var document = MarkdownDocument.Create().Add(new CustomContainerBlock(
-            "outer",
-            new IMarkdownBlock[] {
-                new CustomContainerBlock(
-                    "inner",
-                    new IMarkdownBlock[] {
-                        new ParagraphBlock(new InlineSequence().Text("hello"))
-                    })
-            }));
+        var document = MarkdownDocument.Create();
+        document.Add(new CustomContainerBlock("outer", new IMarkdownBlock[] { new CustomContainerBlock("inner", new IMarkdownBlock[] { new ParagraphBlock(new InlineSequence().Text("hello")) }) }));
 
         var written = document.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" }).TrimEnd();
 
@@ -975,9 +945,8 @@ HTML text
             }));
         var list = new UnorderedListBlock();
         list.Items.Add(item);
-        var document = MarkdownDocument.Create().Add(new CustomContainerBlock(
-            "outer",
-            new IMarkdownBlock[] { list }));
+        var document = MarkdownDocument.Create();
+        document.Add(new CustomContainerBlock("outer", new IMarkdownBlock[] { list }));
 
         var written = document.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" }).TrimEnd();
 
@@ -1004,9 +973,9 @@ HTML text
         list.Items.Add(labelItem);
         list.Items.Add(ListItem.Text("[ref]: https://example.com"));
 
-        var written = MarkdownDocument.Create()
-            .Add(list)
-            .ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" })
+        using var document = MarkdownDocument.Create();
+        document.Add(list);
+        var written = document.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" })
             .TrimEnd();
 
         Assert.Equal("- Formula:\n\n  Unsupported Word content: equation\n- \\[ref\\]&#58; https://example.com", written);

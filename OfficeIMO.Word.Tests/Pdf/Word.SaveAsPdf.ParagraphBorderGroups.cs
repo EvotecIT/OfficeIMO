@@ -34,8 +34,8 @@ public partial class Word {
         foreach (WordParagraph paragraph in new[] { ordinary, special }) {
             ConfigureAsymmetricBorderParagraph(paragraph);
             ConfigureMatchingParagraphBorders(paragraph, "box");
-            paragraph.IndentationBeforePoints = 0;
-            paragraph.IndentationHangingPoints = 0;
+            paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Zero;
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica"
@@ -70,7 +70,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica",
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(360, 300), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(30)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(300)), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToArray();
@@ -181,8 +181,8 @@ public partial class Word {
         paragraph.Borders.BottomStyle = shape is "box" or "bottom" or "bottom-right" ? WordBorderStyle.Single : WordBorderStyle.Nil;
         paragraph.Borders.LeftStyle = shape is "box" or "left" or "top-left" ? WordBorderStyle.Single : WordBorderStyle.Nil;
         paragraph.Borders.RightStyle = shape is "box" or "bottom-right" ? WordBorderStyle.Single : WordBorderStyle.Nil;
-        paragraph.Borders.TopSize = paragraph.Borders.BottomSize = paragraph.Borders.LeftSize = paragraph.Borders.RightSize = 8;
-        paragraph.Borders.TopSpace = paragraph.Borders.BottomSpace = paragraph.Borders.LeftSpace = paragraph.Borders.RightSpace = 3;
+        paragraph.Borders.TopSize = paragraph.Borders.BottomSize = paragraph.Borders.LeftSize = paragraph.Borders.RightSize = OfficeLength.Points(1);
+        paragraph.Borders.TopSpace = paragraph.Borders.BottomSpace = paragraph.Borders.LeftSpace = paragraph.Borders.RightSpace = OfficeLength.Points(3);
     }
 
     [Theory]
@@ -202,7 +202,7 @@ public partial class Word {
         ConfigureAsymmetricBorderParagraph(document.AddParagraph("After"));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica",
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(468, 300), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(36)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(468),OfficeIMO.OfficeLength.Points(300)), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(4, pdf.NumberOfPages);
         foreach (var item in new[] { ("First", 1), ("Second", 2), ("Third", 3) }) {
@@ -236,11 +236,11 @@ public partial class Word {
         }
         WordParagraph middle = paragraphs[1];
         switch (variant) {
-            case "first-line": middle.IndentationFirstLinePoints = 18; break;
-            case "hanging": middle.IndentationHangingPoints = 18; break;
+            case "first-line": middle.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(18D); break;
+            case "hanging": middle.IndentationHanging = global::OfficeIMO.OfficeLength.Points(18D); break;
             case "font": middle.FontFamily = "Times New Roman"; break;
-            case "left": middle.IndentationBeforePoints = 18; break;
-            case "right": middle.IndentationAfterPoints = 18; break;
+            case "left": middle.IndentationBefore = global::OfficeIMO.OfficeLength.Points(18D); break;
+            case "right": middle.IndentationAfter = global::OfficeIMO.OfficeLength.Points(18D); break;
             case "between-space": middle._paragraph.ParagraphProperties!.ParagraphBorders!.BetweenBorder!.Space = 0; break;
             case "frame":
             case "auto-color":

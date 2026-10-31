@@ -66,7 +66,7 @@ internal static class ConversionApiCompileContract {
         OdpPresentation odp,
         OdgDocument odg,
         PdfDocument pdf,
-        PowerPointPresentation powerPoint,
+        PowerPointDocument powerPoint,
         PublisherDocument publisher,
         RtfDocument rtf,
         RtfReadResult rtfRead,
@@ -125,9 +125,9 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToHtml(word);
         _ = OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWord(html);
         _ = OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.ToHtmlResult(powerPoint);
-        _ = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointPresentationResult(html);
+        _ = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointDocumentResult(html);
         _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionExtensions.ToOpenDocumentResult(powerPoint);
-        _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionExtensions.ToPowerPointPresentationResult(odp);
+        _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionExtensions.ToPowerPointDocumentResult(odp);
         _ = OfficeIMO.OneNote.Markdown.OneNoteMarkdownConverterExtensions.ToMarkdownDocumentResult(oneNote);
         _ = OfficeIMO.OneNote.Html.OneNoteHtmlConverterExtensions.ToHtmlDocumentResult(oneNote);
         _ = OfficeIMO.OneNote.Html.HtmlOneNoteConverterExtensions.ToOneNoteSectionResult(html);
@@ -200,11 +200,23 @@ internal static class ConversionApiCompileContract {
             CsvDocument.WriteDataReader(csvOutput, dbf);
         }
         using (DbfDataReader dbf = DbfDataReader.Open(source)) {
-            _ = ExcelDocument.WriteDataReader(stream, dbf);
+            var destination1 = stream;
+
+            var writeOptions1 = new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                _ = workbookWriter1.WriteTable(writeOptions1.SheetName, dbf);
+            }
+
+            if (destination1.CanSeek)
+                destination1.Position = 0;
         }
         _ = OfficeIMO.Markup.Word.OfficeMarkupWordConverterExtensions.ToWordDocumentResult(officeMarkup);
         _ = OfficeIMO.Markup.Excel.OfficeMarkupExcelConverterExtensions.ToExcelDocumentResult(officeMarkup);
-        _ = OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConverterExtensions.ToPowerPointPresentationResult(officeMarkup);
+        _ = OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConverterExtensions.ToPowerPointDocumentResult(officeMarkup);
 
         // Every cataloged image source compiles against the same five-format owner
         // contract. Runtime tests enumerate PNG, SVG, JPEG, TIFF, and WebP.
@@ -220,6 +232,6 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.Word.OpenDocument.WordOpenDocumentImageExportExtensions.ExportImages(odt, imageFormat);
         _ = OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentImageExportExtensions.ExportImages(ods, imageFormat);
         _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentImageExportExtensions.ExportImages(odp, imageFormat);
-        _ = pdf.Render.ExportImages(imageFormat);
+        _ = pdf.ExportImages(new PdfImageExportOptions { Format = imageFormat }, out _);
     }
 }

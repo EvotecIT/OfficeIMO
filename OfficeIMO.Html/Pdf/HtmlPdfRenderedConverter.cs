@@ -317,7 +317,7 @@ internal static partial class HtmlPdfRenderedConverter {
         // Layout and paint use the same library-selected compatibility faces. Source-selected
         // host fonts remain subject to the separate document-font permission below.
         ApplyLibraryDefaultFontEmbedding(options, documentOptions);
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(documentOptions);
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.CreateForImportedLayout(documentOptions);
         var mathMlFiles = new HtmlPdfMathMlFiles(options.MathMlSourceModificationDate);
         pdf.Options.ReportDiagnosticsTo(conversionReport, "OfficeIMO.Html.Pdf");
         if (rendered.Metadata.Title != null
@@ -401,14 +401,14 @@ internal static partial class HtmlPdfRenderedConverter {
             double pageWidth = renderedPage.Width * PointsPerCssPixel * printLayoutScale;
             double pageHeight = renderedPage.Height * PointsPerCssPixel * printLayoutScale;
             pdf.Page(page => {
-                page.Size(pageWidth, pageHeight)
-                    .Margin(0D);
+                page.Size(global::OfficeIMO.OfficeLength.Points(pageWidth), global::OfficeIMO.OfficeLength.Points(pageHeight))
+                    .Margin(global::OfficeIMO.OfficeLength.Points(0D));
                 if (renderedPage.PrintProduction != null) {
                     double trimInset = renderedPage.PrintProduction.TrimInset * PointsPerCssPixel * printLayoutScale;
                     double bleedInset = renderedPage.PrintProduction.BleedInset * PointsPerCssPixel * printLayoutScale;
                     page.PrintProductionPageBoxes(new PdfCore.PdfPrintProductionPageBoxes(
-                        PdfCore.PdfPageMargins.Uniform(trimInset),
-                        PdfCore.PdfPageMargins.Uniform(bleedInset)));
+                        PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(trimInset)),
+                        PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(bleedInset))));
                 }
                 page.Canvas(canvas => {
                     // The retained HTML surface already clips its paint at the page edge.
@@ -537,8 +537,8 @@ internal static partial class HtmlPdfRenderedConverter {
         } else if (visual is HtmlRenderNamedDestination destination) {
             canvas.NamedDestination(
                 MapNamedDestination(destination.Name),
-                destination.X * PointsPerCssPixel,
-                destination.Y * PointsPerCssPixel);
+                global::OfficeIMO.OfficeLength.Points(destination.X * PointsPerCssPixel),
+                global::OfficeIMO.OfficeLength.Points(destination.Y * PointsPerCssPixel));
         } else if (visual is HtmlRenderImage image) {
             try {
                 if (!AddImage(canvas, image, imageResources, pagePaint?.Covers(image) == true)) {
@@ -597,13 +597,13 @@ internal static partial class HtmlPdfRenderedConverter {
 
         var style = new PdfCore.PdfFormFieldStyle {
             LogicalOrder = field.SemanticSourceOrder,
-            BackgroundColor = field.BackgroundColor.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(field.BackgroundColor.Value) : null,
-            BorderColor = field.BorderColor.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(field.BorderColor.Value) : null,
-            BorderWidth = field.BorderWidth * PointsPerCssPixel,
+            BackgroundColor = field.BackgroundColor.HasValue ? (field.BackgroundColor.Value.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.BackgroundColor.Value) : null,
+            BorderColor = field.BorderColor.HasValue ? (field.BorderColor.Value.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.BorderColor.Value) : null,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(field.BorderWidth * PointsPerCssPixel),
             BorderStyle = field.BorderStyle == "dashed" ? PdfCore.PdfFormFieldBorderStyle.Dashed : PdfCore.PdfFormFieldBorderStyle.Solid,
-            CornerRadius = field.CornerRadius * PointsPerCssPixel,
-            TextColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.TextColor) ?? PdfCore.PdfColor.Black,
-            MarkColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.TextColor) ?? PdfCore.PdfColor.Black,
+            CornerRadius = global::OfficeIMO.OfficeLength.Points(field.CornerRadius * PointsPerCssPixel),
+            TextColor = (field.TextColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.TextColor) ?? global::OfficeIMO.OfficeColor.Black,
+            MarkColor = (field.TextColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.TextColor) ?? global::OfficeIMO.OfficeColor.Black,
             IsReadOnly = field.IsReadOnly,
             IsNoExport = field.IsDisabled || field.MappingName.Length == 0,
             IsRequired = field.IsRequired,
@@ -626,16 +626,16 @@ internal static partial class HtmlPdfRenderedConverter {
                 canvas.TextFieldWithInitialAppearance(field.Name, string.Empty, maskedValue, x, y, width, height, fontSize, style, style);
             } else if (field.Value.Length == 0 && field.Placeholder.Length > 0) {
                 PdfCore.PdfFormFieldStyle appearanceStyle = style.Clone();
-                appearanceStyle.TextColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.PlaceholderTextColor) ?? PdfCore.PdfColor.Black;
+                appearanceStyle.TextColor = (field.PlaceholderTextColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.PlaceholderTextColor) ?? global::OfficeIMO.OfficeColor.Black;
                 canvas.TextFieldWithInitialAppearance(field.Name, field.Value, field.Placeholder, x, y, width, height, fontSize, style, appearanceStyle);
             } else {
-                canvas.TextField(field.Name, field.Value, x, y, width, height, fontSize, style);
+                canvas.TextField(field.Name, field.Value, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), global::OfficeIMO.OfficeLength.Points(fontSize), style);
             }
             if (!field.IsPassword && !string.IsNullOrWhiteSpace(field.Value)) {
                 canvas.SearchableText(field.Value, x, y + Math.Min(height, fontSize), logicalOrder: field.SemanticSourceOrder);
             }
         } else if (field.FieldKind == HtmlRenderFormFieldKind.CheckBox) {
-            canvas.CheckBoxWithExportValue(field.Name, field.IsSelected, x, y, width, height, field.RadioOption ?? "Yes", field.Value, style);
+            canvas.CheckBoxWithExportValue(field.Name, field.IsSelected, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), field.RadioOption ?? "Yes", field.Value, style);
         } else if (field.FieldKind == HtmlRenderFormFieldKind.Choice) {
             IReadOnlyList<PdfCore.PdfFormFieldOption> choiceOptions = field.Options
                 .Select((label, index) => new PdfCore.PdfFormFieldOption(
@@ -826,13 +826,13 @@ internal static partial class HtmlPdfRenderedConverter {
         double height = fragment.Height * PointsPerCssPixel;
         if (IsFragmentLink(fragment.LinkUri)) {
             canvas.LinkToNamedDestination(MapNamedDestination(fragment.LinkUri!.Substring(1)),
-                x, y, width, height, fragment.LinkContents);
+                global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), fragment.LinkContents);
             return;
         }
         OfficeShape area = OfficeShape.Rectangle(width, height);
         area.FillColor = null;
         area.StrokeColor = null;
-        canvas.Shape(area, x, y, style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: fragment.LinkUri, linkContents: fragment.LinkContents);
+        canvas.Shape(area, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: fragment.LinkUri, linkContents: fragment.LinkContents);
     }
 
     private static void AddShape(
@@ -854,10 +854,10 @@ internal static partial class HtmlPdfRenderedConverter {
         bool fragmentLink = !suppressLink && IsFragmentLink(visual.LinkUri);
         Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(
             drawing,
-            drawingX,
-            drawingY,
-            visual.Width * PointsPerCssPixel,
-            visual.Height * PointsPerCssPixel,
+            global::OfficeIMO.OfficeLength.Points(drawingX),
+            global::OfficeIMO.OfficeLength.Points(drawingY),
+            global::OfficeIMO.OfficeLength.Points(visual.Width * PointsPerCssPixel),
+            global::OfficeIMO.OfficeLength.Points(visual.Height * PointsPerCssPixel),
             style: new PdfCore.PdfDrawingStyle { Decorative = true },
             linkUri: suppressLink || fragmentLink ? null : visual.LinkUri,
             linkContents: suppressLink || visual.LinkUri == null || fragmentLink ? null : visual.Source);
@@ -869,10 +869,10 @@ internal static partial class HtmlPdfRenderedConverter {
         if (fragmentLink) {
             canvas.LinkToNamedDestination(
                 MapNamedDestination(visual.LinkUri!.Substring(1)),
-                visual.X * PointsPerCssPixel,
-                visual.Y * PointsPerCssPixel,
-                visual.Width * PointsPerCssPixel,
-                visual.Height * PointsPerCssPixel,
+                global::OfficeIMO.OfficeLength.Points(visual.X * PointsPerCssPixel),
+                global::OfficeIMO.OfficeLength.Points(visual.Y * PointsPerCssPixel),
+                global::OfficeIMO.OfficeLength.Points(visual.Width * PointsPerCssPixel),
+                global::OfficeIMO.OfficeLength.Points(visual.Height * PointsPerCssPixel),
                 visual.Source);
         }
     }

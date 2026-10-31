@@ -60,8 +60,8 @@ namespace OfficeIMO.Word.Markdown {
             if (run.FontSize.HasValue) return;
             WordParagraphStyles? style = paragraph.Style;
             if (style.HasValue && style.Value != WordParagraphStyles.Normal && style.Value != WordParagraphStyles.ListParagraph) return;
-            int bodySize = document.Settings.FontSize ?? DefaultBodyFontSize;
-            run.FontSize = Math.Max(1, (int)Math.Round(bodySize * InlineCodeSizeRatio, MidpointRounding.AwayFromZero));
+            double bodySize = document.Settings.FontSize?.ToPoints() ?? DefaultBodyFontSize;
+            run.FontSize = OfficeLength.Points(Math.Max(1, (int)Math.Round(bodySize * InlineCodeSizeRatio, MidpointRounding.AwayFromZero)));
         }
 
         private static WordParagraph CreateDetachedRun(WordDocument document, string? text, InlineFormatState fmt, string? defaultFont, bool forceMonospace = false) {
@@ -414,7 +414,7 @@ namespace OfficeIMO.Word.Markdown {
                     }
 
                     var anchorLink = _paragraph.AddHyperLink(inline.Text, internalAnchor);
-                    ApplyHyperlinkFormattingOmd(anchorLink, _fmt, _defaultFont, _options);
+                    ApplyHyperlinkFormattingOmd(anchorLink.Paragraph, _fmt, _defaultFont, _options);
                     return;
                 }
 
@@ -435,7 +435,7 @@ namespace OfficeIMO.Word.Markdown {
                         }
                     }
 
-                    var hyperlink = _paragraph.AddHyperLink(inline.Text, uri);
+                    var hyperlink = _paragraph.AddHyperLink(inline.Text, uri).Paragraph;
                     ApplyHyperlinkFormattingOmd(hyperlink, _fmt, _defaultFont, _options);
                 } catch (UriFormatException ex) {
                     _options.OnWarning?.Invoke($"Invalid URI '{inline.Url}' - emitting as text. {ex.Message}");
@@ -457,7 +457,7 @@ namespace OfficeIMO.Word.Markdown {
                     }
 
                     var uri = new Uri(linkUrl, UriKind.RelativeOrAbsolute);
-                    var hyperlink = _paragraph.AddHyperLink(label, uri);
+                    var hyperlink = _paragraph.AddHyperLink(label, uri).Paragraph;
                     ApplyHyperlinkFormattingOmd(hyperlink, _fmt, _defaultFont, _options);
                 } catch (UriFormatException ex) {
                     _options.OnWarning?.Invoke($"Invalid URI '{linkUrl}' - emitting alt text. {ex.Message}");

@@ -73,10 +73,10 @@ internal static partial class PdfWriter {
                     block is HorizontalRuleBlock || block is TextAnnotationBlock || block is FreeTextAnnotationBlock || block is HighlightAnnotationBlock || block is TextFieldBlock || block is CheckBoxBlock ||
                     block is ChoiceFieldBlock || block is RadioButtonGroupBlock || block is ShapeBlock || block is DrawingBlock || block is RowBlock || block is ContainerBlock ||
                     block is TableBlock ordinaryTable && (ordinaryTable.Style ?? currentOpts.DefaultTableStyleSnapshot)?.Position == null ||
-                    block is DeferredTableBlock ordinaryDeferredTable && (ordinaryDeferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot)?.Position == null)) {
+                    block is DeferredTableBlock ordinaryDeferredTable && (ordinaryDeferredTable.Style ?? currentOpts.DefaultDeferredTableStyleSnapshot)?.Position == null)) {
                     double collisionHeight = block is ContainerBlock
-                        ? MeasureWholeBlockHeight(block, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize) ?? GetCurrentFramePageStartY() - currentOpts.MarginBottom
-                        : MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                        ? MeasureWholeBlockHeight(block, currentOpts.MarginLeft.ToPoints(), width, currentOpts.DefaultFontSize.ToPoints()) ?? GetCurrentFramePageStartY() - currentOpts.MarginBottom.ToPoints()
+                        : MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft.ToPoints(), width, currentOpts.DefaultFontSize.ToPoints());
                     AvoidFloatingBlock(Math.Max(1, collisionHeight));
                 }
 
@@ -134,10 +134,10 @@ internal static partial class PdfWriter {
                 if (block is TableBlock table) { RenderTableFlowBlock(table, nextBlock, blockList, blockIndex); continue; }
                 if (block is DeferredTableBlock deferredTable) { RenderDeferredTableFlowBlock(deferredTable, nextBlock, blockList, blockIndex); continue; }
                 if (block is HorizontalRuleBlock horizontalRule) { RenderHorizontalRuleFlowBlock(horizontalRule, nextBlock, blockList, blockIndex); continue; }
-                if (block is TextFieldBlock textField) { RenderTextFieldBlock(textField, currentOpts.MarginLeft, width); continue; }
-                if (block is CheckBoxBlock checkBox) { RenderCheckBoxBlock(checkBox, currentOpts.MarginLeft, width); continue; }
-                if (block is ChoiceFieldBlock choice) { RenderChoiceFieldBlock(choice, currentOpts.MarginLeft, width); continue; }
-                if (block is RadioButtonGroupBlock radioButtonGroup) { RenderRadioButtonGroupBlock(radioButtonGroup, currentOpts.MarginLeft, width); continue; }
+                if (block is TextFieldBlock textField) { RenderTextFieldBlock(textField, currentOpts.MarginLeft.ToPoints(), width); continue; }
+                if (block is CheckBoxBlock checkBox) { RenderCheckBoxBlock(checkBox, currentOpts.MarginLeft.ToPoints(), width); continue; }
+                if (block is ChoiceFieldBlock choice) { RenderChoiceFieldBlock(choice, currentOpts.MarginLeft.ToPoints(), width); continue; }
+                if (block is RadioButtonGroupBlock radioButtonGroup) { RenderRadioButtonGroupBlock(radioButtonGroup, currentOpts.MarginLeft.ToPoints(), width); continue; }
                 if (block is TextAnnotationBlock textAnnotation) { RenderTextAnnotationFlowBlock(textAnnotation); continue; }
                 if (block is FreeTextAnnotationBlock freeTextAnnotation) { RenderFreeTextAnnotationFlowBlock(freeTextAnnotation); continue; }
                 if (block is HighlightAnnotationBlock highlightAnnotation) { RenderHighlightAnnotationFlowBlock(highlightAnnotation); continue; }

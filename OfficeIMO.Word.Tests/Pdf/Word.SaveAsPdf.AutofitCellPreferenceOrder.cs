@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
@@ -20,12 +21,11 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateAutofitPreferenceOrderControl(document);
         WordTableCell cell = table.Rows[1].Cells[column];
-        cell.WidthType = WordTableWidthUnit.Auto;
-        cell.Width = 0;
+        cell.Width = WordTableWidth.Auto;
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = "A";
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddImage(image, "marker.png", pictureWidth * 96D / 72D, 24);
+        paragraph.AddImage(image, "marker.png", OfficeIMO.OfficeLength.Pixels(pictureWidth * 96D / 72D), OfficeIMO.OfficeLength.Pixels(24));
         paragraph.AddText("B");
         ReverseAutofitPreferenceRows(table, reversed);
         string source = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
@@ -52,16 +52,15 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(false, WordTableWidthUnit.Auto)]
-    [InlineData(true, WordTableWidthUnit.Auto)]
-    [InlineData(false, WordTableWidthUnit.Dxa)]
-    [InlineData(true, WordTableWidthUnit.Dxa)]
-    public void SaveAsPdf_AutomaticCellPreferenceRespectsBreakableTextRowOrder(bool reversed, WordTableWidthUnit widthType) {
+    [InlineData(false, WordTableWidthKind.Auto)]
+    [InlineData(true, WordTableWidthKind.Auto)]
+    [InlineData(false, WordTableWidthKind.Length)]
+    [InlineData(true, WordTableWidthKind.Length)]
+    public void SaveAsPdf_AutomaticCellPreferenceRespectsBreakableTextRowOrder(bool reversed, WordTableWidthKind widthType) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateAutofitPreferenceOrderControl(document);
         WordTableCell cell = table.Rows[1].Cells[0];
-        cell.WidthType = widthType;
-        cell.Width = widthType == WordTableWidthUnit.Auto ? 0 : 1600;
+        cell.Width = TableWidthFixture(widthType, widthType == WordTableWidthKind.Auto ? 0 : 1600);
         cell.Paragraphs[0].Text = "Alpha Bravo Charlie Delta";
         ReverseAutofitPreferenceRows(table, reversed);
         string source = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
@@ -76,7 +75,7 @@ public partial class Word {
         var phrase = letters.Skip(start).Take(expected.Length).ToArray();
         Assert.Equal(expected, string.Concat(phrase.Select(letter => letter.Value)));
         int lines = phrase.Select(letter => Math.Round(letter.StartBaseLine.Y, 3)).Distinct().Count();
-        if (!reversed && widthType == WordTableWidthUnit.Auto) Assert.Equal(1, lines);
+        if (!reversed && widthType == WordTableWidthKind.Auto) Assert.Equal(1, lines);
         else Assert.True(lines > 1);
         Assert.Equal(source, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
     }
@@ -88,14 +87,12 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateAutofitPreferenceOrderControl(document);
         WordTableCell automatic = table.Rows[1].Cells[0];
-        automatic.WidthType = WordTableWidthUnit.Auto;
-        automatic.Width = 0;
+        automatic.Width = WordTableWidth.Auto;
         automatic.Paragraphs[0].Text = "Alpha Bravo Charlie Delta";
         table.AddRow();
         table.MergeCells(2, 0, 1, 2, copyParagraphs: false);
         WordTableCell merged = table.Rows[2].Cells[0];
-        merged.WidthType = WordTableWidthUnit.Dxa;
-        merged.Width = table.GridColumnWidth.Sum();
+        merged.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum()) * 635)));
         merged.Paragraphs[0].Text = "MERGED";
         if (automaticLast) {
             W.TableRow[] rows = table._table.Elements<W.TableRow>().ToArray();
@@ -120,7 +117,7 @@ public partial class Word {
         var second = Assert.Single(words, word => word.Text == "M1");
         // Native Word retains automatic single-column growth in either order:
         // an absolute merged cell constrains the span, not each column's frame.
-        Assert.True(second.BoundingBox.Left - first.BoundingBox.Left > table.GridColumnWidth[0] / 20D);
+        Assert.True(second.BoundingBox.Left - first.BoundingBox.Left > table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList()[0] / 20D);
         Assert.Contains("P1", page.Text, StringComparison.Ordinal);
         Assert.Single(words, word => word.Text == "MERGED");
         Assert.Equal(source, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
@@ -132,19 +129,17 @@ public partial class Word {
         for (int row = 0; row < 2; row++)
             for (int column = 0; column < 2; column++) {
                 WordTableCell cell = table.Rows[row].Cells[column];
-                cell.Width = 1600;
-                cell.WidthType = WordTableWidthUnit.Dxa;
-                cell.MarginLeftWidth = cell.MarginRightWidth = 0;
-                cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+                cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1600) * 635)));
+                cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
+                cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
                 WordParagraph paragraph = cell.Paragraphs[0];
                 paragraph.Text = (row == 0 ? "M" : "P") + column;
                 paragraph.FontFamily = "Arial";
-                paragraph.FontSize = 12;
-                paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
-                paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-                paragraph.LineSpacing = 240;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+                paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
             }
-        table.GridColumnWidth = new List<int> { 1600, 1600 };
+        table.GridColumnWidth = new List<int> { 1600, 1600 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         return table;
     }
 

@@ -11,10 +11,10 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(2, columns);
         WordSection section = document.Sections[0];
-        long textWidth = section.PageSettings.Width!.Value - (long)section.Margins.Left - section.Margins.Right;
+        long textWidth = (section.PageSettings.Width!.Value - section.Margins.Left!.Value - section.Margins.Right!.Value).ToTwips();
 
-        int total = table.GridColumnWidth.Sum();
+        long total = table.GridColumnWidth.Sum(width => width.ToTwips());
         Assert.InRange(total, textWidth - columns, textWidth);
-        Assert.All(table.Rows[0].Cells, cell => Assert.Equal(table.GridColumnWidth[0], cell.Width));
+        Assert.All(table.Rows[0].Cells, cell => Assert.Equal(WordTableWidth.Length(table.GridColumnWidth[0]), cell.Width));
     }
 }

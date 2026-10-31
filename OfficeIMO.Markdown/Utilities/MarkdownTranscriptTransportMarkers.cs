@@ -13,7 +13,7 @@ using System;
 /// Strip transport markers before export or downstream rendering, then pass the result into
 /// <see cref="MarkdownTranscriptPreparation.PrepareIntelligenceXTranscriptForExport(string?)"/>.
 /// </example>
-public static class MarkdownTranscriptTransportMarkers {
+internal static class MarkdownTranscriptTransportMarkers {
     /// <summary>
     /// Removes the cached-evidence transport marker emitted in IntelligenceX transcript flows while preserving
     /// surrounding content and line-ending style.

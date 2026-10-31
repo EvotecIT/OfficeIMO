@@ -20,7 +20,7 @@ public partial class Word {
             document.AddParagraph("Body");
         } else paragraph = document.AddParagraph("Before");
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddImage(image, "inline.png", 16, 32);
+        paragraph.AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));
         paragraph.AddText("After");
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
@@ -37,11 +37,11 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(sourcePath);
         WordParagraph paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "Before";
-        paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = 240;
+        paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        (mixedRun ? paragraph : paragraph.AddText(string.Empty)).AddImage(image, "inline.png", 16, 32, description: "Inline marker");
+        (mixedRun ? paragraph : paragraph.AddText(string.Empty)).AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { Description = "Inline marker" });
         paragraph.AddText("After");
         document.Save();
         string originalXml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
@@ -68,7 +68,7 @@ public partial class Word {
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         if (nested) cell = cell.AddTable(1, 1).Rows[0].Cells[0];
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        cell.Paragraphs[0].AddImage(image, "inline.png", 16, 32);
+        cell.Paragraphs[0].AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var picture = Assert.Single(pdf.GetPages().SelectMany(page => page.GetImages()));
         Assert.Equal(12D, picture.BoundingBox.Width, 3);
@@ -83,7 +83,7 @@ public partial class Word {
         WordParagraph paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "Before";
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddImage(image, "inline.png", 16, 32);
+        paragraph.AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));
         W.Run resultRun = paragraph._run!;
         W.Drawing drawing = resultRun.GetFirstChild<W.Drawing>()!;
         var instructionDrawing = (W.Drawing)drawing.CloneNode(true);
@@ -121,15 +121,15 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1);
         // A narrow authored column makes the cell wrap at the second picture.
-        table.GridColumnWidth = new List<int> { 2400 };
-        table.Rows[0].Cells[0].Width = 2400;
+        table.GridColumnWidth = new List<OfficeLength> { OfficeLength.Points(120) };
+        table.Rows[0].Cells[0].Width = WordTableWidth.Length(OfficeLength.Points(120));
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "Before";
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.Bold = true;
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        paragraph.AddImage(image, "inline.png", 16, 32);
+        paragraph.AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));
         W.Drawing second = (W.Drawing)paragraph._run!.GetFirstChild<W.Drawing>()!.CloneNode(true);
         second.Inline!.DocProperties!.Id = 2;
         paragraph._run.Append(new W.Text("Middle"), second, new W.Text("After"));
@@ -175,13 +175,13 @@ public partial class Word {
         if (contentControl) {
             string imagePath = Path.Combine(_directoryWithFiles, "hidden.png");
             File.WriteAllBytes(imagePath, bytes);
-            paragraph.AddPictureControl(imagePath, 16, 32);
+            paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(16), OfficeLength.Pixels(32));
             var pictureRun = paragraph._paragraph!.Descendants<W.SdtRun>().Single().SdtContentRun!.Elements<W.Run>().Single();
             pictureRun.RunProperties ??= new W.RunProperties();
             pictureRun.RunProperties.Vanish = new W.Vanish();
         } else {
             using var image = new MemoryStream(bytes);
-            paragraph.AddImage(image, "hidden.png", 16, 32);
+            paragraph.AddImage(image, "hidden.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));
             paragraph._run!.Append(new W.Text("HiddenAfter"));
         }
         paragraph._run!.RunProperties ??= new W.RunProperties();

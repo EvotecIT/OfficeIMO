@@ -6,10 +6,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Layout owns the frame geometry; the caller's native figure and its parts remain intact.</summary>
         private static void ArrangeNativeFigure(PowerPointSlide slide, PowerPointShape figure, PowerPointLayoutRect box) {
             slide.AdoptLayoutShape(figure);
-            figure.Left = PowerPointUnits.FromPoints(box.X);
-            figure.Top = PowerPointUnits.FromPoints(box.Y);
-            figure.Width = PowerPointUnits.FromPoints(box.Width);
-            figure.Height = PowerPointUnits.FromPoints(box.Height);
+            figure.Left = OfficeLength.Points(box.X);
+            figure.Top = OfficeLength.Points(box.Y);
+            figure.Width = OfficeLength.Points(box.Width);
+            figure.Height = OfficeLength.Points(box.Height);
         }
 
         private static PowerPointLayoutChart CopyRepeatedNativeChart(PowerPointLayoutChart chart) =>

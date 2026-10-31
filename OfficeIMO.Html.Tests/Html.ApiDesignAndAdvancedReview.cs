@@ -175,7 +175,7 @@ public partial class Html {
             diagnostic.Code == "document-head-metadata-omitted-for-fragment");
 
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorksheet("Data").CellValue(1, 1, "Value");
+        workbook.AddSheet("Data").CellValue(1, 1, "Value");
         ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateSemanticTablesProfile();
         excelOptions.Title = "Packed review";
         excelOptions.Language = "pl-PL";
@@ -201,14 +201,14 @@ public partial class Html {
         Assert.Contains("class=\"officeimo-html officeimo-word-html customer-shell\"", word.ToHtml(wordOptions), StringComparison.Ordinal);
 
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorksheet("Data").CellValue(1, 1, "Excel");
+        workbook.AddSheet("Data").CellValue(1, 1, "Excel");
         ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateSemanticTablesProfile();
         excelOptions.DocumentOutput.BodyClass = "customer-shell";
         Assert.Contains("<body class=\"officeimo-html officeimo-excel-html customer-shell\"", workbook.ToHtml(excelOptions), StringComparison.Ordinal);
 
         string presentationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(presentationPath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(presentationPath);
             presentation.AddSlide().AddTextBox("PowerPoint");
             PowerPointHtmlSaveOptions powerPointOptions = PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile();
             powerPointOptions.DocumentOutput.BodyClass = "customer-shell";
@@ -252,12 +252,12 @@ public partial class Html {
             "iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII=");
         using var imageStream = new MemoryStream(pixels);
         WordParagraph paragraph = document.AddParagraph();
-        paragraph.AddImage(imageStream, "floating.png", 48, 36, WordImageTextWrapping.Square, "Floating marker");
+        paragraph.AddImage(imageStream, "floating.png", OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(36), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, Description = "Floating marker" });
         WordImage image = Assert.IsType<WordImage>(paragraph.Image);
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-        image.HorizontalPositionOffset = 914400;
-        image.VerticalPositionOffset = 457200;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(914400);
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(457200);
         image.Rotation = 15;
         image.LuminanceBrightness = 20;
 
@@ -413,16 +413,18 @@ public partial class Html {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using ExcelDocument document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, "East");
             sheet.CellValue(2, 2, 10);
             sheet.CellValue(3, 1, "West");
             sheet.CellValue(3, 2, 12);
-            sheet.AddPivotTable("A1:B3", "D2", "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") });
+            sheet.AddPivotTable("A1:B3", "D2", options: new ExcelPivotTableOptions {
+                Name = "SalesPivot",
+                RowFields = new[] { "Region" },
+                DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") }
+            });
 
             HtmlTextConversionResult result = document.ToHtmlResult(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
             string html = result.Value;
@@ -445,7 +447,7 @@ public partial class Html {
     public void PowerPointHtmlReview_ExposesMastersSmartArtMediaPosterAndStaticPolicy() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(path);
+            using PowerPointDocument presentation = PowerPointDocument.Create(path);
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddSmartArt(PowerPointSmartArtType.BasicProcess, new[] { "Discover", "Convert", "Review" });
             PowerPointMedia media = slide.AddLinkedVideo(new Uri("https://example.test/review-video.mp4"));

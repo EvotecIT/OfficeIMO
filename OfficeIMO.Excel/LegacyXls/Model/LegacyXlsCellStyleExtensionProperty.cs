@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes one XFExt formatting property extension preserved from a BIFF style extension record.
     /// </summary>
-    public sealed class LegacyXlsCellStyleExtensionProperty {
+    internal sealed class LegacyXlsCellStyleExtensionProperty {
         internal LegacyXlsCellStyleExtensionProperty(
             int index,
             ushort propertyType,

@@ -195,9 +195,9 @@ namespace OfficeIMO.PowerPoint {
         public int? NumberingStartAt => Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>()?.StartAt?.Value;
 
         /// <summary>
-        /// Gets or sets paragraph indentation in points.
+        /// Gets or sets paragraph indentation as a physical length.
         /// </summary>
-        public double? IndentPoints {
+        public global::OfficeIMO.OfficeLength? Indent {
             get => FromTextCoordinate(Paragraph.ParagraphProperties?.Indent?.Value);
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
@@ -206,9 +206,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets paragraph left margin in points.
+        /// Gets or sets paragraph left margin as a physical length.
         /// </summary>
-        public double? LeftMarginPoints {
+        public global::OfficeIMO.OfficeLength? LeftMargin {
             get => FromTextCoordinate(Paragraph.ParagraphProperties?.LeftMargin?.Value);
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
@@ -217,76 +217,37 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets indentation in points and returns the paragraph for chaining.
+        /// Sets indentation and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetIndentPoints(double points) {
-            IndentPoints = points;
+        public PowerPointParagraph SetIndent(global::OfficeIMO.OfficeLength value) {
+            Indent = value;
             return this;
         }
 
         /// <summary>
-        /// Sets indentation in centimeters and returns the paragraph for chaining.
+        /// Sets left margin and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetIndentCm(double centimeters) {
-            return SetIndentPoints(PointsFromCentimeters(centimeters));
-        }
-
-        /// <summary>
-        /// Sets indentation in inches and returns the paragraph for chaining.
-        /// </summary>
-        public PowerPointParagraph SetIndentInches(double inches) {
-            return SetIndentPoints(PointsFromInches(inches));
-        }
-
-        /// <summary>
-        /// Sets left margin in points and returns the paragraph for chaining.
-        /// </summary>
-        public PowerPointParagraph SetLeftMarginPoints(double points) {
-            LeftMarginPoints = points;
+        public PowerPointParagraph SetLeftMargin(global::OfficeIMO.OfficeLength value) {
+            LeftMargin = value;
             return this;
         }
 
         /// <summary>
-        /// Sets left margin in centimeters and returns the paragraph for chaining.
+        /// Sets a hanging indent and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetLeftMarginCm(double centimeters) {
-            return SetLeftMarginPoints(PointsFromCentimeters(centimeters));
-        }
-
-        /// <summary>
-        /// Sets left margin in inches and returns the paragraph for chaining.
-        /// </summary>
-        public PowerPointParagraph SetLeftMarginInches(double inches) {
-            return SetLeftMarginPoints(PointsFromInches(inches));
-        }
-
-        /// <summary>
-        /// Sets a hanging indent in points and returns the paragraph for chaining.
-        /// </summary>
-        public PowerPointParagraph SetHangingPoints(double points) {
-            LeftMarginPoints = points;
-            IndentPoints = -points;
+        public PowerPointParagraph SetHanging(global::OfficeIMO.OfficeLength value) {
+            int margin = checked((int)value.ToEmus());
+            int indent = checked(-margin);
+            A.ParagraphProperties props = EnsureParagraphProperties();
+            props.LeftMargin = margin;
+            props.Indent = indent;
             return this;
         }
 
         /// <summary>
-        /// Sets a hanging indent in centimeters and returns the paragraph for chaining.
+        /// Gets or sets line spacing as a physical length.
         /// </summary>
-        public PowerPointParagraph SetHangingCm(double centimeters) {
-            return SetHangingPoints(PointsFromCentimeters(centimeters));
-        }
-
-        /// <summary>
-        /// Sets a hanging indent in inches and returns the paragraph for chaining.
-        /// </summary>
-        public PowerPointParagraph SetHangingInches(double inches) {
-            return SetHangingPoints(PointsFromInches(inches));
-        }
-
-        /// <summary>
-        /// Gets or sets line spacing in points.
-        /// </summary>
-        public double? LineSpacingPoints {
+        public global::OfficeIMO.OfficeLength? LineSpacing {
             get => FromSpacingPoints(Paragraph.ParagraphProperties?.LineSpacing?.SpacingPoints?.Val?.Value);
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
@@ -314,10 +275,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets line spacing in points and returns the paragraph for chaining.
+        /// Sets line spacing and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetLineSpacingPoints(double points) {
-            LineSpacingPoints = points;
+        public PowerPointParagraph SetLineSpacing(global::OfficeIMO.OfficeLength value) {
+            LineSpacing = value;
             return this;
         }
 
@@ -330,9 +291,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets space before the paragraph in points.
+        /// Gets or sets space before the paragraph as a physical length.
         /// </summary>
-        public double? SpaceBeforePoints {
+        public global::OfficeIMO.OfficeLength? SpaceBefore {
             get => FromSpacingPoints(Paragraph.ParagraphProperties?.SpaceBefore?.SpacingPoints?.Val?.Value);
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
@@ -345,17 +306,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets space before the paragraph in points and returns the paragraph for chaining.
+        /// Sets space before the paragraph and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetSpaceBeforePoints(double points) {
-            SpaceBeforePoints = points;
+        public PowerPointParagraph SetSpaceBefore(global::OfficeIMO.OfficeLength value) {
+            SpaceBefore = value;
             return this;
         }
 
         /// <summary>
-        /// Gets or sets space after the paragraph in points.
+        /// Gets or sets space after the paragraph as a physical length.
         /// </summary>
-        public double? SpaceAfterPoints {
+        public global::OfficeIMO.OfficeLength? SpaceAfter {
             get => FromSpacingPoints(Paragraph.ParagraphProperties?.SpaceAfter?.SpacingPoints?.Val?.Value);
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
@@ -368,10 +329,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets space after the paragraph in points and returns the paragraph for chaining.
+        /// Sets space after the paragraph and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetSpaceAfterPoints(double points) {
-            SpaceAfterPoints = points;
+        public PowerPointParagraph SetSpaceAfter(global::OfficeIMO.OfficeLength value) {
+            SpaceAfter = value;
             return this;
         }
 
@@ -412,9 +373,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets the current run font size in points and returns the paragraph for chaining.
+        /// Sets the current run font size and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetFontSize(int size) {
+        public PowerPointParagraph SetFontSize(global::OfficeIMO.OfficeLength size) {
             PowerPointTextRun run = GetDefaultRun();
             run.FontSize = size;
             return this;
@@ -470,19 +431,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the bullet size in points.
+        /// Gets or sets the bullet size as a physical length.
         /// </summary>
-        public int? BulletSizePoints {
+        public global::OfficeIMO.OfficeLength? BulletSize {
             get {
                 int? size = Paragraph.ParagraphProperties?.GetFirstChild<A.BulletSizePoints>()?.Val?.Value;
-                return size != null ? size / 100 : null;
+                return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
             }
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
                 props.RemoveAllChildren<A.BulletSizePoints>();
                 props.RemoveAllChildren<A.BulletSizePercentage>();
                 if (value != null) {
-                    InsertParagraphPropertyChild(props, new A.BulletSizePoints { Val = value.Value * 100 });
+                    InsertParagraphPropertyChild(props, new A.BulletSizePoints { Val = ToSpacingPoints(value.Value) });
                 }
             }
         }
@@ -514,10 +475,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets the bullet size in points and returns the paragraph for chaining.
+        /// Sets the bullet size and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetBulletSizePoints(int sizePoints) {
-            BulletSizePoints = sizePoints;
+        public PowerPointParagraph SetBulletSize(global::OfficeIMO.OfficeLength size) {
+            BulletSize = size;
             return this;
         }
 
@@ -649,22 +610,22 @@ namespace OfficeIMO.PowerPoint {
             return count;
         }
 
-        private static int? ToTextCoordinate(double? points) {
-            return points != null
-                ? checked((int)Math.Round(points.Value * PowerPointUnits.EmusPerPoint))
+        private static int? ToTextCoordinate(global::OfficeIMO.OfficeLength? length) {
+            return length != null
+                ? checked((int)length.Value.ToEmus())
                 : null;
         }
 
-        private static double? FromTextCoordinate(int? value) {
-            return value != null ? value.Value / PowerPointUnits.EmusPerPoint : null;
+        private static global::OfficeIMO.OfficeLength? FromTextCoordinate(int? value) {
+            return value.HasValue ? global::OfficeIMO.OfficeLength.Emus(value.Value) : (global::OfficeIMO.OfficeLength?)null;
         }
 
-        private static int ToSpacingPoints(double points) {
-            return (int)Math.Round(points * 100);
+        private static int ToSpacingPoints(global::OfficeIMO.OfficeLength length) {
+            return (int)Math.Round(length.ToPoints() * 100);
         }
 
-        private static double? FromSpacingPoints(int? value) {
-            return value != null ? value.Value / 100d : null;
+        private static global::OfficeIMO.OfficeLength? FromSpacingPoints(int? value) {
+            return value.HasValue ? global::OfficeIMO.OfficeLength.Points(value.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
         }
 
         private static int ToSpacingPercent(double multiplier) {
@@ -675,14 +636,5 @@ namespace OfficeIMO.PowerPoint {
             return value != null ? value.Value / 100000d : null;
         }
 
-        private static double PointsFromCentimeters(double centimeters) {
-            long emus = PowerPointUnits.FromCentimeters(centimeters);
-            return PowerPointUnits.ToPoints(emus);
-        }
-
-        private static double PointsFromInches(double inches) {
-            long emus = PowerPointUnits.FromInches(inches);
-            return PowerPointUnits.ToPoints(emus);
-        }
     }
 }

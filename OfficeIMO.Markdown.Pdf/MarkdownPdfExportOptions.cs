@@ -11,8 +11,8 @@ public sealed class MarkdownPdfExportOptions {
 
     internal System.Threading.CancellationToken CancellationToken { get; set; }
 
-    private double _defaultImageWidth = 320D;
-    private double _defaultImageHeight = 180D;
+    private global::OfficeIMO.OfficeLength _defaultImageWidth = global::OfficeIMO.OfficeLength.Points(320D);
+    private global::OfficeIMO.OfficeLength _defaultImageHeight = global::OfficeIMO.OfficeLength.Points(180D);
     private int _maximumDataUriImageBytes = 5 * 1024 * 1024;
     private int _maximumRemoteImageBytes = 5 * 1024 * 1024;
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
@@ -139,11 +139,11 @@ public sealed class MarkdownPdfExportOptions {
         }
     }
 
-    /// <summary>Fallback image width in points when Markdown did not provide a width hint.</summary>
-    public double DefaultImageWidth {
+    /// <summary>Fallback image width when Markdown did not provide a width hint.</summary>
+    public global::OfficeIMO.OfficeLength DefaultImageWidth {
         get => _defaultImageWidth;
         set {
-            if (value <= 0 || double.IsNaN(value) || double.IsInfinity(value)) {
+            if (value <= global::OfficeIMO.OfficeLength.Zero) {
                 throw new ArgumentOutOfRangeException(nameof(value), "Default image width must be a positive finite value.");
             }
 
@@ -151,11 +151,11 @@ public sealed class MarkdownPdfExportOptions {
         }
     }
 
-    /// <summary>Fallback image height in points when Markdown did not provide a height hint.</summary>
-    public double DefaultImageHeight {
+    /// <summary>Fallback image height when Markdown did not provide a height hint.</summary>
+    public global::OfficeIMO.OfficeLength DefaultImageHeight {
         get => _defaultImageHeight;
         set {
-            if (value <= 0 || double.IsNaN(value) || double.IsInfinity(value)) {
+            if (value <= global::OfficeIMO.OfficeLength.Zero) {
                 throw new ArgumentOutOfRangeException(nameof(value), "Default image height must be a positive finite value.");
             }
 

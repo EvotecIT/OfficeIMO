@@ -447,7 +447,7 @@ namespace OfficeIMO.Word {
 
             value = formattedValue;
             status = WordFieldUpdateStatus.Updated;
-            message = parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.Mergeformat && fieldFormat != WordFieldFormat.CharFormat)
+            message = parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.MergeFormat && fieldFormat != WordFieldFormat.CharFormat)
                 ? usedNumericFormat
                     ? "Updated from QUOTE numeric literal instruction with deterministic number formatting."
                     : "Updated from QUOTE literal instruction with deterministic text formatting."
@@ -464,12 +464,12 @@ namespace OfficeIMO.Word {
             usedNumericFormat = false;
             WordFieldFormat? format = GetLastMeaningfulFormat(formatSwitches);
             switch (format) {
-                case WordFieldFormat.Roman:
-                case WordFieldFormat.roman:
+                case WordFieldFormat.UpperRoman:
+                case WordFieldFormat.LowerRoman:
                 case WordFieldFormat.Arabic:
                 case WordFieldFormat.Ordinal:
-                case WordFieldFormat.Alphabetical:
-                case WordFieldFormat.ALPHABETICAL:
+                case WordFieldFormat.LowerLetter:
+                case WordFieldFormat.UpperLetter:
                 case WordFieldFormat.Hex:
                 case WordFieldFormat.CardText:
                 case WordFieldFormat.OrdText:
@@ -790,11 +790,11 @@ namespace OfficeIMO.Word {
                     status = WordFieldUpdateStatus.Updated;
                     message = successMessage;
                     return true;
-                case WordFieldFormat.Roman:
-                case WordFieldFormat.roman:
+                case WordFieldFormat.UpperRoman:
+                case WordFieldFormat.LowerRoman:
                 case WordFieldFormat.Ordinal:
-                case WordFieldFormat.Alphabetical:
-                case WordFieldFormat.ALPHABETICAL:
+                case WordFieldFormat.LowerLetter:
+                case WordFieldFormat.UpperLetter:
                 case WordFieldFormat.Hex:
                 case WordFieldFormat.CardText:
                 case WordFieldFormat.OrdText:

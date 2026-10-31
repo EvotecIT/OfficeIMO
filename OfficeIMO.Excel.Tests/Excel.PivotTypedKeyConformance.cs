@@ -3,8 +3,10 @@ using OfficeIMO.Excel;
 using System.Text.Json;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Theory]
         [InlineData(1900, false)]
         [InlineData(1904, false)]
@@ -102,29 +104,51 @@ namespace OfficeIMO.Tests {
             JsonValueKind.False => false,
             _ => null
         };
-
         [Theory]
         [InlineData(ExcelDateSystem.NineteenHundred)]
         [InlineData(ExcelDateSystem.NineteenFour)]
-        public void Test_PivotTypedKeys_TemplateFreePreservesDateFormatsAndDistinctErrors(ExcelDateSystem system) {
+        public void Test_PivotTypedKeys_TemplateFreePreservesDateFormatsAndDistinctErrors(ExcelDateSystem system)
+        {
             using var document = ExcelDocument.Create();
             document.DateSystem = system;
-            var sheet = document.AddWorksheet("Source");
-            sheet.CellValue(1, 1, "Group"); sheet.CellValue(1, 2, "Key"); sheet.CellValue(1, 3, "Amount");
-            var dates = system == ExcelDateSystem.NineteenHundred
-                ? new[] { new DateTime(1900, 1, 1), new DateTime(1900, 2, 28), new DateTime(1900, 3, 1), new DateTime(2024, 1, 1, 12, 0, 0) }
-                : new[] { new DateTime(1904, 1, 1), new DateTime(1904, 2, 28), new DateTime(1904, 3, 1), new DateTime(2024, 1, 1, 12, 0, 0) };
-            for (int index = 0; index < dates.Length; index++) sheet.CellValue(index + 2, 2, dates[index]);
-            sheet.CellError(6, 2, "#DIV/0!"); sheet.CellValue(7, 2, "#DIV/0!");
-            for (int row = 2; row <= 7; row++) { sheet.CellValue(row, 1, "All"); sheet.CellValue(row, 3, (double)row); }
-            sheet.AddPivotTable("A1:C7", "E1", "TypedPivot", rowFields: new[] { "Group", "Key" },
-                dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue") });
+            var sheet = document.AddSheet("Source");
+            sheet.CellValue(1, 1, "Group");
+            sheet.CellValue(1, 2, "Key");
+            sheet.CellValue(1, 3, "Amount");
+            var dates = system == ExcelDateSystem.NineteenHundred ? new[]
+            {
+                new DateTime(1900, 1, 1),
+                new DateTime(1900, 2, 28),
+                new DateTime(1900, 3, 1),
+                new DateTime(2024, 1, 1, 12, 0, 0)
+            }
+
+            : new[]
+            {
+                new DateTime(1904, 1, 1),
+                new DateTime(1904, 2, 28),
+                new DateTime(1904, 3, 1),
+                new DateTime(2024, 1, 1, 12, 0, 0)
+            };
+            for (int index = 0; index < dates.Length; index++)
+                sheet.CellValue(index + 2, 2, dates[index]);
+            sheet.CellError(6, 2, "#DIV/0!");
+            sheet.CellValue(7, 2, "#DIV/0!");
+            for (int row = 2; row <= 7; row++)
+            {
+                sheet.CellValue(row, 1, "All");
+                sheet.CellValue(row, 3, (double)row);
+            }
+
+            sheet.AddPivotTable("A1:C7", "E1", options: new ExcelPivotTableOptions { Name = "TypedPivot", RowFields = new[] { "Group", "Key" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue") } });
             Assert.Equal("E1:G9", sheet.MaterializePivotTable("TypedPivot").OutputRange);
-            for (int index = 0; index < dates.Length; index++) {
+            for (int index = 0; index < dates.Length; index++)
+            {
                 Assert.Equal((double)index + 2, sheet.GetPivotData("TypedPivot", "Revenue", new Dictionary<string, object?> { ["Key"] = dates[index] }).Value);
                 var cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "F" + (index + 2));
                 Assert.True(cell.StyleIndex?.Value > 0);
             }
+
             Assert.Equal(6d, sheet.GetPivotData("TypedPivot", "Revenue", new Dictionary<string, object?> { ["Key"] = new ExcelCellData(ExcelCellDataKind.Error, "#DIV/0!") }).Value);
             Assert.Equal(7d, sheet.GetPivotData("TypedPivot", "Revenue", new Dictionary<string, object?> { ["Key"] = "#DIV/0!" }).Value);
             string output = Path.Combine(_directoryWithFiles, $"TypedKeys{(system == ExcelDateSystem.NineteenHundred ? 1900 : 1904)}.TemplateFree.xlsx");
@@ -134,13 +158,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotTypedKeys_RematerializationUsesCurrentSourceDateStyles() {
+        public void Test_PivotTypedKeys_RematerializationUsesCurrentSourceDateStyles()
+        {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
-            sheet.CellValue(1, 1, "Key"); sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, 1d); sheet.CellValue(2, 2, 7d);
-            sheet.AddPivotTable("A1:B2", "D1", "Pivot", rowFields: new[] { "Key" },
-                dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue") });
+            var sheet = document.AddSheet("Source");
+            sheet.CellValue(1, 1, "Key");
+            sheet.CellValue(1, 2, "Amount");
+            sheet.CellValue(2, 1, 1d);
+            sheet.CellValue(2, 2, 7d);
+            sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions { Name = "Pivot", RowFields = new[] { "Key" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue") } });
             sheet.MaterializePivotTable("Pivot");
             var date = new DateTime(1900, 1, 1);
             sheet.CellValue(2, 1, date);

@@ -38,12 +38,12 @@ namespace OfficeIMO.Word {
         internal WordDrawingLayoutInfo(
             WordDrawingPlacementKind placement,
             string name,
-            double widthPoints,
-            double heightPoints,
+            OfficeLength width,
+            OfficeLength height,
             string? horizontalRelativeFrom,
             string? verticalRelativeFrom,
-            double? horizontalOffsetPoints,
-            double? verticalOffsetPoints,
+            OfficeLength? horizontalOffset,
+            OfficeLength? verticalOffset,
             string? horizontalAlignment,
             string? verticalAlignment,
             bool usesSimplePosition,
@@ -55,12 +55,12 @@ namespace OfficeIMO.Word {
             bool isGroup) {
             Placement = placement;
             Name = name;
-            WidthPoints = widthPoints;
-            HeightPoints = heightPoints;
+            Width = width;
+            Height = height;
             HorizontalRelativeFrom = horizontalRelativeFrom;
             VerticalRelativeFrom = verticalRelativeFrom;
-            HorizontalOffsetPoints = horizontalOffsetPoints;
-            VerticalOffsetPoints = verticalOffsetPoints;
+            HorizontalOffset = horizontalOffset;
+            VerticalOffset = verticalOffset;
             HorizontalAlignment = horizontalAlignment;
             VerticalAlignment = verticalAlignment;
             UsesSimplePosition = usesSimplePosition;
@@ -72,22 +72,28 @@ namespace OfficeIMO.Word {
             IsGroup = isGroup;
         }
 
+        // Point projections are internal conversion/comparison plumbing, not public geometry.
+        internal double WidthPoints => Width.ToPoints();
+        internal double HeightPoints => Height.ToPoints();
+        internal double? HorizontalOffsetPoints => HorizontalOffset?.ToPoints();
+        internal double? VerticalOffsetPoints => VerticalOffset?.ToPoints();
+
         /// <summary>Gets the persisted placement kind.</summary>
         public WordDrawingPlacementKind Placement { get; }
         /// <summary>Gets the producer-supplied non-visual drawing name.</summary>
         public string Name { get; }
-        /// <summary>Gets the persisted frame width in points.</summary>
-        public double WidthPoints { get; }
-        /// <summary>Gets the persisted frame height in points.</summary>
-        public double HeightPoints { get; }
+        /// <summary>Gets the persisted physical frame width.</summary>
+        public OfficeLength Width { get; }
+        /// <summary>Gets the persisted physical frame height.</summary>
+        public OfficeLength Height { get; }
         /// <summary>Gets the horizontal reference token for anchored content.</summary>
         public string? HorizontalRelativeFrom { get; }
         /// <summary>Gets the vertical reference token for anchored content.</summary>
         public string? VerticalRelativeFrom { get; }
-        /// <summary>Gets the explicit horizontal offset in points, when the producer used an offset.</summary>
-        public double? HorizontalOffsetPoints { get; }
-        /// <summary>Gets the explicit vertical offset in points, when the producer used an offset.</summary>
-        public double? VerticalOffsetPoints { get; }
+        /// <summary>Gets the explicit physical horizontal offset, when the producer used an offset.</summary>
+        public OfficeLength? HorizontalOffset { get; }
+        /// <summary>Gets the explicit physical vertical offset, when the producer used an offset.</summary>
+        public OfficeLength? VerticalOffset { get; }
         /// <summary>Gets the horizontal alignment token when the producer used alignment instead of an offset.</summary>
         public string? HorizontalAlignment { get; }
         /// <summary>Gets the vertical alignment token when the producer used alignment instead of an offset.</summary>
@@ -109,15 +115,13 @@ namespace OfficeIMO.Word {
     }
 
     internal static class WordDrawingLayoutReader {
-        private const double EmusPerPoint = 12700D;
-
         internal static bool TryRead(WordDrawing? drawing, out WordDrawingLayoutInfo snapshot) {
             if (drawing?.Inline is DW.Inline inline && inline.Extent?.Cx?.Value is long inlineWidth && inline.Extent.Cy?.Value is long inlineHeight) {
                 snapshot = new WordDrawingLayoutInfo(
                     WordDrawingPlacementKind.Inline,
                     inline.DocProperties?.Name?.Value ?? string.Empty,
-                    inlineWidth / EmusPerPoint,
-                    inlineHeight / EmusPerPoint,
+                    OfficeLength.Emus(inlineWidth),
+                    OfficeLength.Emus(inlineHeight),
                     null,
                     null,
                     null,
@@ -136,17 +140,17 @@ namespace OfficeIMO.Word {
 
             if (drawing?.Anchor is DW.Anchor anchor && anchor.Extent?.Cx?.Value is long anchorWidth && anchor.Extent.Cy?.Value is long anchorHeight) {
                 bool usesSimplePosition = anchor.SimplePos?.Value == true;
-                double? horizontalOffset = usesSimplePosition
-                    ? ReadCoordinatePoints(anchor.SimplePosition?.X?.Value)
-                    : ReadOffsetPoints(anchor.HorizontalPosition?.PositionOffset?.Text);
-                double? verticalOffset = usesSimplePosition
-                    ? ReadCoordinatePoints(anchor.SimplePosition?.Y?.Value)
-                    : ReadOffsetPoints(anchor.VerticalPosition?.PositionOffset?.Text);
+                OfficeLength? horizontalOffset = usesSimplePosition
+                    ? ReadCoordinate(anchor.SimplePosition?.X?.Value)
+                    : ReadOffset(anchor.HorizontalPosition?.PositionOffset?.Text);
+                OfficeLength? verticalOffset = usesSimplePosition
+                    ? ReadCoordinate(anchor.SimplePosition?.Y?.Value)
+                    : ReadOffset(anchor.VerticalPosition?.PositionOffset?.Text);
                 snapshot = new WordDrawingLayoutInfo(
                     WordDrawingPlacementKind.Anchored,
                     anchor.GetFirstChild<DW.DocProperties>()?.Name?.Value ?? string.Empty,
-                    anchorWidth / EmusPerPoint,
-                    anchorHeight / EmusPerPoint,
+                    OfficeLength.Emus(anchorWidth),
+                    OfficeLength.Emus(anchorHeight),
                     usesSimplePosition ? "page" : ReadAttribute(anchor.HorizontalPosition, "relativeFrom"),
                     usesSimplePosition ? "page" : ReadAttribute(anchor.VerticalPosition, "relativeFrom"),
                     horizontalOffset,
@@ -186,13 +190,13 @@ namespace OfficeIMO.Word {
             .Descendants<DocumentFormat.OpenXml.Drawing.GraphicData>()
             .Any(data => data.Uri?.Value?.IndexOf("wordprocessingGroup", StringComparison.OrdinalIgnoreCase) >= 0);
 
-        private static double? ReadOffsetPoints(string? text) =>
+        private static OfficeLength? ReadOffset(string? text) =>
             long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long emu)
-                ? emu / EmusPerPoint
+                ? OfficeLength.Emus(emu)
                 : null;
 
-        private static double? ReadCoordinatePoints(long? emu) =>
-            emu.HasValue ? emu.Value / EmusPerPoint : null;
+        private static OfficeLength? ReadCoordinate(long? emu) =>
+            emu.HasValue ? OfficeLength.Emus(emu.Value) : null;
 
         private static string? ReadAttribute(DocumentFormat.OpenXml.OpenXmlElement? element, string localName) {
             if (element == null) return null;

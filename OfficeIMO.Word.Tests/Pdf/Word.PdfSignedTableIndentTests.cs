@@ -22,13 +22,13 @@ public partial class Word {
         source.AddParagraph("Gap");
         WordTable indented = source.AddTable(1, 1, WordTableStyle.TableGrid);
         Configure(indented, "MarkerNegative");
-        indented.StyleDetails!.TableIndentationWidth = -108;
+        indented.StyleDetails!.TableIndentation = global::OfficeIMO.OfficeLength.Points(-5.4);
         using WordDocument reopened = WordDocument.Load(new MemoryStream(nativeDoc
             ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
-        Assert.Equal((short)-108, reopened.Tables[1].StyleDetails!.TableIndentationWidth);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(-5.4), reopened.Tables[1].StyleDetails!.TableIndentation);
         byte[] bytes = reopened.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(500, 400), Margins = PdfPageMargins.Uniform(40)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         var words = pdf.GetPage(1).GetWords().ToArray();
@@ -38,12 +38,10 @@ public partial class Word {
 
         static void Configure(WordTable table, string marker) {
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.WidthType = WordTableWidthUnit.Dxa;
-            table.Width = 3600;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.Width = 3600;
-            cell.MarginLeftWidth = 0; cell.MarginRightWidth = 0;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero; cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = marker;
         }
     }

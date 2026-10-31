@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Provides built-in ICC profiles used by generated PDF output intents.
 /// </summary>
-public static class PdfIccProfiles {
+internal static class PdfIccProfiles {
     private const string SrgbIec6196621ResourceName = "OfficeIMO.Pdf.Resources.sRGB_IEC61966-2-1_no_black_scaling.icc";
 
     /// <summary>Canonical output condition identifier for the built-in sRGB IEC61966-2.1 profile.</summary>

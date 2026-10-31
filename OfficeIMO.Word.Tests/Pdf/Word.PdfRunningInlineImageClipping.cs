@@ -53,7 +53,7 @@ public partial class Word {
         }
         if (rightTab) {
             TabStop stop = Assert.Single(header.Descendants<TabStop>(), tab => tab.Val?.Value == TabStopValues.Right);
-            double tabTarget = document.Sections[0].Margins.Left / 20D + stop.Position!.Value / 20D;
+            double tabTarget = checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())) / 20D + stop.Position!.Value / 20D;
             Assert.Equal(216D, tabTarget, 3);
             // Right tabs align the advance endpoint, independently of the
             // actual font's ink overhang or the title's measured width.

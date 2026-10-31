@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("MoreFunctions");
+                    ExcelSheet sheet = document.AddSheet("MoreFunctions");
                     sheet.CellValue(1, 2, 2d);
                     sheet.CellValue(2, 2, 3d);
                     sheet.CellValue(1, 3, 1d);
@@ -883,7 +883,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("VariableStdev");
+                    ExcelSheet sheet = document.AddSheet("VariableStdev");
                     sheet.CellValue(1, 1, 1d);
                     sheet.CellFormula(1, 1, "STDEV(1,2,3)");
 
@@ -913,7 +913,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("OmittedRefs");
+                    ExcelSheet sheet = document.AddSheet("OmittedRefs");
                     sheet.CellValue(2, 1, 2d);
                     sheet.CellFormula(2, 1, "ROW()");
                     sheet.CellValue(3, 1, 1d);
@@ -946,7 +946,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("If2");
+                    ExcelSheet sheet = document.AddSheet("If2");
                     sheet.CellValue(1, 1, 5d);
                     sheet.CellValue(2, 1, 10d);
                     sheet.CellFormula(2, 1, "IF(A1>2,10)");

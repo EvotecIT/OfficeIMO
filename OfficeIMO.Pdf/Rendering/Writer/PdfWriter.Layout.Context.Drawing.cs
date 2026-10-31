@@ -6,8 +6,8 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private static PdfColor? ToPdfColor(OfficeIMO.OfficeColor? color) =>
-            color.HasValue ? PdfColor.FromOfficeColorOrNull(color.Value) : null;
+        private static global::OfficeIMO.OfficeColor? ToPdfColor(OfficeIMO.OfficeColor? color) =>
+            color.HasValue ? (color.Value.A == 0 ? (global::OfficeIMO.OfficeColor?)null : color.Value) : null;
 
         private string? EnsureGraphicsState(double fillOpacity, double strokeOpacity, OfficeBlendMode blendMode = OfficeBlendMode.Normal) {
             if (fillOpacity >= 1D && strokeOpacity >= 1D && blendMode == OfficeBlendMode.Normal) {
@@ -49,7 +49,7 @@ internal static partial class PdfWriter {
             var shadow = shape.Shadow;
             if (shadow == null || shadow.Opacity <= 0D || shadow.Color.A == 0) return;
             double coreOpacity = shadow.Opacity * shadow.Color.A / 255D;
-            PdfColor shadowColor = PdfColor.FromRgb(shadow.Color.R, shadow.Color.G, shadow.Color.B);
+            global::OfficeIMO.OfficeColor shadowColor = global::OfficeIMO.OfficeColor.FromRgb(shadow.Color.R, shadow.Color.G, shadow.Color.B);
             double shadowX = xShape + shadow.OffsetX;
             double shadowBottomY = bottomY - shadow.OffsetY;
             ResolveShadowGeometry(shape, out bool hasFill, out bool hasStroke);
@@ -81,7 +81,7 @@ internal static partial class PdfWriter {
 
         private void DrawShapeShadowLayerAt(
             OfficeShape shape,
-            PdfColor color,
+            global::OfficeIMO.OfficeColor color,
             double x,
             double bottomY,
             double strokeWidth,
@@ -142,7 +142,7 @@ internal static partial class PdfWriter {
                     DrawGradientShape(sb, shape, shadingName, xShape, bottomY);
                 }
 
-                PdfColor? fillColor = shadingName == null ? ToPdfColor(shape.FillColor) : null;
+                global::OfficeIMO.OfficeColor? fillColor = shadingName == null ? ToPdfColor(shape.FillColor) : null;
                 if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Line) {
                     pageDirty = true;
                     DrawLine(sb, ToPdfColor(shape.StrokeColor), shape.StrokeWidth, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, xShape, bottomY, shape.Height);
@@ -280,7 +280,7 @@ internal static partial class PdfWriter {
         }
 
         private OfficeTransform ToTopLeftPageTransform(OfficeTransform localTransform, double originX, double originTopY) {
-            double pageTopY = currentOpts.PageHeight - originTopY;
+            double pageTopY = currentOpts.PageHeight.ToPoints() - originTopY;
             return OfficeTransform
                 .Translate(-originX, -pageTopY)
                 .Then(localTransform)
@@ -402,32 +402,32 @@ internal static partial class PdfWriter {
         }
 
         private void RenderShapeBlock(ShapeBlock block, double containerX, double containerWidth) {
-            double frameMarginLeft = currentOpts.MarginLeft;
+            double frameMarginLeft = currentOpts.MarginLeft.ToPoints();
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Shape");
             double spacingBefore = PlaceFixedFlowBlock("Shape", block.Shape.Width, block.Shape.Height,
-                style.SpacingBefore, style.SpacingAfter, ref containerWidth);
+                style.SpacingBefore.ToPoints(), style.SpacingAfter.ToPoints(), ref containerWidth);
             if (spacingBefore > 0) y -= spacingBefore;
             RecordFlowPlacement(y);
-            containerX += currentOpts.MarginLeft - frameMarginLeft;
+            containerX += currentOpts.MarginLeft.ToPoints() - frameMarginLeft;
             int? structElementIndex = DrawShapeAt(block, style, containerX, containerWidth, y);
             AddShapeLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, block.Shape.Width, style.Align), y - block.Shape.Height, block.Shape.Width, block.Shape.Height);
-            y -= block.Shape.Height + style.SpacingAfter;
+            y -= block.Shape.Height + style.SpacingAfter.ToPoints();
         }
 
         private void RenderDrawingBlock(DrawingBlock block, double containerX, double containerWidth) {
-            double frameMarginLeft = currentOpts.MarginLeft;
+            double frameMarginLeft = currentOpts.MarginLeft.ToPoints();
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Drawing");
             var box = PlaceDrawingFlowBlock(block, style, ref containerWidth);
             if (box.SpacingBefore > 0) y -= box.SpacingBefore;
             RecordFlowPlacement(y);
-            containerX += currentOpts.MarginLeft - frameMarginLeft;
+            containerX += currentOpts.MarginLeft.ToPoints() - frameMarginLeft;
             int? structElementIndex = DrawDrawingAt(block, style, containerX, containerWidth, y);
             AddDrawingLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, box.Width, style.Align), y - box.Height, box.Width, box.Height);
-            y -= box.Height + style.SpacingAfter;
+            y -= box.Height + style.SpacingAfter.ToPoints();
         }
 
         private void KeepFixedBlockWithNext(double objectWidth, double objectHeight, double spacingBefore, double spacingAfter,
@@ -439,8 +439,8 @@ internal static partial class PdfWriter {
                     NewBlockFrame();
                     continue;
                 }
-                double nextHeight = MeasureKeepWithNextChainHeight(blocks, blockIndex + 1, currentOpts.MarginLeft,
-                    width, currentOpts.DefaultFontSize, needed);
+                double nextHeight = MeasureKeepWithNextChainHeight(blocks, blockIndex + 1, currentOpts.MarginLeft.ToPoints(),
+                    width, currentOpts.DefaultFontSize.ToPoints(), needed);
                 double keepHeight = needed + nextHeight;
                 if (nextHeight <= .001D || keepHeight > GetMaximumBlockContinuationHeight() + .001D || !ShouldAdvanceForBlockHeight(keepHeight)) break;
                 NewBlockFrame();

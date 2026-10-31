@@ -23,8 +23,8 @@ public sealed partial class DocumentAssistantTests {
             using var raster = new RenderTargetBitmap(new PixelSize(20, 20));
             using (var drawing = raster.CreateDrawingContext()) drawing.DrawRectangle(Brushes.Gray, null, new Rect(0, 0, 20, 20));
             using var png = new MemoryStream(); raster.Save(png, PngBitmapEncoderOptions.Default);
-            var pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = 300, PageHeight = 220, MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24 });
-            pdf.Content.Image(png.ToArray(), 180, 120);
+            var pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(220), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24) });
+            pdf.Content.Image(png.ToArray(), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(120));
             pdf.Content.Paragraph(paragraph => paragraph.Text("Footer 1"));
             bool current = true, opened = false;
             using var model = new DocumentAssistantViewModel(services.AiConnections, _ => new(pdf.ToBytes(), "mixed.pdf", null, () => current),

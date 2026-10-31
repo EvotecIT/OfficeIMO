@@ -15,11 +15,11 @@ public sealed class PdfCanvasImageLifecycleTests {
     public void ClippedEffectImageTokenCannotBeReusedByALaterImage() {
         byte[] bytes = CreateDocument()
             .Canvas(canvas => canvas
-                .Clip(0D, 0D, 10D, 10D, clipped => clipped.Effect(
+                .Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), clipped => clipped.Effect(
                     OfficeTransform.Identity,
                     0.5D,
-                    effect => effect.Image(Png, 40D, 40D, 12D, 12D)))
-                .Image(Png, 20D, 20D, 12D, 12D))
+                    effect => effect.Image(Png, global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(12D))))
+                .Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(12D), global::OfficeIMO.OfficeLength.Points(12D)))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -33,7 +33,7 @@ public sealed class PdfCanvasImageLifecycleTests {
             .Canvas(canvas => canvas.Effect(
                 OfficeTransform.Translate(12D, 7D),
                 0.5D,
-                effect => effect.Table(CreateImageRows(), 20D, 20D, 80D, 50D, CreateTableStyle())))
+                effect => effect.Table(CreateImageRows(), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(50D), CreateTableStyle())))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -64,8 +64,8 @@ public sealed class PdfCanvasImageLifecycleTests {
             OfficePathCommand.Close());
 
         byte[] bytes = CreateDocument()
-            .Canvas(canvas => canvas.Clip(20D, 20D, triangle, clipped =>
-                clipped.Table(CreateImageRows(), 20D, 20D, 100D, 80D, CreateTableStyle(), rotationAngle: 45D)))
+            .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), triangle, clipped =>
+                clipped.Table(CreateImageRows(), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D), CreateTableStyle(), rotationAngle: 45D)))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -78,12 +78,12 @@ public sealed class PdfCanvasImageLifecycleTests {
     }
 
     private static PdfDocument CreateDocument() => PdfDocument.Create(new PdfCreateOptions {
-        PageWidth = 160D,
-        PageHeight = 160D,
-        MarginLeft = 0D,
-        MarginRight = 0D,
-        MarginTop = 0D,
-        MarginBottom = 0D,
+        PageWidth = global::OfficeIMO.OfficeLength.Points(160D),
+        PageHeight = global::OfficeIMO.OfficeLength.Points(160D),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+        MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+        MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
         CompressContentStreams = false
     });
 
@@ -91,14 +91,14 @@ public sealed class PdfCanvasImageLifecycleTests {
         new[] {
             PdfTableCell.WithImages(
                 string.Empty,
-                new[] { new PdfTableCellImage(Png, 20D, 20D) })
+                new[] { new PdfTableCellImage(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D)) })
         }
     };
 
     private static PdfTableStyle CreateTableStyle() => new PdfTableStyle {
-        RowMinHeights = new List<double?> { 80D },
-        CellPaddingX = 6D,
-        CellPaddingY = 6D
+        RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80D) },
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(6D),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D)
     };
 
     private static int CountOccurrences(string value, string pattern) {

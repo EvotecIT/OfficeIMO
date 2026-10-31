@@ -1031,12 +1031,12 @@ namespace OfficeIMO.Tests {
 
             var img = Assert.Single(doc.Images);
             var section = doc.Sections.Last();
-            var contentWidthTwips = (section.PageSettings.Width ?? WordPageSizes.A4.WidthTwips)
-                - section.Margins.Left
-                - section.Margins.Right;
+            var contentWidthTwips = (checked((uint?)(section.PageSettings.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())))
+                - checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips()))
+                - checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()));
             var expectedWidthPixels = contentWidthTwips / 15D * 0.5D;
             Assert.NotNull(img.Width);
-            Assert.InRange(img.Width!.Value, expectedWidthPixels - 0.5D, expectedWidthPixels + 0.5D);
+            Assert.InRange(img.Width!.Value.ToPixels(), expectedWidthPixels - 0.5D, expectedWidthPixels + 0.5D);
         }
 
         [Fact]
@@ -1049,9 +1049,9 @@ namespace OfficeIMO.Tests {
 
             var img = Assert.Single(doc.Images);
             Assert.NotNull(img.Width);
-            Assert.Equal(64D, Math.Round(img.Width!.Value));
+            Assert.Equal(64D, Math.Round(img.Width!.Value.ToPixels()));
             Assert.NotNull(img.Height);
-            Assert.True(img.Height!.Value > 0);
+            Assert.True(img.Height!.Value.ToPixels() > 0);
         }
 
         [Fact]
@@ -1063,8 +1063,8 @@ namespace OfficeIMO.Tests {
                 .ToWord(WordHtmlImportOptions.CreateTrustedDocumentProfile());
 
             var img = Assert.Single(doc.Images);
-            Assert.Equal(64D, Math.Round(img.Width!.Value));
-            Assert.Equal(32D, Math.Round(img.Height!.Value));
+            Assert.Equal(64D, Math.Round(img.Width!.Value.ToPixels()));
+            Assert.Equal(32D, Math.Round(img.Height!.Value.ToPixels()));
 
             using MemoryStream stream = new System.IO.MemoryStream(doc.ToBytes());
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);

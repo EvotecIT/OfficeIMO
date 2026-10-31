@@ -1,4 +1,5 @@
 // Generated from diagnostic-code-map.json by generate_diagnostic_catalog.py.
+#nullable enable
 namespace OfficeIMO;
 
 /// <summary>Stable diagnostic codes shared by document formats and converters.</summary>

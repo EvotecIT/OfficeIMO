@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
 
             var code = doc.Paragraphs.First(paragraph => paragraph.Text.Contains("Get-Process"));
             Assert.Equal(WordBorderStyle.Single, code.Borders.LeftStyle);
-            Assert.True(code.Borders.LeftSpace > 0);
+            Assert.True(code.Borders.LeftSpace > OfficeLength.Zero);
         }
     }
 }

@@ -16,11 +16,11 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void PicturePlaceholderIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         byte[] png = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         using var image = new MemoryStream(png, writable: false);
-        source.Slides[0].AddPicture(image, OfficeImageFormat.Png);
+        source.Slides[0].AddImage(image, OfficeImageFormat.Png);
         Picture picture = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<Picture>().Single();
         picture.NonVisualPictureProperties!.ApplicationNonVisualDrawingProperties!
@@ -31,8 +31,8 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void NonTextShapePlaceholderIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<Shape>().Single();
         shape.TextBody?.Remove();
@@ -44,8 +44,8 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void TextPlaceholderIndexAndOrientationAreExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Agenda", 20, 20, 100, 50);
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBox("Agenda",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<Shape>().Single();
         PlaceholderShape placeholder = shape.NonVisualShapeProperties!
@@ -64,8 +64,8 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void ThemeRunColorIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Theme", 20, 20, 100, 50);
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBox("Theme",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Run>().Single();
         run.RunProperties ??= new A.RunProperties();
@@ -77,8 +77,8 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void AuthoredThemeAndRunTypographyAreExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Spaced", 20, 20, 100, 50);
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBox("Spaced",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Run>().Single();
         run.RunProperties ??= new A.RunProperties();
@@ -92,7 +92,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void SlideThemeAndColorMapOverridesAreExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         SlidePart slide = source.OpenXmlDocument.PresentationPart!.SlideParts.First();
         ThemeOverridePart theme = slide.AddNewPart<ThemeOverridePart>();
         theme.ThemeOverride = new A.ThemeOverride(new A.ColorScheme { Name = "Authored" });
@@ -101,7 +101,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void AuthoredColorMapOverrideIsExplicitLossWithoutFlaggingDefaultMarker() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         OdfConversionResult<OdpPresentation> baseline = source.ToOpenDocumentResult();
         Assert.DoesNotContain(baseline.Report.Mappings, mapping => mapping.Feature == "theme");
         SlidePart slide = source.OpenXmlDocument.PresentationPart!.SlideParts.First();
@@ -113,7 +113,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void SoundOnlyPowerPointTransitionIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         source.Slides[0].StopTransitionSound();
 
         AssertLoss(source, "slide-transition-timing");
@@ -121,7 +121,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void MediaPosterDoesNotHideMediaLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         using var audio = new MemoryStream(new byte[] { 0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0 });
         source.Slides[0].AddAudio(audio, "audio/wav", ".wav");
 
@@ -130,7 +130,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void EmbeddedPowerPointFontIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         Presentation presentation = source.OpenXmlDocument.PresentationPart!.Presentation!;
         presentation.Append(new EmbeddedFontList(new EmbeddedFont()));
 
@@ -139,8 +139,8 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void TransformedDefaultRunColorIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Alpha", 20, 20, 100, 50);
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBox("Alpha",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Paragraph>().Single();
         paragraph.ParagraphProperties ??= new A.ParagraphProperties();
@@ -153,8 +153,8 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void PlainRgbParagraphDefaultColorIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Inherited", 20, 20, 100, 50);
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBox("Inherited",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Paragraph>().Single();
         paragraph.ParagraphProperties ??= new A.ParagraphProperties();
@@ -166,8 +166,8 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void InheritedDefaultRunFormattingIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Inherited", 20, 20, 100, 50);
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBox("Inherited",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Paragraph>().Single();
         paragraph.ParagraphProperties ??= new A.ParagraphProperties();
@@ -178,8 +178,8 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void EmptyParagraphEndRunFormattingIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints(string.Empty, 20, 20, 100, 50);
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Paragraph>().Single();
         paragraph.Append(new A.EndParagraphRunProperties { FontSize = 1600 });
@@ -189,8 +189,8 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void ThemeHighlightAndSpeakerNoteColorAreExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Highlight", 20, 20, 100, 50);
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddTextBox("Highlight",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Run>().Single();
         run.RunProperties ??= new A.RunProperties();
@@ -210,7 +210,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void AuthoredHandoutMasterIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         PresentationPart presentation = source.OpenXmlDocument.PresentationPart!;
         HandoutMasterPart handout = presentation.HandoutMasterPart ?? presentation.AddNewPart<HandoutMasterPart>();
         CommonSlideData common = (CommonSlideData)presentation.SlideMasterParts.First()
@@ -224,7 +224,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void AuthoredShowPropertiesAreExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         PresentationPart presentation = source.OpenXmlDocument.PresentationPart!;
         PresentationPropertiesPart properties = presentation.PresentationPropertiesPart ??
             presentation.AddNewPart<PresentationPropertiesPart>();
@@ -236,7 +236,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void PowerPointPrintPropertiesAreExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         PresentationPart presentation = source.OpenXmlDocument.PresentationPart!;
         PresentationPropertiesPart properties = presentation.PresentationPropertiesPart ??
             presentation.AddNewPart<PresentationPropertiesPart>();
@@ -249,7 +249,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void PerSlideNotesBackgroundAndMasterVisibilityAreExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         source.Slides[0].Notes.Text = "Speaker note";
         NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.First()
             .NotesSlidePart!.NotesSlide!;
@@ -266,7 +266,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void SpeakerNoteParagraphLayoutAndTextBodyGeometryAreExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         source.Slides[0].Notes.Text = "Speaker note";
         NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.First()
             .NotesSlidePart!.NotesSlide!;
@@ -284,7 +284,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void SpeakerNoteShapeDescriptionIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         source.Slides[0].Notes.Text = "Speaker note";
         NotesSlide notes = source.OpenXmlDocument.PresentationPart!.SlideParts.First()
             .NotesSlidePart!.NotesSlide!;
@@ -296,7 +296,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void SolidSlideBackgroundEffectIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!.CommonSlideData!.Background =
             new Background(new BackgroundProperties(new A.SolidFill(new A.RgbColorModelHex {
                 Val = "336699" })) { ShadeToTitle = true });
@@ -306,8 +306,8 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void PowerPointShapeLocksAreExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<Shape>().Single();
         NonVisualShapeDrawingProperties drawing = shape.NonVisualShapeProperties!
@@ -321,11 +321,11 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void StockPictureAspectLockDoesNotHideAuthoredPictureRestrictions() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         byte[] png = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         using var image = new MemoryStream(png, writable: false);
-        source.Slides[0].AddPicture(image, OfficeImageFormat.Png);
+        source.Slides[0].AddImage(image, OfficeImageFormat.Png);
         OdfConversionResult<OdpPresentation> baseline = source.ToOpenDocumentResult();
         Assert.DoesNotContain(baseline.Report.Mappings, mapping => mapping.Feature == "shape-locks");
 
@@ -339,11 +339,11 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void NegativePowerPointPictureCropIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         byte[] png = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         using var image = new MemoryStream(png, writable: false);
-        source.Slides[0].AddPicture(image, OfficeImageFormat.Png);
+        source.Slides[0].AddImage(image, OfficeImageFormat.Png);
         Picture picture = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<Picture>().Single();
         picture.BlipFill!.SourceRectangle = new A.SourceRectangle { Left = -1000 };
@@ -353,7 +353,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void AuthoredViewPropertiesAreExplicitLossWithoutFlaggingStockDefaults() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         OdfConversionResult<OdpPresentation> baseline = source.ToOpenDocumentResult();
         Assert.DoesNotContain(baseline.Report.Mappings, mapping => mapping.Feature == "view-settings");
         source.OpenXmlDocument.PresentationPart!.ViewPropertiesPart!.ViewProperties!
@@ -364,7 +364,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void MasterHeaderFooterBehaviorIsExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         source.OpenXmlDocument.PresentationPart!.SlideMasterParts.First().SlideMaster!
             .Append(new HeaderFooter { DateTime = true });
 
@@ -373,8 +373,8 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void ShapeDescriptionIsExplicitAccessibilityLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<Shape>().Single();
         shape.NonVisualShapeProperties!.NonVisualDrawingProperties!.Description = "Forecast chart";
@@ -384,16 +384,16 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void DecorativeShapeIsExplicitAccessibilityLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddRectanglePoints(20, 20, 100, 50).Decorative = true;
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50)).Decorative = true;
 
         AssertLoss(source, "shape-accessibility");
     }
 
     [Fact]
     public void UnrelatedNonVisualExtensionDoesNotReportAccessibilityLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
-        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        using PowerPointDocument source = CreateBlankPowerPoint();
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<Shape>().Single();
         shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
@@ -494,8 +494,8 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
             .SetAttributeValue(OdfNamespaces.Draw + "nav-order", "shape2 shape1");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-layers" &&
             mapping.Count >= 2);
         AssertLoss(source, "shape-layers");
@@ -504,7 +504,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void PowerPointCompanyAndManagerAreExplicitLoss() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         source.ApplicationProperties.Company = "EvotecIT";
         source.ApplicationProperties.Manager = "Editor";
 
@@ -513,7 +513,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
 
     [Fact]
     public void ReadingMissingPowerPointApplicationPropertiesDoesNotCreatePart() {
-        using PowerPointPresentation source = CreateBlankPowerPoint();
+        using PowerPointDocument source = CreateBlankPowerPoint();
         if (source.OpenXmlDocument.ExtendedFilePropertiesPart is { } existingPart)
             source.OpenXmlDocument.DeletePart(existingPart);
         Assert.Null(source.OpenXmlDocument.ExtendedFilePropertiesPart);
@@ -540,11 +540,11 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
             new XElement(OdfNamespaces.Text + "p", "Line label"));
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "shape-text" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 3);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -632,20 +632,20 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
                 new XAttribute(OdfNamespaces.Fo + "font-style", "normal"))));
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
             mapping.Feature == "text-effects" && mapping.Status != OdfConversionMappingStatus.Converted);
     }
 
-    private static PowerPointPresentation CreateBlankPowerPoint() {
-        PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(),
+    private static PowerPointDocument CreateBlankPowerPoint() {
+        PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
         return source;
     }
 
-    private static void AssertLoss(PowerPointPresentation source, string feature) {
+    private static void AssertLoss(PowerPointDocument source, string feature) {
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == feature &&
             mapping.Status != OdfConversionMappingStatus.Converted);
@@ -654,11 +654,11 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     }
 
     private static void AssertLoss(OdpPresentation source, string feature) {
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == feature &&
             mapping.Status != OdfConversionMappingStatus.Converted);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 }

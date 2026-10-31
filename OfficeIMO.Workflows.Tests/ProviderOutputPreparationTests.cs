@@ -42,7 +42,7 @@ public sealed class ProviderOutputPreparationTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-batch-output-protection-" + Guid.NewGuid().ToString("N"));
         var store = new OfficeWorkflowOutputRecoveryStore(root);
         byte[] html = System.Text.Encoding.UTF8.GetBytes("<html><body><p>Batch conversion</p></body></html>");
-        byte[] pdf = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).ToBytes();
+        byte[] pdf = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).ToBytes();
         int writes = 0;
         try {
             var output = new OfficeWorkflowStreamOutput("result.pdf", _ => Task.FromResult<Stream>(new MemoryStream(pdf)),
@@ -70,7 +70,7 @@ public sealed class ProviderOutputPreparationTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-output-preparation-" + Guid.NewGuid().ToString("N"));
         var recovery = new OfficeWorkflowOutputRecoveryStore(root);
         using var cancellation = new CancellationTokenSource();
-        byte[] source = PdfDocument.Create(compose => { compose.Page(page => page.Size(300, 400)); compose.Page(page => page.Size(300, 400)); }).ToBytes();
+        byte[] source = PdfDocument.Create(compose => { compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))); compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))); }).ToBytes();
         int creations = 0, writes = 0;
         var bytes = new Dictionary<string, byte[]>();
         try {

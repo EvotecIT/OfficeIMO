@@ -70,14 +70,14 @@ Console.WriteLine("OfficeIMO");
         string markdown = string.Join("\n", Enumerable.Range(1, 24).Select(index => "> QuoteLine" + index.ToString()));
         var options = new MarkdownPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
-                PageWidth = 180,
-                PageHeight = 130,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(180),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(130),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
                 DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             }
         };
 
@@ -166,13 +166,13 @@ Console.WriteLine("OfficeIMO");
 
         byte[] pdf = (OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToPdf(new MarkdownPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 260,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             }
         })).ToBytes();
 
@@ -185,8 +185,11 @@ Console.WriteLine("OfficeIMO");
         Assert.InRange(Math.Abs(rightQuantity.Right - rightHeader.Right), 0D, 2D);
     }
 
-    [Fact]
-    public void Markdown_SaveAsPdf_UsesTableColumnWidthHints() {
+    [Theory]
+    [InlineData("48pt")]
+    [InlineData("64px")]
+    [InlineData("1.6933333333333333cm")]
+    public void Markdown_SaveAsPdf_UsesTableColumnWidthHints(string width) {
         var defaultTable = new TableBlock();
         defaultTable.Headers.Add("Code");
         defaultTable.Headers.Add("Description");
@@ -196,23 +199,27 @@ Console.WriteLine("OfficeIMO");
         narrowFirstColumnTable.Headers.Add("Code");
         narrowFirstColumnTable.Headers.Add("Description");
         narrowFirstColumnTable.Rows.Add(new[] { "A-100", "Consulting" });
-        narrowFirstColumnTable.ColumnWidthPoints.Add(48D);
-        narrowFirstColumnTable.ColumnWidthPoints.Add(null);
+        narrowFirstColumnTable.ColumnWidths.Add(OfficeLength.Parse(width));
+        narrowFirstColumnTable.ColumnWidths.Add(null);
 
         var options = new MarkdownPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 260,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             }
         };
 
-        byte[] defaultPdf = (MarkdownDocument.Create().Add(defaultTable).ToPdf(options)).ToBytes();
-        byte[] narrowPdf = (MarkdownDocument.Create().Add(narrowFirstColumnTable).ToPdf(options)).ToBytes();
+        using var defaultDocument = MarkdownDocument.Create();
+        defaultDocument.Add(defaultTable);
+        using var narrowDocument = MarkdownDocument.Create();
+        narrowDocument.Add(narrowFirstColumnTable);
+        byte[] defaultPdf = (defaultDocument.ToPdf(options)).ToBytes();
+        byte[] narrowPdf = (narrowDocument.ToPdf(options)).ToBytes();
 
         PdfTextBounds defaultDescription = FindPdfTextBounds(defaultPdf, "Description");
         PdfTextBounds narrowDescription = FindPdfTextBounds(narrowPdf, "Description");
@@ -468,12 +475,12 @@ _Figure 1. Embedded from a relative Markdown path._
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
                 PdfOptions = new PdfCore.PdfCreateOptions {
                     CompressContentStreams = false,
-                    PageWidth = 220,
-                    PageHeight = 180,
-                    MarginLeft = 20,
-                    MarginRight = 20,
-                    MarginTop = 20,
-                    MarginBottom = 20
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
                 }
             };
             string markdown = "![Wide local image](pixel.png){width=360 height=180}";
@@ -568,12 +575,12 @@ _Figure 1. Embedded from a relative Markdown path._
     [Fact]
     public void Markdown_SaveAsPdf_AppliesChecklistThemeColors() {
         MarkdownPdfStyle theme = MarkdownPdfStyle.Plain();
-        theme.ChecklistCheckedIconColor = PdfCore.PdfColor.FromRgb(255, 0, 0);
-        theme.ChecklistUncheckedIconColor = PdfCore.PdfColor.FromRgb(0, 0, 255);
-        theme.ChecklistCheckedTextColor = PdfCore.PdfColor.FromRgb(0, 128, 0);
-        theme.ChecklistUncheckedTextColor = PdfCore.PdfColor.FromRgb(255, 0, 255);
-        theme.ChecklistCheckedFillColor = PdfCore.PdfColor.FromRgb(255, 255, 204);
-        theme.ChecklistUncheckedFillColor = PdfCore.PdfColor.FromRgb(204, 238, 255);
+        theme.ChecklistCheckedIconColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
+        theme.ChecklistUncheckedIconColor = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255);
+        theme.ChecklistCheckedTextColor = global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0);
+        theme.ChecklistUncheckedTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 255);
+        theme.ChecklistCheckedFillColor = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 204);
+        theme.ChecklistUncheckedFillColor = global::OfficeIMO.OfficeColor.FromRgb(204, 238, 255);
         var options = new MarkdownPdfExportOptions {
             Style = theme,
             PdfOptions = new PdfCore.PdfCreateOptions { CompressContentStreams = false }
@@ -608,32 +615,37 @@ _Figure 1. Embedded from a relative Markdown path._
                 tableHeaderBackground: "#ffff00",
                 tableHeaderText: "#000000")
             .WithTable(table => {
-                table.BorderWidth = 1.25;
-                table.CellPaddingX = 11;
-                table.CellPaddingY = 7;
+                table.BorderWidth = OfficeLength.Points(1.25);
+                table.CellPaddingX = OfficeLength.Inches(11D / 72D);
+                table.CellPaddingY = OfficeLength.Pixels(28D / 3D);
             });
 
         MarkdownPdfStyle pdfTheme = MarkdownPdfStyle.FromMarkdownTheme(sharedTheme);
 
         Assert.Equal("Report", pdfTheme.Name);
-        Assert.Equal(0, pdfTheme.DocumentHeaderTitleColor!.Value.R, 3);
-        Assert.Equal(1, pdfTheme.DocumentHeaderTitleColor!.Value.G, 3);
-        Assert.Equal(0, pdfTheme.DocumentHeaderTitleColor!.Value.B, 3);
-        Assert.Equal(1, pdfTheme.LinkColor!.Value.R, 3);
-        Assert.Equal(0, pdfTheme.LinkColor!.Value.G, 3);
-        Assert.Equal(0, pdfTheme.LinkColor!.Value.B, 3);
-        Assert.Equal(1.25, pdfTheme.TableStyle!.BorderWidth);
-        Assert.Equal(11, pdfTheme.TableStyle.CellPaddingX);
-        Assert.Equal(7, pdfTheme.TableStyle.CellPaddingY);
-        Assert.Equal(1, pdfTheme.TableStyle.HeaderFill!.Value.R, 3);
-        Assert.Equal(1, pdfTheme.TableStyle.HeaderFill!.Value.G, 3);
-        Assert.Equal(0, pdfTheme.TableStyle.HeaderFill!.Value.B, 3);
+        Assert.Equal(0, pdfTheme.DocumentHeaderTitleColor!.Value.ToNormalizedRgb().R, 3);
+        Assert.Equal(1, pdfTheme.DocumentHeaderTitleColor!.Value.ToNormalizedRgb().G, 3);
+        Assert.Equal(0, pdfTheme.DocumentHeaderTitleColor!.Value.ToNormalizedRgb().B, 3);
+        Assert.Equal(1, pdfTheme.LinkColor!.Value.ToNormalizedRgb().R, 3);
+        Assert.Equal(0, pdfTheme.LinkColor!.Value.ToNormalizedRgb().G, 3);
+        Assert.Equal(0, pdfTheme.LinkColor!.Value.ToNormalizedRgb().B, 3);
+        Assert.Equal(1.25, pdfTheme.TableStyle!.BorderWidth.ToPoints());
+        Assert.Equal(11, pdfTheme.TableStyle.CellPaddingX.ToPoints());
+        Assert.Equal(7, pdfTheme.TableStyle.CellPaddingY.ToPoints());
+        Assert.Equal(1, pdfTheme.TableStyle.HeaderFill!.Value.ToNormalizedRgb().R, 3);
+        Assert.Equal(1, pdfTheme.TableStyle.HeaderFill!.Value.ToNormalizedRgb().G, 3);
+        Assert.Equal(0, pdfTheme.TableStyle.HeaderFill!.Value.ToNormalizedRgb().B, 3);
     }
 
     [Fact]
     public void Markdown_SaveAsPdf_Renders_With_SharedMarkdownTheme() {
         MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
-            .WithColorScheme(MarkdownColorSchemeKind.Emerald);
+            .WithColorScheme(MarkdownColorSchemeKind.Emerald)
+            .WithTable(table => {
+                table.BorderWidth = OfficeLength.Pixels(5D / 3D);
+                table.CellPaddingX = OfficeLength.Inches(11D / 72D);
+                table.CellPaddingY = OfficeLength.Points(7);
+            });
         string markdown = """
 # Shared Theme
 
@@ -645,7 +657,8 @@ Markdown PDF should accept the same visual theme object as HTML and Word.
 """;
 
         var options = new MarkdownPdfExportOptions {
-            Theme = theme
+            Theme = theme,
+            PdfOptions = new PdfCore.PdfCreateOptions { CompressContentStreams = false }
         };
 
         byte[] pdf = (OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToPdf(options)).ToBytes();
@@ -655,12 +668,14 @@ Markdown PDF should accept the same visual theme object as HTML and Word.
         Assert.Empty(options.Warnings);
         Assert.Contains("Shared Theme", text);
         Assert.Contains("themed", text);
+        string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
+        Assert.Contains("1.25 w", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Markdown_SaveAsPdf_AppliesVisualThemeLinkStyleAcrossInlineSurfaces() {
         MarkdownPdfStyle theme = MarkdownPdfStyle.TechnicalDocument();
-        theme.LinkColor = PdfCore.PdfColor.FromRgb(128, 0, 128);
+        theme.LinkColor = global::OfficeIMO.OfficeColor.FromRgb(128, 0, 128);
         theme.UnderlineLinks = false;
         var options = new MarkdownPdfExportOptions {
             Style = theme,
@@ -787,14 +802,14 @@ author: OfficeIMO
             Anchor = "pdf-playbook"
         });
 
-        MarkdownDocument document = MarkdownDocument.Create()
-            .Add(toc)
-            .H1("PDF Playbook")
-            .Callout("warning", "Deployment note", "Keep backup enabled.")
-            .Details("More detail", body => body.P("Hidden content."), open: true)
-            .Dl(list => list.Item("Term", "Definition value"))
-            .Add(new SemanticFencedBlock("diagram", "mermaid", "graph TD\nA-->B", "Flow caption"))
-            .Add(new FootnoteDefinitionBlock("audit", "Footnote audit trail."));
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(toc);
+        document.H1("PDF Playbook");
+        document.Callout("warning", "Deployment note", "Keep backup enabled.");
+        document.Details("More detail", body => body.P("Hidden content."), open: true);
+        document.Dl(list => list.Item("Term", "Definition value"));
+        document.Add(new SemanticFencedBlock("diagram", "mermaid", "graph TD\nA-->B", "Flow caption"));
+        document.Add(new FootnoteDefinitionBlock("audit", "Footnote audit trail."));
 
         var options = new MarkdownPdfExportOptions();
         PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
@@ -920,10 +935,10 @@ Validation notes.
         PdfCore.PdfTableStyle frontMatterStyle = theme.FrontMatterTableStyle!;
 
         Assert.True(tableStyle.AutoFitColumns);
-        Assert.True(tableStyle.SpacingAfter >= 8);
+        Assert.True(tableStyle.SpacingAfter.ToPoints() >= 8);
         Assert.True(tableStyle.LineHeight >= 1.18);
         Assert.True(frontMatterStyle.AutoFitColumns);
-        Assert.True(frontMatterStyle.SpacingAfter >= 8);
+        Assert.True(frontMatterStyle.SpacingAfter.ToPoints() >= 8);
         Assert.Equal(PdfCore.PdfCellVerticalAlign.Top, theme.ChecklistTableStyle!.VerticalAlignments![0]);
         Assert.Equal(PdfCore.PdfCellVerticalAlign.Top, theme.ChecklistTableStyle.VerticalAlignments![1]);
     }
@@ -931,14 +946,14 @@ Validation notes.
     [Fact]
     public void MarkdownPdfStyles_CloneLinkStyleOptions() {
         MarkdownPdfStyle theme = MarkdownPdfStyle.Report();
-        theme.LinkColor = PdfCore.PdfColor.FromRgb(12, 34, 56);
+        theme.LinkColor = global::OfficeIMO.OfficeColor.FromRgb(12, 34, 56);
         theme.UnderlineLinks = false;
 
         MarkdownPdfStyle clone = theme.Clone();
-        theme.LinkColor = PdfCore.PdfColor.FromRgb(90, 90, 90);
+        theme.LinkColor = global::OfficeIMO.OfficeColor.FromRgb(90, 90, 90);
         theme.UnderlineLinks = true;
 
-        Assert.Equal(PdfCore.PdfColor.FromRgb(12, 34, 56), clone.LinkColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(12, 34, 56), clone.LinkColor);
         Assert.False(clone.UnderlineLinks);
     }
 
@@ -1019,10 +1034,10 @@ Console.WriteLine("OfficeIMO");
 """;
 
         MarkdownPdfStyle theme = MarkdownPdfStyle.Plain();
-        theme.CodeBlockLabelFontSize = 7;
-        theme.CodeBlockFontSize = 11;
-        theme.CodeBlockLabelColor = PdfCore.PdfColor.FromRgb(255, 0, 0);
-        theme.CodeBlockTextColor = PdfCore.PdfColor.FromRgb(0, 128, 0);
+        theme.CodeBlockLabelFontSize = global::OfficeIMO.OfficeLength.Inches(7D / 72D);
+        theme.CodeBlockFontSize = global::OfficeIMO.OfficeLength.Inches(11D / 72D);
+        theme.CodeBlockLabelColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
+        theme.CodeBlockTextColor = global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0);
 
         var options = new MarkdownPdfExportOptions {
             Style = theme,
@@ -1038,6 +1053,13 @@ Console.WriteLine("OfficeIMO");
         Assert.Contains("Console.WriteLine", text);
         Assert.Contains("1 0 0 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0 0.502 0 rg", rawPdf, StringComparison.Ordinal);
+
+        using var savedPdf = PdfPigDocument.Open(pdf);
+        var words = savedPdf.GetPage(1).GetWords().ToList();
+        var language = Assert.Single(words.Where(word => word.Text == "csharp"));
+        Assert.All(language.Letters, letter => Assert.Equal(7D, letter.FontSize, 3));
+        var code = Assert.Single(words.Where(word => word.Text.Contains("Console.WriteLine")));
+        Assert.All(code.Letters, letter => Assert.Equal(11D, letter.FontSize, 3));
     }
 
     [Fact]
@@ -1202,23 +1224,23 @@ Markdown should stay semantic while the visual theme controls the page treatment
 
         MarkdownPdfStyle theme = MarkdownPdfStyle.WordLike();
         var decoration = new MarkdownPdfPageDecoration {
-            BackgroundColor = PdfCore.PdfColor.White,
+            BackgroundColor = global::OfficeIMO.OfficeColor.White,
             PageBorder = new PdfCore.PdfPageBorder {
-                Color = PdfCore.PdfColor.FromRgb(15, 118, 110),
-                Width = 0.8,
-                Inset = 28,
+                Color = global::OfficeIMO.OfficeColor.FromRgb(15, 118, 110),
+                Width = global::OfficeIMO.OfficeLength.Points(0.8),
+                Inset = global::OfficeIMO.OfficeLength.Points(28),
                 Opacity = 0.5
             }
         }.AddBackgroundShape(PdfCore.PdfPageBackgroundShape.Rectangle(
-            42,
-            700,
-            128,
-            32,
-            fill: PdfCore.PdfColor.FromRgb(204, 251, 241),
+            global::OfficeIMO.OfficeLength.Points(42),
+            global::OfficeIMO.OfficeLength.Points(700),
+            global::OfficeIMO.OfficeLength.Points(128),
+            global::OfficeIMO.OfficeLength.Points(32),
+            fill: global::OfficeIMO.OfficeColor.FromRgb(204, 251, 241),
             fillOpacity: 0.44));
 
         theme.PageDecoration = decoration;
-        decoration.PageBorder = new PdfCore.PdfPageBorder { Inset = 80 };
+        decoration.PageBorder = new PdfCore.PdfPageBorder { Inset = global::OfficeIMO.OfficeLength.Points(80) };
 
         byte[] pdf = (OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToPdf(new MarkdownPdfExportOptions {
             Style = theme,
@@ -1270,20 +1292,20 @@ Explicit low-level PDF options should win over theme page decoration.
             Style = MarkdownPdfStyle.Report(),
             PdfOptions = new PdfCore.PdfCreateOptions {
                 CompressContentStreams = false,
-                BackgroundColor = PdfCore.PdfColor.White,
+                BackgroundColor = global::OfficeIMO.OfficeColor.White,
                 PageBorder = new PdfCore.PdfPageBorder {
-                    Color = PdfCore.PdfColor.Black,
-                    Width = 1,
-                    Inset = 50,
+                    Color = global::OfficeIMO.OfficeColor.Black,
+                    Width = global::OfficeIMO.OfficeLength.Points(1),
+                    Inset = global::OfficeIMO.OfficeLength.Points(50),
                     Opacity = 1
                 },
                 PageBackgroundShapes = new[] {
                     PdfCore.PdfPageBackgroundShape.Rectangle(
-                        12,
-                        12,
-                        30,
-                        30,
-                        fill: PdfCore.PdfColor.FromRgb(220, 252, 231))
+                        global::OfficeIMO.OfficeLength.Points(12),
+                        global::OfficeIMO.OfficeLength.Points(12),
+                        global::OfficeIMO.OfficeLength.Points(30),
+                        global::OfficeIMO.OfficeLength.Points(30),
+                        fill: global::OfficeIMO.OfficeColor.FromRgb(220, 252, 231))
                 }
             }
         };

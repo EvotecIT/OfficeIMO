@@ -4,46 +4,64 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Fluent;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public class ExcelFluentReportWorkflowTests {
+namespace OfficeIMO.Tests
+{
+    public class ExcelFluentReportWorkflowTests
+    {
         [Fact]
-        public void Fluent_Report_Workflow_EndToEnd() {
+        public void Fluent_Report_Workflow_EndToEnd()
+        {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-
-            using (var doc = ExcelDocument.Create(path)) {
+            using (var doc = ExcelDocument.Create(path))
+            {
                 // Optional: monitor AddTable scanning timing for perf visibility (no assert, just exercise)
-                doc.Execution.OnTiming = (op, elapsed) => { /* no-op in test */ };
-
-                doc.Compose("Report", c =>
+                doc.Execution.OnTiming = (op, elapsed) =>
+                { /* no-op in test */
+                };
                 {
-                    c.Title("Demo Report", "Subtitle");
-                    c.Callout("info", "Heads up", "Generated via fluent API");
-                    c.Section("Summary");
-                    c.PropertiesGrid(new (string, object?)[] {
-                        ("Author", "Tester"),
-                        ("Date", DateTime.Today.ToString("yyyy-MM-dd"))
-                    });
-
-                    var items = new[] {
-                        new { Name = "Alice", Score = 90, Status = "OK" },
-                        new { Name = "Bob", Score = 80, Status = "Warning" }
+                    var reportBuilder1 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    (reportBuilder1).Title("Demo Report", "Subtitle");
+                    (reportBuilder1).Callout(OfficeCalloutKind.Info, "Heads up", "Generated via fluent API");
+                    (reportBuilder1).Section("Summary");
+                    (reportBuilder1).PropertiesGrid(new (string, object? )[] { ("Author", "Tester"), ("Date", DateTime.Today.ToString("yyyy-MM-dd")) });
+                    var items = new[]
+                    {
+                        new
+                        {
+                            Name = "Alice",
+                            Score = 90,
+                            Status = "OK"
+                        },
+                        new
+                        {
+                            Name = "Bob",
+                            Score = 80,
+                            Status = "Warning"
+                        }
                     };
-                    c.TableFrom(items, title: "Scores", visuals: v => {
+                    (reportBuilder1).AddTable(items, title: "Scores", visuals: v =>
+                    {
                         v.NumericColumnDecimals["Score"] = 0;
-                        v.TextBackgrounds["Status"] = new System.Collections.Generic.Dictionary<string, string> { { "Warning", "#FFF3CD" } };
+                        v.TextBackgrounds["Status"] = new System.Collections.Generic.Dictionary<string, string>
+                        {
+                            {
+                                "Warning",
+                                "#FFF3CD"
+                            }
+                        };
                     });
+                    (reportBuilder1).References(new[] { "https://example.com" });
+                    (reportBuilder1).Sheet.SetHeaderFooter(headerCenter: "Demo Report", footerRight: "Page &P of &N");
+                    (reportBuilder1).Finish(autoFitColumns: true);
+                }
 
-                    c.References(new[] { "https://example.com" });
-                    c.HeaderFooter(h => h.Center("Demo Report").FooterRight("Page &P of &N"));
-                    c.Finish(autoFitColumns: true);
-                });
                 doc.Save();
             }
 
-            using (var ss = SpreadsheetDocument.Open(path, false)) {
+            using (var ss = SpreadsheetDocument.Open(path, false))
+            {
                 var ws = ss.WorkbookPart!.WorksheetParts.First();
                 // Title exists
                 Assert.Equal("Demo Report", GetText(ss, ws, "A1"));
@@ -75,4 +93,3 @@ namespace OfficeIMO.Tests {
         }
     }
 }
-

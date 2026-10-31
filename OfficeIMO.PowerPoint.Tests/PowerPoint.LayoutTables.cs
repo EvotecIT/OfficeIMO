@@ -12,7 +12,7 @@ public sealed class PowerPointLayoutTableTests {
     [InlineData(true)]
     [InlineData(false)]
     public void ContinuationsPreserveEveryDataRowAndTheRequestedHeaderPolicy(bool includeHeaders) {
-        using var document = PowerPointPresentation.Create(new PowerPointCreateOptions { Theme = OfficeTheme.Modern });
+        using var document = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = OfficeTheme.Modern });
         var table = new PowerPointLayoutTable(new[] { "Service", "Count" },
             Enumerable.Range(1, 7).Select(index => (IReadOnlyList<string>)new[] { "Service " + index, index.ToString() }).ToArray()) {
             IncludeHeaders = includeHeaders, MaximumRows = 3
@@ -20,7 +20,7 @@ public sealed class PowerPointLayoutTableTests {
         var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand("#2563EB", "table-content"));
         options.ApplyTheme = false;
         document.Compose(new PowerPointDeckPlan().AddContent("Services", new[] { table }), options);
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Equal(3, saved.Slides.Count);
         var tables = saved.Slides.SelectMany(slide => slide.Tables).ToArray();
         Assert.Equal(3, tables.Length);
@@ -41,13 +41,13 @@ public sealed class PowerPointLayoutTableTests {
     [Fact]
     public void SavedTableUsesItsAuthoredCaptionAsAlternativeText() {
         const string caption = "Service & owners <review>";
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var table = new PowerPointLayoutTable(new[] { "Service", "Count" },
             new IReadOnlyList<string>[] { new[] { "Directory", "2" } }) { Caption = caption };
         var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand("#2563EB", "table-caption"));
         options.ApplyTheme = false;
         document.Compose(new PowerPointDeckPlan().AddContent("Services", new[] { table }), options);
-        using var saved = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Equal(caption, Assert.Single(Assert.Single(saved.Slides).Tables).Description);
         Assert.Empty(saved.ValidateDocument());
         Assert.DoesNotContain(saved.InspectAccessibility().Findings,

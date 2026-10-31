@@ -50,7 +50,7 @@ public sealed class ExcelLegacyCellEditingTests {
     }
     [Fact]
     public void Repeated_native_load_edit_save_cycles_reuse_existing_format_records() {
-        using var seed = ExcelDocument.Create(); seed.AddWorksheet("Data").CellValue(1, 1, "Native format reuse");
+        using var seed = ExcelDocument.Create(); seed.AddSheet("Data").CellValue(1, 1, "Native format reuse");
         byte[] bytes = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }); int firstCount = 0, firstReferences = 0, firstBooks = 0;
         for (int iteration = 0; iteration < 5; iteration++) {
             using var document = ExcelDocument.Load(new MemoryStream(bytes));
@@ -71,7 +71,7 @@ public sealed class ExcelLegacyCellEditingTests {
     }
     [Fact]
     public void New_RGB_styles_reuse_only_unreferenced_native_palette_slots() {
-        using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
+        using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
         sheet.CellValue(1, 1, "Original"); sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
         byte[] bytes = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         for (int iteration = 0; iteration < 3; iteration++) {

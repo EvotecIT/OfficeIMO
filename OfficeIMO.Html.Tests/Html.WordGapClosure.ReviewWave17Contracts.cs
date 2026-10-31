@@ -68,7 +68,7 @@ public partial class HtmlWordGapClosure {
         WordParagraph secondRun = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "b");
 
         Assert.Same(firstRun._paragraph, secondRun._paragraph);
-        Assert.Equal(150, firstRun.IndentationBefore);
+        Assert.Equal(150, checked((int?)(firstRun.IndentationBefore?.ToTwips())));
     }
 
     [Fact]

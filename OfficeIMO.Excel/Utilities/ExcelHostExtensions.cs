@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel;
 /// <summary>
 /// Helper extensions for common Excel document tasks (sheet resolution, A1 parsing).
 /// </summary>
-public static class ExcelHostExtensions
+internal static class ExcelHostExtensions
 {
     /// <summary>
     /// Returns the named sheet if it exists, otherwise creates it; falls back to the last sheet.
@@ -29,12 +29,12 @@ public static class ExcelHostExtensions
                 return existing;
             }
 
-            return document.AddWorksheet(requestedName, validationMode);
+            return document.AddSheet(requestedName, validationMode);
         }
 
         if (sheetsCollection.Count == 0)
         {
-            return document.AddWorksheet();
+            return document.AddSheet();
         }
 
         return sheetsCollection[sheetsCollection.Count - 1];

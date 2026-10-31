@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
             bool showValueGridLines = HasImageExportMajorGridlines(valueAxis);
             bool showCategoryMinorGridLines = HasImageExportMinorGridlines(categoryAxis);
             bool showValueMinorGridLines = HasImageExportMinorGridlines(valueAxis);
-            C.PieChartSeries? radialSeries = ChartType is ExcelChartType.Pie or ExcelChartType.Doughnut
+            C.PieChartSeries? radialSeries = ChartType is OfficeChartType.Pie or OfficeChartType.Doughnut
                 ? plotArea?.Descendants<C.PieChartSeries>().FirstOrDefault() : null;
             OfficeColor[]? radialPalette = radialSeries == null ? null :
                 OfficeOpenXmlThemeColorResolver.ReadRadialPalette(GetChartPart(), radialSeries,
@@ -407,7 +407,7 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < data.Series.Count; i++) {
                 ExcelChartSeries current = data.Series[i];
                 if (styles.TryGetValue(i, out ImageExportSeriesStyle? style)) {
-                    series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth, style.AutomaticColor)
+                    series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize.HasValue ? OfficeLength.Points(style.MarkerSize.Value) : (OfficeLength?)null, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth, style.AutomaticColor)
                         .WithSeriesStyle(style.SeriesStyle).WithPointStyles(style.PointStyles).WithPointExplosions(style.PointExplosions)
                         .WithTrendline(style.Trendline));
                     changed = true;
@@ -552,7 +552,7 @@ namespace OfficeIMO.Excel {
             return new OfficeChartTrendline(type.Value, order, period,
                 displayEquation: trendline.GetFirstChild<C.DisplayEquation>()?.Val?.Value == true,
                 displayRSquared: trendline.GetFirstChild<C.DisplayRSquaredValue>()?.Val?.Value == true,
-                color: color, width: width, intercept: intercept);
+                color: color, width: width.HasValue ? OfficeLength.Points(width.Value) : null, intercept: intercept);
         }
 
         private static string? GetImageExportSeriesColor(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
@@ -797,12 +797,16 @@ namespace OfficeIMO.Excel {
 
         private static string? GetImageExportMarkerFillColor(C.Marker? marker, WorkbookPart workbookPart) {
             C.ChartShapeProperties? properties = marker?.GetFirstChild<C.ChartShapeProperties>();
-            return properties != null && TryGetSolidFill(properties, workbookPart, out OfficeColor color) ? color.ToRgbHex() : null;
+            return properties != null && TryGetSolidFill(properties, workbookPart, out OfficeColor color)
+                ? color.A == 255 ? color.ToRgbHex() : color.ToArgbHex()
+                : null;
         }
 
         private static string? GetImageExportMarkerOutlineColor(C.Marker? marker, WorkbookPart workbookPart) {
             C.ChartShapeProperties? properties = marker?.GetFirstChild<C.ChartShapeProperties>();
-            return properties != null && TryGetSolidLine(properties, workbookPart, out OfficeColor color) ? color.ToRgbHex() : null;
+            return properties != null && TryGetSolidLine(properties, workbookPart, out OfficeColor color)
+                ? color.A == 255 ? color.ToRgbHex() : color.ToArgbHex()
+                : null;
         }
 
         private static double? GetImageExportMarkerOutlineWidth(C.Marker? marker) {

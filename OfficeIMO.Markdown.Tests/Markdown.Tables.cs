@@ -37,9 +37,9 @@ namespace OfficeIMO.Tests {
                     tableHeaderText: "#010203",
                     tableStripeBackground: "#f0f9ff")
                 .WithTable(table => {
-                    table.BorderWidth = 1.25;
-                    table.CellPaddingX = 9;
-                    table.CellPaddingY = 4;
+                    table.BorderWidth = OfficeLength.Points(1.25);
+                    table.CellPaddingX = OfficeLength.Inches(0.125);
+                    table.CellPaddingY = OfficeLength.Pixels(16D / 3D);
                     table.UseRowStripes = true;
                 });
             string md = """
@@ -53,7 +53,9 @@ Narrative body text.
 | Second | 2 |
 """;
 
-            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { Theme = theme });
+            using var converted = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions { Theme = theme });
+            using var saved = new System.IO.MemoryStream(converted.ToBytes());
+            using var doc = WordDocument.Load(saved);
 
             var heading = doc.Paragraphs.First(p => p.Text == "Report Theme");
             Assert.Contains(heading.GetRuns(), run => string.Equals(run.ColorHex, "064e3b", System.StringComparison.OrdinalIgnoreCase));
@@ -63,11 +65,11 @@ Narrative body text.
             var table = doc.Tables[0];
             Assert.Equal("FEDCBA", table.Rows[0].Cells[0].ShadingFillColorHex);
             Assert.Equal("123456", table.Rows[0].Cells[0].Borders.TopColorHex);
-            Assert.Equal(10U, table.Rows[0].Cells[0].Borders.TopSize);
-            Assert.Equal((short?)180, table.Rows[0].Cells[0].MarginLeftWidth);
-            Assert.Equal((short?)180, table.Rows[0].Cells[0].MarginRightWidth);
-            Assert.Equal((short?)80, table.Rows[0].Cells[0].MarginTopWidth);
-            Assert.Equal((short?)80, table.Rows[0].Cells[0].MarginBottomWidth);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.25), table.Rows[0].Cells[0].Borders.TopSize);
+            Assert.Equal((short?)180, checked((short?)(table.Rows[0].Cells[0].MarginLeft?.ToTwips())));
+            Assert.Equal((short?)180, checked((short?)(table.Rows[0].Cells[0].MarginRight?.ToTwips())));
+            Assert.Equal((short?)80, checked((short?)(table.Rows[0].Cells[0].MarginTop?.ToTwips())));
+            Assert.Equal((short?)80, checked((short?)(table.Rows[0].Cells[0].MarginBottom?.ToTwips())));
             Assert.Contains(table.Rows[0].Cells[0].Paragraphs.SelectMany(p => p.GetRuns()), run => string.Equals(run.ColorHex, "010203", System.StringComparison.OrdinalIgnoreCase));
             Assert.Equal("F0F9FF", table.Rows[2].Cells[0].ShadingFillColorHex);
         }
@@ -122,7 +124,7 @@ Narrative body text.
         [Fact]
         public void MarkdownToWord_SharedVisualTheme_AllowsBorderlessTables() {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
-                .WithTable(table => table.BorderWidth = 0);
+                .WithTable(table => table.BorderWidth = OfficeLength.Zero);
             string md = """
 | Name | Value |
 | --- | --- |
@@ -133,16 +135,16 @@ Narrative body text.
 
             var cell = doc.Tables[0].Rows[0].Cells[0];
             Assert.Equal(WordBorderStyle.None, cell.Borders.TopStyle);
-            Assert.Equal(0U, cell.Borders.TopSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(0), cell.Borders.TopSize);
             Assert.Equal(WordBorderStyle.None, cell.Borders.BottomStyle);
-            Assert.Equal(0U, cell.Borders.BottomSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(0), cell.Borders.BottomSize);
         }
 
         [Fact]
         public void MarkdownToWord_SharedVisualTheme_TreatsTransparentTableBordersAsNoBorder() {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
                 .WithColors(border: "Transparent")
-                .WithTable(table => table.BorderWidth = 1.25);
+                .WithTable(table => table.BorderWidth = OfficeLength.Points(1.25));
             string md = """
 | Name | Value |
 | --- | --- |
@@ -153,10 +155,10 @@ Narrative body text.
 
             var cell = doc.Tables[0].Rows[0].Cells[0];
             Assert.Equal(WordBorderStyle.None, cell.Borders.TopStyle);
-            Assert.Equal(0U, cell.Borders.TopSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(0), cell.Borders.TopSize);
             Assert.True(string.IsNullOrEmpty(cell.Borders.TopColorHex));
             Assert.Equal(WordBorderStyle.None, cell.Borders.BottomStyle);
-            Assert.Equal(0U, cell.Borders.BottomSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(0), cell.Borders.BottomSize);
             Assert.True(string.IsNullOrEmpty(cell.Borders.BottomColorHex));
         }
 

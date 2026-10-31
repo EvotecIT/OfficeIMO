@@ -51,7 +51,7 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
         var result = shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
         Assert.Equal(path, Assert.IsType<FileInfo>(Assert.Single(result).BaseObject).FullName);
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         Assert.Equal(6, saved.Slides.Count);
         Assert.Empty(saved.ValidateDocument());
         string[] expected = { "Service review", "Support priorities", "Capacity", "All regions healthy", "99.95%", "Track actions to closure", "Operations team" };
@@ -61,7 +61,7 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
 
     [Fact]
     public void AFailedSlideBlockDoesNotAppendAnEmptySlideOrLeakItsCollector() {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         using var runspace = Open();
         runspace.SessionStateProxy.SetVariable("deck", document);
         using var shell = PowerShell.Create();
@@ -103,8 +103,8 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
             """);
         shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
-        using var outerDeck = PowerPointPresentation.Load(outer);
-        using var innerDeck = PowerPointPresentation.Load(inner);
+        using var outerDeck = PowerPointDocument.Load(outer);
+        using var innerDeck = PowerPointDocument.Load(inner);
         Assert.Single(outerDeck.Slides);
         Assert.Single(innerDeck.Slides);
         string outerText = string.Join("\n", outerDeck.Slides[0].TextBoxes.Select(box => box.Text));
@@ -139,7 +139,7 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
             """);
         Assert.Empty(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
-        using var document = PowerPointPresentation.Load(path);
+        using var document = PowerPointDocument.Load(path);
         Assert.Equal("Private talking points", document.Slides[0].Notes.Text);
         Assert.DoesNotContain(document.Slides[0].TextBoxes, box => box.Text.Contains("Private talking points", StringComparison.Ordinal));
         runspace.SessionStateProxy.SetVariable("deck", document);
@@ -156,7 +156,7 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
         }
         Assert.Equal("Other notes", document.Slides[1].Notes.Text);
         using var input = new MemoryStream(document.ToBytes());
-        using var reopened = PowerPointPresentation.Load(input);
+        using var reopened = PowerPointDocument.Load(input);
         Assert.Equal(string.Empty, reopened.Slides[0].Notes.Text);
         Assert.Equal("Other notes", reopened.Slides[1].Notes.Text);
         Assert.Empty(reopened.ValidateDocument());
@@ -182,7 +182,7 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
             """);
         shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
-        using var document = PowerPointPresentation.Load(path);
+        using var document = PowerPointDocument.Load(path);
         Assert.Equal(3, document.Slides.Count);
         var values = new List<string>();
         foreach (var table in document.Slides.SelectMany(slide => slide.Tables)) {
@@ -208,7 +208,7 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
         shell.AddScript("New-OfficePowerPoint -Path $target { PowerPointSlide -Title 'Latency' { PowerPointKpi '182 ms' 'Median response' " + parameters + " } }");
         shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
-        using var document = PowerPointPresentation.Load(path);
+        using var document = PowerPointDocument.Load(path);
         var change = Assert.Single(Assert.Single(document.Slides).TextBoxes, box => box.Text == expected);
         Assert.Equal(expected, change.Text);
         if (color != null) {
@@ -224,7 +224,7 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
     [InlineData("type")]
     [InlineData("object")]
     public void TemplateLayoutSelectsTheSameNativeLayoutByPositionNameTypeOrObject(string selectionKind) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         var layout = document.GetSlideLayouts(0).First(entry => entry.Type.HasValue);
         using var runspace = Open();
         runspace.SessionStateProxy.SetVariable("deck", document);
@@ -266,14 +266,14 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
         object value = runspace.SessionStateProxy.GetVariable("theme");
         var theme = Assert.IsType<PSWriteOffice.Services.PowerPoint.PowerPointThemeInfo>(value is PSObject wrapped ? wrapped.BaseObject : value);
         Assert.NotEmpty(theme.Colors);
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         Assert.Single(saved.Slides);
         Assert.Equal(saved.ThemeName, theme.ThemeName);
     }
 
     [Fact]
     public void SectionRenameAndListingUseDocumentArgumentsAndPipelineInput() {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         document.AddSlide();
         document.AddSection("Review", 0);
         using var runspace = Open();
@@ -293,7 +293,7 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
 
     [Fact]
     public void RenamingToAnExistingSectionNameReturnsTheSectionThatWasChanged() {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         document.AddSlide();
         document.AddSlide();
         document.AddSection("Accepted", 0);

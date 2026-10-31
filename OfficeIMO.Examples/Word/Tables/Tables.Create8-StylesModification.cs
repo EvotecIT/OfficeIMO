@@ -27,17 +27,17 @@ namespace OfficeIMO.Examples.Word {
 
                 // Set margins for all sides
                 var styleDetails1 = Guard.NotNull(wordTable.StyleDetails, "Table style details should be available.");
-                styleDetails1.MarginDefaultTopWidth = 110;
-                styleDetails1.MarginDefaultBottomWidth = 110;
-                styleDetails1.MarginDefaultLeftWidth = 110;
-                styleDetails1.MarginDefaultRightWidth = 110;
-                styleDetails1.CellSpacing = 50;
+                styleDetails1.MarginDefaultTop = global::OfficeIMO.OfficeLength.Points(5.5);
+                styleDetails1.MarginDefaultBottom = global::OfficeIMO.OfficeLength.Points(5.5);
+                styleDetails1.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points(5.5);
+                styleDetails1.MarginDefaultRight = global::OfficeIMO.OfficeLength.Points(5.5);
+                styleDetails1.CellSpacing = global::OfficeIMO.OfficeLength.Points(2.5);
 
                 Console.WriteLine("Table style: " + wordTable.Style);
-                Console.WriteLine("Table MarginDefaultTopWidth: " + styleDetails1.MarginDefaultTopWidth);
-                Console.WriteLine("Table MarginDefaultBottomWidth: " + styleDetails1.MarginDefaultBottomWidth);
-                Console.WriteLine("Table MarginDefaultLeftWidth: " + styleDetails1.MarginDefaultLeftWidth);
-                Console.WriteLine("Table MarginDefaultRightWidth: " + styleDetails1.MarginDefaultRightWidth);
+                Console.WriteLine("Table MarginDefaultTop: " + styleDetails1.MarginDefaultTop);
+                Console.WriteLine("Table MarginDefaultBottom: " + styleDetails1.MarginDefaultBottom);
+                Console.WriteLine("Table MarginDefaultLeft: " + styleDetails1.MarginDefaultLeft);
+                Console.WriteLine("Table MarginDefaultRight: " + styleDetails1.MarginDefaultRight);
                 Console.WriteLine("Table CellSpacing: " + styleDetails1.CellSpacing);
 
                 document.AddParagraph();
@@ -50,31 +50,31 @@ namespace OfficeIMO.Examples.Word {
 
                 // Set different margins for each side
                 var styleDetails2 = Guard.NotNull(wordTable2.StyleDetails, "Table style details should be available.");
-                styleDetails2.MarginDefaultTopWidth = 120;
-                styleDetails2.MarginDefaultBottomWidth = 180;
-                styleDetails2.MarginDefaultLeftWidth = 150;
-                styleDetails2.MarginDefaultRightWidth = 150;
+                styleDetails2.MarginDefaultTop = global::OfficeIMO.OfficeLength.Points(6);
+                styleDetails2.MarginDefaultBottom = global::OfficeIMO.OfficeLength.Points(9);
+                styleDetails2.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points(7.5);
+                styleDetails2.MarginDefaultRight = global::OfficeIMO.OfficeLength.Points(7.5);
 
                 // Add custom borders
                 styleDetails2.SetCustomBorders(
-                    topStyle: WordBorderStyle.Single, topSize: 24,
-                    bottomStyle: WordBorderStyle.Double, bottomSize: 24,
-                    leftStyle: WordBorderStyle.Single, leftSize: 24,
-                    rightStyle: WordBorderStyle.Single, rightSize: 24,
-                    insideHStyle: WordBorderStyle.Single, insideHSize: 12,
-                    insideVStyle: WordBorderStyle.Single, insideVSize: 12);
+                    topStyle: WordBorderStyle.Single, topSize: global::OfficeIMO.OfficeLength.Points(3),
+                    bottomStyle: WordBorderStyle.Double, bottomSize: global::OfficeIMO.OfficeLength.Points(3),
+                    leftStyle: WordBorderStyle.Single, leftSize: global::OfficeIMO.OfficeLength.Points(3),
+                    rightStyle: WordBorderStyle.Single, rightSize: global::OfficeIMO.OfficeLength.Points(3),
+                    insideHStyle: WordBorderStyle.Single, insideHSize: global::OfficeIMO.OfficeLength.Points(1.5),
+                    insideVStyle: WordBorderStyle.Single, insideVSize: global::OfficeIMO.OfficeLength.Points(1.5));
 
                 wordTable2.Rows[0].Cells[2].Borders.TopColor = Color.Red;
                 wordTable2.Rows[0].Cells[2].Borders.BottomColor = Color.Green;
-                wordTable2.Rows[0].Cells[2].Borders.TopSize = 24;
+                wordTable2.Rows[0].Cells[2].Borders.TopSize = OfficeLength.Points(3);
                 wordTable2.Rows[0].Cells[2].Borders.TopStyle = WordBorderStyle.Single;
 
                 Console.WriteLine("\nSecond table settings:");
                 Console.WriteLine("Table style: " + wordTable2.Style);
-                Console.WriteLine("Table MarginDefaultTopWidth: " + styleDetails2.MarginDefaultTopWidth);
-                Console.WriteLine("Table MarginDefaultBottomWidth: " + styleDetails2.MarginDefaultBottomWidth);
-                Console.WriteLine("Table MarginDefaultLeftWidth: " + styleDetails2.MarginDefaultLeftWidth);
-                Console.WriteLine("Table MarginDefaultRightWidth: " + styleDetails2.MarginDefaultRightWidth);
+                Console.WriteLine("Table MarginDefaultTop: " + styleDetails2.MarginDefaultTop);
+                Console.WriteLine("Table MarginDefaultBottom: " + styleDetails2.MarginDefaultBottom);
+                Console.WriteLine("Table MarginDefaultLeft: " + styleDetails2.MarginDefaultLeft);
+                Console.WriteLine("Table MarginDefaultRight: " + styleDetails2.MarginDefaultRight);
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

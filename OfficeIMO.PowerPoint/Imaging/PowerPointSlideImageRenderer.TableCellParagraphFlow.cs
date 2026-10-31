@@ -109,8 +109,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool ShouldRenderTableCellParagraphFlow(IReadOnlyList<PowerPointParagraph> paragraphs) =>
             paragraphs.Any(paragraph => !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered ||
-                paragraph.SpaceBeforePoints.HasValue || paragraph.SpaceAfterPoints.HasValue ||
-                paragraph.LineSpacingPoints.HasValue || paragraph.LineSpacingMultiplier.HasValue) ||
+                paragraph.SpaceBefore.HasValue || paragraph.SpaceAfter.HasValue ||
+                paragraph.LineSpacing.HasValue || paragraph.LineSpacingMultiplier.HasValue) ||
             paragraphs.Count > 1;
 
         private static List<PowerPointParagraphDrawing> CreateTableCellParagraphDrawings(
@@ -132,15 +132,15 @@ namespace OfficeIMO.PowerPoint {
                     : richRuns.Max(run => run.FontSize);
                 double lineHeight = ResolveTableCellParagraphLineHeight(paragraph, maxFontSize, mapping);
                 double height, paintedHeight;
-                if (paragraph.LineSpacingPoints.HasValue) {
+                if (paragraph.LineSpacing.HasValue) {
                     var layout = OfficeDrawingTextLayout.CreateParagraphs(
                         new[] { new OfficeRichTextParagraph(richRuns, lineHeight: lineHeight, indent: indent) },
                         textWidth, double.MaxValue, measure);
                     results.Add(new PowerPointParagraphDrawing(string.Empty, richRuns, OfficeFontInfo.Default,
                         OfficeColor.Black, alignment, indent, lineHeight, Math.Max(lineHeight, layout.Height),
                         OfficeDrawingTextLayout.PaintedHeight(layout),
-                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBeforePoints ?? 0D)),
-                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfterPoints ?? 0D)),
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBefore?.ToPoints() ?? 0D)),
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfter?.ToPoints() ?? 0D)),
                         layout.Width, layout.Clipped, absoluteLineHeight: true));
                 } else if (ShouldRenderParagraphRichText(richRuns, marker)) {
                     height = EstimateParagraphRichTextHeight(richRuns, maxFontSize, lineHeight, textWidth, indent, out paintedHeight, measure);
@@ -154,8 +154,8 @@ namespace OfficeIMO.PowerPoint {
                         lineHeight,
                         height,
                         paintedHeight,
-                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBeforePoints ?? 0D)),
-                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfterPoints ?? 0D))));
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBefore?.ToPoints() ?? 0D)),
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfter?.ToPoints() ?? 0D))));
                 } else {
                     string text = CreateParagraphPlainText(paragraph, marker);
                     OfficeFontInfo font = ResolveTableCellParagraphFont(cell, paragraph, mapping);
@@ -170,8 +170,8 @@ namespace OfficeIMO.PowerPoint {
                         lineHeight,
                         height,
                         paintedHeight,
-                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBeforePoints ?? 0D)),
-                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfterPoints ?? 0D))));
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBefore?.ToPoints() ?? 0D)),
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfter?.ToPoints() ?? 0D))));
                 }
             }
 
@@ -203,7 +203,7 @@ namespace OfficeIMO.PowerPoint {
                     cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles?.OtherStyle);
                 return new OfficeFontInfo(effective.FontName ?? PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
                         cell.FontName, cell.OwnerPart) ?? "Calibri",
-                    mapping.MapFontSize(effective.FontSizePoints ?? cell.FontSize ?? 10),
+                    mapping.MapFontSize(effective.FontSizePoints ?? cell.FontSize?.ToPoints() ?? 10),
                     ResolveEffectiveFontStyle(effective, cell.Bold, cell.Italic));
             }
             PowerPointTextRun? firstRun = paragraph.InlineNodes.FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run
@@ -227,7 +227,7 @@ namespace OfficeIMO.PowerPoint {
 
             return new OfficeFontInfo(PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
                 firstRun?.FontName ?? cell.FontName, firstRun?.OwnerPart ?? cell.OwnerPart) ?? "Calibri",
-                mapping.MapFontSize(firstRun?.FontSize ?? cell.FontSize ?? 10), style);
+                mapping.MapFontSize(firstRun?.FontSize?.ToPoints() ?? cell.FontSize?.ToPoints() ?? 10), style);
         }
 
         private static OfficeColor ResolveTableCellParagraphTextColor(PowerPointTableCell cell, PowerPointParagraph paragraph, A.ColorScheme? colorScheme) {
@@ -237,8 +237,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static double ResolveTableCellParagraphLineHeight(PowerPointParagraph paragraph, double fontSize, PowerPointShapeBoundsMapping mapping) {
-            if (paragraph.LineSpacingPoints.HasValue) {
-                return Math.Max(1D, mapping.MapVerticalLength(paragraph.LineSpacingPoints.Value));
+            if (paragraph.LineSpacing.HasValue) {
+                return Math.Max(1D, mapping.MapVerticalLength(paragraph.LineSpacing.Value.ToPoints()));
             }
 
             if (paragraph.LineSpacingMultiplier.HasValue) {
@@ -249,8 +249,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeTextParagraphIndent CreateTableCellParagraphIndent(PowerPointParagraph paragraph, PowerPointShapeBoundsMapping mapping) {
-            double leftMargin = Math.Max(0D, mapping.MapHorizontalLength(paragraph.LeftMarginPoints ?? 0D));
-            double firstLine = Math.Max(0D, leftMargin + mapping.MapHorizontalLength(paragraph.IndentPoints ?? 0D));
+            double leftMargin = Math.Max(0D, mapping.MapHorizontalLength(paragraph.LeftMargin?.ToPoints() ?? 0D));
+            double firstLine = Math.Max(0D, leftMargin + mapping.MapHorizontalLength(paragraph.Indent?.ToPoints() ?? 0D));
             return firstLine > 0D || leftMargin > 0D
                 ? new OfficeTextParagraphIndent(firstLine, leftMargin)
                 : OfficeTextParagraphIndent.Empty;

@@ -41,8 +41,8 @@ public sealed class PdfShapeBoundsResourceTests {
         shape.SetStrokeDashArray(new[] { .0625, .0625 });
         var report = new PdfConversionReport();
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 200, PageHeight = 200, MarginLeft = 10, MarginRight = 10,
-            MarginTop = 30, MarginBottom = 30, HeaderOffsetY = 0, FooterOffsetY = 0
+            PageWidth = OfficeLength.Points(200), PageHeight = OfficeLength.Points(200), MarginLeft = OfficeLength.Points(10), MarginRight = OfficeLength.Points(10),
+            MarginTop = OfficeLength.Points(30), MarginBottom = OfficeLength.Points(30), HeaderOffsetY = OfficeLength.Points(0), FooterOffsetY = OfficeLength.Points(0)
         }.ReportDiagnosticsTo(report)).Compose(c => c.Page(page => {
             if (footer) page.Footer(builder => builder.Shape(shape));
             else page.Header(builder => builder.Shape(shape));

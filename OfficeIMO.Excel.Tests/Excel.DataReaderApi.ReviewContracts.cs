@@ -18,13 +18,13 @@ public partial class Excel {
         string replacementPath = path + ".replacement";
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Original");
+                ExcelSheet sheet = document.AddSheet("Original");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "Original snapshot");
                 document.Save();
             }
             using (var document = ExcelDocument.Create(replacementPath)) {
-                ExcelSheet sheet = document.AddWorksheet("Replacement");
+                ExcelSheet sheet = document.AddSheet("Replacement");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "Replacement snapshot");
                 document.Save();
@@ -53,7 +53,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.MalformedWorksheetTail.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "Ready");
                 document.Save();
@@ -79,7 +79,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.NestedSharedStringValue.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "Ready");
                 document.Save();
@@ -120,7 +120,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.SmallSharedStrings.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "Plain");
                 sheet.CellValue(3, 1, "Trailing ");
@@ -165,7 +165,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.WhitespaceSharedStrings.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "First");
                 sheet.CellValue(3, 1, "Second");
@@ -199,7 +199,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.ForeignNamespaceValue.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "Ready");
                 document.Save();
@@ -241,7 +241,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.SharedFormulaEntity.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Shared");
+                ExcelSheet sheet = document.AddSheet("Shared");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellFormula(2, 1, "B2+1");
                 sheet.CellFormula(3, 1, "B3+1");
@@ -297,7 +297,7 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 for (int index = 0; index < 2; index++) {
-                    ExcelSheet sheet = document.AddWorksheet($"Sheet{index + 1}");
+                    ExcelSheet sheet = document.AddSheet($"Sheet{index + 1}");
                     sheet.CellValue(1, 1, "Value");
                     sheet.CellValue(2, 1, $"Sheet {index + 1}");
                 }
@@ -347,7 +347,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.InvalidWrappedOpenXmlCellStyle.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "Ready");
                 document.Save();
@@ -384,7 +384,7 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 for (int index = 0; index < 2; index++) {
-                    ExcelSheet sheet = document.AddWorksheet($"Sheet{index + 1}");
+                    ExcelSheet sheet = document.AddSheet($"Sheet{index + 1}");
                     sheet.CellValue(1, 1, "Value");
                     sheet.CellValue(2, 1, $"Sheet {index + 1}");
                 }
@@ -435,10 +435,10 @@ public partial class Excel {
             $"OfficeIMO.Excel.InvalidSkippedSheetSharedString.{Guid.NewGuid():N}.xlsb");
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet first = document.AddWorksheet("First");
+                ExcelSheet first = document.AddSheet("First");
                 first.CellValue(1, 1, "Value");
                 first.CellValue(2, 1, "Ready");
-                ExcelSheet second = document.AddWorksheet("Second");
+                ExcelSheet second = document.AddSheet("Second");
                 second.CellValue(1, 1, "Value");
                 second.CellValue(2, 1, "Never delivered");
                 File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
@@ -476,8 +476,8 @@ public partial class Excel {
             $"OfficeIMO.Excel.InvalidWorksheetRelationship.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("First").CellValue(1, 1, "Ready");
-                document.AddWorksheet("Second").CellValue(1, 1, "Never delivered");
+                document.AddSheet("First").CellValue(1, 1, "Ready");
+                document.AddSheet("Second").CellValue(1, 1, "Never delivered");
                 document.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -510,8 +510,8 @@ public partial class Excel {
             $"OfficeIMO.Excel.UnrelatedWorksheetPart.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("First").CellValue(1, 1, "Ready");
-                document.AddWorksheet("Second").CellValue(1, 1, "Never delivered");
+                document.AddSheet("First").CellValue(1, 1, "Ready");
+                document.AddSheet("Second").CellValue(1, 1, "Never delivered");
                 document.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -539,7 +539,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.NonWorksheetParts.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet data = document.AddWorksheet("Data");
+                ExcelSheet data = document.AddSheet("Data");
                 data.CellValue(1, 1, "Value");
                 data.CellValue(2, 1, "Ready");
                 document.Save();
@@ -611,7 +611,7 @@ public partial class Excel {
             new ExcelCreateOptions {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             string[] headers = {
                 "AsByte",
                 "AsDecimal",
@@ -651,7 +651,7 @@ public partial class Excel {
     [Fact]
     public void CreateDataReader_NumericGettersPreserveWrappedDocumentDateSerials() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Valid");
         sheet.CellValue(1, 2, "OutOfRange");
         sheet.CellValue(2, 1, 45351D);

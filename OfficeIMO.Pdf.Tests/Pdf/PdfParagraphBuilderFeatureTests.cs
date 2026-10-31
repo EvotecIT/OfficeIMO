@@ -15,7 +15,7 @@ public class PdfParagraphBuilderFeatureTests {
     public void ParagraphBuilderAppliesFeatureOverridesToSubsequentText(string kind) {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithKerning('A', 'B', -200, includeSpace: true);
         var family = new PdfEmbeddedFontFamily("Builder features", font, bold: font);
-        var options = new PdfCreateOptions { DefaultFontSize = 12 };
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
         options.RegisterNamedFontFamily(family);
         var fallback = new PdfEmbeddedFontFallbackSet(new[] { new PdfEmbeddedFontFallbackCandidate(family.FamilyName, font) });
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(builder => {
@@ -52,11 +52,11 @@ public class PdfParagraphBuilderFeatureTests {
     [InlineData(false, 0)]
     public void RichPageTextPreservesKerningForGlyphsFollowingRunsAndRightAlignment(bool header, int kern) {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithKerning('A', 'B', -200, includeSpace: true);
-        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 240, MarginRight = 30 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(240), MarginRight = global::OfficeIMO.OfficeLength.Points(30) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Page features", font));
         var features = OfficeTextFeatureSettings.Default.With("kern", kern);
-        var pair = new PdfTextRun("AB", fontSize: 24, fontFamily: "Page features").WithFeatureSettings(features);
-        var following = new PdfTextRun("A", fontSize: 24, fontFamily: "Page features");
+        var pair = new PdfTextRun("AB", fontSize: global::OfficeIMO.OfficeLength.Points(24), fontFamily: "Page features").WithFeatureSettings(features);
+        var following = new PdfTextRun("A", fontSize: global::OfficeIMO.OfficeLength.Points(24), fontFamily: "Page features");
         var document = PdfDocument.Create(options);
         if (header) document.Header(builder => builder.AlignRight().Text(text => text.Run(pair).Run(following)));
         else document.Footer(builder => builder.AlignRight().Text(text => text.Run(pair).Run(following)));
@@ -69,6 +69,6 @@ public class PdfParagraphBuilderFeatureTests {
         double pairWidth = kern == 1 ? 19.2D : 24D;
         Assert.Equal(kern == 1 ? 7.2D : 12D, positions[1] - positions[0], 3);
         Assert.Equal(pairWidth, positions[2] - positions[0], 3);
-        Assert.Equal(options.PageWidth - options.MarginRight - pairWidth - 12D, positions[0], 3);
+        Assert.Equal(options.PageWidth.ToPoints() - options.MarginRight.ToPoints() - pairWidth - 12D, positions[0], 3);
     }
 }

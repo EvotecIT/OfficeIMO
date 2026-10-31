@@ -164,7 +164,7 @@ public class PdfPageInterleaverTests {
             new[] { firstSource, secondSource },
             new PdfInterleaveOptions {
                 MergeOptions = new PdfMergeOptions {
-                    ResizePages = new PdfPageResizeOptions(new PdfPageSize(420, 595))
+                    ResizePages = new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(595)))
                 }
             });
 

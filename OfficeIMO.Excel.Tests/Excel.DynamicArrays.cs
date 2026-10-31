@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_AuthoredMetadataOpensAndSpillsInDesktopExcel() {
             string path = Path.Combine(_directoryWithFiles, "AuthoredDynamicArray.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
                 var inspected = Assert.Single(sheet.InspectFormulas().Formulas);
                 Assert.True(inspected.Array?.IsDynamic);
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_RecalculateResizesAndRefreshesDependentCells() {
             string path = Path.Combine(_directoryWithFiles, "ResizedDynamicArray.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 2);
                 sheet.CellValue(1, 2, 2);
                 sheet.CellFormula(1, 5, "G2+H2");
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_BlockedSpillRecoversWhenBlockerClears() {
             string path = Path.Combine(_directoryWithFiles, "BlockedDynamicArray.xlsx");
             using var document = ExcelDocument.Create(path);
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(2, 8, "blocker");
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
             sheet.CellFormula(1, 9, "G1");
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DynamicArrays_OneFreshSpillCanFeedAnotherBeforeEitherIsCached() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(K2,2)");
             sheet.SetDynamicArrayFormula("K1", "SEQUENCE(2,2)");
             Assert.All(sheet.InspectFormulas().Formulas, formula => Assert.True(formula.IsSupportedByOfficeIMO));
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DynamicArrays_RichTextAndImagesCannotReplaceOwnedCells() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
             document.RecalculateSupportedFormulas();
             Assert.Throws<InvalidOperationException>(() =>
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
             table.Columns.Add("Value", typeof(int));
             table.Rows.Add(99);
             Assert.Throws<InvalidOperationException>(() =>
-                sheet.InsertDataTable(table, startRow: 2, startColumn: 8, includeHeaders: false));
+                sheet.WriteData(table, row: 2, column: 8, includeHeaders: false));
             document.RecalculateSupportedFormulas();
             Assert.True(sheet.TryGetCellText(2, 8, out var child));
             Assert.Equal("4", child);
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DynamicArrays_ImportedContentInsideOldRangeBlocksWithoutDataLoss() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
             document.RecalculateSupportedFormulas();
             var child = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>(),
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_ChangedPlainCacheInsideOldRangeBlocksWithoutDataLoss() {
             string path = Path.Combine(_directoryWithFiles, "ChangedNativeSpillChild.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
                 document.RecalculateSupportedFormulas();
                 document.Save();
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DynamicArrays_ChangedPlainCacheSurvivesShrink() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 2);
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
             document.RecalculateSupportedFormulas();
@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_LoadedUnchangedChildrenCanShrink() {
             string path = Path.Combine(_directoryWithFiles, "LoadedDynamicShrink.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 2);
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
                 document.RecalculateSupportedFormulas();
@@ -252,7 +252,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_UnrelatedWorkbookEditBeforeSheetAccessDoesNotBlockShrink() {
             string path = Path.Combine(_directoryWithFiles, "WorkbookPropertyBeforeDynamicShrink.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 2);
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
                 document.RecalculateSupportedFormulas();
@@ -275,7 +275,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_ManyLoadedOwnersShrinkIndependently() {
             string path = Path.Combine(_directoryWithFiles, "ManyLoadedDynamicShrinks.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 for (int index = 0; index < 100; index++) {
                     int row = index * 4 + 1;
                     sheet.CellValue(row, 1, 2);
@@ -326,7 +326,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_LoadedChangedChildStillBlocksShrink() {
             string path = Path.Combine(_directoryWithFiles, "LoadedChangedDynamicShrink.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 2);
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
                 document.RecalculateSupportedFormulas();
@@ -356,7 +356,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_LoadedFilterCanReplaceUnchangedOldCaches() {
             string path = Path.Combine(_directoryWithFiles, "LoadedDynamicFilter.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "alpha");
                 sheet.CellValue(2, 1, "beta");
                 sheet.CellValue(3, 1, "gamma");
@@ -385,7 +385,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_SavedExternalChangeCannotBecomeOwnershipBaseline() {
             string path = Path.Combine(_directoryWithFiles, "SavedExternalDynamicChild.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 2);
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
                 document.RecalculateSupportedFormulas();
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_ExternalEditBeforeSheetAccessCannotBecomeOwnershipBaseline() {
             string path = Path.Combine(_directoryWithFiles, "ExternalEditBeforeDynamicSheetAccess.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 2);
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
                 document.RecalculateSupportedFormulas();
@@ -436,7 +436,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_OwnershipSurvivesNewSheetWrappers() {
             using var document = ExcelDocument.Create();
             document.SheetCachingEnabled = false;
-            var authored = document.AddWorksheet("Data");
+            var authored = document.AddSheet("Data");
             var other = document["Data"];
             Assert.NotSame(authored, other);
             other.CellValue(5, 5, 1); // Populate the shared write index before formula authoring.
@@ -456,7 +456,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DynamicArrays_TextTransformationCannotRewriteSpillChildren() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "alpha");
             sheet.CellValue(2, 1, "beta");
             sheet.CellValue(1, 2, 1);
@@ -475,7 +475,7 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_BlockedNativeErrorAndClearOwnership() {
             string path = Path.Combine(_directoryWithFiles, "BlockedNativeDynamicArray.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(2, 8, "blocker");
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
                 sheet.CellFormula(1, 9, "G1");
@@ -500,7 +500,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DynamicArrays_GrowthCollisionRetiresOldChildrenAndRecovers() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 2);
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
             document.RecalculateSupportedFormulas();
@@ -523,7 +523,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DynamicArrays_HundredThousandCellLimitRemainsBounded() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.SetDynamicArrayFormula("A1", "SEQUENCE(100000,1)");
             Assert.Equal(1, document.RecalculateSupportedFormulas());
             Assert.True(sheet.TryGetCellText(100000, 1, out var final));

@@ -100,8 +100,8 @@ public partial class Word {
 
         byte[] bytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PdfCore.PdfPageSize(240, 320),
-            Margins = PdfCore.PdfPageMargins.Uniform(36)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(320)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.True(bytes.Length > 0);

@@ -16,17 +16,17 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfDocument_DefaultTextStyleAppliesToFollowingContent() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 300,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
             .DefaultTextStyle(style => style
                 .Font(PdfStandardFont.Helvetica)
-                .FontSize(16)
-                .Color(PdfColor.FromRgb(10, 20, 30)))
+                .FontSize(global::OfficeIMO.OfficeLength.Points(16))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)))
             .Paragraph(p => p.Text("FluentTextStyle"))
             .ToBytes();
 
@@ -46,24 +46,24 @@ public partial class PdfDocumentVisualQualityTests {
     public void PdfDocument_DefaultTextStyleObjectAppliesToFollowingContentAndSnapshotsInput() {
         var style = new PdfTextStyle {
             Font = PdfStandardFont.Helvetica,
-            FontSize = 16,
-            Color = PdfColor.FromRgb(10, 20, 30)
+            FontSize = global::OfficeIMO.OfficeLength.Points(16),
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 300,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
             .DefaultTextStyle(style)
             .Paragraph(p => p.Text("ObjectTextStyle"))
             .ToBytes();
 
-        style.FontSize = 8;
-        style.Color = PdfColor.Black;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(8);
+        style.Color = global::OfficeIMO.OfficeColor.Black;
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -80,30 +80,30 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfDocument_DefaultHeadingStyleAppliesToFollowingHeadingsAndSnapshotsInput() {
         var style = new PdfHeadingStyle {
-            FontSize = 12,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12),
             LineHeight = 1,
-            SpacingAfter = 24,
-            Color = PdfColor.FromRgb(10, 20, 30)
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(24),
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 300,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .DefaultHeadingStyle(3, style)
             .H3("StyledHeading")
             .Paragraph(p => p.Text("StyledBody"))
             .ToBytes();
 
-        style.FontSize = 30;
-        style.SpacingAfter = 0;
-        style.Color = PdfColor.Black;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(30);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
+        style.Color = global::OfficeIMO.OfficeColor.Black;
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -125,17 +125,17 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void HeadingStyle_BoldFalse_UsesNormalFontResource() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 300,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("RegularHeading", style: new PdfHeadingStyle {
-                FontSize = 14,
+                FontSize = global::OfficeIMO.OfficeLength.Points(14),
                 Bold = false
             })
             .ToBytes();
@@ -151,35 +151,35 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Heading_UsesConfiguredSpacingBeforeAndAfter() {
         var options = new PdfCreateOptions {
-            PageWidth = 320,
-            PageHeight = 260,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(260),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var defaultStyle = new PdfHeadingStyle {
-            FontSize = 12,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12),
             LineHeight = 1,
-            SpacingBefore = 0,
-            SpacingAfter = 0
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var spacedStyle = new PdfHeadingStyle {
-            FontSize = 12,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12),
             LineHeight = 1,
-            SpacingBefore = 12,
-            SpacingAfter = 18
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(12),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(18)
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .H2("HeadingMarker", style: defaultStyle)
             .Paragraph(p => p.Text("AfterMarker"))
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .H2("HeadingMarker", style: spacedStyle)
             .Paragraph(p => p.Text("AfterMarker"))
             .ToBytes();
@@ -201,26 +201,26 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Heading_SuppressesSpacingBeforeAtPageTop() {
         var options = new PdfCreateOptions {
-            PageWidth = 320,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var defaultStyle = new PdfHeadingStyle {
-            FontSize = 12,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12),
             LineHeight = 1,
-            SpacingBefore = 0,
-            SpacingAfter = 0
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var spacedStyle = new PdfHeadingStyle {
-            FontSize = 12,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12),
             LineHeight = 1,
-            SpacingBefore = 28,
-            SpacingAfter = 0
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(28),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
@@ -242,26 +242,26 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Heading_CanApplySpacingBeforeAtPageTop() {
         var options = new PdfCreateOptions {
-            PageWidth = 320,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var defaultStyle = new PdfHeadingStyle {
-            FontSize = 12,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12),
             LineHeight = 1,
-            SpacingBefore = 0,
-            SpacingAfter = 0
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var spacedStyle = new PdfHeadingStyle {
-            FontSize = 12,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12),
             LineHeight = 1,
-            SpacingBefore = 28,
-            SpacingAfter = 0,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(28),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             ApplySpacingBeforeAtTop = true
         };
 
@@ -284,36 +284,36 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Heading_CanApplySpacingBeforeAfterAutomaticPageBreak() {
         var options = new PdfCreateOptions {
-            PageWidth = 320,
-            PageHeight = 160,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(160),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var defaultStyle = new PdfHeadingStyle {
-            FontSize = 12,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12),
             LineHeight = 1,
-            SpacingBefore = 0,
-            SpacingAfter = 0
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var spacedStyle = new PdfHeadingStyle {
-            FontSize = 12,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12),
             LineHeight = 1,
-            SpacingBefore = 24,
-            SpacingAfter = 0,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(24),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             ApplySpacingBeforeAtTop = true
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Spacer(80)
             .H2("PagedHeadingMarker", style: defaultStyle)
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = 0 })
+            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Spacer(80)
             .H2("PagedHeadingMarker", style: spacedStyle)
             .ToBytes();
@@ -333,26 +333,26 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnHeading_SuppressesSpacingBeforeAtColumnTop() {
         var options = new PdfCreateOptions {
-            PageWidth = 320,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var defaultStyle = new PdfHeadingStyle {
-            FontSize = 12,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12),
             LineHeight = 1,
-            SpacingBefore = 0,
-            SpacingAfter = 0
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var spacedStyle = new PdfHeadingStyle {
-            FontSize = 12,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12),
             LineHeight = 1,
-            SpacingBefore = 28,
-            SpacingAfter = 0
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(28),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
@@ -419,38 +419,38 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfDocument_DefaultPanelStyleAppliesToFollowingPanelsAndSnapshotsInput() {
         var style = new PdfPanelStyle {
-            Background = PdfColor.FromRgb(240, 248, 255),
-            BorderColor = PdfColor.FromRgb(20, 40, 60),
-            BorderWidth = 0.8,
-            PaddingX = 14,
-            PaddingY = 8,
-            MaxWidth = 180,
+            Background = global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(20, 40, 60),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.8),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(14),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(8),
+            MaxWidth = global::OfficeIMO.OfficeLength.Points(180),
             Align = PdfAlign.Center,
-            SpacingAfter = 16
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(16)
         };
         var options = new PdfCreateOptions {
-            PageWidth = 360,
-            PageHeight = 240,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(240),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
             .DefaultPanelStyle(style)
             .PanelParagraph(p => p.Text("DefaultPanel"))
             .Paragraph(p => p.Text("AfterPanel"), style: new PdfParagraphStyle {
-                SpacingAfter = 0
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .ToBytes();
 
-        style.PaddingX = 2;
-        style.MaxWidth = 300;
+        style.PaddingX = global::OfficeIMO.OfficeLength.Points(2);
+        style.MaxWidth = global::OfficeIMO.OfficeLength.Points(300);
         style.Align = PdfAlign.Right;
-        style.Background = PdfColor.Black;
+        style.Background = global::OfficeIMO.OfficeColor.Black;
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -468,30 +468,30 @@ public partial class PdfDocumentVisualQualityTests {
     public void PdfDocument_DefaultHorizontalRuleStyleAppliesToFollowingRulesAndSnapshotsInput() {
         const double fontSize = 10;
         var style = new PdfHorizontalRuleStyle {
-            Thickness = 2,
-            Color = PdfColor.FromRgb(10, 20, 30),
-            SpacingBefore = 3,
-            SpacingAfter = 15
+            Thickness = global::OfficeIMO.OfficeLength.Points(2),
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(3),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(15)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = fontSize
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(fontSize)
             })
             .DefaultHorizontalRuleStyle(style)
             .HR()
             .Paragraph(p => p.Text("AfterDefaultRule"))
             .ToBytes();
 
-        style.Thickness = 7;
-        style.Color = PdfColor.FromRgb(200, 10, 10);
-        style.SpacingAfter = 0;
+        style.Thickness = global::OfficeIMO.OfficeLength.Points(7);
+        style.Color = global::OfficeIMO.OfficeColor.FromRgb(200, 10, 10);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -509,21 +509,21 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnHorizontalRule_UsesDefaultHorizontalRuleStyleWhenStyleIsNotProvided() {
         var style = new PdfHorizontalRuleStyle {
-            Thickness = 1.5,
-            Color = PdfColor.FromRgb(10, 20, 30),
-            SpacingBefore = 4,
-            SpacingAfter = 14
+            Thickness = global::OfficeIMO.OfficeLength.Points(1.5),
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(14)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .DefaultHorizontalRuleStyle(style)
             .Compose(document =>
@@ -545,15 +545,15 @@ public partial class PdfDocumentVisualQualityTests {
     public void PdfDocument_ThemeAppliesReusableDefaultsAndSnapshotsInput() {
         var textStyle = new PdfTextStyle {
             Font = PdfStandardFont.Helvetica,
-            FontSize = 16,
-            Color = PdfColor.FromRgb(10, 20, 30)
+            FontSize = global::OfficeIMO.OfficeLength.Points(16),
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
         };
         var paragraphStyle = new PdfParagraphStyle {
-            FirstLineIndent = 24,
-            SpacingAfter = 0
+            FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var tableStyle = PdfTableStyles.Minimal();
-        tableStyle.CellPaddingX = 22;
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(22);
         var theme = new PdfTheme {
             TextStyle = textStyle,
             ParagraphStyle = paragraphStyle,
@@ -561,12 +561,12 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 360,
-                PageHeight = 260,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
             .Theme(theme)
             .Paragraph(p => p
@@ -578,14 +578,14 @@ public partial class PdfDocumentVisualQualityTests {
                 new[] { "Row", "1" }
             });
 
-        textStyle.FontSize = 8;
-        textStyle.Color = PdfColor.Black;
-        paragraphStyle.FirstLineIndent = 0;
-        tableStyle.CellPaddingX = 0;
+        textStyle.FontSize = global::OfficeIMO.OfficeLength.Points(8);
+        textStyle.Color = global::OfficeIMO.OfficeColor.Black;
+        paragraphStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(0);
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
         theme.TextStyle = new PdfTextStyle {
             Font = PdfStandardFont.Helvetica,
-            FontSize = 8,
-            Color = PdfColor.Black
+            FontSize = global::OfficeIMO.OfficeLength.Points(8),
+            Color = global::OfficeIMO.OfficeColor.Black
         };
 
         byte[] bytes = doc.ToBytes();
@@ -614,42 +614,42 @@ public partial class PdfDocumentVisualQualityTests {
 
         theme.TextStyle = new PdfTextStyle {
             Font = PdfStandardFont.Courier,
-            FontSize = 7,
-            Color = PdfColor.Black
+            FontSize = global::OfficeIMO.OfficeLength.Points(7),
+            Color = global::OfficeIMO.OfficeColor.Black
         };
         theme.ParagraphStyle = new PdfParagraphStyle {
             LineHeight = 2,
-            SpacingAfter = 0
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         theme.TableStyle = PdfTableStyles.Minimal();
 
         PdfTheme freshTheme = PdfTheme.WordLike();
 
         Assert.Equal(PdfStandardFont.Helvetica, options.DefaultFont);
-        Assert.Equal(11, options.DefaultFontSize);
-        Assert.Equal(PdfColor.FromRgb(31, 41, 55), options.DefaultTextColor);
+        Assert.Equal(11, options.DefaultFontSize.ToPoints());
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55), options.DefaultTextColor);
         Assert.Equal(1.15, options.DefaultParagraphStyle!.LineHeight);
-        Assert.Equal(8, options.DefaultParagraphStyle.SpacingAfter);
+        Assert.Equal(8, (options.DefaultParagraphStyle.SpacingAfter?.ToPoints()));
         Assert.True(options.DefaultParagraphStyle.WidowControl);
-        Assert.Equal(20, options.DefaultHeadingStyles!.Level1!.FontSize);
-        Assert.Equal(16, options.DefaultHeadingStyles.Level2!.FontSize);
-        Assert.Equal(13.5, options.DefaultHeadingStyles.Level3!.FontSize);
+        Assert.Equal(20, (options.DefaultHeadingStyles!.Level1!.FontSize?.ToPoints()));
+        Assert.Equal(16, (options.DefaultHeadingStyles.Level2!.FontSize?.ToPoints()));
+        Assert.Equal(13.5, (options.DefaultHeadingStyles.Level3!.FontSize?.ToPoints()));
         Assert.True(options.DefaultHeadingStyles.Level1.KeepWithNext);
-        Assert.Equal(18, options.DefaultListStyle!.LeftIndent);
-        Assert.Equal(6, options.DefaultListStyle.MarkerGap);
-        Assert.Equal(8, options.DefaultListStyle.SpacingAfter);
-        Assert.Equal(5, options.DefaultTableStyle!.CellPaddingX);
-        Assert.Equal(5, options.DefaultTableStyle.CellPaddingY);
-        Assert.Equal(8, options.DefaultPanelStyle!.PaddingX);
-        Assert.Equal(8, options.DefaultPanelStyle.SpacingAfter);
-        Assert.Equal(0.7, options.DefaultHorizontalRuleStyle!.Thickness);
-        Assert.Equal(8, options.DefaultHorizontalRuleStyle.SpacingAfter);
-        Assert.Equal(8, options.DefaultImageStyle!.SpacingAfter);
-        Assert.Equal(8, options.DefaultDrawingStyle!.SpacingAfter);
-        Assert.Equal(18, options.DefaultRowStyle!.Gap);
-        Assert.Equal(8, options.DefaultRowStyle.SpacingAfter);
-        Assert.Equal(11, freshTheme.TextStyle!.FontSize);
-        Assert.Equal(8, freshTheme.ParagraphStyle!.SpacingAfter);
+        Assert.Equal(18, options.DefaultListStyle!.LeftIndent.ToPoints());
+        Assert.Equal(6, (options.DefaultListStyle.MarkerGap?.ToPoints()));
+        Assert.Equal(8, (options.DefaultListStyle.SpacingAfter?.ToPoints()));
+        Assert.Equal(5, options.DefaultTableStyle!.CellPaddingX.ToPoints());
+        Assert.Equal(5, options.DefaultTableStyle.CellPaddingY.ToPoints());
+        Assert.Equal(8, options.DefaultPanelStyle!.PaddingX.ToPoints());
+        Assert.Equal(8, options.DefaultPanelStyle.SpacingAfter.ToPoints());
+        Assert.Equal(0.7, options.DefaultHorizontalRuleStyle!.Thickness.ToPoints());
+        Assert.Equal(8, options.DefaultHorizontalRuleStyle.SpacingAfter.ToPoints());
+        Assert.Equal(8, options.DefaultImageStyle!.SpacingAfter.ToPoints());
+        Assert.Equal(8, options.DefaultDrawingStyle!.SpacingAfter.ToPoints());
+        Assert.Equal(18, (options.DefaultRowStyle!.Gap?.ToPoints()));
+        Assert.Equal(8, options.DefaultRowStyle.SpacingAfter.ToPoints());
+        Assert.Equal(11, freshTheme.TextStyle!.FontSize.ToPoints());
+        Assert.Equal(8, (freshTheme.ParagraphStyle!.SpacingAfter?.ToPoints()));
     }
 
     [Fact]
@@ -658,36 +658,36 @@ public partial class PdfDocumentVisualQualityTests {
         PdfCreateOptions compact = new PdfCreateOptions().ApplyTheme(PdfTheme.Compact());
         PdfCreateOptions report = new PdfCreateOptions().ApplyTheme(PdfTheme.Report());
 
-        Assert.Equal(PdfColor.FromRgb(15, 23, 42), technical.DefaultTableStyle!.HeaderFill);
-        Assert.Equal(9.75, technical.DefaultTableStyle.FontSize);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), technical.DefaultTableStyle!.HeaderFill);
+        Assert.Equal(9.75, technical.DefaultTableStyle.FontSize?.ToPoints());
         Assert.Equal(1.2, technical.DefaultTableStyle.LineHeight);
         Assert.True(technical.DefaultTableStyle.AutoFitColumns);
-        Assert.Equal(9, technical.DefaultPanelStyle!.SpacingAfter);
-        Assert.Equal(0.6, technical.DefaultHorizontalRuleStyle!.Thickness);
+        Assert.Equal(9, technical.DefaultPanelStyle!.SpacingAfter.ToPoints());
+        Assert.Equal(0.6, technical.DefaultHorizontalRuleStyle!.Thickness.ToPoints());
 
-        Assert.Equal(10, compact.DefaultFontSize);
+        Assert.Equal(10, compact.DefaultFontSize.ToPoints());
         Assert.Equal(1.08, compact.DefaultParagraphStyle!.LineHeight);
-        Assert.Equal(4, compact.DefaultParagraphStyle.SpacingAfter);
-        Assert.Equal(9, compact.DefaultTableStyle!.FontSize);
-        Assert.Equal(14, compact.DefaultRowStyle!.Gap);
+        Assert.Equal(4, (compact.DefaultParagraphStyle.SpacingAfter?.ToPoints()));
+        Assert.Equal(9, compact.DefaultTableStyle!.FontSize?.ToPoints());
+        Assert.Equal(14, (compact.DefaultRowStyle!.Gap?.ToPoints()));
 
-        Assert.Equal(PdfColor.FromRgb(30, 64, 175), report.DefaultTableStyle!.HeaderFill);
-        Assert.Equal(PdfColor.FromRgb(239, 246, 255), report.DefaultTableStyle.RowStripeFill);
-        Assert.Equal(9.25, report.DefaultTableStyle.FontSize);
-        Assert.Equal(21, report.DefaultHeadingStyles!.Level1!.FontSize);
-        Assert.Equal(PdfColor.FromRgb(30, 64, 175), report.DefaultHeadingStyles.Level2!.Color);
-        Assert.Equal(10, report.DefaultPanelStyle!.SpacingAfter);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175), report.DefaultTableStyle!.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), report.DefaultTableStyle.RowStripeFill);
+        Assert.Equal(9.25, report.DefaultTableStyle.FontSize?.ToPoints());
+        Assert.Equal(21, (report.DefaultHeadingStyles!.Level1!.FontSize?.ToPoints()));
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175), report.DefaultHeadingStyles.Level2!.Color);
+        Assert.Equal(10, report.DefaultPanelStyle!.SpacingAfter.ToPoints());
     }
 
     [Fact]
     public void PdfDocument_WordLikeThemeRendersReadableMixedFlowRhythm() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 520,
-                MarginLeft = 42,
-                MarginRight = 42,
-                MarginTop = 42,
-                MarginBottom = 42
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(520),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(42),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(42),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(42),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(42)
             })
             .Theme(PdfTheme.WordLike())
             .H1("WordLikeHeading")
@@ -727,12 +727,12 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfDocument_ReportThemeRendersStrongerTableAndPanelHierarchy() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 520,
-                MarginLeft = 42,
-                MarginRight = 42,
-                MarginTop = 42,
-                MarginBottom = 42
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(520),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(42),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(42),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(42),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(42)
             })
             .Theme(PdfTheme.Report())
             .H1("ReportThemeHeading")
@@ -765,24 +765,24 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfDocument_OptionsAppliedThemeRendersReusableDefaults() {
         var tableStyle = PdfTableStyles.Minimal();
-        tableStyle.CellPaddingX = 22;
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(22);
         var options = new PdfCreateOptions {
-                PageWidth = 360,
-                PageHeight = 260,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             }
             .ApplyTheme(new PdfTheme {
                 TextStyle = new PdfTextStyle {
                     Font = PdfStandardFont.Helvetica,
-                    FontSize = 16,
-                    Color = PdfColor.FromRgb(10, 20, 30)
+                    FontSize = global::OfficeIMO.OfficeLength.Points(16),
+                    Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
                 },
                 ParagraphStyle = new PdfParagraphStyle {
-                    FirstLineIndent = 24,
-                    SpacingAfter = 0
+                    FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 },
                 TableStyle = tableStyle
             });

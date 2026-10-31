@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
             DateTime date = new DateTime(2026, 10, 8, 6, 0, 0);
             using ExcelDocument document = ExcelDocument.Create();
             document.DateSystem = ExcelDateSystem.NineteenFour;
-            ExcelSheet first = document.AddWorksheet("First");
+            ExcelSheet first = document.AddSheet("First");
             first.CellValue(1, 1, "Alpha");
             first.CellBold(1, 1);
             first.CellValue(2, 1, date);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
                 .Single(cell => cell.CellReference?.Value == "A4");
             formula.DataType = CellValues.String;
             formula.CellValue = new CellValue("Alpha");
-            ExcelSheet second = document.AddWorksheet("Second");
+            ExcelSheet second = document.AddSheet("Second");
             second.CellValue(1, 1, "Alpha");
             second.CellValue(2, 1, "alpha");
 
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsb");
             try {
                 using ExcelDocument document = ExcelDocument.Create();
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "Alpha");
                 await document.SaveAsync(path, new ExcelSaveOptions { XlsbUseSharedStrings = true });
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
         [InlineData(false, true)]
         public async Task Xlsb_StringStorage_RejectsImportedOverridesBeforeMutatingStreamOrFile(bool sharedStrings, bool asynchronous) {
             using ExcelDocument source = ExcelDocument.Create();
-            source.AddWorksheet("Data").CellValue(1, 1, "Alpha");
+            source.AddSheet("Data").CellValue(1, 1, "Alpha");
             byte[] package = source.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
             using ExcelDocument imported = ExcelDocument.Load(new MemoryStream(package, writable: false));
             if (!sharedStrings) imported.Sheets[0].CellValue(1, 1, "Edited");
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
         [InlineData(false)]
         public async Task Xlsb_StringStorage_RejectsOtherOutputFormatsAndEncryptedOutput(bool sharedStrings) {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data").CellValue(1, 1, "Alpha");
+            document.AddSheet("Data").CellValue(1, 1, "Alpha");
             var options = new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings };
             using var destination = new MemoryStream();
             destination.WriteByte(42);
@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_SharedStrings_PreserveMaximumLengthUtf16AcrossBufferBoundaries() {
             string text = new string('A', 2_047) + char.ConvertFromUtf32(0x1F680) + new string('Z', 32_767 - 2_049);
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.CellValue(2, 1, text);
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
@@ -192,7 +192,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_SharedStrings_AllowAnEmptyTableForNumericOnlyWorkbooks() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Numbers").CellValue(1, 1, 42);
+            document.AddSheet("Numbers").CellValue(1, 1, 42);
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
             AssertXlsbStringStorage(package, true, 0, Array.Empty<string>());
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsb");
             try {
                 using ExcelDocument document = ExcelDocument.Create();
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Text");
                 sheet.CellValue(2, 1, "Alpha");
                 sheet.CellValue(3, 1, "Alpha");
@@ -238,7 +238,7 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.ChangeExtension(sourcePath, ".xlsb");
             try {
                 using (ExcelDocument source = ExcelDocument.Create()) {
-                    ExcelSheet sheet = source.AddWorksheet("Data");
+                    ExcelSheet sheet = source.AddSheet("Data");
                     sheet.CellValue(1, 1, "Text");
                     sheet.CellValue(2, 1, "Alpha");
                     sheet.CellValue(3, 1, "Alpha");

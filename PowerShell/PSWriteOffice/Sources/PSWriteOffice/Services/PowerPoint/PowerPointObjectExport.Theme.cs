@@ -7,7 +7,7 @@ namespace PSWriteOffice.Services.PowerPoint;
 
 internal static partial class PowerPointObjectExport {
     /// <summary>Creates an explicitly persisted native deck, preserving template masters and deriving brand colours with the native helper.</summary>
-    internal static PowerPointPresentation CreatePresentation(OfficeThemeInput? input, OfficeColor? accent) {
+    internal static PowerPointDocument CreateDocument(OfficeThemeInput? input, OfficeColor? accent) {
         OfficeTheme theme = input?.Theme ?? OfficeTheme.Modern;
         if (input?.TemplatePath == null) {
             if (accent.HasValue) {
@@ -17,7 +17,7 @@ internal static partial class PowerPointObjectExport {
                 var surfaces = OfficeThemeSurfaces.FromPalette(palette, theme.Surfaces.Surface, theme.Surfaces.Rule);
                 theme = theme.WithPalette(palette).WithSurfaces(theme.Surfaces.With(accent1Tint: surfaces.Accent1Tint));
             }
-            return PowerPointPresentation.Create(new PowerPointCreateOptions {
+            return PowerPointDocument.Create(new PowerPointCreateOptions {
                 PersistenceMode = DocumentPersistenceMode.Explicit, Theme = theme
             });
         }
@@ -25,7 +25,7 @@ internal static partial class PowerPointObjectExport {
         string extension = System.IO.Path.GetExtension(input.TemplatePath);
         if (!extension.Equals(".pptx", StringComparison.OrdinalIgnoreCase) && !extension.Equals(".potx", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Choose a .pptx or .potx PowerPoint theme template.", nameof(input));
-        var document = PowerPointPresentation.Create(new PowerPointCreateOptions {
+        var document = PowerPointDocument.Create(new PowerPointCreateOptions {
             PersistenceMode = DocumentPersistenceMode.Explicit, Template = input.TemplatePath
         });
         try {
@@ -42,7 +42,7 @@ internal static partial class PowerPointObjectExport {
         } catch { document.Dispose(); throw; }
     }
 
-    private static OfficeColor ResolveTemplateAccent(PowerPointPresentation document, OfficeColor color, OfficeTheme fallback) {
+    private static OfficeColor ResolveTemplateAccent(PowerPointDocument document, OfficeColor color, OfficeTheme fallback) {
         PowerPointThemeColor? slot = color.Role switch {
             OfficeColorRole.Accent1 => PowerPointThemeColor.Accent1,
             OfficeColorRole.Accent2 => PowerPointThemeColor.Accent2,

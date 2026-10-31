@@ -39,22 +39,22 @@ public static partial class WordPdfConverterExtensions {
         WordParagraph last = paragraphs[paragraphs.Count - 1];
         PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(first, nativeDefaults, nativeFontMap);
         PdfCore.PdfParagraphStyle finalStyle = CreateNativeParagraphStyle(last, nativeDefaults, nativeFontMap);
-        if (ShouldSuppressNativeContextualSpacingBefore(first)) style.SpacingBefore = 0D;
+        if (ShouldSuppressNativeContextualSpacingBefore(first)) style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
         // Seed rich line measurement with the smallest visible source font, just
         // as an ordinary rich paragraph does. Hidden marks and preceding large
         // runs must not enlarge later wrapped or explicitly broken lines.
         List<WordParagraph> visibleParagraphs = paragraphs.Where(paragraph => GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext).Any(run =>
             IsNativeRenderableTextRun(run, paragraph))).ToList();
         if (visibleParagraphs.Count > 0) {
-            style.FontSize = visibleParagraphs.Min(paragraph => ResolveNativeParagraphLayoutFontSize(paragraph,
-                nativeDefaults, GetNativeParagraphStyleDefaults(paragraph)));
+            style.FontSize = global::OfficeIMO.OfficeLength.Points(visibleParagraphs.Min(paragraph => ResolveNativeParagraphLayoutFontSize(paragraph,
+                nativeDefaults, GetNativeParagraphStyleDefaults(paragraph))));
             double naturalLineHeight = visibleParagraphs.Max(paragraph => ResolveNativeParagraphSingleLineHeight(paragraph,
                 nativeDefaults, GetNativeParagraphStyleDefaults(paragraph), nativeFontMap: nativeFontMap));
             style.LineSpacing = ResolveNativeParagraphLineSpacing(first, GetNativeParagraphStyleDefaults(first),
                 nativeDefaults).ToPdfLineSpacing(naturalLineHeight);
         }
-        style.SpacingAfter = ShouldSuppressNativeContextualSpacingAfter(last,
-            GetNextNativeRenderableElement(elements, lastIndex) as WordParagraph) ? 0D : finalStyle.SpacingAfter;
+        style.SpacingAfter = ((ShouldSuppressNativeContextualSpacingAfter(last,
+            GetNextNativeRenderableElement(elements, lastIndex) as WordParagraph) ? 0D : (finalStyle.SpacingAfter?.ToPoints())) is { } pdfLength2980 ? global::OfficeIMO.OfficeLength.Points(pdfLength2980) : (global::OfficeIMO.OfficeLength?)null);
         style.KeepWithNext = finalStyle.KeepWithNext;
         if (HasNativePageBreakBefore(first)) pdf.PageBreak();
         foreach (WordParagraph paragraph in paragraphs) {
@@ -68,8 +68,8 @@ public static partial class WordPdfConverterExtensions {
                 IsNativeRenderableTextRun(run, paragraph) ||
                 (IsNativeTextWrappingBreak(run) && !IsNativeHiddenTextRun(run, paragraph))))) {
             RenderNativeEmptyParagraph(pdf, last, style, nativeDefaults, nativeFontMap);
-            if (style.SpacingAfter == 0D && pdf is NativeSpacingCollapseFlow emptyCollapse)
-                emptyCollapse.RetainSuppressedSpacingAfter(finalStyle.SpacingAfter);
+            if ((style.SpacingAfter?.ToPoints()) == 0D && pdf is NativeSpacingCollapseFlow emptyCollapse)
+                emptyCollapse.RetainSuppressedSpacingAfter((finalStyle.SpacingAfter?.ToPoints()));
             index = lastIndex;
             return true;
         }
@@ -86,8 +86,8 @@ public static partial class WordPdfConverterExtensions {
                     footnoteNumbersById, options, nativeDefaults, nativeFontMap);
             }
         }, ResolveNativeParagraphAlign(first), ResolveNativeParagraphDefaultColor(first), style);
-        if (style.SpacingAfter == 0D && pdf is NativeSpacingCollapseFlow collapseFlow)
-            collapseFlow.RetainSuppressedSpacingAfter(finalStyle.SpacingAfter);
+        if ((style.SpacingAfter?.ToPoints()) == 0D && pdf is NativeSpacingCollapseFlow collapseFlow)
+            collapseFlow.RetainSuppressedSpacingAfter((finalStyle.SpacingAfter?.ToPoints()));
         index = lastIndex;
         return true;
     }

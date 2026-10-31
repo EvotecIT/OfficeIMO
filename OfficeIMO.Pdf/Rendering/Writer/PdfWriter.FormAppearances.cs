@@ -42,7 +42,7 @@ internal static partial class PdfWriter {
             sb.Append(PdfAcroFormDictionaryBuilder.BuildFormFieldBackgroundAppearanceContent(width, height, effectiveStyle));
         }
 
-        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0D) {
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth.ToPoints() > 0D) {
             AppendFormFieldBorderAppearance(sb, width, height, effectiveStyle);
         }
 
@@ -110,7 +110,7 @@ internal static partial class PdfWriter {
             selectedIndices = Array.Empty<int>();
             topIndex = null;
             PdfFormFieldStyle comboStyle = (field.Style ?? new PdfFormFieldStyle()).Clone();
-            comboStyle.ShowDropDownArrow = comboStyle.BorderColor.HasValue && comboStyle.BorderWidth > 0D;
+            comboStyle.ShowDropDownArrow = comboStyle.BorderColor.HasValue && comboStyle.BorderWidth > OfficeLength.Zero;
             return BuildFormFieldTextAppearanceContent(
                 width,
                 height,
@@ -173,16 +173,16 @@ internal static partial class PdfWriter {
     }
 
     private static void AppendFormFieldBorderAppearance(StringBuilder sb, double width, double height, PdfFormFieldStyle style) {
-        if (style.BorderColor == null || style.BorderWidth <= 0D) {
+        if (style.BorderColor == null || style.BorderWidth.ToPoints() <= 0D) {
             return;
         }
 
         sb.Append(PdfAcroFormDictionaryBuilder.BuildRectangularBorderAppearanceContent(width, height, style));
     }
 
-    private static IReadOnlyList<double>? ResolveFormFieldBorderDashPattern(PdfFormFieldStyle style) {
+    private static double[]? ResolveFormFieldBorderDashPattern(PdfFormFieldStyle style) {
         if (style.BorderDashPattern != null && style.BorderDashPattern.Count > 0) {
-            return style.BorderDashPattern;
+            return style.BorderDashPattern?.Select(static length => length.ToPoints()).ToArray();
         }
 
         return style.BorderStyle == PdfFormFieldBorderStyle.Dashed ? FormFieldDefaultBorderDashPattern : null;
@@ -317,7 +317,7 @@ internal static partial class PdfWriter {
         }
 
         var runs = new[] {
-            PdfTextRun.Normal(text, effectiveStyle.TextColor, fontSize, font: PdfStandardFont.Helvetica)
+            PdfTextRun.Normal(text, effectiveStyle.TextColor, global::OfficeIMO.OfficeLength.Points(fontSize), font: PdfStandardFont.Helvetica)
         };
         return WrapRichRunsCore(
             runs,
@@ -351,7 +351,7 @@ internal static partial class PdfWriter {
         IReadOnlyList<RichSeg> line,
         double x,
         double y,
-        PdfColor defaultTextColor,
+        global::OfficeIMO.OfficeColor defaultTextColor,
         PdfCreateOptions formOptions,
         Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         List<(string Name, int Id)> fontResources) {

@@ -11,10 +11,10 @@ public sealed class PdfInlineScriptExtractionTests {
     [InlineData(false)]
     public void PublicPointActualTextKeepsItsScriptBesideTheCompletePaint(bool split) {
         PdfReadPage page = CreateTransformedCanvas(1D, 1D, 0D, canvas => {
-            canvas.ActualText("mass", 100D, 100D, paint => {
-                if (split) paint.Text("m", 100D, 100D, 60D, 40D, fontSize: 18D, font: PdfStandardFont.Courier)
-                    .Text("ass", 110.8D, 100D, 60D, 40D, fontSize: 18D, font: PdfStandardFont.Courier);
-                else paint.Text("mass", 100D, 100D, 80D, 40D, fontSize: 18D, font: PdfStandardFont.Courier);
+            canvas.ActualText("mass", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), paint => {
+                if (split) paint.Text("m", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier)
+                    .Text("ass", global::OfficeIMO.OfficeLength.Points(110.8D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier);
+                else paint.Text("mass", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier);
             });
             AddMassScript(canvas);
         });
@@ -32,14 +32,14 @@ public sealed class PdfInlineScriptExtractionTests {
     [Fact]
     public void PublicTransformedPointActualTextKeepsItsScriptAndPaintGeometry() {
         PdfReadPage page = CreateTransformedCanvas(2D, 3D, 30D, canvas => {
-            canvas.ActualText("mass", 100D, 100D, paint => paint
-                .Text("m", 100D, 100D, 43.2D, 40D, fontSize: 18D, font: PdfStandardFont.Courier)
-                .Text("ass", 100D, 100D, 43.2D, 40D, fontSize: 18D, align: PdfAlign.Right, font: PdfStandardFont.Courier));
+            canvas.ActualText("mass", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), paint => paint
+                .Text("m", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(43.2D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier)
+                .Text("ass", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(43.2D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), align: PdfAlign.Right, font: PdfStandardFont.Courier));
             AddMassScript(canvas);
         });
         PdfTextSpan mass = Assert.Single(page.GetTextSpans(), span => span.Text == "mass");
         PdfReadPage paintControl = CreateTransformedCanvas(2D, 3D, 30D, canvas => canvas
-            .Text("m", 100D, 100D, 43.2D, 40D, fontSize: 18D, font: PdfStandardFont.Courier));
+            .Text("m", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(43.2D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier));
         PdfTextSpan firstPaint = Assert.Single(paintControl.GetTextSpans());
 
         Assert.Equal("mass-2", page.ExtractText());
@@ -58,16 +58,16 @@ public sealed class PdfInlineScriptExtractionTests {
     [InlineData("cropped")]
     public void IncompatibleActualTextPaintDoesNotInventAnAdjacentScript(string incompatibility) {
         PdfReadPage page = CreateTransformedCanvas(1D, 1D, 0D, canvas => {
-            canvas.ActualText("mass", 100D, 100D, paint => {
-                paint.Text("m", 100D, 100D, 60D, 40D, fontSize: 18D, font: PdfStandardFont.Courier);
-                if (incompatibility == "cropped") paint.Clip(110.8D, 100D, 10.8D, 40D, clipped =>
-                    clipped.Text("ass", 110.8D, 100D, 60D, 40D, fontSize: 18D, font: PdfStandardFont.Courier));
-                else paint.Text("ass", incompatibility == "backward" ? 90D : 110.8D,
-                    incompatibility == "multiline" ? 130D : 100D,
-                    60D, 40D, fontSize: 18D, font: PdfStandardFont.Courier);
+            canvas.ActualText("mass", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), paint => {
+                paint.Text("m", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier);
+                if (incompatibility == "cropped") paint.Clip(global::OfficeIMO.OfficeLength.Points(110.8D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(10.8D), global::OfficeIMO.OfficeLength.Points(40D), clipped =>
+                    clipped.Text("ass", global::OfficeIMO.OfficeLength.Points(110.8D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier));
+                else paint.Text("ass", global::OfficeIMO.OfficeLength.Points(incompatibility == "backward" ? 90D : 110.8D),
+                    global::OfficeIMO.OfficeLength.Points(incompatibility == "multiline" ? 130D : 100D),
+                    global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier);
                 // Even a complete early paint match is discarded when later paint contradicts it.
-                if (incompatibility == "extra-paint") paint.Text("X", 143.2D, 100D,
-                    30D, 40D, fontSize: 18D, font: PdfStandardFont.Courier);
+                if (incompatibility == "extra-paint") paint.Text("X", global::OfficeIMO.OfficeLength.Points(143.2D), global::OfficeIMO.OfficeLength.Points(100D),
+                    global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier);
             });
             AddMassScript(canvas);
         });
@@ -78,13 +78,13 @@ public sealed class PdfInlineScriptExtractionTests {
     }
 
     private static void AddMassScript(PdfPageCanvas canvas) => canvas.Text(new[] {
-        new PdfTextRun("-2", fontSize: 18D, font: PdfStandardFont.Courier, baseline: PdfTextBaseline.Superscript)
-    }, 143.2D, 100D, 60D, 40D, fontSize: 18D);
+        new PdfTextRun("-2", fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier, baseline: PdfTextBaseline.Superscript)
+    }, global::OfficeIMO.OfficeLength.Points(143.2D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D));
 
     [Fact]
     public void PublicExtractionKeepsRaisedAndLoweredTextInTheirAuthoredLines() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            DefaultFontSize = 18D,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(18D),
             CompressContentStreams = false
         }).Compose(document => document.Content(content => content
             .Paragraph(paragraph => paragraph.Text("m").Superscript("-1").Text(" tail"))
@@ -220,8 +220,8 @@ public sealed class PdfInlineScriptExtractionTests {
     [Fact]
     public void PublicDownscaledCanvasKeepsRealNeighboringRowsSeparate() {
         PdfReadPage page = CreateTransformedCanvas(0.25D, 0.25D, 0D, canvas => canvas
-            .Text("m", 100D, 100D, 60D, 30D, fontSize: 18D, font: PdfStandardFont.Courier)
-            .Text("row", 110.8D, 124D, 60D, 30D, fontSize: 12D, font: PdfStandardFont.Courier));
+            .Text("m", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(30D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier)
+            .Text("row", global::OfficeIMO.OfficeLength.Points(110.8D), global::OfficeIMO.OfficeLength.Points(124D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(30D), fontSize: global::OfficeIMO.OfficeLength.Points(12D), font: PdfStandardFont.Courier));
         IReadOnlyList<PdfTextSpan> spans = page.GetTextSpans();
         Assert.Contains(spans, span => span.FontSize == 18D && span.Text == "m");
         Assert.All(spans, span => Assert.True(span.TextToPageTransform.HasValue));
@@ -237,11 +237,11 @@ public sealed class PdfInlineScriptExtractionTests {
     [InlineData(2D, 2D, 30D)]
     public void PublicTransformedCanvasKeepsAConnectedRaisedRunAdjacent(double scaleX, double scaleY, double angle) {
         PdfReadPage page = CreateTransformedCanvas(scaleX, scaleY, angle, canvas => canvas
-            .Text("m", 100D, 100D, 60D, 40D, fontSize: 18D, font: PdfStandardFont.Courier)
-            .Text(new[] { new PdfTextRun("-", fontSize: 18D, font: PdfStandardFont.Courier,
-                baseline: PdfTextBaseline.Superscript) }, 110.8D, 100D, 60D, 40D, fontSize: 18D)
-            .Text(new[] { new PdfTextRun("1", fontSize: 18D, font: PdfStandardFont.Courier,
-                baseline: PdfTextBaseline.Superscript) }, 119.82D, 100D, 60D, 40D, fontSize: 18D));
+            .Text("m", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier)
+            .Text(new[] { new PdfTextRun("-", fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier,
+                baseline: PdfTextBaseline.Superscript) }, global::OfficeIMO.OfficeLength.Points(110.8D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D))
+            .Text(new[] { new PdfTextRun("1", fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier,
+                baseline: PdfTextBaseline.Superscript) }, global::OfficeIMO.OfficeLength.Points(119.82D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D)));
         IReadOnlyList<PdfTextSpan> spans = page.GetTextSpans();
         var geometry = spans.Select(span =>
             (span.X, span.Y, span.Advance, span.FontSize, span.RotationDegrees, span.TextToPageTransform)).ToArray();
@@ -384,7 +384,7 @@ public sealed class PdfInlineScriptExtractionTests {
         OfficeTransform transform = OfficeTransform.Scale(scaleX, scaleY)
             .Then(OfficeTransform.RotateDegrees(angle, 100D * scaleX, 100D * scaleY));
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 600D, PageHeight = 800D, DefaultFont = PdfStandardFont.Courier,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(600D), PageHeight = global::OfficeIMO.OfficeLength.Points(800D), DefaultFont = PdfStandardFont.Courier,
             CompressContentStreams = false
         }).Compose(document => document.Content(content => content.Canvas(canvas =>
             canvas.Effect(transform, 1D, build)))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

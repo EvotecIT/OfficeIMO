@@ -30,13 +30,19 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>A numbered or bulleted list.</summary>
     public sealed class PowerPointLayoutList : PowerPointLayoutBlock {
         /// <summary>Creates content for the shared layout engine.</summary>
-        public PowerPointLayoutList(IEnumerable<PowerPointLayoutListItem> items, bool numbered = false) {
+        public PowerPointLayoutList(IEnumerable<PowerPointLayoutListItem> items) : this(items, numbered: false) { }
+
+        /// <summary>Creates a list with explicit numbering.</summary>
+        public PowerPointLayoutList(IEnumerable<PowerPointLayoutListItem> items, bool numbered) {
             _items = (items ?? throw new ArgumentNullException(nameof(items))).ToList().AsReadOnly();
             Numbered = numbered;
         }
 
         /// <summary>Creates content for the shared layout engine.</summary>
-        public PowerPointLayoutList(IEnumerable<string> items, bool numbered = false)
+        public PowerPointLayoutList(IEnumerable<string> items) : this(items, numbered: false) { }
+
+        /// <summary>Creates a list with explicit numbering.</summary>
+        public PowerPointLayoutList(IEnumerable<string> items, bool numbered)
             : this((items ?? throw new ArgumentNullException(nameof(items))).Where(i => !string.IsNullOrWhiteSpace(i)).Select(i => new PowerPointLayoutListItem(i)), numbered) {
         }
 
@@ -123,13 +129,13 @@ namespace OfficeIMO.PowerPoint {
     public sealed class PowerPointLayoutChart : PowerPointLayoutBlock {
         internal PowerPointChart? NativeChart { get; set; }
         /// <summary>Creates content for the shared layout engine.</summary>
-        public PowerPointLayoutChart(OfficeChartKind kind, OfficeChartData data) {
+        public PowerPointLayoutChart(OfficeChartType kind, OfficeChartData data) {
             Kind = kind;
             Data = data ?? throw new ArgumentNullException(nameof(data));
         }
 
         /// <summary>Shared chart kind.</summary>
-        public OfficeChartKind Kind { get; }
+        public OfficeChartType Kind { get; }
         /// <summary>Data for the editable chart.</summary>
         public OfficeChartData Data { get; }
         /// <summary>Content title.</summary>

@@ -126,7 +126,7 @@ public sealed partial class HtmlRenderingTests {
             + "</style><ul><li><a href='https://www.w3.org/WAI/'>Home</a></li>"
             + "<li><a href='https://www.w3.org/WAI/design-develop/'>Design &amp; Develop</a></li></ul>";
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficeIMO.Drawing.OfficePageSize(816D / HtmlRenderOptions.CssPixelsPerInch, 900D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficeIMO.Drawing.OfficePageSize(global::OfficeIMO.OfficeLength.Inches(816D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(900D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false
         };
@@ -178,7 +178,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText title = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals
             .OfType<HtmlRenderText>(), text => text.Text.Contains("Exploring Planet Uranus", StringComparison.Ordinal));
         double paintedWidth = Assert.IsType<double>(PdfCore.PdfWriter.MeasurePositionedText(
-            new PdfCore.PdfTextRun(title.Text, bold: true, fontSize: title.Font.Size,
+            new PdfCore.PdfTextRun(title.Text, bold: true, fontSize: global::OfficeIMO.OfficeLength.Points(title.Font.Size),
                 fontFamily: "Helvetica Neue"), result.Document.Options));
         Assert.Equal(paintedWidth, Assert.IsType<double>(title.TextAdvanceWidth), 3);
         Assert.Contains("Exploring Planet Uranus Resource Page",
@@ -209,7 +209,7 @@ public sealed partial class HtmlRenderingTests {
                      ("Before ", true), (privateUseGlyph, false), (" after", true)
                  }) {
             measuredWidth += Assert.IsType<double>(PdfCore.PdfWriter.MeasurePositionedText(
-                new PdfCore.PdfTextRun(part, bold: isBold, fontSize: mixed.Font.Size,
+                new PdfCore.PdfTextRun(part, bold: isBold, fontSize: global::OfficeIMO.OfficeLength.Points(mixed.Font.Size),
                     fontFamily: "Helvetica Neue"), result.Document.Options));
         }
         Assert.Equal(measuredWidth, Assert.IsType<double>(mixed.TextAdvanceWidth), 3);
@@ -305,7 +305,7 @@ public sealed partial class HtmlRenderingTests {
             HtmlConversionDocument.Parse("<p style='margin:0;font:40px LatinOnly,GreekFallback'>ΩΩ</p>"), options);
         HtmlRenderText text = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals.OfType<HtmlRenderText>());
         double expected = Assert.IsType<double>(PdfCore.PdfWriter.MeasurePositionedText(
-            new PdfCore.PdfTextRun("ΩΩ", fontSize: 40D, fontFamily: "GreekFallback"),
+            new PdfCore.PdfTextRun("ΩΩ", fontSize: global::OfficeIMO.OfficeLength.Points(40D), fontFamily: "GreekFallback"),
             result.Document.Options));
 
         Assert.Equal(expected, Assert.IsType<double>(text.TextAdvanceWidth), 3);

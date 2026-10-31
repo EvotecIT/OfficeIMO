@@ -82,7 +82,7 @@ public sealed partial class IWorkBoundaryTests {
 
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
-        Assert.Equal(20d, result.Value.Sheets[0].DefaultRowHeight);
+        Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20d)), result.Value.Sheets[0].DefaultRowHeight);
     }
 
     private static MemoryStream CreatePagesPackageWithRepeatedHeader(int sectionCount) {

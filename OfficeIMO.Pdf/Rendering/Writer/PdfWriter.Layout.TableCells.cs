@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private static double GetTableBodyFontSize(PdfTableStyle style, double defaultFontSize) {
-        return style.FontSize ?? defaultFontSize;
+        return style.FontSize?.ToPoints() ?? defaultFontSize;
     }
 
     private static double GetTableLeading(PdfTableStyle style, double fontSize) {
@@ -18,19 +18,19 @@ internal static partial class PdfWriter {
     }
 
     private static double GetTableCellPaddingLeft(PdfTableStyle style) {
-        return style.CellPaddingLeft ?? style.CellPaddingX;
+        return style.CellPaddingLeft?.ToPoints() ?? style.CellPaddingX.ToPoints();
     }
 
     private static double GetTableCellPaddingRight(PdfTableStyle style) {
-        return style.CellPaddingRight ?? style.CellPaddingX;
+        return style.CellPaddingRight?.ToPoints() ?? style.CellPaddingX.ToPoints();
     }
 
     private static double GetTableCellPaddingTop(PdfTableStyle style) {
-        return style.CellPaddingTop ?? style.CellPaddingY;
+        return style.CellPaddingTop?.ToPoints() ?? style.CellPaddingY.ToPoints();
     }
 
     private static double GetTableCellPaddingBottom(PdfTableStyle style) {
-        return style.CellPaddingBottom ?? style.CellPaddingY;
+        return style.CellPaddingBottom?.ToPoints() ?? style.CellPaddingY.ToPoints();
     }
 
     private static PdfCellPadding? GetTableCellPaddingOverride(PdfTableStyle style, int rowIndex, int columnIndex) {
@@ -43,22 +43,22 @@ internal static partial class PdfWriter {
     }
 
     private static double GetTableCellPaddingLeft(PdfTableStyle style, int rowIndex, int columnIndex) {
-        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Left ?? GetTableCellPaddingLeft(style);
+        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Left?.ToPoints() ?? GetTableCellPaddingLeft(style);
         return Math.Max(padding, GetTablePairedBorderClearance(style, rowIndex, columnIndex, TableCellBorderEdge.Left));
     }
 
     private static double GetTableCellPaddingRight(PdfTableStyle style, int rowIndex, int columnIndex) {
-        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Right ?? GetTableCellPaddingRight(style);
+        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Right?.ToPoints() ?? GetTableCellPaddingRight(style);
         return Math.Max(padding, GetTablePairedBorderClearance(style, rowIndex, columnIndex, TableCellBorderEdge.Right));
     }
 
     private static double GetTableCellPaddingTop(PdfTableStyle style, int rowIndex, int columnIndex) {
-        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Top ?? GetTableCellPaddingTop(style);
+        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Top?.ToPoints() ?? GetTableCellPaddingTop(style);
         return Math.Max(padding, GetTablePairedBorderClearance(style, rowIndex, columnIndex, TableCellBorderEdge.Top));
     }
 
     private static double GetTableCellPaddingBottom(PdfTableStyle style, int rowIndex, int columnIndex) {
-        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Bottom ?? GetTableCellPaddingBottom(style);
+        double padding = GetTableCellPaddingOverride(style, rowIndex, columnIndex)?.Bottom?.ToPoints() ?? GetTableCellPaddingBottom(style);
         return Math.Max(padding, GetTablePairedBorderClearance(style, rowIndex, columnIndex, TableCellBorderEdge.Bottom));
     }
 
@@ -85,7 +85,7 @@ internal static partial class PdfWriter {
     }
 
     private static double GetTableCellSpacing(PdfTableStyle style) {
-        double spacing = style.CellSpacing;
+        double spacing = style.CellSpacing.ToPoints();
         if (spacing < 0 || double.IsNaN(spacing) || double.IsInfinity(spacing)) {
             throw new ArgumentException("Table cell spacing must be a non-negative finite value.");
         }
@@ -163,17 +163,17 @@ internal static partial class PdfWriter {
         if (style.RowMinHeights != null &&
             rowIndex < style.RowMinHeights.Count &&
             style.RowMinHeights[rowIndex].HasValue) {
-            return style.RowMinHeights[rowIndex]!.Value;
+            return style.RowMinHeights[rowIndex]!.Value.ToPoints();
         }
 
-        return style.MinRowHeight;
+        return style.MinRowHeight.ToPoints();
     }
 
     private static double? GetTableRowFixedHeight(PdfTableStyle style, int rowIndex) {
         if (style.FixedRowHeights != null &&
             rowIndex < style.FixedRowHeights.Count &&
             style.FixedRowHeights[rowIndex].HasValue) {
-            return style.FixedRowHeights[rowIndex]!.Value;
+            return style.FixedRowHeights[rowIndex]!.Value.ToPoints();
         }
 
         return null;
@@ -444,9 +444,9 @@ internal static partial class PdfWriter {
             throw new ArgumentException("Table vertical alignments must fit inside the table grid.");
         }
 
-        ValidateOptionalColumnStyleBounds(style.ColumnWidthPoints, columnCount, "Table fixed column widths must fit inside the table grid.");
-        ValidateOptionalColumnStyleBounds(style.ColumnMinWidthPoints, columnCount, "Table minimum column widths must fit inside the table grid.");
-        ValidateOptionalColumnStyleBounds(style.ColumnMaxWidthPoints, columnCount, "Table maximum column widths must fit inside the table grid.");
+        ValidateOptionalColumnStyleBounds(style.ColumnWidths?.ConvertAll(static length => length?.ToPoints()), columnCount, "Table fixed column widths must fit inside the table grid.");
+        ValidateOptionalColumnStyleBounds(style.ColumnMinWidths?.ConvertAll(static length => length?.ToPoints()), columnCount, "Table minimum column widths must fit inside the table grid.");
+        ValidateOptionalColumnStyleBounds(style.ColumnMaxWidths?.ConvertAll(static length => length?.ToPoints()), columnCount, "Table maximum column widths must fit inside the table grid.");
 
         if (style.ColumnWidthWeights != null && style.ColumnWidthWeights.Count > columnCount) {
             throw new ArgumentException("Table column width weights must fit inside the table grid.");
@@ -594,15 +594,15 @@ internal static partial class PdfWriter {
 
     private static (double Width, double Height) ResolveTableCellImageBox(PdfTableCellImage image, double innerWidth) {
         if (image.Style?.ScaleDownToFit != true || innerWidth <= 0D) {
-            return (image.Width, image.Height);
+            return (image.Width.ToPoints(), image.Height.ToPoints());
         }
 
-        double scale = Math.Min(1D, innerWidth / image.Width);
+        double scale = Math.Min(1D, innerWidth / image.Width.ToPoints());
         if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) {
-            return (image.Width, image.Height);
+            return (image.Width.ToPoints(), image.Height.ToPoints());
         }
 
-        return (image.Width * scale, image.Height * scale);
+        return (image.Width.ToPoints() * scale, image.Height.ToPoints() * scale);
     }
 
     private static double MeasureTableCellObjectStackHeight(TableCellLayout cell, double innerWidth) {
@@ -626,7 +626,7 @@ internal static partial class PdfWriter {
                 height += TableCellCheckBoxGap;
             }
 
-            height += cell.CheckBoxes[index].Size;
+            height += cell.CheckBoxes[index].Size.ToPoints();
             objectCount++;
         }
 
@@ -635,7 +635,7 @@ internal static partial class PdfWriter {
                 height += TableCellCheckBoxGap;
             }
 
-            height += cell.FormFields[index].Height;
+            height += cell.FormFields[index].Height.ToPoints();
             objectCount++;
         }
 
@@ -659,7 +659,7 @@ internal static partial class PdfWriter {
         }
 
         if (CanRenderTableCellCheckBoxInline(cell, layout, startLine, lineCount)) {
-            return System.Math.Max(textHeight, cell.CheckBoxes[0].Size);
+            return System.Math.Max(textHeight, cell.CheckBoxes[0].Size.ToPoints());
         }
 
         if (string.IsNullOrEmpty(cell.Text)) {
@@ -673,15 +673,15 @@ internal static partial class PdfWriter {
         double width = 0D;
         for (int index = 0; index < cell.Images.Count; index++) {
             PdfTableCellImage image = cell.Images[index];
-            width = System.Math.Max(width, image.Style?.ScaleDownToFit == true ? 1D : image.Width);
+            width = System.Math.Max(width, image.Style?.ScaleDownToFit == true ? 1D : image.Width.ToPoints());
         }
 
         for (int index = 0; index < cell.CheckBoxes.Count; index++) {
-            width = System.Math.Max(width, cell.CheckBoxes[index].Size);
+            width = System.Math.Max(width, cell.CheckBoxes[index].Size.ToPoints());
         }
 
         for (int index = 0; index < cell.FormFields.Count; index++) {
-            width = System.Math.Max(width, cell.FormFields[index].Width);
+            width = System.Math.Max(width, cell.FormFields[index].Width.ToPoints());
         }
 
         return width;

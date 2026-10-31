@@ -93,4 +93,6 @@
     <CompatibilitySuppressionFilePath>$(MSBuildProjectDirectory)/CompatibilitySuppressions.xml</CompatibilitySuppressionFilePath>
   </PropertyGroup>
 
+  <!-- Keep intentional Tier 1 public API changes visible in source control. -->
+  <Import Project="$(MSBuildThisFileDirectory)Build/ApiMap/PublicApi.targets" />
 </Project>

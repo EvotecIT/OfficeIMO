@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Pdf {
             var options = new PdfCreateOptions {
                 HeaderFormat = "OfficeIMO.Pdf showcase - business statement",
                 HeaderAlign = PdfAlign.Left,
-                HeaderOffsetY = 18,
+                HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18),
                 ShowHeader = true,
                 FooterAlign = PdfAlign.Right,
                 ShowPageNumbers = true,
@@ -19,41 +19,41 @@ namespace OfficeIMO.Examples.Pdf {
 
             PdfDocument.Create(document => {
                     document.Page(page => {
-                        page.Margin(54, 54, 54, 58);
+                        page.Margin(global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(58));
                         page.Content(content => {
                             content.Item(item => item.H1("Statement #4048", PdfAlign.Left));
                             content.Item(item => item.Paragraph(p => p.Text("Issue date: 23/12/2025 \u00B7 Due date: 06/01/2026"), style: TightParagraph()));
-                            content.Spacer(18);
+                            content.Spacer(OfficeLength.Points(18));
                             content.Row(row => {
-                                row.Gap(58)
+                                row.Gap(global::OfficeIMO.OfficeLength.Points(58))
                                     .PercentColumn(50, column => {
                                         column.Paragraph(p => p.Bold("From"), style: LabelParagraph());
-                                        column.HR(1.2, PdfColor.FromRgb(15, 23, 42), spacingBefore: 0, spacingAfter: 8);
+                                        column.HR(OfficeLength.Points(1.2), OfficeColor.FromRgb(15, 23, 42), spacingBefore: OfficeLength.Points(0), spacingAfter: OfficeLength.Points(8));
                                         column.Paragraph(p => p.Text("Syllabae Representative\nOvum picem\nPrinceps avem distant, Linteum amicitia\nofficium21@autstatum.com\n881-306-3914"), style: AddressParagraph());
                                     })
                                     .PercentColumn(50, column => {
                                         column.Paragraph(p => p.Bold("For"), style: LabelParagraph());
-                                        column.HR(1.2, PdfColor.FromRgb(15, 23, 42), spacingBefore: 0, spacingAfter: 8);
+                                        column.HR(global::OfficeIMO.OfficeLength.Points(1.2), global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), spacingBefore: global::OfficeIMO.OfficeLength.Points(0), spacingAfter: global::OfficeIMO.OfficeLength.Points(8));
                                         column.Paragraph(p => p.Text("Ceciderit Original\nAurum currunt\nSolis multum platea, Cocus fuge fluvio\nsubsisto93@celeritate.com\n839-621-9110"), style: AddressParagraph());
                                     });
                             });
 
-                            content.Spacer(24);
+                            content.Spacer(OfficeLength.Points(24));
                             content.Table(CreateLineItemRows(), style: LineItemStyle());
                             content.Row(row => {
-                                row.Style(new PdfRowStyle { KeepTogether = true, SpacingBefore = 10 })
-                                    .Gap(22)
+                                row.Style(new PdfRowStyle { KeepTogether = true, SpacingBefore = OfficeLength.Points(10) })
+                                    .Gap(OfficeLength.Points(22))
                                     .PercentColumn(58, column => {
                                         column.PanelParagraph(
                                             p => p.Bold("Payment note: ").Text("This is a generic document sample. The layout is built from headings, paragraphs, rows, tables, and cell styles rather than an invoice-specific API."),
                                             new PdfPanelStyle {
-                                                Background = PdfColor.FromRgb(247, 250, 252),
-                                                BorderColor = PdfColor.FromRgb(211, 219, 229),
-                                                BorderWidth = 0.6,
-                                                PaddingX = 9,
-                                                PaddingY = 8
+                                                Background = global::OfficeIMO.OfficeColor.FromRgb(247, 250, 252),
+                                                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(211, 219, 229),
+                                                BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6),
+                                                PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                                                PaddingY = global::OfficeIMO.OfficeLength.Points(8)
                                             },
-                                            defaultColor: PdfColor.FromRgb(51, 65, 85));
+                                            defaultColor: global::OfficeIMO.OfficeColor.FromRgb(51, 65, 85));
                                     })
                                     .PercentColumn(42, column => {
                                         column.Table(CreateTotalsRows(), style: TotalsStyle());
@@ -144,19 +144,19 @@ namespace OfficeIMO.Examples.Pdf {
         private static PdfTableStyle LineItemStyle() {
             var style = PdfTheme.FromOfficeTheme(OfficeTheme.Default).TableStyle!;
             style.HeaderFill = null;
-            style.HeaderSeparatorColor = PdfColor.FromRgb(15, 23, 42);
-            style.HeaderSeparatorWidth = 1.2;
+            style.HeaderSeparatorColor = OfficeColor.FromRgb(15, 23, 42);
+            style.HeaderSeparatorWidth = OfficeLength.Points(1.2);
             style.RowStripeFill = null;
-            style.CellPaddingX = 6;
-            style.CellPaddingY = 5;
-            style.CellPaddingTop = 5;
-            style.CellPaddingBottom = 5;
-            style.FontSize = 10;
+            style.CellPaddingX = OfficeLength.Points(6);
+            style.CellPaddingY = OfficeLength.Points(5);
+            style.CellPaddingTop = OfficeLength.Points(5);
+            style.CellPaddingBottom = OfficeLength.Points(5);
+            style.FontSize = OfficeLength.Points(10);
             style.LineHeight = 1.2;
             style.RightAlignNumeric = true;
-            style.// The totals beside the payment note follow the final rows instead of starting a page alone.
-                KeepWithNext = true;
-            style.ColumnWidthPoints = new List<double?> { 26, null, 92, 62, 92 };
+            // The totals beside the payment note follow the final rows instead of starting a page alone.
+            style.KeepWithNext = true;
+            style.ColumnWidths = new List<OfficeLength?> { OfficeLength.Points(26), null, OfficeLength.Points(92), OfficeLength.Points(62), OfficeLength.Points(92) };
             style.ColumnWidthWeights = new List<double> { 0.4, 4.2, 1.3, 0.9, 1.3 };
             style.Alignments = new List<PdfColumnAlign> {
                     PdfColumnAlign.Right,
@@ -174,13 +174,13 @@ namespace OfficeIMO.Examples.Pdf {
             style.FooterRowCount = 1;
             style.FooterBold = true;
             style.FooterFill = null;
-            style.FooterSeparatorColor = PdfColor.FromRgb(15, 23, 42);
-            style.FooterSeparatorWidth = 1;
-            style.CellPaddingX = 8;
-            style.CellPaddingY = 6;
-            style.CellPaddingTop = 6;
-            style.CellPaddingBottom = 6;
-            style.FontSize = 10;
+            style.FooterSeparatorColor = OfficeColor.FromRgb(15, 23, 42);
+            style.FooterSeparatorWidth = OfficeLength.Points(1);
+            style.CellPaddingX = OfficeLength.Points(8);
+            style.CellPaddingY = OfficeLength.Points(6);
+            style.CellPaddingTop = OfficeLength.Points(6);
+            style.CellPaddingBottom = OfficeLength.Points(6);
+            style.FontSize = OfficeLength.Points(10);
             style.RightAlignNumeric = true;
             style.Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right };
             style.ColumnWidthWeights = new List<double> { 1.2, 1.0 };
@@ -188,15 +188,15 @@ namespace OfficeIMO.Examples.Pdf {
         }
 
         private static PdfParagraphStyle TightParagraph() {
-            return new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 2, LineHeight = 1.15 };
+            return new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(2), LineHeight = 1.15 };
         }
 
         private static PdfParagraphStyle LabelParagraph() {
-            return new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0, LineHeight = 1.1 };
+            return new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineHeight = 1.1 };
         }
 
         private static PdfParagraphStyle AddressParagraph() {
-            return new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0, LineHeight = 1.35 };
+            return new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineHeight = 1.35 };
         }
     }
 }

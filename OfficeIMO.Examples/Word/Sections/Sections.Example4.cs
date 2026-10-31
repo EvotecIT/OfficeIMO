@@ -21,11 +21,11 @@ namespace OfficeIMO.Examples.Word {
                 var section1 = document.AddSection();
                 section1.PageOrientation = OfficePageOrientation.Portrait;
 
-                section1.AddParagraph("Test Section1").SetFontFamily("Tahoma").SetFontSize(20);
+                section1.AddParagraph("Test Section1").SetFontFamily("Tahoma").SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
 
                 var section2 = document.AddSection();
 
-                section2.AddParagraph("Test Section2").SetFontFamily("Tahoma").SetFontSize(20);
+                section2.AddParagraph("Test Section2").SetFontFamily("Tahoma").SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
 
                 section2.PageOrientation = OfficePageOrientation.Landscape;
 

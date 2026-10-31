@@ -14,7 +14,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
 
     [Fact]
     public void RepeatedParagraphsReturnDistinctLiveNodesAndPreserveRichRunsAndNotes() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         Invoke(runspace, """
             $script:physical = PowerPointSlide -Document $deck -Title 'Status' -PassThru {
@@ -44,7 +44,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         Assert.Same(deck.Slides[0], Get<PowerPointSlide>(runspace, "physical"));
         Assert.Same(Node(richRun), Node(first.Runs.Last()));
         string path = Save(deck, "repeated.pptx");
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         var paragraphs = saved.Slides.SelectMany(s => s.TextBoxes).SelectMany(b => b.Paragraphs).ToList();
         Assert.Contains(paragraphs, p => p.Text == "Second edited after layout");
         var stored = Assert.Single(paragraphs, p => p.Text == "First edited during collection live link");
@@ -59,7 +59,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
     [InlineData("Quote")]
     [InlineData("Closing")]
     public void RichParagraphCommandsKeepNativeBackingInBodyQuoteAndClosing(string layout) {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         runspace.SessionStateProxy.SetVariable("layout", layout);
         Invoke(runspace, """
@@ -76,7 +76,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         var paragraph = Get<PowerPointParagraph>(runspace, "paragraph");
         AssertBacked(deck, paragraph);
         string path = Save(deck, "rich-" + layout + ".pptx");
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         var stored = Assert.Single(saved.Slides.SelectMany(s => s.TextBoxes).SelectMany(b => b.Paragraphs),
             p => p.Text == "Status: Ready today");
         Assert.True(stored.Runs.Single(r => r.Text == "Status: ").Bold);
@@ -90,7 +90,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
 
     [Fact]
     public void ComparisonColumnsAndTheirNotesShareOnlyTheSlideNativeOwner() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         Invoke(runspace, """
             PowerPointSlide -Document $deck -Title 'Comparison' {
@@ -120,7 +120,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         Assert.Contains(deck.Slides[0].TextBoxes, b => ReferenceEquals(b, right));
         AssertBacked(deck, Get<PowerPointParagraph>(runspace, "lede"));
         AssertBacked(deck, Get<PowerPointParagraph>(runspace, "item"));
-        using var saved = PowerPointPresentation.Load(Save(deck, "columns.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "columns.pptx"));
         Assert.Equal("Changed column notes", saved.Slides[0].GetSpeakerNotesText());
         string text = string.Join("\n", saved.Slides[0].TextBoxes.Select(b => b.Text));
         Assert.Contains("Changed lede after layout", text);
@@ -135,7 +135,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
 
     [Fact]
     public void EmptyListKeepsTheArrangedNativeFrameForLaterEdits() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         Invoke(runspace, """
             PowerPointSlide -Document $deck -Title 'Pending actions' {
@@ -147,14 +147,14 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         Assert.Contains(deck.Slides[0].TextBoxes, b => ReferenceEquals(b, list));
         Assert.NotNull(list.TextAutoFit);
         Assert.Equal(PowerPointTextAutoFit.None, list.TextAutoFit);
-        using var saved = PowerPointPresentation.Load(Save(deck, "empty-list.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "empty-list.pptx"));
         Assert.Contains(saved.Slides[0].TextBoxes, b => b.Text.Contains("Added through the captured frame", StringComparison.Ordinal));
         Assert.Empty(saved.ValidateDocument());
     }
 
     [Fact]
     public void NumberedListContinuationKeepsTheFirstFrameAndAllCapturedParagraphsAndLinksLive() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         Invoke(runspace, """
             PowerPointSlide -Document $deck -Title 'Many actions' {
@@ -183,7 +183,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         AssertBacked(deck, last);
         Assert.Contains(deck.Slides.Skip(1).SelectMany(s => s.TextBoxes).SelectMany(b => b.Paragraphs), p => ReferenceEquals(Node(p), Node(last)));
         Assert.Equal("https://contoso.com/after-continuation", Get<PowerPointTextRun>(runspace, "lastRun").Hyperlink!.AbsoluteUri);
-        using var saved = PowerPointPresentation.Load(Save(deck, "continued-list.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "continued-list.pptx"));
         var items = saved.Slides.SelectMany(s => s.TextBoxes).SelectMany(b => b.Paragraphs)
             .Where(p => ((DocumentFormat.OpenXml.Drawing.Paragraph)Node(p)).ParagraphProperties?
                 .GetFirstChild<DocumentFormat.OpenXml.Drawing.AutoNumberedBullet>() != null).ToList();
@@ -201,7 +201,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
 
     [Fact]
     public void SentenceContinuationPreservesCapturedRunsThatStartOnLaterSlides() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         string repeated = string.Join(" ", Enumerable.Repeat("Repeated sentence with enough detail to fill the slide and require continuation.", 36)) + " ";
         runspace.SessionStateProxy.SetVariable("repeated", repeated);
@@ -219,7 +219,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         var tail = Get<PowerPointTextRun>(runspace, "tail");
         Assert.Contains(deck.Slides.Skip(1).SelectMany(s => s.TextBoxes).SelectMany(b => b.Paragraphs).SelectMany(p => p.Runs),
             r => ReferenceEquals(Node(r), Node(tail)));
-        using var saved = PowerPointPresentation.Load(Save(deck, "continued-paragraph.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "continued-paragraph.pptx"));
         var fragments = saved.Slides.SelectMany(s => s.TextBoxes).SelectMany(b => b.Paragraphs)
             .Where(p => p.Text.StartsWith("Repeated sentence", StringComparison.Ordinal) || p.Text.StartsWith("Final edited", StringComparison.Ordinal)).ToList();
         Assert.Equal(repeated + "Final edited sentence.", string.Concat(fragments.Select(p => p.Text)));
@@ -233,7 +233,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
     [InlineData(false)]
     [InlineData(true)]
     public void NativeSlideAndRejectedColumnRollbackRestoreScopeAndExistingContent(bool renderFailure) {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         var existing = deck.AddSlide();
         var untouched = existing.AddTextBox("Existing content");
         using var runspace = Open(deck);
@@ -271,7 +271,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
             """);
         Assert.True(Get<bool>(runspace, "columnFailed"));
         AssertBacked(deck, Get<PowerPointParagraph>(runspace, "accepted"));
-        using var saved = PowerPointPresentation.Load(Save(deck, "rollback.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "rollback.pptx"));
         Assert.Equal("Original notes", saved.Slides[1].GetSpeakerNotesText());
         string text = string.Join("\n", saved.Slides.SelectMany(s => s.TextBoxes).Select(b => b.Text));
         Assert.Contains("Existing content", text);
@@ -284,7 +284,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
     [Fact]
     public void NestedRootsCannotBindOuterRunsAndRestoreTheOuterParagraphAndNativeSlide() {
         string inner = Path.Combine(_root, "inner.pptx");
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         runspace.SessionStateProxy.SetVariable("inner", inner);
         Invoke(runspace, """
@@ -308,8 +308,8 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         Assert.True(Get<bool>(runspace, "isolated"));
         AssertBacked(deck, Get<PowerPointParagraph>(runspace, "outerParagraph"));
         Assert.Same(deck.Slides[0], Get<PowerPointSlide>(runspace, "outerNotes"));
-        using var saved = PowerPointPresentation.Load(Save(deck, "outer.pptx"));
-        using var nested = PowerPointPresentation.Load(inner);
+        using var saved = PowerPointDocument.Load(Save(deck, "outer.pptx"));
+        using var nested = PowerPointDocument.Load(inner);
         string outerText = string.Join("\n", saved.Slides.SelectMany(s => s.TextBoxes).Select(b => b.Text));
         string innerText = string.Join("\n", nested.Slides.SelectMany(s => s.TextBoxes).Select(b => b.Text));
         Assert.Contains("Before After saved", outerText);
@@ -331,7 +331,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         }).OrderBy(s => s, StringComparer.Ordinal).ToArray();
     }
 
-    private string Save(PowerPointPresentation deck, string name) {
+    private string Save(PowerPointDocument deck, string name) {
         string path = Path.Combine(_root, name);
         deck.Save(path);
         return path;
@@ -340,7 +340,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         .GetProperty("Paragraph", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(paragraph)!;
     private static object Node(PowerPointTextRun run) => typeof(PowerPointTextRun)
         .GetProperty("Run", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(run)!;
-    private static void AssertBacked(PowerPointPresentation deck, PowerPointParagraph paragraph) =>
+    private static void AssertBacked(PowerPointDocument deck, PowerPointParagraph paragraph) =>
         Assert.Contains(deck.Slides.SelectMany(s => s.TextBoxes).SelectMany(b => b.Paragraphs), p => ReferenceEquals(Node(p), Node(paragraph)));
     private static T Get<T>(Runspace runspace, string name) => Assert.IsType<T>(PSObject.AsPSObject(runspace.SessionStateProxy.GetVariable(name)).BaseObject);
     private static void Invoke(Runspace runspace, string script) {
@@ -351,7 +351,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         Assert.Equal(PSInvocationState.Completed, shell.InvocationStateInfo.State);
         Assert.Empty(shell.Streams.Error);
     }
-    private static Runspace Open(PowerPointPresentation deck) {
+    private static Runspace Open(PowerPointDocument deck) {
         var state = InitialSessionState.CreateDefault();
         foreach (Type type in typeof(NewOfficePowerPointCommand).Assembly.GetTypes()) {
             var command = type.GetCustomAttribute<CmdletAttribute>();

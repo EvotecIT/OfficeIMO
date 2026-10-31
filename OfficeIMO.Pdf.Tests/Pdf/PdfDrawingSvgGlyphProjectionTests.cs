@@ -19,7 +19,7 @@ public sealed class PdfDrawingSvgGlyphProjectionTests {
         var options = new PdfCreateOptions().UseManagedTextShaping()
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "Svg Projection");
         byte[] bytes = PdfDocument.Create(options).Canvas(canvas => canvas.PositionedText(
-            new[] { new PdfTextRun(text, fontSize: 20D) }, PdfCanvasTextStructureRole.Paragraph,
+            new[] { new PdfTextRun(text, fontSize: global::OfficeIMO.OfficeLength.Points(20D)) }, PdfCanvasTextStructureRole.Paragraph,
             20D, 20D, 260D, 40D, fontSize: 20D)).ToBytes();
         OfficeDrawing drawing = PdfReadDocument.Open(bytes).Pages[0].ToDrawing();
         OfficeDrawingText[] runs = drawing.Elements.OfType<OfficeDrawingText>().ToArray();
@@ -39,12 +39,12 @@ public sealed class PdfDrawingSvgGlyphProjectionTests {
 
         Assert.NotEmpty(OfficeDrawingRasterRenderer.Render(drawing).GetPixels());
         var replayOptions = new PdfCreateOptions {
-            PageWidth = drawing.Width,
-            PageHeight = drawing.Height,
-            MarginLeft = 0D,
-            MarginRight = 0D,
-            MarginTop = 0D,
-            MarginBottom = 0D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(drawing.Width),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(drawing.Height),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
         }.SetTextShapingProvider(new RejectReshaping());
         byte[] replay = PdfDocument.Create(replayOptions)
             .Drawing(drawing).ToBytes();

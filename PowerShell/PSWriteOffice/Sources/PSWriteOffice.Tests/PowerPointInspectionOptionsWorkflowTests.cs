@@ -61,8 +61,8 @@ public sealed class PowerPointInspectionOptionsWorkflowTests {
         Assert.Equal("Review", document.Slides[0].GetPlaceholder(PowerPointPlaceholderType.Title)!.Text);
     }
 
-    private static PowerPointPresentation Create() {
-        var document = PowerPointPresentation.Create();
+    private static PowerPointDocument Create() {
+        var document = PowerPointDocument.Create();
         document.AddSlide().AddTitle("Review");
         return document;
     }

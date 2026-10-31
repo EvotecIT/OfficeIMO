@@ -14,12 +14,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.AddTitle("Quarterly Review");
                     slide.AddTextBox("Agenda");
 
-                    PowerPointTable table = slide.AddTable(2, 2);
+                    PowerPointTable table = slide.AddTable(2,2);
                     table.GetRow(0).GetCell(0).Text = "Region";
                     table.GetRow(0).GetCell(1).Text = "Revenue";
                     table.GetRow(1).GetCell(0).Text = "North";
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
 
                 AppendNotesParagraph(filePath, "Second note paragraph");
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                     PowerPointExtractChunk chunk = presentation.ExtractMarkdownChunks(
                         sourcePath: filePath).Single();
 
@@ -57,11 +57,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.AddTextBox(new string('A', 400));
 
-                    PowerPointTable table = slide.AddTable(2, 1);
+                    PowerPointTable table = slide.AddTable(2,1);
                     table.GetRow(0).GetCell(0).Text = "Header";
                     table.GetRow(1).GetCell(0).Text = "Value";
 
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                     PowerPointExtractChunk chunk = presentation.ExtractMarkdownChunks(
                         new PowerPointExtractionExtensions.PowerPointExtractOptions {
                             IncludeNotes = false,
@@ -93,8 +93,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ExtractMarkdownChunks_DoesNotSplitSurrogatePairAtLimit() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             const string Emoji = "\U0001F600";
             slide.AddTextBox(new string('A', 400) + Emoji + " after");
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ExtractMarkdownChunks_PreservesParagraphSemanticsLinksAndShapeOrder() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTitle("Extraction contract");
 
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
             wideNumber.AddBullets(new[] { "Arrow child" }, level: 1,
                 bulletChar: '\u2192');
 
-            PowerPointTable table = slide.AddTable(2, 2);
+            PowerPointTable table = slide.AddTable(2,2);
             table.GetCell(0, 0).Text = "Region";
             table.GetCell(0, 1).Text = "Revenue";
             table.GetCell(1, 0).Text = "North";
@@ -184,8 +184,8 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ExtractMarkdownChunks_RestartsNumberingAtListBoundaries() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox text = slide.AddTextBox(string.Empty);
             text.SetNumberedList(new[] { "Before one", "Before two" });
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ExtractMarkdownChunks_ClampsMalformedListLevelsBeforeIndentAllocation() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTextBox text = presentation.AddSlide().AddTextBox(string.Empty);
             PowerPointParagraph paragraph = text.AddParagraph("Bounded child");
             paragraph.SetBullet();

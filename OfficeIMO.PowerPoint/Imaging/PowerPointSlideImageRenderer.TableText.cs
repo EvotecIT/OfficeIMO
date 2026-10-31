@@ -35,10 +35,10 @@ internal static partial class PowerPointSlideImageRenderer {
         AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(table, cell, diagnostics);
         AddBaselineApproximationDiagnosticIfNeeded(table, cell, diagnostics);
 
-        double marginLeft = mapping.MapHorizontalLength(cell.PaddingLeftPoints ?? 3.6D);
-        double marginTop = mapping.MapVerticalLength(cell.PaddingTopPoints ?? 1.8D);
-        double marginRight = mapping.MapHorizontalLength(cell.PaddingRightPoints ?? 3.6D);
-        double marginBottom = mapping.MapVerticalLength(cell.PaddingBottomPoints ?? 1.8D);
+        double marginLeft = mapping.MapHorizontalLength(cell.PaddingLeft?.ToPoints() ?? 3.6D);
+        double marginTop = mapping.MapVerticalLength(cell.PaddingTop?.ToPoints() ?? 1.8D);
+        double marginRight = mapping.MapHorizontalLength(cell.PaddingRight?.ToPoints() ?? 3.6D);
+        double marginBottom = mapping.MapVerticalLength(cell.PaddingBottom?.ToPoints() ?? 1.8D);
         double textWidth = cellWidth - marginLeft - marginRight;
         double textHeight = cellHeight - marginTop - marginBottom;
         if (textWidth <= 0D || textHeight <= 0D) {
@@ -124,7 +124,7 @@ internal static partial class PowerPointSlideImageRenderer {
         return new OfficeFontInfo(
             PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(firstRun?.FontName ?? cell.FontName,
                 firstRun?.OwnerPart ?? cell.OwnerPart) ?? "Calibri",
-            mapping.MapFontSize(firstRun?.FontSize ?? cell.FontSize ?? 10),
+            mapping.MapFontSize(firstRun?.FontSize?.ToPoints() ?? cell.FontSize?.ToPoints() ?? 10),
             style);
     }
 
@@ -172,7 +172,7 @@ internal static partial class PowerPointSlideImageRenderer {
         Uri? hyperlink = markerRun ? null : run?.Hyperlink;
         return new OfficeRichTextRun(
             ResolvePowerPointDisplayText(text, run, paragraph, markerRun),
-            mapping.MapFontSize(markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? cell.FontSize ?? 10 : run?.FontSize ?? cell.FontSize ?? 10),
+            mapping.MapFontSize(markerRun ? paragraph?.BulletSize?.ToPoints() ?? run?.FontSize?.ToPoints() ?? cell.FontSize?.ToPoints() ?? 10 : run?.FontSize?.ToPoints() ?? cell.FontSize?.ToPoints() ?? 10),
             color,
             run?.Bold == true,
             run?.Italic == true,

@@ -29,7 +29,7 @@ public sealed class PdfShortNumberingTabTests {
         ConfigureShortNumbering(list, authored);
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY\nNEXT");
         paragraph.Text = "BODY\nNEXT";
-        paragraph.FontFamily = "Courier New"; paragraph.FontSize = 12;
+        paragraph.FontFamily = "Courier New"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (inline) paragraph.CharacterScale = 95;
         if (table) paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
@@ -58,7 +58,7 @@ public sealed class PdfShortNumberingTabTests {
         WordList list = story.AddList(WordListStyle.Custom);
         ConfigureShortNumbering(list, authored);
         WordParagraph paragraph = list.AddItem("RUNNING");
-        paragraph.FontFamily = "Courier New"; paragraph.FontSize = 12;
+        paragraph.FontFamily = "Courier New"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         document.AddParagraph("BODY");
         Assert.Empty(document.ValidateDocument());
         using var pdf = OpenPdf(document);
@@ -72,7 +72,7 @@ public sealed class PdfShortNumberingTabTests {
     private static void ConfigureShortNumbering(WordList list, bool authored) {
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440; level.IndentationHanging = 1080;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D); level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(54D);
         if (authored) level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new Tabs(
             new TabStop { Val = TabStopValues.Number, Position = 720 }), 0);
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
@@ -89,7 +89,7 @@ public sealed class PdfShortNumberingTabTests {
         ConfigureShortNumbering(list, true);
         list.AddItem("RUNNING"); document.AddParagraph("BODY");
         byte[] bytes = document.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(200D, 300D)
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(200D),OfficeIMO.OfficeLength.Points(300D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(bytes),
             new OfficeIMO.Pdf.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
@@ -116,7 +116,7 @@ public sealed class PdfShortNumberingTabTests {
         WordList list = scope == "header" ? document.HeaderDefaultOrCreate.AddList(WordListStyle.Custom) : document.AddCustomList();
         ConfigureShortNumbering(list, false);
         WordListLevel level = list.Numbering.Levels[0];
-        level.SetStartNumberingValue(9); level.IndentationLeft = 1800; level.IndentationHanging = 720;
+        level.SetStartNumberingValue(9); level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D); level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = alignment; level.LevelSuffix = suffix;
         level.OpenXmlElement.NumberingSymbolRunProperties!.FontSize = new FontSize { Val = "36" };
         WordTableCell? cell = scope == "table" ? document.AddTable(1, 1).Rows[0].Cells[0] : null;
@@ -124,7 +124,7 @@ public sealed class PdfShortNumberingTabTests {
         WordParagraph second = cell == null ? list.AddItem("SECOND") : cell.AddParagraph("SECOND");
         first.Text = "FIRST";
         foreach (WordParagraph paragraph in new[] { first, second }) {
-            paragraph.FontFamily = "Courier New"; paragraph.FontSize = 9;
+            paragraph.FontFamily = "Courier New"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(9);
             if (cell != null) paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
                 new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
         }
@@ -163,8 +163,8 @@ public sealed class PdfShortNumberingTabTests {
         WordHeaderFooter normal = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
         WordList list = normal.AddList(WordListStyle.Custom);
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-        list.Numbering.Levels[0].IndentationLeft = 720;
-        list.Numbering.Levels[0].IndentationHanging = 360;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(36D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         WordParagraph numbered = list.AddItem("RUNNING");
         WordHeaderFooter siblingStory = normal;
         if (route == "first-variant") {
@@ -182,8 +182,8 @@ public sealed class PdfShortNumberingTabTests {
         document.AddParagraph("BODY"); document.AddParagraph().AddBreak(WordBreakType.Page); document.AddParagraph("BODY");
         Assert.Empty(document.ValidateDocument());
         byte[] bytes = document.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(200D, 300D),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72D)
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(200D),OfficeIMO.OfficeLength.Points(300D)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(bytes),
             new OfficeIMO.Pdf.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();

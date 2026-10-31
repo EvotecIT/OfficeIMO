@@ -13,7 +13,7 @@ public sealed class StudioNativeRedactionWireTests {
         string source = Path.Combine(root, "source.pdf");
         PdfDocument.Create(document => {
             foreach (string text in new[] { "First secret", "Second secret" })
-                document.Page(page => page.Size(400, 300).Content(content => content.Paragraph(p => p.Text(text))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Paragraph(p => p.Text(text))));
         }).Save(source);
         delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
         delegate* unmanaged<nint, void> close = &StudioNativeExports.DocumentClose;

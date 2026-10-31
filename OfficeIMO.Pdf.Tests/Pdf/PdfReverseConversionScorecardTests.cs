@@ -149,8 +149,8 @@ public sealed class PdfReverseConversionScorecardTests {
         using OfficeIMO.Word.WordDocument word = (result.Document.ConvertToWordWithEvidence()).Value;
         OfficeIMO.Word.WordParagraph paragraph = Assert.Single(word.Paragraphs, candidate =>
             candidate.Text.Contains("Scaled OCR", StringComparison.Ordinal));
-        Assert.True(paragraph.FontSizePoints.HasValue);
-        Assert.Equal(block.FontSize * 2D, paragraph.FontSizePoints.Value, 6);
+        Assert.True(paragraph.FontSize.HasValue);
+        Assert.Equal(block.FontSize * 2D, paragraph.FontSize!.Value.ToPoints(), 6);
     }
 
     private static void ExecuteAndReopen(
@@ -251,7 +251,7 @@ public sealed class PdfReverseConversionScorecardTests {
             }
             case "pdf-to-png": {
                 var options = new PdfCore.PdfPageRenderOptions {
-                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
                     Dpi = routeConfiguration.GetProperty("dpi").GetDouble(),
                     ContinueOnError = false
                 };

@@ -29,7 +29,7 @@ public sealed class PowerPointOptionWorkflowTests {
             Assert.Equal(included, options.IncludeSpeakerNotes);
             if (arguments.Contains("-Font", StringComparison.Ordinal)) Assert.Equal("Aptos Display", options.FontFamily);
         } else {
-            var options = Assert.IsType<PowerPointPresentationImageExportOptions>(value);
+            var options = Assert.IsType<PowerPointImageExportOptions>(value);
             Assert.Equal(included, options.IncludePictures);
             Assert.Equal(included, options.IncludeSlideContent);
         }
@@ -44,7 +44,7 @@ public sealed class PowerPointOptionWorkflowTests {
             .AddParameter("MaximumTotalRasterPixelCount", 4096L);
         var result = shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
-        var options = Assert.IsType<PowerPointPresentationImageExportOptions>(Assert.Single(result).BaseObject);
+        var options = Assert.IsType<PowerPointImageExportOptions>(Assert.Single(result).BaseObject);
         Assert.Equal(1024L, options.MaximumRasterPixels);
         Assert.Equal(4096L, options.MaximumTotalRasterPixels);
     }

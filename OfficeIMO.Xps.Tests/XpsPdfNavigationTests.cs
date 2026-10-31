@@ -55,8 +55,8 @@ public sealed class XpsPdfNavigationTests {
         var clip = new OfficeDrawing(100, 100).AddClippedDrawing(child, 0, 0, OfficeClipPath.Rectangle(40, 45));
         var drawing = new OfficeDrawing(200, 200).AddEffectDrawing(clip, OfficeTransform.Translate(20, 30));
         var pdf = PdfDocument.Create();
-        pdf.Compose(b => b.Page(p => p.Size(200, 200).Margin(new PdfPageMargins(0, 0, 0, 0)).Canvas(c => {
-            c.NamedDestination("chapter", 25, 40); c.Drawing(drawing, 0, 0, 200, 200);
+        pdf.Compose(b => b.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(200)).Margin(new PdfPageMargins(OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0))).Canvas(c => {
+            c.NamedDestination("chapter", global::OfficeIMO.OfficeLength.Points(25), global::OfficeIMO.OfficeLength.Points(40)); c.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(200));
         })));
         using var output = new MemoryStream(); pdf.Save(output);
         var read = PdfDocument.Load(new System.IO.MemoryStream(output.ToArray()));
@@ -138,7 +138,7 @@ public sealed class XpsPdfNavigationTests {
         var pattern = new OfficeDrawing(100, 100).AddTilingPattern(tile, new OfficeImagePlacement(15, 15, 25, 25), 20, 20);
         var mask = new OfficeDrawing(100, 100).AddShape(OfficeShape.Rectangle(100, 100), 0, 0).AddLink("https://example.com/mask", 0, 0, 100, 100);
         var drawing = new OfficeDrawing(100, 100).AddEffectDrawing(pattern, OfficeTransform.Identity, OfficeBlendMode.Normal, new OfficeDrawingSoftMask(mask));
-        var pdf = PdfDocument.Create(); pdf.Compose(b => b.Page(p => p.Size(100, 100).Margin(new PdfPageMargins(0, 0, 0, 0)).Canvas(c => c.Drawing(drawing, 0, 0, 100, 100))));
+        var pdf = PdfDocument.Create(); pdf.Compose(b => b.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100)).Margin(new PdfPageMargins(OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0),OfficeIMO.OfficeLength.Points(0))).Canvas(c => c.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100)))));
         using var output = new MemoryStream(); pdf.Save(output);
         var links = PdfDocument.Load(new System.IO.MemoryStream(output.ToArray())).Pages[0].GetLinkAnnotations(); Assert.NotEmpty(links);
         foreach (var link in links) {

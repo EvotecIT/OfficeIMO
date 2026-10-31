@@ -109,7 +109,7 @@ public sealed class PdfAdapterTextClipTests {
         byte[] bytes = drawing
             ? PdfDocument.Create().Drawing(new OfficeDrawing(100, 80)
                 .AddPositionedText("ADWS", 10, 10, 20, 10, new OfficeFontInfo("Helvetica", 32), textAdvanceWidth: 80)).ToBytes(new PdfSaveOptions { AllowLoss = true })
-            : PdfDocument.Create().Canvas(canvas => canvas.Text("ADWS", 10, 10, 20, 10, fontSize: 32)).ToBytes(new PdfSaveOptions { AllowLoss = true });
+            : PdfDocument.Create().Canvas(canvas => canvas.Text("ADWS", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(10), fontSize: global::OfficeIMO.OfficeLength.Points(32))).ToBytes(new PdfSaveOptions { AllowLoss = true });
 
         var spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans().ToArray();
         Assert.NotEmpty(spans);

@@ -8,7 +8,7 @@ internal static class OfficeImoPdfGenerator {
     internal static byte[] Generate(PdfBenchmarkScenario scenario) {
         var options = new PdfCreateOptions {
             CompressContentStreams = true,
-            DefaultFontSize = 9,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9),
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly
         };
@@ -33,9 +33,9 @@ internal static class OfficeImoPdfGenerator {
         return document.ToBytes();
     }
 
-    internal static byte[] GenerateHtml(string html, PdfEmbeddedFontFamily? fontFamily = null) =>
-        HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
-            FontFamily = fontFamily
-        });
-
+    internal static byte[] GenerateHtml(string html, PdfEmbeddedFontFamily? fontFamily = null) {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+        using PdfDocument document = source.ToPdf(new HtmlToPdfOptions { FontFamily = fontFamily });
+        return document.ToBytes();
+    }
 }

@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
                 values = reader.GetSheet(sourceSheet.Name).ReadRange(usedRange);
             }
 
-            ExcelSheet targetSheet = AddWorksheet(newSheetName, validationMode);
+            ExcelSheet targetSheet = AddSheet(newSheetName, validationMode);
             for (int rowOffset = 0; rowOffset < values.GetLength(0); rowOffset++) {
                 for (int columnOffset = 0; columnOffset < values.GetLength(1); columnOffset++) {
                     object? value = values[rowOffset, columnOffset];

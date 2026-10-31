@@ -242,7 +242,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public sealed class ExcelVisualTextRun {
         internal ExcelVisualTextRun(string text, bool bold, bool italic, bool underline, bool strikethrough,
-            string? fontColorArgb, string? fontName, double? fontSize,
+            string? fontColorArgb, string? fontName, OfficeLength? fontSize,
             ExcelUnderlineStyle? underlineStyle = null, ExcelVerticalTextAlignment? verticalTextAlignment = null,
             bool boldSpecified = false, bool italicSpecified = false,
             bool underlineSpecified = false, bool strikethroughSpecified = false) {
@@ -294,8 +294,8 @@ namespace OfficeIMO.Excel {
         /// <summary>Run font family, when specified.</summary>
         public string? FontName { get; }
 
-        /// <summary>Run font size in points, when specified.</summary>
-        public double? FontSize { get; }
+        /// <summary>Physical run font size, when specified.</summary>
+        public OfficeLength? FontSize { get; }
     }
 
     /// <summary>
@@ -664,7 +664,7 @@ namespace OfficeIMO.Excel {
             OfficeTextVerticalAlignment textVerticalAlignment,
             string? textColorArgb,
             string? textFontFamily,
-            double? textFontSize,
+            OfficeLength? textFontSize,
             OfficeFontStyle textFontStyle,
             bool textWrap,
             bool textShrinkToFit,
@@ -783,8 +783,8 @@ namespace OfficeIMO.Excel {
         /// <summary>Text font family, when specified on the drawing text run.</summary>
         public string? TextFontFamily { get; }
 
-        /// <summary>Text font size in points, when specified on the drawing text run.</summary>
-        public double? TextFontSize { get; }
+        /// <summary>Physical text font size, when specified on the drawing text run.</summary>
+        public OfficeLength? TextFontSize { get; }
 
         /// <summary>Text font style flags extracted from the drawing text run.</summary>
         public OfficeFontStyle TextFontStyle { get; }

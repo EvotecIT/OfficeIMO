@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MapsAnchoredFormulaTargetsIndependentlyFromRuleAnchors() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue(1);
             sheet.CellAt(3, 1).SetValue(3);
 
@@ -40,8 +40,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RewritesUnicodeBareSheetQualifiers() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("数据");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("数据");
+            ExcelSheet summary = document.AddSheet("Summary");
             data.CellAt(3, 1).SetValue(3);
             summary.CellFormula(1, 1, "数据!A3");
 
@@ -53,8 +53,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsWorkbookDataConsolidationSources() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
             data.CellAt(5, 1).SetValue(5);
             data.CellAt(6, 1).SetValue(6);
 
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_ShiftsAndRemovesCellWatches() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(5, 1).SetValue(5);
             var watch = new CellWatch { CellReference = "A5" };
             sheet.WorksheetPart.Worksheet.Append(new CellWatches(watch));

@@ -183,9 +183,9 @@ public sealed partial class IWorkBoundaryTests {
                 reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
             Assert.Empty(reopened.ValidateOpenXml());
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointPresentationResult(options); partial.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
+            using var partial = source.ToPowerPointDocumentResult(options); partial.Value.Save(saved); saved.Position = 0;
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             Assert.Equal(cell.CachedDisplayText, Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text);
             Assert.Empty(reopened.ValidateDocument());
         }

@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Unicode text-element helpers shared by OfficeIMO.Drawing text layout and raster rendering.
 /// </summary>
-public static class OfficeTextElements {
+internal static class OfficeTextElements {
     /// <summary>Enumerates Unicode grapheme clusters without splitting surrogate pairs or combining sequences.</summary>
     public static IEnumerable<string> Enumerate(string? value) {
         if (string.IsNullOrEmpty(value)) {

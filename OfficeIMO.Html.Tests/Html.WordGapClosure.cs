@@ -38,10 +38,10 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text.Contains("Logical spacing", StringComparison.Ordinal));
 
-        Assert.Equal(expectedBefore, paragraph.IndentationBefore);
-        Assert.Equal(expectedAfter, paragraph.IndentationAfter);
-        Assert.Equal(60, paragraph.LineSpacingBefore);
-        Assert.Equal(90, paragraph.LineSpacingAfter);
+        Assert.Equal(expectedBefore, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Equal(expectedAfter, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
+        Assert.Equal(60, checked((int?)(paragraph.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(90, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
         Assert.DoesNotContain(
             conversion.Report.Diagnostics,
             diagnostic => diagnostic.Code == "unsupported-css-declaration" &&
@@ -59,8 +59,8 @@ public partial class HtmlWordGapClosure {
         WordParagraph physicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Physical last");
         WordParagraph logicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Logical last");
 
-        Assert.Equal(450, physicalLast.IndentationBefore);
-        Assert.Equal(150, logicalLast.IndentationBefore);
+        Assert.Equal(450, checked((int?)(physicalLast.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(logicalLast.IndentationBefore?.ToTwips())));
     }
 
     [Fact]
@@ -74,10 +74,10 @@ public partial class HtmlWordGapClosure {
         WordParagraph logicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Logical last");
         WordParagraph physicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Physical last");
 
-        Assert.Equal(150, logicalLast.IndentationBefore);
-        Assert.Equal(300, logicalLast.LineSpacingBefore);
-        Assert.Equal(450, physicalLast.IndentationBefore);
-        Assert.Equal(600, physicalLast.LineSpacingBefore);
+        Assert.Equal(150, checked((int?)(logicalLast.IndentationBefore?.ToTwips())));
+        Assert.Equal(300, checked((int?)(logicalLast.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(450, checked((int?)(physicalLast.IndentationBefore?.ToTwips())));
+        Assert.Equal(600, checked((int?)(physicalLast.LineSpacingBefore?.ToTwips())));
     }
 
     [Fact]
@@ -98,10 +98,10 @@ public partial class HtmlWordGapClosure {
         WordParagraph sourceOrder = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Source order");
         WordParagraph specificity = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Specificity");
 
-        Assert.Equal(450, sourceOrder.IndentationBefore);
-        Assert.Equal(150, sourceOrder.IndentationAfter);
-        Assert.Equal(450, specificity.IndentationBefore);
-        Assert.Equal(150, specificity.IndentationAfter);
+        Assert.Equal(450, checked((int?)(sourceOrder.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(sourceOrder.IndentationAfter?.ToTwips())));
+        Assert.Equal(450, checked((int?)(specificity.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(specificity.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -129,10 +129,10 @@ public partial class HtmlWordGapClosure {
 
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
 
-        Assert.Equal(450, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical").IndentationBefore);
-        Assert.Equal(150, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important logical").IndentationBefore);
-        Assert.Equal(450, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical last").IndentationBefore);
-        Assert.Equal(450, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important padding").IndentationBefore);
+        Assert.Equal(450, checked((int?)(Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical").IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important logical").IndentationBefore?.ToTwips())));
+        Assert.Equal(450, checked((int?)(Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical last").IndentationBefore?.ToTwips())));
+        Assert.Equal(450, checked((int?)(Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important padding").IndentationBefore?.ToTwips())));
     }
 
     [Fact]
@@ -144,8 +144,8 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Invalid pair");
 
-        Assert.Equal(450, paragraph.IndentationBefore);
-        Assert.Null(paragraph.IndentationAfter);
+        Assert.Equal(450, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -165,10 +165,10 @@ public partial class HtmlWordGapClosure {
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "CSS direction");
         WordParagraph ownDir = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Own dir");
 
-        Assert.Equal(150, paragraph.IndentationBefore);
-        Assert.Null(paragraph.IndentationAfter);
-        Assert.Null(ownDir.IndentationBefore);
-        Assert.Equal(150, ownDir.IndentationAfter);
+        Assert.Equal(150, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(paragraph.IndentationAfter?.ToTwips())));
+        Assert.Null(checked((int?)(ownDir.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(ownDir.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -181,8 +181,8 @@ public partial class HtmlWordGapClosure {
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Important direction");
 
         Assert.True(paragraph.BiDi);
-        Assert.Null(paragraph.IndentationBefore);
-        Assert.Equal(150, paragraph.IndentationAfter);
+        Assert.Null(checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -199,11 +199,11 @@ public partial class HtmlWordGapClosure {
         WordParagraph inherited = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Inherited");
 
         Assert.False(initial.BiDi);
-        Assert.Equal(150, initial.IndentationBefore);
-        Assert.Null(initial.IndentationAfter);
+        Assert.Equal(150, checked((int?)(initial.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(initial.IndentationAfter?.ToTwips())));
         Assert.True(inherited.BiDi);
-        Assert.Null(inherited.IndentationBefore);
-        Assert.Equal(150, inherited.IndentationAfter);
+        Assert.Null(checked((int?)(inherited.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(inherited.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -226,8 +226,8 @@ public partial class HtmlWordGapClosure {
         Assert.Equal(WordBorderStyle.Single, first.Borders.LeftStyle);
         Assert.Equal(WordBorderStyle.Single, second.Borders.RightStyle);
         Assert.Equal("123456", first.Borders.LeftColorHex);
-        Assert.Equal(120, first.IndentationBefore);
-        Assert.Equal(120, second.IndentationAfter);
+        Assert.Equal(120, checked((int?)(first.IndentationBefore?.ToTwips())));
+        Assert.Equal(120, checked((int?)(second.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -276,9 +276,9 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Quoted spacing");
 
-        Assert.Equal(180, paragraph.IndentationBefore);
-        Assert.Equal(105, paragraph.LineSpacingBefore);
-        Assert.Equal(105, paragraph.LineSpacingAfter);
+        Assert.Equal(180, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Equal(105, checked((int?)(paragraph.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(105, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
     }
 
     [Fact]
@@ -542,7 +542,7 @@ public partial class HtmlWordGapClosure {
     public async Task WordTableCell_AddHtmlAsync_PreservesTypedContainerAndArtifact() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
-        await cell.AddHtmlAsync(HtmlConversionDocument.Parse("""
+        IReadOnlyList<WordElement> created = await cell.AddHtmlAsync(HtmlConversionDocument.Parse("""
             <h2>Cell heading</h2>
             <ul><li>First item</li><li>Second item</li></ul>
             <table><tr><td>Nested</td></tr></table>
@@ -550,6 +550,13 @@ public partial class HtmlWordGapClosure {
 
         Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text.Contains("Cell heading", StringComparison.Ordinal));
         Assert.Contains(cell.Elements, element => element is WordTable);
+        Assert.Equal(new[] { "Cell heading", "First item", "Second item", "[table]" },
+            created.Select(element => element is WordParagraph paragraph ? paragraph.Text : "[table]")
+                .Where(text => text.Length > 0));
+        WordParagraph heading = Assert.Single(created.OfType<WordParagraph>(), paragraph => paragraph.Text == "Cell heading");
+        heading.Bold = true;
+        WordTable nested = Assert.Single(created.OfType<WordTable>());
+        nested.Rows[0].Cells[0].Paragraphs.Single(paragraph => paragraph.Text == "Nested").Text = "Nested edited";
 
         using var stream = new MemoryStream();
         document.Save(stream);
@@ -559,18 +566,23 @@ public partial class HtmlWordGapClosure {
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text.Contains("Cell heading", StringComparison.Ordinal));
         Assert.Contains(reloadedCell.Elements, element => element is WordTable);
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text.Contains("First item", StringComparison.Ordinal));
+        Assert.True(reloadedCell.Paragraphs.Single(paragraph => paragraph.Text == "Cell heading").Bold);
+        Assert.Contains(Assert.Single(reloadedCell.Elements.OfType<WordTable>()).Paragraphs,
+            paragraph => paragraph.Text == "Nested edited");
     }
 
     [Fact]
-    public void WordTableCell_AddHtml_AppendsTopLevelInlineSiblingsWithoutDeletingContent() {
+    public async Task WordTableCell_AddHtml_AppendsTopLevelInlineSiblingsWithoutDeletingContent() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Existing";
 
-        cell.AddHtml(HtmlConversionDocument.Parse("""<span>First</span><span>Second</span>"""));
+        IReadOnlyList<WordElement> created = await cell.AddHtmlAsync("""<span>First</span><span>Second</span>""");
 
         Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text == "Existing");
         Assert.Equal("ExistingFirstSecond", string.Concat(cell.Paragraphs.Select(paragraph => paragraph.Text)));
+        Assert.Equal(new[] { "First", "Second" }, created.OfType<WordParagraph>()
+            .Where(paragraph => paragraph.Text.Length > 0).Select(paragraph => paragraph.Text));
     }
 
     [Fact]
@@ -578,7 +590,7 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         using (var imageStream = new MemoryStream(Convert.FromBase64String(ValidPng))) {
-            cell.Paragraphs[0].AddImage(imageStream, "existing.png", 10, 10);
+            cell.Paragraphs[0].AddImage(imageStream, "existing.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
         }
 
         cell.AddHtml(HtmlConversionDocument.Parse("""<span>Appended</span>"""));
@@ -597,15 +609,23 @@ public partial class HtmlWordGapClosure {
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "Appended");
     }
 
-    [Fact]
-    public void WordTableCell_AddHtml_ReplacesOnlyTheFreshEmptyRunPlaceholder() {
+    [Theory]
+    [InlineData("<p>Imported paragraph</p>", true)]
+    [InlineData("<span>Imported paragraph</span>", false)]
+    public void WordTableCell_AddHtml_MaterializesContentInFreshEmptyParagraph(string html, bool parsed) {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
 
-        cell.AddHtml(HtmlConversionDocument.Parse("""<p>Imported paragraph</p>"""));
+        Assert.Empty(cell.AddHtml(string.Empty));
+        IReadOnlyList<WordElement> created = parsed
+            ? cell.AddHtml(HtmlConversionDocument.Parse(html))
+            : cell.AddHtml(html);
 
         Paragraph paragraph = Assert.Single(cell._tableCell.Elements<Paragraph>());
         Assert.Equal("Imported paragraph", paragraph.InnerText);
+        WordParagraph imported = Assert.Single(created.OfType<WordParagraph>(), element => element.Text == "Imported paragraph");
+        Assert.All(created, element => Assert.Same(paragraph, Assert.IsType<WordParagraph>(element)._paragraph));
+        imported.Bold = true;
 
         using var stream = new MemoryStream();
         document.Save(stream);
@@ -613,6 +633,7 @@ public partial class HtmlWordGapClosure {
         WordTableCell reloadedCell = reloaded.Tables[0].Rows[0].Cells[0];
         Paragraph reloadedParagraph = Assert.Single(reloadedCell._tableCell.Elements<Paragraph>());
         Assert.Equal("Imported paragraph", reloadedParagraph.InnerText);
+        Assert.True(reloadedCell.Paragraphs.Single(element => element.Text == "Imported paragraph").Bold);
     }
 
     [Fact]

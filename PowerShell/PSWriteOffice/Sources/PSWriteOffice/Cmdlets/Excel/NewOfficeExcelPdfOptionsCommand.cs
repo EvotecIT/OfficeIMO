@@ -164,10 +164,10 @@ public sealed class NewOfficeExcelPdfOptionsCommand : PSCmdlet {
         if (HasMargins()) {
             PdfPageMargins defaults = PdfPageMargins.Normal;
             options.Margins = new PdfPageMargins(
-                MarginLeft ?? defaults.Left,
-                MarginTop ?? defaults.Top,
-                MarginRight ?? defaults.Right,
-                MarginBottom ?? defaults.Bottom);
+                MarginLeft.HasValue ? OfficeIMO.OfficeLength.Points(MarginLeft.Value) : defaults.Left,
+                MarginTop.HasValue ? OfficeIMO.OfficeLength.Points(MarginTop.Value) : defaults.Top,
+                MarginRight.HasValue ? OfficeIMO.OfficeLength.Points(MarginRight.Value) : defaults.Right,
+                MarginBottom.HasValue ? OfficeIMO.OfficeLength.Points(MarginBottom.Value) : defaults.Bottom);
         }
         if (WorksheetLayout.HasValue) options.WorksheetLayout = WorksheetLayout.Value;
         if (SheetName is { Length: > 0 }) options.SheetNames = new List<string>(SheetName);

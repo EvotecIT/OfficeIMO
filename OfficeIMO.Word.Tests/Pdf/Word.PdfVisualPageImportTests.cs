@@ -16,17 +16,17 @@ public sealed class PdfVisualPageImportTests {
         var raster = new OfficeIMO.Drawing.OfficeRasterImage(240, 320, OfficeIMO.OfficeColor.White);
         byte[] png = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(raster, OfficeIMO.Drawing.OfficeImageExportFormat.Png);
         using OfficeWordDocument word = OfficeWordDocument.Create();
-        word.Sections[0].PageSettings.Width = 4800; word.Sections[0].PageSettings.Height = 6400;
+        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D); word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(320D);
         using var stream = new MemoryStream(png);
-        var image = word.AddParagraph().InsertImage(stream, "foreground.png", 320, 426.6666666667, OfficeIMO.Word.WordImageTextWrapping.InFrontOfText);
+        var image = word.AddParagraph().AddImage(stream, "foreground.png", OfficeIMO.OfficeLength.Pixels(320), OfficeIMO.OfficeLength.Pixels(426.6666666667), options: new OfficeIMO.Word.WordImageOptions { Wrapping = OfficeIMO.Word.WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = OfficeIMO.Word.WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = OfficeIMO.Word.WordVerticalRelativePosition.Page;
-        image.HorizontalPositionOffset = 0; image.VerticalPositionOffset = 0;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(0); image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(0);
         if (contentKind == 1) word.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Covered content";
         else if (contentKind == 2) {
             byte[] colored = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(new OfficeIMO.Drawing.OfficeRasterImage(20,20,OfficeIMO.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png);
             using var coloredStream = new MemoryStream(colored);
-            word.AddParagraph().InsertImage(coloredStream, "later.png", 20, 20);
+            word.AddParagraph().AddImage(coloredStream, "later.png", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
             word.AddParagraph("Covered content");
         }
         else word.AddParagraph("Covered content");
@@ -137,14 +137,14 @@ public sealed class PdfVisualPageImportTests {
     public void PageAnchoredImageUsesPhysicalOffsetsWithoutConsumingItsHeightInFlow() {
         byte[] png = Create().Render.Pages(PdfCore.PdfPageSelection.From(1), new PdfCore.PdfPageRenderOptions { Dpi = 36 })[0].Bytes!;
         using OfficeWordDocument word = OfficeWordDocument.Create();
-        word.Sections[0].PageSettings.Width = 4800;
-        word.Sections[0].PageSettings.Height = 6400;
+        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D);
+        word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(320D);
         using var source = new MemoryStream(png);
-        var image = word.AddParagraph().InsertImage(source, "page.png", 60, 80, OfficeIMO.Word.WordImageTextWrapping.InFrontOfText);
+        var image = word.AddParagraph().AddImage(source, "page.png", OfficeIMO.OfficeLength.Pixels(60), OfficeIMO.OfficeLength.Pixels(80), options: new OfficeIMO.Word.WordImageOptions { Wrapping = OfficeIMO.Word.WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = OfficeIMO.Word.WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = OfficeIMO.Word.WordVerticalRelativePosition.Page;
-        image.HorizontalPositionOffset = 30 * 12700;
-        image.VerticalPositionOffset = 40 * 12700;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(30 * 12700);
+        image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(40 * 12700);
         word.AddParagraph("Flow text stays present");
         var result = word.ConvertToPdfWithEvidence();
         var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
@@ -156,7 +156,7 @@ public sealed class PdfVisualPageImportTests {
         Assert.Contains("Flow text stays present", pdf.Reader.Text().Replace("\r", string.Empty).Replace("\n", " "));
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-anchored-image-flowed");
 
-        image.HorizontalPositionOffset = -20 * 12700;
+        image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(-20 * 12700);
         var fallback = word.ConvertToPdfWithEvidence();
         Assert.NotEmpty(fallback.ToBytes());
         Assert.Contains(fallback.Warnings, warning => warning.Code == "native-anchored-image-clipped");
@@ -172,7 +172,7 @@ public sealed class PdfVisualPageImportTests {
     }
 
     private static PdfCore.PdfDocument Create() => PdfCore.PdfDocument.Create(compose => {
-        compose.Page(page => page.Size(240, 320).Content(content => content.Item(item => item.Paragraph(text => text.Text("First page")))));
-        compose.Page(page => page.Size(320, 240).Content(content => content.Item(item => item.Paragraph(text => text.Text("Second page")))));
+        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(content => content.Item(item => item.Paragraph(text => text.Text("First page")))));
+        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240)).Content(content => content.Item(item => item.Paragraph(text => text.Text("Second page")))));
     });
 }

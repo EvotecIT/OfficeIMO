@@ -26,7 +26,7 @@ namespace OfficeIMO.Word.Pdf {
                 Reconcile(NativeBorderEdge.Left, border.Left, border.LeftBorder);
 
                 void Reconcile(NativeBorderEdge edge, bool enabled, PdfCore.PdfCellBorderSide? side) {
-                    if (!enabled || side?.Color == null || side.Width <= 0D ||
+                    if (!enabled || side?.Color == null || side.Width <= OfficeLength.Zero ||
                         !HasCellOverride(entry.Key, entry.Value.Columns, edge)) return;
                     bool horizontal = edge == NativeBorderEdge.Top || edge == NativeBorderEdge.Bottom;
                     int segments = horizontal ? entry.Value.Columns : entry.Value.Rows;

@@ -39,8 +39,8 @@ public sealed class WordPdfIdentifierTests {
     [Fact]
     public void CanvasLogicalText_AfterSharedAnchorExtraction_PreservesBoundedSelection() {
         // The 12 pt box is sized for standard Helvetica metrics.
-        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { EmbedDefaultFonts = false }).Canvas(canvas => canvas.ActualText("OriginalIdentifier", 20, 20, 120, 12,
-            paint => paint.Text("Painted glyphs", 20, 20, 120, 12))).ToBytes();
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { EmbedDefaultFonts = false }).Canvas(canvas => canvas.ActualText("OriginalIdentifier", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(12),
+            paint => paint.Text("Painted glyphs", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(12)))).ToBytes();
         Assert.Equal("OriginalIdentifier", PdfReadDocument.Open(pdf).ExtractText().Trim());
     }
 
@@ -52,7 +52,7 @@ public sealed class WordPdfIdentifierTests {
         const string uri = "https://example.test/template";
         string display = WordPaperText.WithIdentifierBreaks(identifier).Replace('\u200C', '\u200B');
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = width + 40, MarginLeft = 20, MarginRight = 20,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         }.UseTextFallbacks()).Paragraph(paragraph => paragraph.Link(display, uri)).ToBytes();
         Assert.Equal(identifier, PdfReadDocument.Open(pdf).ExtractText().Trim());

@@ -28,7 +28,7 @@ public sealed class PdfEditorCommandTests {
         PdfDocument reopened = PdfDocument.Load(new System.IO.MemoryStream(edited));
         PdfAnnotation annotation = Assert.Single(reopened.Inspect().GetAnnotationsBySubtype(subtype));
         PdfPageRenderResult render = Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Svg,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg,
             ContinueOnError = false
         }));
 
@@ -93,7 +93,7 @@ public sealed class PdfEditorCommandTests {
         PdfDocument reopened = PdfDocument.Load(new System.IO.MemoryStream(withImage));
         Assert.Contains("Added overlay", reopened.Read().Text, StringComparison.Ordinal);
         Assert.NotEmpty(reopened.Read().Images);
-        Assert.True(Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg })).Succeeded);
+        Assert.True(Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg })).Succeeded);
     }
 
     [Fact]
@@ -128,8 +128,8 @@ public sealed class PdfEditorCommandTests {
     public void AreaRedaction_AllowsIdenticalTextOutsideTheReviewedArea() {
         const string repeated = "Confidential";
         byte[] source = PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(600D, 800D).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
-            compose.Page(page => page.Size(600D, 800D).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
         }).ToBytes();
         PdfPageInteractionRegion[] regions = PdfDocument.Load(new System.IO.MemoryStream(source)).Render.Interactions(1).TextRegions
             .Where(region => !string.IsNullOrWhiteSpace(region.Text))
@@ -154,7 +154,7 @@ public sealed class PdfEditorCommandTests {
 
     [Fact]
     public void VerifiedRedaction_ProvesImageOnlyAndAnnotationOnlyAreas() {
-        byte[] blank = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
+        byte[] blank = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)))).ToBytes();
         PdfEditorGesture gesture = CreateGesture();
         byte[] withImage = PdfEditorCommandExecutor.Apply(
             blank,
@@ -189,10 +189,12 @@ public sealed class PdfEditorCommandTests {
         Assert.All(annotationResult.Evidence.Items, item => Assert.Equal(PdfRedactionEvidenceStatus.VerifiedAbsent, item.Status));
     }
 
+    // Selection and redaction gestures need physically disjoint source lines.
     private static byte[] CreateSource(string text = "Existing content") =>
         PdfDocument.Create(compose => compose.Page(page => page
-            .Size(600D, 800D)
-            .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))))).ToBytes();
+            .Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))
+            .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text),
+                style: new PdfParagraphStyle { LineHeight = 2D }))))).ToBytes();
 
     private static PdfEditorGesture CreateGesture() => new(
         1,
@@ -213,7 +215,7 @@ public sealed class PdfEditorCommandTests {
     private static PdfEditorProperties CreateProperties() => new(
         "Review annotation",
         "OfficeIMO Studio",
-        PdfColor.FromRgb(229, 72, 77),
+        global::OfficeIMO.OfficeColor.FromRgb(229, 72, 77),
         "Approved",
         "https://officeimo.com",
         14D);

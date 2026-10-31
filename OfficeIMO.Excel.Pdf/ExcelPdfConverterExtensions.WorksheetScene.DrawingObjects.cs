@@ -57,9 +57,9 @@ namespace OfficeIMO.Excel.Pdf {
                 // DrawingML's shared visual model uses logical 96-DPI pixels. PDF uses points.
                 var scene = ExcelRangeImageRenderer.CreateOfficeDrawing(visual, 0.75D * scale);
                 canvas.Drawing(scene.Drawing,
-                    sceneX + (x + PixelsToPoints(drawing.OffsetXPixels)) * scale - scene.OffsetX,
-                    sceneY + (y + PixelsToPoints(drawing.OffsetYPixels)) * scale - scene.OffsetY,
-                    scene.Drawing.Width, scene.Drawing.Height,
+                    global::OfficeIMO.OfficeLength.Points(sceneX + (x + PixelsToPoints(drawing.OffsetXPixels)) * scale - scene.OffsetX),
+                    global::OfficeIMO.OfficeLength.Points(sceneY + (y + PixelsToPoints(drawing.OffsetYPixels)) * scale - scene.OffsetY),
+                    global::OfficeIMO.OfficeLength.Points(scene.Drawing.Width), global::OfficeIMO.OfficeLength.Points(scene.Drawing.Height),
                     new PdfCore.PdfDrawingStyle { AlternativeText = string.IsNullOrWhiteSpace(drawing.Text) ? drawing.Name : drawing.Text });
             }
         }

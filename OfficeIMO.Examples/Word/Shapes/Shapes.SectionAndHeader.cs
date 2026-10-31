@@ -10,15 +10,15 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var section = document.Sections[0];
-                section.AddShape(WordShapeType.Rectangle, 50, 25, Color.Red, Color.Black);
-                section.AddShape(WordShapeType.RoundedRectangle, 40, 20, Color.Yellow, Color.Purple, 1, arcSize: 0.3);
-                section.AddShapeDrawing(WordShapeType.Ellipse, 40, 40);
+                section.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(25), Color.Red, Color.Black);
+                section.AddShape(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(20), Color.Yellow, Color.Purple, OfficeIMO.OfficeLength.Points(1), arcSize: 0.3);
+                section.AddShapeDrawing(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
 
                 section.AddHeadersAndFooters();
                 var defaultHeader = RequireDefaultSectionHeader(section, "Section 0 default header");
-                defaultHeader.AddShape(WordShapeType.Rectangle, 30, 20, Color.Blue, Color.Black);
-                defaultHeader.AddShape(WordShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
-                defaultHeader.AddShapeDrawing(WordShapeType.Ellipse, 20, 20);
+                defaultHeader.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20), Color.Blue, Color.Black);
+                defaultHeader.AddShape(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(25), OfficeIMO.OfficeLength.Points(15), Color.Green, Color.Black, OfficeIMO.OfficeLength.Points(1), arcSize: 0.3);
+                defaultHeader.AddShapeDrawing(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

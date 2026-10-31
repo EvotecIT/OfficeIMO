@@ -248,8 +248,7 @@ namespace OfficeIMO.Word.Html {
             if (colElements.Length == 0) {
                 return;
             }
-            var widths = new List<int>();
-            TableWidthUnitValues? widthType = null;
+            var widths = new List<WordTableWidth?>();
             foreach (var col in colElements) {
                 string? width = null;
                 var style = col.GetAttribute("style");
@@ -264,35 +263,21 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
                 width ??= col.GetAttribute("width");
-                if (string.IsNullOrEmpty(width)) {
-                    continue;
-                }
-
                 int span = 1;
                 if (HtmlIntegerSemantics.TryParsePositiveInteger(col.GetAttribute("span"), out int sp) && sp > 1) {
                     span = sp;
                 }
 
-                int size;
-                TableWidthUnitValues thisType;
+                WordTableWidth? preference = null;
                 var widthText = width ?? string.Empty;
-                if (TryParsePercentWidth(widthText, out int pctWidth)) {
-                    size = pctWidth;
-                    thisType = TableWidthUnitValues.Pct;
+                if (widthText.Equals("auto", StringComparison.OrdinalIgnoreCase)) {
+                    preference = WordTableWidth.Auto;
+                } else if (TryParsePercentWidth(widthText, out int pctWidth)) {
+                    preference = WordTableWidth.Percent(pctWidth / 50d);
                 } else {
                     var decl = ParseInlineDeclaration($"margin-left:{widthText}");
-                    if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int w)) {
-                        size = w;
-                        thisType = TableWidthUnitValues.Dxa;
-                    } else {
-                        continue;
-                    }
-                }
-
-                if (widthType == null) {
-                    widthType = thisType;
-                } else if (widthType != thisType) {
-                    return; // mixed width types not supported
+                    if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int w) && w >= 0)
+                        preference = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)w * 635));
                 }
 
                 int remainingColumns = cols - widths.Count;
@@ -302,13 +287,12 @@ namespace OfficeIMO.Word.Html {
 
                 int widthsToAdd = Math.Min(span, remainingColumns);
                 for (int i = 0; i < widthsToAdd; i++) {
-                    widths.Add(size);
+                    widths.Add(preference);
                 }
             }
 
-            if (widthType != null && widths.Count == cols) {
+            if (widths.Count == cols) {
                 wordTable.ColumnWidth = widths;
-                wordTable.ColumnWidthType = widthType.ToOfficeEnum();
             }
         }
 
@@ -325,7 +309,8 @@ namespace OfficeIMO.Word.Html {
             if (!double.TryParse(num, NumberStyles.Float, CultureInfo.InvariantCulture, out var pct)) {
                 return false;
             }
-            width = (int)Math.Round(pct * 50);
+            if (double.IsNaN(pct) || double.IsInfinity(pct) || pct < 0 || pct > int.MaxValue / 50d) return false;
+            width = checked((int)Math.Round(pct * 50, MidpointRounding.AwayFromZero));
             return true;
         }
 
@@ -403,16 +388,13 @@ namespace OfficeIMO.Word.Html {
                             break;
                         case "width":
                             if (value.Equals("auto", StringComparison.OrdinalIgnoreCase)) {
-                                wordTable.WidthType = WordTableWidthUnit.Auto;
-                                wordTable.Width = 0;
+                                wordTable.Width = WordTableWidth.Auto;
                             } else if (TryParsePercentWidth(value, out int pctWidth)) {
-                                wordTable.Width = pctWidth;
-                                wordTable.WidthType = WordTableWidthUnit.Pct;
+                                wordTable.Width = WordTableWidth.Percent(pctWidth / 50d);
                             } else {
                                 var decl = ParseInlineDeclaration($"margin-left:{value}");
-                                if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int w)) {
-                                    wordTable.Width = w;
-                                    wordTable.WidthType = WordTableWidthUnit.Dxa;
+                                if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int w) && w >= 0) {
+                                    wordTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)w * 635));
                                 }
                             }
                             break;
@@ -461,13 +443,13 @@ namespace OfficeIMO.Word.Html {
 
             if (borderSpecified && tableBorderStyle.HasValue && tableBorderSize != null) {
                 if (collapse) {
-                    wordTable.StyleDetails?.SetBordersForAllSides(tableBorderStyle.Value.ToOfficeEnum(), tableBorderSize.Value, tableBorderColor);
+                    wordTable.StyleDetails?.SetBordersForAllSides(tableBorderStyle.Value.ToOfficeEnum(), global::OfficeIMO.OfficeLength.Points((tableBorderSize.Value) / 8D), tableBorderColor);
                 } else {
                     var hex = tableBorderColor.ToRgbHex();
                     foreach (var row in wordTable.Rows) {
                         foreach (var cell in row.Cells) {
                             cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = tableBorderStyle?.ToOfficeEnum();
-                            cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = tableBorderSize;
+                            cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = WordBorderLengths.FromSize(tableBorderSize);
                             cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
                         }
                     }
@@ -481,16 +463,16 @@ namespace OfficeIMO.Word.Html {
                 var hasRight = sideBorders.TryGetValue(TableBorderSide.Right, out var right);
                 wordTable.StyleDetails?.SetCustomBorders(
                     topStyle: hasTop ? top.Style.ToOfficeEnum() : null,
-                    topSize: hasTop ? top.Size : null,
+                    topSize: hasTop ? global::OfficeIMO.OfficeLength.Points(top.Size / 8D) : (global::OfficeIMO.OfficeLength?)null,
                     topColor: hasTop ? top.Color : null,
                     bottomStyle: hasBottom ? bottom.Style.ToOfficeEnum() : null,
-                    bottomSize: hasBottom ? bottom.Size : null,
+                    bottomSize: hasBottom ? global::OfficeIMO.OfficeLength.Points(bottom.Size / 8D) : (global::OfficeIMO.OfficeLength?)null,
                     bottomColor: hasBottom ? bottom.Color : null,
                     leftStyle: hasLeft ? left.Style.ToOfficeEnum() : null,
-                    leftSize: hasLeft ? left.Size : null,
+                    leftSize: hasLeft ? global::OfficeIMO.OfficeLength.Points(left.Size / 8D) : (global::OfficeIMO.OfficeLength?)null,
                     leftColor: hasLeft ? left.Color : null,
                     rightStyle: hasRight ? right.Style.ToOfficeEnum() : null,
-                    rightSize: hasRight ? right.Size : null,
+                    rightSize: hasRight ? global::OfficeIMO.OfficeLength.Points(right.Size / 8D) : (global::OfficeIMO.OfficeLength?)null,
                     rightColor: hasRight ? right.Color : null);
             }
 
@@ -507,11 +489,11 @@ namespace OfficeIMO.Word.Html {
 
             var styleDetails = wordTable.StyleDetails;
             if (styleDetails != null) {
-                if (padTop != null) styleDetails.MarginDefaultTopWidth = (short)padTop.Value;
-                if (padBottom != null) styleDetails.MarginDefaultBottomWidth = (short)padBottom.Value;
-                if (padLeft != null) styleDetails.MarginDefaultLeftWidth = (short)padLeft.Value;
-                if (padRight != null) styleDetails.MarginDefaultRightWidth = (short)padRight.Value;
-                if (cellSpacing != null) styleDetails.CellSpacing = (short)cellSpacing.Value;
+                if (padTop != null) styleDetails.MarginDefaultTop = global::OfficeIMO.OfficeLength.Points((padTop.Value) / 20D);
+                if (padBottom != null) styleDetails.MarginDefaultBottom = global::OfficeIMO.OfficeLength.Points((padBottom.Value) / 20D);
+                if (padLeft != null) styleDetails.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points((padLeft.Value) / 20D);
+                if (padRight != null) styleDetails.MarginDefaultRight = global::OfficeIMO.OfficeLength.Points((padRight.Value) / 20D);
+                if (cellSpacing != null) styleDetails.CellSpacing = global::OfficeIMO.OfficeLength.Points((cellSpacing.Value) / 20D);
             }
         }
 
@@ -692,7 +674,7 @@ namespace OfficeIMO.Word.Html {
                 }
                 if (borderStyle != null && borderSize != null) {
                     cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = borderStyle?.ToOfficeEnum();
-                    cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = borderSize;
+                    cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = WordBorderLengths.FromSize(borderSize);
                     var hex = borderColor.ToRgbHex();
                     cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
                 }
@@ -736,21 +718,21 @@ namespace OfficeIMO.Word.Html {
                             backgroundValue = value;
                             break;
                         case "width":
-                            if (TryParsePercentWidth(value, out int pctWidth)) {
-                                cell.Width = pctWidth;
-                                cell.WidthType = WordTableWidthUnit.Pct;
+                            if (value.Equals("auto", StringComparison.OrdinalIgnoreCase)) {
+                                cell.Width = WordTableWidth.Auto;
+                            } else if (TryParsePercentWidth(value, out int pctWidth)) {
+                                cell.Width = WordTableWidth.Percent(pctWidth / 50d);
                             } else {
                                 var decl = ParseInlineDeclaration($"margin-left:{value}");
-                                if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int w)) {
-                                    cell.Width = w;
-                                    cell.WidthType = WordTableWidthUnit.Dxa;
+                                if (TryConvertToTwip(decl.GetProperty("margin-left")?.RawValue, out int w) && w >= 0) {
+                                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)w * 635));
                                 }
                             }
                             break;
                         case "border":
                             if (TryParseBorder(value, out var bStyle, out var bSize, out var bColor)) {
                                 cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = bStyle.ToOfficeEnum();
-                                cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = bSize;
+                                cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = WordBorderLengths.FromSize(bSize);
                                 var hex = bColor.ToRgbHex();
                                 cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
                                 borderSet = true;
@@ -799,7 +781,7 @@ namespace OfficeIMO.Word.Html {
             if (!borderSet && !string.IsNullOrWhiteSpace(borderAttr)) {
                 if (TryParseBorderWidth(borderAttr + "px", out var bSize)) {
                     cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = WordBorderStyle.Single;
-                    cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = bSize;
+                    cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = WordBorderLengths.FromSize(bSize);
                     cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = "000000";
                 }
             }
@@ -857,22 +839,22 @@ namespace OfficeIMO.Word.Html {
             switch (side) {
                 case TableBorderSide.Left:
                     cell.Borders.LeftStyle = style.ToOfficeEnum();
-                    cell.Borders.LeftSize = size;
+                    cell.Borders.LeftSize = WordBorderLengths.FromSize(size);
                     cell.Borders.LeftColorHex = hex;
                     break;
                 case TableBorderSide.Right:
                     cell.Borders.RightStyle = style.ToOfficeEnum();
-                    cell.Borders.RightSize = size;
+                    cell.Borders.RightSize = WordBorderLengths.FromSize(size);
                     cell.Borders.RightColorHex = hex;
                     break;
                 case TableBorderSide.Top:
                     cell.Borders.TopStyle = style.ToOfficeEnum();
-                    cell.Borders.TopSize = size;
+                    cell.Borders.TopSize = WordBorderLengths.FromSize(size);
                     cell.Borders.TopColorHex = hex;
                     break;
                 case TableBorderSide.Bottom:
                     cell.Borders.BottomStyle = style.ToOfficeEnum();
-                    cell.Borders.BottomSize = size;
+                    cell.Borders.BottomSize = WordBorderLengths.FromSize(size);
                     cell.Borders.BottomColorHex = hex;
                     break;
             }

@@ -22,7 +22,7 @@ public sealed class ExcelXlsbStructureEditingTests {
         var retained = document.Sheets[0]; retained.Name = "Sales Łódź"; retained.CellValue(1, 1, 42D);
         document.ReorderWorksheet(retained, document.WorkbookRoot.Sheets!.Elements<Sheet>().Count() - 1);
         document.RemoveWorksheet(removedName);
-        var added = document.AddWorksheet("Added data");
+        var added = document.AddSheet("Added data");
         added.CellValue(1, 1, "New worksheet host");
         added.CellFormula(2, 1, "'Sales Łódź'!A1+1"); added.RecalculateSupportedFormulas();
         byte[] bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
@@ -47,9 +47,9 @@ public sealed class ExcelXlsbStructureEditingTests {
     [Fact]
     public void Removing_named_sheet_keeps_remaining_name_tokens_and_local_scopes_attached() {
         using var seed = ExcelDocument.Create();
-        var first = seed.AddWorksheet("First"); first.CellValue(1, 1, 10);
-        var second = seed.AddWorksheet("Second"); second.CellValue(1, 1, 20);
-        var third = seed.AddWorksheet("Third"); third.CellValue(1, 1, 30);
+        var first = seed.AddSheet("First"); first.CellValue(1, 1, 10);
+        var second = seed.AddSheet("Second"); second.CellValue(1, 1, 20);
+        var third = seed.AddSheet("Third"); third.CellValue(1, 1, 30);
         seed.SetNamedRange("FirstLocal", "A1", first, save: false);
         seed.SetNamedRange("SecondLocal", "A1", second, save: false);
         seed.SetNamedRange("DeletedTarget", "'First'!A1", save: false);

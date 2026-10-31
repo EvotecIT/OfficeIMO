@@ -13,16 +13,15 @@ public sealed class PowerPointPdfHandoutGeometryTests {
     [InlineData(300, 400)]
     [InlineData(1600, 400)]
     public void ThreeSlideHandoutsPreserveAspectRatioAndTheNotesColumn(double slideWidth, double slideHeight) {
-        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.ClearThemeTextDefaults();
-        presentation.SlideSize.SetSizePoints(slideWidth, slideHeight);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(slideWidth),OfficeIMO.OfficeLength.Points(slideHeight));
         for (int index = 0; index < 3; index++) {
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddPicturePoints(new MemoryStream(PdfPngTestImages.CreateRgbPng(210, 230, 245)),
-                OfficeImageFormat.Png, 0, 0, slideWidth, slideHeight)
-                .WithFrame(0, 0, PowerPointUnits.FromPoints(slideWidth), PowerPointUnits.FromPoints(slideHeight));
-            slide.AddTextBoxPoints("SLIDE " + (index + 1), 20, 20, 200, 40);
-            PowerPointAutoShape circle = slide.AddShapePoints(OfficePresetShapeType.Ellipse, 20, 100, 100, 100);
+            slide.AddImage(new MemoryStream(PdfPngTestImages.CreateRgbPng(210, 230, 245)),
+                OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(slideWidth), OfficeIMO.OfficeLength.Points(slideHeight)).WithFrame(0, 0, PowerPointUnits.FromPoints(slideWidth), PowerPointUnits.FromPoints(slideHeight));
+            slide.AddTextBox("SLIDE " + (index + 1),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
+            PowerPointAutoShape circle = slide.AddShape(OfficePresetShapeType.Ellipse, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100));
             circle.FillColor = "E68A2E"; circle.OutlineColor = "000000";
             slide.Notes.Text = "PRESENTER " + (index + 1);
         }

@@ -47,7 +47,7 @@ internal static class DjVuPdfConversionEngine {
         var pdfReport = new PdfConversionReport();
         settings.PdfOptions!.UseContentStreamCompressionByDefault();
         settings.PdfOptions.ReportDiagnosticsTo(pdfReport, "OfficeIMO.DjVu.Pdf");
-        var pdf = PdfDocument.Create(settings.PdfOptions);
+        var pdf = PdfDocument.CreateForImportedLayout(settings.PdfOptions);
         var pageReports = new List<DjVuPdfPageReport>();
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
         var textBudget = new DjVuPdfTextBudget(settings);
@@ -86,8 +86,8 @@ internal static class DjVuPdfConversionEngine {
             long before = textBudget.Characters;
             var textSource = DjVuPdfTextSource.None;
             OfficeDocumentRecognitionEvidence? evidence = null;
-            pdf.Compose(builder => builder.Page(p => p.Size(width, height).Margin(0).Canvas(canvas => {
-                canvas.Image(payload, 0, 0, width, height);
+            pdf.Compose(builder => builder.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)).Margin(global::OfficeIMO.OfficeLength.Points(0)).Canvas(canvas => {
+                canvas.Image(payload, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height));
                 foreach (var entry in navigation.Where(e => e.SourcePage == page.Number))
                     canvas.OutlineNavigation(entry.Title, entry.Level, 0, 0, entry.Uri, entry.Order);
                 if (!settings.IncludeText) {

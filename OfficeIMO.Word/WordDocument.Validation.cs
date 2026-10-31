@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Core.Internal;
-using OfficeIMO.Word.Fluent;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -54,13 +53,7 @@ namespace OfficeIMO.Word {
             return listErrors;
         }
 
-        /// <summary>
-        /// Creates a fluent wrapper for this document.
-        /// </summary>
-        /// <returns>A new <see cref="WordFluentDocument"/> instance.</returns>
-        public WordFluentDocument AsFluent() {
-            return new WordFluentDocument(this);
-        }
+
 
         /// <summary>
         /// Gets or sets compatibility settings for the document.

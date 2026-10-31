@@ -97,7 +97,9 @@ public sealed class LatexForwardOwnerTests {
         second.ColumnSpan = 2;
         second.Alignment = cellOverride;
         table.GetCell(0, 2)!.Alignment = MarkdownColumnAlignment.Center;
-        MarkdownToLatexResult result = MarkdownDocument.Create().Add(table).ToLatexDocumentResult();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(table);
+        MarkdownToLatexResult result = addedDocument.ToLatexDocumentResult();
         Assert.Contains("\\multicolumn{2}{" + expected + "}{Second}", result.Source, StringComparison.Ordinal);
         Assert.Contains("\\multicolumn{1}{c}{Third}", result.Source, StringComparison.Ordinal);
         Assert.False(result.Report.HasLoss);

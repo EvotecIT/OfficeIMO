@@ -7,6 +7,29 @@
       "phase": "A",
       "applied": "applied",
       "note": "Canonical PDF exports use shared reports and preserve completed evidence on output failure. Destination arguments are validated before conversion, while later serialization and publication failures retain the report. Existing rendering kernels remain internal."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "Numeric Markdown PDF image fallback dimensions and eight style font-size overrides.",
+      "new": "OfficeLength image dimensions and nullable OfficeLength style font overrides with unchanged point defaults.",
+      "reason": "Markdown PDF layout uses the common physical geometry contract through its shared PDF authoring boundaries.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfConverterExtensions.Charts.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfConverterExtensions.FrontMatter.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfConverterExtensions.Images.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfConverterExtensions.TablesCodeToc.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfExportOptions.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfFigureStyle.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfStyle.Helpers.cs",
+        "OfficeIMO.Markdown.Pdf/MarkdownPdfStyle.cs",
+        "OfficeIMO.Markdown.Pdf/README.md",
+        "OfficeIMO.Pdf.Tests/Markdown.Pdf.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentRasterVisualBaselineNativeScenarios.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/Markdown/MarkdownOptionUtilities.cs"
+      ],
+      "note": "Default point values, nullable inheritance, validation, clone/reset behavior, relative typography and saved-glyph expectations remain. At typed PDF content boundaries, style font snapshots pass directly instead of converting through points."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

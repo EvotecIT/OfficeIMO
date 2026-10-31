@@ -84,7 +84,7 @@ namespace OfficeIMO.Security.Tests {
                 project.AddDocumentModule("OwnedWorkbook", "", new Guid("00020819-0000-0000-C000-000000000046"));
                 byte[] bytes = project.Write().GetBytes();
                 using (ExcelDocument excel = ExcelDocument.Create(path)) {
-                    excel.AddWorksheet("Data"); excel.AddMacro(bytes);
+                    excel.AddSheet("Data"); excel.AddMacro(bytes);
                     excel.SetVbaProject(OfficeVbaProject.Load(bytes)); excel.Save();
                 }
                 using SpreadsheetDocument package = SpreadsheetDocument.Open(path, false);

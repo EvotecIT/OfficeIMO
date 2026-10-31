@@ -49,8 +49,8 @@ public static partial class ProjectReportWorkflow {
             foreach (var page in pages) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var drawing = page.Drawing;
-                builder.Page(p => p.Size(drawing.Width, drawing.Height).Margin(0)
-                    .Canvas(canvas => canvas.Drawing(drawing, 0, 0, drawing.Width, drawing.Height)));
+                builder.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(drawing.Width), global::OfficeIMO.OfficeLength.Points(drawing.Height)).Margin(global::OfficeIMO.OfficeLength.Points(0))
+                    .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(drawing.Width), global::OfficeIMO.OfficeLength.Points(drawing.Height))));
             }
         });
         return document.ToBytes(new PdfSaveOptions { AllowLoss = true }, cancellationToken);

@@ -16,7 +16,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
         WordTable table = story.AddTable(1, 2, WordTableStyle.TableGrid);
-        if (image) table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 32, 32);
+        if (image) table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         document.AddParagraph("BODY");
         string before = string.Concat(story.ChildElements.Select(element => element.OuterXml));
         byte[] bytes = document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -44,7 +44,7 @@ public partial class Word {
         document.Sections[0].DifferentFirstPage = variant == "first";
         document.Sections[0].DifferentOddAndEvenPages = variant == "even";
         WordTable table = story.AddTable(1, 2, WordTableStyle.TableGrid);
-        if (image) table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 32, 32);
+        if (image) table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
         SetInheritedRunningControlStyle(document.AddParagraph("BODY"));
         WordParagraph second = document.AddParagraph("SECOND");
         SetInheritedRunningControlStyle(second);

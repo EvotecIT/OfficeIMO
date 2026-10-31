@@ -8,7 +8,7 @@ public sealed class PdfPageDisplayRendererTests {
     private static readonly PdfPageRegionLimits Limits = new();
 
     private static PdfDocument CreateDocument(PdfCreateOptions? options = null) => PdfDocument.Load(
-        PdfDocument.Create(options ?? new PdfCreateOptions { PageWidth = 300, PageHeight = 200, DefaultFontSize = 11 })
+        PdfDocument.Create(options ?? new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11) })
             .Paragraph(paragraph => paragraph.Text("Tiles of one page join without seams at any scale."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
@@ -88,7 +88,7 @@ public sealed class PdfPageDisplayRendererTests {
     [Fact]
     public void DocumentsThatRestrictCopyingRenderAsPixels() {
         var encryption = new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.None };
-        byte[] restricted = CreateDocument(new PdfCreateOptions { PageWidth = 300, PageHeight = 200 }.SetEncryption(encryption)).ToBytes();
+        byte[] restricted = CreateDocument(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200) }.SetEncryption(encryption)).ToBytes();
         PdfDocument document = PdfDocument.Load(restricted, new PdfLoadOptions { Password = "open" });
         var renderer = new PdfPageDisplayRenderer(document, pageCapacity: 1, imageCapacityBytes: 16L * 1024 * 1024);
 

@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_ProjectsComparisonBeforeConcatenationWithoutSemanticLoss() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Formula");
+            ExcelSheet sheet = document.AddSheet("Formula");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "A");
             sheet.CellValue(1, 3, " suffix");
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_PreservesRectangularMergedRangeCoordinates() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Merge");
+            ExcelSheet sheet = document.AddSheet("Merge");
             sheet.CellValue(2, 2, "Merged");
             sheet.MergeRange("B2:D4");
 

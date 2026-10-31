@@ -13,9 +13,9 @@ public sealed class ExcelWorksheetUnicodeNamesTests {
     public void Sanitized_sheet_names_and_collision_suffixes_save_reopen_and_resolve(int prefixLength) {
         string requested = new string('A', prefixLength) + "😀common";
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet first = document.AddWorksheet(requested);
+        ExcelSheet first = document.AddSheet(requested);
         first.CellValue(1, 1, "First");
-        document.AddWorksheet(requested).CellValue(1, 1, "Second");
+        document.AddSheet(requested).CellValue(1, 1, "Second");
         Assert.Equal("First", document.GetOrCreateSheet(requested, ExcelSheetNameValidationMode.Sanitize)
             .CellAt(1, 1).GetValue<string>());
         using var saved = new MemoryStream();

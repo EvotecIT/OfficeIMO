@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
             using WordDocument word = WordDocument.Create();
             WordParagraph paragraph = word.AddParagraph("Before");
             using var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
-            WordImage image = paragraph.AddText("").InsertImage(pixels, "image.png", 80, 40);
-            image.CropLeft = -5000;
+            WordImage image = paragraph.AddText("").AddImage(pixels, "image.png", OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
+            image.CropLeftRatio = ((double?)(-5000)) / 100000D;
             paragraph.AddText("After");
 
             var result = word.ConvertToPdfWithEvidence();
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             var paragraph = story == "cell" ? word.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] :
                 story == "header" ? word.Sections[0].Header.Default!.AddParagraph() : word.AddParagraph();
             paragraph.Text = "Before";
-            paragraph.AddText("").AddImage(new Uri("https://example.invalid/image.png"), 80, 80);
+            paragraph.AddText("").AddImage(new Uri("https://example.invalid/image.png"), OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(80));
             paragraph.AddText("After");
             var result = word.ConvertToPdfWithEvidence();
             var warning = Assert.Single(result.Report.Warnings, warning => warning.Code == "native-body-image-unavailable");

@@ -39,7 +39,7 @@ static void CreateWordArtifact(string outputDirectory, ICollection<Interoperabil
 static void CreateExcelArtifacts(string outputDirectory, ICollection<InteroperabilityArtifact> artifacts) {
     string source = Path.Combine(outputDirectory, "officeimo-excel-source.xlsx");
     using (ExcelDocument document = ExcelDocument.Create(source)) {
-        ExcelSheet sheet = document.AddWorksheet("Compatibility");
+        ExcelSheet sheet = document.AddSheet("Compatibility");
         sheet.CellValue(1, 1, "OfficeIMO Excel modern-to-binary interoperability artifact");
         sheet.CellValue(2, 1, 42);
         document.Save();
@@ -57,7 +57,7 @@ static void CreateExcelArtifacts(string outputDirectory, ICollection<Interoperab
 static void CreatePowerPointArtifact(string outputDirectory, ICollection<InteroperabilityArtifact> artifacts) {
     string source = Path.Combine(outputDirectory, "officeimo-powerpoint-source.pptx");
     string destination = Path.Combine(outputDirectory, "officeimo-powerpoint-generated.ppt");
-    using (PowerPointPresentation presentation = PowerPointPresentation.Create(source)) {
+    using (PowerPointDocument presentation = PowerPointDocument.Create(source)) {
         presentation.AddSlide().AddTextBox("OfficeIMO PowerPoint modern-to-binary interoperability artifact");
         presentation.Save();
     }

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Review");
+                    ExcelSheet sheet = document.AddSheet("Review");
                     sheet.CellValue(2, 2, 1250d);
                     sheet.AddThreadedComment(new ExcelThreadedCommentOptions {
                         Address = "B2",
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using ExcelDocument document = ExcelDocument.Create(filePath);
-                ExcelSheet sheet = document.AddWorksheet("Review");
+                ExcelSheet sheet = document.AddSheet("Review");
                 ExcelThreadedCommentResult root = sheet.AddThreadedComment(new ExcelThreadedCommentOptions {
                     Address = "C3",
                     Text = "Root",

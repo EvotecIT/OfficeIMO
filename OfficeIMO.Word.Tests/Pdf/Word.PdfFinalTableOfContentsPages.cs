@@ -22,7 +22,7 @@ public sealed class WordPdfFinalTableOfContentsPagesTests {
         var list = document.AddList(WordListStyle.Numbered);
         WordParagraph heading = list.AddItem("Numbered findings");
         heading.Style = WordParagraphStyles.Heading1;
-        if (paragraphPath) heading.Spacing = 20;
+        if (paragraphPath) heading.Spacing = OfficeLength.Emus((long)(20) * 635);
         document.AddParagraph("Numbered body marker");
         byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
         var loaded = PdfDocument.Load(bytes);
@@ -41,7 +41,7 @@ public sealed class WordPdfFinalTableOfContentsPagesTests {
         document.AddParagraph("Executive summary").Style = WordParagraphStyles.Heading1;
         for (int index = 0; index < 80; index++) {
             WordParagraph paragraph = document.AddParagraph("Evidence row " + index + ": " + new string('x', 120));
-            paragraph.FontSize = 9;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         }
         document.AddParagraph("Final findings").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("Final body marker");

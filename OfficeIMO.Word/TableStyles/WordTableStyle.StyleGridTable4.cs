@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word;
 
 // Contains predefined table style definitions.
-public static partial class WordTableStyles {
+internal static partial class WordTableStyles {
 
     /// <summary>
     /// Gets the predefined style definition for Grid Table 4.

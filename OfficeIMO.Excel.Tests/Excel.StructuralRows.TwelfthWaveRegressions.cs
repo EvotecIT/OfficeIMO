@@ -7,15 +7,17 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_StructuralRows_DoesNotRewriteSpacedFunctionTokensAsCells() {
             using var document = ExcelDocument.Create(new MemoryStream());
             document.Calculation.RegisterCustomFunction(
                 "ABC10",
                 (_, _) => ExcelFormulaValue.FromNumber(1));
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellFormula(1, 1, "LOG10 (A1)+ABC10 (A1)");
 
             sheet.InsertRows(5);
@@ -72,7 +74,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsScenarioInputCells() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var input = new InputCells {
                 CellReference = $"A{ExcelA1.MaxRows}",
                 Val = "Keep"
@@ -94,7 +96,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsAndPreflightsCellBackedConnectionParameters() {
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 Parameter parameter = AttachCellBackedConnection(document, sheet, "A5");
 
                 sheet.InsertRows(5);
@@ -103,7 +105,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 Parameter parameter = AttachCellBackedConnection(
                     document,
                     sheet,
@@ -120,7 +122,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RewritesAndPreflightsFormulaConditionalThresholds() {
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet data = document.AddWorksheet("Data");
+                ExcelSheet data = document.AddSheet("Data");
                 data.CellAt(5, 1).SetValue(1);
                 ConditionalFormatValueObject threshold = AppendFormulaThreshold(
                     data,
@@ -133,8 +135,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet data = document.AddWorksheet("Data");
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet data = document.AddSheet("Data");
+                ExcelSheet summary = document.AddSheet("Summary");
                 data.CellAt(5, 1).SetValue(1);
                 ConditionalFormatValueObject threshold = AppendFormulaThreshold(
                     summary,
@@ -147,8 +149,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet data = document.AddWorksheet("Data");
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet data = document.AddSheet("Data");
+                ExcelSheet summary = document.AddSheet("Summary");
                 ConditionalFormatValueObject threshold = AppendFormulaThreshold(
                     summary,
                     "C2:C3",
@@ -162,22 +164,16 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        private static ExcelSheet CreatePivotSheet(ExcelDocument document) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+        private static ExcelSheet CreatePivotSheet(ExcelDocument document)
+        {
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Region");
             sheet.CellAt(1, 2).SetValue("Sales");
             sheet.CellAt(2, 1).SetValue("East");
             sheet.CellAt(2, 2).SetValue(10);
             sheet.CellAt(3, 1).SetValue("West");
             sheet.CellAt(3, 2).SetValue(20);
-            sheet.AddPivotTable(
-                sourceRange: "A1:B3",
-                destinationCell: "E10",
-                name: "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] {
-                    new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum)
-                });
+            sheet.AddPivotTable("A1:B3", "E10", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             return sheet;
         }
 

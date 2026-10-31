@@ -6,7 +6,7 @@ namespace PSWriteOffice.Tests;
 public sealed partial class PowerPointContentWorkflowTests {
     [Fact]
     public void SectionIndicesConvertToOneBasedNumbersForRemovingTheSelectedSectionOnly() {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         document.AddSlide().AddTitle("Keep first");
         document.AddSlide().AddTitle("Keep second");
         document.AddSlide().AddTitle("Appendix first");
@@ -23,7 +23,7 @@ public sealed partial class PowerPointContentWorkflowTests {
             """);
         Assert.Empty(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
-        using var reopened = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var reopened = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Empty(reopened.ValidateDocument());
         Assert.Equal(new[] { "Keep first", "Keep second" }, reopened.Slides.Select(slide =>
             slide.GetPlaceholder(PowerPointPlaceholderType.Title)!.Text));
@@ -36,7 +36,7 @@ public sealed partial class PowerPointContentWorkflowTests {
     [InlineData("-Name 'Appendix ?' -CaseSensitive", "Appendix A|Appendix B")]
     [InlineData("-Name 'Notes`[1`]$'", "Notes[1]$")]
     public void SectionNamePatternsUsePowerShellWildcardsAndExplicitCaseSensitivity(string arguments, string expected) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         document.AddSlide(); document.AddSlide(); document.AddSlide();
         document.AddSection("Appendix A", 0);
         document.AddSection("Appendix B", 1);

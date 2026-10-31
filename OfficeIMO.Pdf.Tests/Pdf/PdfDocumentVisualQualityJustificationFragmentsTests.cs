@@ -35,7 +35,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(expected.Count > 10, "The paragraph must exceed one physical page or column frame.");
 
         PdfCreateOptions options = FragmentJustificationOptions(140);
-        if (owner == "BodyColumns") options.PageWidth = 500;
+        if (owner == "BodyColumns") options.PageWidth = global::OfficeIMO.OfficeLength.Points(500);
         var document = PdfDocument.Create(options);
         if (owner == "Footnote") {
             PdfFootnoteDefinition note = document.Content.DefineFootnote(addParagraph);
@@ -43,7 +43,7 @@ public partial class PdfDocumentVisualQualityTests {
                 style: FragmentJustificationStyle());
         } else if (owner == "BodyColumns") {
             document.Content.Columns(addParagraph,
-                new PdfMultiColumnOptions { ColumnCount = 2, Gap = 20, BalanceLastPage = false });
+                new PdfMultiColumnOptions { ColumnCount = 2, Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false });
         } else {
             addParagraph(document.Content);
         }
@@ -100,13 +100,15 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static PdfCreateOptions FragmentJustificationOptions(double height) => new() {
-        PageWidth = 260, PageHeight = height, MarginLeft = 20, MarginRight = 20,
-        MarginTop = 20, MarginBottom = 20, DefaultFontSize = 8, DefaultFont = PdfStandardFont.Helvetica,
+        PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8), DefaultFont = PdfStandardFont.Helvetica,
+        // The paint comparison extracts black underline segments from both documents.
+        DefaultTextColor = global::OfficeIMO.OfficeColor.Black,
         CompressContentStreams = false
     };
 
     private static PdfParagraphStyle FragmentJustificationStyle(bool distributed = false) => new() {
-        FontSize = 8, LineSpacing = PdfLineSpacing.Exactly(10), SpacingBefore = 0, SpacingAfter = 0,
+        FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
         JustificationMode = distributed ? PdfJustificationMode.Characters : PdfJustificationMode.Words,
         JustifyExplicitLineBreaks = distributed, JustifyLastLine = distributed
     };
@@ -114,7 +116,7 @@ public partial class PdfDocumentVisualQualityTests {
     private static void AddFragmentJustificationParagraph(PdfContentBuilder content, bool distributed) {
         string text = "Short break\n" + string.Join(" ", Enumerable.Range(0, 80).Select(index => "word" + index.ToString("D2", CultureInfo.InvariantCulture)));
         content.Paragraph(paragraph => paragraph.Runs(new[] { new PdfTextRun(text, underline: true,
-                backgroundColor: new PdfColor(1, 1, 0), linkUri: "https://example.test/fragment") }),
+                backgroundColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 1, 0), linkUri: "https://example.test/fragment") }),
             PdfAlign.Justify, style: FragmentJustificationStyle(distributed));
     }
 

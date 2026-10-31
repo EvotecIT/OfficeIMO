@@ -54,7 +54,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
 
         /// <summary>Captures the source presentation's current content hashes and optional observed remote revision.</summary>
         /// <remarks>Persist the checkpoint only at a point where it accurately represents the synchronized baseline.</remarks>
-        public static GoogleSlidesSyncCheckpoint CreateCheckpoint(PowerPointPresentation presentation, string? revisionId = null, long? driveVersion = null) {
+        public static GoogleSlidesSyncCheckpoint CreateCheckpoint(PowerPointDocument presentation, string? revisionId = null, long? driveVersion = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             var checkpoint = new GoogleSlidesSyncCheckpoint { HashFormatVersion = CurrentHashFormatVersion, RevisionId = revisionId, DriveVersion = driveVersion };
             foreach (KeyValuePair<string, string> pair in Hashes(presentation)) checkpoint.ContentHashes[pair.Key] = pair.Value;
@@ -62,11 +62,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         }
         /// <summary>Imports the remote presentation natively and compares it with the source and optional baseline.</summary>
         /// <remarks>Unversioned or unsupported checkpoints are rejected before contacting Google. Import warnings are classified as lossy actions. A changed remote revision or Drive version is reported when both old and current values are available.</remarks>
-        public static async Task<GoogleSlidesDiffPlan> BuildAsync(PowerPointPresentation source, string presentationId, GoogleWorkspaceSession session, GoogleSlidesSyncCheckpoint? checkpoint = null, CancellationToken cancellationToken = default) {
+        public static async Task<GoogleSlidesDiffPlan> BuildAsync(PowerPointDocument source, string presentationId, GoogleWorkspaceSession session, GoogleSlidesSyncCheckpoint? checkpoint = null, CancellationToken cancellationToken = default) {
             ValidateCheckpoint(checkpoint);
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync(presentationId, session, new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native }, cancellationToken).ConfigureAwait(false);
-            using (imported.Presentation) {
-                List<GoogleSlidesDiffItem> items = Compare(Hashes(source), Hashes(imported.Presentation), checkpoint);
+            using (imported.Document) {
+                List<GoogleSlidesDiffItem> items = Compare(Hashes(source), Hashes(imported.Document), checkpoint);
                 foreach (TranslationNotice notice in imported.Report.Notices.Where(notice => notice.Severity >= TranslationSeverity.Warning)) items.Add(new GoogleSlidesDiffItem(GoogleWorkspaceDiffKind.LossyAction, notice.TargetId ?? notice.Feature, notice.Message));
                 if (checkpoint?.RevisionId != null && imported.Source.RevisionId != null && !string.Equals(checkpoint.RevisionId, imported.Source.RevisionId, StringComparison.Ordinal)) items.Add(new GoogleSlidesDiffItem(GoogleWorkspaceDiffKind.RemoteChange, "presentation/revision", "The Google presentation revision changed after the checkpoint."));
                 if (checkpoint?.DriveVersion != null && imported.Source.DriveVersion != null && checkpoint.DriveVersion != imported.Source.DriveVersion) items.Add(new GoogleSlidesDiffItem(GoogleWorkspaceDiffKind.RemoteChange, "presentation/driveVersion", "The Google presentation Drive version changed after the checkpoint."));
@@ -92,8 +92,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 throw new InvalidOperationException("The Google Slides checkpoint uses an unversioned or unsupported hash format. Reconcile the source with the remote presentation, then establish a new synchronized baseline with CreateCheckpoint; do not relabel the old hashes.");
             }
         }
-        private static IReadOnlyDictionary<string, string> Hashes(PowerPointPresentation presentation) {
-            var result = new Dictionary<string, string>(StringComparer.Ordinal) { ["presentation/size"] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{presentation.SlideSize.WidthPoints}|{presentation.SlideSize.HeightPoints}")) };
+        private static IReadOnlyDictionary<string, string> Hashes(PowerPointDocument presentation) {
+            var result = new Dictionary<string, string>(StringComparer.Ordinal) { ["presentation/size"] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{presentation.SlideSize.Width.ToPoints()}|{presentation.SlideSize.Height.ToPoints()}")) };
             for (int index = 0; index < presentation.Slides.Count; index++) {
                 PowerPointSlide slide = presentation.Slides[index]; string root = GoogleWorkspaceCheckpointFormat.Format($"slide/{index + 1}");
                 PowerPointSlideBackground background = slide.GetBackground(); result[root] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{slide.Hidden}|{BackgroundFingerprint(background)}"));
@@ -112,8 +112,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     string picture = shape is PowerPointPicture image
                         ? GoogleWorkspaceCheckpointFormat.Format($"{image.ContentType}|{Hash(image.GetImageBytes())}|{image.CropLeftRatio}|{image.CropTopRatio}|{image.CropRightRatio}|{image.CropBottomRatio}")
                         : string.Empty;
-                    string shapeStyle = GoogleWorkspaceCheckpointFormat.Format($"{shape.FillColor}|{shape.FillTransparency}|{shape.OutlineColor}|{shape.OutlineWidthPoints}");
-                    result[GoogleWorkspaceCheckpointFormat.Format($"{root}/element/{shape.DrawingOrder}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{shape.ShapeContentType}|{shape.Name}|{shape.LeftPoints}|{shape.TopPoints}|{shape.WidthPoints}|{shape.HeightPoints}|{shape.Rotation}|{shape.HorizontalFlip}|{shape.VerticalFlip}|{geometry}|{text}|{textStyle}|{picture}|{shapeStyle}"));
+                    string shapeStyle = GoogleWorkspaceCheckpointFormat.Format($"{shape.FillColor}|{shape.FillTransparency}|{shape.OutlineColor}|{shape.OutlineWidth?.ToPoints()}");
+                    result[GoogleWorkspaceCheckpointFormat.Format($"{root}/element/{shape.DrawingOrder}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{shape.ShapeContentType}|{shape.Name}|{shape.Left.ToPoints()}|{shape.Top.ToPoints()}|{shape.Width.ToPoints()}|{shape.Height.ToPoints()}|{shape.Rotation}|{shape.HorizontalFlip}|{shape.VerticalFlip}|{geometry}|{text}|{textStyle}|{picture}|{shapeStyle}"));
                 }
                 if (slide.Notes.TryGetExistingText(out string notes)) result[root + "/notes"] = Hash(notes);
             }

@@ -30,7 +30,34 @@ Console.WriteLine(exported);
 ```
 
 HTML can also be appended to an existing body, header, footer, or table cell with
-`AddHtmlToBody`, `AddHtmlToHeader`, `AddHtmlToFooter`, and `WordTableCell.AddHtml`.
+`WordDocument.AddHtml`, `WordHeader.AddHtml`, `WordFooter.AddHtml`, and
+`WordTableCell.AddHtml`. Body and cell imports accept HTML text or a parsed
+`HtmlConversionDocument`; header and footer imports accept a parsed source.
+These methods return `IReadOnlyList<WordElement>` containing live
+imported elements in document order; `AddHtmlAsync` returns
+`Task<IReadOnlyList<WordElement>>`. Paragraphs use the existing run-level Word
+projection; nested content remains inside its table or content control. An initial
+empty cell paragraph filled by inline HTML is included. Pure section boundaries
+are structural and are omitted. The collection is a snapshot; its Word models
+remain editable. The parsed HTML source is not modified.
+
+```csharp
+document.AddHtml("<p>Body content</p>");
+WordSection section = document.Sections[0];
+WordHeader header = section.GetOrCreateHeader(WordHeaderFooterType.Default);
+IReadOnlyList<WordElement> imported = header.AddHtml(
+    HtmlConversionDocument.Parse("<p>Report header</p>"), section: section);
+section.GetOrCreateFooter(WordHeaderFooterType.First).AddHtml(
+    HtmlConversionDocument.Parse("<p>First-page footer</p>"));
+```
+
+Header and footer imports default to the first section defining the receiver's
+story. When sections share a header or footer, pass `section:` to use that
+section's content width for images and tables. The section must belong to the
+same document and share or inherit that story; unrelated contexts are rejected
+before insertion. The receiver selects the default, first-page, or even-page
+story. Synchronous imports remain offline-only; use `AddHtmlAsync` for remote
+resources and cancellation.
 
 To save an editable report from an HTML file:
 
@@ -55,7 +82,8 @@ foreach (OfficeIMO.OfficeDiagnostic diagnostic in report.Diagnostics) {
 }
 ```
 
-`HtmlConversionDocument` is the required source model. It keeps parsing, base-URI handling, resource policy, and source diagnostics in one owner. `WordHtmlImportOptions.Limits` uses the shared `HtmlConversionLimits` contract; `MaxHtmlNodes`, `MaxHtmlDepth`, `MaxCssBytes`, and `MaxTotalCssBytes` remain forwarding properties for compatibility. `WordHtmlImportOptions.StyleMissingHandler` scopes custom class mapping to one conversion.
+`HtmlConversionDocument` is the parsed source model; the document and cell
+`AddHtml` string overloads create it with bounded, untrusted-input defaults. It keeps parsing, base-URI handling, resource policy, and source diagnostics in one owner. `WordHtmlImportOptions.Limits` uses the shared `HtmlConversionLimits` contract; `MaxHtmlNodes`, `MaxHtmlDepth`, `MaxCssBytes`, and `MaxTotalCssBytes` remain forwarding properties for compatibility. `WordHtmlImportOptions.StyleMissingHandler` scopes custom class mapping to one conversion.
 
 The document result path projects bounded, single-surface `position:absolute`, `position:fixed`, and left/right floating regions into editable page-relative DrawingML text-box anchors. Exact offsets, size, native wrapping, solid fill, and z-order are retained. Repeated or fragmented paged regions stay in semantic flow, and CSS background layers or shadows without a Word-native editable equivalent produce stable layout diagnostics. Set `ImportEditableLayoutRegions = false` to keep every region in semantic flow.
 

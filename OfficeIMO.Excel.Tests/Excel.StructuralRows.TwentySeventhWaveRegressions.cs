@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesExternalFormulaThresholds() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
             AppendFormulaThreshold(summary, "C2:C3", "Data!A5");
 
             ExcelRowMutationPlan plan = data.PlanInsertRows(5);
@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesProtectedRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var protectedRange = new ProtectedRange {
                 Name = "Editable",
                 SequenceOfReferences = new ListValue<StringValue> { InnerText = "A5:A6" }
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanUsesChargedConditionalFormattingSnapshot() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var formatting = new ConditionalFormatting {
                 SequenceOfReferences = new ListValue<StringValue> {
                     InnerText = "A2:A5"
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanUsesAnchoredValidationAndFormattingSemantics() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var validation = new DataValidation(new Formula1("B1")) {
                 SequenceOfReferences = new ListValue<StringValue> { InnerText = "A2:A5" }
             };
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesWebPublishRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             WorkbookPart workbookPart = sheet.WorksheetPart.GetParentParts()
                 .OfType<WorkbookPart>()
                 .Single();
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
 
         private static int PlanWithLegacyCommentRuns(int runCount) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetCommentRichText(
                 2,
                 1,

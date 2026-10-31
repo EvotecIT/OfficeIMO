@@ -21,15 +21,15 @@ namespace OfficeIMO.PowerPoint {
             // Use the same font metrics as the shared Drawing renderer. Family factors are sufficient
             // for theme estimates, but can under-measure an authored face at a large native size.
             var metrics = OfficeDrawingTextLayout.CreateMetrics((OfficeFontFaceCollection?)null);
-            double available = Math.Max(1D, (width - (paragraph.LeftMarginPoints ?? margin)
+            double available = Math.Max(1D, (width - (paragraph.LeftMargin?.ToPoints() ?? margin)
                 - (paragraph.Paragraph.ParagraphProperties?.RightMargin?.Value ?? 0) / 12700D
-                - Math.Max(0D, paragraph.IndentPoints ?? 0D)) / 1.06D);
+                - Math.Max(0D, paragraph.Indent?.ToPoints() ?? 0D)) / 1.06D);
             double height = 0D, lineWidth = 0D, lineSize = 0D, wordWidth = 0D, wordSize = 0D, spaces = 0D;
             int position = 0, end = start + (length ?? paragraph.Text.Length);
             bool lineStarted = false;
             double maximumSize = MaximumSize(paragraph, size);
             // Binding supplies point leading from the paragraph's largest effective run when no leading is authored.
-            double Advance(double points) => Math.Max(points, paragraph.LineSpacingPoints
+            double Advance(double points) => Math.Max(points, paragraph.LineSpacing?.ToPoints()
                 ?? (paragraph.LineSpacingMultiplier.HasValue ? points * paragraph.LineSpacingMultiplier.Value : maximumSize * style.LineHeight));
             void Line() {
                 height += Advance(lineSize > 0D ? lineSize : size);

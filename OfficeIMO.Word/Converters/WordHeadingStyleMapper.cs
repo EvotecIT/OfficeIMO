@@ -2,7 +2,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides helper methods for mapping between heading levels and paragraph styles.
     /// </summary>
-    public static class WordHeadingStyleMapper {
+    internal static class WordHeadingStyleMapper {
         /// <summary>
         /// Returns the corresponding paragraph style for the specified heading level.
         /// </summary>

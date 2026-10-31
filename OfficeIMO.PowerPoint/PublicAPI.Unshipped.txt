@@ -1,0 +1,146 @@
+#nullable enable
+OfficeIMO.PowerPoint.PowerPointCardContent.ImagePath.get -> string?
+OfficeIMO.PowerPoint.PowerPointCardContent.ImagePath.set -> void
+OfficeIMO.PowerPoint.PowerPointCardContent.Text.get -> string?
+OfficeIMO.PowerPoint.PowerPointCardContent.Text.set -> void
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Blocks.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointLayoutBlock!>!
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Eyebrow.get -> string?
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Eyebrow.set -> void
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Layout.get -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.MapLabel.get -> string?
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.MapLabel.set -> void
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Metadata.get -> System.Collections.Generic.IList<string!>!
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.NoFooter.get -> bool
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.NoFooter.set -> void
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.NoSlideNumber.get -> bool
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.NoSlideNumber.set -> void
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Notes.get -> string?
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Notes.set -> void
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.PowerPointContentPlanSlide(string? title, System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointLayoutBlock!>! blocks, OfficeIMO.PowerPoint.PowerPointLayout layout = OfficeIMO.PowerPoint.PowerPointLayout.Auto, string? subtitle = null, string? seed = null) -> void
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.SourceNote.get -> string?
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.SourceNote.set -> void
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Takeaway.get -> string?
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Takeaway.set -> void
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.TemplateLayout.get -> OfficeIMO.PowerPoint.PowerPointTemplateLayoutInfo?
+OfficeIMO.PowerPoint.PowerPointContentPlanSlide.TemplateLayout.set -> void
+OfficeIMO.PowerPoint.PowerPointDeckContinuationOptions.ContinuationTitleFormat.get -> string?
+OfficeIMO.PowerPoint.PowerPointDeckPlan.AddContent(string? title, System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointLayoutBlock!>! blocks, OfficeIMO.PowerPoint.PowerPointLayout layout = OfficeIMO.PowerPoint.PowerPointLayout.Auto, string? subtitle = null) -> OfficeIMO.PowerPoint.PowerPointDeckPlan!
+OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.Content = 15 -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
+OfficeIMO.PowerPoint.PowerPointKpiDirection
+OfficeIMO.PowerPoint.PowerPointKpiDirection.Down = 1 -> OfficeIMO.PowerPoint.PowerPointKpiDirection
+OfficeIMO.PowerPoint.PowerPointKpiDirection.Up = 0 -> OfficeIMO.PowerPoint.PowerPointKpiDirection
+OfficeIMO.PowerPoint.PowerPointKpiTrend
+OfficeIMO.PowerPoint.PowerPointKpiTrend.Down = 1 -> OfficeIMO.PowerPoint.PowerPointKpiTrend
+OfficeIMO.PowerPoint.PowerPointKpiTrend.Flat = 2 -> OfficeIMO.PowerPoint.PowerPointKpiTrend
+OfficeIMO.PowerPoint.PowerPointKpiTrend.Up = 0 -> OfficeIMO.PowerPoint.PowerPointKpiTrend
+OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.Auto = 0 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.Cards = 7 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.CaseStudy = 12 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.Closing = 11 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.Comparison = 5 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.Coverage = 14 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.ImageFull = 10 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.Kpi = 6 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.Logos = 13 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.Process = 8 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.Quote = 9 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.Section = 2 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.Title = 1 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.TitleAndContent = 3 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayout.TwoContent = 4 -> OfficeIMO.PowerPoint.PowerPointLayout
+OfficeIMO.PowerPoint.PowerPointLayoutBlock
+OfficeIMO.PowerPoint.PowerPointLayoutCard
+OfficeIMO.PowerPoint.PowerPointLayoutCard.Color.get -> OfficeIMO.OfficeColor?
+OfficeIMO.PowerPoint.PowerPointLayoutCard.Image.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutCard.Items.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.PowerPoint.PowerPointLayoutCard.PowerPointLayoutCard(string! title, string? text = null, System.Collections.Generic.IEnumerable<string!>? items = null, string? image = null, OfficeIMO.OfficeColor? color = null) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutCard.Text.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutCard.Title.get -> string!
+OfficeIMO.PowerPoint.PowerPointLayoutChart
+OfficeIMO.PowerPoint.PowerPointLayoutChart.AlternativeText.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutChart.AlternativeText.set -> void
+OfficeIMO.PowerPoint.PowerPointLayoutChart.Data.get -> OfficeIMO.Drawing.OfficeChartData!
+OfficeIMO.PowerPoint.PowerPointLayoutChart.Kind.get -> OfficeIMO.OfficeChartType
+OfficeIMO.PowerPoint.PowerPointLayoutChart.PowerPointLayoutChart(OfficeIMO.OfficeChartType kind, OfficeIMO.Drawing.OfficeChartData! data) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutChart.Title.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutChart.Title.set -> void
+OfficeIMO.PowerPoint.PowerPointLayoutColumn
+OfficeIMO.PowerPoint.PowerPointLayoutColumn.Blocks.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointLayoutBlock!>!
+OfficeIMO.PowerPoint.PowerPointLayoutColumn.PowerPointLayoutColumn(string? title, System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointLayoutBlock!>! blocks) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutColumn.Title.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutImage
+OfficeIMO.PowerPoint.PowerPointLayoutImage.AlternativeText.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutImage.Caption.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutImage.Caption.set -> void
+OfficeIMO.PowerPoint.PowerPointLayoutImage.Contain.get -> bool
+OfficeIMO.PowerPoint.PowerPointLayoutImage.Contain.set -> void
+OfficeIMO.PowerPoint.PowerPointLayoutImage.FocalX.get -> double
+OfficeIMO.PowerPoint.PowerPointLayoutImage.FocalX.set -> void
+OfficeIMO.PowerPoint.PowerPointLayoutImage.FocalY.get -> double
+OfficeIMO.PowerPoint.PowerPointLayoutImage.FocalY.set -> void
+OfficeIMO.PowerPoint.PowerPointLayoutImage.Path.get -> string!
+OfficeIMO.PowerPoint.PowerPointLayoutImage.PowerPointLayoutImage(string! path, string? alternativeText = null) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutKpi
+OfficeIMO.PowerPoint.PowerPointLayoutKpi.Change.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutKpi.Color.get -> OfficeIMO.OfficeColor?
+OfficeIMO.PowerPoint.PowerPointLayoutKpi.GoodDirection.get -> OfficeIMO.PowerPoint.PowerPointKpiDirection
+OfficeIMO.PowerPoint.PowerPointLayoutKpi.GoodDirection.set -> void
+OfficeIMO.PowerPoint.PowerPointLayoutKpi.Label.get -> string!
+OfficeIMO.PowerPoint.PowerPointLayoutKpi.PowerPointLayoutKpi(string! value, string! label, string? change = null, OfficeIMO.OfficeColor? color = null) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutKpi.Trend.get -> OfficeIMO.PowerPoint.PowerPointKpiTrend?
+OfficeIMO.PowerPoint.PowerPointLayoutKpi.Trend.set -> void
+OfficeIMO.PowerPoint.PowerPointLayoutKpi.Value.get -> string!
+OfficeIMO.PowerPoint.PowerPointLayoutList
+OfficeIMO.PowerPoint.PowerPointLayoutList.Items.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointLayoutListItem!>!
+OfficeIMO.PowerPoint.PowerPointLayoutList.Numbered.get -> bool
+OfficeIMO.PowerPoint.PowerPointLayoutList.PowerPointLayoutList(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointLayoutListItem!>! items) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutList.PowerPointLayoutList(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointLayoutListItem!>! items, bool numbered) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutList.PowerPointLayoutList(System.Collections.Generic.IEnumerable<string!>! items) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutList.PowerPointLayoutList(System.Collections.Generic.IEnumerable<string!>! items, bool numbered) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutListItem
+OfficeIMO.PowerPoint.PowerPointLayoutListItem.Level.get -> int
+OfficeIMO.PowerPoint.PowerPointLayoutListItem.PowerPointLayoutListItem(string! text, int level = 1) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutListItem.Text.get -> string!
+OfficeIMO.PowerPoint.PowerPointLayoutLocation
+OfficeIMO.PowerPoint.PowerPointLayoutLocation.Detail.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutLocation.Left.get -> double
+OfficeIMO.PowerPoint.PowerPointLayoutLocation.Name.get -> string!
+OfficeIMO.PowerPoint.PowerPointLayoutLocation.PowerPointLayoutLocation(string! name, double left, double top, string? detail = null) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutLocation.Top.get -> double
+OfficeIMO.PowerPoint.PowerPointLayoutQuote
+OfficeIMO.PowerPoint.PowerPointLayoutQuote.Attribution.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutQuote.PowerPointLayoutQuote(string! text, string? attribution = null) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutQuote.Text.get -> string!
+OfficeIMO.PowerPoint.PowerPointLayoutStep
+OfficeIMO.PowerPoint.PowerPointLayoutStep.Number.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutStep.PowerPointLayoutStep(string! title, string? text = null, string? number = null) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutStep.Text.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutStep.Title.get -> string!
+OfficeIMO.PowerPoint.PowerPointLayoutTable
+OfficeIMO.PowerPoint.PowerPointLayoutTable.Caption.get -> string?
+OfficeIMO.PowerPoint.PowerPointLayoutTable.Caption.set -> void
+OfficeIMO.PowerPoint.PowerPointLayoutTable.Headers.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.PowerPoint.PowerPointLayoutTable.IncludeHeaders.get -> bool
+OfficeIMO.PowerPoint.PowerPointLayoutTable.IncludeHeaders.set -> void
+OfficeIMO.PowerPoint.PowerPointLayoutTable.MaximumRows.get -> int?
+OfficeIMO.PowerPoint.PowerPointLayoutTable.MaximumRows.set -> void
+OfficeIMO.PowerPoint.PowerPointLayoutTable.NoSplit.get -> bool
+OfficeIMO.PowerPoint.PowerPointLayoutTable.NoSplit.set -> void
+OfficeIMO.PowerPoint.PowerPointLayoutTable.PowerPointLayoutTable(System.Collections.Generic.IReadOnlyList<string!>! headers, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<string!>!>! rows) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutTable.Rows.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<string!>!>!
+OfficeIMO.PowerPoint.PowerPointLayoutText
+OfficeIMO.PowerPoint.PowerPointLayoutText.Paragraphs.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.PowerPoint.PowerPointLayoutText.PowerPointLayoutText(System.Collections.Generic.IEnumerable<string!>! paragraphs) -> void
+OfficeIMO.PowerPoint.PowerPointLayoutText.PowerPointLayoutText(string! paragraph) -> void
+OfficeIMO.PowerPoint.PowerPointMetric.Change.get -> string?
+OfficeIMO.PowerPoint.PowerPointMetric.Change.set -> void
+OfficeIMO.PowerPoint.PowerPointMetric.Color.get -> string?
+OfficeIMO.PowerPoint.PowerPointMetric.Color.set -> void
+OfficeIMO.PowerPoint.PowerPointPicture.FitToBox() -> void
+OfficeIMO.PowerPoint.PowerPointPicture.FitToBox(bool crop) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.ClearBackground() -> void
+OfficeIMO.PowerPoint.PowerPointSlide.SetBackgroundColor(OfficeIMO.OfficeColor color) -> void
+override OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Kind.get -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
+static OfficeIMO.PowerPoint.PowerPointLayoutKpi.FromDelta(string! value, string! label, double delta, string? unit = null, OfficeIMO.PowerPoint.PowerPointKpiDirection goodDirection = OfficeIMO.PowerPoint.PowerPointKpiDirection.Up, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.PowerPoint.PowerPointLayoutKpi!

@@ -20,34 +20,35 @@ public static partial class WordPdfConverterExtensions {
         bool balanceColumns) {
         int count = section.ColumnCount ?? 1;
         if (count <= 1) return false;
-        double gap = section.ColumnsSpace is int spacing ? ConvertNativeTwipsToPoints(spacing) ?? 36D : 36D;
+        double gap = section.ColumnsSpace is OfficeLength spacing && spacing >= OfficeLength.Zero
+            ? spacing.ToPoints() : 36D;
         // Word 2013 layout ignores this legacy option without clearing its stored value.
         bool suppressBalancing = !UsesModernNativeWordLayout(section._document) &&
             section._document.CompatibilitySettings.DoNotBalanceTextColumns;
         var columnOptions = new PdfCore.PdfMultiColumnOptions {
-            ColumnCount = count, Gap = gap,
+            ColumnCount = count, Gap = global::OfficeIMO.OfficeLength.Points(gap),
             BalanceLastPage = balanceColumns && !suppressBalancing,
             BalanceKeptParagraphLines = !UsesModernNativeWordLayout(section._document),
             HonorKeepWithNextWhenBalancing = UsesModernNativeWordLayout(section._document),
             BalanceTableRowLines = UsesModernNativeWordLayout(section._document),
-            FinalColumnSpacingAfter = GetNativeColumnSectionMarkHeight(section, elements, balanceColumns, nativeDefaults, nativeFontMap),
-            SeparatorColor = section.HasColumnSeparator ? PdfCore.PdfColor.Black : null,
-            SeparatorWidth = section.HasColumnSeparator ? 0.5D : 0D
+            FinalColumnSpacingAfter = global::OfficeIMO.OfficeLength.Points(GetNativeColumnSectionMarkHeight(section, elements, balanceColumns, nativeDefaults, nativeFontMap)),
+            SeparatorColor = section.HasColumnSeparator ? global::OfficeIMO.OfficeColor.Black : null,
+            SeparatorWidth = global::OfficeIMO.OfficeLength.Points(section.HasColumnSeparator ? 0.5D : 0D)
         };
         IReadOnlyList<WordSectionColumn> definitions = section.ColumnDefinitions;
         if (definitions.Count > 0) {
             columnOptions.ColumnDefinitions = definitions.Select(column => new PdfCore.PdfFlowColumn(
-                PdfCore.PdfColumnWidth.Fixed(ConvertNativeTwipsToPoints(column.WidthTwips) ?? 0D),
-                column.SpaceAfterTwips is int space ? ConvertNativeTwipsToPoints(space) : 0D)).ToArray();
+                PdfCore.PdfColumnWidth.Fixed(column.Width),
+                global::OfficeIMO.OfficeLength.Points(column.SpaceAfter?.ToPoints() ?? 0D))).ToArray();
         }
         PdfCore.PdfPageSize pageSize = GetNativePageSize(section, options);
         PdfCore.PdfPageMargins margins = GetNativeMargins(section, options);
-        double sectionContentWidth = Math.Max(1D, pageSize.Width - margins.Left - margins.Right);
+        double sectionContentWidth = Math.Max(1D, pageSize.Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints());
         double totalGap = definitions.Count > 0
-            ? definitions.Take(count - 1).Sum(column => column.SpaceAfterTwips is int space ? ConvertNativeTwipsToPoints(space) ?? 0D : 0D)
+            ? definitions.Take(count - 1).Sum(column => column.SpaceAfter?.ToPoints() ?? 0D)
             : gap * (count - 1);
         double firstColumnWidth = definitions.Count > 0
-            ? ConvertNativeTwipsToPoints(definitions[0].WidthTwips) ?? 0D
+            ? definitions[0].Width.ToPoints()
             : (sectionContentWidth - totalGap) / count;
         page.Content(content => content.Columns(column => {
             INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(page, column, pageSize));

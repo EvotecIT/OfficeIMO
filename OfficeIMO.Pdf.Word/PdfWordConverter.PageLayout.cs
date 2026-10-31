@@ -37,13 +37,13 @@ namespace OfficeIMO.Pdf.Word {
             section.PageSettings.Orientation = pageWidth > pageHeight
                 ? OfficePageOrientation.Landscape
                 : OfficePageOrientation.Portrait;
-            section.PageSettings.Width = pageWidthTwips;
-            section.PageSettings.Height = pageHeightTwips;
+            section.PageSettings.Width = OfficeLength.Points((pageWidthTwips) / 20D);
+            section.PageSettings.Height = OfficeLength.Points((pageHeightTwips) / 20D);
             uint marginTwips = checked((uint)Math.Round(margin * 20D));
-            section.Margins.Left = marginTwips;
-            section.Margins.Right = marginTwips;
-            section.Margins.Top = checked((int)marginTwips);
-            section.Margins.Bottom = checked((int)marginTwips);
+            section.Margins.Left = OfficeLength.Points((marginTwips) / 20D);
+            section.Margins.Right = OfficeLength.Points((marginTwips) / 20D);
+            section.Margins.Top = OfficeLength.Points((checked((int)marginTwips)) / 20D);
+            section.Margins.Bottom = OfficeLength.Points((checked((int)marginTwips)) / 20D);
             return true;
         }
 

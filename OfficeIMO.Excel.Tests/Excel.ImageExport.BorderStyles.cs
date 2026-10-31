@@ -9,13 +9,13 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesPremiumBorderStylesInSvgAndPng() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Borders");
+            ExcelSheet sheet = document.AddSheet("Borders");
             for (int column = 1; column <= 5; column++) {
                 sheet.CellValue(1, column, "B" + column.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                sheet.SetColumnWidth(column, 11);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(11));
             }
 
-            sheet.SetRowHeight(1, 30);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.CellAt(1, 1).SetBorder(ExcelBorderStyle.Dashed, "C00000");
             sheet.CellAt(1, 2).SetBorder(ExcelBorderStyle.Dotted, "00A000");
             sheet.CellAt(1, 3).SetBorder(ExcelBorderStyle.MediumDashDotDot, "004C99");
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:E1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
-            string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
 
             Assert.Contains("stroke-dasharray=\"4 2\"", svg, StringComparison.Ordinal);

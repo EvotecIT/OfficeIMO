@@ -53,8 +53,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorksheet("Summary");
-                    var hidden = document.AddWorksheet("Hidden");
+                    var summary = document.AddSheet("Summary");
+                    var hidden = document.AddSheet("Hidden");
 
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(2, 1, "Alpha");
@@ -67,10 +67,10 @@ namespace OfficeIMO.Tests {
                     summary.CellBold(2, 1, true);
                     summary.CellAlign(2, 1, ExcelHorizontalAlignment.Center);
                     summary.CellFontColor(2, 3, "#112233");
-                    summary.SetColumnWidth(1, 20);
+                    summary.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
                     // Row 3 stays free for the totals row that SetTableTotals adds below the table.
                     summary.CellValue(4, 1, "First line\nSecond line");
-                    summary.WrapCells(4, 4, 1, 20);
+                    summary.WrapCells(4, 4, 1, ExcelColumnWidth.Characters(20));
                     summary.AutoFitRow(4);
                     summary.CellValue(1, 4, "Status");
                     summary.CellValue(1, 5, "Region");
@@ -192,10 +192,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Accent comment", fontColorCell.Comment.Text);
 
                 var column = Assert.Single(summarySheet.Columns, c => c.StartIndex == 1 && c.EndIndex == 1);
-                Assert.Equal(20, column.Width);
+                Assert.Equal(20, column.Width?.CharacterCount);
 
                 var row = Assert.Single(summarySheet.Rows, r => r.Index == 4);
-                Assert.True(row.Height > 15);
+                Assert.True(row.Height?.PhysicalLength?.ToPoints() > 15);
 
                 var hiddenSheet = Assert.Single(snapshot.Worksheets, w => w.Name == "Hidden");
                 Assert.True(hiddenSheet.Hidden);
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorksheet("Summary");
+                    var sheet = document.AddSheet("Summary");
 
                     sheet.CellValue(2, 1, 12.34d);
                     sheet.CellBackground(2, 1, "#D9EAD3");
@@ -228,7 +228,7 @@ namespace OfficeIMO.Tests {
                     sheet.FormatCell(2, 1, "0.00%");
 
                     sheet.CellValue(3, 1, "First line\nSecond line");
-                    sheet.WrapCells(3, 3, 1, 20);
+                    sheet.WrapCells(3,3,1, ExcelColumnWidth.Characters(20));
                     sheet.CellFontColor(3, 1, "#445566");
                     sheet.CellBold(3, 1, true);
                     sheet.CellAlign(3, 1, ExcelHorizontalAlignment.Left);
@@ -276,8 +276,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorksheet("Summary");
-                    var hidden = document.AddWorksheet("Hidden");
+                    var summary = document.AddSheet("Summary");
+                    var hidden = document.AddSheet("Hidden");
 
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(1, 2, "Count");
@@ -294,9 +294,9 @@ namespace OfficeIMO.Tests {
                     summary.CellBold(2, 2, true);
                     summary.CellAlign(2, 2, ExcelHorizontalAlignment.Center);
                     summary.CellFontColor(2, 6, "#112233");
-                    summary.SetColumnWidth(2, 20);
+                    summary.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
                     summary.CellValue(3, 2, "Wrapped\nRow");
-                    summary.WrapCells(3, 3, 2, 20);
+                    summary.WrapCells(3,3,2, ExcelColumnWidth.Characters(20));
                     summary.AutoFitRow(3);
                     // Row 3 is written as the table's totals row before SetTableTotals marks it.
                     summary.CellValue(3, 1, "Total");
@@ -476,7 +476,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 document.SetPrintArea(sheet, "A1:A5", save: false);
 
@@ -497,7 +497,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
 
                     data.CellValue(1, 1, "Prefix");
                     data.CellValue(1, 2, "Suffix");
@@ -590,7 +590,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorksheet("Summary");
+                    var summary = document.AddSheet("Summary");
 
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(1, 2, "Amount");
@@ -666,7 +666,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorksheet("Summary");
+                    var summary = document.AddSheet("Summary");
 
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(1, 2, "Status");
@@ -724,8 +724,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var options = document.AddWorksheet("Options");
-                    var summary = document.AddWorksheet("Summary");
+                    var options = document.AddSheet("Options");
+                    var summary = document.AddSheet("Summary");
 
                     options.CellValue(1, 1, "Open");
                     options.CellValue(2, 1, "Closed");
@@ -783,8 +783,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var options = document.AddWorksheet("Options");
-                    var summary = document.AddWorksheet("Summary");
+                    var options = document.AddSheet("Options");
+                    var summary = document.AddSheet("Summary");
 
                     options.CellValue(1, 1, "Open");
                     options.CellValue(2, 1, "Closed");
@@ -841,7 +841,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorksheet("Summary");
+                    var summary = document.AddSheet("Summary");
 
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(1, 2, "Status");
@@ -898,7 +898,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
 
                     data.CellValue(1, 1, "Quantity");
                     data.CellValue(1, 2, "Score");
@@ -981,7 +981,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
 
                     data.CellValue(1, 1, "Start");
                     data.CellValue(2, 1, minimumDate);
@@ -1042,7 +1042,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
 
                     data.CellValue(1, 1, "Code");
                     data.CellValue(2, 1, "ABCD");
@@ -1104,7 +1104,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
 
                     data.CellValue(1, 1, "Quantity");
                     data.CellValue(2, 1, 2);
@@ -1161,7 +1161,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
                     data.CellValue(1, 1, "Quantity");
                     data.ValidationWholeNumber("A1:A1048576", ExcelDataValidationOperator.Between, 1, 10);
                     document.Save();
@@ -1181,8 +1181,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_GoogleSheetsBatchCompiler_RejectsAggregateGridExpansionBeyondServiceLimits() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet first = document.AddWorksheet("First");
-            ExcelSheet second = document.AddWorksheet("Second");
+            ExcelSheet first = document.AddSheet("First");
+            ExcelSheet second = document.AddSheet("Second");
             first.ValidationWholeNumber("A1:ALM5000", ExcelDataValidationOperator.Between, 1, 10);
             second.ValidationWholeNumber("A1:ALM5000", ExcelDataValidationOperator.Between, 1, 10);
 
@@ -1199,7 +1199,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
 
                     data.CellValue(1, 1, "Status");
                     data.CellValue(2, 1, "Open");
@@ -1248,8 +1248,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorksheet("Summary");
-                    var hidden = document.AddWorksheet("Hidden");
+                    var summary = document.AddSheet("Summary");
+                    var hidden = document.AddSheet("Hidden");
 
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(2, 2, 12);
@@ -1259,9 +1259,9 @@ namespace OfficeIMO.Tests {
                     summary.CellBackground(2, 2, "#00FF00");
                     summary.CellBold(2, 2, true);
                     summary.CellAlign(2, 2, ExcelHorizontalAlignment.Center);
-                    summary.SetColumnWidth(2, 20);
+                    summary.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
                     summary.CellValue(3, 2, "Wrapped\nRow");
-                    summary.WrapCells(3, 3, 2, 20);
+                    summary.WrapCells(3,3,2, ExcelColumnWidth.Characters(20));
                     summary.AutoFitRow(3);
                     // Row 3 is written as the table's totals row before SetTableTotals marks it.
                     summary.CellValue(3, 1, "Total");
@@ -1440,8 +1440,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
-                var target = document.AddWorksheet("Target");
+                var summary = document.AddSheet("Summary");
+                var target = document.AddSheet("Target");
                 summary.CellValue(1, 1, "Name");
                 summary.SetHyperlink(2, 1, "https://alpha.example/", display: "Alpha");
                 summary.SetInternalLink(3, 1, target, "B5", display: "Target");
@@ -1521,7 +1521,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
+                var summary = document.AddSheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -1575,7 +1575,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
+                var summary = document.AddSheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -1631,7 +1631,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
+                var summary = document.AddSheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -1706,7 +1706,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
+                var summary = document.AddSheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -1780,7 +1780,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
+                var summary = document.AddSheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -1847,10 +1847,10 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
+                var summary = document.AddSheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
-                summary.SetColumnWidth(1, 18);
+                summary.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
 
                 var recordedRequests = new List<(Uri Uri, string Method, string? Body)>();
                 int driveMetadataReads = 0;
@@ -1937,7 +1937,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
+                var summary = document.AddSheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -2003,7 +2003,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
+                var summary = document.AddSheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 

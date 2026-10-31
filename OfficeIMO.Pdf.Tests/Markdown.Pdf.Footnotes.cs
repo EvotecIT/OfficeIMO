@@ -8,7 +8,8 @@ public partial class MarkdownPdfTests {
     [Fact]
     public void StructuredFootnoteRendersEachParagraphOnceAndKeepsInlineFormatting() {
         var body = MarkdownDocument.Parse("First **bold** paragraph.\n\nSecond distinct paragraph.\n\n- Alpha item\n- Beta item\n\n> Quoted note.");
-        var document = MarkdownDocument.Create().Add(new FootnoteDefinitionBlock("note", body.Blocks));
+        var document = MarkdownDocument.Create();
+        document.Add(new FootnoteDefinitionBlock("note", body.Blocks));
         string text = OfficeIMO.Pdf.PdfReadDocument.Open((document.ToPdf()).ToBytes()).ExtractText();
         foreach (string marker in new[] { "First", "Second", "Alpha", "Beta", "Quoted" })
             Assert.Single(System.Text.RegularExpressions.Regex.Matches(text, marker).Cast<System.Text.RegularExpressions.Match>());
@@ -20,7 +21,8 @@ public partial class MarkdownPdfTests {
     [InlineData("> First quoted paragraph.")]
     public void StructuredFootnoteStartingWithNonParagraphKeepsItsFirstBlock(string markdown) {
         var body = MarkdownDocument.Parse(markdown);
-        var document = MarkdownDocument.Create().Add(new FootnoteDefinitionBlock("note", body.Blocks));
+        var document = MarkdownDocument.Create();
+        document.Add(new FootnoteDefinitionBlock("note", body.Blocks));
         string text = OfficeIMO.Pdf.PdfReadDocument.Open((document.ToPdf()).ToBytes()).ExtractText();
         Assert.Single(System.Text.RegularExpressions.Regex.Matches(text, "First").Cast<System.Text.RegularExpressions.Match>());
         Assert.Contains("note", text);

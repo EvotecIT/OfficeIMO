@@ -19,7 +19,7 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, $"NumericFallback{system}{format.Replace(':', '-').Replace('/', '-')}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             document.DateSystem = system;
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.CellValue(2, 1, 1.5d);
             sheet.CellFormula(3, 1, "1+0.5");
@@ -82,7 +82,7 @@ public partial class Excel {
     public void Reader_NumericConverterFallback_DoesNotReplaceHandledDateOrSuppressConverterFailure() {
         string path = Path.Combine(_directoryWithFiles, "NumericConverterFailure.xlsx");
         using (var document = ExcelDocument.Create(path)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.CellValue(2, 1, 1.5d);
             sheet.ColumnStyleByHeader("Value").NumberFormat("[h]:mm");
@@ -121,7 +121,7 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, $"LargeNumericSerial{system}{format.Replace(':', '-')}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             document.DateSystem = system;
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             for (int row = 2; row <= 4100; row++) sheet.CellValue(row, 1, row % 2 == 0 ? 1.5d : 60.5d);
             sheet.ColumnStyleByHeader("Value").NumberFormat(format);

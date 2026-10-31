@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
                 chart.AddBar("Data", new List<int> { 1, 2 }, Color.Blue);
                 chart.SetXAxisTitle("X Axis");
                 chart.SetYAxisTitle("Y Axis");
-                chart.SetAxisTitleFormat("Arial", 14, Color.Red);
+                chart.SetAxisTitleFormat("Arial", global::OfficeIMO.OfficeLength.Points(14), Color.Red);
 
                 document.Save();
             }

@@ -86,15 +86,14 @@ namespace OfficeIMO.Tests {
                 return document;
             }
 
-            retainedSheet = document.AddWorksheet("Report");
+            retainedSheet = document.AddSheet("Report");
             retainedSheet.CellValue(1, 1, "Before file failure");
             retainedProperty = new ExcelCustomProperty("Before file failure");
             document.SetCustomDocumentProperty("Review", retainedProperty);
             if (writer == "extended") {
                 var chart = new ExcelChartData(new[] { "Before file failure" },
                     new[] { new ExcelChartSeries("Value", new[] { 1d }) });
-                retainedSheet.AddChart(chart, row: 4, column: 1, widthPixels: 300, heightPixels: 180,
-                    type: ExcelChartType.ColumnClustered, title: "Retained chart");
+                retainedSheet.AddChart(OfficeChartType.ColumnClustered, chart, new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 1, Width = OfficeLength.Pixels(300), Height = OfficeLength.Pixels(180), Title = "Retained chart" });
             }
             if (writer == "simple") OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             return document;

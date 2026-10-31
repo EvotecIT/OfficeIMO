@@ -64,15 +64,15 @@ public partial class HtmlWordGapClosure {
         int expectedContentWidth = Assert.IsType<int>(
             WordTable.EstimateCellContentWidthInDxa(document, cell._tableCell));
         WordSection laterSection = document.AddSection();
-        laterSection.PageSettings.Width = 20000;
-        laterSection.Margins.Left = 500;
-        laterSection.Margins.Right = 500;
+        laterSection.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(1000D);
+        laterSection.Margins.Left = global::OfficeIMO.OfficeLength.Points(25D);
+        laterSection.Margins.Right = global::OfficeIMO.OfficeLength.Points(25D);
 
         cell.AddHtml(HtmlConversionDocument.Parse(
             $"""<img style="width:100%" src="data:image/png;base64,{ValidPng}" alt="Cell image">"""));
 
         WordImage image = Assert.Single(document.Images);
-        Assert.Equal(expectedContentWidth / 15D, image.Width!.Value, precision: 3);
+        Assert.Equal(expectedContentWidth / 15D, (image.Width?.ToPixels())!.Value, precision: 3);
     }
 
     [Fact]
@@ -99,6 +99,6 @@ public partial class HtmlWordGapClosure {
             candidate => candidate.Text == "Text");
 
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.LeftStyle);
-        Assert.Equal(18U, paragraph.Borders.LeftSize);
+        Assert.Equal(OfficeLength.Points(2.25), paragraph.Borders.LeftSize);
     }
 }

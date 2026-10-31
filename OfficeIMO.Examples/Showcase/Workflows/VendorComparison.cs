@@ -6,11 +6,11 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class VendorComparison {
         internal static void Create(string folder) {
             using var document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-            var sheet = document.AddWorksheet("Evaluation");
-            sheet.SetColumnWidth(1, 29);
-            for (int column = 2; column <= 5; column++) sheet.SetColumnWidth(column, 22);
+            var sheet = document.AddSheet("Evaluation");
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(29));
+            for (int column = 2; column <= 5; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(22));
             sheet.MergeRange("A1:E1"); sheet.Cell(1, 1, "Vendor evaluation scorecard");
-            sheet.CellFontSize(1, 1, 22); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
+            sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(22)); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
             sheet.MergeRange("A2:E2"); sheet.Cell(2, 1, "Weighted scoring / higher scores are better / synthetic offers");
             string[] headers = { "Vendor", "Quality (50%)", "Delivery (30%)", "Support (20%)", "Weighted score" };
             for (int column = 1; column <= 5; column++) sheet.Cell(4, column, headers[column - 1]);
@@ -28,12 +28,12 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             sheet.MergeRange("A13:E13"); sheet.Cell(13, 1, "Scores support review; they do not approve a purchase.");
             sheet.SetGridlinesVisible(false);
             for (int row = 1; row <= 16; row++) {
-                sheet.SetRowHeight(row, row == 1 ? 34 : row == 3 ? 12 : 25);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 1 ? 34 : row == 3 ? 12 : 25)));
                 for (int column = 1; column <= 5; column++) {
-                    if (row > 1) sheet.CellFontSize(row, column, 11);
+                    if (row > 1) sheet.CellFontSize(row, column, global::OfficeIMO.OfficeLength.Points(11));
                 }
             }
-            sheet.SetRowHeight(4, 30);
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             for (int column = 1; column <= 5; column++) {
                 sheet.CellFontColor(4, column, "FFFFFF");
                 sheet.CellBold(4, column, true);

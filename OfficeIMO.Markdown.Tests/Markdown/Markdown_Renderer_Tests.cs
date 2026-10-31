@@ -766,11 +766,8 @@ public class Markdown_Renderer_Tests {
 
     [Fact]
     public void InlineSequence_Inserted_Writes_Markdig_EmphasisExtra_Syntax_And_Renders_Ins() {
-        var document = MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence()
-                .Text("Add")
-                .Inserted("inserted")
-                .Text("text")));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Text("Add").Inserted("inserted").Text("text")));
 
         Assert.Equal("Add ++inserted++ text", document.ToMarkdown().Trim());
         Assert.Equal("<p>Add <ins>inserted</ins> text</p>", document.ToHtml(new MarkdownHtmlExportOptions
@@ -785,11 +782,8 @@ public class Markdown_Renderer_Tests {
 
     [Fact]
     public void InlineSequence_Superscript_Writes_Markdig_EmphasisExtra_Syntax_And_Renders_Sup() {
-        var document = MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence()
-                .Text("Power")
-                .Text("2")
-                .Superscript("10")));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Text("Power").Text("2").Superscript("10")));
 
         Assert.Equal("Power 2 ^10^", document.ToMarkdown().Trim());
         Assert.Equal("<p>Power 2 <sup>10</sup></p>", document.ToHtml(new MarkdownHtmlExportOptions
@@ -804,12 +798,8 @@ public class Markdown_Renderer_Tests {
 
     [Fact]
     public void InlineSequence_Subscript_Writes_Markdig_EmphasisExtra_Syntax_And_Renders_Sub() {
-        var document = MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence()
-                .Text("Water")
-                .Text("H")
-                .Subscript("2")
-                .Text("O")));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Text("Water").Text("H").Subscript("2").Text("O")));
 
         Assert.Equal("Water H ~2~ O", document.ToMarkdown().Trim());
         Assert.Equal("<p>Water H <sub>2</sub> O</p>", document.ToHtml(new MarkdownHtmlExportOptions

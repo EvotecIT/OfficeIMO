@@ -16,7 +16,7 @@ internal static class OneNoteVisualPdfRenderer {
         effective.Validate();
         effective.PdfOptions.UseContentStreamCompressionByDefault();
         string title = string.IsNullOrWhiteSpace(effective.Title) ? sourceName : effective.Title!;
-        PdfCore.PdfDocument document = PdfCore.PdfDocument.Create(effective.PdfOptions).Meta(title, effective.Author, effective.Subject, effective.Keywords);
+        PdfCore.PdfDocument document = PdfCore.PdfDocument.CreateForImportedLayout(effective.PdfOptions).Meta(title, effective.Author, effective.Subject, effective.Keywords);
         var report = new PdfCore.PdfConversionReport();
 
         foreach (OneNotePageReference reference in pages) {
@@ -43,9 +43,9 @@ internal static class OneNoteVisualPdfRenderer {
             cancellationToken.ThrowIfCancellationRequested();
             string alternativeText = string.IsNullOrWhiteSpace(reference.Page.Title) ? "Untitled OneNote page" : reference.Page.Title;
             document.Compose(pdf => pdf.Page(page => page
-                .Size(snapshot.Drawing.Width, snapshot.Drawing.Height)
-                .Margin(0D)
-                .Canvas(canvas => canvas.Image(png, 0D, 0D, snapshot.Drawing.Width, snapshot.Drawing.Height, alternativeText: alternativeText))));
+                .Size(global::OfficeIMO.OfficeLength.Points(snapshot.Drawing.Width), global::OfficeIMO.OfficeLength.Points(snapshot.Drawing.Height))
+                .Margin(global::OfficeIMO.OfficeLength.Points(0D))
+                .Canvas(canvas => canvas.Image(png, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(snapshot.Drawing.Width), global::OfficeIMO.OfficeLength.Points(snapshot.Drawing.Height), alternativeText: alternativeText))));
             AddDiagnostics(reference, diagnostics, report);
         }
 

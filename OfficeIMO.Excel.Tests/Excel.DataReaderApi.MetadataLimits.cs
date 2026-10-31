@@ -34,8 +34,8 @@ public partial class Excel {
             $"OfficeIMO.Excel.MetadataDuplicateNames.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Data");
-                document.AddWorksheet("Other");
+                document.AddSheet("Data");
+                document.AddSheet("Other");
                 document.Save();
             }
 
@@ -79,8 +79,8 @@ public partial class Excel {
         string xlsmPath = Path.ChangeExtension(xlsxPath, ".xlsm");
         try {
             using (var document = ExcelDocument.Create(xlsxPath)) {
-                document.AddWorksheet("First");
-                document.AddWorksheet("Second");
+                document.AddSheet("First");
+                document.AddSheet("Second");
                 document.Save();
             }
             File.Move(xlsxPath, xlsmPath);

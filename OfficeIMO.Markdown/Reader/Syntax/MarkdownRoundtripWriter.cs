@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Writes markdown from parse results while preserving original source bytes when that is provably safe.
 /// </summary>
-public static class MarkdownRoundtripWriter {
+internal static class MarkdownRoundtripWriter {
     private const string PreserveTriviaRequiredId = "roundtrip-preserve-trivia-required";
     private const string DocumentTransformedId = "roundtrip-document-transformed";
     private const string OriginalSourceSliceUnavailableId = "roundtrip-original-source-slice-unavailable";

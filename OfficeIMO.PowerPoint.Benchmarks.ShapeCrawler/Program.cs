@@ -146,7 +146,7 @@ internal static class ShapeCrawlerBaselineRunner {
             IUserSlideShapeCollection shapes = presentation.Slide(index).Shapes;
             shapes.AddTextBox(760, 486, 140, 22, "Reviewed");
             IShape edit = shapes.Last();
-            edit.SetFontSize(9);
+            edit.SetFontSize(global::OfficeIMO.OfficeLength.Points(9));
             edit.SetFontColor("166534");
         }
         using var output = new MemoryStream();
@@ -174,13 +174,13 @@ internal static class ShapeCrawlerBaselineRunner {
         slide.Fill.SetColor(index % 2 == 0 ? "F8FAFC" : "F1F5F9");
         shapes.AddTextBox(40, 24, 600, 40, $"Operational review {index + 1}");
         IShape title = shapes.Last();
-        title.SetFontSize(24);
+        title.SetFontSize(global::OfficeIMO.OfficeLength.Points(24));
         title.SetFontColor("0F172A");
         SetFirstRunBold(title);
         shapes.AddTextBox(40, 72, 700, 28,
             $"Slide {index + 1} of {slideCount} · deterministic benchmark corpus");
         IShape subtitle = shapes.Last();
-        subtitle.SetFontSize(12);
+        subtitle.SetFontSize(global::OfficeIMO.OfficeLength.Points(12));
         subtitle.SetFontColor("475569");
         string[] colors = { "DBEAFE", "DCFCE7", "FEF3C7", "FCE7F3" };
         for (int card = 0; card < 4; card++) {
@@ -228,7 +228,7 @@ internal static class ShapeCrawlerBaselineRunner {
                 shapes.AddTextBox(56, 239 + row * 72, 260, 24,
                     $"Workstream {row + 1}: checkpoint {index + row + 1}");
                 IShape detail = shapes.Last();
-                detail.SetFontSize(12);
+                detail.SetFontSize(global::OfficeIMO.OfficeLength.Points(12));
                 detail.SetFontColor("334155");
             }
         }
@@ -249,13 +249,13 @@ internal static class ShapeCrawlerBaselineRunner {
             shapes.AddTextBox(390, 238, 500, 110,
                 "Measured work includes editable text, vector shapes, package serialization, and rendering.");
             IShape narrative = shapes.Last();
-            narrative.SetFontSize(18);
+            narrative.SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
             narrative.SetFontColor("1E293B");
         }
         shapes.AddTextBox(40, 500, 420, 20,
             "OfficeIMO.PowerPoint performance corpus");
         IShape footer = shapes.Last();
-        footer.SetFontSize(9);
+        footer.SetFontSize(global::OfficeIMO.OfficeLength.Points(9));
         footer.SetFontColor("64748B");
     }
 

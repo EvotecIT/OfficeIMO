@@ -290,7 +290,7 @@ namespace OfficeIMO.Excel {
         /// Order doesn't matter - whether you add Table then AutoFilter or AutoFilter then Table, 
         /// the final result will be a table with AutoFilter enabled.
         /// </remarks>
-        public void AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>>? filterCriteria = null) {
+        public ExcelAutoFilter AddAutoFilter(string range, Dictionary<uint, IEnumerable<string>>? filterCriteria = null) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -300,7 +300,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (filterCriteria == null && _excelDocument.TryApplyDirectWorksheetAutoFilterMetadata(this, range)) {
-                return;
+                return new ExcelAutoFilter(this, range);
             }
 
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
@@ -398,7 +398,7 @@ namespace OfficeIMO.Excel {
 
             if (!worksheetOnly) {
                 WriteLock(applyAutoFilter);
-                return;
+                return new ExcelAutoFilter(this, range);
             }
 
             WriteLockWorksheetPreparationOnly(() => {
@@ -464,26 +464,7 @@ namespace OfficeIMO.Excel {
 
                 return true;
             });
-        }
-
-        /// <summary>
-        /// Adds an Excel table to the worksheet over the specified range.
-        /// </summary>
-        /// <param name="range">Cell range (e.g. "A1:B3") defining the table area.</param>
-        /// <param name="hasHeader">Indicates whether the first row is a header row.</param>
-        /// <param name="name">Name of the table. If empty, a default name is used.</param>
-        /// <param name="style">Table style to apply.</param>
-        /// <remarks>
-        /// All cells within <paramref name="range"/> must exist. Missing cells are automatically created with empty values.
-        /// </remarks>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="range"/> is null or empty.</exception>
-        /// <exception cref="ArgumentException">Thrown when <paramref name="range"/> is not in a valid format.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the specified range overlaps with an existing table.</exception>
-        public void AddTable(string range, bool hasHeader, string name, ExcelTableStyle style) {
-            // Direct package writers bypass the cell model; their output keeps the plain table.
-            bool applyDefaults = !_excelDocument.UsesDirectPackageWriter;
-            AddTableCore(range, hasHeader, name, style, includeAutoFilter: true, ensureRangeCellsExist: true);
-            if (applyDefaults) ApplyNewTableDefaults(range, hasHeader);
+            return new ExcelAutoFilter(this, range);
         }
 
         /// <summary>
@@ -525,10 +506,11 @@ namespace OfficeIMO.Excel {
         /// - If includeAutoFilter is false and a worksheet-level AutoFilter exists, it's removed (Excel doesn't allow both worksheet AutoFilter and a table on the same range).
         /// - Order doesn't matter — the final state will be consistent regardless of operation order.
         /// </remarks>
-        public void AddTable(string range, bool hasHeader, string name, ExcelTableStyle style, bool includeAutoFilter, ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Sanitize) {
+        public ExcelTable AddTable(string range, bool hasHeader = true, string? name = null, ExcelTableStyle style = ExcelTableStyle.TableStyleMedium2, bool includeAutoFilter = true, ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Sanitize) {
             bool applyDefaults = !_excelDocument.UsesDirectPackageWriter;
-            AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist: true);
+            var table = new ExcelTable(this, AddTableCore(range, hasHeader, name ?? "Table", style, includeAutoFilter, validationMode, ensureRangeCellsExist: true));
             if (applyDefaults) ApplyNewTableDefaults(range, hasHeader);
+            return table;
         }
 
         private void ApplyNewTableDefaults(string range, bool hasHeader) {
@@ -585,6 +567,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
+
         internal string AddTableAndGetName(string range, bool hasHeader, string name, ExcelTableStyle style, bool includeAutoFilter, ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null, bool deferPartSave = false, bool skipExistingTableScan = false) {
             return AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist, headerNames, deferPartSave, skipExistingTableScan);
         }
@@ -621,7 +604,7 @@ namespace OfficeIMO.Excel {
                 if (canUseDirectCandidateRange) {
                     ensureRangeCellsExist = false;
                     skipExistingTableScan = true;
-                    headerNames ??= directCandidateHeaders;
+                    if (hasHeader) headerNames ??= directCandidateHeaders;
                 }
 
                 if (!skipExistingTableScan) {
@@ -691,7 +674,7 @@ namespace OfficeIMO.Excel {
                 };
 
                 var tableColumns = new TableColumns { Count = columnsCount };
-                if (!TryAppendProvidedHeaderTableColumns(tableColumns, hasHeader, headerNames, columnsCount)) {
+                if (!TryAppendProvidedTableColumns(tableColumns, headerNames, columnsCount)) {
                     var usedHeaders = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
                     for (uint i = 0; i < columnsCount; i++) {
                         string baseName = $"Column{i + 1}";
@@ -699,7 +682,7 @@ namespace OfficeIMO.Excel {
                         bool headerCellIsSharedString = false;
                         bool headerValueProvided = false;
                         // If the table has headers, try to get the actual header value
-                        if (hasHeader && headerNames != null && i < headerNames.Count) {
+                        if (headerNames != null && i < headerNames.Count) {
                             headerValueProvided = true;
                             headerValue = headerNames[(int)i] ?? string.Empty;
                             if (!string.IsNullOrWhiteSpace(headerValue)) {
@@ -797,7 +780,8 @@ namespace OfficeIMO.Excel {
                     resolvedName,
                     hasHeader,
                     style,
-                    includeAutoFilter);
+                    includeAutoFilter,
+                    tableColumns.Elements<TableColumn>().Select(column => column.Name!.Value!).ToArray());
 
                 if (deferPartSave) {
                     if (promotedDirectSaveCandidate) {
@@ -819,9 +803,9 @@ namespace OfficeIMO.Excel {
             return resolvedName;
         }
 
-        private static bool TryAppendProvidedHeaderTableColumns(TableColumns tableColumns, bool hasHeader, IReadOnlyList<string>? headerNames, uint columnsCount) {
+        private static bool TryAppendProvidedTableColumns(TableColumns tableColumns, IReadOnlyList<string>? headerNames, uint columnsCount) {
             int count = checked((int)columnsCount);
-            if (!hasHeader || count > ProvidedHeaderTableColumnFastPathLimit || headerNames == null || headerNames.Count < count) {
+            if (count > ProvidedHeaderTableColumnFastPathLimit || headerNames == null || headerNames.Count < count) {
                 return false;
             }
 

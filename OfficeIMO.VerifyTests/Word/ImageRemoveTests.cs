@@ -38,7 +38,7 @@ public class ImageRemoveTests : VerifyTestBase {
         var headers = Assert.NotNull(document.Header);
         var defaultHeader = Assert.IsType<WordHeader>(headers.Default);
         var paragraph = defaultHeader.AddParagraph();
-        paragraph.AddImage(stream, "tiny.png", 50, 50);
+        paragraph.AddImage(stream, "tiny.png", OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 
         Assert.Single(defaultHeader.Images);
         var headerPart = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.First();

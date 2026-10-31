@@ -16,10 +16,10 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = result.Value;
         WordImage drawing = Assert.Single(document.Images);
         WordSection section = document.Sections[0];
-        double contentWidth = (section.PageSettings.Width!.Value - section.Margins.Left - section.Margins.Right) / 15D;
+        double contentWidth = (checked((uint?)(section.PageSettings.Width?.ToTwips()))!.Value - checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()))) / 15D;
 
-        Assert.Equal(contentWidth, drawing.Width!.Value, precision: 2);
-        Assert.Equal(contentWidth * 600D / 1600D, drawing.Height!.Value, precision: 2);
+        Assert.Equal(contentWidth, (drawing.Width?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(contentWidth * 600D / 1600D, (drawing.Height?.ToPixels())!.Value, precision: 2);
         Assert.Contains(document.Paragraphs, paragraph => paragraph.Text == "After");
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
@@ -39,10 +39,10 @@ public partial class HtmlWordGapClosure {
         WordImage[] images = document.Images.ToArray();
 
         Assert.Equal(2, images.Length);
-        Assert.Equal(100D, images[0].Width!.Value, precision: 2);
-        Assert.Equal(50D, images[0].Height!.Value, precision: 2);
-        Assert.Equal(200D, images[1].Width!.Value, precision: 2);
-        Assert.Equal(100D, images[1].Height!.Value, precision: 2);
+        Assert.Equal(100D, (images[0].Width?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(50D, (images[0].Height?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(200D, (images[1].Width?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(100D, (images[1].Height?.ToPixels())!.Value, precision: 2);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated);
     }
@@ -63,12 +63,12 @@ public partial class HtmlWordGapClosure {
         WordImage[] images = document.Images.ToArray();
 
         Assert.Equal(3, images.Length);
-        Assert.Equal(100D, images[0].Width!.Value, precision: 2);
-        Assert.Equal(50D, images[0].Height!.Value, precision: 2);
-        Assert.Equal(200D, images[1].Width!.Value, precision: 2);
-        Assert.Equal(200D, images[1].Height!.Value, precision: 2);
-        Assert.Equal(1D, images[2].Width!.Value, precision: 2);
-        Assert.Equal(1D, images[2].Height!.Value, precision: 2);
+        Assert.Equal(100D, (images[0].Width?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(50D, (images[0].Height?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(200D, (images[1].Width?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(200D, (images[1].Height?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(1D, (images[2].Width?.ToPixels())!.Value, precision: 2);
+        Assert.Equal(1D, (images[2].Height?.ToPixels())!.Value, precision: 2);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "image-resource-budget-exceeded");
     }

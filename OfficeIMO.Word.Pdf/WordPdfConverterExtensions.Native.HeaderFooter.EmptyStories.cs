@@ -18,7 +18,7 @@ public static partial class WordPdfConverterExtensions {
         WordHeaderFooter? evenStory = section.DocumentOddEvenSettingEnabled
             ? isFooter ? section.ResolveEvenFooter() : section.ResolveEvenHeader() : null;
         WordHeaderFooter?[] stories = { defaultStory, firstStory, evenStory };
-        double distance = (isFooter ? section.Margins.FooterDistance : section.Margins.HeaderDistance) / 20D;
+        double distance = (isFooter ? checked((uint)(section.Margins.FooterDistance.GetValueOrDefault().ToTwips())) : checked((uint)(section.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) / 20D;
         for (int index = 0; index < stories.Length; index++) {
             WordHeaderFooter? story = stories[index];
             if (story == null || story.ChildElements.Any()) continue;
@@ -28,14 +28,14 @@ public static partial class WordPdfConverterExtensions {
             var content = CreateNativeRunningStory(story, section, options, fontMap, listMarkers, defaults, isFooter,
                 includeGeneratedPageNumber: false);
             if (isFooter) page.Footer(footer => {
-                if (index == 1) footer.FirstPageContent(content, distance);
-                else if (index == 2) footer.EvenPagesContent(content, distance);
-                else footer.Content(content, distance);
+                if (index == 1) footer.FirstPageContent(content, global::OfficeIMO.OfficeLength.Points(distance));
+                else if (index == 2) footer.EvenPagesContent(content, global::OfficeIMO.OfficeLength.Points(distance));
+                else footer.Content(content, global::OfficeIMO.OfficeLength.Points(distance));
             });
             else page.Header(header => {
-                if (index == 1) header.FirstPageContent(content, distance);
-                else if (index == 2) header.EvenPagesContent(content, distance);
-                else header.Content(content, distance);
+                if (index == 1) header.FirstPageContent(content, global::OfficeIMO.OfficeLength.Points(distance));
+                else if (index == 2) header.EvenPagesContent(content, global::OfficeIMO.OfficeLength.Points(distance));
+                else header.Content(content, global::OfficeIMO.OfficeLength.Points(distance));
             });
             if (isFooter) RetainNativeTextFreeFooterProjection(page.Options, story, listMarkers, fontMap,
                 index == 1 ? PdfCore.PdfRunningContentVariant.FirstPage
@@ -63,9 +63,9 @@ public static partial class WordPdfConverterExtensions {
         WordParagraph paragraph = CreateNativeImplicitRunningParagraph(story);
         if (ShouldRenderNativeEmptyParagraphLineBox(paragraph)) {
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, defaults, fontMap);
-            style.SpacingAfter = 0D;
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
             if (!TryRenderNativeBarEmptyParagraph(flow, paragraph, style, defaults, fontMap))
-                flow.Spacer(style.SpacingBefore + MeasureNativeEmptyParagraphLineHeight(paragraph, defaults, fontMap));
+                flow.Spacer(style.SpacingBefore.ToPoints() + MeasureNativeEmptyParagraphLineHeight(paragraph, defaults, fontMap));
         }
     }
 

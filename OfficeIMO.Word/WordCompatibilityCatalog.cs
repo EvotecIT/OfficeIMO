@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Word;
 
 /// <summary>Versioned capability contract for Word 97-2003 DOC interoperability.</summary>
-public static class WordCompatibilityCatalog {
+internal static class WordCompatibilityCatalog {
     private const string FormatId = "Word.Doc";
 
     /// <summary>Gets the current machine-readable DOC compatibility contract.</summary>

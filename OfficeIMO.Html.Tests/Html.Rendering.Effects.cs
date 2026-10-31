@@ -218,7 +218,7 @@ public sealed partial class HtmlRenderingTests {
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         var pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(140D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(140D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
@@ -277,7 +277,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='paged-effect' style='width:20px;height:50px;margin:0;background:#0000ff;transform-origin:0 0;transform:translateX(10px);opacity:.75'></div>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 30D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(30D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
@@ -500,7 +500,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_PathClipCrossingPhysicalPageEdgeStillWritesPdf() {
         const string html = "<body style='margin:0'><div style='margin-left:15px;width:20px;height:20px;background:red;clip-path:inset(-5px)'>Edge marker</div></body>";
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(30D / 96D, 30D / 96D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(30D / 96D), global::OfficeIMO.OfficeLength.Inches(30D / 96D)),
             ViewportWidth = 30D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -680,7 +680,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(120D / 96D, 50D / 96D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / 96D), global::OfficeIMO.OfficeLength.Inches(50D / 96D)),
             HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D),
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
         };
@@ -695,7 +695,7 @@ public sealed partial class HtmlRenderingTests {
         const string supported = "<div style='width:100px;height:30px;margin:0;background:#eee;clip-path:ellipse(50% 45% at center);font-size:10px'>ClipPathPdfMarker</div>";
         var options = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(120D / HtmlRenderOptions.CssPixelsPerInch, 50D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(50D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             FontFamily = SvgPaintedText.CreatePinnedFamily(),

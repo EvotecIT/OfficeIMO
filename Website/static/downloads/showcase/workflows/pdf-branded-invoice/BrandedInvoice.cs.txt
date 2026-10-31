@@ -13,7 +13,7 @@ internal static class BrandedInvoice {
             InvoiceSyntax.Cii,
             InvoiceProfile.En16931);
         var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
-        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        layout.Theme = InvoicePdfTheme.Modern(global::OfficeIMO.OfficeColor.FromRgb(63, 92, 255));
         layout.LogoBytes = File.ReadAllBytes(Path.Combine(
             AppContext.BaseDirectory,
             "Assets",
@@ -27,7 +27,7 @@ internal static class BrandedInvoice {
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, contract, layout);
         string fonts = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts");
         var pdfOptions = new PdfCreateOptions {
-            DefaultFontSize = 9.5D,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9.5D),
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         }.UseFontFamily(new PdfEmbeddedFontFamily(
             "Carlito",

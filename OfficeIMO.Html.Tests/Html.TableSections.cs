@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
@@ -13,8 +14,8 @@ namespace OfficeIMO.Tests {
             var table = doc.Tables[0];
             Assert.True(table.RepeatHeaderRowAtTheTopOfEachPage);
             Assert.Equal("FF0000", table.Rows[0].Cells[0].ShadingFillColorHex);
-            Assert.Equal(new List<int> { 1000, 4000 }, table.ColumnWidth);
-            Assert.Equal(WordTableWidthUnit.Pct, table.ColumnWidthType);
+            Assert.Equal(new List<int> { 1000, 4000 }, table.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList());
+            Assert.All(table.ColumnWidth, width => Assert.Equal(WordTableWidthKind.Percent, width?.Kind));
             Assert.Equal("F1", table.Rows[table.Rows.Count - 1].Cells[0].Paragraphs[0]._paragraph.InnerText);
         }
 
@@ -35,8 +36,8 @@ namespace OfficeIMO.Tests {
             string html = "<table><colgroup><col style=\"width:13.5%\"><col style=\"width:86.5%\"></colgroup><tbody><tr><td>A</td><td>B</td></tr></tbody></table>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var table = doc.Tables[0];
-            Assert.Equal(new List<int> { 675, 4325 }, table.ColumnWidth);
-            Assert.Equal(WordTableWidthUnit.Pct, table.ColumnWidthType);
+            Assert.Equal(new List<int> { 675, 4325 }, table.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList());
+            Assert.All(table.ColumnWidth, width => Assert.Equal(WordTableWidthKind.Percent, width?.Kind));
         }
 
         [Fact]

@@ -30,7 +30,7 @@ internal static class EditableNativeTableEvidence {
                 row.ItemArray.Select(value => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty)));
         }).ToArray();
 
-    internal static IReadOnlyList<NativeTableEvidence> FromPowerPoint(PowerPointPresentation document) =>
+    internal static IReadOnlyList<NativeTableEvidence> FromPowerPoint(PowerPointDocument document) =>
         document.Slides.SelectMany((slide, slideIndex) => slide.Tables.Select((table, tableIndex) =>
             Snapshot($"slide-{slideIndex + 1}/table-{tableIndex + 1}", "powerpoint-table",
                 Enumerable.Range(0, table.Rows).Select(row => Enumerable.Range(0, table.Columns)

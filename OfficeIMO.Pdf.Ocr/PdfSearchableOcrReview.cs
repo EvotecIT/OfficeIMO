@@ -36,7 +36,7 @@ public sealed class PdfSearchableOcrReview {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), "Choose a page included in this review.");
         return PdfPageImageRenderer.RenderPages(_source.GetBytesForOperation(cancellationToken),
             PdfPageSelection.From(pageNumber), new PdfPageRenderOptions {
-                Format = PdfPageRenderFormat.Png, Dpi = _options.Dpi, MaxPages = 1,
+                Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = _options.Dpi, MaxPages = 1,
                 MaxPixelsPerPage = _options.MaxPixelsPerPage, ContinueOnError = false,
                 ImageCodec = _options.ImageCodec, MaxOutputBytesPerPage = _options.MaxRenderedBytesPerPage
             }, _source.ReadOptions, cancellationToken).Single();

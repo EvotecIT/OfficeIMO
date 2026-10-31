@@ -46,7 +46,7 @@ public sealed class FindOfficePowerPointShapeCommand : PSCmdlet
     /// <summary>Open presentation whose slides should be searched.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetPresentationText)]
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetPresentationRegex)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Single slide to search when the caller has already resolved the slide.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetSlideText)]
@@ -155,7 +155,7 @@ public sealed class FindOfficePowerPointShapeCommand : PSCmdlet
         return true;
     }
 
-    private static int ResolveSlideIndex(PowerPointSlide? slide, PowerPointPresentation? presentation)
+    private static int ResolveSlideIndex(PowerPointSlide? slide, PowerPointDocument? presentation)
     {
         if (slide == null || presentation == null)
         {

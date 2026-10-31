@@ -9,18 +9,18 @@ public sealed class PowerPointSelectedSlideExportTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ExhaustedImageBudgetRetainsFollowingSolidAndGradientBackgrounds(bool gradient) {
-        using var deck = PowerPointPresentation.Create();
-        deck.SlideSize.SetSizePoints(100, 60);
+        using var deck = PowerPointDocument.Create();
+        deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(60));
         byte[] picture = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-        deck.AddSlide().AddPicture(new MemoryStream(picture), OfficeImageFormat.Png,
-            PowerPointUnits.FromPoints(10), PowerPointUnits.FromPoints(10),
-            PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
+        deck.AddSlide().AddImage(new MemoryStream(picture), OfficeImageFormat.Png,
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(10)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(10)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)));
         var background = deck.AddSlide();
         if (gradient) background.SetBackgroundGradient("123456", "123456", 0);
         else background.BackgroundColor = "123456";
         deck.AddSlide().SetBackgroundImage(new MemoryStream(picture), OfficeImageFormat.Png);
 
-        var images = deck.ExportImages(OfficeImageExportFormat.Png, new PowerPointPresentationImageExportOptions {
+        var images = deck.ExportImages(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
             MaximumTotalEmbeddedImageBytes = picture.Length
         });
 
@@ -32,10 +32,10 @@ public sealed class PowerPointSelectedSlideExportTests {
 
     [Fact]
     public void MissingSlideBackgroundUsesTheSharedImageExportBackground() {
-        using var deck = PowerPointPresentation.Create();
-        deck.SlideSize.SetSizePoints(100, 60);
+        using var deck = PowerPointDocument.Create();
+        deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(60));
         var slide = deck.AddSlide();
-        byte[] bytes = slide.ToPng(new PowerPointImageExportOptions {
+        byte[] bytes = slide.ToImage(new PowerPointImageExportOptions {
             IncludeSlideBackground = false, IncludeSlideContent = false, BackgroundColor = OfficeColor.AliceBlue
         });
         Assert.True(OfficePngReader.TryDecode(bytes, out OfficeRasterImage? image));
@@ -44,16 +44,16 @@ public sealed class PowerPointSelectedSlideExportTests {
 
     [Fact]
     public void PartlyOffSlideFixedFrameKeepsOverflowVisibleBelowItsOriginalHeight() {
-        using var deck = PowerPointPresentation.Create();
-        deck.SlideSize.SetSizePoints(220, 180);
+        using var deck = PowerPointDocument.Create();
+        deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(180));
         var slide = deck.AddSlide();
-        var box = slide.AddTextBoxPoints("FIRST\nSECOND\nTAIL", -5, 20, 100, 12);
+        var box = slide.AddTextBox("FIRST\nSECOND\nTAIL",global::OfficeIMO.OfficeLength.Points(-5),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(12));
         box.FontName = "Helvetica";
-        box.FontSize = 12;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         box.TextAutoFit = PowerPointTextAutoFit.None;
-        box.TextMarginLeftPoints = 15;
-        box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
-        Assert.True(OfficePngReader.TryDecode(slide.ToPng(), out OfficeRasterImage? image));
+        box.TextMarginLeft = global::OfficeIMO.OfficeLength.Points(15);
+        box.TextMarginRight = box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0);
+        Assert.True(OfficePngReader.TryDecode(slide.ToImage(), out OfficeRasterImage? image));
         int paintedBelowFrame = 0;
         for (int y = 45; y < 80; y++)
             for (int x = 0; x < 100; x++) {
@@ -65,12 +65,12 @@ public sealed class PowerPointSelectedSlideExportTests {
 
     [Fact]
     public void SelectingOneSlideDoesNotReportLossFromUnselectedSlides() {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         var good = deck.AddSlide();
-        good.AddTextBoxPoints("SELECTED", 20, 20, 200, 50);
+        good.AddTextBox("SELECTED",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(50));
         var omitted = deck.AddSlide();
-        var first = omitted.AddRectanglePoints(10, 10, 20, 20);
-        var second = omitted.AddRectanglePoints(40, 10, 20, 20);
+        var first = omitted.AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
+        var second = omitted.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
         omitted.GroupShapes(new PowerPointShape[] { first, second }, "Not selected");
         var result = good.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions {
             MaxGroupShapeDepth = 0, Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }

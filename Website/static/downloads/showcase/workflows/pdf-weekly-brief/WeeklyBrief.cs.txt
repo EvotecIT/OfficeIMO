@@ -7,8 +7,8 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class WeeklyBrief {
     internal static void Create(string folder) {
         OfficeTheme theme = OfficeTheme.Default;
-        PdfColor muted = PdfColor.FromOfficeColor(theme.Palette.TextMuted);
-        PdfColor warning = PdfColor.FromOfficeColor(theme.Palette.Warning);
+        OfficeColor muted = theme.Palette.TextMuted;
+        OfficeColor warning = theme.Palette.Warning;
         string fonts = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts");
         var options = new PdfCreateOptions { ShowPageNumbers = true }
             .UseFontFamily(new PdfEmbeddedFontFamily("Carlito",
@@ -17,7 +17,7 @@ internal static class WeeklyBrief {
             .UsePdfUa(PdfComplianceProfile.PdfUa1);
         PdfDocument.Create(pdf => pdf.Content(content => content
             .Title("The week in delivery")
-            .Paragraph(p => p.FontSize(theme.TypeScale.Caption.ToPoints()).Text("Northwind · Week 38 · 2026"), defaultColor: muted)
+            .Paragraph(p => p.FontSize(OfficeLength.Points(theme.TypeScale.Caption.ToPoints())).Text("Northwind · Week 38 · 2026"), defaultColor: muted)
             .PanelParagraph(p => p.Bold("Decision for this week\n").Text(
                 "Approve the second pilot group after the recovery exercise is complete."))
             .H2("Progress")
@@ -35,7 +35,7 @@ internal static class WeeklyBrief {
                 new[] { "Close access issues", "Engineering", "Wednesday" },
                 new[] { "Review pilot expansion", "Product", "Friday" }
             })
-            .Paragraph(p => p.FontSize(theme.TypeScale.Caption.ToPoints()).Text("Prepared from sample data. Keep the brief focused on decisions and actions."), defaultColor: muted)),
+            .Paragraph(p => p.FontSize(OfficeLength.Points(theme.TypeScale.Caption.ToPoints())).Text("Prepared from sample data. Keep the brief focused on decisions and actions."), defaultColor: muted)),
             options)
             .Meta(title: "The week in delivery", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));

@@ -204,13 +204,13 @@ public sealed class PdfConversionTypographyTests {
         new PdfCore.PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false,
-                PageWidth = 520,
-                PageHeight = 420,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(520),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(420),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             }
             .UseFontFamily(FamilyName, fontPath);
 
@@ -250,14 +250,14 @@ public sealed class PdfConversionTypographyTests {
             string workbookPath = Path.Combine(directory, "multilingual.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" });
             ExcelSheet sheet = document.Sheets[0];
-            sheet.SetColumnWidth(1, 32);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(32));
             sheet.Cell(1, 1, "Converter typography report");
             sheet.Cell(2, 1, "Zażółć gęślą jaźń");
             sheet.Cell(3, 1, "Ελλάδα");
             sheet.Cell(4, 1, "Київ");
             // This fixture tests font embedding and mapping, independently of default-row clipping.
             for (int row = 1; row <= 4; row++) {
-                sheet.SetRowHeight(row, 30);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
                 sheet.CellVerticalAlign(row, 1, ExcelVerticalAlignment.Top);
             }
             document.Save();
@@ -324,16 +324,16 @@ Zażółć gęślą jaźń
 
     private static byte[] CreatePowerPointPdf(string fontPath) {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(520, 320);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(320));
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTextBox title = slide.AddTextBoxPoints("Converter typography report", 32, 26, 280, 28);
+        PowerPointTextBox title = slide.AddTextBox("Converter typography report",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(26),global::OfficeIMO.OfficeLength.Points(280),global::OfficeIMO.OfficeLength.Points(28));
         title.FontName = FamilyName;
-        title.FontSize = 14;
-        PowerPointTextBox polish = slide.AddTextBoxPoints("Zażółć gęślą jaźń", 32, 70, 250, 28);
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(14);
+        PowerPointTextBox polish = slide.AddTextBox("Zażółć gęślą jaźń",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(250),global::OfficeIMO.OfficeLength.Points(28));
         polish.FontName = FamilyName;
-        polish.FontSize = 12;
-        PowerPointTable table = slide.AddTablePoints(3, 2, 32, 118, 280, 98);
+        polish.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        PowerPointTable table = slide.AddTable(3,2,global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(118),global::OfficeIMO.OfficeLength.Points(280),global::OfficeIMO.OfficeLength.Points(98));
         table.GetCell(0, 0).Text = "Region";
         table.GetCell(0, 1).Text = "Signal";
         table.GetCell(1, 0).Text = "Ελλάδα";
@@ -416,11 +416,12 @@ Zażółć gęślą jaźń
 
     private static PdfCore.PdfConversionReport CreatePowerPointOpenTypeReport(string fontPath, bool scalar) {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(520, 320);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("office cafe\u0301", 32, 32, 220, 32);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(320));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("office cafe\u0301",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(32));
         textBox.FontName = FamilyName;
-        textBox.FontSize = 14;
+        textBox.FontSize = global::OfficeIMO.OfficeLength.Points(14);
+        textBox.FontName = FamilyName;
 
         var options = new PowerPointPdfExportOptions {
             PdfOptions = CreateOpenTypePdfOptions(fontPath, scalar)
@@ -499,10 +500,10 @@ Zażółć gęślą jaźń
 
     private static PdfCore.PdfConversionReport CreatePowerPointComplexScriptReport(string text = "مرحبا", bool allowMissingGlyphFailure = false) {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(520, 320);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints(text, 32, 32, 220, 32);
-        textBox.FontSize = 14;
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(320));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox(text,global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(32));
+        textBox.FontSize = global::OfficeIMO.OfficeLength.Points(14);
 
         var options = new PowerPointPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions { TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar }

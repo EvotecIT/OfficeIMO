@@ -81,9 +81,10 @@ public partial class Html {
         var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
         string roundTrip = doc.ToHtml(new WordHtmlExportOptions());
 
-        Assert.Contains("<table>", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("A", roundTrip, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("D", roundTrip, StringComparison.OrdinalIgnoreCase);
+        var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(roundTrip);
+        var table = Assert.Single(parsed.QuerySelectorAll("table"));
+        Assert.Equal(2, table.QuerySelectorAll("tr").Length);
+        Assert.Equal(new[] { "A", "B", "C", "D" }, table.QuerySelectorAll("td").Select(cell => cell.TextContent.Trim()));
     }
 
     [Fact]
@@ -198,7 +199,7 @@ public partial class Html {
 
         var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
         Assert.Equal("Quoted text", doc.Paragraphs[0].Text);
-        Assert.True(doc.Paragraphs[0].IndentationBefore > 0);
+        Assert.True(checked((int?)(doc.Paragraphs[0].IndentationBefore?.ToTwips())) > 0);
 
         string roundTrip = doc.ToHtml();
         Assert.Contains("<blockquote>", roundTrip, StringComparison.OrdinalIgnoreCase);
@@ -215,7 +216,7 @@ public partial class Html {
         var textParagraphs = cell.Paragraphs.Where(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).ToList();
         Assert.Single(textParagraphs);
         Assert.Equal("Quoted cell", textParagraphs[0].Text);
-        Assert.True(textParagraphs[0].IndentationBefore > 0);
+        Assert.True(checked((int?)(textParagraphs[0].IndentationBefore?.ToTwips())) > 0);
 
         string roundTrip = doc.ToHtml();
         Assert.Matches("(?is)<td[^>]*><blockquote[^>]*>Quoted cell</blockquote></td>", roundTrip);
@@ -231,7 +232,7 @@ public partial class Html {
 
         Assert.False(doc.StyleExists("Quote"));
         Assert.Equal("Quoted text", doc.Paragraphs[0].Text);
-        Assert.True(doc.Paragraphs[0].IndentationBefore > 0);
+        Assert.True(checked((int?)(doc.Paragraphs[0].IndentationBefore?.ToTwips())) > 0);
         Assert.Null(doc.Paragraphs[0].Style);
     }
 

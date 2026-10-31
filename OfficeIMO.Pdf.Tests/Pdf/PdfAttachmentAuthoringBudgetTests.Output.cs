@@ -88,7 +88,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
             MaxTotalEmbeddedFileBytes = 10
         };
         var document = PdfDocument.Create(options).Canvas(canvas => canvas.Structure(
-            PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20),
+            PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)),
             Association("larger.bin", new byte[] { 1, 2, 3 })));
 
         Assert.Throws<InvalidDataException>(() => document.ToBytes());
@@ -106,16 +106,16 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
         }.AddEmbeddedFile("catalog.bin", new byte[] { 1, 2, 3 }, "application/octet-stream");
         var association = Association("shared.bin", new byte[] { 4, 5, 6 });
         var document = PdfDocument.Create(compose => compose.Content(content => content
-            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), association))
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), association))
             .PageBreak()
-            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("y", 20, 20, 40, 20), association))), options);
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("y", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), association))), options);
 
         byte[] bytes = document.ToBytes();
         Assert.Equal(2, PdfInspector.Inspect(bytes).PageCount);
         Assert.Equal(2, PdfAttachmentExtractor.ExtractAttachments(bytes).Count);
 
         document.Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula,
-            nested => nested.Text("z", 20, 60, 40, 20), Association("distinct.bin", new byte[] { 7 })));
+            nested => nested.Text("z", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Association("distinct.bin", new byte[] { 7 })));
         Assert.Throws<InvalidDataException>(() => document.ToBytes());
 
         document.Compose(compose => compose.Settings(settings => settings.MaxTotalEmbeddedFileBytes = 7));
@@ -130,7 +130,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
             MaxTotalEmbeddedFileBytes = 1
         };
         var document = PdfDocument.Create(options).Canvas(canvas => canvas.Structure(
-            PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20),
+            PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)),
             Association("unemitted.bin", new byte[] { 1, 2, 3 })));
 
         Assert.Empty(PdfAttachmentExtractor.ExtractAttachments(document.ToBytes()));
@@ -144,7 +144,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
             MaxTotalEmbeddedFileBytes = 5
         }.AddEmbeddedFile("catalog.bin", new byte[] { 1, 2, 3 }, "application/octet-stream"))
         .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula,
-            nested => nested.Text("x", 20, 20, 40, 20), Association("structure.bin", new byte[] { 4, 5, 6 })));
+            nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Association("structure.bin", new byte[] { 4, 5, 6 })));
 
     private sealed class NonSeekableDestination : Stream {
         private readonly MemoryStream _bytes = new();

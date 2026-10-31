@@ -35,7 +35,7 @@ public class PdfHeadingHierarchyTests {
             captured = builder;
             builder.Text("PlainMarker ").Italic(true).Text("ItalicMarker ").Italic(false)
                 .Link("LinkedMarker", uri).Baseline(PdfTextBaseline.Superscript).Text("2");
-        }, PdfAlign.Left, null, new PdfHeadingStyle { FontSize = 12 });
+        }, PdfAlign.Left, null, new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(12) });
         if (columns) document.Content.Columns(AddHeading);
         else AddHeading(document.Content);
         captured.Text("Late mutation");
@@ -55,7 +55,7 @@ public class PdfHeadingHierarchyTests {
         var document = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true });
         document.TaggedPdfCatalogMarkers();
         for (int level = 1; level <= 9; level++) {
-            document.Content.Heading(level, "HeadingLevel" + level, style: new PdfHeadingStyle { FontSize = 12 });
+            document.Content.Heading(level, "HeadingLevel" + level, style: new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(12) });
         }
 
         byte[] bytes = document.ToBytes();

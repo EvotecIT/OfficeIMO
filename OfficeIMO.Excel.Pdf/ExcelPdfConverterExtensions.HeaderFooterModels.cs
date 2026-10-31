@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel.Pdf {
         private sealed class HeaderFooterLineStyle {
             internal double? FontSize { get; set; }
 
-            internal PdfCore.PdfColor? Color { get; set; }
+            internal global::OfficeIMO.OfficeColor? Color { get; set; }
 
             internal PdfCore.PdfStandardFont? FontFamily { get; set; }
 

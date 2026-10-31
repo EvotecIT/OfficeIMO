@@ -145,16 +145,16 @@ public sealed class MermaidDocumentTests {
         });
         var image = Assert.Single(parsed.Document.DescendantsAndSelf().OfType<OfficeMarkupImageBlock>());
         Assert.Equal("Request approval", image.Caption);
-        using var presentation = parsed.Document.ToPowerPointPresentation();
+        using var presentation = parsed.Document.ToPowerPointDocument();
         var picture = Assert.Single(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointPicture>());
         Assert.Equal(image.Alt, picture.AltText);
         Assert.Equal("Approval flow", picture.AltText);
         var png = Convert.FromBase64String(image.Source.Substring(image.Source.IndexOf(',') + 1));
         Assert.Equal(png, picture.GetImageBytes());
         Assert.True(OfficeImageReader.TryValidateContent(png, null, out var info));
-        Assert.Equal(info.Width / (double)info.Height, picture.WidthInches / picture.HeightInches, precision: 4);
+        Assert.Equal(info.Width / (double)info.Height, picture.Width.ToInches() / picture.Height.ToInches(), precision: 4);
         var caption = Assert.Single(presentation.Slides.SelectMany(slide => slide.TextBoxes), text => text.Text == "Request approval");
-        Assert.True(caption.TopInches >= picture.TopInches + picture.HeightInches);
+        Assert.True(caption.Top.ToInches() >= picture.Top.ToInches() + picture.Height.ToInches());
         using var stream = new MemoryStream();
         presentation.Save(stream);
         stream.Position = 0;
@@ -171,11 +171,11 @@ public sealed class MermaidDocumentTests {
             Caption = "Request approval",
             Placement = new OfficeMarkupPlacement { X = "3", Y = "2", Width = "4", Height = "1" }
         });
-        using var presentation = markup.ToPowerPointPresentation();
+        using var presentation = markup.ToPowerPointDocument();
         var caption = Assert.Single(presentation.Slides.SelectMany(slide => slide.TextBoxes), text => text.Text == "Request approval");
-        Assert.Equal(3, caption.LeftInches, precision: 4);
-        Assert.Equal(3.12, caption.TopInches, precision: 4);
-        Assert.Equal(4, caption.WidthInches, precision: 4);
+        Assert.Equal(3, caption.Left.ToInches(), precision: 4);
+        Assert.Equal(3.12, caption.Top.ToInches(), precision: 4);
+        Assert.Equal(4, caption.Width.ToInches(), precision: 4);
     }
 
     [Theory]
@@ -188,7 +188,7 @@ public sealed class MermaidDocumentTests {
         var markup = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         markup.Blocks.Add(new OfficeMarkupImageBlock(mismatched
             ? rendered.Path.Replace("image/png", "image/jpeg") : rendered.Path, "Diagram"));
-        using var presentation = markup.ToPowerPointPresentation(new MarkupToPowerPointOptions {
+        using var presentation = markup.ToPowerPointDocument(new MarkupToPowerPointOptions {
             AllowDataUriImages = allowed,
             MaximumDataUriImageBytes = oversized ? 1 : 16L * 1024 * 1024
         });
@@ -218,7 +218,7 @@ public sealed class MermaidDocumentTests {
         Assert.False(OfficeImageReader.TryReadBase64DataUri("data:" + mime + ";base64," + Convert.ToBase64String(bytes.Take(24).ToArray()), bytes.Length, out _, out _));
         var markup = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         markup.Blocks.Add(new OfficeMarkupImageBlock(uri, "Embedded image"));
-        using var presentation = markup.ToPowerPointPresentation();
+        using var presentation = markup.ToPowerPointDocument();
         Assert.Equal(bytes, Assert.Single(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointPicture>()).GetImageBytes());
         markup.Profile = OfficeMarkupProfile.Document;
         using var word = markup.ToWordDocument();
@@ -228,15 +228,15 @@ public sealed class MermaidDocumentTests {
     private static void AssertWordImageFitsContent(OfficeIMO.Word.WordDocument document) {
         var image = Assert.Single(document.Images);
         var section = document.Sections.First();
-        double available = ((double)section.PageSettings.Width!.Value - (double)section.Margins.Left - (double)section.Margins.Right) / 15;
-        Assert.InRange(image.Width!.Value, 1, available + 0.001);
+        double available = ((double)checked((uint?)(section.PageSettings.Width?.ToTwips()))!.Value - (double)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - (double)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()))) / 15;
+        Assert.InRange(image.Width!.Value.ToPixels(), 1, available + 0.001);
     }
 
     [Fact]
     public void PowerPointSourceFallbackRetainsTheAuthoredDiagram() {
         var markup = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         markup.Blocks.Add(new OfficeMarkupDiagramBlock("mermaid", "flowchart LR\nA --> B"));
-        using var presentation = markup.ToPowerPointPresentation(new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+        using var presentation = markup.ToPowerPointDocument(new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
         using var stream = new MemoryStream();
         presentation.Save(stream);
         stream.Position = 0;

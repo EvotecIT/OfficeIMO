@@ -25,7 +25,7 @@ internal static partial class Paragraphs {
             var paragraph2 = paragraph.AddText("3rd continuing?");
             paragraph2.Underline = WordUnderlineStyle.Double;
             paragraph2.Bold = true;
-            paragraph2.Spacing = 200;
+            paragraph2.Spacing = OfficeLength.Emus((long)(200) * 635);
 
             document.AddParagraph().SetText("4th Fourth paragraph with text").Bold = true;
 
@@ -46,7 +46,7 @@ internal static partial class Paragraphs {
 
             paragraph = document.AddParagraph("7th Highlight me on a new page?");
             paragraph.Highlight = WordHighlightColor.Yellow;
-            paragraph.FontSize = 15;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(15);
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
             paragraph.PageBreakBefore = true;
 
@@ -54,14 +54,14 @@ internal static partial class Paragraphs {
             paragraph = document.AddParagraph("8th This text should be colored.");
             paragraph.Bold = true;
             paragraph.ColorHex = "4F48E2";
-            paragraph.IndentationAfter = 1400;
+            paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(70D);
 
 
             paragraph = document.AddParagraph("This is very long line that we will use to show indentation that will work across multiple lines and more and more and even more than that. One, two, three, don't worry baby.");
             paragraph.Bold = true;
             paragraph.ColorHex = "#FF0000";
-            paragraph.IndentationBefore = 720;
-            paragraph.IndentationFirstLine = 1400;
+            paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+            paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(70D);
 
 
             paragraph = document.AddParagraph("9th This text should be colored and Arial.");
@@ -74,21 +74,21 @@ internal static partial class Paragraphs {
             paragraph.Bold = true;
             paragraph.ColorHex = "4F48E2";
             paragraph.FontFamily = "Tahoma";
-            paragraph.FontSize = 20;
-            paragraph.LineSpacingBefore = 300;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(20);
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(15D);
 
             paragraph = document.AddParagraph("12th This text should be colored and Tahoma and text direction changed");
             paragraph.Bold = true;
             paragraph.ColorHex = "4F48E2";
             paragraph.FontFamily = "Tahoma";
-            paragraph.FontSize = 10;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
             paragraph.TextDirection = WordTextDirection.TopToBottomRightToLeftRotated;
 
             paragraph = document.AddParagraph("Spacing Test 1");
             paragraph.Bold = true;
             paragraph.ColorHex = "4F48E2";
             paragraph.FontFamily = "Tahoma";
-            paragraph.LineSpacingAfter = 720;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(36D);
 
             paragraph = document.AddParagraph("Spacing Test 2");
             paragraph.Bold = true;
@@ -101,7 +101,7 @@ internal static partial class Paragraphs {
             paragraph.ColorHex = "4F48E2";
             paragraph.FontFamily = "Tahoma";
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-            paragraph.LineSpacing = 1500;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(6.25);
 
             Console.WriteLine("Found paragraphs in document: " + document.Paragraphs.Count);
 

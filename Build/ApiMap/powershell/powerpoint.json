@@ -5451,7 +5451,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Creates slide rendering settings for Export-OfficeDocumentImage and ConvertTo-OfficeDocumentImage -Options.",
-      "outputType": "PowerPointPresentationImageExportOptions",
+      "outputType": "PowerPointDocumentImageExportOptions",
       "parameterSets": [
         {
           "name": "Default",

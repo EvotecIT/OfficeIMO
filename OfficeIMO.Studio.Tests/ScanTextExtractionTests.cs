@@ -23,8 +23,8 @@ public sealed class ScanTextExtractionTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "quick-text.pdf");
             PdfDocument.Create(doc => {
-                doc.Page(page => page.Size(300, 300));
-                doc.Page(page => page.Size(300, 300));
+                doc.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)));
+                doc.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)));
             }).Save(source);
             byte[] original = File.ReadAllBytes(source);
             var recognition = new RecognitionService();

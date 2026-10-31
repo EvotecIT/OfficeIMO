@@ -72,41 +72,41 @@ public sealed partial class OfficeVisualIntegrationTests {
             double available;
             using (var document = WordDocument.Create(wordPath)) {
                 var paragraph = document.AddParagraph();
-                available = paragraph.GetContentWidthPoints();
+                available = paragraph.GetContentWidth().ToPoints();
                 paragraph.AddVisualArtifact(artifact);
                 document.Save();
             }
             using (var document = WordDocument.Load(wordPath)) {
                 var image = Assert.Single(document.Images);
-                Assert.Equal(Math.Min(600D, available), image.Width!.Value * .75D, 3);
+                Assert.Equal(Math.Min(600D, available), image.Width!.Value.ToPoints(), 3);
                 Assert.Equal("Two measured requests.", image.Description);
-                Assert.Equal(2D, image.Width.Value / image.Height!.Value, 3);
+                Assert.Equal(2D, image.Width.Value.ToPoints() / image.Height!.Value.ToPoints(), 3);
             }
             string excelPath = Path.Combine(folder, "fit.xlsx");
-            int rangeWidth, rangeHeight;
+            double rangeWidth, rangeHeight;
             using (var workbook = ExcelDocument.Create(excelPath)) {
-                var sheet = workbook.AddWorksheet("Requests");
-                var size = sheet.GetRangeSizePixels("B2:D8");
-                rangeWidth = size.WidthPixels; rangeHeight = size.HeightPixels;
+                var sheet = workbook.AddSheet("Requests");
+                var size = sheet.GetRangeSize("B2:D8");
+                rangeWidth = size.Width.ToPixels(); rangeHeight = size.Height.ToPixels();
                 sheet.AddVisualArtifact("B2:D8", artifact);
                 workbook.Save();
             }
             using (var workbook = ExcelDocument.Load(excelPath)) {
                 var image = Assert.Single(workbook.Sheets[0].Images);
-                Assert.True(image.WidthPixels <= rangeWidth && image.HeightPixels <= rangeHeight);
-                Assert.InRange((double)image.WidthPixels / image.HeightPixels, 1.98D, 2.02D);
+                Assert.True(image.Width.ToPixels() <= rangeWidth && image.Height.ToPixels() <= rangeHeight);
+                Assert.InRange((double)image.Width.ToPixels() / image.Height.ToPixels(), 1.98D, 2.02D);
                 Assert.Equal("Two measured requests.", image.Description);
             }
             string slidesPath = Path.Combine(folder, "fit.pptx");
-            using (var presentation = PowerPointPresentation.Create(slidesPath)) {
-                presentation.AddSlide().AddVisualArtifact(artifact, PowerPointLayoutBox.FromPoints(36D, 60D, 300D, 100D));
+            using (var presentation = PowerPointDocument.Create(slidesPath)) {
+                presentation.AddSlide().AddVisualArtifact(artifact, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(36D),OfficeIMO.OfficeLength.Points(60D),OfficeIMO.OfficeLength.Points(300D),OfficeIMO.OfficeLength.Points(100D)));
                 presentation.Save();
             }
-            using (var presentation = PowerPointPresentation.Load(slidesPath)) {
+            using (var presentation = PowerPointDocument.Load(slidesPath)) {
                 var picture = Assert.Single(presentation.Slides[0].Pictures);
-                Assert.Equal(200D, picture.WidthPoints, 3);
-                Assert.Equal(100D, picture.HeightPoints, 3);
-                Assert.Equal(86D, picture.LeftPoints, 3);
+                Assert.Equal(200D, picture.Width.ToPoints(), 3);
+                Assert.Equal(100D, picture.Height.ToPoints(), 3);
+                Assert.Equal(86D, picture.Left.ToPoints(), 3);
                 Assert.Equal("Two measured requests.", picture.Description);
             }
             var pdfOptions = new PdfCreateOptions { CompressContentStreams = false };

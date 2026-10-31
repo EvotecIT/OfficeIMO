@@ -94,11 +94,11 @@ public sealed class ConvertToOfficeMarkdownCommand : PSCmdlet
         var doc = MarkdownDocument.Create();
         if (DisableAutoAlign.IsPresent)
         {
-            doc.TableFrom(normalizedItems);
+            doc.AddTable((object)normalizedItems);
         }
         else
         {
-            doc.TableFromAuto(normalizedItems);
+            doc.AddTable((object)normalizedItems, new MarkdownTableOptions());
         }
 
         if (PassThru.IsPresent)

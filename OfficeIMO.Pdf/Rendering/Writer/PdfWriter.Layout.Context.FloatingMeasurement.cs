@@ -8,7 +8,7 @@ internal static partial class PdfWriter {
                     SemanticBlock semantic => semantic.Blocks,
                     LayerBlock layer => layer.Blocks,
                     FlowBlock flow when !flow.IsReplayable && !flow.Options.KeepTogether && flow.Options.ShowIf == null &&
-                        flow.Options.MinimumRemainingHeight == 0 && flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.Continue => flow.StaticBlocks,
+                        flow.Options.MinimumRemainingHeight.ToPoints() == 0 && flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.Continue => flow.StaticBlocks,
                     _ => null
                 };
                 if (nested != null) {
@@ -30,13 +30,13 @@ internal static partial class PdfWriter {
             double tableWidth = ResolveTableColumnLayout(table, currentOpts, style, count, frameWidth,
                 GetTableBodyFontSize(style, fontSize), style.HeaderRowCount, table.Rows.Count - style.FooterRowCount).Width;
             double flowY = y;
-            double left = PositionTableX(position, tableWidth) + style.HorizontalOffset;
+            double left = PositionTableX(position, tableWidth) + style.HorizontalOffset.ToPoints();
             y = PositionTableY(position, height);
             AvoidFloatingTable(position, left, tableWidth, height);
             bottom = y - height;
-            floatingTables.Add((currentPage, left - position.DistanceLeft,
-                left + tableWidth + position.DistanceRight, y + position.DistanceTop,
-                bottom - position.DistanceBottom, position.AllowOverlap));
+            floatingTables.Add((currentPage, left - position.DistanceLeft.ToPoints(),
+                left + tableWidth + position.DistanceRight.ToPoints(), y + position.DistanceTop.ToPoints(),
+                bottom - position.DistanceBottom.ToPoints(), position.AllowOverlap));
             y = flowY;
             return true;
         }
@@ -45,7 +45,7 @@ internal static partial class PdfWriter {
             var style = EffectiveParagraphStyle(paragraph);
             if (HasParagraphPictures(style) || HasPictureExclusions)
                 return MeasurePictureParagraph(paragraph, frameX, frameWidth, fontSize, firstVisualOnly);
-            fontSize = style?.FontSize ?? currentOpts.DefaultFontSize;
+            fontSize = style?.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
             double leading = GetParagraphLeading(style, fontSize);
             double spacing = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(style));
             var textFrame = GetParagraphTextFrame(style, frameX, frameWidth);

@@ -200,22 +200,22 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
 
         if (Paragraph != null)
         {
-            return Paragraph.AddChart(title, width: WidthPixels, height: HeightPixels);
+            return Paragraph.AddChart(title,width: OfficeIMO.OfficeLength.Pixels(WidthPixels),height: OfficeIMO.OfficeLength.Pixels(HeightPixels));
         }
 
         if (Document != null)
         {
-            return Document.AddChart(title, width: WidthPixels, height: HeightPixels);
+            return Document.AddChart(title,width: OfficeIMO.OfficeLength.Pixels(WidthPixels),height: OfficeIMO.OfficeLength.Pixels(HeightPixels));
         }
 
         var context = WordDslContext.Require(this);
         if (context.CurrentParagraph != null)
         {
-            return context.CurrentParagraph.AddChart(title, width: WidthPixels, height: HeightPixels);
+            return context.CurrentParagraph.AddChart(title,width: OfficeIMO.OfficeLength.Pixels(WidthPixels),height: OfficeIMO.OfficeLength.Pixels(HeightPixels));
         }
 
         var paragraph = context.RequireParagraphHost().AddParagraph();
-        return paragraph.AddChart(title, width: WidthPixels, height: HeightPixels);
+        return paragraph.AddChart(title,width: OfficeIMO.OfficeLength.Pixels(WidthPixels),height: OfficeIMO.OfficeLength.Pixels(HeightPixels));
     }
 
     private void PopulateChart(WordChart chart, IReadOnlyList<object> items)
@@ -261,7 +261,7 @@ public sealed class AddOfficeWordChartCommand : PSCmdlet
     {
         if (FitToPageWidth.IsPresent)
         {
-            chart.SetWidthToPageContent(WidthFraction, HeightPixels);
+            chart.SetWidthToPageContent(WidthFraction,OfficeIMO.OfficeLength.Pixels(HeightPixels));
         }
 
         if (Type != WordChartType.Pie)

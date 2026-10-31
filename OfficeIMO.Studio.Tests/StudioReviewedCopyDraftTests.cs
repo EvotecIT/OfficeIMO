@@ -22,7 +22,7 @@ public sealed class StudioReviewedCopyDraftTests {
             string source = Path.Combine(services.Paths.Root, "form.pdf"), output = Path.Combine(services.Paths.Root, "copy.pdf");
             byte[] form = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Item(item => item.TextField("Name", value: "Original"))))).ToBytes();
             bool retained = operation is "extract" or "split";
-            File.WriteAllBytes(source, retained ? PdfDocument.Create(document => document.Page(page => page.Size(300, 400))).ToBytes() : form);
+            File.WriteAllBytes(source, retained ? PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).ToBytes() : form);
             byte[] original = File.ReadAllBytes(source); MainWindowViewModel? model = null; int reviews = 0, pickers = 0;
             void AddDraft() {
                 if (retained) model!.UnassignedFormDrafts.Add(new PdfFormFieldViewModel(PdfDocument.Load(new System.IO.MemoryStream(form)).Inspect().FormFields[0]) { TextValue = "Retained draft" });

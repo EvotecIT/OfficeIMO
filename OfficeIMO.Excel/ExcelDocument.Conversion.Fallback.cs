@@ -70,7 +70,7 @@ public partial class ExcelDocument {
                 foreach (ExcelSheet sheet in document.Sheets) {
                     OfficeImageExportResult image = sheet.ExportImage(
                         OfficeImageExportFormat.Png,
-                        new ExcelWorksheetImageExportOptions {
+                        new ExcelImageExportOptions {
                             BackgroundColor = OfficeColor.White,
                             ConditionalFormattingDate = new DateTime(2000, 1, 1),
                             HeaderFooterDateTime = new DateTime(2000, 1, 1),
@@ -173,7 +173,7 @@ public partial class ExcelDocument {
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (ExcelVisualFallbackSheet sourceSheet in plan.Sheets) {
             string name = CreateFallbackSheetName(sourceSheet.Name, usedNames);
-            ExcelSheet sheet = fallback.AddWorksheet(name);
+            ExcelSheet sheet = fallback.AddSheet(name);
             sheet.SetHidden(sourceSheet.Hidden);
             if (!OfficePngReader.TryDecode(sourceSheet.Image.Bytes, out OfficeRasterImage? raster)
                 || raster == null) {

@@ -192,7 +192,7 @@ static void GenerateConverterPowerPointSample(string outputPath) {
     string? directory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
     if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
 
-    using PowerPointPresentation presentation = PowerPointPresentation.Create(outputPath);
+    using PowerPointDocument presentation = PowerPointDocument.Create(outputPath);
     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
     PowerPointSlide overview = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
@@ -209,7 +209,7 @@ static void GenerateConverterPowerPointSample(string outputPath) {
     AddMetric(overview, "100%", "local processing", 244, 126, "E9F8F0", "07875B");
     AddMetric(overview, "0", "server uploads", 446, 126, "FFF2E8", "C2410C");
 
-    PowerPointTable table = overview.AddTablePoints(4, 3, 42, 252, 646, 190);
+    PowerPointTable table = overview.AddTable(4,3,global::OfficeIMO.OfficeLength.Points(42),global::OfficeIMO.OfficeLength.Points(252),global::OfficeIMO.OfficeLength.Points(646),global::OfficeIMO.OfficeLength.Points(190));
     table.GetCell(0, 0).Text = "Workstream";
     table.GetCell(0, 1).Text = "Owner";
     table.GetCell(0, 2).Text = "Status";
@@ -229,21 +229,14 @@ static void GenerateConverterPowerPointSample(string outputPath) {
     var chartData = new OfficeChartData(
         new[] { "Q1", "Q2", "Q3", "Q4" },
         new[] {
-            new OfficeChartSeries("Documents", new[] { 120D, 185D, 240D, 318D }),
-            new OfficeChartSeries("Reports", new[] { 42D, 68D, 96D, 132D })
+            new OfficeSeries("Documents", new[] { 120D, 185D, 240D, 318D }),
+            new OfficeSeries("Reports", new[] { 42D, 68D, 96D, 132D })
         });
-    PowerPointChart chart = chartSlide.AddChartPoints(
-        OfficeChartKind.ColumnClustered,
-        chartData,
-        66,
-        128,
-        600,
-        310,
-        new PowerPointChartAccessibilityOptions {
+    PowerPointChart chart = chartSlide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(66), Top = global::OfficeIMO.OfficeLength.Points(128), Width = global::OfficeIMO.OfficeLength.Points(600), Height = global::OfficeIMO.OfficeLength.Points(310), Accessibility = new PowerPointChartAccessibilityOptions {
             Name = "Quarterly conversion volume",
             AlternativeText = "Document and report conversion volume increases from Q1 through Q4.",
             IncludeDataSummaryInAlternativeText = true
-        });
+        } });
     chart.SetTitle("Completed conversions");
     chart.SetLegend(OfficeChartLegendPosition.Bottom);
 
@@ -258,7 +251,7 @@ static bool VerifyConverterPowerPointSample(string inputPath, out string error) 
 
     try {
         using var stream = File.OpenRead(inputPath);
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Load(stream);
         if (presentation.Slides.Count != 2) {
             error = $"expected 2 slides, found {presentation.Slides.Count}";
             return false;
@@ -307,10 +300,10 @@ static void AddMetric(
     double top,
     string fill,
     string accent) {
-    PowerPointAutoShape card = slide.AddRectanglePoints(left, top, 180, 92, label);
+    PowerPointAutoShape card = slide.AddRectangle(OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(92), label);
     card.FillColor = fill;
     card.OutlineColor = accent;
-    card.OutlineWidthPoints = 1.25;
+    card.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.25);
     AddText(slide, value, left + 14, top + 12, 150, 34, 24, bold: true, color: accent);
     AddText(slide, label, left + 14, top + 52, 150, 24, 12, color: "52657A");
 }
@@ -325,12 +318,12 @@ static PowerPointTextBox AddText(
     int fontSize,
     bool bold = false,
     string color = "17324D") {
-    PowerPointTextBox box = slide.AddTextBoxPoints(text, left, top, width, height);
+    PowerPointTextBox box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
     box.FontName = "Carlito";
-    box.FontSize = fontSize;
+    box.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
     box.Bold = bold;
     box.Color = color;
-    box.SetTextMarginsPoints(0, 0, 0, 0);
+    box.SetTextMargins(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
     box.TextAutoFit = PowerPointTextAutoFit.Normal;
     return box;
 }

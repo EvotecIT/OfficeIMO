@@ -103,11 +103,11 @@ namespace OfficeIMO.Word.Html {
             }
 
             // An imported blockquote citation is stored as a cite-reference note and survives a save.
-            if (paragraph.IndentationBefore > 0 && headingLevel == 0 && TryGetBlockquoteCiteAttribute(paragraph, out _)) {
+            if (paragraph.IndentationBefore > OfficeLength.Zero && headingLevel == 0 && TryGetBlockquoteCiteAttribute(paragraph, out _)) {
                 return true;
             }
 
-            if (headingLevel > 0 || !(paragraph.IndentationBefore > 0) || paragraph.IndentationAfter > 0) {
+            if (headingLevel > 0 || !(paragraph.IndentationBefore > OfficeLength.Zero) || paragraph.IndentationAfter > OfficeLength.Zero) {
                 return false;
             }
 

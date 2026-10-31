@@ -39,7 +39,7 @@ public sealed class PdfDocumentViewingTests {
         Assert.Equal("Private metadata", authorized.LogicalContent.Metadata.Title);
         Assert.Equal(authorized.Pages[0].Width, view.Pages[0].Width);
         PdfPageRenderResult raster = restricted.Render.DisplayPage(1);
-        Assert.True(raster.Succeeded); Assert.Equal(PdfPageRenderFormat.Png, raster.Format);
+        Assert.True(raster.Succeeded); Assert.Equal(global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, raster.Format);
         Assert.Equal(owner.Render.DisplayPage(1).Bytes, raster.Bytes);
         string? capture = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VIEWING_CAPTURE_DIR");
         if (!string.IsNullOrEmpty(capture)) {
@@ -78,7 +78,7 @@ public sealed class PdfDocumentViewingTests {
                 case "display": document.Render.DisplayPage(1, cancellationToken: cancellation.Token); break;
                 case "ranges": document.Render.Pages("1", cancellationToken: cancellation.Token); break;
                 case "selection": document.Render.Pages(PdfPageSelection.Parse("1"), cancellationToken: cancellation.Token); break;
-                case "images": document.Render.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Png, cancellationToken: cancellation.Token); break;
+                case "images": document.ExportImages(cancellationToken: cancellation.Token); break;
             }
         });
         Assert.InRange(callbacks, 1, 2);
@@ -120,5 +120,5 @@ public sealed class PdfDocumentViewingTests {
             OwnerPassword = "owner", AllowedPermissions = permissions
         })).Meta(title: "Private metadata")
           .Paragraph(paragraph => paragraph.Text("Visible content with restricted extraction"))
-          .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 20D, 20D, 40D, 40D)).ToBytes();
+          .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D))).ToBytes();
 }

@@ -4,7 +4,7 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Options controlling Markdown to Word conversion.
     /// </summary>
-    public class WordMarkdownImportOptions {
+    public partial class WordMarkdownImportOptions {
         private bool? _renderFrontMatter;
         internal WordMarkdownImportOptions CloneForConversion() {
             var copy = (WordMarkdownImportOptions)MemberwiseClone();
@@ -89,7 +89,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <summary>
         /// Applies default page settings to the provided document instance.
         /// </summary>
-        public void ApplyDefaults(WordDocument document) {
+        internal void ApplyDefaults(WordDocument document) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
@@ -188,19 +188,19 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         /// <summary>
-        /// Optional hard cap (pixels) applied to rendered markdown image width.
+        /// Optional physical hard cap applied to rendered markdown image width.
         /// </summary>
-        public double? MaxImageWidthPixels {
-            get => ImageLayout.MaxWidthPixels;
-            set => ImageLayout.MaxWidthPixels = value;
+        public global::OfficeIMO.OfficeLength? MaxImageWidth {
+            get => ImageLayout.MaxWidth;
+            set => ImageLayout.MaxWidth = value;
         }
 
         /// <summary>
-        /// Optional hard cap (pixels) applied to rendered markdown image height.
+        /// Optional physical hard cap applied to rendered markdown image height.
         /// </summary>
-        public double? MaxImageHeightPixels {
-            get => ImageLayout.MaxHeightPixels;
-            set => ImageLayout.MaxHeightPixels = value;
+        public global::OfficeIMO.OfficeLength? MaxImageHeight {
+            get => ImageLayout.MaxHeight;
+            set => ImageLayout.MaxHeight = value;
         }
 
         /// <summary>

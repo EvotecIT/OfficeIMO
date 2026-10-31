@@ -810,13 +810,13 @@ public sealed class PdfRenderingProfileTests {
             string.Empty,
             bold: true,
             underline: true,
-            color: PdfColor.FromRgb(10, 20, 30),
+            color: global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
             italic: true,
             strike: true,
-            fontSize: 13,
+            fontSize: global::OfficeIMO.OfficeLength.Points(13),
             font: PdfStandardFont.Courier,
             baseline: PdfTextBaseline.Superscript,
-            backgroundColor: PdfColor.FromRgb(40, 50, 60),
+            backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(40, 50, 60),
             fontFamily: "Scoped");
         IReadOnlyList<PdfTextRun> runs = plan.ToNamedTextRuns(
             planner.FontFamilyNames,
@@ -827,7 +827,7 @@ public sealed class PdfRenderingProfileTests {
         Assert.Equal(styleTemplate.Color, runs[0].Color);
         Assert.True(runs[0].Italic);
         Assert.True(runs[0].Strike);
-        Assert.Equal(13, runs[0].FontSize);
+        Assert.Equal(13, (runs[0].FontSize?.ToPoints()));
         Assert.Equal(PdfStandardFont.Courier, runs[0].Font);
         Assert.Equal(PdfTextBaseline.Superscript, runs[0].Baseline);
         Assert.Equal(styleTemplate.BackgroundColor, runs[0].BackgroundColor);
@@ -2049,7 +2049,7 @@ public sealed class PdfRenderingProfileTests {
 
         Assert.False(Assert.IsType<bool>(state.GetValue(options)));
 
-        options.PdfOptions!.DefaultFontSize = 13;
+        options.PdfOptions!.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(13);
 
         Assert.True(Assert.IsType<bool>(state.GetValue(options)));
     }
@@ -2077,7 +2077,7 @@ public sealed class PdfRenderingProfileTests {
     [Fact]
     public void ExcelRenderingProfilePreservesWorksheetPageSizeUntilCallerOverridesIt() {
         using var workbook = OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream());
-        OfficeIMO.Excel.ExcelSheet sheet = workbook.AddWorksheet("Profile");
+        OfficeIMO.Excel.ExcelSheet sheet = workbook.AddSheet("Profile");
         sheet.CellValue(1, 1, "Profile page size");
         sheet.SetPaperSize(OfficeIMO.Excel.ExcelPaperSize.A3);
         var options = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions()
@@ -2092,7 +2092,7 @@ public sealed class PdfRenderingProfileTests {
             Assert.InRange((double)page.Height, 1190D, 1192D);
         }
 
-        options.PdfOptions!.PageSize = new PdfPageSize(300, 400);
+        options.PdfOptions!.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(400));
         byte[] explicitlySized = (OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(
             workbook,
             options)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -2179,13 +2179,13 @@ public sealed class PdfRenderingProfileTests {
     [Fact]
     public void ExcelRenderingProfileHonorsEqualValueLetterPageSizeAssignment() {
         using var workbook = OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream());
-        OfficeIMO.Excel.ExcelSheet sheet = workbook.AddWorksheet("Profile");
+        OfficeIMO.Excel.ExcelSheet sheet = workbook.AddSheet("Profile");
         sheet.CellValue(1, 1, "Explicit Letter page size");
         sheet.SetPaperSize(OfficeIMO.Excel.ExcelPaperSize.A3);
         var options = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions()
             .UseRenderingProfile(OfficeRenderingProfile.Managed);
 
-        options.PdfOptions!.PageSize = new PdfPageSize(612, 792);
+        options.PdfOptions!.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792));
         byte[] explicitlySized = (OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(
             workbook,
             options)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -2211,21 +2211,17 @@ public sealed class PdfRenderingProfileTests {
         byte[] excelPdf;
         using (OfficeIMO.Excel.ExcelDocument excel =
             OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream())) {
-            excel.AddWorksheet("Profile").CellValue(1, 1, "Excel profile proof");
+            excel.AddSheet("Profile").CellValue(1, 1, "Excel profile proof");
             excelPdf = (OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(
                 excel,
                 new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions().UseRenderingProfile(profile))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
         byte[] powerPointPdf;
-        using (OfficeIMO.PowerPoint.PowerPointPresentation powerPoint =
-            OfficeIMO.PowerPoint.PowerPointPresentation.Create(new MemoryStream())) {
-            powerPoint.AddSlide().AddTextBoxPoints(
-                "PowerPoint profile proof",
-                24,
-                24,
-                240,
-                40);
+        using (OfficeIMO.PowerPoint.PowerPointDocument powerPoint =
+            OfficeIMO.PowerPoint.PowerPointDocument.Create(new MemoryStream())) {
+            powerPoint.AddSlide().AddTextBox(
+                "PowerPoint profile proof",                global::OfficeIMO.OfficeLength.Points(24),                global::OfficeIMO.OfficeLength.Points(24),                global::OfficeIMO.OfficeLength.Points(240),                global::OfficeIMO.OfficeLength.Points(40));
             powerPointPdf = (OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdf(
                 powerPoint,
                 new OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions()
@@ -2493,7 +2489,7 @@ public sealed class PdfRenderingProfileTests {
         var fontless = new OfficeRenderingProfile("shaping-only");
         var options = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions()
             .UseRenderingProfile(fontless);
-        options.PdfOptions!.DefaultFontSize = 13;
+        options.PdfOptions!.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(13);
 
         options.UseRenderingProfile(
             fontless,
@@ -2501,7 +2497,7 @@ public sealed class PdfRenderingProfileTests {
 
         Assert.True(options.HasExplicitPdfFontConfiguration);
         Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
-        Assert.Equal(13, options.PdfOptions.DefaultFontSize);
+        Assert.Equal(13, options.PdfOptions.DefaultFontSize.ToPoints());
     }
 
     [Fact]
@@ -2542,7 +2538,7 @@ public sealed class PdfRenderingProfileTests {
         using var stream = new MemoryStream();
         using OfficeIMO.Word.WordDocument document =
             OfficeIMO.Word.WordDocument.Create(stream);
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("A");
         var options = new OfficeIMO.Word.Pdf.WordPdfExportOptions()
             .UseRenderingProfile(new OfficeRenderingProfile(
@@ -2566,7 +2562,7 @@ public sealed class PdfRenderingProfileTests {
             letter => letter.Value == "A").PointSize;
         Assert.InRange(pointSize, 17.9D, 18.1D);
 
-        options.PdfOptions!.DefaultFontSize = 13D;
+        options.PdfOptions!.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(13D);
         Assert.True(options.HasExplicitPdfDefaultFontSizeConfiguration);
         Assert.True(
             options.CloneForConversion()

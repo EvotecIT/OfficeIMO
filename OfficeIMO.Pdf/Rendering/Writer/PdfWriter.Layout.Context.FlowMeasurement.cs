@@ -12,9 +12,9 @@ internal static partial class PdfWriter {
             double saved = imageMeasurementReservedHeight;
             double savedTopPadding = containerMeasurementTopPadding;
             double savedBottomInset = containerMeasurementBottomInset;
-            imageMeasurementReservedHeight += style.GetFragmentTopPadding(isContinuation) + Math.Max(style.BottomPadding, style.FragmentBottomInset);
+            imageMeasurementReservedHeight += style.GetFragmentTopPadding(isContinuation) + Math.Max(style.BottomPadding, style.FragmentBottomInset.ToPoints());
             containerMeasurementTopPadding += style.GetFragmentTopPadding(isContinuation: true);
-            containerMeasurementBottomInset += style.FragmentBottomInset;
+            containerMeasurementBottomInset += style.FragmentBottomInset.ToPoints();
             try {
                 return measure();
             } finally {
@@ -61,7 +61,7 @@ internal static partial class PdfWriter {
 
                     if (block is TableBlock overlay && RestoresMeasuredTableFlow(
                         overlay.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light(), height.Value,
-                        y - currentOpts.MarginBottom)) {
+                        y - currentOpts.MarginBottom.ToPoints())) {
                         if (isRunningContent)
                             measuredRunningPaintBottom = Math.Min(measuredRunningPaintBottom, y - height.Value);
                         continue;
@@ -126,35 +126,36 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Container padding must leave positive content width.");
                 }
 
-                double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
+                double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
                 double? contentHeight = MeasureWithContainerPaddingReservation(style, () => MeasureBlockSequence(
                     container.Blocks,
-                    containerFrame.X + style.PaddingX,
+                    containerFrame.X + style.PaddingX.ToPoints(),
                     contentWidth,
                     fontSize,
                     spacingBefore + style.TopPadding));
                 return contentHeight.HasValue
-                    ? spacingBefore + style.TopPadding + Math.Max(contentHeight.Value, style.MinimumContentHeight) + style.BottomPadding + style.SpacingAfter
+                    ? spacingBefore + style.TopPadding + Math.Max(contentHeight.Value, style.MinimumContentHeight) + style.BottomPadding + style.SpacingAfter.ToPoints()
                     : null;
             }
 
             if (block is FlowBlock flow) {
+                IReadOnlyList<IPdfBlock>? flowBlocks = flow.StaticBlocks;
                 if (flow.IsReplayable || flow.Options.ShowIf != null ||
-                    flow.Options.MinimumRemainingHeight > 0D ||
+                    flow.Options.MinimumRemainingHeight.ToPoints() > 0D ||
                     flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue ||
-                    flow.StaticBlocks == null) {
+                    flowBlocks == null) {
                     return null;
                 }
 
                 double flowStart = y;
                 try {
-                    double? measured = MeasureBlockSequence(flow.StaticBlocks, frameX, frameWidth, fontSize);
+                    double? measured = MeasureBlockSequence(flowBlocks, frameX, frameWidth, fontSize);
                     if (flow.Options.KeepTogether && measured.HasValue) {
                         while (HasFloatingTables) {
                             double previousY = y;
                             AvoidFloatingBlock(measured.Value);
                             if (y >= previousY - 0.001) break;
-                            measured = MeasureBlockSequence(flow.StaticBlocks, frameX, frameWidth, fontSize);
+                            measured = MeasureBlockSequence(flowBlocks, frameX, frameWidth, fontSize);
                             if (!measured.HasValue) return null;
                         }
                     }

@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreservesRelativeTableFormulaOffsetsAtFirstDataRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Value");
             sheet.CellAt(1, 2).SetValue("Result");
             sheet.CellAt(2, 1).SetValue(10);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsNamedSheetViewFilters() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             Xnsv.NsvFilter filter = AddNamedSheetViewFilter(sheet, "A5:C10");
 
             sheet.InsertRows(5, 2);
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsNamedSheetViewFilters() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Keep");
             Xnsv.NsvFilter filter = AddNamedSheetViewFilter(
                 sheet,

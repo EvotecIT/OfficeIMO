@@ -68,8 +68,8 @@ public sealed class ConversionBatchFailureTests {
             var summary = Assert.IsType<OfficeBatchSummary>(runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal(1, summary.Completed);
             Assert.Equal(1, summary.Failed);
-            Assert.Contains("Completed before reporting", PdfDocument.Load(Path.Combine(output, "good.txt.pdf")).Read().Text);
-            Assert.False(File.Exists(Path.Combine(output, "broken.docx.pdf")));
+            Assert.Contains("Completed before reporting", PdfDocument.Load(Path.Combine(output, "good.pdf")).Read().Text);
+            Assert.False(File.Exists(Path.Combine(output, "broken.pdf")));
         } finally {
             Directory.Delete(root, true);
         }

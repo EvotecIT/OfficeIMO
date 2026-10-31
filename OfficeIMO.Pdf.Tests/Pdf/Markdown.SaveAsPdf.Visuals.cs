@@ -16,7 +16,7 @@ public class MarkdownSaveAsPdfVisualTests {
         MarkdownDocument document = MarkdownDocument
             .Create()
             .H1("Visual report")
-            .Image(dataUri, "Operational badge", "Badge", width: 42, height: 28)
+            .Image(dataUri, "Operational badge", "Badge", width: OfficeIMO.OfficeLength.Pixels(42), height: OfficeIMO.OfficeLength.Pixels(28))
             .Caption("Figure 1. Operational badge");
 
         byte[] bytes = document.ToPdf(CreateVisualOptions()).ToBytes();
@@ -29,9 +29,8 @@ public class MarkdownSaveAsPdfVisualTests {
     [Fact]
     public void ToPdfDocument_MarkdownImageOnlyParagraph_RendersImageInsteadOfTextPlaceholder() {
         string dataUri = CreateDataUriPng();
-        MarkdownDocument document = MarkdownDocument
-            .Create()
-            .Add(new ParagraphBlock(new InlineSequence().Image("Inline badge", dataUri, "Inline badge caption")));
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Image("Inline badge", dataUri, "Inline badge caption")));
 
         byte[] bytes = document.ToPdf(CreateVisualOptions()).ToBytes();
         string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
@@ -46,9 +45,8 @@ public class MarkdownSaveAsPdfVisualTests {
         string dataUri = CreateDataUriPng();
         var quote = new QuoteBlock();
         quote.ChildBlocks.Add(new ParagraphBlock(new InlineSequence().Image("Inline badge", dataUri, "Inline badge caption")));
-        MarkdownDocument document = MarkdownDocument
-            .Create()
-            .Add(quote);
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(quote);
 
         byte[] bytes = document.ToPdf(CreateVisualOptions()).ToBytes();
         string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
@@ -68,9 +66,8 @@ public class MarkdownSaveAsPdfVisualTests {
         list.Items.Add(item);
         var quote = new QuoteBlock();
         quote.ChildBlocks.Add(list);
-        MarkdownDocument document = MarkdownDocument
-            .Create()
-            .Add(quote);
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(quote);
 
         byte[] bytes = document.ToPdf(CreateVisualOptions()).ToBytes();
         string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
@@ -88,10 +85,10 @@ public class MarkdownSaveAsPdfVisualTests {
         MarkdownPdfStyle pdfTheme = MarkdownPdfStyle.FromMarkdownTheme(sharedTheme);
         PdfCore.PdfTheme documentTheme = pdfTheme.DocumentTheme!;
 
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0x65, 0x43, 0x21), documentTheme.TextStyle!.Color);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles!.Level1!.Color);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles.Level2!.Color);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles.Level3!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0x65, 0x43, 0x21), documentTheme.TextStyle!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles!.Level1!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles.Level2!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles.Level3!.Color);
     }
 
     [Fact]
@@ -101,7 +98,7 @@ public class MarkdownSaveAsPdfVisualTests {
 
         MarkdownPdfStyle pdfTheme = MarkdownPdfStyle.FromMarkdownTheme(sharedTheme);
 
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0x11, 0x22, 0x33), pdfTheme.PageDecoration!.BackgroundColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0x11, 0x22, 0x33), pdfTheme.PageDecoration!.BackgroundColor);
     }
 
     [Fact]
@@ -121,13 +118,13 @@ public class MarkdownSaveAsPdfVisualTests {
         var options = new MarkdownPdfExportOptions {
             Theme = sharedTheme,
             PdfOptions = new PdfCore.PdfCreateOptions {
-                BackgroundColor = PdfCore.PdfColor.FromRgb(0xaa, 0xbb, 0xcc)
+                BackgroundColor = global::OfficeIMO.OfficeColor.FromRgb(0xaa, 0xbb, 0xcc)
             }
         };
 
         PdfCore.PdfDocument pdf = OfficeIMO.Markdown.MarkdownDocument.Parse("# Themed").ToPdf(options);
 
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0xaa, 0xbb, 0xcc), GetPdfOptions(pdf).BackgroundColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0xaa, 0xbb, 0xcc), GetPdfOptions(pdf).BackgroundColor);
     }
 
     [Fact]
@@ -182,9 +179,9 @@ public class MarkdownSaveAsPdfVisualTests {
 """;
         MarkdownPdfStyle visualTheme = MarkdownPdfStyle.Plain();
         visualTheme.QuotePanelStyle = new PdfCore.PdfPanelStyle {
-            Background = PdfCore.PdfColor.FromRgb(0xff, 0, 0),
-            PaddingX = 8,
-            PaddingY = 6
+            Background = global::OfficeIMO.OfficeColor.FromRgb(0xff, 0, 0),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(6)
         };
         var options = CreateVisualOptions();
         options.Style = visualTheme;
@@ -216,9 +213,8 @@ public class MarkdownSaveAsPdfVisualTests {
     [Fact]
     public void ToPdfDocument_MarkdownGifImage_NormalizesThroughSharedRasterEngine() {
         const string imageUrl = "https://example.test/badge.gif";
-        MarkdownDocument document = MarkdownDocument
-            .Create()
-            .Add(new ParagraphBlock(new InlineSequence().Image("Remote badge", imageUrl, "Remote badge caption")));
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Image("Remote badge", imageUrl, "Remote badge caption")));
         var options = CreateVisualOptions();
         options.ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost();
         options.RemoteImageResolver = _ => CreateGifBytes();
@@ -352,9 +348,8 @@ _Figure 2. Revenue chart_
 }
 """)
         });
-        MarkdownDocument document = MarkdownDocument
-            .Create()
-            .Add(callout);
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(callout);
 
         var options = CreateVisualOptions();
         byte[] bytes = document.ToPdf(options).ToBytes();
@@ -405,7 +400,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.BarClustered, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.BarClustered, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -826,7 +821,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(10D, series.XValues![0]);
         Assert.True(double.IsNaN(series.XValues[1]));
         Assert.Equal(40D, series.XValues[2]);
@@ -855,7 +850,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(new[] { 10D, 25D }, series.XValues);
         Assert.Equal(new[] { 2D, 4D }, series.Values);
         Assert.Equal(2, snapshot.Data.Categories.Count);
@@ -931,7 +926,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.True(double.IsNaN(series.Values[0]));
         Assert.Equal(14D, series.Values[1]);
     }
@@ -956,7 +951,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(10D, series.Values[0]);
         Assert.Equal(14D, series.Values[1]);
     }
@@ -1025,7 +1020,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(new[] { 10D, 25D }, series.XValues);
         Assert.Equal(new[] { 2D, 4D }, series.Values);
     }
@@ -1088,7 +1083,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.True(double.IsNaN(series.XValues![0]));
         Assert.Equal(1D, series.XValues[1]);
         Assert.True(double.IsNaN(series.Values[0]));
@@ -1117,7 +1112,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = snapshot!.Data.Series[0];
+        OfficeSeries series = snapshot!.Data.Series[0];
         Assert.True(double.IsNaN(series.XValues![0]));
         Assert.True(double.IsNaN(series.Values[0]));
         Assert.Equal(2D, series.XValues[1]);
@@ -1136,7 +1131,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(new[] { 10D, 25D }, series.XValues);
         Assert.Equal(new[] { 2D, 4D }, series.Values);
     }
@@ -1183,7 +1178,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.True(double.IsNaN(series.XValues![0]));
         Assert.True(double.IsNaN(series.Values[0]));
         Assert.Equal(1D, series.XValues![1]);
@@ -1281,7 +1276,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(1D, series.Values[0]);
         Assert.True(double.IsNaN(series.Values[1]));
         Assert.Equal(3D, series.Values[2]);
@@ -1450,9 +1445,9 @@ _Figure 2. Revenue chart_
     [Fact]
     public void ToPdfDocument_MarkdownChartFence_WarnsWhenPageIsTooNarrowForNativeChartRenderer() {
         var options = CreateVisualOptions();
-        options.PdfOptions!.PageWidth = 220;
-        options.PdfOptions.MarginLeft = 36;
-        options.PdfOptions.MarginRight = 36;
+        options.PdfOptions!.PageWidth = global::OfficeIMO.OfficeLength.Points(220);
+        options.PdfOptions.MarginLeft = global::OfficeIMO.OfficeLength.Points(36);
+        options.PdfOptions.MarginRight = global::OfficeIMO.OfficeLength.Points(36);
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
   "type": "bar",
@@ -1475,9 +1470,9 @@ _Figure 2. Revenue chart_
     [Fact]
     public void ToPdfDocument_MarkdownChartFence_WarnsWhenPageIsTooShortForNativeChartRenderer() {
         var options = CreateVisualOptions();
-        options.PdfOptions!.PageHeight = 180;
-        options.PdfOptions.MarginTop = 36;
-        options.PdfOptions.MarginBottom = 36;
+        options.PdfOptions!.PageHeight = global::OfficeIMO.OfficeLength.Points(180);
+        options.PdfOptions.MarginTop = global::OfficeIMO.OfficeLength.Points(36);
+        options.PdfOptions.MarginBottom = global::OfficeIMO.OfficeLength.Points(36);
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
   "type": "bar",
@@ -1500,9 +1495,9 @@ _Figure 2. Revenue chart_
     [Fact]
     public void ToPdfDocument_MarkdownChartFence_WarnsWhenFigureSpacingLeavesPageTooShortForNativeChartRenderer() {
         var options = CreateVisualOptions();
-        options.PdfOptions!.PageHeight = 226;
-        options.PdfOptions.MarginTop = 36;
-        options.PdfOptions.MarginBottom = 36;
+        options.PdfOptions!.PageHeight = global::OfficeIMO.OfficeLength.Points(226);
+        options.PdfOptions.MarginTop = global::OfficeIMO.OfficeLength.Points(36);
+        options.PdfOptions.MarginBottom = global::OfficeIMO.OfficeLength.Points(36);
         var semantic = new SemanticFencedBlock(MarkdownSemanticKinds.Chart, "chart", """
 {
   "type": "bar",
@@ -1582,7 +1577,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal("Visible", series.Name);
         Assert.Equal(new[] { 1D, 2D, 3D }, series.Values);
     }
@@ -1803,7 +1798,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal("Visible", series.Name);
         Assert.Equal(new[] { 1D, 2D }, series.Values);
     }
@@ -1831,7 +1826,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.AreaStacked, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.AreaStacked, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -1852,7 +1847,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.Doughnut, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.Doughnut, snapshot!.ChartKind);
         Assert.Equal(2, snapshot.Data.Series.Count);
         Assert.Equal("Outer", snapshot.Data.Series[0].Name);
         Assert.Equal("Inner", snapshot.Data.Series[1].Name);
@@ -1900,7 +1895,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal("Visible", series.Name);
         Assert.Equal(2D, Assert.Single(series.Values));
     }
@@ -2129,7 +2124,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.ColumnStacked, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.ColumnStacked, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -2155,7 +2150,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.LineStacked, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.LineStacked, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -2176,7 +2171,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.Area, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.Area, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -2202,7 +2197,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.Area, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.Area, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -2271,7 +2266,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.LineStacked, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.LineStacked, snapshot!.ChartKind);
         Assert.True(snapshot.Layout.ShowMarkers);
     }
 
@@ -2443,8 +2438,8 @@ _Figure 2. Revenue chart_
             Align = PdfCore.PdfAlign.Center,
             Decorative = true,
             KeepWithNext = true,
-            SpacingBefore = 2,
-            SpacingAfter = 4
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(4)
         };
         theme.FigureStyle = figureStyle;
         var options = CreateVisualOptions();
@@ -2499,12 +2494,12 @@ _Figure 3. Flow fallback_
         Style = MarkdownPdfStyle.Report(),
         PdfOptions = new PdfCore.PdfCreateOptions {
             CompressContentStreams = false,
-            PageWidth = 420,
-            PageHeight = 420,
-            MarginLeft = 36,
-            MarginRight = 36,
-            MarginTop = 36,
-            MarginBottom = 36
+            PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(420),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
         }
     };
 

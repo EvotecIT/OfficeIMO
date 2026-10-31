@@ -17,7 +17,7 @@ namespace OfficeIMO.Word.Pdf {
                 hasSpacing |= ResolveNativeTextRunStyle(item.Run, paragraph, nativeFontMap: fontMap).SmallCaps;
                 foreach (NativeHeaderFooterStyledReplacement replacement in CreateNativeHeaderFooterSpacingReplacements(
                     paragraph, item.Run, item.Text, item.IsField, fontMap)) {
-                    hasSpacing |= replacement.StyledRun.HorizontalTextScaling != 100D || replacement.StyledRun.CharacterSpacing != 0D;
+                    hasSpacing |= replacement.StyledRun.HorizontalTextScaling != 100D || (replacement.StyledRun.CharacterSpacing.ToPoints()) != 0D;
                     hasSpacing |= replacement.StyledRun.FeatureSettings.TryGetValue("kern", out int kerning) && kerning != 0;
                     hasSpacing |= new[] { "liga", "clig", "dlig", "hlig" }.Any(feature =>
                         replacement.StyledRun.FeatureSettings.TryGetValue(feature, out int enabled) && enabled != 0);

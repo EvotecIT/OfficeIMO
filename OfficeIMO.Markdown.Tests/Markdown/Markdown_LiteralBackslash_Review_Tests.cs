@@ -13,7 +13,9 @@ public sealed class Markdown_LiteralBackslash_Review_Tests {
         var table = new TableBlock();
         table.Headers.Add("Value");
         table.Rows.Add(new[] { value });
-        string markdown = MarkdownDocument.Create().P(value).Add(table).ToMarkdown(
+        using var document = MarkdownDocument.Create().P(value);
+        document.Add(table);
+        string markdown = document.ToMarkdown(
             new MarkdownSaveOptions { TextEscapingMode = MarkdownTextEscapingMode.LiteralBackslash });
         string html = Markdig.Markdown.ToHtml(markdown, Pipeline());
         Assert.DoesNotContain("<ins>", html);

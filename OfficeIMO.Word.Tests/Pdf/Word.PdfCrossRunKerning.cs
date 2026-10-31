@@ -53,7 +53,7 @@ public sealed class WordPdfCrossRunKerningTests {
             index++;
         }
         if (route is "header" or "footer") document.AddParagraph("Body").FontFamily = "Courier";
-        var options = new PdfCreateOptions { DefaultFontSize = 20D };
+        var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20D) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V')));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {

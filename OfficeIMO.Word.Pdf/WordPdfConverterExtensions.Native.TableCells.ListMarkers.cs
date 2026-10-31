@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfCore.PdfTextRun markerRun = CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap, includeSuffix: false);
-            double markerFontSize = markerRun.FontSize ?? textStyle.FontSize ?? nativeDefaults.FontSize;
+            double markerFontSize = (markerRun.FontSize?.ToPoints()) ?? textStyle.FontSize ?? nativeDefaults.FontSize;
             NativeTextSpacing markerSpacing = ResolveNativeListMarkerTextSpacing(info.Value, textStyle.ListMarkerTextSpacing);
             double markerWidth = nativeFontMap?.MeasureText(markerRun)
                 ?? EstimateNativeListMarkerWidth(marker, markerFontSize, markerSpacing);
@@ -40,7 +40,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void AddNativeCellListSpacer(List<PdfCore.PdfTextRun> runs, double width) {
             if (width > 0.01D) {
-                runs.Add(PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineBox(width, 0.01D, borderWidth: 0D) { IsTextSpacer = true }));
+                runs.Add(PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineBox(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(0.01D), borderWidth: global::OfficeIMO.OfficeLength.Points(0D)) { IsTextSpacer = true }));
             }
         }
     }

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a legacy XLS cell comment parsed from NOTE/OBJ/TXO records.
     /// </summary>
-    public sealed class LegacyXlsComment {
+    internal sealed class LegacyXlsComment {
         /// <summary>
         /// Creates parsed legacy XLS comment metadata.
         /// </summary>

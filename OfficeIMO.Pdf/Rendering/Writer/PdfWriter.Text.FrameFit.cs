@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
                     hasDescent = true;
                 }
             } else if (segment.InlineElement is { } inline && !UsesInlineRunTextMetrics(inline)) {
-                descent = Math.Max(descent, -inline.BaselineOffset);
+                descent = Math.Max(descent, -inline.BaselineOffset.ToPoints());
                 hasDescent = true;
             } else if (segment.ContributesLineBoxDescent) {
                 GetRichRunLineMetrics(segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,

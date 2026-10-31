@@ -1094,7 +1094,7 @@ public partial class Word {
         Assert.Equal(new[] { "Monospace VML text", "\n", "Next line" }, runs.Select(run => run.Text));
         Assert.All(runs, run => {
             Assert.Equal(PdfStandardFont.Courier, run.Font);
-            Assert.Equal(16D, run.FontSize);
+            Assert.Equal(16D, (run.FontSize?.ToPoints()));
         });
     }
 
@@ -1127,7 +1127,7 @@ public partial class Word {
         Assert.False(plain.Underline);
         PdfTextRun textPath = Assert.Single(runs, run => run.Text == "TextPath cover label");
         Assert.Equal(PdfStandardFont.Courier, textPath.Font);
-        Assert.Equal(18D, textPath.FontSize);
+        Assert.Equal(18D, (textPath.FontSize?.ToPoints()));
     }
 
     [Fact]
@@ -1191,13 +1191,13 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Chart section").SetStyle(WordParagraphStyles.Heading1);
-            WordChart chart = document.AddChart("Word PDF Chart", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Chart",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddPie("Passed", 3);
             chart.AddPie("Failed", 1);
             document.AddParagraph("After chart");
 
             object snapshot = CreateNativeWordChartSnapshot(chart);
-            Assert.Equal(OfficeChartKind.Pie, snapshot.GetType().GetProperty("ChartKind")!.GetValue(snapshot));
+            Assert.Equal(OfficeChartType.Pie, snapshot.GetType().GetProperty("ChartKind")!.GetValue(snapshot));
             object data = snapshot.GetType().GetProperty("Data")!.GetValue(snapshot)!;
             var categories = ((System.Collections.IEnumerable)data.GetType().GetProperty("Categories")!.GetValue(data)!).Cast<string>().ToList();
             Assert.Equal(new[] { "Passed", "Failed" }, categories);
@@ -1224,7 +1224,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChart" + suffix + "Extent.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Untrusted Word chart extent", false, 360, 220);
+            WordChart chart = document.AddChart("Untrusted Word chart extent",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddPie("Passed", 3);
             chart.AddPie("Failed", 1);
             DW.Extent extent = chart.Drawing!.Inline?.Extent ?? chart.Drawing.Anchor!.Extent!;
@@ -1249,7 +1249,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordParagraph paragraph = document.AddParagraph("Before inline chart");
-            WordChart chart = new WordChart(document, paragraph, "Inline Word PDF Chart", false, 320, 180);
+            WordChart chart = new WordChart(document,paragraph,"Inline Word PDF Chart",false,OfficeIMO.OfficeLength.Pixels(320),OfficeIMO.OfficeLength.Pixels(180));
             chart.AddPie("Passed", 2);
             chart.AddPie("Failed", 1);
             document.AddParagraph("After inline chart");
@@ -1309,7 +1309,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Pie Labels", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Pie Labels",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddPie("Passed", 1);
             chart.AddPie("Failed", 0);
             chart.AddPie("Skipped", 0);
@@ -1373,7 +1373,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Bar Labels", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Bar Labels",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2" }.ToList());
             chart.AddBar("Actual", new[] { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
             document.AddParagraph("After bar labels");
@@ -1417,7 +1417,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordScatterAxisMetadata.docx");
 
         using WordDocument document = WordDocument.Create(docPath);
-        WordChart chart = document.AddChart("Word PDF Scatter Axis Metadata", false, 360, 220);
+        WordChart chart = document.AddChart("Word PDF Scatter Axis Metadata",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
         chart.AddScatter("Points", new List<double> { 1, 2 }, new List<double> { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
 
         ChartPart chartPart = (ChartPart)typeof(WordChart)
@@ -1449,7 +1449,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordHiddenAxesLegend.docx");
 
         using WordDocument document = WordDocument.Create(docPath);
-        WordChart chart = document.AddChart("Word PDF Hidden Axes Legend", false, 360, 220);
+        WordChart chart = document.AddChart("Word PDF Hidden Axes Legend",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
         chart.AddCategories(new[] { "Q1", "Q2" }.ToList());
         chart.AddBar("HiddenLegend", new[] { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
         chart.AddBar("VisibleLegend", new[] { 12, 24 }, OfficeColor.ParseHex("#70ad47"));
@@ -1502,7 +1502,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Mixed Chart", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Mixed Chart",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2" }.ToList());
             chart.AddBar("Actual", new[] { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
             document.AddParagraph("After mixed chart");
@@ -1547,7 +1547,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Axis Titles", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Axis Titles",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2" }.ToList());
             chart.AddBar("Actual", new[] { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
             chart.SetXAxisTitle("Quarter Axis");
@@ -1580,7 +1580,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Line No Markers", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Line No Markers",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
             chart.AddLine("Trend", new List<int> { 10, 15, 20 }, OfficeColor.ParseHex("#4472c4"));
             document.AddParagraph("After line no markers");
@@ -1614,7 +1614,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Bar Colors", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Bar Colors",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
             chart.AddBar("EMEA", new[] { 10, 12, 14 }, OfficeColor.Black);
             chart.AddBar("APAC", new[] { 9, 11, 15 }, OfficeColor.Black);
@@ -1648,7 +1648,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Chart Area Colors", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Chart Area Colors",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
             chart.AddBar("Actual", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
             document.AddParagraph("After chart area colors");
@@ -1692,7 +1692,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Axis Grid Colors", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Axis Grid Colors",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
             chart.AddBar("Actual", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
             document.AddParagraph("After axis grid colors");
@@ -1734,7 +1734,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartNoGridlines.docx");
 
         using WordDocument document = WordDocument.Create(docPath);
-        WordChart chart = document.AddChart("Word PDF No Gridlines", false, 360, 220);
+        WordChart chart = document.AddChart("Word PDF No Gridlines",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
         chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
         chart.AddBar("Actual", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
 
@@ -1760,7 +1760,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Styled Title", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Styled Title",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
             chart.AddBar("Actual", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
             document.AddParagraph("After chart title color");
@@ -1802,7 +1802,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Label Skip", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Label Skip",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(Enumerable.Range(1, 12).Select(index => "Q" + index.ToString()).ToList());
             chart.AddBar("Volume", Enumerable.Range(1, 12).Select(index => index * 2).ToArray(), OfficeColor.ParseHex("#4472c4"));
             document.AddParagraph("After label skip chart");
@@ -1836,7 +1836,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF No Legend", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF No Legend",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
             chart.AddBar("NoLegendSeries", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
             document.AddParagraph("After no legend chart");
@@ -1871,7 +1871,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Bottom Legend", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Bottom Legend",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
             chart.AddBar("BottomLegendSeries", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
             ChartPart chartPart = (ChartPart)typeof(WordChart)
@@ -1906,7 +1906,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Left Legend", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Left Legend",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
             chart.AddBar("LeftLegendSeries", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
             ChartPart chartPart = (ChartPart)typeof(WordChart)
@@ -1940,8 +1940,8 @@ public partial class Word {
             IncludePageNumbers = false
         };
 
-        using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Scheme Colors", false, 360, 220);
+        using (WordDocument document = WordDocument.Create(docPath, new WordCreateOptions { Theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(accent1: OfficeColor.FromRgb(68, 114, 196))) })) {
+            WordChart chart = document.AddChart("Word PDF Scheme Colors",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
             chart.AddBar("EMEA", new[] { 10, 12, 14 }, OfficeColor.Black);
             document.AddParagraph("After scheme chart colors");
@@ -1985,7 +1985,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Pie Colors", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Pie Colors",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddPie("Passed", 4);
             chart.AddPie("Failed", 1);
             chart.AddPie("Skipped", 1);
@@ -2021,7 +2021,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordChart chart = document.AddChart("Word PDF Title Band", false, 360, 220);
+            WordChart chart = document.AddChart("Word PDF Title Band",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(220));
             chart.AddPie("Passed", 4);
             chart.AddPie("Failed", 2);
             document.AddParagraph("After chart title band");

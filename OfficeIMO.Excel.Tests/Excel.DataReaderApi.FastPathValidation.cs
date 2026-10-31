@@ -379,7 +379,7 @@ public partial class Excel {
             Path.GetTempPath(),
             $"OfficeIMO.Excel.FastPathValidation.{Guid.NewGuid():N}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.CellValue(2, 1, 42);
             sheet.CellValue(3, 1, 43);

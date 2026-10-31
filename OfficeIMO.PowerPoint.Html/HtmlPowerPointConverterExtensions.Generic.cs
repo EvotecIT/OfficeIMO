@@ -7,13 +7,13 @@ namespace OfficeIMO.PowerPoint.Html;
 public static partial class HtmlPowerPointConverterExtensions {
     private static void ImportGenericDocument(
         HtmlSemanticDocument document,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointOptions options,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         HtmlEditableLayoutProjection? editableLayout) {
         var firstSlideIndexes = new List<int>();
-        double slideBottom = presentation.SlideSize.HeightPoints - 30D;
+        double slideBottom = presentation.SlideSize.Height.ToPoints() - 30D;
         bool slideLimitReached = false;
         foreach (HtmlSemanticSection section in document.Sections) {
             if (!TryAddGenericSlide(presentation, result, budget, out PptCore.PowerPointSlide slide)) break;
@@ -41,7 +41,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                         break;
                     }
                 } else if (importTable) {
-                    double tableWidth = presentation.SlideSize.WidthPoints - 128D;
+                    double tableWidth = presentation.SlideSize.Width.ToPoints() - 128D;
                     double? authoredWidth = ReadOptionalDoubleAttribute(block.SourceElement, "data-officeimo-width");
                     if (authoredWidth >= 1D && authoredWidth <= budget.Limits.MaxAbsoluteGeometry) {
                         tableWidth = authoredWidth.Value;
@@ -198,7 +198,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static bool TryAddGenericSlide(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         out PptCore.PowerPointSlide slide) {
@@ -270,7 +270,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static void GetGenericResourcePictureSize(
         HtmlSemanticResource resource,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlImportBudget budget,
         out double width,
         out double height,
@@ -278,8 +278,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         double maximum = budget.Limits.MaxAbsoluteGeometry;
         width = ReadGenericResourceDimension(resource.WidthPixels, 160D, maximum);
         height = ReadGenericResourceDimension(resource.HeightPixels, 90D, maximum);
-        double widthLimit = Math.Max(1D, presentation.SlideSize.WidthPoints - 128D);
-        double heightLimit = Math.Max(1D, presentation.SlideSize.HeightPoints - 60D);
+        double widthLimit = Math.Max(1D, presentation.SlideSize.Width.ToPoints() - 128D);
+        double heightLimit = Math.Max(1D, presentation.SlideSize.Height.ToPoints() - 60D);
         double scale = Math.Min(1D, Math.Min(widthLimit / width, heightLimit / height));
         fitted = scale < 1D;
         width *= scale;
@@ -293,7 +293,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static void ReportGenericOffSlideShapes(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget) {
         var options = new PptCore.PowerPointDeckPreflightOptions {
@@ -314,9 +314,9 @@ public static partial class HtmlPowerPointConverterExtensions {
                 continue;
             }
             PptCore.PowerPointLayoutBox? bounds = finding.Bounds;
-            bool whollyOutside = bounds.HasValue && (bounds.Value.Right <= 0L || bounds.Value.Bottom <= 0L
-                || bounds.Value.Left >= presentation.SlideSize.WidthEmus
-                || bounds.Value.Top >= presentation.SlideSize.HeightEmus);
+            bool whollyOutside = bounds.HasValue && (bounds.Value.Right.ToEmus() <= 0L || bounds.Value.Bottom.ToEmus() <= 0L
+                || bounds.Value.Left.ToEmus() >= presentation.SlideSize.Width.ToEmus()
+                || bounds.Value.Top.ToEmus() >= presentation.SlideSize.Height.ToEmus());
             AddImportDiagnostic(result,
                 whollyOutside ? HtmlConversionDiagnosticCodes.ContentOmitted : HtmlConversionDiagnosticCodes.ContentApproximated,
                 whollyOutside
@@ -330,7 +330,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ImportEditableLayoutRegions(
         IReadOnlyList<HtmlRenderLayoutRegion> regions,
         IReadOnlyList<int> firstSlideIndexes,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointOptions options,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget) {
@@ -373,11 +373,11 @@ public static partial class HtmlPowerPointConverterExtensions {
                 }
             }
             var occupied = slide.TextBoxes
-                .Select(box => new EditableLayoutSlideBounds(box.LeftPoints, box.TopPoints, box.WidthPoints, box.HeightPoints))
+                .Select(box => new EditableLayoutSlideBounds(box.Left.ToPoints(), box.Top.ToPoints(), box.Width.ToPoints(), box.Height.ToPoints()))
                 .Concat(slide.Pictures.Select(picture => new EditableLayoutSlideBounds(
-                    picture.LeftPoints, picture.TopPoints, picture.WidthPoints, picture.HeightPoints)))
+                    picture.Left.ToPoints(), picture.Top.ToPoints(), picture.Width.ToPoints(), picture.Height.ToPoints())))
                 .Concat(slide.Tables.Select(table => new EditableLayoutSlideBounds(
-                    table.LeftPoints, table.TopPoints, table.WidthPoints, table.HeightPoints)))
+                    table.Left.ToPoints(), table.Top.ToPoints(), table.Width.ToPoints(), table.Height.ToPoints())))
                 .Concat(sectionGroup.Where(region =>
                         region.RegionKind == HtmlRenderLayoutRegionKind.Positioned
                         && shapeReservations.ContainsKey(region))
@@ -473,8 +473,8 @@ public static partial class HtmlPowerPointConverterExtensions {
 
                 using HtmlImportBudgetReservation? backgroundFillReservationScope = backgroundFillReservation;
                 if (backgroundFillReservation != null) {
-                    PptCore.PowerPointAutoShape backingFill = slide.AddRectanglePoints(
-                        left, top, width, height, "HTML background " + region.SourceKey);
+                    PptCore.PowerPointAutoShape backingFill = slide.AddRectangle(
+                        OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height), "HTML background " + region.SourceKey);
                     backingFill.FillColor = region.BackgroundColor!.Value.ToRgbHex();
                     backgroundFillReservation.Commit();
                     nativeRegionShapes.Add(backingFill);
@@ -484,7 +484,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     retainedBackgroundPictures = AddEditableLayoutPictures(slide, region, backgroundImages: true,
                         left, top, topOffset, maximumGeometry, budget, result, nativeRegionShapes);
                 }
-                PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(region.SourceText, left, top, width, height);
+                PptCore.PowerPointTextBox textBox = slide.AddTextBox(region.SourceText,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
                 reservedShape.Commit();
                 nativeRegionShapes.Add(textBox);
                 textBox.Name = "HTML " + region.RegionKind + " " + region.SourceKey;
@@ -498,7 +498,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 }
 
                 if (region.BoxShadowLayerCount > 0) {
-                    textBox.SetShadow("000000", blurPoints: 4D, distancePoints: 2D, angleDegrees: 45D, transparencyPercent: 45);
+                    textBox.SetShadow("000000", blur: OfficeLength.Points(4D), distance: OfficeLength.Points(2D), angleDegrees: 45D, transparencyPercent: 45);
                     AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
                         region.BoxShadowLayerCount > 1
                             ? "PowerPoint approximated the first editable CSS shadow and omitted additional shadow layers."
@@ -608,11 +608,10 @@ public static partial class HtmlPowerPointConverterExtensions {
             double pictureHeight = NormalizeGeometry(image.Height * 0.75D, 1D, 1D,
                 budget, result, "editable layout picture height");
             using var stream = new MemoryStream(image.Bytes);
-            PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imageType,
-                pictureLeft, pictureTop, pictureWidth, pictureHeight);
+            PptCore.PowerPointPicture picture = slide.AddImage(stream, imageType,
+                OfficeIMO.OfficeLength.Points(pictureLeft), OfficeIMO.OfficeLength.Points(pictureTop), OfficeIMO.OfficeLength.Points(pictureWidth), OfficeIMO.OfficeLength.Points(pictureHeight));
             // The HTML layout already resolved object-fit and the visible image frame.
-            picture.SetSizePoints(pictureWidth, pictureHeight);
-            picture.SetPositionPoints(pictureLeft, pictureTop);
+            picture.Bounds = new PptCore.PowerPointLayoutBox(OfficeLength.Points(pictureLeft), OfficeLength.Points(pictureTop), OfficeLength.Points(pictureWidth), OfficeLength.Points(pictureHeight));
             nativeRegionShapes.Add(picture);
             if (!string.IsNullOrWhiteSpace(image.AlternativeText)) picture.AltText = image.AlternativeText;
             if (image.Opacity < 0.999D) picture.FillTransparency = (int)Math.Round((1D - image.Opacity) * 100D);
@@ -675,7 +674,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     private static void ImportSemanticResourcePicture(
         HtmlSemanticResource resource,
         PptCore.PowerPointSlide slide,
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         HtmlToPowerPointOptions options,
@@ -703,9 +702,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         GetGenericResourcePictureSize(resource, presentation, budget,
             out double width, out double height, out bool fitted);
         using var stream = new MemoryStream(bytes);
-        PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, 64D, top, width, height);
-        picture.SetSizePoints(width, height);
-        picture.SetPositionPoints(64D, top);
+        PptCore.PowerPointPicture picture = slide.AddImage(stream, imagePartType, OfficeIMO.OfficeLength.Points(64D), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
+        picture.Bounds = new PptCore.PowerPointLayoutBox(OfficeLength.Points(64D), OfficeLength.Points(top), OfficeLength.Points(width), OfficeLength.Points(height));
         if (!string.IsNullOrWhiteSpace(resource.AlternateText)) picture.AltText = resource.AlternateText;
         ApplyPictureHyperlink(picture, resource.Hyperlink, result, options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
         result.Pictures++;

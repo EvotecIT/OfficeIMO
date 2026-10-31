@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ModernComments_SaveExplicitSlideReferenceAndPreserveOtherExtensions() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var unrelated = new P.SlideExtension(
                 new OpenXmlUnknownElement("e", "producer", "urn:producer")
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
         [InlineData(false)]
         [InlineData(true)]
         public void RemovingLastModernCommentRemovesOnlyItsSlideReferenceAndAllowsRecreation(bool withOtherExtension) {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             var author = new PowerPointCommentAuthor("Reviewer", "R");
             PowerPointModernComment first = presentation.AddModernComment(slide, author, "First");
@@ -75,13 +75,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AppendingToLoadedUnreferencedCommentPartRestoresItsSlideReference() {
             byte[] legacy;
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create()) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create()) {
                 PowerPointSlide slide = presentation.AddSlide();
                 presentation.AddModernComment(slide, new PowerPointCommentAuthor("Reviewer", "R"), "Legacy root");
                 slide.SlidePart.Slide.SlideExtensionList?.Remove();
                 legacy = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Pptx });
             }
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(legacy));
+            using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(legacy));
             PowerPointSlide target = reopened.Slides.Single();
             PowerPointCommentPart original = CommentPart(target.SlidePart);
             reopened.AddModernComment(target, new PowerPointCommentAuthor("Reviewer", "R"), "New root");

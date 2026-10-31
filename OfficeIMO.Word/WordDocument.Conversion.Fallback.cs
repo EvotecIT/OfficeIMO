@@ -137,14 +137,14 @@ public partial class WordDocument {
         using WordDocument fallback = WordDocument.Create();
         OfficeImageExportResult firstPage = plan.Pages[0];
         WordSection section = fallback.Sections[0];
-        section.PageSettings.Width = checked((uint)Math.Max(1, firstPage.Width * 20));
-        section.PageSettings.Height = checked((uint)Math.Max(1, firstPage.Height * 20));
-        section.Margins.Left = 0U;
-        section.Margins.Right = 0U;
-        section.Margins.Top = 0;
-        section.Margins.Bottom = 0;
-        section.Margins.HeaderDistance = 0U;
-        section.Margins.FooterDistance = 0U;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Max(1, firstPage.Width * 20))) / 20D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Max(1, firstPage.Height * 20))) / 20D);
+        section.Margins.Left = global::OfficeIMO.OfficeLength.Zero;
+        section.Margins.Right = global::OfficeIMO.OfficeLength.Zero;
+        section.Margins.Top = global::OfficeIMO.OfficeLength.Zero;
+        section.Margins.Bottom = global::OfficeIMO.OfficeLength.Zero;
+        section.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Zero;
+        section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Zero;
 
         for (int index = 0; index < plan.Pages.Count; index++) {
             OfficeImageExportResult page = plan.Pages[index];
@@ -152,9 +152,9 @@ public partial class WordDocument {
             fallback.AddParagraph().AddImage(
                 image,
                 $"compatibility-page-{index + 1:D4}.png",
-                page.Width * (96D / 72D),
-                page.Height * (96D / 72D),
-                description: $"Static visual compatibility fallback page {index + 1}");
+                OfficeLength.Points(page.Width),
+                OfficeLength.Points(page.Height),
+                new WordImageOptions { Description = $"Static visual compatibility fallback page {index + 1}" });
             if (index + 1 < plan.Pages.Count) fallback.AddPageBreak();
         }
 

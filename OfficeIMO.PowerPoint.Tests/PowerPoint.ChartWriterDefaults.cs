@@ -10,10 +10,10 @@ namespace OfficeIMO.Tests;
 public class PowerPointChartWriterDefaultsTests {
     [Fact]
     public void StyledColumnSeriesHaveNoOutlineUnlessAsked() {
-        using var presentation = PowerPointPresentation.Create();
-        var chart = presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
+        using var presentation = PowerPointDocument.Create();
+        var chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Sales", new[] { 1d, 2d }, null, OfficeColor.Parse("#156082")) }));
+                new OfficeSeries("Sales", new[] { 1d, 2d }, null, OfficeColor.Parse("#156082")) }));
         C.BarChartSeries series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!
             .Descendants<C.BarChartSeries>().Single();
         Assert.Null(series.GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>());
@@ -23,9 +23,9 @@ public class PowerPointChartWriterDefaultsTests {
 
     [Fact]
     public void DoughnutSeriesFillTurnsVaryColorsOff() {
-        using var presentation = PowerPointPresentation.Create();
-        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartKind.Doughnut,
-            new OfficeChartData(new[] { "Direct", "Partner" }, new[] { new OfficeChartSeries("Share", new[] { 60d, 40d }) }));
+        using var presentation = PowerPointDocument.Create();
+        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.Doughnut,
+            new OfficeChartData(new[] { "Direct", "Partner" }, new[] { new OfficeSeries("Share", new[] { 60d, 40d }) }));
         C.DoughnutChart doughnut = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!
             .Descendants<C.DoughnutChart>().Single();
         Assert.True(doughnut.GetFirstChild<C.VaryColors>()!.Val!.Value);

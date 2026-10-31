@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Provides standalone text encoding and shaping preflight without creating a PDF document.</summary>
-public static class PdfTextPreflight {
+internal static class PdfTextPreflight {
     /// <summary>Finds text that cannot be represented by the generated WinAnsi standard-font path.</summary>
     public static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeWinAnsi(
         string text,

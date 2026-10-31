@@ -159,97 +159,97 @@
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToBody(WordDocument doc, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null)",
       "kind": "method",
       "action": "rename",
-      "new": "WordDocument.AddHtml(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null)",
+      "new": "WordDocument.AddHtml(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null) : IReadOnlyList<WordElement>",
       "reason": "One verb per concept; the Add* verb names the inserted content.",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Bulk authoring returns live imported Word elements in document order, not the receiver. Paragraphs retain the existing run-level Word projection; filled/replaced empty-cell paragraphs are included. Collection is read-only; handles remain editable."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToBodyAsync(WordDocument doc, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "rename",
-      "new": "WordDocument.AddHtmlAsync(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null)",
+      "new": "WordDocument.AddHtmlAsync(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>",
       "reason": "One verb per concept; the Add* verb names the inserted content.",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Bulk authoring returns live imported Word elements in document order, not the receiver. Paragraphs retain the existing run-level Word projection; filled/replaced empty-cell paragraphs are included. Collection is read-only; handles remain editable."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToHeader(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "WordHeader.AddHtml(html, WordHtmlImportOptions options = null)",
-      "reason": "Target the header/footer object instead of a document method with a WordHeaderFooterType? parameter.",
-      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "new": "WordHeader.AddHtml(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null) : IReadOnlyList<WordElement>",
+      "reason": "Select the running story on its receiver and optionally supply a sharing section for image and table geometry.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.HeadersFooters.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns IReadOnlyList<WordElement> containing only newly imported live elements in story order. Layout defaults to the first defining section; an explicit section must belong to the same document and share or inherit the story. Sync imports remain offline-only; async imports honor cancellation. The old document entry point is removed."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToHeaderAsync(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "WordHeader.AddHtmlAsync(html, WordHtmlImportOptions options = null)",
-      "reason": "Target the header/footer object instead of a document method with a WordHeaderFooterType? parameter.",
-      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "new": "WordHeader.AddHtmlAsync(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>",
+      "reason": "Select the running story on its receiver and optionally supply a sharing section for image and table geometry.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.HeadersFooters.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns Task<IReadOnlyList<WordElement>> containing only newly imported live elements in story order. Layout defaults to the first defining section; an explicit section must belong to the same document and share or inherit the story. Sync imports remain offline-only; async imports honor cancellation. The old document entry point is removed."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToFooter(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "WordFooter.AddHtml(html, WordHtmlImportOptions options = null)",
-      "reason": "Target the header/footer object instead of a document method with a WordHeaderFooterType? parameter.",
-      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "new": "WordFooter.AddHtml(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null) : IReadOnlyList<WordElement>",
+      "reason": "Select the running story on its receiver and optionally supply a sharing section for image and table geometry.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.HeadersFooters.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns IReadOnlyList<WordElement> containing only newly imported live elements in story order. Layout defaults to the first defining section; an explicit section must belong to the same document and share or inherit the story. Sync imports remain offline-only; async imports honor cancellation. The old document entry point is removed."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToFooterAsync(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "WordFooter.AddHtmlAsync(html, WordHtmlImportOptions options = null)",
-      "reason": "Target the header/footer object instead of a document method with a WordHeaderFooterType? parameter.",
-      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "new": "WordFooter.AddHtmlAsync(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>",
+      "reason": "Select the running story on its receiver and optionally supply a sharing section for image and table geometry.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.HeadersFooters.cs",
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns Task<IReadOnlyList<WordElement>> containing only newly imported live elements in story order. Layout defaults to the first defining section; an explicit section must belong to the same document and share or inherit the story. Sync imports remain offline-only; async imports honor cancellation. The old document entry point is removed."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.SaveAsHtmlAsync(WordDocument document, string path, WordToHtmlOptions options = null, CancellationToken cancellationToken = null)",
@@ -305,35 +305,35 @@
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtml(WordTableCell cell, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "WordTableCell.AddHtml(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null)",
+      "new": "WordTableCell.AddHtml(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null) : IReadOnlyList<WordElement>",
       "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.TableCells.cs",
       "category": "authoring",
       "notes": "Signature conforms apart from options rename and a string overload.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Bulk authoring returns live imported Word elements in document order, not the receiver. Paragraphs retain the existing run-level Word projection; filled/replaced empty-cell paragraphs are included. Collection is read-only; handles remain editable."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlAsync(WordTableCell cell, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "WordTableCell.AddHtmlAsync(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null)",
+      "new": "WordTableCell.AddHtmlAsync(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>",
       "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
       "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.TableCells.cs",
       "category": "authoring",
       "notes": "Signature conforms apart from options rename and a string overload.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Bulk authoring returns live imported Word elements in document order, not the receiver. Paragraphs retain the existing run-level Word projection; filled/replaced empty-cell paragraphs are included. Collection is read-only; handles remain editable."
     },
     {
       "old": "OfficeIMO.Word.Html.HtmlToWordOptions",
@@ -399,8 +399,8 @@
       "file": "OfficeIMO.Word.Html/HtmlToWordResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the HTML evidence wrapper: only internal ConvertToWordWithEvidence sync/async methods return it; the README uses ToWord and OfficeConversionReport. The nonpackable editable-evidence tool directly names the wrapper. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Html.ImageProcessingMode",
@@ -515,11 +515,11 @@
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
     },
     {
       "old": "OfficeIMO.Word.Html.WordHtmlCapabilityGalleryOptions",
@@ -532,11 +532,11 @@
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
     }
   ],
   "packageMoves": [
@@ -580,6 +580,42 @@
       "phase": "A",
       "applied": "applied",
       "note": "HTML row/cell traversal and serialized shadow-root traversal enumerate AngleSharp collections rather than binding their target-specific indexer member. This fixes MissingMethodException when a netstandard2.0 adapter is loaded with the runtime-selected modern AngleSharp asset, preserves traversal order and keeps linear traversal."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "HTML import uses the containing Paragraph of created hyperlinks to preserve subsequent formatting and insertion."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Verify HTML table round trips through the actual table rows and cell contents.",
+      "reason": "The format-wide styled table defaults legitimately emit table attributes. The existing bare<table> substring pinned attribute absence and checked only two loose letters. Retain the real conversion input, assert exactly one table with two rows and allfour cells through the existing parser dependency.",
+      "files": [
+        "OfficeIMO.Html.Tests/Html.HtmlConverter.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "fix",
+      "old": "Default HTML table column widths are assigned only below the converter cap.",
+      "new": "Apply the computed default column widths at the cap as well, before explicit source column and cell overrides.",
+      "reason": "The adopted Word table defaults fill the available section; relying on the previous implicit 2400-twip columns enlarges nested list-cell tables. Preserve selected section and host-cell sizing.",
+      "files": [
+        "OfficeIMO.Word.Html/Converters/HtmlToWordConverter.TableWidths.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Word-to-HTML table fixtures require attribute-free literal table and cell tags.",
+      "new": "Assert the emitted DOM table, header/body structure, cell text, order and absence of placeholder paragraphs.",
+      "reason": "Theme attributes are part of current styled-table output. Retain the actual structural and content round-trip contract.",
+      "files": [
+        "OfficeIMO.Html.Tests/Html.WordToHtml.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on macOS, including standard-library and modern-framework runtime proof. Windows .NET Framework validation remains pending.",

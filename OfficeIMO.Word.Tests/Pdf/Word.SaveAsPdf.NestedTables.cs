@@ -45,7 +45,7 @@ public partial class Word {
         WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableGrid);
         WordParagraph paragraph = nested.Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "Nested mixed content";
-        paragraph.AddPictureControl(imagePath, 48, 48, "Nested Logo", "NestedLogo");
+        paragraph.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48), "Nested Logo", "NestedLogo");
         paragraph.AddCheckBox(true, "Nested Approval", "NestedApproval");
         paragraph.AddDropDownList(new[] { "One", "Two" }, "Nested Choice", "NestedChoice");
 
@@ -186,7 +186,7 @@ public partial class Word {
         nested.Rows[0].Cells[0].HorizontalMerge = WordCellMerge.Restart;
         WordParagraph hiddenHorizontal = nested.Rows[0].Cells[1].Paragraphs[0];
         hiddenHorizontal.Text = "HIDDEN-HORIZONTAL-CONTINUATION";
-        hiddenHorizontal.AddPictureControl(imagePath, 24, 24, "Hidden continuation logo", "HiddenContinuationLogo");
+        hiddenHorizontal.AddPictureControl(imagePath, OfficeLength.Pixels(24), OfficeLength.Pixels(24), "Hidden continuation logo", "HiddenContinuationLogo");
         nested.Rows[0].Cells[1].HorizontalMerge = WordCellMerge.Continue;
         nested.Rows[0].Cells[2].Paragraphs[0].Text = "Horizontal tail";
 
@@ -226,7 +226,7 @@ public partial class Word {
         WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 2, WordTableStyle.TableGrid);
         WordParagraph nestedParagraph = nested.Rows[0].Cells[0].Paragraphs[0];
         nestedParagraph.Text = "Header nested evidence";
-        nestedParagraph.AddPictureControl(imagePath, 32, 32, "Header Nested Logo", "HeaderNestedLogo");
+        nestedParagraph.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Header Nested Logo", "HeaderNestedLogo");
         nested.Rows[0].Cells[0].HorizontalMerge = WordCellMerge.Restart;
         nested.Rows[0].Cells[1].Paragraphs[0].Text = "HIDDEN-HEADER-CONTINUATION";
         nested.Rows[0].Cells[1].HorizontalMerge = WordCellMerge.Continue;

@@ -21,10 +21,10 @@ public partial class Word {
             WordTableRow target = row == 0 ? table.Rows[0] : table.AddRow();
             for (int column = 0; column < rows[row].Length; column++) {
                 WordTableCell cell = target.Cells[column];
-                cell.Width = 1440; cell.WidthType = WordTableWidthUnit.Dxa;
+                cell.Width = WordTableWidth.Length(OfficeLength.Inches(1));
                 cell.Paragraphs[0].Text = rows[row][column];
                 cell.Paragraphs[0].FontFamily = "Arial";
-                cell.Paragraphs[0].FontSize = 10;
+                cell.Paragraphs[0].FontSize = OfficeLength.Points(10);
             }
         }
         using var input = new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx }));
@@ -34,7 +34,7 @@ public partial class Word {
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, Enumerable.Range(32, 95).ToArray())));
         using var pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = fonts,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(576D, 792D), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72D)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeLength.Points(576D), OfficeLength.Points(792D)), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeLength.Points(72D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var words = page.GetWords().Select(word => word.Text).ToArray();
@@ -81,7 +81,7 @@ public partial class Word {
         WordTable table = CreateAutomaticWidthControl(document, 2160, 720);
         table.LayoutMode = layout;
         table._tableProperties!.TableWidth = new W.TableWidth { Type = W.TableWidthUnitValues.Dxa, Width = "2880" };
-        table.StyleDetails!.CellSpacing = spacing;
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points((spacing) / 20D);
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.Paragraphs[0].Text = column == 0 ? "AAA BBB" : "CCCC DDDD EEEE";
@@ -250,7 +250,7 @@ public partial class Word {
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, Enumerable.Range(32, 95).ToArray())));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = fonts,
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(frameWidth + 144D, 792D), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72D)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(frameWidth + 144D),OfficeIMO.OfficeLength.Points(792D)), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters.ToArray();
         Assert.Equal(left + right, string.Concat(letters.Select(letter => letter.Value)));

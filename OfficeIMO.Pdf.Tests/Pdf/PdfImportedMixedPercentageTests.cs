@@ -28,7 +28,7 @@ public class PdfImportedMixedPercentageTests {
         style.PreferredWidth = null;
         style.AllowWidthBeyondFrame = true;
         style.AutoFitUnspecifiedWidthToContent = true;
-        style.CellSpacing = 10D;
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(10D);
         style.ImportedColumnWidthFractions = new List<double?> { 1D, null, null };
         var (first, second) = RenderWidths(style);
         Assert.InRange(first + second, 290D, 294D);
@@ -77,16 +77,16 @@ public class PdfImportedMixedPercentageTests {
     }
 
     private static PdfTableStyle MixedStyle(double minimum) => new() {
-        HeaderRowCount = 0, PreferredWidth = 300D, PreserveWidth = true,
-        ColumnMinWidthPoints = new List<double?> { minimum, minimum, minimum },
-        CellPaddingX = 0D, CellPaddingY = 0D, FontSize = 10D, BorderColor = null
+        HeaderRowCount = 0, PreferredWidth = global::OfficeIMO.OfficeLength.Points(300D), PreserveWidth = true,
+        ColumnMinWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(minimum), global::OfficeIMO.OfficeLength.Points(minimum), global::OfficeIMO.OfficeLength.Points(minimum) },
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), FontSize = global::OfficeIMO.OfficeLength.Points(10D), BorderColor = null
     };
 
     [Fact]
     public void FixedMixedPercentagesUseTheWholeGridFallbackWhenPhysicalMinimumsExceedTheFrame() {
         var style = MixedStyle(11.8D);
-        style.PreferredWidth = 20D;
-        style.FontSize = 5D;
+        style.PreferredWidth = global::OfficeIMO.OfficeLength.Points(20D);
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(5D);
         style.ImportedColumnWidthFractions = new List<double?> { .5D, null, null };
         style.AutoFitColumnPreferredWidthPoints = new List<double?> { null, 72D, 100D };
         var (first, second) = RenderWidths(style);
@@ -96,8 +96,8 @@ public class PdfImportedMixedPercentageTests {
 
     private static (double First, double Second) RenderWidths(PdfTableStyle style) {
         var options = new PdfCreateOptions {
-            PageWidth = 340D, PageHeight = 200D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(340D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
         };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
             .Table(new[] { new[] { "A", "B", "C" } }, style: style).ToBytes());

@@ -78,7 +78,7 @@ public sealed class OfficeBatchOptionsTests {
         Assert.Throws<NotSupportedException>(() => request.ToJson(scope.Root)); request.ConversionOptions.PdfLoad = null;
         request.ConversionOptions.Word = new() { PdfOptions = new PdfCreateOptions { DefaultFontSize = 16 } };
         Assert.Throws<NotSupportedException>(() => request.ToJson(scope.Root)); request.ConversionOptions.Word = null;
-        request.ConversionOptions.PlainText = new() { PdfOptions = new PdfCreateOptions { DefaultFontSize = 16 } };
+        request.ConversionOptions.PlainText = new() { PdfOptions = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(16) } };
         Assert.Throws<NotSupportedException>(() => request.ToJson(scope.Root)); request.ConversionOptions.PlainText = null;
         request.PdfPasswordEnvironmentVariable = "OFFICEIMO_TEST_PASSWORD";
         string json = request.ToJson(scope.Root); Assert.Contains("OFFICEIMO_TEST_PASSWORD", json); Assert.DoesNotContain("runtime-value", json);
@@ -98,7 +98,7 @@ public sealed class OfficeBatchOptionsTests {
         Assert.False(Directory.Exists(scope.Output)); Assert.False(Directory.Exists(scope.State));
         Assert.Equal("txt-pdf", Assert.Single(plan.Items, item => item.Disposition == "Selected").RouteId);
         job.ResumeFrom = null; Directory.CreateDirectory(scope.Output);
-        string existing = Path.Combine(scope.Output, "notes.txt.pdf"); File.WriteAllText(existing, "Keep this destination");
+        string existing = Path.Combine(scope.Output, "notes.pdf"); File.WriteAllText(existing, "Keep this destination");
         plan = await OfficeConverter.PlanAsync(job);
         Assert.False(plan.CanRun); Assert.Equal(1, plan.Collisions); Assert.Equal(1, plan.Failed);
         Assert.Equal("Keep this destination", File.ReadAllText(existing));
@@ -135,7 +135,7 @@ public sealed class OfficeBatchOptionsTests {
         string path = Path.Combine(scope.Root, "conversion.officeimo.json"); job.Save(path);
         OfficeBatchReport first = await OfficeConverter.ConvertAsync(OfficeBatchOptions.Load(path));
         Assert.Equal(1, first.Summary.Completed); Assert.Equal(0, first.Summary.Failed);
-        string output = Path.Combine(scope.Output, "notes.txt.pdf"); byte[] original = File.ReadAllBytes(output);
+        string output = Path.Combine(scope.Output, "notes.pdf"); byte[] original = File.ReadAllBytes(output);
         using (var pdf = PdfDocument.Load(output)) Assert.Contains("Saved conversion job proof", pdf.ExtractText());
         OfficeBatchReport resumed = await OfficeConverter.ConvertAsync(OfficeBatchOptions.Load(path));
         Assert.Equal(1, resumed.Summary.Reused); Assert.Equal(original, File.ReadAllBytes(output));

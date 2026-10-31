@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
         public void SharedMathReplacementPreservesDisplayMathParagraphProperties() {
             const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMathParaPr><m:jc m:val=\"center\"/></m:oMathParaPr><m:oMath><m:r><m:t>x</m:t></m:r></m:oMath></m:oMathPara>";
             using WordDocument document = WordDocument.Create();
-            WordParagraph paragraph = document.AddEquation(omml);
+            WordParagraph paragraph = document.AddEquation(omml).Paragraph;
             OpenXmlElement mathParagraph = Assert.Single(paragraph._paragraph.Descendants(),
                 element => element.LocalName == "oMathPara");
             OpenXmlElement properties = Assert.Single(mathParagraph.ChildElements,
@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "UpdatedComplexEquationText.docx");
             using (var document = WordDocument.Create(filePath)) {
                 const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:sSup><m:e><m:r><m:t>x</m:t></m:r></m:e><m:sup><m:r><m:t>2</m:t></m:r></m:sup></m:sSup></m:oMath></m:oMathPara>";
-                WordParagraph equation = document.AddParagraph().AddEquation(omml);
+                WordParagraph equation = document.AddParagraph().AddEquation(omml).Paragraph;
 
                 equation.Text = "total";
                 document.Save();
@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests {
                 "</m:oMath></m:oMathPara>";
             using WordDocument document = WordDocument.Create();
 
-            WordParagraph equationParagraph = document.AddParagraph().AddEquation(omml);
+            WordParagraph equationParagraph = document.AddParagraph().AddEquation(omml).Paragraph;
 
             Assert.Equal("{x+y}", equationParagraph.Text);
             Assert.Equal("{x+y}", Assert.Single(document.Equations).Text);
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
             const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:d><m:dPr/><m:e><m:r><m:t>x</m:t></m:r></m:e></m:d></m:oMath></m:oMathPara>";
             using WordDocument document = WordDocument.Create();
 
-            WordParagraph equationParagraph = document.AddParagraph().AddEquation(omml);
+            WordParagraph equationParagraph = document.AddParagraph().AddEquation(omml).Paragraph;
 
             Assert.Equal("(x)", equationParagraph.Text);
         }
@@ -306,7 +306,7 @@ namespace OfficeIMO.Tests {
                 "</m:oMath></m:oMathPara>";
             using WordDocument document = WordDocument.Create();
 
-            WordParagraph equationParagraph = document.AddParagraph().AddEquation(omml);
+            WordParagraph equationParagraph = document.AddParagraph().AddEquation(omml).Paragraph;
 
             Assert.Equal("([x])", equationParagraph.Text);
         }

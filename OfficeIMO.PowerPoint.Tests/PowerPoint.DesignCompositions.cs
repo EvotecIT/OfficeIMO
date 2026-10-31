@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                     presentation.ApplyDesignerTheme();
 
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     Assert.Equal(4, presentation.Slides.Count);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointSlide slide = presentation.AddDesignerCardGridSlide("Services", null,
@@ -105,14 +105,14 @@ namespace OfficeIMO.Tests {
                         new PowerPointCardContent("Card " + index, new[] { "One", "Two" })),
                     options: new PowerPointCardGridSlideOptions { MaxColumns = 3 });
 
-                PowerPointLayoutBox slideBounds = new(0, 0, presentation.SlideSize.WidthEmus, presentation.SlideSize.HeightEmus);
+                PowerPointLayoutBox slideBounds = new(OfficeLength.Zero, OfficeLength.Zero, presentation.SlideSize.Width, presentation.SlideSize.Height);
                 for (int i = 1; i <= 6; i++) {
                     PowerPointShape? card = slide.GetShape("Card " + i);
                     Assert.NotNull(card);
-                    Assert.True(card!.Left >= slideBounds.Left, "Card is left of the slide.");
-                    Assert.True(card.Top >= slideBounds.Top, "Card is above the slide.");
-                    Assert.True(card.Right <= slideBounds.Right, "Card is right of the slide.");
-                    Assert.True(card.Bottom <= slideBounds.Bottom, "Card is below the slide.");
+                    Assert.True(card!.Left.ToEmus() >= slideBounds.Left.ToEmus(), "Card is left of the slide.");
+                    Assert.True(card.Top.ToEmus() >= slideBounds.Top.ToEmus(), "Card is above the slide.");
+                    Assert.True(card.Right.ToEmus() <= slideBounds.Right.ToEmus(), "Card is right of the slide.");
+                    Assert.True(card.Bottom.ToEmus() <= slideBounds.Bottom.ToEmus(), "Card is below the slide.");
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 IEnumerable<PowerPointProcessStep> steps = Enumerable.Range(1, 9)
                     .Select(index => new PowerPointProcessStep("Step " + index, "Body"));
 
@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointCompositionLayout? standard = null;
@@ -181,18 +181,18 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PowerPointCompositionVariant.Mirrored, mirrored!.Variant);
                 Assert.Equal(PowerPointCompositionVariant.VisualLead, visualLead!.Variant);
                 Assert.Equal(PowerPointCompositionVariant.EvidenceLead, evidenceLead!.Variant);
-                Assert.True(standard.Visual.LeftCm > standard.Primary.LeftCm);
-                Assert.True(mirrored.Visual.LeftCm < mirrored.Primary.LeftCm);
-                Assert.True(visualLead.Visual.WidthCm > standard.Visual.WidthCm);
-                Assert.Equal(evidenceLead.Content.TopCm, evidenceLead.Metrics.TopCm);
+                Assert.True(standard.Visual.Left.ToCentimeters() > standard.Primary.Left.ToCentimeters());
+                Assert.True(mirrored.Visual.Left.ToCentimeters() < mirrored.Primary.Left.ToCentimeters());
+                Assert.True(visualLead.Visual.Width.ToCentimeters() > standard.Visual.Width.ToCentimeters());
+                Assert.Equal(evidenceLead.Content.Top.ToCentimeters(), evidenceLead.Metrics.Top.ToCentimeters());
 
                 foreach (PowerPointCompositionLayout layout in new[] { standard, mirrored, visualLead, evidenceLead }) {
-                    Assert.True(layout.Primary.Left >= layout.Content.Left);
-                    Assert.True(layout.Primary.Right <= layout.Content.Right);
-                    Assert.True(layout.Visual.Left >= layout.Content.Left);
-                    Assert.True(layout.Visual.Right <= layout.Content.Right);
-                    Assert.True(layout.Metrics.Top >= layout.Content.Top);
-                    Assert.True(layout.Metrics.Bottom <= layout.Content.Bottom);
+                    Assert.True(layout.Primary.Left.ToEmus() >= layout.Content.Left.ToEmus());
+                    Assert.True(layout.Primary.Right.ToEmus() <= layout.Content.Right.ToEmus());
+                    Assert.True(layout.Visual.Left.ToEmus() >= layout.Content.Left.ToEmus());
+                    Assert.True(layout.Visual.Right.ToEmus() <= layout.Content.Right.ToEmus());
+                    Assert.True(layout.Metrics.Top.ToEmus() >= layout.Content.Top.ToEmus());
+                    Assert.True(layout.Metrics.Bottom.ToEmus() <= layout.Content.Bottom.ToEmus());
                 }
 
                 foreach (PowerPointCompositionLayout layout in dashboardLayouts) {
@@ -881,7 +881,7 @@ namespace OfficeIMO.Tests {
                         composer.AddMetricStrip(new[] {
                             new PowerPointMetric("6", "steps"),
                             new PowerPointMetric("3", "regions")
-                        }, composer.ContentArea().TakeTopCm(1.8));
+                        }, composer.ContentArea().TakeTop(OfficeIMO.OfficeLength.Centimeters(1.8)));
                     }, seed: "raw-proof");
 
                 IReadOnlyList<PowerPointDeckPlanAlternativeSummary> described =
@@ -897,7 +897,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(selected.ContentFitReasons, reason => reason.Length > 0);
                 Assert.Contains(selected.Slides, slide => slide.Kind == PowerPointDeckPlanSlideKind.Custom);
 
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                 PowerPointDeckComposer deck = presentation.UseDesigner(brief, plan, alternativeCount: 5);
                 deck.AddSlides(plan);
@@ -917,7 +917,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "proposal-client",
@@ -943,7 +943,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointDesignBrief brief = PowerPointDesignBrief
@@ -1001,7 +1001,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                 PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "invalid-plan",
                     PowerPointDesignRecipe.ConsultingPortfolio);
@@ -1032,7 +1032,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                 PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "legacy-invalid-plan",
                     PowerPointDesignRecipe.ConsultingPortfolio);
@@ -1063,7 +1063,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointDeckComposer deck = presentation.UseDesigner("#008C95", "mixed-plan",
@@ -1079,7 +1079,7 @@ namespace OfficeIMO.Tests {
                         }, columns[0]);
                         composer.AddMetricStrip(new[] {
                             new PowerPointMetric("2", "modes")
-                        }, columns[1].TakeTopCm(1.6));
+                        }, columns[1].TakeTop(OfficeIMO.OfficeLength.Centimeters(1.6)));
                     }, "custom");
 
                 IReadOnlyList<PowerPointSlide> slides = deck.AddSlides(plan);
@@ -1193,7 +1193,7 @@ namespace OfficeIMO.Tests {
         public void DesignerDeckComposer_PreviewsPlanSeedsFromCurrentSlidePosition() {
             string filePath = CreateTempPresentationPath();
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                 PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "seed-preview",
                     PowerPointDesignDirection.Executive);
@@ -1300,7 +1300,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                     PowerPointDesignTheme theme = PowerPointDesignTheme.FromBrand("2B8A6E", "Green Brand");
@@ -1313,7 +1313,7 @@ namespace OfficeIMO.Tests {
                         }, new PowerPointCardGridSlideOptions {
                             Variant = PowerPointCardGridLayoutVariant.SoftTiles
                         });
-                        composer.AddVisualFrame(PowerPointLayoutBox.FromCentimeters(20.5, 9.6, 5.6, 3.0));
+                        composer.AddVisualFrame(new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(20.5),OfficeIMO.OfficeLength.Centimeters(9.6),OfficeIMO.OfficeLength.Centimeters(5.6),OfficeIMO.OfficeLength.Centimeters(3.0)));
                     }, theme, new PowerPointDesignerSlideOptions {
                         Eyebrow = "OfficeIMO.PowerPoint",
                         FooterLeft = "OFFICEIMO",
@@ -1325,7 +1325,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes),
@@ -1343,7 +1343,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
                 PowerPointSlide slide = presentation.AddDesignerCoverageSlide("Service coverage",
@@ -1378,7 +1378,7 @@ namespace OfficeIMO.Tests {
             string filePath = CreateTempPresentationPath();
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 IEnumerable<PowerPointCapabilitySection> sections = Enumerable.Range(1, 7)
                     .Select(index => new PowerPointCapabilitySection("Section " + index));
 
@@ -1401,7 +1401,7 @@ namespace OfficeIMO.Tests {
                     $"Path: {error.Path}"));
         }
 
-        private static PowerPointCompositionVariant ResolveVariantForSeed(PowerPointPresentation presentation,
+        private static PowerPointCompositionVariant ResolveVariantForSeed(PowerPointDocument presentation,
             string seed) {
             PowerPointCompositionVariant variant = PowerPointCompositionVariant.Auto;
             presentation.ComposeDesignerSlide(composer => {

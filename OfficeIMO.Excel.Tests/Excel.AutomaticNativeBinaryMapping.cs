@@ -145,7 +145,7 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
     [InlineData(ExcelFileFormat.Xlsb)]
     public void ErrorCellsRetainTheirTextDuringAutomaticMapping(ExcelFileFormat format) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Name");
         sheet.CellValue(2, 1, "error");
         Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single(item => item.CellReference == "A2");
@@ -191,7 +191,7 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
         string serialFormat = "yyyy-mm-dd hh:mm:ss") {
         using ExcelDocument document = ExcelDocument.Create();
         document.DateSystem = dateSystem;
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         for (int column = 0; column < headers.Length; column++) sheet.CellValue(1, column + 1, headers[column]);
         for (int row = 0; row < rows.Length; row++) {
             for (int column = 0; column < rows[row].Length; column++) {

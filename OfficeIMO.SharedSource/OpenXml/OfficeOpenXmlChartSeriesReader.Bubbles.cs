@@ -52,7 +52,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 var outline = properties?.GetFirstChild<Outline>();
                 var fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<SolidFill>(), colorScheme);
                 var stroke = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<SolidFill>(), colorScheme);
-                double? width = outline?.Width?.Value is int emus && emus > 0 ? emus / 12700d : null;
+                OfficeLength? width = outline?.Width?.Value is int emus && emus > 0 ? OfficeLength.Emus(emus) : null;
                 bool automaticColor = OfficeOpenXmlChartAutomaticColors.HasAutomaticSeriesColor(element);
                 if (!forDataUpdate && fill == null) {
                     // Office colours bubbles without a stored fill from the chart style and theme.
@@ -61,7 +61,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     if (fill == null) return null;
                     automaticColor = true;
                 }
-                var data = OfficeChartSeries.CreateBubble(name, x, y, sizes, fill,
+                var data = OfficeSeries.CreateBubble(name, x, y, sizes, fill,
                     ReadBubblePointColors(element, x.Count, colorScheme, maximumPointOverrides), markerOutlineColor: stroke,
                     markerOutlineWidth: width, showMarkerOutline: outline?.GetFirstChild<NoFill>() == null)
                     .WithSeriesStyle(OfficeOpenXmlChartPointStyles.ReadSeriesStyle(element, colorScheme))

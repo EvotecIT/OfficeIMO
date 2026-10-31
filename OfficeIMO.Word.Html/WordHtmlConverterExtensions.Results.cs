@@ -107,12 +107,12 @@ public static partial class WordHtmlConverterExtensions {
 
     private static OfficeIMO.Drawing.OfficePageSize ResolveWordProjectionPageSize(WordHtmlImportOptions options) {
         WordPageSizeDefinition definition = ResolveWordPageSizeDefinition(options.DefaultPageSize);
-        double widthInches = definition.WidthTwips / 1440D;
-        double heightInches = definition.HeightTwips / 1440D;
+        double widthInches = checked((uint)(definition.Width.ToTwips())) / 1440D;
+        double heightInches = checked((uint)(definition.Height.ToTwips())) / 1440D;
         if (options.DefaultOrientation == OfficePageOrientation.Landscape) {
             (widthInches, heightInches) = (heightInches, widthInches);
         }
-        return new OfficeIMO.Drawing.OfficePageSize(widthInches, heightInches);
+        return new OfficeIMO.Drawing.OfficePageSize(global::OfficeIMO.OfficeLength.Inches(widthInches), global::OfficeIMO.OfficeLength.Inches(heightInches));
     }
 
     private static WordPageSizeDefinition ResolveWordPageSizeDefinition(WordPageSize? pageSize) =>

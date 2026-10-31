@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             string roundTripPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(xlsxPath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "Alice");
                 sheet.CellValue(2, 2, 42);
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xls");
             byte[] existing = { 1, 2, 3, 4 };
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Conflict policy");
+                document.AddSheet("Data").CellValue(1, 1, "Conflict policy");
                 document.Save();
             }
             File.WriteAllBytes(destinationPath, existing);
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xls");
             byte[] originalBytes = { 1, 2, 3, 4 };
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Read-only conversion target");
+                document.AddSheet("Data").CellValue(1, 1, "Read-only conversion target");
                 document.Save();
             }
             File.WriteAllBytes(destinationPath, originalBytes);
@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Already XLSX");
+                document.AddSheet("Data").CellValue(1, 1, "Already XLSX");
                 document.Save();
             }
 
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xltx");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorksheet("Template").CellValue(1, 1, "Reusable workbook");
+                document.AddSheet("Template").CellValue(1, 1, "Reusable workbook");
                 document.Save();
             }
 
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
             string blockedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string allowedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorksheet("Macro").CellValue(1, 1, "Carrier");
+                document.AddSheet("Macro").CellValue(1, 1, "Carrier");
                 document.AddMacro(CreateVbaProjectPayload());
                 document.Save();
             }
@@ -243,7 +243,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlt");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "No silent extension aliasing");
+                document.AddSheet("Data").CellValue(1, 1, "No silent extension aliasing");
                 document.Save();
             }
 
@@ -265,7 +265,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlt");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Preflight only");
+                document.AddSheet("Data").CellValue(1, 1, "Preflight only");
                 document.Save();
             }
 
@@ -292,7 +292,7 @@ namespace OfficeIMO.Tests {
             string blockedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xltx");
             string allowedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xltx");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorksheet("Signed").CellValue(1, 1, "Signed conversion source");
+                document.AddSheet("Signed").CellValue(1, 1, "Signed conversion source");
                 document.Save();
             }
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(sourcePath, true)) {
@@ -349,7 +349,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + extension);
             string copyPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + extension);
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data").CellValue(1, 1, "No mislabeled Open XML payload");
+            document.AddSheet("Data").CellValue(1, 1, "No mislabeled Open XML payload");
 
             NotSupportedException save = Assert.Throws<NotSupportedException>(() => document.Save(savePath));
             NotSupportedException copy = Assert.Throws<NotSupportedException>(() => document.SaveCopy(copyPath));
@@ -365,7 +365,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Source must remain untouched");
+                document.AddSheet("Data").CellValue(1, 1, "Source must remain untouched");
                 document.Save();
             }
             File.SetLastWriteTimeUtc(sourcePath, new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc));
@@ -508,23 +508,16 @@ namespace OfficeIMO.Tests {
             string blockedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xls");
             string visualPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xls");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
                 sheet.CellValue(1, 1, "Quarter");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, "Q1");
                 sheet.CellValue(2, 2, 10);
                 sheet.CellValue(3, 1, "Q2");
                 sheet.CellValue(3, 2, 20);
-                sheet.AddChart(
-                    new ExcelChartData(
+                sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(
                         new[] { "Q1", "Q2" },
-                        new[] { new ExcelChartSeries("Sales", new[] { 10D, 20D }) }),
-                    row: 1,
-                    column: 4,
-                    widthPixels: 280,
-                    heightPixels: 180,
-                    type: ExcelChartType.ColumnClustered,
-                    title: "Quarterly sales");
+                        new[] { new ExcelChartSeries("Sales", new[] { 10D, 20D }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Quarterly sales" });
                 document.Save();
             }
 
@@ -569,18 +562,11 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsb");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Visual");
+                ExcelSheet sheet = document.AddSheet("Visual");
                 sheet.CellValue(1, 1, "Source payload");
-                sheet.AddChart(
-                    new ExcelChartData(
+                sheet.AddChart(OfficeChartType.Pie, new ExcelChartData(
                         new[] { "A", "B" },
-                        new[] { new ExcelChartSeries("Value", new[] { 3D, 7D }) }),
-                    row: 2,
-                    column: 2,
-                    widthPixels: 220,
-                    heightPixels: 140,
-                    type: ExcelChartType.Pie,
-                    title: "Preserved chart");
+                        new[] { new ExcelChartSeries("Value", new[] { 3D, 7D }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 2, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(140), Title = "Preserved chart" });
                 document.Save();
             }
             byte[] sourceBytes = File.ReadAllBytes(sourcePath);

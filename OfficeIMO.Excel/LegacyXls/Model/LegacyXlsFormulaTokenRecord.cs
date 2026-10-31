@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes one BIFF parsed-formula token observed while importing a legacy XLS workbook.
     /// </summary>
-    public sealed class LegacyXlsFormulaTokenRecord {
+    internal sealed class LegacyXlsFormulaTokenRecord {
         /// <summary>
         /// Creates formula token metadata for corpus diagnostics and XLS import planning.
         /// </summary>

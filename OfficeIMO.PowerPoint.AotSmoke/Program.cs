@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.Collections;
 using System.Collections.Generic;
 using OfficeIMO.Drawing;
@@ -5,14 +6,14 @@ using OfficeIMO.PowerPoint;
 
 string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-AotSmoke-" + Guid.NewGuid().ToString("N") + ".pptx");
 try {
-    using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+    using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
         var data = new OfficeChartData(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new OfficeChartSeries("Revenue", new[] { 1d, 2d, 3d }) });
+            new[] { new OfficeSeries("Revenue", new[] { 1d, 2d, 3d }) });
 
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("OfficeIMO NativeAOT slide");
-        slide.AddChart(OfficeChartKind.ColumnClustered, data);
+        slide.AddChart(OfficeChartType.ColumnClustered, data);
         var dictionaryRows = new[] {
             new GenericOnlyDictionaryRow<int>(("Score", 10), ("Rank", 1)),
             new GenericOnlyDictionaryRow<int>(("Score", 20), ("Rank", 2))
@@ -26,7 +27,7 @@ try {
         presentation.Save();
     }
 
-    using PowerPointPresentation reopened = PowerPointPresentation.Load(path);
+    using PowerPointDocument reopened = PowerPointDocument.Load(path);
     if (reopened.Slides.Count != 2 || reopened.Slides[0].Charts.Count() != 1 || reopened.Slides[1].Charts.Count() != 1 ||
         reopened.Slides[0].Tables.Single().GetCell(1, 0).Text != "10" || reopened.Slides[1].Tables.Single().GetCell(1, 0).Text != "10") {
         throw new InvalidOperationException("The PowerPoint round trip lost its slide or cloned chart relationships.");

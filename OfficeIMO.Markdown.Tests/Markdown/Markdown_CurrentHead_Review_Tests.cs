@@ -1095,8 +1095,8 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
         Assert.Equal("hero", image.Attributes.ElementId);
         Assert.Contains("wide", image.Attributes.Classes);
-        Assert.Equal(20, image.Width);
-        Assert.Equal(10, image.Height);
+        Assert.Equal(20, image.Width?.ToPixels());
+        Assert.Equal(10, image.Height?.ToPixels());
     }
 
     [Fact]

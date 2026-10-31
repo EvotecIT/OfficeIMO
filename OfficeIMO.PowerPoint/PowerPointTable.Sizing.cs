@@ -11,14 +11,15 @@ namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTable {
 
         /// <summary>
-        ///     Sets the width of a specific column in EMUs.
+        ///     Sets the width of a specific column as a physical length.
         /// </summary>
-        public void SetColumnWidth(int columnIndex, long width) {
+        public void SetColumnWidth(int columnIndex, OfficeLength width) {
+            long nativeWidth = width.ToEmus();
             if (columnIndex < 0 || columnIndex >= Columns) {
                 throw new ArgumentOutOfRangeException(nameof(columnIndex));
             }
             A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
-            column.Width = width;
+            column.Width = nativeWidth;
             SyncFrameWidthToGrid();
         }
 
@@ -46,94 +47,21 @@ namespace OfficeIMO.PowerPoint {
 
 
         /// <summary>
-        ///     Gets the width of a specific column in EMUs.
+        ///     Gets the width of a specific column as a physical length.
         /// </summary>
-        public long GetColumnWidth(int columnIndex) {
+        public OfficeLength GetColumnWidth(int columnIndex) {
             if (columnIndex < 0 || columnIndex >= Columns) {
                 throw new ArgumentOutOfRangeException(nameof(columnIndex));
             }
             A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
-            return column.Width?.Value ?? 0L;
+            return OfficeLength.Emus(column.Width?.Value ?? 0L);
         }
-
-        /// <summary>
-        ///     Gets the width of a specific column in points.
-        /// </summary>
-        public double GetColumnWidthPoints(int columnIndex) {
-            return PowerPointUnits.ToPoints(GetColumnWidth(columnIndex));
-        }
-
-        /// <summary>
-        ///     Gets the width of a specific column in centimeters.
-        /// </summary>
-        public double GetColumnWidthCm(int columnIndex) {
-            return PowerPointUnits.ToCentimeters(GetColumnWidth(columnIndex));
-        }
-
-        /// <summary>
-        ///     Gets the width of a specific column in inches.
-        /// </summary>
-        public double GetColumnWidthInches(int columnIndex) {
-            return PowerPointUnits.ToInches(GetColumnWidth(columnIndex));
-        }
-
-        /// <summary>
-        ///     Sets the width of a specific column in points.
-        /// </summary>
-        public void SetColumnWidthPoints(int columnIndex, double widthPoints) {
-            SetColumnWidth(columnIndex, ToEmus(widthPoints));
-        }
-
-        /// <summary>
-        ///     Sets the width of a specific column in centimeters.
-        /// </summary>
-        public void SetColumnWidthCm(int columnIndex, double widthCm) {
-            SetColumnWidth(columnIndex, PowerPointUnits.FromCentimeters(widthCm));
-        }
-
-        /// <summary>
-        ///     Sets the width of a specific column in inches.
-        /// </summary>
-        public void SetColumnWidthInches(int columnIndex, double widthInches) {
-            SetColumnWidth(columnIndex, PowerPointUnits.FromInches(widthInches));
-        }
-
-        /// <summary>
-        ///     Sets widths for columns in points (applies to the first N columns provided).
-        /// </summary>
-        public void SetColumnWidthsPoints(params double[] widthsPoints) {
-            if (widthsPoints == null) {
-                throw new ArgumentNullException(nameof(widthsPoints));
-            }
-            int count = Math.Min(widthsPoints.Length, Columns);
+        /// <summary>Sets physical sizes for the first rows or columns supplied.</summary>
+        public void SetColumnWidths(params OfficeLength[] widths) {
+            if (widths == null) throw new ArgumentNullException(nameof(widths));
+            int count = Math.Min(widths.Length, Columns);
             for (int i = 0; i < count; i++) {
-                SetColumnWidthPoints(i, widthsPoints[i]);
-            }
-        }
-
-        /// <summary>
-        ///     Sets widths for columns in centimeters (applies to the first N columns provided).
-        /// </summary>
-        public void SetColumnWidthsCm(params double[] widthsCm) {
-            if (widthsCm == null) {
-                throw new ArgumentNullException(nameof(widthsCm));
-            }
-            int count = Math.Min(widthsCm.Length, Columns);
-            for (int i = 0; i < count; i++) {
-                SetColumnWidthCm(i, widthsCm[i]);
-            }
-        }
-
-        /// <summary>
-        ///     Sets widths for columns in inches (applies to the first N columns provided).
-        /// </summary>
-        public void SetColumnWidthsInches(params double[] widthsInches) {
-            if (widthsInches == null) {
-                throw new ArgumentNullException(nameof(widthsInches));
-            }
-            int count = Math.Min(widthsInches.Length, Columns);
-            for (int i = 0; i < count; i++) {
-                SetColumnWidthInches(i, widthsInches[i]);
+                SetColumnWidth(i, widths[i]);
             }
         }
 
@@ -157,7 +85,7 @@ namespace OfficeIMO.PowerPoint {
                 totalRatio += ratios[i];
             }
 
-            long totalWidth = Width;
+            long totalWidth = Width.ToEmus();
             if (totalWidth <= 0) {
                 totalWidth = TableElement.TableGrid?.Elements<A.GridColumn>()
                     .Sum(c => c.Width?.Value ?? 0) ?? 0;
@@ -169,7 +97,7 @@ namespace OfficeIMO.PowerPoint {
             long assigned = 0;
             for (int i = 0; i < count; i++) {
                 long width = (long)Math.Round(totalWidth * (ratios[i] / totalRatio));
-                SetColumnWidth(i, width);
+                SetColumnWidth(i, OfficeLength.Emus(width));
                 assigned += width;
             }
 
@@ -192,106 +120,34 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Sets the height of a specific row in EMUs.
+        ///     Sets the height of a specific row as a physical length.
         /// </summary>
-        public void SetRowHeight(int rowIndex, long height) {
+        public void SetRowHeight(int rowIndex, OfficeLength height) {
+            long nativeHeight = height.ToEmus();
             if (rowIndex < 0 || rowIndex >= Rows) {
                 throw new ArgumentOutOfRangeException(nameof(rowIndex));
             }
             A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
-            row.Height = height;
+            row.Height = nativeHeight;
             SyncFrameHeightToGrid();
         }
 
         /// <summary>
-        ///     Gets the height of a specific row in EMUs.
+        ///     Gets the height of a specific row as a physical length.
         /// </summary>
-        public long GetRowHeight(int rowIndex) {
+        public OfficeLength GetRowHeight(int rowIndex) {
             if (rowIndex < 0 || rowIndex >= Rows) {
                 throw new ArgumentOutOfRangeException(nameof(rowIndex));
             }
             A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
-            return row.Height?.Value ?? 0L;
+            return OfficeLength.Emus(row.Height?.Value ?? 0L);
         }
-
-        /// <summary>
-        ///     Gets the height of a specific row in points.
-        /// </summary>
-        public double GetRowHeightPoints(int rowIndex) {
-            return PowerPointUnits.ToPoints(GetRowHeight(rowIndex));
-        }
-
-        /// <summary>
-        ///     Gets the height of a specific row in centimeters.
-        /// </summary>
-        public double GetRowHeightCm(int rowIndex) {
-            return PowerPointUnits.ToCentimeters(GetRowHeight(rowIndex));
-        }
-
-        /// <summary>
-        ///     Gets the height of a specific row in inches.
-        /// </summary>
-        public double GetRowHeightInches(int rowIndex) {
-            return PowerPointUnits.ToInches(GetRowHeight(rowIndex));
-        }
-
-        /// <summary>
-        ///     Sets the height of a specific row in points.
-        /// </summary>
-        public void SetRowHeightPoints(int rowIndex, double heightPoints) {
-            SetRowHeight(rowIndex, ToEmus(heightPoints));
-        }
-
-        /// <summary>
-        ///     Sets the height of a specific row in centimeters.
-        /// </summary>
-        public void SetRowHeightCm(int rowIndex, double heightCm) {
-            SetRowHeight(rowIndex, PowerPointUnits.FromCentimeters(heightCm));
-        }
-
-        /// <summary>
-        ///     Sets the height of a specific row in inches.
-        /// </summary>
-        public void SetRowHeightInches(int rowIndex, double heightInches) {
-            SetRowHeight(rowIndex, PowerPointUnits.FromInches(heightInches));
-        }
-
-        /// <summary>
-        ///     Sets heights for rows in points (applies to the first N rows provided).
-        /// </summary>
-        public void SetRowHeightsPoints(params double[] heightsPoints) {
-            if (heightsPoints == null) {
-                throw new ArgumentNullException(nameof(heightsPoints));
-            }
-            int count = Math.Min(heightsPoints.Length, Rows);
+        /// <summary>Sets physical sizes for the first rows or columns supplied.</summary>
+        public void SetRowHeights(params OfficeLength[] heights) {
+            if (heights == null) throw new ArgumentNullException(nameof(heights));
+            int count = Math.Min(heights.Length, Rows);
             for (int i = 0; i < count; i++) {
-                SetRowHeightPoints(i, heightsPoints[i]);
-            }
-        }
-
-        /// <summary>
-        ///     Sets heights for rows in centimeters (applies to the first N rows provided).
-        /// </summary>
-        public void SetRowHeightsCm(params double[] heightsCm) {
-            if (heightsCm == null) {
-                throw new ArgumentNullException(nameof(heightsCm));
-            }
-            int count = Math.Min(heightsCm.Length, Rows);
-            for (int i = 0; i < count; i++) {
-                SetRowHeightCm(i, heightsCm[i]);
-            }
-        }
-
-        /// <summary>
-        ///     Sets heights for rows in inches (applies to the first N rows provided).
-        /// </summary>
-        public void SetRowHeightsInches(params double[] heightsInches) {
-            if (heightsInches == null) {
-                throw new ArgumentNullException(nameof(heightsInches));
-            }
-            int count = Math.Min(heightsInches.Length, Rows);
-            for (int i = 0; i < count; i++) {
-                SetRowHeightInches(i, heightsInches[i]);
+                SetRowHeight(i, heights[i]);
             }
         }
 
@@ -303,7 +159,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            long totalHeight = Height;
+            long totalHeight = Height.ToEmus();
             if (totalHeight <= 0) {
                 totalHeight = TableElement.Elements<A.TableRow>()
                     .Sum(r => r.Height?.Value ?? 0L);
@@ -315,7 +171,7 @@ namespace OfficeIMO.PowerPoint {
             long rowHeight = (long)Math.Floor(totalHeight / (double)Rows);
             long assigned = 0;
             for (int i = 0; i < Rows; i++) {
-                SetRowHeight(i, rowHeight);
+                SetRowHeight(i, OfficeLength.Emus(rowHeight));
                 assigned += rowHeight;
             }
 
@@ -324,6 +180,7 @@ namespace OfficeIMO.PowerPoint {
                 A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(adjustIndex);
                 row.Height = (row.Height ?? 0) + (totalHeight - assigned);
             }
+            SyncFrameHeightToGrid();
         }
 
         /// <summary>
@@ -346,7 +203,7 @@ namespace OfficeIMO.PowerPoint {
                 totalRatio += ratios[i];
             }
 
-            long totalHeight = Height;
+            long totalHeight = Height.ToEmus();
             if (totalHeight <= 0) {
                 totalHeight = TableElement.Elements<A.TableRow>()
                     .Sum(r => r.Height?.Value ?? 0L);
@@ -358,7 +215,7 @@ namespace OfficeIMO.PowerPoint {
             long assigned = 0;
             for (int i = 0; i < count; i++) {
                 long height = (long)Math.Round(totalHeight * (ratios[i] / totalRatio));
-                SetRowHeight(i, height);
+                SetRowHeight(i, OfficeLength.Emus(height));
                 assigned += height;
             }
 
@@ -367,6 +224,7 @@ namespace OfficeIMO.PowerPoint {
                 A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(adjustIndex);
                 row.Height = (row.Height ?? 0) + (totalHeight - assigned);
             }
+            SyncFrameHeightToGrid();
         }
 
         private static long ToEmus(double points) {

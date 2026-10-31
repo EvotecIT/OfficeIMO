@@ -7,11 +7,11 @@ namespace OfficeIMO;
 internal sealed record OfficeBatchRenderingConfiguration(string Route, OfficeConversionProfile OutputProfile,
     OfficeBatchRendererSettings Options, string Host, long MaximumXmlCharactersInPart);
 
-[JsonSourceGenerationOptions(IncludeFields = true, GenerationMode = JsonSourceGenerationMode.Metadata)]
+[JsonSourceGenerationOptions(IncludeFields = true, GenerationMode = JsonSourceGenerationMode.Metadata, Converters = new[] { typeof(OfficeBatchExecutor.PdfConfigurationConverter), typeof(OfficeLengthFingerprintConverter), typeof(OfficeColorFingerprintConverter) })]
 [JsonSerializable(typeof(OfficeBatchRenderingConfiguration))]
 internal partial class OfficeBatchConfigurationJsonContext : JsonSerializerContext { }
 
-[JsonSourceGenerationOptions(IncludeFields = true, GenerationMode = JsonSourceGenerationMode.Metadata)]
+[JsonSourceGenerationOptions(IncludeFields = true, GenerationMode = JsonSourceGenerationMode.Metadata, Converters = new[] { typeof(OfficeLengthFingerprintConverter), typeof(OfficeColorFingerprintConverter) })]
 [JsonSerializable(typeof(PdfCreateOptions), TypeInfoPropertyName = "PdfOptions")]
 internal partial class OfficeBatchPdfSettingsJsonContext : JsonSerializerContext { }
 

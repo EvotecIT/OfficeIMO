@@ -41,7 +41,7 @@ public sealed class ProtectDocumentWorkflowTests {
         using (IDisposable document = extension switch {
             ".docx" => WordDocument.Load(source, new WordLoadOptions { PersistenceMode = DocumentPersistenceMode.SaveOnDispose }),
             ".xlsx" => ExcelDocument.Load(source, new ExcelLoadOptions { PersistenceMode = DocumentPersistenceMode.SaveOnDispose }),
-            _ => PowerPointPresentation.Load(source, new PowerPointLoadOptions { PersistenceMode = DocumentPersistenceMode.SaveOnDispose })
+            _ => PowerPointDocument.Load(source, new PowerPointLoadOptions { PersistenceMode = DocumentPersistenceMode.SaveOnDispose })
         }) {
             Set(runspace, ("document", document), ("output", output), ("password", password));
             Assert.Contains("Explicit persistence", Fail(runspace,
@@ -120,7 +120,7 @@ public sealed class ProtectDocumentWorkflowTests {
         string actual = saved switch {
             WordDocument word => word.SourceFormatDescriptor.Extension,
             ExcelDocument excel => excel.SourceFormatDescriptor.Extension,
-            PowerPointPresentation presentation => presentation.SourceFormatDescriptor.Extension,
+            PowerPointDocument presentation => presentation.SourceFormatDescriptor.Extension,
             _ => throw new InvalidOperationException()
         };
         Assert.Equal(extension, actual);
@@ -334,7 +334,7 @@ public sealed class ProtectDocumentWorkflowTests {
         using var word = WordDocument.Create();
         word.AddParagraph("MARKER");
         using var excel = ExcelDocument.Create();
-        excel.AddWorksheet("Data");
+        excel.AddSheet("Data");
         using var password = Password("edit-secret");
         using var runspace = OpenRunspace();
         Set(runspace, ("word", word), ("excel", excel), ("password", password));
@@ -346,7 +346,7 @@ public sealed class ProtectDocumentWorkflowTests {
         Assert.True(excel.GetWriteReservation().ReadOnlyRecommended);
         Assert.Empty(Directory.GetFileSystemEntries(files.Root));
         word.AddParagraph("STILL OPEN");
-        excel.AddWorksheet("Still open");
+        excel.AddSheet("Still open");
     }
 
     [Theory]
@@ -422,7 +422,7 @@ public sealed class ProtectDocumentWorkflowTests {
     public void InvalidReservationHashIsRejectedBeforeWorkbookOrReservationMutation() {
         using var files = new ProtectionFiles();
         using var live = ExcelDocument.Create();
-        live.AddWorksheet("Data");
+        live.AddSheet("Data");
         using var runspace = OpenRunspace();
         Set(runspace, ("live", live), ("output", files.PathFor("absent/protected.xlsx")));
         Assert.Contains("hexadecimal", Fail(runspace, "$live | Protect-OfficeDocument -Restriction Structure, ReadOnlyRecommended -Options @{ ModifyPasswordHash = 'not-a-hash' } -OutputPath $output -ErrorAction Stop"));
@@ -512,14 +512,14 @@ public sealed class ProtectDocumentWorkflowTests {
     private static IDisposable NewDocument(string extension) => extension switch {
         ".docx" or ".docm" or ".dotx" or ".dotm" => WordDocument.Create(),
         ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlam" => ExcelDocument.Create(),
-        ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppam" => PowerPointPresentation.Create(),
+        ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppam" => PowerPointDocument.Create(),
         _ => PdfDocument.Create()
     };
 
     private static IDisposable Load(string path, string? password) => System.IO.Path.GetExtension(path) switch {
         ".docx" or ".docm" or ".dotx" or ".dotm" => WordDocument.Load(path, new WordLoadOptions { Password = password }),
         ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlam" => ExcelDocument.Load(path, new ExcelLoadOptions { Password = password }),
-        ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppam" => PowerPointPresentation.Load(path, new PowerPointLoadOptions { Password = password }),
+        ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" or ".ppam" => PowerPointDocument.Load(path, new PowerPointLoadOptions { Password = password }),
         _ => PdfDocument.Load(path, new PdfLoadOptions { Password = password })
     };
 
@@ -528,7 +528,7 @@ public sealed class ProtectDocumentWorkflowTests {
         return document switch {
             WordDocument word => string.Join("\n", word.Paragraphs.Select(paragraph => paragraph.Text)),
             ExcelDocument excel => excel.Sheets.Single().TryGetCellText(1, 1, out string text) ? text : string.Empty,
-            PowerPointPresentation presentation => presentation.Slides.Count.ToString(),
+            PowerPointDocument presentation => presentation.Slides.Count.ToString(),
             PdfDocument pdf => pdf.Read().Text,
             _ => throw new InvalidOperationException()
         };
@@ -581,8 +581,8 @@ public sealed class ProtectDocumentWorkflowTests {
             using var document = NewDocument(System.IO.Path.GetExtension(path));
             switch (document) {
                 case WordDocument word: word.AddParagraph("MARKER"); word.Save(path); break;
-                case ExcelDocument excel: excel.AddWorksheet("Data").CellValue(1, 1, "MARKER"); excel.Save(path); break;
-                case PowerPointPresentation presentation: presentation.AddSlide(); presentation.Save(path); break;
+                case ExcelDocument excel: excel.AddSheet("Data").CellValue(1, 1, "MARKER"); excel.Save(path); break;
+                case PowerPointDocument presentation: presentation.AddSlide(); presentation.Save(path); break;
                 case PdfDocument pdf: pdf.Content.Paragraph(paragraph => paragraph.Text("MARKER")); pdf.Save(path); break;
             }
             return path;

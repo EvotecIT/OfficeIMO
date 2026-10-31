@@ -22,7 +22,7 @@ public sealed class PdfHtmlPageAppearanceTests {
             for (int x = y % 2; x < raster.Width; x += 2) raster.SetPixel(x, y, OfficeColor.Black);
         byte[] image = OfficePngWriter.Encode(raster);
         var pdf = PdfDocument.Load(PdfDocument.Create()
-            .Canvas(canvas => canvas.Image(image, 40, 50, 300, 300)).ToBytes());
+            .Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300))).ToBytes());
         var result = pdf.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
         Assert.DoesNotContain("pdf-page-appearance", result.Value);
         Assert.Contains("data:image/png;base64,", result.Value);
@@ -32,7 +32,7 @@ public sealed class PdfHtmlPageAppearanceTests {
     [Fact]
     public void OpenedPdfHonorsImageEmbeddingChoicesAndLimits() {
         var pdf = PdfDocument.Load(PdfDocument.Create()
-            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(2, 2), 40, 50, 60, 30)).ToBytes());
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30))).ToBytes());
         var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
         string embedded = pdf.ToHtml(options);
         Assert.Contains("pdf-page-appearance", embedded);

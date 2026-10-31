@@ -3,7 +3,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Visual styling for dependency-free callout rendering.
 /// </summary>
-public sealed class OfficeCalloutStyle {
+internal sealed class OfficeCalloutStyle {
     /// <summary>Callout body fill.</summary>
     public OfficeColor FillColor { get; set; } = OfficeColor.FromRgb(255, 251, 230);
 

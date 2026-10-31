@@ -461,8 +461,8 @@ public sealed class PdfConversionReportTests {
     public void PdfDocumentConversionResult_AssessProofCapturesRequiredPageSize() {
         var result = new PdfDocumentConversionResult(
             PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = 320,
-                    PageHeight = 240
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(240)
                 })
                 .Paragraph(paragraph => paragraph.Text("Page geometry proof")),
             new PdfConversionReport());
@@ -526,8 +526,8 @@ public sealed class PdfConversionReportTests {
     public void PdfDocumentConversionResult_AssessProofReportsPageSizeMismatch() {
         var result = new PdfDocumentConversionResult(
             PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = 320,
-                    PageHeight = 240
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(240)
                 })
                 .Paragraph(paragraph => paragraph.Text("Page size mismatch proof")),
             new PdfConversionReport());

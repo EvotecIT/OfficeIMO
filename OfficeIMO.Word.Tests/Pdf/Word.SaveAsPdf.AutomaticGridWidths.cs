@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
@@ -45,16 +46,16 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(20, 2, WordTableWidthUnit.Dxa)]
-    [InlineData(45, 3, WordTableWidthUnit.Dxa)]
-    [InlineData(20, 1, WordTableWidthUnit.Auto)]
-    [InlineData(45, 3, WordTableWidthUnit.Auto)]
-    public void SaveAsPdf_AutomaticNoWrapCellUsesPreferredWidthType(int characterCount, int expectedLines, WordTableWidthUnit widthType) {
+    [InlineData(20, 2, WordTableWidthKind.Length)]
+    [InlineData(45, 3, WordTableWidthKind.Length)]
+    [InlineData(20, 1, WordTableWidthKind.Auto)]
+    [InlineData(45, 3, WordTableWidthKind.Auto)]
+    public void SaveAsPdf_AutomaticNoWrapCellUsesPreferredWidthType(int characterCount, int expectedLines, WordTableWidthKind widthType) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateAutomaticWidthControl(document, 2400);
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.WrapText = false;
-        cell.WidthType = widthType;
+        cell.Width = TableWidthFixture(widthType, cell.Width?.ToNativeValue() ?? 5000);
         cell.Paragraphs[0].Text = "WidthMarker0 " + new string('W', characterCount);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -76,9 +77,9 @@ public partial class Word {
         cell.WrapText = false;
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = new string('W', 40);
-        if (indent == "left") paragraph.IndentationBeforePoints = 36;
-        else if (indent == "right") paragraph.IndentationAfterPoints = 36;
-        else paragraph.IndentationFirstLinePoints = 36;
+        if (indent == "left") paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+        else if (indent == "right") paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(36D);
+        else paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(36D);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
@@ -120,16 +121,15 @@ public partial class Word {
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Span0";
         table.Rows[0].Cells[1].Paragraphs[0].Text = "Span1";
         if (automaticLeft) {
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Auto;
-            table.Rows[0].Cells[0].Width = 0;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Auto;
         }
         WordTableRow row = table.AddRow();
         row.Cells[0].MergeHorizontally(1);
         WordTableCell cell = row.Cells[0];
-        cell.Width = 0; cell.WidthType = WordTableWidthUnit.Auto;
+        cell.Width = WordTableWidth.Auto;
         cell.Paragraphs[0].Text = new string('W', characters);
-        cell.Paragraphs[0].FontFamily = "Arial"; cell.Paragraphs[0].FontSize = 12;
-        table.GridColumnWidth = new List<int> { 1600, 3200 };
+        cell.Paragraphs[0].FontFamily = "Arial"; cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        table.GridColumnWidth = new List<int> { 1600, 3200 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
 
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToList();
@@ -140,14 +140,46 @@ public partial class Word {
     }
 
     [Theory]
+    [InlineData(-1)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void SaveAsPdf_AutomaticNoWrapSpanRetainsConfiguredMinimumUpdates(int minimumCount) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateAutomaticWidthControl(document, 1600, 3200);
+        table._tableProperties!.TableStyle?.Remove();
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Span0";
+        table.Rows[0].Cells[1].Paragraphs[0].Text = "Span1";
+        WordTableRow row = table.AddRow();
+        row.Cells[0].MergeHorizontally(1);
+        WordTableCell spanningCell = row.Cells[0];
+        spanningCell.Width = WordTableWidth.Length(OfficeLength.Points(300));
+        spanningCell.WrapText = false;
+        spanningCell.Paragraphs[0].Text = "Merged";
+        var style = new OfficeIMO.Pdf.PdfTableStyle {
+            HeaderRowCount = 0,
+            BorderColor = null,
+            ColumnMinWidths = minimumCount < 0 ? null
+                : Enumerable.Repeat<OfficeLength?>(OfficeLength.Points(10), minimumCount).ToList()
+        };
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false,
+            PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions { DefaultTableStyle = style }
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        var words = Assert.Single(pdf.GetPages()).GetWords().ToList();
+        double gap = Assert.Single(words, word => word.Text == "Span1").BoundingBox.Left
+            - Assert.Single(words, word => word.Text == "Span0").BoundingBox.Left;
+        Assert.InRange(gap, 99.75D, 100.25D);
+        Assert.Contains(words, word => word.Text == "Merged");
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void SaveAsPdf_AutomaticGridKeepsFallbackFontLinesInsideCellBorders(bool minimumSpacing) {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = CreateAutomaticWidthControl(document, 2400).Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "A " + string.Concat(Enumerable.Repeat("東京", 24));
-        paragraph.LineSpacingRule = minimumSpacing ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
-        paragraph.LineSpacing = 240;
+        paragraph.LineSpacing = minimumSpacing ? WordLineSpacing.AtLeast(OfficeLength.Points(12)) : WordLineSpacing.Multiple(1);
         var options = CreateAutomaticGridFallbackFontOptions();
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options,
@@ -176,9 +208,9 @@ public partial class Word {
         WordTableCell cell = CreateAutomaticWidthControl(document, 2400).Rows[0].Cells[0];
         WordParagraph paragraph = numbered ? cell.AddList(WordListStyle.Numbered).AddItem(string.Empty) : cell.Paragraphs[0];
         paragraph.Text = "東京\n東京\n東京";
-        paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = spacing;
+        paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((spacing) / 240D);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = CreateAutomaticGridFallbackFontOptions(),
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
@@ -207,15 +239,15 @@ public partial class Word {
         table.AutoFitToContents();
         for (int column = 0; column < gridTwips.Length; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
-            cell.Width = gridTwips[column]; cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.MarginLeftWidth = 108; cell.MarginRightWidth = 108;
-            cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(gridTwips[column]) * 635)));
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D); cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             var paragraph = cell.Paragraphs[0];
-            paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = 240;
+            paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
         }
-        table.GridColumnWidth = gridTwips.ToList();
+        table.GridColumnWidth = gridTwips.ToList().Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         return table;
     }
 }

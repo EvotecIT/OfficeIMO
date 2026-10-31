@@ -10,13 +10,14 @@ internal sealed class OfficeBatchPageSizeConverter : JsonConverter<PdfPageSize> 
         using var document = JsonDocument.ParseValue(ref reader);
         var root = document.RootElement;
         RequireProperties(root, "width", "height");
-        return new PdfPageSize(root.GetProperty("width").GetDouble(), root.GetProperty("height").GetDouble());
+        return new PdfPageSize(OfficeLength.Points(root.GetProperty("width").GetDouble()),
+            OfficeLength.Points(root.GetProperty("height").GetDouble()));
     }
 
     public override void Write(Utf8JsonWriter writer, PdfPageSize value, JsonSerializerOptions options) {
         writer.WriteStartObject();
-        writer.WriteNumber("width", value.Width);
-        writer.WriteNumber("height", value.Height);
+        writer.WriteNumber("width", value.Width.ToPoints());
+        writer.WriteNumber("height", value.Height.ToPoints());
         writer.WriteEndObject();
     }
 
@@ -32,16 +33,18 @@ internal sealed class OfficeBatchPageMarginsConverter : JsonConverter<PdfPageMar
         using var document = JsonDocument.ParseValue(ref reader);
         var root = document.RootElement;
         OfficeBatchPageSizeConverter.RequireProperties(root, "left", "top", "right", "bottom");
-        return new PdfPageMargins(root.GetProperty("left").GetDouble(), root.GetProperty("top").GetDouble(),
-            root.GetProperty("right").GetDouble(), root.GetProperty("bottom").GetDouble());
+        return new PdfPageMargins(OfficeLength.Points(root.GetProperty("left").GetDouble()),
+            OfficeLength.Points(root.GetProperty("top").GetDouble()),
+            OfficeLength.Points(root.GetProperty("right").GetDouble()),
+            OfficeLength.Points(root.GetProperty("bottom").GetDouble()));
     }
 
     public override void Write(Utf8JsonWriter writer, PdfPageMargins value, JsonSerializerOptions options) {
         writer.WriteStartObject();
-        writer.WriteNumber("left", value.Left);
-        writer.WriteNumber("top", value.Top);
-        writer.WriteNumber("right", value.Right);
-        writer.WriteNumber("bottom", value.Bottom);
+        writer.WriteNumber("left", value.Left.ToPoints());
+        writer.WriteNumber("top", value.Top.ToPoints());
+        writer.WriteNumber("right", value.Right.ToPoints());
+        writer.WriteNumber("bottom", value.Bottom.ToPoints());
         writer.WriteEndObject();
     }
 }

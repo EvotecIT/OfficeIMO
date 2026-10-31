@@ -2,36 +2,36 @@ using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>Contains the projected OfficeIMO presentation and its binary PPT import report.</summary>
-    public sealed class LegacyPptLoadResult : IDisposable, IOfficeConversionReport {
-        private readonly PowerPointPresentation? _document;
+    internal sealed class LegacyPptLoadResult : IDisposable, IOfficeConversionReport {
+        private readonly PowerPointDocument? _document;
         private readonly Lazy<LegacyPptImportReport> _report;
         private readonly Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>> _fidelityDiagnostics;
 
-        internal LegacyPptLoadResult(PowerPointPresentation? document, LegacyPptPresentation presentation,
+        internal LegacyPptLoadResult(PowerPointDocument? document, LegacyPptDocument presentation,
             Exception? projectionException = null) {
             _document = document;
-            Presentation = presentation ?? throw new ArgumentNullException(nameof(presentation));
+            SourceDocument = presentation ?? throw new ArgumentNullException(nameof(presentation));
             ProjectionException = projectionException;
             _report = new Lazy<LegacyPptImportReport>(presentation.CreateImportReport);
             _fidelityDiagnostics = new Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>>(CreateFidelityDiagnostics);
         }
 
         /// <summary>Gets the normal editable OfficeIMO presentation projected from supported binary content.</summary>
-        public PowerPointPresentation Document => _document ?? throw new InvalidOperationException(
-            "No OfficeIMO presentation was projected. Inspect Presentation, Diagnostics, ImportReport, and ProjectionException.",
+        public PowerPointDocument Document => _document ?? throw new InvalidOperationException(
+            "No OfficeIMO presentation was projected. Inspect SourceDocument, Diagnostics, ImportReport, and ProjectionException.",
             ProjectionException);
 
         /// <summary>Gets whether projection produced an OfficeIMO presentation.</summary>
         public bool HasDocument => _document != null;
 
         /// <summary>Gets the neutral binary presentation model.</summary>
-        public LegacyPptPresentation Presentation { get; }
+        public LegacyPptDocument SourceDocument { get; }
 
         /// <summary>Gets a projection failure captured for report callers.</summary>
         public Exception? ProjectionException { get; }
 
         /// <summary>Gets parser diagnostics.</summary>
-        public IReadOnlyList<LegacyPptImportDiagnostic> Diagnostics => Presentation.Diagnostics;
+        public IReadOnlyList<LegacyPptImportDiagnostic> Diagnostics => SourceDocument.Diagnostics;
 
         /// <summary>Gets the cached import report.</summary>
         public LegacyPptImportReport ImportReport => _report.Value;

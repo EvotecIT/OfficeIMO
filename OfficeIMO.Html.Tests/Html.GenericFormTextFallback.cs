@@ -23,11 +23,11 @@ public sealed class HtmlGenericFormTextFallbackTests {
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
 
-        HtmlToPowerPointResult slides = source.ToPowerPointPresentationResult(
+        HtmlToPowerPointResult slides = source.ToPowerPointDocumentResult(
             new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using (PowerPointPresentation presentation = slides.RequireValue()) {
+        using (PowerPointDocument presentation = slides.RequireValue()) {
             using var artifact = new System.IO.MemoryStream(presentation.ToBytes());
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(artifact);
+            using PowerPointDocument reopened = PowerPointDocument.Load(artifact);
             Assert.Contains("Was this page helpful?", reopened.ToHtml());
         }
         Assert.Contains(slides.Report.Diagnostics, diagnostic =>

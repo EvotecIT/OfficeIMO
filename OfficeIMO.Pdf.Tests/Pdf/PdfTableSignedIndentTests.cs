@@ -10,22 +10,22 @@ public class PdfTableSignedIndentTests {
     [InlineData("row")]
     public void SignedIndent_PreservesTableOriginAndColumnWidthsAcrossPageContinuation(string frame) {
         var options = new PdfCreateOptions {
-            PageWidth = 360, PageHeight = 240, MarginLeft = 30, MarginRight = 30,
-            MarginTop = 30, MarginBottom = 30, DefaultFontSize = 9
+            PageWidth = global::OfficeIMO.OfficeLength.Points(360), PageHeight = global::OfficeIMO.OfficeLength.Points(240), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         var style = new PdfTableStyle {
-            LeftIndent = -12, MaxWidth = 120, PreserveWidth = true,
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(-12), MaxWidth = global::OfficeIMO.OfficeLength.Points(120), PreserveWidth = true,
             ColumnWidthWeights = new List<double> { 1, 1 }, HeaderRowCount = 0,
             MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0,
-            CellPaddingX = 0, CellPaddingY = 0, MinRowHeight = 50, FontSize = 9,
-            BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), MinRowHeight = global::OfficeIMO.OfficeLength.Points(50), FontSize = global::OfficeIMO.OfficeLength.Points(9),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         string[][] rows = Enumerable.Range(1, 7).Select(index =>
             new[] { "Left" + index, "Right" + index }).ToArray();
         PdfDocument document = PdfDocument.Create(options);
         if (frame == "columns") {
             document.Columns(content => content.Table(rows, style: style),
-                new PdfMultiColumnOptions { Gap = 20, BalanceLastPage = false });
+                new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false });
         } else if (frame == "row") {
             document.Compose(builder => builder.Page(page => page.Content(content =>
                 content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));

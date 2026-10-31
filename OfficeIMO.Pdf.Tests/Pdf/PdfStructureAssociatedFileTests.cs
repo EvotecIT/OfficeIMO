@@ -19,8 +19,8 @@ public sealed class PdfStructureAssociatedFileTests {
         };
         var document = PdfDocument.Create(options)
             .Canvas(canvas => canvas
-                .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), Supplement("x.xml", FirstMath, "First formula"))
-                .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("y", 20, 60, 40, 20), Supplement("y.xml", SecondMath, "Second formula")));
+                .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Supplement("x.xml", FirstMath, "First formula"))
+                .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("y", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Supplement("y.xml", SecondMath, "Second formula")));
         using var stream = new MemoryStream();
         document.Save(stream);
         byte[] bytes = stream.ToArray();
@@ -52,8 +52,8 @@ public sealed class PdfStructureAssociatedFileTests {
         var source = Supplement("same.xml", FirstMath, "First");
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
             .Canvas(canvas => canvas
-                .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("first", 20, 20, 80, 20), source)
-                .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("second", 20, 60, 80, 20), source))
+                .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("first", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(20)), source)
+                .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("second", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(20)), source))
             .ToBytes();
         PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
         PdfRawObjectView[] formulas = raw.Objects.Where(IsFormula).ToArray();
@@ -72,7 +72,7 @@ public sealed class PdfStructureAssociatedFileTests {
         file.FileName = "changed.xml";
         structure.AssociatedFiles[0].MimeType = "text/plain";
         var document = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
-            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), structure));
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), structure));
         structure.AddAssociatedFile(new PdfEmbeddedFile("later.xml", Encoding.UTF8.GetBytes(SecondMath), "application/mathml+xml"));
         PdfExtractedAttachment recovered = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(document.ToBytes()));
         Assert.Equal("source.xml", recovered.FileName);
@@ -84,12 +84,12 @@ public sealed class PdfStructureAssociatedFileTests {
     public void ConflictingNamesFailInsteadOfRecoveringTheWrongFormula() {
         var document = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
             .Canvas(canvas => canvas
-                .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), Supplement("same.xml", FirstMath, "First"))
-                .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("y", 20, 60, 40, 20), Supplement("same.xml", SecondMath, "Second")));
+                .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Supplement("same.xml", FirstMath, "First"))
+                .Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("y", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Supplement("same.xml", SecondMath, "Second")));
         Assert.Throws<InvalidOperationException>(() => document.ToBytes());
         var catalogConflict = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
             .AttachFile("same.xml", Encoding.UTF8.GetBytes(FirstMath), "application/mathml+xml")
-            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("y", 20, 20, 40, 20), Supplement("same.xml", SecondMath, "Second")));
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("y", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Supplement("same.xml", SecondMath, "Second")));
         Assert.Throws<InvalidOperationException>(() => catalogConflict.ToBytes());
     }
 
@@ -104,9 +104,9 @@ public sealed class PdfStructureAssociatedFileTests {
         });
         if (catalogCollision) document.AttachFile("same.xml", Encoding.UTF8.GetBytes(FirstMath), "application/mathml+xml");
         else document.Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula,
-            nested => nested.Text("x", 20, 20, 40, 20), Supplement("same.xml", FirstMath, "First")));
+            nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Supplement("same.xml", FirstMath, "First")));
         document.Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula,
-            nested => nested.Text("y", 20, 20, 40, 20), Supplement("same.xml", SecondMath, "Second")));
+            nested => nested.Text("y", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Supplement("same.xml", SecondMath, "Second")));
         using var destination = new MemoryStream();
         Assert.Throws<InvalidOperationException>(() => document.Save(destination));
         Assert.Equal(0, destination.Length);
@@ -119,7 +119,7 @@ public sealed class PdfStructureAssociatedFileTests {
         foreach (string? description in new string?[] { null, "x squared" }) {
             var options = new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers };
             var document = PdfDocument.Create(options).Canvas(canvas => canvas.Structure(
-                PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20),
+                PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)),
                 new PdfCanvasStructureOptions { AlternativeText = description }));
             var requirement = Assert.Single(document.AssessCompliance(profile).Requirements,
                 item => item.Id == "generated-formula-alternative-text");
@@ -131,7 +131,7 @@ public sealed class PdfStructureAssociatedFileTests {
     [Fact]
     public void UndatedSupplementOmitsOptionalParametersRatherThanInventingDate() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
-            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), Supplement("x.xml", FirstMath, "First")))
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Supplement("x.xml", FirstMath, "First")))
             .ToBytes();
         PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
         PdfRawObjectView stream = Assert.Single(raw.Objects, item => item.Value.Entries.TryGetValue("Type", out var type) && type.Text == "EmbeddedFile");
@@ -139,7 +139,7 @@ public sealed class PdfStructureAssociatedFileTests {
         Assert.Equal(FirstMath, Encoding.UTF8.GetString(Assert.Single(PdfAttachmentExtractor.ExtractAttachments(bytes)).Bytes));
         var metadata = new PdfCanvasStructureOptions().AddAssociatedFile(new PdfEmbeddedFile("dated.xml", Encoding.UTF8.GetBytes(FirstMath), "application/mathml+xml", PdfAssociatedFileRelationship.Supplement, modificationDate: new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)));
         bytes = PdfDocument.Create(new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })
-            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), metadata)).ToBytes();
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), metadata)).ToBytes();
         raw = PdfReadDocument.Open(bytes).RawStructure();
         stream = Assert.Single(raw.Objects, item => item.Value.Entries.TryGetValue("Type", out var type) && type.Text == "EmbeddedFile");
         Assert.True(stream.Value.Entries["Params"].Entries.ContainsKey("ModDate"));
@@ -157,9 +157,9 @@ public sealed class PdfStructureAssociatedFileTests {
     public void SupplementsAcrossPagesReusePayloadAndDoNotBecomeCatalogAssociations() {
         var supplement = Supplement("shared.xml", FirstMath, "Repeated formula");
         byte[] bytes = PdfDocument.Create(document => document.Content(content => content
-            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), supplement))
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), supplement))
             .PageBreak()
-            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), supplement))),
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), supplement))),
             new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()).ToBytes();
         PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
         PdfRawObjectView[] formulas = raw.Objects.Where(IsFormula).ToArray();
@@ -173,7 +173,7 @@ public sealed class PdfStructureAssociatedFileTests {
     [Fact]
     public void DisabledTaggingDoesNotEmitOrphanedStructureAttachments() {
         byte[] bytes = PdfDocument.Create(document => document.Content(content => content
-            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), Supplement("x.xml", FirstMath, "First")))),
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Supplement("x.xml", FirstMath, "First")))),
             new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.None }).ToBytes();
         Assert.Empty(PdfAttachmentExtractor.ExtractAttachments(bytes));
         Assert.DoesNotContain(PdfReadDocument.Open(bytes).RawStructure().Objects, IsFormula);
@@ -184,7 +184,7 @@ public sealed class PdfStructureAssociatedFileTests {
     public void MixedCatalogAndStructureFilesUseValidPdf20Metadata() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions().EnableTaggedPdfCatalogMarkers())
             .AttachFile("catalog.xml", Encoding.UTF8.GetBytes("<source/>"), "application/xml")
-            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), Supplement("x.xml", FirstMath, "First"))).ToBytes();
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Supplement("x.xml", FirstMath, "First"))).ToBytes();
         PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
         PdfRawObjectView[] streams = raw.Objects.Where(item => item.Value.Entries.TryGetValue("Type", out var type) && type.Text == "EmbeddedFile").ToArray();
         Assert.Equal(2, streams.Length);
@@ -201,7 +201,7 @@ public sealed class PdfStructureAssociatedFileTests {
         Assert.Single(PdfAttachmentExtractor.ExtractAttachments(legacy.ToBytes()));
         var mixed = PdfDocument.Create(new PdfCreateOptions().EnableTaggedPdfCatalogMarkers())
             .AttachFile("catalog.xml", Encoding.UTF8.GetBytes("<source/>"))
-            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), Supplement("x.xml", FirstMath, "First")));
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), Supplement("x.xml", FirstMath, "First")));
         Assert.Throws<InvalidOperationException>(() => mixed.ToBytes());
     }
 
@@ -272,7 +272,7 @@ public sealed class PdfStructureAssociatedFileTests {
             .ConfigurePdfAGroundwork(profile, "en-US").RequireCompliance(profile)
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "OfficeIMO Source Serif");
         var structure = new PdfCanvasStructureOptions().AddAssociatedFile(new PdfEmbeddedFile("x.xml", Encoding.UTF8.GetBytes(FirstMath), "application/mathml+xml", PdfAssociatedFileRelationship.Supplement, modificationDate: modificationDate));
-        return PdfDocument.Create(options).Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), structure));
+        return PdfDocument.Create(options).Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), structure));
     }
 
     private static PdfCanvasStructureOptions Supplement(string fileName, string source, string alternativeText) =>

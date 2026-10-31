@@ -481,7 +481,7 @@ namespace OfficeIMO.Word.Markdown {
             // Keep the grid in step with the cell widths: fixed-layout consumers such as LibreOffice read tblGrid.
             double contentTwips = Math.Max(1D, pageContentWidthPixels) * TwipsPerInch / PixelsPerInch;
             int percentTotal = percentages.Sum();
-            table.GridColumnWidth = percentages.Select(value => (int)Math.Round(contentTwips * value / percentTotal)).ToList();
+            table.GridColumnWidth = percentages.Select(value => OfficeLength.Points(Math.Round(contentTwips * value / percentTotal) / 20D)).ToList();
         }
 
         private void RenderSharedCalloutBlockOmd(

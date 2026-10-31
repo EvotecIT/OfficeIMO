@@ -17,10 +17,10 @@ Describe 'Foundation output views' {
     It 'shows document, paragraph, sheet, slide, table and image summaries without binary content' {
         $word = [OfficeIMO.Word.WordDocument]::Create()
         $excel = [OfficeIMO.Excel.ExcelDocument]::Create()
-        $deck = [OfficeIMO.PowerPoint.PowerPointPresentation]::Create()
+        $deck = [OfficeIMO.PowerPoint.PowerPointDocument]::Create()
         try {
             $paragraph = $word.AddParagraph('Visible paragraph')
-            $sheet = $excel.AddWorksheet('Visible sheet')
+            $sheet = $excel.AddSheet('Visible sheet')
             $slide = $deck.AddSlide()
             $table = $sheet.Table('A1:B2')
             $png = [OfficeIMO.Drawing.OfficePngWriter]::EncodeRgba(1,1,[byte[]]@(255,0,0,255))

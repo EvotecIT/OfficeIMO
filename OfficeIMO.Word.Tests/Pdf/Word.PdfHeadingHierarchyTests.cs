@@ -26,13 +26,13 @@ public partial class Word {
         int[] levels = { 1, 7, 9 };
         for (int index = 0; index < styles.Length; index++) {
             WordParagraph heading = document.AddParagraph("SparseHeading" + levels[index]).SetStyle(styles[index]);
-            heading.FontSize = 12;
+            heading.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             // Keep every level at one size and weight so only the outline distinguishes them.
             heading.Bold = false;
             WordParagraph inline = heading.AddText(" InlineItalic" + levels[index]);
             inline.Italic = true;
             inline.Bold = false;
-            inline.FontSize = 12;
+            inline.FontSize = OfficeLength.Points(12);
             heading.AddFootNote("SparseNote" + levels[index]);
         }
         document.Save();
@@ -72,7 +72,7 @@ public partial class Word {
         for (int index = 0; index < styles.Length; index++) {
             WordParagraph heading = document.AddParagraph("AuthoredHeading" + (index + 1));
             heading.SetStyle(styles[index]);
-            heading.FontSize = 12;
+            heading.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         }
         document.Save();
         using var reopened = WordDocument.Load(source);

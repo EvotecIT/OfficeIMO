@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Compose_RendersAllProcessStepsAcrossValidContinuationSlides() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             var plan = new PowerPointDeckPlan().AddProcess("Twelve steps", null,
                 Enumerable.Range(1, 12)
                     .Select(index => new PowerPointProcessStep("Step " + index, "Body " + index)));
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Compose_ReturnsSharedPreflightContract() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             var plan = new PowerPointDeckPlan().AddSection("Measured deck", "Designer report");
 
             PowerPointCompositionOptions options = PowerPointCompositionOptions.FromDesign(

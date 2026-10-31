@@ -50,6 +50,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
 
             var options = new PdfImageExportOptions {
                 TargetDpi = validated.TargetDpi,
+                Format = validated.Format,
+                PageSelector = PdfPageSelector.Parse(PdfPageSelection.From(pageNumbers).ToString()),
                 RasterEncoding = validated.RasterEncoding,
                 ThumbnailMaxDimension = validated.MaximumDimension,
                 MaximumOutputCount = validated.MaximumPages,
@@ -61,15 +63,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             });
             options.Progress = exportProgress;
 
-            PdfDocumentImageExportBuilder builder = document
-                .ToImages(options)
-                .Pages(PdfPageSelection.From(pageNumbers))
-                .As(validated.Format);
             Report(progress, validated.Id, "render", "Rendering selected PDF pages", 0.12D);
             OfficeImageExportBatchSaveResult saved;
             try {
-                saved = await builder
-                    .SaveFilesAsync(stagingDirectory, cancellationToken)
+                saved = await document.SaveImageFilesAsync(stagingDirectory, options, cancellationToken)
                     .ConfigureAwait(false);
             } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
                 failureStage = WorkflowFailureStage.Output;

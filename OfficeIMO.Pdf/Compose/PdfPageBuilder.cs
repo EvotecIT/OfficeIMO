@@ -20,15 +20,15 @@ public sealed class PdfPageBuilder {
 
     /// <summary>Sets page size using a predefined <see cref="PdfPageSize"/>.</summary>
     public PdfPageBuilder Size(PdfPageSize size) {
-        Guard.Positive(size.Width, nameof(size));
-        Guard.Positive(size.Height, nameof(size));
+        Guard.Positive(size.Width.ToPoints(), nameof(size));
+        Guard.Positive(size.Height.ToPoints(), nameof(size));
         Options.PageSize = size;
         return this;
     }
     /// <summary>Sets custom page size in points.</summary>
-    public PdfPageBuilder Size(double width, double height) {
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
+    public PdfPageBuilder Size(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height) {
+        Guard.Positive(width.ToPoints(), nameof(width));
+        Guard.Positive(height.ToPoints(), nameof(height));
         Options.PageWidth = width;
         Options.PageHeight = height;
         return this;
@@ -41,7 +41,7 @@ public sealed class PdfPageBuilder {
         return this;
     }
     /// <summary>Sets or clears the page background color.</summary>
-    public PdfPageBuilder Background(PdfColor? color) {
+    public PdfPageBuilder Background(global::OfficeIMO.OfficeColor? color) {
         Options.BackgroundColor = color;
         return this;
     }
@@ -51,7 +51,7 @@ public sealed class PdfPageBuilder {
         return this;
     }
     /// <summary>Sets a page-scoped text watermark rendered behind page content.</summary>
-    public PdfPageBuilder Watermark(string text, double? fontSize = null, PdfColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
+    public PdfPageBuilder Watermark(string text, global::OfficeIMO.OfficeLength? fontSize = null, global::OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
         var watermark = new PdfTextWatermark(text) {
             Bold = bold,
             Italic = italic
@@ -79,7 +79,7 @@ public sealed class PdfPageBuilder {
         return SuppressFirstPageTextWatermark().SuppressFirstPageImageWatermark();
     }
     /// <summary>Sets a first-page text watermark rendered behind page content.</summary>
-    public PdfPageBuilder FirstPageWatermark(string text, double? fontSize = null, PdfColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
+    public PdfPageBuilder FirstPageWatermark(string text, global::OfficeIMO.OfficeLength? fontSize = null, global::OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
         var watermark = new PdfTextWatermark(text) {
             Bold = bold,
             Italic = italic
@@ -107,7 +107,7 @@ public sealed class PdfPageBuilder {
         return SuppressEvenPagesTextWatermark().SuppressEvenPagesImageWatermark();
     }
     /// <summary>Sets an even-page text watermark rendered behind page content.</summary>
-    public PdfPageBuilder EvenPagesWatermark(string text, double? fontSize = null, PdfColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
+    public PdfPageBuilder EvenPagesWatermark(string text, global::OfficeIMO.OfficeLength? fontSize = null, global::OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
         var watermark = new PdfTextWatermark(text) {
             Bold = bold,
             Italic = italic
@@ -126,7 +126,7 @@ public sealed class PdfPageBuilder {
         return this;
     }
     /// <summary>Sets a page-scoped image watermark rendered behind page content.</summary>
-    public PdfPageBuilder ImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null) {
+    public PdfPageBuilder ImageWatermark(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, double? opacity = null, double? rotationAngle = null) {
         var watermark = new PdfImageWatermark(imageBytes, width, height);
         if (opacity.HasValue) watermark.Opacity = opacity.Value;
         if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
@@ -144,7 +144,7 @@ public sealed class PdfPageBuilder {
         return this;
     }
     /// <summary>Sets a first-page image watermark rendered behind page content.</summary>
-    public PdfPageBuilder FirstPageImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null) {
+    public PdfPageBuilder FirstPageImageWatermark(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, double? opacity = null, double? rotationAngle = null) {
         var watermark = new PdfImageWatermark(imageBytes, width, height);
         if (opacity.HasValue) watermark.Opacity = opacity.Value;
         if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
@@ -162,7 +162,7 @@ public sealed class PdfPageBuilder {
         return this;
     }
     /// <summary>Sets an even-page image watermark rendered behind page content.</summary>
-    public PdfPageBuilder EvenPagesImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null) {
+    public PdfPageBuilder EvenPagesImageWatermark(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, double? opacity = null, double? rotationAngle = null) {
         var watermark = new PdfImageWatermark(imageBytes, width, height);
         if (opacity.HasValue) watermark.Opacity = opacity.Value;
         if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
@@ -175,7 +175,7 @@ public sealed class PdfPageBuilder {
         return this;
     }
     /// <summary>Sets a page-scoped page border.</summary>
-    public PdfPageBuilder PageBorder(PdfColor? color = null, double? width = null, double? inset = null, double? opacity = null, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid) {
+    public PdfPageBuilder PageBorder(global::OfficeIMO.OfficeColor? color = null, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? inset = null, double? opacity = null, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid) {
         var border = new PdfPageBorder {
             DashStyle = dashStyle
         };
@@ -216,33 +216,33 @@ public sealed class PdfPageBuilder {
         return this;
     }
     /// <summary>Adds a page-scoped rectangle background shape.</summary>
-    public PdfPageBuilder BackgroundRectangle(double x, double y, double width, double height, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+    public PdfPageBuilder BackgroundRectangle(global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.Rectangle(x, y, width, height, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Adds a page-scoped rounded rectangle background shape.</summary>
-    public PdfPageBuilder BackgroundRoundedRectangle(double x, double y, double width, double height, double cornerRadius, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+    public PdfPageBuilder BackgroundRoundedRectangle(global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength cornerRadius, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.RoundedRectangle(x, y, width, height, cornerRadius, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Adds a page-scoped ellipse background shape.</summary>
-    public PdfPageBuilder BackgroundEllipse(double x, double y, double width, double height, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+    public PdfPageBuilder BackgroundEllipse(global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.Ellipse(x, y, width, height, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Adds a page-scoped top background band using the current page size.</summary>
-    public PdfPageBuilder BackgroundTopBand(double height, PdfColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+    public PdfPageBuilder BackgroundTopBand(global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeLength insetX = default, global::OfficeIMO.OfficeLength offsetY = default, global::OfficeIMO.OfficeLength cornerRadius = default, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.TopBand(Options.PageWidth, Options.PageHeight, height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Adds a page-scoped bottom background band using the current page size.</summary>
-    public PdfPageBuilder BackgroundBottomBand(double height, PdfColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+    public PdfPageBuilder BackgroundBottomBand(global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeLength insetX = default, global::OfficeIMO.OfficeLength offsetY = default, global::OfficeIMO.OfficeLength cornerRadius = default, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.BottomBand(Options.PageWidth, Options.PageHeight, height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Adds a page-scoped left background band using the current page size.</summary>
-    public PdfPageBuilder BackgroundLeftBand(double width, PdfColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+    public PdfPageBuilder BackgroundLeftBand(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeLength insetY = default, global::OfficeIMO.OfficeLength offsetX = default, global::OfficeIMO.OfficeLength cornerRadius = default, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.LeftBand(Options.PageWidth, Options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Adds a page-scoped right background band using the current page size.</summary>
-    public PdfPageBuilder BackgroundRightBand(double width, PdfColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+    public PdfPageBuilder BackgroundRightBand(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeLength insetY = default, global::OfficeIMO.OfficeLength offsetX = default, global::OfficeIMO.OfficeLength cornerRadius = default, global::OfficeIMO.OfficeColor? stroke = null, global::OfficeIMO.OfficeLength strokeWidth = default, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.RightBand(Options.PageWidth, Options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Sets page orientation to portrait while preserving the current page size dimensions.</summary>
     public PdfPageBuilder Portrait() => Orientation(OfficePageOrientation.Portrait);
     /// <summary>Sets page orientation to landscape while preserving the current page size dimensions.</summary>
     public PdfPageBuilder Landscape() => Orientation(OfficePageOrientation.Landscape);
     /// <summary>Sets uniform page margins (all sides in points).</summary>
-    public PdfPageBuilder Margin(double all) {
-        Guard.NonNegative(all, nameof(all));
+    public PdfPageBuilder Margin(global::OfficeIMO.OfficeLength all) {
+        Guard.NonNegative(all.ToPoints(), nameof(all));
         Options.MarginLeft = Options.MarginRight = Options.MarginTop = Options.MarginBottom = all;
         return this;
     }
@@ -257,11 +257,11 @@ public sealed class PdfPageBuilder {
         return this;
     }
     /// <summary>Sets page margins (left, top, right, bottom in points).</summary>
-    public PdfPageBuilder Margin(double left, double top, double right, double bottom) {
-        Guard.NonNegative(left, nameof(left));
-        Guard.NonNegative(top, nameof(top));
-        Guard.NonNegative(right, nameof(right));
-        Guard.NonNegative(bottom, nameof(bottom));
+    public PdfPageBuilder Margin(global::OfficeIMO.OfficeLength left, global::OfficeIMO.OfficeLength top, global::OfficeIMO.OfficeLength right, global::OfficeIMO.OfficeLength bottom) {
+        Guard.NonNegative(left.ToPoints(), nameof(left));
+        Guard.NonNegative(top.ToPoints(), nameof(top));
+        Guard.NonNegative(right.ToPoints(), nameof(right));
+        Guard.NonNegative(bottom.ToPoints(), nameof(bottom));
         Options.MarginLeft = left;
         Options.MarginTop = top;
         Options.MarginRight = right;

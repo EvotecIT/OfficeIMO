@@ -21,7 +21,7 @@ public partial class Word {
     public void SaveAsPdf_NamedPresentationFamilyPreservesBodyTypography(bool profile, bool footer, bool explicitBody) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("BODY");
         WordPdfExportOptions options = CreateNamedPresentationOptions(profile);
         if (explicitBody) options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
@@ -59,7 +59,7 @@ public partial class Word {
     public void SaveAsPdf_UnusedNamedFamilyPreservesBodyTypography(bool profile) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("BODY");
         using var pdf = PdfPigDocument.Open(document.ToPdf(CreateNamedPresentationOptions(profile)).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(pdf.GetPage(1).Letters, letter => {

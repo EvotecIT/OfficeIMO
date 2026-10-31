@@ -16,7 +16,7 @@ namespace OfficeIMO.Pdf.Benchmarks {
             PdfDocument document = PdfDocument.Create(compose => {
                 for (int page = 1; page <= pages; page++) {
                     int number = page;
-                    compose.Page(layout => layout.Size(600, 800).Content(content => content.Item(item =>
+                    compose.Page(layout => layout.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => content.Item(item =>
                         item.Paragraph(text => text.Text($"Before private account {number:000} after page {number:000}")))));
                 }
             });

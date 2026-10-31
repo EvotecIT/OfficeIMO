@@ -22,7 +22,7 @@ public sealed class WorkflowScopedAccessTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-workflow-scopes-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
-            byte[] pdf = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+            byte[] pdf = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
             byte[] original = operation == "convert" ? Encoding.UTF8.GetBytes("<html><body>Scoped conversion</body></html>") : pdf;
             string inputName = operation == "convert" ? "source.html" : "source.pdf";
             var input = new ScopedWorkflowFile(root, inputName, original);
@@ -118,7 +118,7 @@ public sealed class WorkflowScopedAccessTests {
         try {
             string source = Path.Combine(root, "source.pdf");
             string output = Path.Combine(root, "new.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             var store = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root, "recovery"));
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
                 InputPath = source, Operation = OfficeWorkflowOperation.Optimize, OutputPath = output,

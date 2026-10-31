@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                      }) {
                 string filePath = Path.Join(folderPath, "PowerPoint Layout Strategy Comparison - " + name + ".pptx");
                 first ??= filePath;
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath, new PowerPointCreateOptions { Theme = theme });
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath, new PowerPointCreateOptions { Theme = theme });
                 // The design repeats the theme's own accent and fonts, so composition keeps the theme as it is.
                 PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#" + theme.Palette.Accent1.ToRgbHex(), "layout-comparison-" + name,
                     headingFontName: theme.Fonts.Heading.Family, bodyFontName: theme.Fonts.Body.Family, footerLeft: "OfficeIMO · " + name + " theme");
@@ -86,7 +86,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     "layout-coverage");
         }
 
-        private static void Validate(string filePath, PowerPointPresentation presentation) {
+        private static void Validate(string filePath, PowerPointDocument presentation) {
             List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();
             if (errors.Count > 0) {
                 string details = string.Join(Environment.NewLine, errors.Take(5).Select(error => error.Description));

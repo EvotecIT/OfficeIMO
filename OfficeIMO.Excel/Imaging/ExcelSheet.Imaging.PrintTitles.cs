@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel {
         private OfficeImageExportResult RenderWorksheetImageResult(
             OfficeImageExportFormat format,
             WorksheetImageRangeResolution range,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             ExcelHeaderFooterInfo? headerFooterSnapshot,
             ExcelSourceImageBudget sourceImageBudget,
             int pageNumber,
@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel {
         private OfficeImageExportResult RenderWorksheetImageResultCore(
             OfficeImageExportFormat format,
             WorksheetImageRangeResolution range,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             ExcelHeaderFooterInfo? headerFooterSnapshot,
             ExcelSourceImageBudget sourceImageBudget,
             int pageNumber,
@@ -161,10 +161,10 @@ namespace OfficeIMO.Excel {
 
         private static OfficeImageExportResult ApplyFinalSvgOutputBounds(
             OfficeImageExportResult result,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             CancellationToken cancellationToken,
             long? maximumSvgUtf8Bytes) {
-            ExcelWorksheetImageExportOptions fitOptions = options.CloneWorksheet();
+            ExcelImageExportOptions fitOptions = options.Clone();
             fitOptions.Scale = 1D;
             fitOptions.TargetDpi = null;
             double scale = fitOptions.GetEffectiveScale(result.Width, result.Height);
@@ -206,7 +206,7 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             OfficeImageExportFormat rasterPlanningFormat,
             WorksheetImageRangeResolution range,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             PrintTitleLayout layout,
             ExcelSourceImageBudget sourceImageBudget,
             out ExcelRasterRenderState rasterState,
@@ -300,7 +300,7 @@ namespace OfficeIMO.Excel {
 
         private List<PrintTitleVisualComponent> CreatePrintTitleVisualComponents(
             PrintTitleLayout layout,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic> diagnostics,
             ExcelSourceImageBudget sourceImageBudget) {
             var components = new List<PrintTitleVisualComponent>();
@@ -341,7 +341,7 @@ namespace OfficeIMO.Excel {
             string range,
             double x,
             double y,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic> diagnostics,
             ExcelSourceImageBudget sourceImageBudget) {
             if (options == null) {
@@ -363,12 +363,12 @@ namespace OfficeIMO.Excel {
         private static List<PrintTitleComponent> RenderPrintTitleComponents(
             IReadOnlyList<PrintTitleVisualComponent> visuals,
             OfficeImageExportFormat format,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             double renderScale,
             List<OfficeImageExportDiagnostic> diagnostics,
             CancellationToken cancellationToken,
             long? maximumSvgUtf8Bytes) {
-            ExcelWorksheetImageExportOptions renderOptions = options.CloneWorksheet();
+            ExcelImageExportOptions renderOptions = options.Clone();
             renderOptions.TargetDpi = null;
             renderOptions.Scale = renderScale;
             var components = new List<PrintTitleComponent>(visuals.Count);
@@ -389,7 +389,7 @@ namespace OfficeIMO.Excel {
         private static PrintTitleComponent RenderPrintTitleComponent(
             PrintTitleVisualComponent visual,
             OfficeImageExportFormat format,
-            ExcelWorksheetImageExportOptions renderOptions,
+            ExcelImageExportOptions renderOptions,
             List<OfficeImageExportDiagnostic> diagnostics,
             CancellationToken cancellationToken,
             long? maximumSvgUtf8Bytes) {

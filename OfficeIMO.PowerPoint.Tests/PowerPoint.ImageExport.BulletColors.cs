@@ -19,21 +19,21 @@ namespace OfficeIMO.Tests {
         [InlineData(false, "Reset")]
         [InlineData(true, "Reset")]
         public void SavedBulletColorUsesParagraphInheritanceWithoutRecoloringItsText(bool tableCell, string colorSource) {
-            using var presentation = PowerPointPresentation.Create();
-            presentation.SlideSize.SetSizePoints(320, 180);
+            using var presentation = PowerPointDocument.Create();
+            presentation.SlideSize.SetSize(OfficeLength.Points(320), OfficeLength.Points(180));
             var slide = presentation.AddSlide();
             PowerPointParagraph paragraph;
             A.ListStyle listStyle;
             if (tableCell) {
-                var cell = slide.AddTablePoints(1, 1, 20, 20, 280, 130).GetCell(0, 0);
+                var cell = slide.AddTable(1, 1, OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(280), OfficeLength.Points(130)).GetCell(0, 0);
                 cell.Text = "Bullet body";
-                cell.FontSize = 18;
+                cell.FontSize = OfficeLength.Points(18);
                 cell.Color = "111111";
                 paragraph = cell.Paragraphs[0];
                 listStyle = cell.Cell.TextBody!.ListStyle!;
             } else {
-                var box = slide.AddTextBoxPoints("Bullet body", 20, 20, 280, 130);
-                box.FontSize = 18;
+                var box = slide.AddTextBox("Bullet body", OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(280), OfficeLength.Points(130));
+                box.FontSize = OfficeLength.Points(18);
                 box.Color = "111111";
                 paragraph = box.Paragraphs[0];
                 listStyle = box.TextBody!.ListStyle!;
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
             if (colorSource is "FollowText" or "Reset")
                 paragraph.Paragraph.ParagraphProperties!.PrependChild(new A.BulletColorText());
 
-            using var saved = PowerPointPresentation.Load(new MemoryStream(presentation.ToBytes()));
+            using var saved = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
             Assert.Empty(saved.ValidateDocument());
             var snapshot = saved.Slides[0].CreateVisualSnapshot();
             AssertNoUnexpectedDiagnostics(snapshot.Diagnostics);

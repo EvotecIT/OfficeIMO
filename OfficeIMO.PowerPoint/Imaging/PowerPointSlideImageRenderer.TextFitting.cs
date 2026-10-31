@@ -23,10 +23,10 @@ namespace OfficeIMO.PowerPoint {
             AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(textBox, diagnostics);
             AddBaselineApproximationDiagnosticIfNeeded(textBox, diagnostics);
 
-            double marginLeft = mapping.MapHorizontalLength(textBox.TextMarginLeftPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints);
-            double marginRight = mapping.MapHorizontalLength(textBox.TextMarginRightPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints);
-            double marginTop = mapping.MapVerticalLength(textBox.TextMarginTopPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints);
-            double marginBottom = mapping.MapVerticalLength(textBox.TextMarginBottomPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints);
+            double marginLeft = mapping.MapHorizontalLength(textBox.TextMarginLeft?.ToPoints() ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints);
+            double marginRight = mapping.MapHorizontalLength(textBox.TextMarginRight?.ToPoints() ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints);
+            double marginTop = mapping.MapVerticalLength(textBox.TextMarginTop?.ToPoints() ?? PowerPointTextDefaults.DefaultVerticalInsetPoints);
+            double marginBottom = mapping.MapVerticalLength(textBox.TextMarginBottom?.ToPoints() ?? PowerPointTextDefaults.DefaultVerticalInsetPoints);
             if (marginLeft + marginRight >= width || marginTop + marginBottom >= height) {
                 double horizontalScale = Math.Min(1D, width * 0.99D / Math.Max(0.01D, marginLeft + marginRight));
                 double verticalScale = Math.Min(1D, height * 0.99D / Math.Max(0.01D, marginTop + marginBottom));

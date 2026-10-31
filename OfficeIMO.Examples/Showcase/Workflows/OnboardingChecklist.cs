@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class OnboardingChecklist {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-        document.Settings.FontSize = 11;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
         document.AddParagraph("A good first week").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("Employee onboarding | Team: Customer Operations | Buddy: Morgan Chen");
         document.AddParagraph("Use this checklist to agree who prepares each item and record completion.");
@@ -27,17 +27,17 @@ internal static class OnboardingChecklist {
             ("Review questions and blockers", "Manager", "Planned")
         });
         foreach (WordParagraph paragraph in document.Paragraphs) {
-            paragraph.FontSize = 11;
-            paragraph.LineSpacingAfterPoints = 7;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(7D);
             if (paragraph.Style == WordParagraphStyles.Heading1) {
-                paragraph.FontSize = 26;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(26);
                 paragraph.Bold = true;
-                paragraph.LineSpacingAfterPoints = 12;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
             } else if (paragraph.Style == WordParagraphStyles.Heading2) {
-                paragraph.FontSize = 15;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(15);
                 paragraph.Bold = true;
-                paragraph.LineSpacingBeforePoints = 12;
-                paragraph.LineSpacingAfterPoints = 6;
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
             }
         }
         foreach (WordTable styledTable in document.Tables) {
@@ -45,11 +45,11 @@ internal static class OnboardingChecklist {
             styledTable.SetColumnWidthsPercentage(50, 25, 25);
             foreach (var row in styledTable.Rows) {
                 foreach (var cell in row.Cells) {
-                    cell.MarginTopCentimeters = 0.10;
-                    cell.MarginBottomCentimeters = 0.10;
+                    cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
+                    cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
                     foreach (var paragraph in cell.Paragraphs) {
-                        paragraph.FontSize = 11;
-                        paragraph.LineSpacingAfterPoints = 3;
+                        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
+                        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
                     }
                 }
             }

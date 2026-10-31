@@ -268,10 +268,10 @@ public partial class PdfDocumentReadResultTests {
     public void LogicalTextBlocks_PreservePositionedRunStyleSpans() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(paragraph => paragraph
-                .Color(PdfColor.FromRgb(255, 0, 0))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
                 .Font(PdfStandardFont.Helvetica)
                 .Text("Red")
-                .Color(PdfColor.FromRgb(0, 0, 255))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
                 .Font(PdfStandardFont.Courier)
                 .Text("Blue"))
             .ToBytes();
@@ -344,13 +344,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void Load_BuildsLogicalPagesWithTextTablesAndImages() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "Logical sample", author: "OfficeIMO")
             .H1("Logical Heading")
@@ -361,10 +361,10 @@ public partial class PdfDocumentReadResultTests {
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .Image(CreateMinimalRgbPng(), 18, 18)
             .ToBytes();

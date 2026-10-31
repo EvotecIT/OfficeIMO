@@ -22,7 +22,7 @@ public sealed class StudioOcrPublicationTests {
             services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
             string source = Path.Combine(services.Paths.Root, "Scanned document.pdf");
             string output = Path.Combine(services.Paths.Root, "Searchable document.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             bool allowed = true;
             bool denyAfterRecognition = false;
             var engine = new DelegateOcrEngine("fixture", (_, _) => {
@@ -71,7 +71,7 @@ public sealed class StudioOcrPublicationTests {
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
             services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
-            byte[] sourceBytes = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+            byte[] sourceBytes = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
             var input = new TestStorageFile("content://documents/ocr-source", sourceBytes, "Selected scanned document.pdf");
             var output = new TestStorageFile("content://documents/ocr-output", sourceBytes, "Selected searchable document.pdf");
             string source = await services.Storage.RegisterAsync(input.Item, default);

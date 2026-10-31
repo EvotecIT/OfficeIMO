@@ -146,8 +146,8 @@ public class RtfWordTabStopTests {
             new TabStop { Position = 1440, Val = TabStopValues.Clear }));
         word._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
         WordParagraph paragraph = word.AddParagraph("Direct\tTab");
-        paragraph.AddTabStop(2880, WordTabAlignment.Decimal, WordTabLeader.Hyphen);
-        paragraph.AddTabStop(720, WordTabAlignment.Clear);
+        paragraph.AddTabStop(OfficeLength.Emus(2880L * 635), WordTabAlignment.Decimal, WordTabLeader.Hyphen);
+        paragraph.AddTabStop(OfficeLength.Emus(720L * 635), WordTabAlignment.Clear);
         string before = word._document.OuterXml;
         string styleBefore = style.OuterXml;
 

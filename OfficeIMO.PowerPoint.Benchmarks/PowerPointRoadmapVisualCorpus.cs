@@ -52,9 +52,9 @@ internal static class PowerPointRoadmapVisualCorpus {
         string vectorsDirectory = Path.Combine(root, "vectors");
         Directory.CreateDirectory(vectorsDirectory);
 
-        using (PowerPointPresentation presentation =
-               PowerPointPresentation.Create(deckPath)) {
-            presentation.SlideSize.SetSizePoints(960, 540);
+        using (PowerPointDocument presentation =
+               PowerPointDocument.Create(deckPath)) {
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(960),OfficeIMO.OfficeLength.Points(540));
             var visualSlides = new List<PowerPointSlide>();
             foreach ((PowerPointSmartArtType type, string title) in SmartArtScenarios) {
                 visualSlides.Add(AddSmartArtSlide(presentation, type, title));
@@ -66,18 +66,18 @@ internal static class PowerPointRoadmapVisualCorpus {
                 "OfficeIMO visual review", "OVR", "officeimo-reviewer");
             presentation.AddClassicComment(visualSlides[0], reviewer,
                 "Classic comment mutation and preservation proof.",
-                PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40));
+                global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40));
             PowerPointModernComment modern = presentation.AddModernComment(
                 visualSlides[0], reviewer,
                 "Modern threaded comment mutation and preservation proof.",
-                x: PowerPointUnits.FromPoints(80),
-                y: PowerPointUnits.FromPoints(80));
+                x: global::OfficeIMO.OfficeLength.Points(80),
+                y: global::OfficeIMO.OfficeLength.Points(80));
             modern.AddReply(reviewer, "Reply mutation proof.");
             presentation.AddCustomShow("Roadmap visual review", visualSlides);
             presentation.Save();
         }
 
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(deckPath);
+        using PowerPointDocument reopened = PowerPointDocument.Load(deckPath);
         IReadOnlyList<string> validation = reopened.ValidateDocument()
             .Select(error => error.Description ?? error.ToString() ?? string.Empty)
             .ToArray();
@@ -228,7 +228,7 @@ internal static class PowerPointRoadmapVisualCorpus {
             PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions {
                     Dpi = 72D,
-                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
                     MaxPages = expectedPageCount,
                     ContinueOnError = false,
                     MaxTotalOutputBytes = 256L * 1024L * 1024L
@@ -266,7 +266,7 @@ internal static class PowerPointRoadmapVisualCorpus {
     }
 
     private static void ValidateScenarioSemantics(
-        PowerPointPresentation presentation) {
+        PowerPointDocument presentation) {
         int expectedSlideCount = SmartArtScenarios.Length + 2;
         if (presentation.Slides.Count != expectedSlideCount) {
             throw new InvalidOperationException(
@@ -351,22 +351,22 @@ internal static class PowerPointRoadmapVisualCorpus {
     }
 
     private static PowerPointSlide AddSmartArtSlide(
-        PowerPointPresentation presentation, PowerPointSmartArtType type,
+        PowerPointDocument presentation, PowerPointSmartArtType type,
         string title) {
         PowerPointSlide slide = presentation.AddSlide();
         SetSlideBackground(slide);
         AddTitle(slide, title + " SmartArt");
         PowerPointSmartArt smartArt = slide.AddSmartArt(type,
             new[] { "Discover", "Design", "Build", "Validate" },
-            PowerPointUnits.FromPoints(60), PowerPointUnits.FromPoints(100),
-            PowerPointUnits.FromPoints(840), PowerPointUnits.FromPoints(360));
+            OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(100),
+            OfficeIMO.OfficeLength.Points(840), OfficeIMO.OfficeLength.Points(360));
         smartArt.Name = title + " semantic diagram";
         AddFooter(slide, "Editable semantic diagram · create/save/open/render");
         return slide;
     }
 
     private static PowerPointSlide AddCustomGeometrySlide(
-        PowerPointPresentation presentation) {
+        PowerPointDocument presentation) {
         PowerPointSlide slide = presentation.AddSlide();
         SetSlideBackground(slide);
         AddTitle(slide, "Shared custom geometry");
@@ -382,7 +382,7 @@ internal static class PowerPointRoadmapVisualCorpus {
         curved.FillColor = OfficeColor.FromRgb(14, 165, 233);
         curved.StrokeColor = OfficeColor.FromRgb(12, 74, 110);
         curved.StrokeWidth = 2.25D;
-        slide.AddCustomGeometryPoints(curved, 90, 145, 300, 250,
+        slide.AddCustomGeometry(curved, OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(145), OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(250),
             "Curved freeform");
 
         OfficeShape polygon = OfficeShape.Polygon(
@@ -392,19 +392,19 @@ internal static class PowerPointRoadmapVisualCorpus {
         polygon.FillColor = OfficeColor.FromRgb(168, 85, 247);
         polygon.StrokeColor = OfficeColor.FromRgb(88, 28, 135);
         polygon.StrokeWidth = 2.25D;
-        slide.AddCustomGeometryPoints(polygon, 545, 145, 300, 250,
+        slide.AddCustomGeometry(polygon, OfficeIMO.OfficeLength.Points(545), OfficeIMO.OfficeLength.Points(145), OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(250),
             "Polygon freeform");
         AddFooter(slide, "Shared Drawing geometry · editable PowerPoint custGeom");
         return slide;
     }
 
     private static PowerPointSlide AddChartAndTableSlide(
-        PowerPointPresentation presentation) {
+        PowerPointDocument presentation) {
         PowerPointSlide slide = presentation.AddSlide();
         SetSlideBackground(slide);
         AddTitle(slide, "Chart and table authoring");
 
-        PowerPointTable table = slide.AddTablePoints(4, 3, 45, 125, 330, 290);
+        PowerPointTable table = slide.AddTable(4,3,global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(125),global::OfficeIMO.OfficeLength.Points(330),global::OfficeIMO.OfficeLength.Points(290));
         string[,] values = {
             { "Metric", "Current", "Target" },
             { "Quality", "94", "98" },
@@ -426,11 +426,10 @@ internal static class PowerPointRoadmapVisualCorpus {
         var data = new OfficeChartData(
             new[] { "Q1", "Q2", "Q3", "Q4" },
             new[] {
-                new OfficeChartSeries("Actual", new[] { 18D, 24D, 33D, 42D }),
-                new OfficeChartSeries("Target", new[] { 20D, 28D, 36D, 45D })
+                new OfficeSeries("Actual", new[] { 18D, 24D, 33D, 42D }),
+                new OfficeSeries("Target", new[] { 20D, 28D, 36D, 45D })
             });
-        PowerPointChart chart = slide.AddChartPoints(
-            OfficeChartKind.ColumnClustered, data, 420, 110, 490, 340);
+        PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(420), Top = global::OfficeIMO.OfficeLength.Points(110), Width = global::OfficeIMO.OfficeLength.Points(490), Height = global::OfficeIMO.OfficeLength.Points(340) });
         chart.SetTitle("Quarterly trajectory")
             .SetTitleTextStyle(fontName: "Arial")
             .SetLegendTextStyle(fontName: "Arial")
@@ -445,17 +444,17 @@ internal static class PowerPointRoadmapVisualCorpus {
     }
 
     private static void AddTitle(PowerPointSlide slide, string text) {
-        PowerPointTextBox title = slide.AddTextBoxPoints(text, 45, 28, 760, 46);
+        PowerPointTextBox title = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(760),global::OfficeIMO.OfficeLength.Points(46));
         title.FontName = "Arial";
-        title.FontSize = 28;
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(28);
         title.Bold = true;
         title.Color = "0F172A";
     }
 
     private static void AddFooter(PowerPointSlide slide, string text) {
-        PowerPointTextBox footer = slide.AddTextBoxPoints(text, 45, 495, 760, 20);
+        PowerPointTextBox footer = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(495),global::OfficeIMO.OfficeLength.Points(760),global::OfficeIMO.OfficeLength.Points(20));
         footer.FontName = "Arial";
-        footer.FontSize = 10;
+        footer.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         footer.Color = "64748B";
     }
 }

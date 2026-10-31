@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Runtime diagnostics that can affect Excel import/export behavior.
     /// </summary>
-    public sealed class ExcelRuntimePreflightReport {
+    internal sealed class ExcelRuntimePreflightReport {
         internal ExcelRuntimePreflightReport(
             string frameworkDescription,
             string osDescription,
@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Inspects the current runtime for Excel workflow compatibility issues.
     /// </summary>
-    public static class ExcelRuntimePreflight {
+    internal static class ExcelRuntimePreflight {
         /// <summary>
         /// Inspects the current process for culture/runtime settings that commonly affect spreadsheet workflows.
         /// </summary>

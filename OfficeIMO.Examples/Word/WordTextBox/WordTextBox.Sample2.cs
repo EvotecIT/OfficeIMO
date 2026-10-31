@@ -19,34 +19,34 @@ namespace OfficeIMO.Examples.Word {
                 textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 // horizontal alignment overwrites the horizontal position offset so only one will work
                 textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Left;
-                textBox.VerticalPositionOffsetCentimeters = 3;
+                textBox.VerticalPositionOffset = OfficeLength.Centimeters(3);
 
                 var textBox2 = document.AddTextBox("My textbox on the right");
                 textBox2.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 textBox2.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Right;
                 // horizontal alignment overwrites the horizontal position offset so only one will work
                 textBox2.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
-                textBox2.VerticalPositionOffsetCentimeters = 3;
+                textBox2.VerticalPositionOffset = OfficeLength.Centimeters(3);
 
-                Console.WriteLine(textBox.VerticalPositionOffsetCentimeters);
+                Console.WriteLine(textBox.VerticalPositionOffset?.ToCentimeters());
 
-                Console.WriteLine(document.TextBoxes[0].VerticalPositionOffsetCentimeters);
+                Console.WriteLine(document.TextBoxes[0].VerticalPositionOffset?.ToCentimeters());
 
-                Console.WriteLine(document.TextBoxes[1].VerticalPositionOffsetCentimeters);
+                Console.WriteLine(document.TextBoxes[1].VerticalPositionOffset?.ToCentimeters());
 
                 var textBox3 = document.AddTextBox("My textbox in the center with borders");
                 textBox3.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 textBox3.HorizontalAlignment = WordTextBoxHorizontalAlignment.Center;
-                textBox3.VerticalPositionOffsetCentimeters = 10;
+                textBox3.VerticalPositionOffset = OfficeLength.Centimeters(10);
                 textBox3.Paragraphs[0].Borders.BottomStyle = WordBorderStyle.BasicWideOutline;
-                textBox3.Paragraphs[0].Borders.BottomSize = 10;
+                textBox3.Paragraphs[0].Borders.BottomSize = OfficeLength.Points(1.25);
                 textBox3.Paragraphs[0].Borders.BottomColor = Color.Red;
                 textBox3.Paragraphs[0].Borders.BottomShadow = false;
                 textBox3.Paragraphs[0].Borders.TopStyle = WordBorderStyle.BasicWideOutline;
                 textBox3.Paragraphs[0].Borders.LeftStyle = WordBorderStyle.BasicWideOutline;
                 textBox3.Paragraphs[0].Borders.RightStyle = WordBorderStyle.BasicWideOutline;
 
-                textBox3.Paragraphs[0].Borders.SetBorder(WordParagraphBorderType.Left, WordBorderStyle.BasicWideOutline, Color.Red, 10, false);
+                textBox3.Paragraphs[0].Borders.SetBorder(WordParagraphBorderType.Left, WordBorderStyle.BasicWideOutline, Color.Red, OfficeLength.Points(1.25), false);
 
                 // remove the textbox
                 textBox2.Remove();

@@ -14,14 +14,14 @@ public sealed class PdfInlineFormPaintTests {
     [InlineData(true)]
     public void WidgetOnlyNamedFontIsDeclaredForEveryPageAndAppearanceTextOperator(bool precedingSpace) {
         const string family = "Inline widget resource control";
-        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10 };
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
-        var checkedRun = PdfTextRun.Normal("A", fontSize: 10, fontFamily: family);
-        var uncheckedRun = PdfTextRun.Normal("B", fontSize: 10, fontFamily: family);
+        var checkedRun = PdfTextRun.Normal("A", fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: family);
+        var uncheckedRun = PdfTextRun.Normal("B", fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: family);
         var field = new PdfInlineFormField(PdfCanvasFormFieldItem.CheckBox("OnlyWidgetFont", true,
             "Yes", "Yes", 0, 0, 12, 12, new PdfFormFieldStyle {
-                BackgroundColor = null, BorderColor = null, BorderWidth = 0
+                BackgroundColor = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0)
             }), checkedRun, uncheckedRun);
         var widget = new PdfInlineFormWidget(field, 12, 12, sourceRun: checkedRun);
         byte[] bytes = PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Content(content =>
@@ -74,9 +74,9 @@ public sealed class PdfInlineFormPaintTests {
     [InlineData(false)]
     [InlineData(true)]
     public void InlineControlBackgroundRequiresStaticParagraphPaint(bool checkBox) {
-        var style = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = 0 };
-        var highlighted = PdfTextRun.Normal("CACHE", fontSize: 10,
-            backgroundColor: PdfColor.FromRgb(255, 255, 0));
+        var style = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0) };
+        var highlighted = PdfTextRun.Normal("CACHE", fontSize: global::OfficeIMO.OfficeLength.Points(10),
+            backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0));
         var field = new PdfInlineFormField(checkBox
             ? PdfCanvasFormFieldItem.CheckBox("Background", true, "Yes", "Yes", 0, 0, 10, 10, style)
             : PdfCanvasFormFieldItem.Text("Background", "CACHE", "CACHE", 0, 0, 1, 10, 10, style, style));
@@ -88,15 +88,15 @@ public sealed class PdfInlineFormPaintTests {
     [Fact]
     public void InlineTextAppearanceRetainsItalicInkBeyondTheGlyphAdvance() {
         const string cached = "fff";
-        var style = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = 0 };
+        var style = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0) };
         var field = new PdfInlineFormField(PdfCanvasFormFieldItem.Text("Italic", cached, cached,
             0, 0, 1, 16, 16, style, style));
         byte[] Create(bool inline) {
-            PdfTextRun run = PdfTextRun.Normal(cached, fontSize: 16, font: PdfStandardFont.TimesItalic);
+            PdfTextRun run = PdfTextRun.Normal(cached, fontSize: global::OfficeIMO.OfficeLength.Points(16), font: PdfStandardFont.TimesItalic);
             if (inline) run = run.WithFormField(field);
             return PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 300, PageHeight = 120, MarginLeft = 24, MarginRight = 24,
-                MarginTop = 24, MarginBottom = 24, DefaultFont = PdfStandardFont.TimesRoman, DefaultFontSize = 16
+                PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFont = PdfStandardFont.TimesRoman, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(16)
             }).Compose(compose => compose.Page(page => page.Content(content => content.Paragraph(paragraph =>
                 paragraph.Runs(new[] { PdfTextRun.Normal("LEAD "), run, PdfTextRun.Normal("       TAIL") }))))).ToBytes();
         }
@@ -134,16 +134,16 @@ public sealed class PdfInlineFormPaintTests {
     [Fact]
     public void FillingMultiwordUnderlinedInlineTextRemovesCachedGlyphsAndSeparatorDecoration() {
         const string cached = "OBSOLETE VALUE";
-        var style = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = 0 };
+        var style = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0) };
         var field = new PdfInlineFormField(PdfCanvasFormFieldItem.Text("Underlined", "OLD", cached,
             0, 0, 1, 10, 10, style, style));
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 300, PageHeight = 120, MarginLeft = 24, MarginRight = 24,
-            MarginTop = 24, MarginBottom = 24, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
+            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         }).Compose(compose => compose.Page(page => page.Content(content => content.Paragraph(paragraph =>
             paragraph.Runs(new[] {
                 PdfTextRun.Normal("LEAD "),
-                new PdfTextRun(cached, underline: true, fontSize: 10, font: PdfStandardFont.Helvetica)
+                new PdfTextRun(cached, underline: true, fontSize: global::OfficeIMO.OfficeLength.Points(10), font: PdfStandardFont.Helvetica)
                     .WithFormField(field),
                 PdfTextRun.Normal(" TAIL")
             }))))).ToBytes();
@@ -189,16 +189,16 @@ public sealed class PdfInlineFormPaintTests {
         const string family = "Toggle outline control";
         const double size = 20D, pageWidth = 300D, pageHeight = 120D;
         var options = new PdfCreateOptions {
-            PageWidth = pageWidth, PageHeight = pageHeight, MarginLeft = 24, MarginRight = 24,
-            MarginTop = 24, MarginBottom = 24, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10
+            PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth), PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphOutlines('A', 'B')));
-        var checkedRun = PdfTextRun.Italicized("A", fontSize: size, fontFamily: family);
-        var uncheckedRun = PdfTextRun.Italicized("B", fontSize: size, fontFamily: family);
+        var checkedRun = PdfTextRun.Italicized("A", fontSize: global::OfficeIMO.OfficeLength.Points(size), fontFamily: family);
+        var uncheckedRun = PdfTextRun.Italicized("B", fontSize: global::OfficeIMO.OfficeLength.Points(size), fontFamily: family);
         var metrics = Assert.IsType<PdfWriter.PositionedTextBoxMeasurement>(PdfWriter.MeasurePositionedTextBox(checkedRun, options));
         var alternateMetrics = Assert.IsType<PdfWriter.PositionedTextBoxMeasurement>(PdfWriter.MeasurePositionedTextBox(uncheckedRun, options));
         Assert.Equal(metrics.Width, alternateMetrics.Width, 3);
-        var style = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = 0 };
+        var style = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0) };
         var field = new PdfInlineFormField(PdfCanvasFormFieldItem.CheckBox("InkToggle", true,
             "Yes", "Yes", 0, 0, metrics.Width, metrics.Ascent + metrics.Descent, style), checkedRun, uncheckedRun);
         var widget = new PdfInlineFormWidget(field, metrics.Width, metrics.Ascent + metrics.Descent,
@@ -206,7 +206,7 @@ public sealed class PdfInlineFormPaintTests {
         byte[] source = PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Content(content =>
             content.Paragraph(paragraph => paragraph.Runs(new[] {
                 PdfTextRun.Normal("LEFT"), PdfTextRun.Inline(widget),
-                PdfTextRun.Inline(new PdfInlineBox(20D, 0.01D, borderWidth: 0D)), PdfTextRun.Normal("RIGHT")
+                PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(0.01D), borderWidth: global::OfficeIMO.OfficeLength.Points(0D))), PdfTextRun.Normal("RIGHT")
             }))))).ToBytes();
         PdfFormWidget beforeWidget = Assert.Single(Assert.Single(PdfReadDocument.Open(source).FormFields).Widgets);
         byte[] initial = PdfDocument.Load(source).Forms.Flatten().ToBytes();

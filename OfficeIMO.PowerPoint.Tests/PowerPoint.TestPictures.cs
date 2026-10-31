@@ -3,15 +3,15 @@ using OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.Tests {
     /// <summary>
-    ///     AddPicture keeps an image's aspect ratio inside the requested box. Tests about rendering an explicit,
+    ///     AddImage keeps an image's aspect ratio inside the requested box. Tests about rendering an explicit,
     ///     deliberately mismatched frame restore that frame here.
     /// </summary>
     internal static class PowerPointTestPictures {
         internal static PowerPointPicture WithFrame(this PowerPointPicture picture, long left, long top, long width, long height) {
-            picture.Left = left;
-            picture.Top = top;
-            picture.Width = width;
-            picture.Height = height;
+            picture.Left = OfficeLength.Emus(left);
+            picture.Top = OfficeLength.Emus(top);
+            picture.Width = OfficeLength.Emus(width);
+            picture.Height = OfficeLength.Emus(height);
             return picture;
         }
     }
@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
     ///     behaviour for text with no inherited formatting remove those defaults first.
     /// </summary>
     internal static class PowerPointTestThemeDefaults {
-        internal static void ClearThemeTextDefaults(this PowerPointPresentation presentation) {
+        internal static void ClearThemeTextDefaults(this PowerPointDocument presentation) {
             var part = presentation.OpenXmlDocument.PresentationPart!;
             part.Presentation!.DefaultTextStyle = new DocumentFormat.OpenXml.Presentation.DefaultTextStyle();
             foreach (var master in part.SlideMasterParts) {

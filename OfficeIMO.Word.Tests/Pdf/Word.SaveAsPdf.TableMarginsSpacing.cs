@@ -21,19 +21,19 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable plain = document.AddTable(1, 1);
             ConfigureMarginTable(plain, "PlainPad");
-            plain.StyleDetails!.MarginDefaultLeftWidth = 0;
+            plain.StyleDetails!.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points(0);
 
             document.AddParagraph("between padding tables");
 
             WordTable padded = document.AddTable(1, 1);
             ConfigureMarginTable(padded, "WidePad");
-            padded.StyleDetails!.MarginDefaultLeftWidth = 1000;
+            padded.StyleDetails!.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points(50);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(400, 500),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -54,21 +54,21 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable plain = document.AddTable(1, 1);
             ConfigureMarginTable(plain, "PlainCellPad");
-            plain.StyleDetails!.MarginDefaultLeftWidth = 0;
+            plain.StyleDetails!.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points(0);
 
             document.AddParagraph("between per-cell padding tables");
 
             WordTable padded = document.AddTable(1, 1);
             ConfigureMarginTable(padded, "WideCellPad");
-            padded.StyleDetails!.MarginDefaultLeftWidth = 0;
-            padded.Rows[0].Cells[0].MarginLeftWidth = 1000;
-            padded.Rows[0].Cells[0].MarginTopWidth = 320;
+            padded.StyleDetails!.MarginDefaultLeft = global::OfficeIMO.OfficeLength.Points(0);
+            padded.Rows[0].Cells[0].MarginLeft = global::OfficeIMO.OfficeLength.Points(50D);
+            padded.Rows[0].Cells[0].MarginTop = global::OfficeIMO.OfficeLength.Points(16D);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(400, 500),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -90,12 +90,12 @@ public partial class Word {
             WordTable table = document.AddTable(1, 2);
             WordParagraph plain = table.Rows[0].Cells[0].Paragraphs[0];
             plain.Text = "NoBefore";
-            plain.LineSpacingBeforePoints = 0D;
-            plain.LineSpacingAfterPoints = 0D;
+            plain.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+            plain.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph spaced = table.Rows[0].Cells[1].Paragraphs[0];
             spaced.Text = "FiveBefore";
-            spaced.LineSpacingBeforePoints = 5D;
-            spaced.LineSpacingAfterPoints = 5D;
+            spaced.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(5D);
+            spaced.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(5D);
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions());
         }
@@ -117,8 +117,8 @@ public partial class Word {
                 WordTable table = document.AddTable(2, 1);
                 WordParagraph first = table.Rows[0].Cells[0].Paragraphs[0];
                 first.Text = "FirstRow";
-                first.LineSpacingBeforePoints = 5D;
-                first.LineSpacingAfterPoints = variant == 0 ? 0D : 5D;
+                first.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(5D);
+                first.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(variant == 0 ? 0D : 5D);
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "SecondRow";
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions());
@@ -142,19 +142,19 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable plain = document.AddTable(1, 2);
             ConfigureCellSpacingTable(plain, "PlainA", "PlainB");
-            plain.StyleDetails!.CellSpacing = 0;
+            plain.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
 
             document.AddParagraph("between spacing tables");
 
             WordTable spaced = document.AddTable(1, 2);
             ConfigureCellSpacingTable(spaced, "SpaceA", "SpaceB");
-            spaced.StyleDetails!.CellSpacing = 240;
+            spaced.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(12);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 500),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(500)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -188,7 +188,7 @@ public partial class Word {
 
             WordTable plain = document.AddTable(1, 2);
             ConfigureCellSpacingTable(plain, "PA", "PB");
-            plain.StyleDetails!.CellSpacing = 0;
+            plain.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
 
             document.AddParagraph("between style spacing tables");
 
@@ -199,8 +199,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(420, 500),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(500)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -249,8 +249,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(520, 360),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 

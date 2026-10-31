@@ -13,14 +13,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Tables.Catalog.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet1 = document.AddWorksheet("SheetOne");
+                var sheet1 = document.AddSheet("SheetOne");
                 sheet1.CellValue(1, 1, "Name");
                 sheet1.CellValue(1, 2, "Value");
                 sheet1.CellValue(2, 1, "A");
                 sheet1.CellValue(2, 2, 1d);
                 sheet1.AddTable("A1:B2", true, "TableOne", ExcelTableStyle.TableStyleMedium9);
 
-                var sheet2 = document.AddWorksheet("SheetTwo");
+                var sheet2 = document.AddSheet("SheetTwo");
                 sheet2.CellValue(1, 1, "Name");
                 sheet2.CellValue(1, 2, "Value");
                 sheet2.CellValue(1, 3, "Count");

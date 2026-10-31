@@ -6,13 +6,13 @@ using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWritePreflight {
-        internal static LegacyPptWritePreflightReport Analyze(PowerPointPresentation presentation) {
+        internal static LegacyPptWritePreflightReport Analyze(PowerPointDocument presentation) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             var findings = new List<LegacyPptWriteFinding>();
             AddPackagePartFindings(presentation, findings);
             int packageFindingCount = findings.Count;
             bool canPreserve = presentation.CanPreserveOriginalLegacyPackage
-                || LegacyPptPreservingWriter.CanWritePresentation(
+                || LegacyPptPreservingWriter.CanWriteDocument(
                     presentation);
             if (canPreserve) {
                 AddPreservedActiveContentFindings(presentation, findings);
@@ -403,7 +403,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static void AddPreservedActiveContentFindings(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             ICollection<LegacyPptWriteFinding> findings) {
             if (presentation.LegacyPptWillPreserveVbaContent) {
                 findings.Add(new LegacyPptWriteFinding(

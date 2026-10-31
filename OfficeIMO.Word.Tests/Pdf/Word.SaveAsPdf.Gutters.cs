@@ -26,7 +26,7 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_ExplicitMarginOverrideReplacesTheAuthoredGutter() {
-        var options = new WordPdfExportOptions { IncludePageNumbers = false, Margins = PdfCore.PdfPageMargins.Uniform(30) };
+        var options = new WordPdfExportOptions { IncludePageNumbers = false, Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)) };
         var baseline = RenderGutterMarkers(false, false, WordFileFormat.Docx, 0, options);
         var gutter = RenderGutterMarkers(true, true, WordFileFormat.Docx, 400, options);
         Assert.Equal(baseline, gutter);
@@ -36,7 +36,7 @@ public partial class Word {
     public void SaveAsPdf_TopGutterLeavesBodySpaceWhenHeadersExpand() {
         using WordDocument document = WordDocument.Create();
         document.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
-        document.Sections[0].Margins.Gutter = 1440;
+        document.Sections[0].Margins.Gutter = global::OfficeIMO.OfficeLength.Points(72D);
         document.Settings.GutterAtTop = true;
         document.AddHeadersAndFooters();
         for (int index = 0; index < 100; index++) {
@@ -47,21 +47,21 @@ public partial class Word {
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         Assert.Contains("BodyMarker", page.Text);
-        Assert.True(FindWordStartY(page, "BodyMarker") > document.Sections[0].Margins.Bottom / 20D);
+        Assert.True(FindWordStartY(page, "BodyMarker") > checked((int?)(document.Sections[0].Margins.Bottom?.ToTwips())) / 20D);
     }
 
     private static (double Left, double Right, double Top) RenderGutterMarkers(bool atTop, bool onRight,
         WordFileFormat format, uint gutter, WordPdfExportOptions? options = null) {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
-        section.Margins.Left = 800; section.Margins.Right = 1400;
-        section.Margins.Top = 1100; section.Margins.Bottom = 1300;
-        section.Margins.Gutter = gutter;
+        section.Margins.Left = global::OfficeIMO.OfficeLength.Points(40D); section.Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
+        section.Margins.Top = global::OfficeIMO.OfficeLength.Points(55D); section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(65D);
+        section.Margins.Gutter = global::OfficeIMO.OfficeLength.Points((gutter) / 20D);
         document.Settings.GutterAtTop = atTop; section.RtlGutter = onRight;
         foreach (string marker in new[] { "LeftMarker", "RightMarker" }) {
             var paragraph = document.AddParagraph(marker);
-            paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-            paragraph.LineSpacingAfterPoints = 0;
+            paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             if (marker == "RightMarker") paragraph.ParagraphAlignment = WordParagraphAlignment.Right;
         }
         using var source = new MemoryStream(document.ToBytes(format));

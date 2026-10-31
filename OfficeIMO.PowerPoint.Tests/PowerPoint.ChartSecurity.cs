@@ -18,10 +18,10 @@ public class PowerPointChartSecurityTests {
     [Fact]
     public void BubbleSnapshot_RejectsOversizedNestedWorkbookPart() {
         using var packageStream = new MemoryStream();
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create(packageStream);
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create(packageStream);
         PowerPointChart chart = presentation.AddSlide().AddChart(
-            OfficeChartKind.Bubble,
+            OfficeChartType.Bubble,
             CreateBubbleData(pointCount: 1));
         ChartPart chartPart = presentation.Slides[0].SlidePart.ChartParts.Single();
         C.Chart nativeChart = chartPart.ChartSpace!
@@ -48,10 +48,10 @@ public class PowerPointChartSecurityTests {
             Path.GetTempPath(),
             Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Create(path)) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Create(path)) {
                 PowerPointChart chart = presentation.AddSlide().AddChart(
-                    OfficeChartKind.Bubble,
+                    OfficeChartType.Bubble,
                     CreateBubbleData(pointCount: 1));
                 Assert.True(chart.TryGetOfficeSnapshot(out _));
                 presentation.Save();
@@ -81,7 +81,7 @@ public class PowerPointChartSecurityTests {
                 writer.Write("<a:theme xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><");
             }
 
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(
+            using PowerPointDocument reopened = PowerPointDocument.Load(
                 path,
                 new PowerPointLoadOptions {
                     AccessMode = DocumentAccessMode.ReadOnly
@@ -98,8 +98,8 @@ public class PowerPointChartSecurityTests {
     [Fact]
     public void BubblePointColorMaterialization_PreservesEveryDeclaredColor() {
         const int pointCount = 4;
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.AddSlide().AddChart(OfficeChartKind.Bubble, CreateBubbleData(pointCount));
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.AddSlide().AddChart(OfficeChartType.Bubble, CreateBubbleData(pointCount));
         C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
             .ChartParts.Single().ChartSpace!.Descendants<C.BubbleChartSeries>().Single();
         C.DataPoint[] points = nativeSeries.Elements<C.DataPoint>().ToArray();
@@ -121,9 +121,9 @@ public class PowerPointChartSecurityTests {
         OfficeChartData data = CreateBubbleData(pointCount);
         var stopwatch = Stopwatch.StartNew();
 
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create(new MemoryStream());
-        presentation.AddSlide().AddChart(OfficeChartKind.Bubble, data);
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create(new MemoryStream());
+        presentation.AddSlide().AddChart(OfficeChartType.Bubble, data);
         stopwatch.Stop();
 
         C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
@@ -146,7 +146,7 @@ public class PowerPointChartSecurityTests {
             points.Select(value => value.ToString(
                 System.Globalization.CultureInfo.InvariantCulture)),
             new[] {
-                OfficeChartSeries.CreateBubble(
+                OfficeSeries.CreateBubble(
                     "Series",
                     points,
                     points,

@@ -149,7 +149,7 @@ public class RtfPdfSectionRegressionTests {
         RtfSection third = document.AddSection();
         third.PageSetup.SetLandscape(false);
         third.AddParagraph("Explicit portrait body");
-        var caller = new PdfCore.PdfCreateOptions { PageWidth = 400, PageHeight = 500, MarginLeft = 17 };
+        var caller = new PdfCore.PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(500), MarginLeft = global::OfficeIMO.OfficeLength.Points(17) };
 
         byte[] bytes = (document.ToPdf(new RtfToPdfOptions {
             PdfOptions = caller,
@@ -166,9 +166,9 @@ public class RtfPdfSectionRegressionTests {
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal(36, read.GetPage(1).Letters[0].StartBaseLine.X, 1);
         Assert.Equal(72, read.GetPage(2).Letters[0].StartBaseLine.X, 1);
-        Assert.Equal(400, caller.PageWidth);
-        Assert.Equal(500, caller.PageHeight);
-        Assert.Equal(17, caller.MarginLeft);
+        Assert.Equal(400, caller.PageWidth.ToPoints());
+        Assert.Equal(500, caller.PageHeight.ToPoints());
+        Assert.Equal(17, caller.MarginLeft.ToPoints());
     }
 
     [Fact]

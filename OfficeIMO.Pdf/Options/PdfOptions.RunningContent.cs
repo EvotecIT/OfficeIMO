@@ -12,8 +12,8 @@ public sealed partial class PdfCreateOptions {
         _namedFontProgramFailures ??= new HashSet<PdfNamedFontFace>();
         _embeddedFontProgramFailures ??= new HashSet<PdfStandardFont>();
         var frame = (PdfCreateOptions)MemberwiseClone();
-        frame.MarginTop = top;
-        frame.MarginBottom = bottom;
+        frame.MarginTop = global::OfficeIMO.OfficeLength.Points(top);
+        frame.MarginBottom = global::OfficeIMO.OfficeLength.Points(bottom);
         return frame;
     }
 

@@ -22,8 +22,8 @@ public sealed class ConversionOptionsVisualTests {
             services.Preferences.Update(current => current with { Theme = width >= 1000 ? StudioThemePreference.Dark : StudioThemePreference.Light });
             string source = Path.Combine(services.Paths.Root, "Visual conversion source.pdf");
             PdfDocument.Create(compose => {
-                compose.Page(page => page.Size(240, 320).Content(c => c.Item(i => i.Paragraph(p => p.Text("First page")))));
-                compose.Page(page => page.Size(240, 320).Content(c => c.Item(i => i.Paragraph(p => p.Text("Second page for review")))));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(c => c.Item(i => i.Paragraph(p => p.Text("First page")))));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(c => c.Item(i => i.Paragraph(p => p.Text("Second page for review")))));
             }).Save(source);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null),
                 pickWorkflowFiles: _ => Task.FromResult<IReadOnlyList<string>>([source]), services: services);

@@ -45,7 +45,7 @@ public sealed class OfficeWorkflowStreamOutputTests {
     public async Task AssemblyPublishesVerifiedBytesOrPreservesItsCompleteCandidate(bool failWrite) {
         using var root = new Scope();
         string source = Path.Combine(root.Path, "source.pdf");
-        File.WriteAllBytes(source, PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).ToBytes());
+        File.WriteAllBytes(source, PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).ToBytes());
         byte[] outputBytes = [];
         var store = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root.Path, "recovery"));
         var result = await new OfficeWorkflowRunner().AssemblePdfAsync(new() {
@@ -72,7 +72,7 @@ public sealed class OfficeWorkflowStreamOutputTests {
         using var root = new Scope();
         string sources = Path.Combine(root.Path, "sources");
         Directory.CreateDirectory(sources);
-        File.WriteAllBytes(Path.Combine(sources, "source.pdf"), PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).ToBytes());
+        File.WriteAllBytes(Path.Combine(sources, "source.pdf"), PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).ToBytes());
         byte[] outputBytes = [];
         var store = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root.Path, "recovery"));
         var result = await new OfficeWorkflowRunner().AssemblePdfAsync(new() {
@@ -178,7 +178,7 @@ public sealed class OfficeWorkflowStreamOutputTests {
     public async Task ProviderOutputVerifiesOrRetainsRestartRecovery(int failureMode) {
         using var root = new Scope();
         string input = Path.Combine(root.Path, "source.pdf");
-        byte[] original = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).ToBytes();
+        byte[] original = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).ToBytes();
         File.WriteAllBytes(input, original);
         using var cancellation = new CancellationTokenSource();
         byte[] destinationBytes = [9, 9, 9];
@@ -234,7 +234,7 @@ public sealed class OfficeWorkflowStreamOutputTests {
     public async Task DeniedPublicationOrRecoveryCapacityPreventsOpeningDestination(bool fullStore) {
         using var root = new Scope();
         string input = Path.Combine(root.Path, "source.pdf");
-        File.WriteAllBytes(input, PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).ToBytes());
+        File.WriteAllBytes(input, PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).ToBytes());
         var store = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root.Path, "recovery"), fullStore ? 1 : 1024 * 1024);
         int writes = 0;
         var result = await new OfficeWorkflowRunner().RunAsync(new() {

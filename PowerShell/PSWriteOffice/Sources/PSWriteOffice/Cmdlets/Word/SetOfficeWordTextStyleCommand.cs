@@ -111,13 +111,13 @@ public sealed class SetOfficeWordTextStyleCommand : PSCmdlet
         if (IsBound(nameof(Italic))) text.Italic = Italic ?? false;
         if (Underline.HasValue) text.Underline = Underline.Value;
         if (IsBound(nameof(Color))) text.ColorHex = Color ?? string.Empty;
-        if (IsBound(nameof(FontSize))) text.FontSizePoints = FontSize;
+        if (IsBound(nameof(FontSize))) text.FontSize = FontSize.HasValue ? global::OfficeIMO.OfficeLength.Points(FontSize.Value) : null;
         if (IsBound(nameof(FontFamily))) text.FontFamily = FontFamily;
         if (Highlight.HasValue) text.Highlight = Highlight.Value;
         if (IsBound(nameof(Strike))) text.Strike = Strike ?? false;
         if (IsBound(nameof(DoubleStrike))) text.DoubleStrike = DoubleStrike ?? false;
         if (CapsStyle.HasValue) text.CapsStyle = CapsStyle.Value;
-        if (IsBound(nameof(Spacing))) text.Spacing = Spacing;
+        if (IsBound(nameof(Spacing))) text.Spacing = Spacing.HasValue ? OfficeIMO.OfficeLength.Emus((long)Spacing.Value * 635) : (OfficeIMO.OfficeLength?)null;
         if (IsBound(nameof(Outline))) text.Outline = Outline ?? false;
         if (IsBound(nameof(Shadow))) text.Shadow = Shadow ?? false;
         if (IsBound(nameof(Emboss))) text.Emboss = Emboss ?? false;

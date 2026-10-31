@@ -18,12 +18,11 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void TypedLineChartsPreserveExplicitMarkersAndOtherwiseUseTheTheme(bool explicitMarkers) {
             double[] values = { 1D, 2D, 3D };
-            OfficeChartSeries series = explicitMarkers
-                ? new OfficeChartSeries("Sales", values, null, null, null, true)
-                : new OfficeChartSeries("Sales", values);
+            OfficeSeries series = explicitMarkers
+                ? new OfficeSeries("Sales", values, null, null, null, true)
+                : new OfficeSeries("Sales", values);
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Sales").AddChart(OfficeChartKind.Line,
-                new OfficeChartData(new[] { "A", "B", "C" }, new[] { series }), 1, 1);
+            document.AddSheet("Sales").AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B", "C" }, new[] { series }), new ExcelChartOptions { Row = 1, Column = 1 });
             using var stream = new MemoryStream(document.ToBytes());
             using SpreadsheetDocument saved = SpreadsheetDocument.Open(stream, false);
             C.Marker marker = saved.WorkbookPart!.WorksheetParts.Single(part => part.DrawingsPart != null)
@@ -53,9 +52,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NewChartsWriteSharedDefaultsAndRetainExplicitTextOverrides() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelChart chart = document.AddWorksheet("Data").AddChart(
-                new ExcelChartData(new[] { "East", "West" }, new[] { new ExcelChartSeries("Sales", new[] { 30D, 42D }) }),
-                1, 1, title: "Sales by region");
+            ExcelChart chart = document.AddSheet("Data").AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "East", "West" }, new[] { new ExcelChartSeries("Sales", new[] { 30D, 42D }) }), new ExcelChartOptions { Row = 1, Column = 1, Title = "Sales by region" });
             using (var stream = new MemoryStream(document.ToBytes()))
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(stream, false)) {
                 C.ChartSpace space = package.WorkbookPart!.WorksheetParts.Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single().ChartSpace!;
@@ -65,8 +62,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(OfficeTheme.Default.ChartStyle.BarGapPercent, space.Descendants<C.GapWidth>().Single().Val!.Value);
                 Assert.Empty(new OpenXmlValidator().Validate(package));
             }
-            chart.SetTitleTextStyle(fontSizePoints: 17D, fontName: "Georgia");
-            chart.SetCategoryAxisLabelTextStyle(fontSizePoints: 10D, fontName: "Courier New");
+            chart.SetTitleTextStyle(fontSize: OfficeLength.Points(17D), fontName: "Georgia");
+            chart.SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(10D), fontName: "Courier New");
             using var saved = new MemoryStream(document.ToBytes());
             using SpreadsheetDocument reopened = SpreadsheetDocument.Open(saved, false);
             C.ChartSpace result = reopened.WorkbookPart!.WorksheetParts.Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single().ChartSpace!;
@@ -87,7 +84,7 @@ namespace OfficeIMO.Tests {
                 set.Tables.Add(data);
                 document.InsertDataSet(set, createTables: false, includeAutoFilter: false);
             } else {
-                document.AddWorksheet("Data").CellValue(1, 1, "Europe");
+                document.AddSheet("Data").CellValue(1, 1, "Europe");
             }
 
             using var stream = new MemoryStream(document.ToBytes());

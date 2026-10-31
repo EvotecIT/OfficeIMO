@@ -602,7 +602,7 @@ namespace OfficeIMO.Tests {
         [InlineData(0x0008, LegacyXlsDrawingObjectType.Picture, "Picture")]
         [InlineData(0x0019, LegacyXlsDrawingObjectType.Note, "Note")]
         [InlineData(0x001E, LegacyXlsDrawingObjectType.OfficeArtObject, "OfficeArtObject")]
-        public void LegacyXlsDrawingRecord_DecodesKnownObjectTypeNames(int objectType, LegacyXlsDrawingObjectType expectedKind, string expectedName) {
+        public void LegacyXlsDrawingRecord_DecodesKnownObjectTypeNames(int objectType, object expectedKind, string expectedName) {
             var record = new LegacyXlsDrawingRecord(
                 LegacyXlsDrawingRecordKind.Object,
                 "Obj",
@@ -613,7 +613,7 @@ namespace OfficeIMO.Tests {
                 checked((ushort)objectType),
                 1);
 
-            Assert.Equal(expectedKind, record.ObjectTypeKind);
+            Assert.Equal((LegacyXlsDrawingObjectType)expectedKind, record.ObjectTypeKind);
             Assert.Equal(expectedName, record.ObjectTypeName);
         }
 
@@ -683,7 +683,7 @@ namespace OfficeIMO.Tests {
         [InlineData(0xF004, LegacyXlsDrawingEscherRecordType.OfficeArtSpContainer, "OfficeArtSpContainer")]
         [InlineData(0xF011, LegacyXlsDrawingEscherRecordType.OfficeArtFClientData, "OfficeArtFClientData")]
         [InlineData(0xF11E, LegacyXlsDrawingEscherRecordType.OfficeArtSplitMenuColorContainer, "OfficeArtSplitMenuColorContainer")]
-        public void LegacyXlsDrawingRecord_DecodesKnownEscherRecordTypeNames(int recordType, LegacyXlsDrawingEscherRecordType expectedKind, string expectedName) {
+        public void LegacyXlsDrawingRecord_DecodesKnownEscherRecordTypeNames(int recordType, object expectedKind, string expectedName) {
             var record = new LegacyXlsDrawingRecord(
                 LegacyXlsDrawingRecordKind.Drawing,
                 "MsoDrawing",
@@ -693,7 +693,7 @@ namespace OfficeIMO.Tests {
                 8,
                 escherRecordType: checked((ushort)recordType));
 
-            Assert.Equal(expectedKind, record.EscherRecordTypeKind);
+            Assert.Equal((LegacyXlsDrawingEscherRecordType)expectedKind, record.EscherRecordTypeKind);
             Assert.Equal(expectedName, record.EscherRecordTypeName);
         }
 

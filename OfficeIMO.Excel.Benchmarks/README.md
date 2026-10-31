@@ -12,7 +12,7 @@ package bytes. The timed operation includes reader construction, serialization,
 compression, and package finalization; fixture creation and validation are outside it.
 This comparison uses compact exports without shared strings or explicit cell
 references. `ExcelDefaultTextWriteBenchmarks` measures the same fixtures with
-ordinary `ExcelDocument.WriteDataReader` defaults, including both features.
+the bounded writer with inline text and explicit cell references.
 Keep those profiles separate when comparing results.
 
 ```powershell
@@ -59,7 +59,7 @@ $env:OFFICEIMO_BENCHMARK_DATA = './Ignore/Benchmarks/large-typed-read-fixtures'
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelLargeTypedReadBenchmarks*' '*ExcelLargeTypedFirstRowBenchmarks*' --priority Normal --warmupCount 8 --iterationCount 8 --invocationCount 1 --unrollFactor 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/large-typed-read
 ```
 
-The fixtures use `ExcelDocument.WriteRows` with explicit cell references and
+The fixtures use `ExcelDocument.CreateWriter(...).WriteTable` with explicit cell references and
 without shared strings. Cleanup removes the generated files. These cases exercise
 the indexed reader and its larger-sheet fallback, including opening costs.
 Readers perform different amounts of whole-worksheet validation before returning
@@ -426,7 +426,7 @@ snapshot slower, so the benchmark retains the faster production behavior.
 
 This lane writes the same prepared 25,000-row, eight-column `DbDataReader` to a
 new XLSX package through each library's forward-only typed-row API. OfficeIMO
-uses `ExcelDocument.WriteDataReader` with shared strings and explicit cell
+used the 3.5.3 `ExcelDocument.WriteDataReader` with shared strings and explicit cell
 references disabled. The untimed preflight validates the complete semantic
 cell grid before any timings are accepted.
 
@@ -451,13 +451,13 @@ was 6.18 MiB and Sylvan's was 7.52 MiB.
 Use the measured compact contract for a plain SQL-style export:
 
 ```csharp
-ExcelDocument.WriteDataReader(output, reader, new ExcelWriterOptions {
-    IncludeCellReferences = false,
-    UseSharedStrings = false
-});
+using (var writer = ExcelDocument.CreateWriter(output,
+    new ExcelWriterOptions { IncludeCellReferences = false }, leaveOpen: true)) {
+    writer.WriteTable("Data", reader);
+}
 ```
 
-The default writer deliberately keeps shared strings and explicit references.
+The measured 3.5.3 default writer kept shared strings and explicit references.
 It is a different fidelity contract, and options such as table creation or
 auto-fit also require richer processing. Reproduce one launch per CPU below;
 repeat each command in three independent processes for the table above.

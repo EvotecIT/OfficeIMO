@@ -36,24 +36,23 @@ public partial class Word {
         WordTable table = document.AddTable(2, 1);
         table.ConditionalFormattingFirstRow = false;
         table.RepeatHeaderRowAtTheTopOfEachPage = false;
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4U, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(0.5), OfficeIMO.OfficeColor.Black);
         for (int row = 0; row < 2; row++) {
             WordTableCell cell = table.Rows[row].Cells[0];
-            cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+            cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = $"BorderFirst{row}\nBorderNext{row}";
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-            paragraph.LineSpacing = 240;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
         }
         table.Rows[0].Cells[0].Borders.BottomStyle = WordBorderStyle.Single;
-        table.Rows[0].Cells[0].Borders.BottomSize = previousBottomSize;
+        table.Rows[0].Cells[0].Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(previousBottomSize / 8D);
         table.Rows[1].AllowRowToBreakAcrossPages = splitRow;
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 90),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(20)
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(90)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         var words = pdf.GetPage(2).GetWords().ToArray();
@@ -65,18 +64,17 @@ public partial class Word {
         WordTable table = document.AddTable(1, 1);
         table.ConditionalFormattingFirstRow = false;
         table.RepeatHeaderRowAtTheTopOfEachPage = false;
-        table.StyleDetails!.SetBordersForAllSides(border, size, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(border, global::OfficeIMO.OfficeLength.Points((size) / 8D), OfficeIMO.OfficeColor.Black);
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+        cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
         WordParagraph first = cell.Paragraphs[0];
         first.Text = "BorderFlowFirst";
         WordParagraph after = document.AddParagraph("BorderFlowAfter");
         foreach (WordParagraph paragraph in new[] { first, after }) {
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-            paragraph.LineSpacing = 240;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
         }
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();

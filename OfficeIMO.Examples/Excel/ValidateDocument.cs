@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = System.IO.Path.Combine(folderPath, "ValidateDocument.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Test");
 
                 Console.WriteLine(document.DocumentIsValid);

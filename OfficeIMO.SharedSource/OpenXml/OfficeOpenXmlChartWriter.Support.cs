@@ -11,11 +11,11 @@ namespace OfficeIMO.OpenXml.Internal {
         private const string RelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
         private static long _axisIdSeed = 48650112;
 
-        internal static byte[] BuildWorkbook(OfficeChartData data, OfficeChartKind kind) {
+        internal static byte[] BuildWorkbook(OfficeChartData data, OfficeChartType kind) {
             ValidateSharedChartData(data, kind);
             return kind switch {
-                OfficeChartKind.Bubble => BuildBubbleChartWorkbook(data),
-                OfficeChartKind.Scatter => BuildScatterWorkbook(NormalizeScatterData(data)),
+                OfficeChartType.Bubble => BuildBubbleChartWorkbook(data),
+                OfficeChartType.Scatter => BuildScatterWorkbook(NormalizeScatterData(data)),
                 _ => BuildCategoryWorkbook(data)
             };
         }
@@ -29,7 +29,7 @@ namespace OfficeIMO.OpenXml.Internal {
             IReadOnlyList<double>? sharedX = data.Series.Any(series => series.XValues == null)
                 ? ParseScatterCategories(data.Categories) : null;
             return new OfficeChartData(data.Categories, data.Series.Select(series =>
-                new OfficeChartSeries(series.Name, series.Values, series.XValues ?? sharedX!)));
+                new OfficeSeries(series.Name, series.Values, series.XValues ?? sharedX!)));
         }
 
         internal static uint GetNextAxisId() {

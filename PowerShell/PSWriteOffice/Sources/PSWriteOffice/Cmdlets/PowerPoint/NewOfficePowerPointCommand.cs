@@ -24,8 +24,8 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// Close-OfficePowerPoint -Document $deck</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficePowerPoint", SupportsShouldProcess = true)]
-[OutputType(typeof(PowerPointPresentation), typeof(FileInfo))]
-public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPointPresentation> {
+[OutputType(typeof(PowerPointDocument), typeof(FileInfo))]
+public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPointDocument> {
     /// <summary>Optional associated destination; required with a content block.</summary>
     [Parameter(Position = 0)]
     [ValidateNotNullOrEmpty]
@@ -53,7 +53,7 @@ public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoin
             Template = Theme?.TemplatePath
         };
         RunDocument(Path, isNew: true, force: Force.IsPresent,
-            path => path == null ? PowerPointPresentation.Create(options) : PowerPointPresentation.Create(path, options),
+            path => path == null ? PowerPointDocument.Create(options) : PowerPointDocument.Create(path, options),
             (document, path, allowLoss) => {
                 document.Save(path, PowerPointDocumentService.NativeSaveOptions(allowLoss, Password,
                     MyInvocation.BoundParameters.ContainsKey(nameof(Password))));
@@ -62,6 +62,6 @@ public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoin
     }
 
     /// <inheritdoc />
-    protected override void InvokeContent(PowerPointPresentation document) =>
+    protected override void InvokeContent(PowerPointDocument document) =>
         PowerPointDocumentService.InvokeContent(document, Content!);
 }

@@ -10,12 +10,12 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfThemeCompositionDefaultsTests {
     private static PdfCreateOptions SmallPage() => new PdfCreateOptions {
-        PageWidth = 420,
-        PageHeight = 600,
-        MarginLeft = 40,
-        MarginRight = 40,
-        MarginTop = 40,
-        MarginBottom = 40
+        PageWidth = OfficeLength.Points(420),
+        PageHeight = OfficeLength.Points(600),
+        MarginLeft = OfficeLength.Points(40),
+        MarginRight = OfficeLength.Points(40),
+        MarginTop = OfficeLength.Points(40),
+        MarginBottom = OfficeLength.Points(40)
     };
 
     private static Letter[] Letters(byte[] bytes, int page = 1) {
@@ -44,7 +44,7 @@ public class PdfThemeCompositionDefaultsTests {
     [Fact]
     public void Heading_KeepsThemeSpaceBeforeAfterAnExplicitlyStyledTable() {
         byte[] bytes = PdfDocument.Create(SmallPage())
-            .Table(new[] { new[] { "Head" }, new[] { "Lastrow" } }, style: new PdfTableStyle { CellPaddingY = 2 })
+            .Table(new[] { new[] { "Head" }, new[] { "Lastrow" } }, style: new PdfTableStyle { CellPaddingY = OfficeLength.Points(2) })
             .H2("Following")
             .ToBytes();
 
@@ -102,9 +102,9 @@ public class PdfThemeCompositionDefaultsTests {
     [Fact]
     public void HyphenatedIdentifier_MovesToTheNextLineWhole() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 300, PageHeight = 300, MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20
+                PageWidth = OfficeLength.Points(300), PageHeight = OfficeLength.Points(300), MarginLeft = OfficeLength.Points(20), MarginRight = OfficeLength.Points(20), MarginTop = OfficeLength.Points(20), MarginBottom = OfficeLength.Points(20)
             })
-            .Paragraph(p => p.FontSize(18).Bold("Invoice EVO-DEMO-2026-0917"))
+            .Paragraph(p => p.FontSize(OfficeLength.Points(18)).Bold("Invoice EVO-DEMO-2026-0917"))
             .ToBytes();
 
         Letter[] letters = Letters(bytes);
@@ -119,8 +119,8 @@ public class PdfThemeCompositionDefaultsTests {
         rows.Insert(0, new[] { "Name", "Value" });
         PdfDocument document = PdfDocument.Create(options);
         document.Content
-            .Spacer(150)
-            .Table(rows, style: new PdfTableStyle { KeepWithNext = true, CellPaddingY = 2 })
+            .Spacer(OfficeLength.Points(150))
+            .Table(rows, style: new PdfTableStyle { KeepWithNext = true, CellPaddingY = OfficeLength.Points(2) })
             .PanelParagraph(p => p.Text("Summary line one\nSummary line two\nSummary line three\nSummary line four\nSummary line five\nSummary line six\nSummary line seven"));
         byte[] bytes = document.ToBytes();
 
@@ -145,13 +145,13 @@ public class PdfThemeCompositionDefaultsTests {
 
     [Fact]
     public void PanelParagraph_DropsTrailingParagraphSpacingInsideThePanel() {
-        var style = new PdfPanelStyle { PaddingX = 10, PaddingY = 10, SpacingAfter = 0 };
+        var style = new PdfPanelStyle { PaddingX = OfficeLength.Points(10), PaddingY = OfficeLength.Points(10), SpacingAfter = OfficeLength.Points(0) };
         byte[] collapsed = PdfDocument.Create(SmallPage())
             .PanelParagraph(p => p.Text("Inside"), style)
             .Paragraph(p => p.Text("After"))
             .ToBytes();
         byte[] explicitZero = PdfDocument.Create(SmallPage())
-            .Panel(panel => panel.Paragraph(p => p.Text("Inside"), style: new PdfParagraphStyle { SpacingAfter = 0 }), style)
+            .Panel(panel => panel.Paragraph(p => p.Text("Inside"), style: new PdfParagraphStyle { SpacingAfter = OfficeLength.Points(0) }), style)
             .Paragraph(p => p.Text("After"))
             .ToBytes();
 

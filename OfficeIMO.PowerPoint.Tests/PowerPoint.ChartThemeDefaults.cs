@@ -18,14 +18,14 @@ public sealed class PowerPointChartThemeDefaultsTests {
     [InlineData(true, true)]
     public void PointPaintUpdatesKeepNativeMarkerChoices(bool pointStyles, bool visible) {
         var original = new OfficeChartData(new[] { "A", "B", "C" },
-            new[] { new OfficeChartSeries("Sales", new[] { 1D, 2D, 3D }) });
-        using var document = PowerPointPresentation.Create();
-        PowerPointChart chart = document.AddSlide().AddChart(OfficeChartKind.Line, original);
+            new[] { new OfficeSeries("Sales", new[] { 1D, 2D, 3D }) });
+        using var document = PowerPointDocument.Create();
+        PowerPointChart chart = document.AddSlide().AddChart(OfficeChartType.Line, original);
         chart.SetSeriesMarker(0, visible ? OfficeChartMarkerShape.Diamond : OfficeChartMarkerShape.None);
         var series = pointStyles
-            ? new OfficeChartSeries("Sales", new[] { 3D, 4D, 5D }).WithPointStyles(
+            ? new OfficeSeries("Sales", new[] { 3D, 4D, 5D }).WithPointStyles(
                 new OfficeChartPointStyle?[] { new(fillColor: OfficeColor.Green), null, null })
-            : new OfficeChartSeries("Sales", new[] { 3D, 4D, 5D }, null, null,
+            : new OfficeSeries("Sales", new[] { 3D, 4D, 5D }, null, null,
                 new OfficeColor?[] { OfficeColor.Green, null, null });
         var updated = new OfficeChartData(original.Categories, new[] { series });
         chart.UpdateData(updated);
@@ -47,14 +47,14 @@ public sealed class PowerPointChartThemeDefaultsTests {
     public void LineMarkersFollowTheThemeUnlessExplicitlyChosen(bool classic, int count, bool? visible, bool expected) {
         OfficeTheme theme = classic ? OfficeTheme.Classic : OfficeTheme.Modern;
         double[] values = new[] { 1D, 2D, 3D }.Take(count).ToArray();
-        OfficeChartSeries series = visible.HasValue
-            ? new OfficeChartSeries("Sales", values, null, null, null, visible.Value)
-            : new OfficeChartSeries("Sales", values).WithLegendVisibility(true);
-        using var presentation = PowerPointPresentation.Create(new PowerPointCreateOptions { Theme = theme });
-        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartKind.Line,
+        OfficeSeries series = visible.HasValue
+            ? new OfficeSeries("Sales", values, null, null, null, visible.Value)
+            : new OfficeSeries("Sales", values).WithLegendVisibility(true);
+        using var presentation = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = theme });
+        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.Line,
             new OfficeChartData(new[] { "A", "B", "C" }.Take(count), new[] { series }));
         if (visible.HasValue) chart.UpdateData(new OfficeChartData(new[] { "A", "B", "C" }.Take(count),
-            new[] { new OfficeChartSeries("Sales", values.Select(value => value + 1D)) }));
+            new[] { new OfficeSeries("Sales", values.Select(value => value + 1D)) }));
         using var stream = new MemoryStream(presentation.ToBytes());
         using PresentationDocument saved = PresentationDocument.Open(stream, false);
         C.Marker marker = saved.PresentationPart!.SlideParts.Single().ChartParts.Single().ChartSpace!
@@ -69,9 +69,9 @@ public sealed class PowerPointChartThemeDefaultsTests {
     [InlineData(true)]
     public void NewChartsUseThePresentationThemeAndSaveValidNativeParts(bool classic) {
         OfficeTheme theme = classic ? OfficeTheme.Classic : OfficeTheme.Modern;
-        using var presentation = PowerPointPresentation.Create(new PowerPointCreateOptions { Theme = theme });
-        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "East", "West" }, new[] { new OfficeChartSeries("Sales", new[] { 30D, 42D }) }));
+        using var presentation = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = theme });
+        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered,
+            new OfficeChartData(new[] { "East", "West" }, new[] { new OfficeSeries("Sales", new[] { 30D, 42D }) }));
         chart.SetTitle("Sales by region");
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(theme.ChartStyle.AxisFont.Family, snapshot.Style.FontFamily);

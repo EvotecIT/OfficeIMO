@@ -174,7 +174,7 @@ public sealed class ConversionOptionsTests {
     private static PdfDocument Source(int count = 2) => PdfDocument.Create(compose => {
         for (int index = 0; index < count; index++) {
             string text = index == 0 ? "First page" : "Second page " + index;
-            compose.Page(page => page.Size(240, 320).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))));
         }
     });
 }

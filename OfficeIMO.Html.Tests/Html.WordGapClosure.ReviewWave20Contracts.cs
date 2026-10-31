@@ -21,7 +21,7 @@ public partial class HtmlWordGapClosure {
         Paragraph spacing = Assert.IsType<Paragraph>(
             table._table.PreviousSibling());
 
-        Assert.Equal((short)300, table.StyleDetails?.TableIndentationWidth);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(15), table.StyleDetails?.TableIndentation);
         Assert.Equal("150", spacing.ParagraphProperties?
             .GetFirstChild<SpacingBetweenLines>()?.After?.Value);
     }

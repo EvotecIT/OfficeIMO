@@ -718,7 +718,8 @@ Term
                 new DefinitionListDefinition(new[] { new ParagraphBlock(new InlineSequence().Text("first")) }),
                 new DefinitionListDefinition(new[] { new ParagraphBlock(new InlineSequence().Text("second")) })
             }));
-        var document = MarkdownDocument.Create().Add(definitionList);
+        var document = MarkdownDocument.Create();
+        document.Add(definitionList);
 
         var syntaxTree = OfficeIMO.Markdown.MarkdownReader.BuildSyntaxTree(document);
         var syntaxGroup = Assert.Single(Assert.Single(syntaxTree.Children).Children);

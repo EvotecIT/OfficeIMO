@@ -35,7 +35,7 @@ internal static class PowerPointTextFormatting {
         if (color.HasValue) run.Color = theme.ResolveColor(color);
         if (highlight.HasValue) run.HighlightColor = theme.ResolveColor(highlight);
         if (font != null) run.FontName = font;
-        if (size.HasValue) run.FontSizePoints = size.Value.ToPoints();
+        if (size.HasValue) run.FontSize = size.Value;
         if (link != null) run.SetHyperlink(link);
     }
     internal static PowerPointTextAlignment Alignment(OfficeAlignment alignment) => alignment switch {

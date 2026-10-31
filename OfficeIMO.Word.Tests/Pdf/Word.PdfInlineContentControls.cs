@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
@@ -294,8 +295,8 @@ public sealed partial class WordPdfInlineContentControlTests {
         AddText(referenceParagraph, " TAIL", 10);
         AddText(reference.AddParagraph(), "FOLLOW", 10);
         var options = new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(220, 400),
-            Margins = new PdfCore.PdfPageMargins(24, 24, 24, 24)
+            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(400)),
+            Margins = new PdfCore.PdfPageMargins(OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24))
         };
         byte[] bytes = ConvertSavedDocument(source, options);
         using PdfPigDocument pdf = OpenVisiblePdf(bytes);
@@ -338,10 +339,8 @@ public sealed partial class WordPdfInlineContentControlTests {
         });
         if (inTable) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
-            table.WidthType = WordTableWidthUnit.Dxa;
-            table.Width = tableWidth;
-            table.ColumnWidthType = WordTableWidthUnit.Dxa;
-            table.ColumnWidth = new List<int> { tableWidth };
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(tableWidth) * 635)));
+            table.ColumnWidth = new List<int> { tableWidth }.Select(value => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(value) * 635)))).ToList();
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         } else paragraph = document.AddParagraph();
         paragraph._paragraph.RemoveAllChildren();

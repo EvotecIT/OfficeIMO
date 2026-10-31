@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.Pdf {
             pdfOptions.UseFontUnitTextLayout = true;
             // Flat running content follows the same source defaults as styled runs.
             // Retain the configured shaper so explicit ligatures use its Latin feature path.
-            pdfOptions.DefaultTextFeatureSettings = default(NativeTextSpacing).ResolveFeatureSettings(pdfOptions.DefaultFontSize);
+            pdfOptions.DefaultTextFeatureSettings = default(NativeTextSpacing).ResolveFeatureSettings(pdfOptions.DefaultFontSize.ToPoints());
             if (!pdfOptions.HasExplicitTextWhitespaceConfiguration) {
                 pdfOptions.TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preserve;
             }
@@ -36,7 +36,7 @@ namespace OfficeIMO.Word.Pdf {
             bool hasConfiguredDefaultFontSize =
                 options?.HasExplicitPdfDefaultFontSizeConfiguration == true;
             if (!hasConfiguredDefaultFontSize) {
-                pdfOptions.DefaultFontSize = defaults.FontSize;
+                pdfOptions.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(defaults.FontSize);
             }
             if ((string.IsNullOrWhiteSpace(pdfOptions.Language) ||
                  string.Equals(pdfOptions.Language, "und", StringComparison.OrdinalIgnoreCase)) &&
@@ -46,7 +46,7 @@ namespace OfficeIMO.Word.Pdf {
 
             pdfOptions.PageSize = firstSection == null ? PdfCore.PdfPageSizes.A4 : GetNativePageSize(firstSection, options);
             pdfOptions.Margins = firstSection == null
-                ? PdfCore.PdfPageMargins.Uniform(72)
+                ? PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
                 : GetNativeMargins(firstSection, options, GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers));
             pdfOptions.MirrorMargins = firstSection != null && ShouldMirrorNativeMargins(firstSection, options);
             bool allowSystemFontEmbedding = options?.ResourcePolicy.AllowSystemFontEmbedding == true;

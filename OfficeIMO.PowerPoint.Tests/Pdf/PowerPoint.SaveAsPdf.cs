@@ -22,14 +22,14 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PowerPointSaveAsPdfTests {
     [Fact]
     public void SaveAsPdf_RendersSmartArtThroughSharedDiagramPrimitives() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(640, 360);
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
         presentation.AddSlide().AddSmartArt(
             PowerPointSmartArtType.BasicProcess,
             new[] { "Discover", "Design", "Build", "Validate" },
-            PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(560), PowerPointUnits.FromPoints(280));
+            OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40),
+            OfficeIMO.OfficeLength.Points(560), OfficeIMO.OfficeLength.Points(280));
         var options = new PowerPointPdfExportOptions();
 
         byte[] pdf = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -45,18 +45,18 @@ public partial class PowerPointSaveAsPdfTests {
 
     [Fact]
     public void SaveAsPdf_PreservesHorizontalAndVerticalSmartArtFlips() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(640, 360);
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
         string[] nodes = { "MMMMMMMMMMMM", "I", "Validate" };
         PowerPointSmartArt normalSmartArt = presentation.AddSlide().AddSmartArt(
             PowerPointSmartArtType.BasicProcess, nodes,
-            PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(560), PowerPointUnits.FromPoints(280));
+            OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40),
+            OfficeIMO.OfficeLength.Points(560), OfficeIMO.OfficeLength.Points(280));
         PowerPointSmartArt flipped = presentation.AddSlide().AddSmartArt(
             PowerPointSmartArtType.BasicProcess, nodes,
-            PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(560), PowerPointUnits.FromPoints(280));
+            OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40),
+            OfficeIMO.OfficeLength.Points(560), OfficeIMO.OfficeLength.Points(280));
         normalSmartArt.Rotation = 23D;
         flipped.Rotation = 23D;
         flipped.HorizontalFlip = true;
@@ -68,7 +68,7 @@ public partial class PowerPointSaveAsPdfTests {
             PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions {
                     Dpi = 72D,
-                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
                     MaxPages = 2,
                     ContinueOnError = false
                 });
@@ -110,14 +110,14 @@ public partial class PowerPointSaveAsPdfTests {
     [InlineData(PowerPointPdfPageLayout.Handouts)]
     public void SaveAsPdf_ThumbnailLayoutsHonorSmartArtIndependently(
         PowerPointPdfPageLayout layout) {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(640, 360);
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
         presentation.AddSlide().AddSmartArt(
             PowerPointSmartArtType.BasicProcess,
             new[] { "SMARTART-FILTER", "Deliver" },
-            PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(560), PowerPointUnits.FromPoints(280));
+            OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40),
+            OfficeIMO.OfficeLength.Points(560), OfficeIMO.OfficeLength.Points(280));
 
         byte[] included = presentation.ToPdf(new PowerPointPdfExportOptions {
             PageLayout = layout,
@@ -142,17 +142,17 @@ public partial class PowerPointSaveAsPdfTests {
 
     [Fact]
     public void SaveAsPdf_RendersCustomGeometryThroughSharedDrawingProjection() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(320, 180);
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
         OfficeShape geometry = OfficeShape.Polygon(
             new OfficePoint(50, 0), new OfficePoint(100, 38),
             new OfficePoint(82, 100), new OfficePoint(18, 100),
             new OfficePoint(0, 38));
         geometry.FillColor = OfficeColor.FromRgb(168, 85, 247);
         geometry.StrokeColor = OfficeColor.FromRgb(88, 28, 135);
-        presentation.AddSlide().AddCustomGeometryPoints(geometry,
-            60, 30, 200, 120, "PDF polygon");
+        presentation.AddSlide().AddCustomGeometry(geometry,
+            OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(120), "PDF polygon");
         var options = new PowerPointPdfExportOptions();
 
         byte[] pdf = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -160,7 +160,7 @@ public partial class PowerPointSaveAsPdfTests {
             PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions {
                     Dpi = 72D,
-                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
                     MaxPages = 1,
                     ContinueOnError = false
                 });
@@ -197,26 +197,26 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_MapsSlideSizeTextShapeAndPictureToCanvasPdf() {
+    public void SaveAsPdf_PowerPointDocument_MapsSlideSizeTextShapeAndPictureToCanvasPdf() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 180);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
         PowerPointSlide slide = presentation.AddSlide();
 
-        PowerPointAutoShape panel = slide.AddRectanglePoints(20, 24, 120, 48);
+        PowerPointAutoShape panel = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(48));
         panel.FillColor = "EAF4FF";
         panel.OutlineColor = "1E5A96";
-        panel.OutlineWidthPoints = 1.5D;
+        panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.5D);
 
-        PowerPointTextBox textBox = slide.AddTextBoxPoints("Premium Slide", 32, 36, 150, 36);
+        PowerPointTextBox textBox = slide.AddTextBox("Premium Slide",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(36),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(36));
         textBox.FillColor = "FFFFFF";
         textBox.OutlineColor = "94A3B8";
         textBox.FontName = "Georgia";
-        textBox.FontSize = 14;
+        textBox.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         textBox.Color = "123456";
         textBox.Rotation = 0D;
 
-        slide.AddPicture(new MemoryStream(CreateMinimalRgbPng()), OfficeIMO.Drawing.OfficeImageFormat.Png, PowerPointUnits.FromPoints(210), PowerPointUnits.FromPoints(42), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(30));
+        slide.AddImage(new MemoryStream(CreateMinimalRgbPng()), OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(210)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(42)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(50)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
 
         byte[] bytes = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
@@ -237,12 +237,12 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_Reports_Unavailable_Font_Substitution() {
+    public void SaveAsPdf_PowerPointDocument_Reports_Unavailable_Font_Substitution() {
         const string unavailableFamily = "OfficeIMO Missing Font 7F0C9D";
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Unavailable font marker", 20, 24, 180, 40);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("Unavailable font marker",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(40));
         textBox.FontName = unavailableFamily;
 
         PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
@@ -258,11 +258,11 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_Reports_Explicit_Font_Substitution_When_Host_Fonts_Are_Disabled() {
+    public void SaveAsPdf_PowerPointDocument_Reports_Explicit_Font_Substitution_When_Host_Fonts_Are_Disabled() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Portable font marker", 20, 24, 180, 40);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("Portable font marker",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(40));
         textBox.FontName = "Arial";
 
         PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
@@ -279,14 +279,14 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_Does_Not_Report_Unused_Theme_Font() {
+    public void SaveAsPdf_PowerPointDocument_Does_Not_Report_Unused_Theme_Font() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTextBox first = slide.AddTextBoxPoints("First explicit family", 20, 24, 180, 40);
+        PowerPointTextBox first = slide.AddTextBox("First explicit family",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(40));
         first.FontName = "Helvetica";
-        PowerPointTextBox second = slide.AddTextBoxPoints("Second explicit family", 20, 74, 180, 40);
+        PowerPointTextBox second = slide.AddTextBox("Second explicit family",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(74),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(40));
         second.FontName = "Helvetica";
 
         PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
@@ -298,14 +298,14 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_Reports_Configured_Substitution_For_Used_Theme_Font() {
+    public void SaveAsPdf_PowerPointDocument_Reports_Configured_Substitution_For_Used_Theme_Font() {
         const string sourceFamily = "OfficeIMO Theme Body Source";
         const string targetFamily = "OfficeIMO Portable Theme";
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         presentation.SetThemeLatinFonts("OfficeIMO Theme Heading Source", sourceFamily);
-        presentation.AddSlide().AddTextBoxPoints("Theme font marker", 20, 24, 180, 40);
+        presentation.AddSlide().AddTextBox("Theme font marker",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(40));
 
         var configured = new PdfCore.PdfCreateOptions();
         configured
@@ -338,11 +338,11 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesTextRunHyperlinks() {
+    public void SaveAsPdf_PowerPointDocument_PreservesTextRunHyperlinks() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints(string.Empty, 24, 32, 150, 38);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(38));
         textBox.SetParagraphs(new[] { string.Empty });
         PowerPointTextRun run = textBox.Paragraphs[0].AddRun("OfficeIMO");
         run.SetHyperlink("https://officeimo.net/");
@@ -356,27 +356,27 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_MapsTextBoxVerticalAlignmentToSharedCanvasTextBox() {
+    public void SaveAsPdf_PowerPointDocument_MapsTextBoxVerticalAlignmentToSharedCanvasTextBox() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(360, 200);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(200));
         PowerPointSlide slide = presentation.AddSlide();
 
-        PowerPointTextBox top = slide.AddTextBoxPoints("TopPpt", 20, 30, 90, 90);
+        PowerPointTextBox top = slide.AddTextBox("TopPpt",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(90));
         top.TextVerticalAlignment = PowerPointTextVerticalAlignment.Top;
-        top.FontSize = 10;
+        top.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         top.FillColor = "FFFFFF";
         top.FillTransparency = 100;
 
-        PowerPointTextBox middle = slide.AddTextBoxPoints("MiddlePpt", 130, 30, 90, 90);
+        PowerPointTextBox middle = slide.AddTextBox("MiddlePpt",global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(90));
         middle.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
-        middle.FontSize = 10;
+        middle.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         middle.FillColor = "FFFFFF";
         middle.FillTransparency = 100;
 
-        PowerPointTextBox bottom = slide.AddTextBoxPoints("BottomPpt", 240, 30, 90, 90);
+        PowerPointTextBox bottom = slide.AddTextBox("BottomPpt",global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(90));
         bottom.TextVerticalAlignment = PowerPointTextVerticalAlignment.Bottom;
-        bottom.FontSize = 10;
+        bottom.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         bottom.FillColor = "FFFFFF";
         bottom.FillTransparency = 100;
 
@@ -393,12 +393,12 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_WarnsWhenParagraphTextBoxOverflows() {
+    public void ToPdfDocument_PowerPointDocument_WarnsWhenParagraphTextBoxOverflows() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 140);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints(string.Empty, 24, 28, 120, 24);
-        textBox.FontSize = 14;
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(140));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(24));
+        textBox.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         textBox.FillTransparency = 100;
         var paragraphs = textBox.SetParagraphs(new[] {
             "First paragraph needs room",
@@ -422,18 +422,18 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_PreservesListHangingIndent() {
+    public void ToPdfDocument_PowerPointDocument_PreservesListHangingIndent() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 150);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints(string.Empty, 28, 26, 170, 76);
-        textBox.FontSize = 12;
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(150));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(26),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(76));
+        textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         textBox.FillTransparency = 100;
         textBox.SetBullets(
             new[] { "Indented bullet with explicit margin" },
             configure: paragraph => {
-                paragraph.SetHangingPoints(18);
-                paragraph.SetLeftMarginPoints(48);
+                paragraph.SetHanging(global::OfficeIMO.OfficeLength.Points(18));
+                paragraph.SetLeftMargin(global::OfficeIMO.OfficeLength.Points(48));
             });
         var options = new PowerPointPdfExportOptions();
 
@@ -451,9 +451,9 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_UsesSchemaNamesForAdditionalDrawingMlPresets() {
-        using var presentation = PowerPointPresentation.Create();
-        presentation.AddSlide().AddShapePoints(OfficePresetShapeType.Cloud, 20, 20, 80, 60).Fill("265891");
+    public void ToPdfDocument_PowerPointDocument_UsesSchemaNamesForAdditionalDrawingMlPresets() {
+        using var presentation = PowerPointDocument.Create();
+        presentation.AddSlide().AddShape(OfficePresetShapeType.Cloud, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(60)).Fill("265891");
         var result = presentation.ConvertToPdfWithEvidence();
         byte[] bytes = result.ToBytes();
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "unsupported-auto-shape");
@@ -462,14 +462,14 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersCommonPresetAutoShapes() {
+    public void SaveAsPdf_PowerPointDocument_RendersCommonPresetAutoShapes() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddShapePoints(OfficePresetShapeType.Triangle, 20, 24, 58, 44).Fill("1F4E79").Stroke("1F4E79", 1D);
-        slide.AddShapePoints(OfficePresetShapeType.Parallelogram, 96, 24, 74, 44).Fill("1976D2").Stroke("1976D2", 1D);
-        slide.AddShapePoints(OfficePresetShapeType.RightArrow, 36, 94, 112, 34).Fill("16A34A").Stroke("16A34A", 1D);
+        slide.AddShape(OfficePresetShapeType.Triangle, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(58), OfficeIMO.OfficeLength.Points(44)).Fill("1F4E79").Stroke("1F4E79", global::OfficeIMO.OfficeLength.Points(1D));
+        slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(74), OfficeIMO.OfficeLength.Points(44)).Fill("1976D2").Stroke("1976D2", global::OfficeIMO.OfficeLength.Points(1D));
+        slide.AddShape(OfficePresetShapeType.RightArrow, OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(94), OfficeIMO.OfficeLength.Points(112), OfficeIMO.OfficeLength.Points(34)).Fill("16A34A").Stroke("16A34A", global::OfficeIMO.OfficeLength.Points(1D));
         var options = new PowerPointPdfExportOptions();
 
         byte[] bytes = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -482,11 +482,11 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_ClipsPartiallyOffSlideShapes() {
+    public void SaveAsPdf_PowerPointDocument_ClipsPartiallyOffSlideShapes() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
-        PowerPointAutoShape shape = presentation.AddSlide().AddRectanglePoints(-12, 20, 48, 30);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
+        PowerPointAutoShape shape = presentation.AddSlide().AddRectangle(OfficeIMO.OfficeLength.Points(-12), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(48), OfficeIMO.OfficeLength.Points(30));
         shape.FillColor = "1E5A96";
         shape.OutlineColor = "1E5A96";
         var options = new PowerPointPdfExportOptions();
@@ -503,11 +503,11 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_DegradesTinyTextBoxMarginsInsteadOfThrowing() {
+    public void SaveAsPdf_PowerPointDocument_DegradesTinyTextBoxMarginsInsteadOfThrowing() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(160, 100);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Tiny", 20, 20, 6, 6);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("Tiny",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(6),global::OfficeIMO.OfficeLength.Points(6));
         textBox.FillTransparency = 100;
         var options = new PowerPointPdfExportOptions();
 
@@ -520,10 +520,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersSolidSlideBackground() {
+    public void SaveAsPdf_PowerPointDocument_RendersSolidSlideBackground() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         presentation.AddSlide().BackgroundColor = "112233";
         var options = new PowerPointPdfExportOptions();
 
@@ -536,10 +536,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersGradientSlideBackground() {
+    public void SaveAsPdf_PowerPointDocument_RendersGradientSlideBackground() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         presentation.AddSlide().SetBackgroundGradient("112233", "445566", 45D);
         var options = new PowerPointPdfExportOptions();
 
@@ -552,10 +552,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_ResolvesThemeGradientBackgroundStops() {
+    public void SaveAsPdf_PowerPointDocument_ResolvesThemeGradientBackgroundStops() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         presentation.SetThemeColor(PowerPointThemeColor.Accent1, "123456");
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "654321");
         PowerPointSlide slide = presentation.AddSlide();
@@ -580,13 +580,13 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersImageSlideBackground() {
+    public void SaveAsPdf_PowerPointDocument_RendersImageSlideBackground() {
         string imagePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".png");
         try {
             File.WriteAllBytes(imagePath, PdfPngTestImages.CreateRgbPng(2, 1));
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(240, 160);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
             presentation.AddSlide().SetBackgroundImage(imagePath);
             var options = new PowerPointPdfExportOptions();
 
@@ -604,13 +604,13 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_StretchesCroppedImageSlideBackground() {
+    public void SaveAsPdf_PowerPointDocument_StretchesCroppedImageSlideBackground() {
         string imagePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".png");
         try {
             File.WriteAllBytes(imagePath, PdfPngTestImages.CreateRgbPng(2, 1));
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(240, 160);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
             PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundImage(imagePath);
             A.BlipFill blipFill = slide.SlidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!.GetFirstChild<A.BlipFill>()!;
@@ -630,10 +630,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_ResolvesInheritedLayoutBackground() {
+    public void SaveAsPdf_PowerPointDocument_ResolvesInheritedLayoutBackground() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
         SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
         layoutPart.SlideLayout.CommonSlideData ??= new CommonSlideData(new ShapeTree());
@@ -649,10 +649,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_ResolvesThemeBackgroundStyleReference() {
+    public void SaveAsPdf_PowerPointDocument_ResolvesThemeBackgroundStyleReference() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         presentation.SetThemeColor(PowerPointThemeColor.Light1, "123456");
         PowerPointSlide slide = presentation.AddSlide();
         slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
@@ -669,10 +669,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_ResolvesDirectSchemeColorBackground() {
+    public void SaveAsPdf_PowerPointDocument_ResolvesDirectSchemeColorBackground() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         presentation.SetThemeColor(PowerPointThemeColor.Light2, "654321");
         PowerPointSlide slide = presentation.AddSlide();
         slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
@@ -689,10 +689,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_AppliesDirectSchemeColorBackgroundTransforms() {
+    public void SaveAsPdf_PowerPointDocument_AppliesDirectSchemeColorBackgroundTransforms() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         presentation.SetThemeColor(PowerPointThemeColor.Light2, "654321");
         PowerPointSlide slide = presentation.AddSlide();
         slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
@@ -711,10 +711,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_AppliesDirectRgbBackgroundTransforms() {
+    public void SaveAsPdf_PowerPointDocument_AppliesDirectRgbBackgroundTransforms() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
         slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
             new BackgroundProperties(
@@ -732,16 +732,16 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_SkipsHiddenSlidesByDefault() {
+    public void SaveAsPdf_PowerPointDocument_SkipsHiddenSlidesByDefault() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide visibleSlide = presentation.AddSlide();
-        PowerPointAutoShape visible = visibleSlide.AddRectanglePoints(20, 24, 50, 20);
+        PowerPointAutoShape visible = visibleSlide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(20));
         visible.FillColor = "00AA00";
         PowerPointSlide hidden = presentation.AddSlide();
         hidden.Hidden = true;
-        PowerPointAutoShape hiddenShape = hidden.AddRectanglePoints(120, 24, 50, 20);
+        PowerPointAutoShape hiddenShape = hidden.AddRectangle(OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(20));
         hiddenShape.FillColor = "FF0000";
 
         byte[] bytes = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -754,10 +754,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersInheritedLayoutShapes() {
+    public void SaveAsPdf_PowerPointDocument_RendersInheritedLayoutShapes() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
         SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
         ShapeTree tree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
@@ -782,10 +782,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_SkipsOverriddenInheritedPlaceholders() {
+    public void SaveAsPdf_PowerPointDocument_SkipsOverriddenInheritedPlaceholders() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
         SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
         ShapeTree layoutTree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
@@ -804,7 +804,7 @@ public partial class PowerPointSaveAsPdfTests {
                 new ListStyle(),
                 new Paragraph(new Run(new DocumentFormat.OpenXml.Drawing.Text("Layout Prompt"))))));
         layoutPart.SlideLayout.Save();
-        PowerPointTextBox title = slide.AddTextBoxPoints("Actual Title", 20, 20, 160, 34);
+        PowerPointTextBox title = slide.AddTextBox("Actual Title",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(34));
         title.PlaceholderType = PowerPointPlaceholderType.Title;
         title.PlaceholderIndex = 0U;
 
@@ -817,14 +817,14 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersGroupedSlideShapes() {
+    public void SaveAsPdf_PowerPointDocument_RendersGroupedSlideShapes() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 30, 20);
+        PowerPointAutoShape first = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20));
         first.FillColor = "FF0000";
-        PowerPointAutoShape second = slide.AddRectanglePoints(60, 20, 30, 20);
+        PowerPointAutoShape second = slide.AddRectangle(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20));
         second.FillColor = "00AA00";
         slide.GroupShapes(new PowerPointShape[] { first, second });
         var options = new PowerPointPdfExportOptions();
@@ -840,17 +840,17 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesGroupedChartUnicodeText() {
+    public void SaveAsPdf_PowerPointDocument_PreservesGroupedChartUnicodeText() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide slide = presentation.AddSlide();
         var data = new PowerPointChartData(
             new[] { "Północ", "Południe" },
             new[] { new PowerPointChartSeries("Sprzedaż", new[] { 12D, 18D }) });
         PowerPointChart chart = slide.AddChartPoints(data, 40, 32, 240, 172);
         chart.SetTitle("Zażółć wykres");
-        PowerPointAutoShape frame = slide.AddRectanglePoints(36, 28, 248, 180);
+        PowerPointAutoShape frame = slide.AddRectangle(OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(28), OfficeIMO.OfficeLength.Points(248), OfficeIMO.OfficeLength.Points(180));
         frame.FillTransparency = 100;
         slide.GroupShapes(new PowerPointShape[] { chart, frame });
 
@@ -864,17 +864,17 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesGroupedSmartArtUnicodeText() {
+    public void SaveAsPdf_PowerPointDocument_PreservesGroupedSmartArtUnicodeText() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(640, 360);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointSmartArt smartArt = slide.AddSmartArt(
             PowerPointSmartArtType.BasicProcess,
             new[] { "Zażółć", "Źródło", "Weryfikacja" },
-            PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(560), PowerPointUnits.FromPoints(280));
-        PowerPointAutoShape frame = slide.AddRectanglePoints(36, 36, 568, 288);
+            OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40),
+            OfficeIMO.OfficeLength.Points(560), OfficeIMO.OfficeLength.Points(280));
+        PowerPointAutoShape frame = slide.AddRectangle(OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(568), OfficeIMO.OfficeLength.Points(288));
         frame.FillTransparency = 100;
         slide.GroupShapes(new PowerPointShape[] { smartArt, frame });
 
@@ -888,14 +888,14 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_AppliesGroupTransformToChildShapes() {
+    public void SaveAsPdf_PowerPointDocument_AppliesGroupTransformToChildShapes() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 30, 20);
+        PowerPointAutoShape first = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20));
         first.FillColor = "FF0000";
-        PowerPointAutoShape second = slide.AddRectanglePoints(60, 20, 30, 20);
+        PowerPointAutoShape second = slide.AddRectangle(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20));
         second.FillColor = "00AA00";
         slide.GroupShapes(new PowerPointShape[] { first, second });
         DocumentFormat.OpenXml.Presentation.GroupShape group = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
@@ -916,10 +916,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesInheritedLayoutTextBoxHyperlinks() {
+    public void SaveAsPdf_PowerPointDocument_PreservesInheritedLayoutTextBoxHyperlinks() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
         SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
         HyperlinkRelationship rel = layoutPart.AddHyperlinkRelationship(new Uri("https://officeimo.net/layout"), true);
@@ -950,10 +950,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersInheritedLayoutPresetAutoShapes() {
+    public void SaveAsPdf_PowerPointDocument_RendersInheritedLayoutPresetAutoShapes() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
         SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
         ShapeTree tree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
@@ -979,15 +979,15 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersTextBearingAutoShapeGeometry() {
+    public void SaveAsPdf_PowerPointDocument_RendersTextBearingAutoShapeGeometry() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTextBox textBox = slide.AddTextBoxPoints("Rounded Label", 30, 40, 100, 36);
+        PowerPointTextBox textBox = slide.AddTextBox("Rounded Label",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(36));
         textBox.FillColor = "FDE68A";
         textBox.OutlineColor = "92400E";
-        textBox.FontSize = 12;
+        textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         var shape = (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element;
         shape.ShapeProperties!.GetFirstChild<PresetGeometry>()!.Preset = ShapeTypeValues.RoundRectangle;
         var options = new PowerPointPdfExportOptions();
@@ -1003,10 +1003,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_HonorsDisabledInheritedLayoutShapes() {
+    public void SaveAsPdf_PowerPointDocument_HonorsDisabledInheritedLayoutShapes() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
         slide.SlidePart.Slide.ShowMasterShapes = false;
         SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
@@ -1032,12 +1032,12 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_ResolvesSlidePlaceholderBoundsFromLayout() {
+    public void SaveAsPdf_PowerPointDocument_ResolvesSlidePlaceholderBoundsFromLayout() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         PowerPointSlide slide = presentation.AddSlide();
         slide.SetLayout(PowerPointSlideLayoutType.Text);
-        slide.AddTextBoxPoints("Layout Bound Title", 12, 12, 120, 30);
+        slide.AddTextBox("Layout Bound Title",global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(30));
         DocumentFormat.OpenXml.Presentation.Shape placeholderShape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
             .Elements<DocumentFormat.OpenXml.Presentation.Shape>()
             .Last(shape => shape.TextBody?.InnerText.Contains("Layout Bound Title", StringComparison.Ordinal) == true);
@@ -1055,17 +1055,17 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesFlippedPictures() {
+    public void SaveAsPdf_PowerPointDocument_PreservesFlippedPictures() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
-        PowerPointPicture picture = presentation.AddSlide().AddPicture(
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
+        PowerPointPicture picture = presentation.AddSlide().AddImage(
             new MemoryStream(CreateMinimalRgbPng()),
             OfficeIMO.Drawing.OfficeImageFormat.Png,
-            PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(50),
-            PowerPointUnits.FromPoints(60),
-            PowerPointUnits.FromPoints(30)).WithFrame(PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(60), PowerPointUnits.FromPoints(30));
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(50)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(60)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30))).WithFrame(PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(60), PowerPointUnits.FromPoints(30));
         picture.HorizontalFlip = true;
         var options = new PowerPointPdfExportOptions {
             PictureFit = OfficeImageFit.Stretch,
@@ -1079,17 +1079,17 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_ExplicitContainPictureFitPreservesAspectRatio() {
+    public void SaveAsPdf_PowerPointDocument_ExplicitContainPictureFitPreservesAspectRatio() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(200, 160);
-        presentation.AddSlide().AddPicture(
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(200),OfficeIMO.OfficeLength.Points(160));
+        presentation.AddSlide().AddImage(
             new MemoryStream(PdfPngTestImages.CreateRgbPng(2, 1)),
             OfficeIMO.Drawing.OfficeImageFormat.Png,
-            PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(80),
-            PowerPointUnits.FromPoints(80));
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(80)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(80)));
         var options = new PowerPointPdfExportOptions {
             PictureFit = OfficeImageFit.Contain
         };
@@ -1102,17 +1102,17 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_DefaultPictureFitMatchesAuthoredFrame() {
+    public void SaveAsPdf_PowerPointDocument_DefaultPictureFitMatchesAuthoredFrame() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(200, 160);
-        presentation.AddSlide().AddPicture(
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(200),OfficeIMO.OfficeLength.Points(160));
+        presentation.AddSlide().AddImage(
             new MemoryStream(PdfPngTestImages.CreateRgbPng(2, 1)),
             OfficeIMO.Drawing.OfficeImageFormat.Png,
-            PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(80),
-            PowerPointUnits.FromPoints(80)).WithFrame(PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(80), PowerPointUnits.FromPoints(80));
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(80)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(80))).WithFrame(PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(80), PowerPointUnits.FromPoints(80));
         var options = new PowerPointPdfExportOptions();
 
         byte[] bytes = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -1123,17 +1123,17 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_WarnsWhenExplicitStretchDistortsPictureAspectRatio() {
+    public void SaveAsPdf_PowerPointDocument_WarnsWhenExplicitStretchDistortsPictureAspectRatio() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(200, 160);
-        presentation.AddSlide().AddPicture(
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(200),OfficeIMO.OfficeLength.Points(160));
+        presentation.AddSlide().AddImage(
             new MemoryStream(PdfPngTestImages.CreateRgbPng(2, 1)),
             OfficeIMO.Drawing.OfficeImageFormat.Png,
-            PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(80),
-            PowerPointUnits.FromPoints(80)).WithFrame(PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(80), PowerPointUnits.FromPoints(80));
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(80)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(80))).WithFrame(PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(80), PowerPointUnits.FromPoints(80));
         var options = new PowerPointPdfExportOptions {
             PictureFit = OfficeImageFit.Stretch,
             WarnOnPictureAspectRatioDistortion = true
@@ -1152,18 +1152,18 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesPictureHyperlinks() {
+    public void SaveAsPdf_PowerPointDocument_PreservesPictureHyperlinks() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddPicture(
+        slide.AddImage(
             new MemoryStream(CreateMinimalRgbPng()),
             OfficeIMO.Drawing.OfficeImageFormat.Png,
-            PowerPointUnits.FromPoints(30),
-            PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(50),
-            PowerPointUnits.FromPoints(30)).WithFrame(PowerPointUnits.FromPoints(30), PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(30));
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(50)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30))).WithFrame(PowerPointUnits.FromPoints(30), PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(30));
         HyperlinkRelationship rel = slide.SlidePart.AddHyperlinkRelationship(new Uri("https://officeimo.net/picture"), true);
         DocumentFormat.OpenXml.Presentation.Picture picture = slide.SlidePart.Slide.Descendants<DocumentFormat.OpenXml.Presentation.Picture>().Single();
         picture.NonVisualPictureProperties!.NonVisualDrawingProperties!.Append(new HyperlinkOnClick { Id = rel.Id });
@@ -1181,17 +1181,17 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersPictureWithAltTextWithoutHyperlink() {
+    public void SaveAsPdf_PowerPointDocument_RendersPictureWithAltTextWithoutHyperlink() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
-        PowerPointPicture picture = presentation.AddSlide().AddPicture(
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
+        PowerPointPicture picture = presentation.AddSlide().AddImage(
             new MemoryStream(CreateMinimalRgbPng()),
             OfficeIMO.Drawing.OfficeImageFormat.Png,
-            PowerPointUnits.FromPoints(30),
-            PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(50),
-            PowerPointUnits.FromPoints(30));
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(50)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
         picture.AltText = "Logo alt";
         var options = new PowerPointPdfExportOptions();
 
@@ -1205,17 +1205,17 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_AppliesPictureCrop() {
+    public void SaveAsPdf_PowerPointDocument_AppliesPictureCrop() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
-        PowerPointPicture picture = presentation.AddSlide().AddPicture(
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
+        PowerPointPicture picture = presentation.AddSlide().AddImage(
             new MemoryStream(CreateMinimalRgbPng()),
             OfficeIMO.Drawing.OfficeImageFormat.Png,
-            PowerPointUnits.FromPoints(40),
-            PowerPointUnits.FromPoints(50),
-            PowerPointUnits.FromPoints(60),
-            PowerPointUnits.FromPoints(30)).WithFrame(PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(60), PowerPointUnits.FromPoints(30));
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(50)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(60)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30))).WithFrame(PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(60), PowerPointUnits.FromPoints(30));
         picture.Crop(leftPercent: 50D, topPercent: 0D, rightPercent: 0D, bottomPercent: 0D);
 
         byte[] bytes = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -1226,14 +1226,14 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesParagraphAlignmentAndListMarkers() {
+    public void SaveAsPdf_PowerPointDocument_PreservesParagraphAlignmentAndListMarkers() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints(string.Empty, 30, 36, 170, 70);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(36),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(70));
         textBox.FillTransparency = 100;
         textBox.OutlineColor = null;
-        textBox.FontSize = 10;
+        textBox.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         textBox.SetParagraphs(new[] { "Heading", "Item" });
         textBox.Paragraphs[0].Alignment = PowerPointTextAlignment.Center;
         textBox.Paragraphs[1].Alignment = PowerPointTextAlignment.Left;
@@ -1249,14 +1249,14 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesTextBoxLineBreaks() {
+    public void SaveAsPdf_PowerPointDocument_PreservesTextBoxLineBreaks() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints(string.Empty, 30, 32, 160, 96);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(96));
         textBox.FillTransparency = 100;
         textBox.OutlineColor = null;
-        textBox.FontSize = 12;
+        textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         textBox.SetParagraphs(new[] { string.Empty });
         DocumentFormat.OpenXml.Drawing.Paragraph paragraph = textBox.Paragraphs[0].Paragraph;
         paragraph.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.Run>();
@@ -1276,11 +1276,11 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesTextBoxFillTransparency() {
+    public void SaveAsPdf_PowerPointDocument_PreservesTextBoxFillTransparency() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Transparent", 20, 30, 120, 40);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("Transparent",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(40));
         textBox.FillColor = "112233";
         textBox.FillTransparency = 50;
         textBox.OutlineColor = null;
@@ -1293,22 +1293,22 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesAsymmetricTextBoxMargins() {
+    public void SaveAsPdf_PowerPointDocument_PreservesAsymmetricTextBoxMargins() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Asymmetric", 30, 40, 140, 50);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("Asymmetric",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(50));
         textBox.FillTransparency = 100;
         textBox.OutlineColor = null;
-        textBox.FontSize = 10;
-        textBox.SetTextMarginsPoints(left: 20D, top: 6D, right: 4D, bottom: 2D);
+        textBox.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+        textBox.SetTextMargins(left: global::OfficeIMO.OfficeLength.Points(20D), top: global::OfficeIMO.OfficeLength.Points(6D), right: global::OfficeIMO.OfficeLength.Points(4D), bottom: global::OfficeIMO.OfficeLength.Points(2D));
 
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         using var actual = PdfPigDocument.Open(bytes);
-        textBox.SetTextMarginsPoints(left: 0D, top: 0D, right: 0D, bottom: 0D);
+        textBox.SetTextMargins(left: global::OfficeIMO.OfficeLength.Points(0D), top: global::OfficeIMO.OfficeLength.Points(0D), right: global::OfficeIMO.OfficeLength.Points(0D), bottom: global::OfficeIMO.OfficeLength.Points(0D));
         using var control = PdfPigDocument.Open(presentation.ToPdf(new PowerPointPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -1317,11 +1317,11 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_Uses_Theme_Default_Text_Typography() {
+    public void ToPdfDocument_PowerPointDocument_Uses_Theme_Default_Text_Typography() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Theme default", 30, 34, 180, 46);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("Theme default",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(46));
         textBox.FillTransparency = 100;
         textBox.OutlineColor = null;
 
@@ -1341,15 +1341,15 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersTablesThroughSharedPdfCanvasTable() {
+    public void SaveAsPdf_PowerPointDocument_RendersTablesThroughSharedPdfCanvasTable() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 30, 34, 150, 70);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+        PowerPointTable table = presentation.AddSlide().AddTable(2,2,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(70));
         table.FirstRow = true;
         table.BandedRows = false;
-        table.SetColumnWidthsPoints(90, 60);
-        table.SetRowHeightsPoints(28, 42);
+        table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(60));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(42));
 
         PowerPointTableCell header = table.GetCell(0, 0);
         header.Text = "Metric";
@@ -1363,7 +1363,7 @@ public partial class PowerPointSaveAsPdfTests {
 
         PowerPointTableCell body = table.GetCell(1, 0);
         body.Text = "Quality";
-        body.PaddingLeftPoints = 8D;
+        body.PaddingLeft = global::OfficeIMO.OfficeLength.Points(8D);
         body.BorderColor = "1E5A96";
 
         PowerPointTableCell score = table.GetCell(1, 1);
@@ -1380,8 +1380,8 @@ public partial class PowerPointSaveAsPdfTests {
         Assert.Equal(150D, item.Width);
         // Authored row heights are minimums. Default table margins may require
         // growing the header, while the taller body row retains its height.
-        Assert.True(item.Block.Style!.RowMinHeights![0] >= 28D);
-        Assert.Equal(42D, item.Block.Style.RowMinHeights[1]);
+        Assert.True((item.Block.Style!.RowMinHeights == null ? null : System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(item.Block.Style!.RowMinHeights, static length => length?.ToPoints())))![0] >= 28D);
+        Assert.Equal(42D, item.Block.Style.RowMinHeights[1]?.ToPoints());
         Assert.True(item.Height >= 70D);
         byte[] bytes = result.ToBytes();
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "table-cell-overflow");
@@ -1400,11 +1400,11 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_Uses_Theme_Table_Style_And_Default_Typography() {
+    public void ToPdfDocument_PowerPointDocument_Uses_Theme_Table_Style_And_Default_Typography() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 30, 34, 150, 70);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+        PowerPointTable table = presentation.AddSlide().AddTable(2,2,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(70));
         table.FirstRow = true;
         table.BandedRows = true;
         table.GetCell(0, 0).Text = "Header";
@@ -1417,19 +1417,19 @@ public partial class PowerPointSaveAsPdfTests {
         var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(pdfDocument.Blocks));
         PdfCore.PdfCanvasTableItem tableItem = Assert.Single(canvas.Items.OfType<PdfCore.PdfCanvasTableItem>());
         PdfCore.PdfTableStyle style = Assert.IsType<PdfCore.PdfTableStyle>(tableItem.Block.Style);
-        Assert.Equal(18D, style.FontSize);
-        Assert.Equal(18D, style.HeaderFontSize);
+        Assert.Equal(18D, style.FontSize?.ToPoints());
+        Assert.Equal(18D, style.HeaderFontSize?.ToPoints());
 
         Assert.NotNull(style.CellFills);
-        PdfCore.PdfColor headerFill = style.CellFills![(0, 0)];
-        PdfCore.PdfColor bodyFill = style.CellFills[(1, 0)];
+        global::OfficeIMO.OfficeColor headerFill = style.CellFills![(0, 0)];
+        global::OfficeIMO.OfficeColor bodyFill = style.CellFills[(1, 0)];
         Assert.NotEqual(headerFill, bodyFill);
-        Assert.NotEqual(PdfCore.PdfColor.White, headerFill);
+        Assert.NotEqual(global::OfficeIMO.OfficeColor.White, headerFill);
 
         Assert.NotNull(style.CellBorders);
         PdfCore.PdfCellBorder headerBorder = style.CellBorders![(0, 0)];
         Assert.NotNull(headerBorder.BottomBorder);
-        Assert.True(headerBorder.BottomBorder!.Width >= 1D);
+        Assert.True(headerBorder.BottomBorder!.Width.ToPoints() >= 1D);
 
         string expectedThemeFont = presentation.GetThemeLatinFonts().MinorLatin!;
         Assert.False(string.IsNullOrWhiteSpace(expectedThemeFont));
@@ -1446,33 +1446,33 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_Uses_Configured_Default_Table_Style() {
+    public void ToPdfDocument_PowerPointDocument_Uses_Configured_Default_Table_Style() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.ClearThemeTextDefaults();
-        presentation.SlideSize.SetSizePoints(260, 180);
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 30, 34, 150, 70);
+        presentation.SlideSize.SetSize(OfficeLength.Points(260), OfficeLength.Points(180));
+        PowerPointTable table = presentation.AddSlide().AddTable(2, 2, OfficeLength.Points(30), OfficeLength.Points(34), OfficeLength.Points(150), OfficeLength.Points(70));
         table.FirstRow = true;
         table.BandedRows = false;
-        table.SetColumnWidthsPoints(90, 60);
-        table.SetRowHeightsPoints(28, 42);
+        table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(60));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(42));
         table.GetCell(0, 0).Text = "Metric";
         table.GetCell(0, 1).Text = "Score";
         table.GetCell(1, 0).Text = "Quality";
         table.GetCell(1, 1).Text = "99";
 
         var configuredStyle = new PdfCore.PdfTableStyle {
-            CellPaddingX = 8D,
-            CellPaddingY = 6D,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(8D),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D),
             BorderColor = null,
-            HeaderFill = PdfCore.PdfColor.FromRgb(10, 20, 30),
-            HeaderTextColor = PdfCore.PdfColor.FromRgb(240, 245, 250),
-            RowStripeFill = PdfCore.PdfColor.FromRgb(220, 235, 250),
-            CellFills = new Dictionary<(int Row, int Column), PdfCore.PdfColor> {
-                [(1, 1)] = PdfCore.PdfColor.FromRgb(200, 210, 220)
+            HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
+            HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250),
+            RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(220, 235, 250),
+            CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+                [(1, 1)] = global::OfficeIMO.OfficeColor.FromRgb(200, 210, 220)
             },
-            FontSize = 12.5D,
-            SpacingAfter = 11D
+            FontSize = global::OfficeIMO.OfficeLength.Points(12.5D),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(11D)
         };
 
         PdfCore.PdfDocument pdfDocument = presentation.ToPdf(new PowerPointPdfExportOptions {
@@ -1487,36 +1487,36 @@ public partial class PowerPointSaveAsPdfTests {
         PdfCore.PdfTableStyle style = tableItem.Block.Style!;
 
         Assert.Equal(1, style.HeaderRowCount);
-        Assert.Equal(8D, style.CellPaddingX);
-        Assert.Equal(6D, style.CellPaddingY);
+        Assert.Equal(8D, style.CellPaddingX.ToPoints());
+        Assert.Equal(6D, style.CellPaddingY.ToPoints());
         Assert.Null(style.BorderColor);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(10, 20, 30), style.HeaderFill);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(240, 245, 250), style.HeaderTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), style.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250), style.HeaderTextColor);
         Assert.Null(style.RowStripeFill);
-        Assert.Equal(12.5D, style.FontSize);
-        Assert.Equal(11D, style.SpacingAfter);
-        Assert.Equal(new double?[] { 90D, 60D }, style.ColumnWidthPoints);
+        Assert.Equal(12.5D, style.FontSize?.ToPoints());
+        Assert.Equal(11D, style.SpacingAfter.ToPoints());
+        Assert.Equal(new double?[] { 90D, 60D }, style.ColumnWidths?.ConvertAll(static length => length?.ToPoints()));
         Assert.NotNull(style.RowMinHeights);
-        Assert.Equal(2, style.RowMinHeights!.Count);
-        Assert.Equal(28D, style.RowMinHeights[0]);
-        Assert.True(style.RowMinHeights[0] >= 12.5D * 1.2D + 12D);
-        Assert.Equal(42D, style.RowMinHeights[1]);
+        Assert.Equal(2, style.RowMinHeights?.ConvertAll(static length => length?.ToPoints())!.Count);
+        Assert.Equal(28D, style.RowMinHeights[0]?.ToPoints());
+        Assert.True(style.RowMinHeights[0]?.ToPoints() >= 12.5D * 1.2D + 12D);
+        Assert.Equal(42D, style.RowMinHeights[1]?.ToPoints());
         Assert.Equal(70D, tableItem.Height);
 
-        Assert.Equal(PdfCore.PdfColor.FromRgb(220, 235, 250), configuredStyle.RowStripeFill);
-        Assert.Null(configuredStyle.ColumnWidthPoints);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(220, 235, 250), configuredStyle.RowStripeFill);
+        Assert.Null(configuredStyle.ColumnWidths);
         Assert.Null(configuredStyle.RowMinHeights);
         Assert.NotNull(style.CellFills);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(200, 210, 220), style.CellFills![(1, 1)]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(200, 210, 220), configuredStyle.CellFills![(1, 1)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(200, 210, 220), style.CellFills![(1, 1)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(200, 210, 220), configuredStyle.CellFills![(1, 1)]);
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_Resets_Repeating_Header_Count_From_Slide_Table() {
+    public void ToPdfDocument_PowerPointDocument_Resets_Repeating_Header_Count_From_Slide_Table() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 34, 150, 40);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+        PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(40));
         table.FirstRow = false;
         table.GetCell(0, 0).Text = "Value";
 
@@ -1537,16 +1537,16 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_SkipsExcludedShapeFontsBeforeRendering() {
+    public void SaveAsPdf_PowerPointDocument_SkipsExcludedShapeFontsBeforeRendering() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
         PowerPointSlide slide = presentation.AddSlide();
 
-        PowerPointTextBox excluded = slide.AddTextBoxPoints("Excluded", 30, 26, 100, 28);
+        PowerPointTextBox excluded = slide.AddTextBox("Excluded",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(26),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(28));
         excluded.FontName = "Georgia";
 
-        PowerPointTable table = slide.AddTablePoints(1, 1, 30, 74, 150, 42);
+        PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(74),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(42));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "Visible";
         cell.FontName = "Times New Roman";
@@ -1567,16 +1567,16 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_SkipsUnrenderableShapeFontsBeforeRendering() {
+    public void SaveAsPdf_PowerPointDocument_SkipsUnrenderableShapeFontsBeforeRendering() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
         PowerPointSlide slide = presentation.AddSlide();
 
-        PowerPointTextBox offSlide = slide.AddTextBoxPoints("OffSlide", -180, 24, 80, 28);
+        PowerPointTextBox offSlide = slide.AddTextBox("OffSlide",global::OfficeIMO.OfficeLength.Points(-180),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(28));
         offSlide.FontName = "Georgia";
 
-        PowerPointTable table = slide.AddTablePoints(1, 1, 30, 74, 150, 42);
+        PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(74),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(42));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "Visible";
         cell.FontName = "Times New Roman";
@@ -1597,16 +1597,16 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesConfiguredDefaultFontSlot() {
+    public void SaveAsPdf_PowerPointDocument_PreservesConfiguredDefaultFontSlot() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.ClearThemeTextDefaults();
-        presentation.SlideSize.SetSizePoints(260, 180);
+        presentation.SlideSize.SetSize(OfficeLength.Points(260), OfficeLength.Points(180));
         PowerPointSlide slide = presentation.AddSlide();
 
-        PowerPointTextBox styled = slide.AddTextBoxPoints("StyledSerif", 30, 34, 120, 28);
+        PowerPointTextBox styled = slide.AddTextBox("StyledSerif",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(28));
         styled.FontName = "Georgia";
-        PowerPointTextBox plain = slide.AddTextBoxPoints("DefaultSerif", 30, 84, 120, 28);
+        PowerPointTextBox plain = slide.AddTextBox("DefaultSerif",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(84),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(28));
 
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
@@ -1635,12 +1635,12 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesExplicitMappedDefaultFontFamily() {
+    public void SaveAsPdf_PowerPointDocument_PreservesExplicitMappedDefaultFontFamily() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.ClearThemeTextDefaults();
-        presentation.SlideSize.SetSizePoints(260, 180);
-        presentation.AddSlide().AddTextBoxPoints("ExplicitSerif", 30, 40, 150, 36);
+        presentation.SlideSize.SetSize(OfficeLength.Points(260), OfficeLength.Points(180));
+        presentation.AddSlide().AddTextBox("ExplicitSerif", OfficeLength.Points(30), OfficeLength.Points(40), OfficeLength.Points(150), OfficeLength.Points(36));
 
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             FontFamily = "serif"
@@ -1651,11 +1651,11 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_UsesSansFallbackForPortableDocumentFonts() {
+    public void SaveAsPdf_PowerPointDocument_UsesSansFallbackForPortableDocumentFonts() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
-        PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("VisibleSans", 30, 40, 150, 36);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+        PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("VisibleSans",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(36));
         textBox.FontName = "Aptos Display";
 
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
@@ -1674,15 +1674,15 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesTableCellLineBreaks() {
+    public void SaveAsPdf_PowerPointDocument_PreservesTableCellLineBreaks() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 28, 150, 96);
-        table.SetRowHeightsPoints(96);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+        PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(96));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(96));
 
         PowerPointTableCell cell = table.GetCell(0, 0);
-        cell.FontSize = 12;
+        cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         cell.Text = "First";
         DocumentFormat.OpenXml.Drawing.TextBody textBody = cell.Cell.TextBody!;
         textBody.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.Paragraph>();
@@ -1706,14 +1706,14 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesPowerPointTableCellRunFormatting() {
+    public void SaveAsPdf_PowerPointDocument_PreservesPowerPointTableCellRunFormatting() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 34, 180, 70);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+        PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(70));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "SmallLarge";
-        cell.FontSize = 10;
+        cell.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         A.TextBody textBody = cell.Cell.TextBody!;
         textBody.RemoveAllChildren<A.Paragraph>();
         textBody.Append(new A.Paragraph(
@@ -1735,14 +1735,14 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_WarnsWhenTableCellTextMayOverflow() {
+    public void ToPdfDocument_PowerPointDocument_WarnsWhenTableCellTextMayOverflow() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 150);
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 34, 86, 22);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(150));
+        PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(86),global::OfficeIMO.OfficeLength.Points(22));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "A very dense PowerPoint table cell that cannot fit inside this tiny fixed PDF frame";
-        cell.FontSize = 14;
+        cell.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         var options = new PowerPointPdfExportOptions();
 
         PdfCore.PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence(options);
@@ -1758,11 +1758,11 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesTableRotation() {
+    public void SaveAsPdf_PowerPointDocument_PreservesTableRotation() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(260, 180);
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 34, 150, 70);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
+        PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(70));
         table.Rotation = 90D;
         table.GetCell(0, 0).Text = "Rotated";
 
@@ -1777,10 +1777,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersChartsThroughSharedVectorRenderer() {
+    public void SaveAsPdf_PowerPointDocument_RendersChartsThroughSharedVectorRenderer() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         var data = new PowerPointChartData(
             new[] { "Q1", "Q2", "Q3", "Q4" },
             new[] {
@@ -1810,10 +1810,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersInheritedLayoutChartsFromLayoutPart() {
+    public void SaveAsPdf_PowerPointDocument_RendersInheritedLayoutChartsFromLayoutPart() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide slide = presentation.AddSlide();
         var data = new PowerPointChartData(
             new[] { "Q1", "Q2", "Q3" },
@@ -1844,10 +1844,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesHorizontalStackedBarChartKind() {
+    public void SaveAsPdf_PowerPointDocument_PreservesHorizontalStackedBarChartKind() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         var data = new PowerPointChartData(
             new[] { "North", "South" },
             new[] {
@@ -1869,10 +1869,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesStackedLineChartKind() {
+    public void SaveAsPdf_PowerPointDocument_PreservesStackedLineChartKind() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         var data = new PowerPointChartData(
             new[] { "Q1", "Q2", "Q3" },
             new[] {
@@ -1894,10 +1894,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersAreaChartSnapshots() {
+    public void SaveAsPdf_PowerPointDocument_RendersAreaChartSnapshots() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         var data = new PowerPointChartData(
             new[] { "Q1", "Q2", "Q3" },
             new[] {
@@ -1919,10 +1919,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersRadarChartSnapshots() {
+    public void SaveAsPdf_PowerPointDocument_RendersRadarChartSnapshots() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         var data = new PowerPointChartData(
             new[] { "Speed", "Quality", "Reach" },
             new[] {
@@ -1945,10 +1945,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_RendersComboChartsInsteadOfWarning() {
+    public void ToPdfDocument_PowerPointDocument_RendersComboChartsInsteadOfWarning() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         var data = new PowerPointChartData(
             new[] { "Q1", "Q2" },
             new[] {
@@ -1969,13 +1969,13 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersZeroThicknessLineAutoShapes() {
+    public void SaveAsPdf_PowerPointDocument_RendersZeroThicknessLineAutoShapes() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddShapePoints(OfficePresetShapeType.Line, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
-        slide.AddShapePoints(OfficePresetShapeType.Line, 140, 30, 0, 80).Stroke("C00000", 1.5D);
+        slide.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(0)).Stroke("1E5A96", global::OfficeIMO.OfficeLength.Points(1.5D));
+        slide.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(80)).Stroke("C00000", global::OfficeIMO.OfficeLength.Points(1.5D));
         var options = new PowerPointPdfExportOptions();
 
         byte[] bytes = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -1989,13 +1989,13 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_RendersZeroThicknessStraightConnectors() {
+    public void SaveAsPdf_PowerPointDocument_RendersZeroThicknessStraightConnectors() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddShapePoints(OfficePresetShapeType.StraightConnector1, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
-        slide.AddShapePoints(OfficePresetShapeType.StraightConnector1, 140, 30, 0, 80).Stroke("C00000", 1.5D);
+        slide.AddShape(OfficePresetShapeType.StraightConnector1, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(0)).Stroke("1E5A96", global::OfficeIMO.OfficeLength.Points(1.5D));
+        slide.AddShape(OfficePresetShapeType.StraightConnector1, OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(80)).Stroke("C00000", global::OfficeIMO.OfficeLength.Points(1.5D));
         var options = new PowerPointPdfExportOptions();
 
         byte[] bytes = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -2009,13 +2009,13 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesFlippedLineAutoShapes() {
+    public void SaveAsPdf_PowerPointDocument_PreservesFlippedLineAutoShapes() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
-        PowerPointAutoShape line = presentation.AddSlide().AddShapePoints(OfficePresetShapeType.Line, 20, 40, 80, 40);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
+        PowerPointAutoShape line = presentation.AddSlide().AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
         line.HorizontalFlip = true;
-        line.Stroke("1E5A96", 1.5D);
+        line.Stroke("1E5A96", global::OfficeIMO.OfficeLength.Points(1.5D));
 
         byte[] bytes = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
@@ -2030,10 +2030,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesScatterSeriesXValues() {
+    public void SaveAsPdf_PowerPointDocument_PreservesScatterSeriesXValues() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         var data = new PowerPointScatterChartData(new[] {
             new PowerPointScatterChartSeries("Actual", new[] { 1D, 2D, 3D }, new[] { 10D, 12D, 14D }),
             new PowerPointScatterChartSeries("Forecast", new[] { 1.5D, 2.5D }, new[] { 11D, 13D })
@@ -2053,10 +2053,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_UsesFirstRenderableScatterSeriesForCategories() {
+    public void SaveAsPdf_PowerPointDocument_UsesFirstRenderableScatterSeriesForCategories() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         var data = new PowerPointScatterChartData(new[] {
             new PowerPointScatterChartSeries("EmptyX", new[] { 1D, 2D, 3D }, new[] { 10D, 12D, 14D }),
             new PowerPointScatterChartSeries("Forecast", new[] { 1.5D, 2.5D }, new[] { 11D, 13D })
@@ -2072,10 +2072,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_PreservesSparseCachedChartPointIndices() {
+    public void SaveAsPdf_PowerPointDocument_PreservesSparseCachedChartPointIndices() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         var data = new PowerPointChartData(
             new[] { "Jan", "Feb", "Mar" },
             new[] {
@@ -2092,10 +2092,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_ReadsCategoriesFromFirstRenderableCategorySeries() {
+    public void SaveAsPdf_PowerPointDocument_ReadsCategoriesFromFirstRenderableCategorySeries() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         var data = new PowerPointChartData(
             new[] { "Jan", "Feb", "Mar" },
             new[] {
@@ -2113,10 +2113,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_AppliesSharedChartStyleAndLayoutOptions() {
+    public void SaveAsPdf_PowerPointDocument_AppliesSharedChartStyleAndLayoutOptions() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(360, 240);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240));
         var data = new PowerPointChartData(
             new[] { "M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08" },
             new[] {
@@ -2155,10 +2155,10 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_WarnsWhenSharedChartQualityPreflightFindsIssues() {
+    public void SaveAsPdf_PowerPointDocument_WarnsWhenSharedChartQualityPreflightFindsIssues() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(320, 220);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         var data = new PowerPointChartData(
             new[] { "M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "M11", "M12" },
             new[] {

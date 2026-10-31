@@ -18,8 +18,8 @@ public sealed class OfficeDocumentSummaryTests {
         try {
             string path = Path.Combine(root, "inventory.xlsx");
             using (var workbook = ExcelDocument.Create()) {
-                workbook.AddWorksheet("Data").CellValue(1, 1, "Inventory");
-                workbook.AddWorksheet("Empty");
+                workbook.AddSheet("Data").CellValue(1, 1, "Inventory");
+                workbook.AddSheet("Empty");
                 workbook.Save(path);
             }
             byte[] original = File.ReadAllBytes(path);
@@ -43,22 +43,22 @@ public sealed class OfficeDocumentSummaryTests {
         try {
             string path = Path.Combine(root, "removed.xlsx");
             using var workbook = ExcelDocument.Create();
-            workbook.AddWorksheet("Saved");
+            workbook.AddSheet("Saved");
             workbook.Save(path);
-            workbook.AddWorksheet("Unsaved");
+            workbook.AddSheet("Unsaved");
             File.Delete(path);
             OfficeDocumentInfo info = OfficeDocument.Inspect((object)workbook, Summary(detailed: true));
             Assert.Equal(2, info.SheetCount);
             Assert.Equal(new[] { "Saved", "Unsaved" }, Assert.IsType<ExcelWorkbookInfo>(info.Details).Worksheets.Select(sheet => sheet.Name));
             Assert.Null(info.Modified);
-            workbook.AddWorksheet("Still open");
+            workbook.AddSheet("Still open");
             Assert.Equal(3, workbook.Sheets.Count);
         } finally { Directory.Delete(root, true); }
     }
 
     [Fact]
     public void PresentationSummaryIncludesUnsavedSlidesAndKeepsTheModelOpen() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         presentation.AddSlide().AddTextBox("Opening");
         presentation.AddSlide().AddTextBox("Unsaved slide");
         OfficeDocumentInfo info = OfficeDocument.Inspect((object)presentation, Summary(detailed: true));

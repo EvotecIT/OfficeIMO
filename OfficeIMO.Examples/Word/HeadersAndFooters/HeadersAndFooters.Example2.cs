@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
             }
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].ColumnsSpace = 50;
+                document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(2.5);
                 Console.WriteLine("+ Settings Zoom Preset: " + document.Settings.ZoomPreset);
                 Console.WriteLine("+ Settings Zoom Percent: " + document.Settings.ZoomPercentage);
 

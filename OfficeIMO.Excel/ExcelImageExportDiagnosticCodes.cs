@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel;
 /// assert known unsupported and approximate rendering cases without copying
 /// string literals.
 /// </remarks>
-public static class ExcelImageExportDiagnosticCodes {
+internal static class ExcelImageExportDiagnosticCodes {
     /// <summary>Cell text was clipped or ellipsized to fit rendered bounds.</summary>
     public const string CellTextClipped = "excel-cell-text-clipped";
 

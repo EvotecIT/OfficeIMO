@@ -146,8 +146,8 @@ internal static partial class WindowsPdfPrinter {
     private static void ConfigureMode(IntPtr mode, IntPtr printer, string name, PdfPageSize paper, PdfPrintDeliveryOptions options) {
         // Public DEVMODEW offsets; preserve the driver's complete private trailing data.
         if ((ushort)Marshal.ReadInt16(mode, 68) < 102) throw new InvalidOperationException("Unsupported printer settings layout.");
-        bool landscape = paper.Width > paper.Height;
-        double width = Math.Min(paper.Width, paper.Height), height = Math.Max(paper.Width, paper.Height);
+        bool landscape = paper.Width.ToPoints() > paper.Height.ToPoints();
+        double width = Math.Min(paper.Width.ToPoints(), paper.Height.ToPoints()), height = Math.Max(paper.Width.ToPoints(), paper.Height.ToPoints());
         short paperCode = PaperCode(width, height);
         int fields = Marshal.ReadInt32(mode, 72) | 1 | 2 | 0x10 | 0x100;
         Marshal.WriteInt16(mode, 76, landscape ? (short)2 : (short)1);
@@ -177,17 +177,17 @@ internal static partial class WindowsPdfPrinter {
     }
 
     private static short PaperCode(double width, double height) {
-        if (Math.Abs(width - PdfPageSizes.A4.Width) < 1 && Math.Abs(height - PdfPageSizes.A4.Height) < 1) return 9;
-        if (Math.Abs(width - PdfPageSizes.A3.Width) < 1 && Math.Abs(height - PdfPageSizes.A3.Height) < 1) return 8;
-        if (Math.Abs(width - PdfPageSizes.Letter.Width) < 1 && Math.Abs(height - PdfPageSizes.Letter.Height) < 1) return 1;
-        if (Math.Abs(width - PdfPageSizes.Legal.Width) < 1 && Math.Abs(height - PdfPageSizes.Legal.Height) < 1) return 5;
+        if (Math.Abs(width - PdfPageSizes.A4.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.A4.Height.ToPoints()) < 1) return 9;
+        if (Math.Abs(width - PdfPageSizes.A3.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.A3.Height.ToPoints()) < 1) return 8;
+        if (Math.Abs(width - PdfPageSizes.Letter.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.Letter.Height.ToPoints()) < 1) return 1;
+        if (Math.Abs(width - PdfPageSizes.Legal.Width.ToPoints()) < 1 && Math.Abs(height - PdfPageSizes.Legal.Height.ToPoints()) < 1) return 5;
         return 256;
     }
 
     private static void ValidatePaper(IntPtr dc, PdfPageSize paper) {
         int dpiX = Native.GetDeviceCaps(dc, 88), dpiY = Native.GetDeviceCaps(dc, 90);
-        if (dpiX <= 0 || dpiY <= 0 || Math.Abs(Native.GetDeviceCaps(dc, 110) * 72D / dpiX - paper.Width) > 3 ||
-            Math.Abs(Native.GetDeviceCaps(dc, 111) * 72D / dpiY - paper.Height) > 3)
+        if (dpiX <= 0 || dpiY <= 0 || Math.Abs(Native.GetDeviceCaps(dc, 110) * 72D / dpiX - paper.Width.ToPoints()) > 3 ||
+            Math.Abs(Native.GetDeviceCaps(dc, 111) * 72D / dpiY - paper.Height.ToPoints()) > 3)
             throw new InvalidOperationException("The selected printer did not accept the reviewed paper size and orientation.");
     }
 }

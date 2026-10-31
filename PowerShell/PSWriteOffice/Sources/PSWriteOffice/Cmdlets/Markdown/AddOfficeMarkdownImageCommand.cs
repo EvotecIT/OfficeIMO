@@ -54,7 +54,9 @@ public sealed class AddOfficeMarkdownImageCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var doc = ResolveDocument();
-        doc.Image(Path, Alt, Title, Width, Height);
+        doc.Image(Path, Alt, Title,
+            Width.HasValue ? OfficeIMO.OfficeLength.Pixels(Width.Value) : null,
+            Height.HasValue ? OfficeIMO.OfficeLength.Pixels(Height.Value) : null);
 
         if (PassThru.IsPresent)
         {

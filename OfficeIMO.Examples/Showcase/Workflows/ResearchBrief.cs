@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class ResearchBrief {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-        document.Settings.FontSize = 11;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
         document.BuiltinDocumentProperties.Title = "Customer research brief";
         document.AddParagraph("Customer research brief").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("NORTHWIND / REQUEST PORTAL / SYNTHETIC RESEARCH DATA");
@@ -25,8 +25,8 @@ internal static class ResearchBrief {
         document.AddParagraph("Limits and next study").Style = WordParagraphStyles.Heading2;
         document.AddParagraph("These are invented observations for the example. A small moderated sample can reveal usability problems; it does not establish population-wide rates.");
         foreach (var paragraph in document.Paragraphs) {
-            paragraph.FontSize = paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11;
-            paragraph.LineSpacingAfterPoints = 9;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(9D);
         }
         WorkflowFooter.Add(document, "Customer research brief");
         document.Save();

@@ -62,7 +62,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<html lang='en'><body style='margin:0;font:20px ScopedMath'>"
             + "<math aria-label='x over two' style='font-family:inherit'><mfrac><mtext>x</mtext><mn>2</mn></mfrac></math></body></html>";
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(2D, 1D), HonorCssPageRules = false,
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(2D), global::OfficeIMO.OfficeLength.Inches(1D)), HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D), BackgroundColor = OfficeColor.Transparent,
             AllowSystemFontFallback = false
         };
@@ -89,7 +89,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<body style='margin:0;font:20px ScopedMath'><math display='block' style='font-family:inherit'>"
             + "<mfrac><mtext>x</mtext><mn>22</mn></mfrac></math></body>";
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(2D, 2D), HonorCssPageRules = false,
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(2D), global::OfficeIMO.OfficeLength.Inches(2D)), HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D), BackgroundColor = OfficeColor.Transparent,
             AllowSystemFontFallback = false
         };
@@ -122,7 +122,7 @@ public sealed partial class HtmlRenderingTests {
         renderOptions.ViewportWidth = 384D; renderOptions.ViewportHeight = 384D;
         HtmlRenderDrawing math = Assert.Single(HtmlRenderTestDriver.Render(html, renderOptions).Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         var pdfOptions = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(4D, 4D), HonorCssPageRules = false,
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(4D)), HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D), BackgroundColor = OfficeColor.Transparent,
             AllowSystemFontFallback = false
         };

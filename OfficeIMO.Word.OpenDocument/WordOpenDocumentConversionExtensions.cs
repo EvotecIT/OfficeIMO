@@ -387,10 +387,10 @@ public static partial class WordOpenDocumentConversionExtensions {
                     OdtHyperlink? link = leaf.TargetLink;
                     if (link != null) {
                         if (OdfUriReference.TryDecodeFragment(link.Href, out string fragment)) {
-                            output = target.AddHyperLink(displayText, fragment, addStyle: true);
+                            output = target.AddHyperLink(displayText, fragment, addStyle: true).Paragraph;
                         } else if (!link.Href.StartsWith("#", StringComparison.Ordinal)
                             && Uri.TryCreate(link.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
-                            output = target.AddHyperLink(displayText, uri, addStyle: true);
+                            output = target.AddHyperLink(displayText, uri, addStyle: true).Paragraph;
                         }
                         if (output != null && convertedLinks.Add(link)) {
                             hyperlinks++;
@@ -431,7 +431,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                         if (!notes.Images.TryReserve(bytes.Length)) break;
                         reservedImageBytes = bytes.Length;
                         using var stream = new MemoryStream(bytes, writable: false);
-                        target.AddImage(stream, fileName, image.Width.ToPoints(), image.Height.ToPoints());
+                        target.AddImage(stream, fileName, OfficeIMO.OfficeLength.Points(image.Width.ToPoints()), OfficeIMO.OfficeLength.Points(image.Height.ToPoints()));
                         images++;
                     } catch (Exception exception) when (exception is NotSupportedException || exception is InvalidDataException ||
                         exception is ArgumentException) {
@@ -487,10 +487,10 @@ public static partial class WordOpenDocumentConversionExtensions {
                         OdtHyperlink? fieldLink = leaf.TargetLink;
                         if (fieldLink != null) {
                             if (OdfUriReference.TryDecodeFragment(fieldLink.Href, out string fragment)) {
-                                result = target.AddHyperLink(displayText, fragment, addStyle: true);
+                                result = target.AddHyperLink(displayText, fragment, addStyle: true).Paragraph;
                             } else if (!fieldLink.Href.StartsWith("#", StringComparison.Ordinal)
                                 && Uri.TryCreate(fieldLink.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
-                                result = target.AddHyperLink(displayText, uri, addStyle: true);
+                                result = target.AddHyperLink(displayText, uri, addStyle: true).Paragraph;
                             }
                             if (result != null && convertedLinks.Add(fieldLink)) {
                                 hyperlinks++;
@@ -558,7 +558,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         target.Underline = source.Underline ? true : (bool?)null;
         target.StrikeThrough = source.Strike ? true : (bool?)null;
         ApplyWordDecoration(source, target);
-        if (source.FontSizePoints.HasValue) target.FontSize = OdfLength.Points(source.FontSizePoints.Value);
+        if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
         if (OdfColor.TryParse(source.ColorHex, out OdfColor color)) target.Color = color;
         if (OdfColor.TryParse(source.RunShadingFillColorHex, out OdfColor shading)) target.BackgroundColor = shading;
@@ -571,7 +571,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         target.Underline = source.Underline ? true : (bool?)null;
         target.StrikeThrough = source.Strike ? true : (bool?)null;
         ApplyWordDecoration(source, target);
-        if (source.FontSizePoints.HasValue) target.FontSize = OdfLength.Points(source.FontSizePoints.Value);
+        if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         if (!string.IsNullOrWhiteSpace(source.FontFamily)) target.FontFamily = source.FontFamily;
         if (OdfColor.TryParse(source.ColorHex, out OdfColor color)) target.Color = color;
         if (OdfColor.TryParse(source.RunShadingFillColorHex, out OdfColor shading)) target.BackgroundColor = shading;
@@ -764,7 +764,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         (!string.IsNullOrWhiteSpace(run.RunShadingFillColorHex) && !string.IsNullOrWhiteSpace(run.HighlightColor));
 
     private static bool HasUnsupportedTableFormatting(WordTableInfo table) => table.StyleName != null ||
-        table.Description != null || table.RepeatHeaderRow || table.ColumnWidthPoints.Count > 0 ||
+        table.Description != null || table.RepeatHeaderRow || table.ColumnWidths.Count > 0 ||
         table.Rows.SelectMany(row => row.Cells).Any(cell => cell.ShadingFillColorHex != null || cell.LeftBorder != null ||
             cell.RightBorder != null || cell.TopBorder != null || cell.BottomBorder != null);
 
@@ -780,22 +780,22 @@ public static partial class WordOpenDocumentConversionExtensions {
         authoredHere ? part?.Elements.Count ?? 0 : 0;
 
     private static void ApplyWordPageLayout(WordSectionInfo source, OdtPageLayout target) {
-        if (source.PageWidthPoints.HasValue) target.Width = OdfLength.Points(source.PageWidthPoints.Value);
-        if (source.PageHeightPoints.HasValue) target.Height = OdfLength.Points(source.PageHeightPoints.Value);
-        if (source.MarginTopPoints.HasValue) target.MarginTop = OdfLength.Points(source.MarginTopPoints.Value);
-        if (source.MarginBottomPoints.HasValue) target.MarginBottom = OdfLength.Points(source.MarginBottomPoints.Value);
-        if (source.MarginLeftPoints.HasValue) target.MarginLeft = OdfLength.Points(source.MarginLeftPoints.Value);
-        if (source.MarginRightPoints.HasValue) target.MarginRight = OdfLength.Points(source.MarginRightPoints.Value);
+        if (source.PageWidth.HasValue) target.Width = OdfLength.Points(source.PageWidth.Value.ToPoints());
+        if (source.PageHeight.HasValue) target.Height = OdfLength.Points(source.PageHeight.Value.ToPoints());
+        if (source.MarginTop.HasValue) target.MarginTop = OdfLength.Points(source.MarginTop.Value.ToPoints());
+        if (source.MarginBottom.HasValue) target.MarginBottom = OdfLength.Points(source.MarginBottom.Value.ToPoints());
+        if (source.MarginLeft.HasValue) target.MarginLeft = OdfLength.Points(source.MarginLeft.Value.ToPoints());
+        if (source.MarginRight.HasValue) target.MarginRight = OdfLength.Points(source.MarginRight.Value.ToPoints());
     }
 
     private static int ApplyOdtPageLayout(OdtPageLayout source, WordSection target) {
         int unsupported = 0;
-        if (source.Width.TryToPoints(out double width)) target.PageSettings.Width = checked((uint)Math.Round(width * 20D)); else unsupported++;
-        if (source.Height.TryToPoints(out double height)) target.PageSettings.Height = checked((uint)Math.Round(height * 20D)); else unsupported++;
-        if (source.MarginTop.TryToPoints(out double top)) target.Margins.Top = checked((int)Math.Round(top * 20D)); else unsupported++;
-        if (source.MarginBottom.TryToPoints(out double bottom)) target.Margins.Bottom = checked((int)Math.Round(bottom * 20D)); else unsupported++;
-        if (source.MarginLeft.TryToPoints(out double left)) target.Margins.Left = checked((uint)Math.Round(left * 20D)); else unsupported++;
-        if (source.MarginRight.TryToPoints(out double right)) target.Margins.Right = checked((uint)Math.Round(right * 20D)); else unsupported++;
+        if (source.Width.TryToPoints(out double width)) target.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(width * 20D))) / 20D); else unsupported++;
+        if (source.Height.TryToPoints(out double height)) target.PageSettings.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(height * 20D))) / 20D); else unsupported++;
+        if (source.MarginTop.TryToPoints(out double top)) target.Margins.Top = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(top * 20D))) / 20D); else unsupported++;
+        if (source.MarginBottom.TryToPoints(out double bottom)) target.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(bottom * 20D))) / 20D); else unsupported++;
+        if (source.MarginLeft.TryToPoints(out double left)) target.Margins.Left = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(left * 20D))) / 20D); else unsupported++;
+        if (source.MarginRight.TryToPoints(out double right)) target.Margins.Right = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(right * 20D))) / 20D); else unsupported++;
         return unsupported;
     }
 

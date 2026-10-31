@@ -26,14 +26,14 @@ internal static partial class PdfWriter {
         }
 
         private static double MeasureColumnTablePaintHeight(ColTable table, double consumedBefore) =>
-            ResolveColumnSpacingBefore(table.Style.SpacingBefore, consumedBefore) + table.CaptionHeight
+            ResolveColumnSpacingBefore(table.Style.SpacingBefore.ToPoints(), consumedBefore) + table.CaptionHeight
             + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, GetTableCellSpacing(table.Style))
-            + table.Style.SpacingAfter;
+            + table.Style.SpacingAfter.ToPoints();
 
         private (double FlowAdvance, double PaintExtent) MeasureColumnGroup(ColumnGroup group, double consumedBefore) {
-            double before = ResolveColumnSpacingBefore(group.Style?.SpacingBefore ?? 0D, consumedBefore);
+            double before = ResolveColumnSpacingBefore(group.Style?.SpacingBefore.ToPoints() ?? 0D, consumedBefore);
             double opening = before + (group.Style?.TopPadding ?? 0D);
-            double closing = (group.Style?.BottomPadding ?? 0D) + (group.Style?.SpacingAfter ?? 0D);
+            double closing = (group.Style?.BottomPadding ?? 0D) + (group.Style?.SpacingAfter.ToPoints() ?? 0D);
             var content = MeasureColumnSequence(group.Children, consumedBefore + opening);
             double advance = opening + content.FlowAdvance + closing;
             // Closing padding remains reserved while the children paint, even

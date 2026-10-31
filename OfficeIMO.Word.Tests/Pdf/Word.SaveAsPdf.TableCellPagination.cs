@@ -104,7 +104,7 @@ public partial class Word {
             WordPdfExportOptions options = CellPaginationOptions();
             options.PdfOptions = new PdfCore.PdfCreateOptions { DefaultTableStyle = new PdfCore.PdfTableStyle {
                 MinimumBodyRowsOnFirstPage = minimumRows, MinimumBodyRowsOnLastPage = minimumRows,
-                HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, SpacingBefore = 0, SpacingAfter = 0
+                HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             } };
             document.SaveAsPdf(target, options);
         }
@@ -115,22 +115,22 @@ public partial class Word {
 
     private static WordTable CreatePaginationTable(WordDocument document, int rowCount) {
         document.Sections[0].ColumnCount = 2;
-        document.Sections[0].ColumnsSpace = 400;
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         WordTable table = document.AddTable(rowCount, 1, WordTableStyle.TableGrid);
         // Keep frame capacity governed by the authored line heights; border
         // paint and cell margins have separate artifact regression coverage.
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, global::OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeColor.Black);
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.Width = 4000; table.WidthType = WordTableWidthUnit.Dxa;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
         for (int row = 0; row < rowCount; row++) {
             WordTableCell cell = table.Rows[row].Cells[0];
-            cell.Width = 4000; cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0; cell.MarginLeftWidth = 0; cell.MarginRightWidth = 0;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero; cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero; cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = string.Join("\n", Enumerable.Range(1, 3).Select(line => $"Row{row + 1:D2}Line{line:D3}"));
-            paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-            paragraph.LineSpacing = 400; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+            paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.KeepLinesTogetherOverride = false; paragraph.KeepWithNextOverride = false;
             paragraph.AvoidWidowAndOrphanOverride = false;
         }
@@ -138,6 +138,6 @@ public partial class Word {
     }
 
     private static WordPdfExportOptions CellPaginationOptions() => new() {
-        IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(500, 400), Margins = PdfCore.PdfPageMargins.Uniform(40)
+        IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(400)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
     };
 }

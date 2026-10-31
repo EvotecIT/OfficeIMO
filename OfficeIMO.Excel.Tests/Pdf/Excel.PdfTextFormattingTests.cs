@@ -11,7 +11,7 @@ public sealed class ExcelPdfTextFormattingTests {
     [Fact]
     public void NativeCellFormattingProjectsToTypedPdfRuns() {
         using ExcelDocument document = ExcelDocument.Create();
-        document.AddWorksheet("Text").CellAt(1, 1)
+        document.AddSheet("Text").CellAt(1, 1)
             .SetValue("Styled")
             .SetBold()
             .SetItalic()
@@ -19,7 +19,7 @@ public sealed class ExcelPdfTextFormattingTests {
             .SetStrikethrough()
             .SetSuperscript()
             .SetFontName("Aptos")
-            .SetFontSize(14)
+            .SetFontSize(global::OfficeIMO.OfficeLength.Points(14))
             .SetFontColor("336699");
 
         PdfCore.PdfDocument pdf = document.ToPdf(new ExcelPdfExportOptions {
@@ -36,8 +36,8 @@ public sealed class ExcelPdfTextFormattingTests {
         Assert.Equal(OfficeTextDecorationStyle.Double, run.UnderlineStyle);
         Assert.Equal(OfficeTextDecorationStyle.Single, run.StrikeStyle);
         Assert.Equal(PdfCore.PdfTextBaseline.Superscript, run.Baseline);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(51, 102, 153), run.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153), run.Color);
         Assert.Equal("Aptos", run.FontFamily);
-        Assert.Equal(14D, run.FontSize);
+        Assert.Equal(14D, (run.FontSize?.ToPoints()));
     }
 }

@@ -122,7 +122,9 @@ public sealed class LatexConversionRegressionTests {
         cell.ColumnSpan = 2;
         cell.RowSpan = 2;
 
-        MarkdownToLatexResult result = MarkdownDocument.Create().Add(table).ToLatexDocumentResult();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(table);
+        MarkdownToLatexResult result = addedDocument.ToLatexDocumentResult();
 
         Assert.Contains("\\begin{tabular}{ll}", result.Source, StringComparison.Ordinal);
         Assert.Contains("\\multicolumn{2}{l}{\\multirow{2}{*}{wide}}", result.Source, StringComparison.Ordinal);

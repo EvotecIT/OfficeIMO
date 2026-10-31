@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
         public void Test_VmlEllipseWithTextRecognizedAsTextBoxOnly() {
             string filePath = Path.Combine(_directoryWithFiles, "EllipseShapeWithText.docx");
             using (WordDocument doc = WordDocument.Create(filePath)) {
-                doc.AddShape(WordShapeType.Ellipse, 40, 40, Color.Red, Color.Blue);
+                doc.AddShape(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40), Color.Red, Color.Blue);
                 doc.Save();
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
         public void Test_AlternateContentShapeNotTreatedAsTextBox() {
             string filePath = Path.Combine(_directoryWithFiles, "ShapeWrappedInAlternateContent.docx");
             using (WordDocument doc = WordDocument.Create(filePath)) {
-                doc.AddShapeDrawing(WordShapeType.Rectangle, 40, 40);
+                doc.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
                 doc.Save();
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
         public void Test_AlternateContentFallbackShapeDetected() {
             string filePath = Path.Combine(_directoryWithFiles, "ShapeInAlternateContentFallback.docx");
             using (WordDocument doc = WordDocument.Create(filePath)) {
-                doc.AddShapeDrawing(WordShapeType.Rectangle, 40, 40);
+                doc.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
                 doc.Save();
             }
             using (WordprocessingDocument wDoc = WordprocessingDocument.Open(filePath, true)) {
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
         public void Test_AlternateContentChoiceShapeFallbackTextBox() {
             string filePath = Path.Combine(_directoryWithFiles, "ShapeChoiceFallbackTextBox.docx");
             using (WordDocument doc = WordDocument.Create(filePath)) {
-                doc.AddShapeDrawing(WordShapeType.Rectangle, 40, 40);
+                doc.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
                 doc.AddTextBox("Text");
                 doc.Save();
             }
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
         public void Test_MultipleAlternateContentTextBoxPreferred() {
             string filePath = Path.Combine(_directoryWithFiles, "MultipleAlternateContentTextBoxPreferred.docx");
             using (WordDocument doc = WordDocument.Create(filePath)) {
-                doc.AddShapeDrawing(WordShapeType.Rectangle, 40, 40);
+                doc.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
                 doc.AddTextBox("Text");
                 doc.Save();
             }

@@ -115,7 +115,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
-            if (!TryMapChartKind(type, horizontalIndexAxis, stackedScale, filledLineChart, out OfficeChartKind chartKind)) {
+            if (!TryMapChartKind(type, horizontalIndexAxis, stackedScale, filledLineChart, out OfficeChartType chartKind)) {
                 warningMessage = "The Markdown chart fence uses an unsupported chart type and is rendered as a semantic code panel.";
                 return false;
             }
@@ -125,7 +125,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
-            if (chartKind == OfficeChartKind.Radar && HasUnsupportedRadarScaleVisibility(root)) {
+            if (chartKind == OfficeChartType.Radar && HasUnsupportedRadarScaleVisibility(root)) {
                 warningMessage = "The Markdown Chart.js radar fence uses radial scale visibility settings that cannot be represented by the native PDF chart renderer and is rendered as a semantic code panel.";
                 return false;
             }
@@ -141,7 +141,7 @@ public static partial class MarkdownPdfConverterExtensions {
             }
 
             bool fillRadarSeries = true;
-            if (chartKind == OfficeChartKind.Radar && !TryResolveRadarFill(dataElement, out fillRadarSeries)) {
+            if (chartKind == OfficeChartType.Radar && !TryResolveRadarFill(dataElement, out fillRadarSeries)) {
                 warningMessage = "The Markdown Chart.js radar fence mixes filled and unfilled visible datasets that cannot be rendered as one native PDF radar chart and is rendered as a semantic code panel.";
                 return false;
             }
@@ -156,9 +156,9 @@ public static partial class MarkdownPdfConverterExtensions {
             }
 
             List<string> labels = ReadLabels(dataElement);
-            bool defaultConnectLine = chartKind != OfficeChartKind.Scatter || ReadChartShowLine(root) == true;
+            bool defaultConnectLine = chartKind != OfficeChartType.Scatter || ReadChartShowLine(root) == true;
             bool defaultShowMarkers = ReadDefaultChartPointMarkers(root);
-            List<OfficeChartSeries> series = ReadSeries(dataElement, labels, chartKind, defaultConnectLine, defaultShowMarkers, horizontalIndexAxis);
+            List<OfficeSeries> series = ReadSeries(dataElement, labels, chartKind, defaultConnectLine, defaultShowMarkers, horizontalIndexAxis);
             if (series.Count == 0) {
                 warningMessage = "The Markdown chart fence does not contain renderable chart series and is rendered as a semantic code panel.";
                 return false;
@@ -176,11 +176,11 @@ public static partial class MarkdownPdfConverterExtensions {
                 }
             }
 
-            if (chartKind != OfficeChartKind.Scatter) {
+            if (chartKind != OfficeChartType.Scatter) {
                 series = NormalizeSeriesToLabelCount(series, labels.Count);
             }
 
-            if (chartKind == OfficeChartKind.Scatter && !HasDrawableScatterPoint(series)) {
+            if (chartKind == OfficeChartType.Scatter && !HasDrawableScatterPoint(series)) {
                 warningMessage = "The Markdown scatter chart fence does not contain a finite X/Y point and is rendered as a semantic code panel.";
                 return false;
             }
@@ -190,12 +190,12 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
-            if ((chartKind == OfficeChartKind.Pie || chartKind == OfficeChartKind.Doughnut) && !HasPositiveFiniteSlice(series)) {
+            if ((chartKind == OfficeChartType.Pie || chartKind == OfficeChartType.Doughnut) && !HasPositiveFiniteSlice(series)) {
                 warningMessage = "The Markdown pie or doughnut chart fence does not contain a positive finite slice and is rendered as a semantic code panel.";
                 return false;
             }
 
-            if (chartKind == OfficeChartKind.Pie && series.Count > 1) {
+            if (chartKind == OfficeChartType.Pie && series.Count > 1) {
                 warningMessage = "The Markdown pie chart fence contains multiple visible datasets that cannot be rendered without dropping data and is rendered as a semantic code panel.";
                 return false;
             }
@@ -216,12 +216,12 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
-            if (chartKind == OfficeChartKind.Radar && labels.Count < 3) {
+            if (chartKind == OfficeChartType.Radar && labels.Count < 3) {
                 warningMessage = "The Markdown radar chart fence needs at least three categories and is rendered as a semantic code panel.";
                 return false;
             }
 
-            if (chartKind == OfficeChartKind.Radar) {
+            if (chartKind == OfficeChartType.Radar) {
                 series = FilterDrawableRadarSeries(series, labels.Count);
                 if (series.Count == 0) {
                     warningMessage = "The Markdown radar chart fence does not contain drawable adjacent or complete finite data and is rendered as a semantic code panel.";
@@ -248,8 +248,8 @@ public static partial class MarkdownPdfConverterExtensions {
             }
 
             string? title = ReadChartTitle(root) ?? semantic.FenceInfo.Title;
-            double width = ReadPositiveDouble(root, "width") ?? options.DefaultImageWidth;
-            double height = ReadPositiveDouble(root, "height") ?? options.DefaultImageHeight;
+            double width = ReadPositiveDouble(root, "width") ?? options.DefaultImageWidth.ToPoints();
+            double height = ReadPositiveDouble(root, "height") ?? options.DefaultImageHeight.ToPoints();
             width = Math.Max(MinimumChartWidth, Math.Min(520D, width));
             height = Math.Max(150D, Math.Min(320D, height));
             FitChartToPageFrame(options, resolvedVisualTheme, ref width, ref height);
@@ -259,8 +259,8 @@ public static partial class MarkdownPdfConverterExtensions {
                 title,
                 chartKind,
                 new OfficeChartData(labels, series),
-                width,
-                height,
+                global::OfficeIMO.OfficeLength.Points(width),
+                global::OfficeIMO.OfficeLength.Points(height),
                 CreateMarkdownChartStyle(root, chartKind),
                 CreateMarkdownChartLayout(root, chartKind, series, legendPosition, fillRadarSeries));
             return true;
@@ -663,7 +663,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static bool HasPositiveFiniteSlice(IReadOnlyList<OfficeChartSeries> series) {
+    private static bool HasPositiveFiniteSlice(IReadOnlyList<OfficeSeries> series) {
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
             IReadOnlyList<double> values = series[seriesIndex].Values;
             for (int valueIndex = 0; valueIndex < values.Count; valueIndex++) {
@@ -677,7 +677,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return false;
     }
 
-    private static bool HasFiniteValue(IReadOnlyList<OfficeChartSeries> series) {
+    private static bool HasFiniteValue(IReadOnlyList<OfficeSeries> series) {
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
             IReadOnlyList<double> values = series[seriesIndex].Values;
             for (int valueIndex = 0; valueIndex < values.Count; valueIndex++) {
@@ -691,9 +691,9 @@ public static partial class MarkdownPdfConverterExtensions {
         return false;
     }
 
-    private static bool HasDrawableScatterPoint(IReadOnlyList<OfficeChartSeries> series) {
+    private static bool HasDrawableScatterPoint(IReadOnlyList<OfficeSeries> series) {
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
-            OfficeChartSeries item = series[seriesIndex];
+            OfficeSeries item = series[seriesIndex];
             IReadOnlyList<double>? xValues = item.XValues;
             IReadOnlyList<double> yValues = item.Values;
             if (xValues == null) {
@@ -717,10 +717,10 @@ public static partial class MarkdownPdfConverterExtensions {
         return false;
     }
 
-    private static List<OfficeChartSeries> FilterDrawableAreaSeries(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
-        var filtered = new List<OfficeChartSeries>(series.Count);
+    private static List<OfficeSeries> FilterDrawableAreaSeries(IReadOnlyList<OfficeSeries> series, int labelCount) {
+        var filtered = new List<OfficeSeries>(series.Count);
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
-            OfficeChartSeries item = series[seriesIndex];
+            OfficeSeries item = series[seriesIndex];
             if (HasAdjacentFiniteRun(item.Values, labelCount)) {
                 filtered.Add(item);
             }
@@ -729,10 +729,10 @@ public static partial class MarkdownPdfConverterExtensions {
         return filtered;
     }
 
-    private static List<OfficeChartSeries> FilterDrawableRadarSeries(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
-        var filtered = new List<OfficeChartSeries>(series.Count);
+    private static List<OfficeSeries> FilterDrawableRadarSeries(IReadOnlyList<OfficeSeries> series, int labelCount) {
+        var filtered = new List<OfficeSeries>(series.Count);
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
-            OfficeChartSeries item = series[seriesIndex];
+            OfficeSeries item = series[seriesIndex];
             if (HasCompleteFiniteRun(item.Values, labelCount) || HasAdjacentFiniteRun(item.Values, labelCount)) {
                 filtered.Add(item);
             }
@@ -741,7 +741,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return filtered;
     }
 
-    private static bool HasAdjacentFiniteRun(IReadOnlyList<OfficeChartSeries> series, int labelCount) {
+    private static bool HasAdjacentFiniteRun(IReadOnlyList<OfficeSeries> series, int labelCount) {
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
             if (HasAdjacentFiniteRun(series[seriesIndex].Values, labelCount)) {
                 return true;
@@ -821,13 +821,13 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static bool TryGetAvailablePdfContentWidth(MarkdownPdfExportOptions options, out double availableWidth) {
         PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfCreateOptions();
-        availableWidth = pdfOptions.PageWidth - pdfOptions.MarginLeft - pdfOptions.MarginRight;
+        availableWidth = pdfOptions.PageWidth.ToPoints() - pdfOptions.MarginLeft.ToPoints() - pdfOptions.MarginRight.ToPoints();
         return availableWidth > 0D && !double.IsNaN(availableWidth) && !double.IsInfinity(availableWidth);
     }
 
     private static bool TryGetAvailablePdfContentHeight(MarkdownPdfExportOptions options, out double availableHeight) {
         PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfCreateOptions();
-        availableHeight = pdfOptions.PageHeight - pdfOptions.MarginTop - pdfOptions.MarginBottom;
+        availableHeight = pdfOptions.PageHeight.ToPoints() - pdfOptions.MarginTop.ToPoints() - pdfOptions.MarginBottom.ToPoints();
         return availableHeight > 0D && !double.IsNaN(availableHeight) && !double.IsInfinity(availableHeight);
     }
 
@@ -837,22 +837,22 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         PdfCore.PdfDrawingStyle drawingStyle = visualTheme.FigureStyleSnapshot.DrawingStyleSnapshot;
-        availableHeight -= drawingStyle.SpacingBefore + drawingStyle.SpacingAfter;
+        availableHeight -= drawingStyle.SpacingBefore.ToPoints() + drawingStyle.SpacingAfter.ToPoints();
         return availableHeight > 0D && !double.IsNaN(availableHeight) && !double.IsInfinity(availableHeight);
     }
 
-    private static OfficeChartStyle CreateMarkdownChartStyle(MarkdownPdfJsonValue root, OfficeChartKind chartKind) {
+    private static OfficeChartStyle CreateMarkdownChartStyle(MarkdownPdfJsonValue root, OfficeChartType chartKind) {
         bool showGridLines = ReadRenderedScaleGridDisplay(root, chartKind);
         return showGridLines ? OfficeChartStyle.Default : new OfficeChartStyle(showGridLines: false);
     }
 
-    private static OfficeChartLayout CreateMarkdownChartLayout(MarkdownPdfJsonValue root, OfficeChartKind chartKind, IReadOnlyList<OfficeChartSeries> series, OfficeChartLegendPosition legendPosition, bool fillRadarSeries) {
-        bool pie = chartKind == OfficeChartKind.Pie || chartKind == OfficeChartKind.Doughnut;
+    private static OfficeChartLayout CreateMarkdownChartLayout(MarkdownPdfJsonValue root, OfficeChartType chartKind, IReadOnlyList<OfficeSeries> series, OfficeChartLegendPosition legendPosition, bool fillRadarSeries) {
+        bool pie = chartKind == OfficeChartType.Pie || chartKind == OfficeChartType.Doughnut;
         bool showLegend = ReadChartLegendDisplay(root) != false;
         bool showRequestedDataLabels = ReadChartDataLabelsDisplay(root) == true;
         bool showPieDataLabels = pie && showRequestedDataLabels;
         bool showCartesianDataLabels = !pie && showRequestedDataLabels && IsCartesianChart(chartKind);
-        bool connectScatterPoints = chartKind == OfficeChartKind.Scatter && HasScatterSeriesLine(series);
+        bool connectScatterPoints = chartKind == OfficeChartType.Scatter && HasScatterSeriesLine(series);
         ChartScaleVisibility xScale = ReadChartScaleVisibility(root, "x");
         ChartScaleVisibility yScale = ReadChartScaleVisibility(root, "y");
         bool barChart = IsBarChart(chartKind);
@@ -870,7 +870,7 @@ public static partial class MarkdownPdfConverterExtensions {
             dataLabelFontSize: 7D,
             maximumCategoryAxisLabels: 8,
             maximumHorizontalCategoryAxisLabels: 8,
-            showMarkers: (IsLineChart(chartKind) || chartKind == OfficeChartKind.Scatter || chartKind == OfficeChartKind.Radar) && HasVisibleMarkers(series),
+            showMarkers: (IsLineChart(chartKind) || chartKind == OfficeChartType.Scatter || chartKind == OfficeChartType.Radar) && HasVisibleMarkers(series),
             connectScatterPoints: connectScatterPoints,
             fillRadarSeries: fillRadarSeries,
             categoryAxisTitle: categoryAxisTitle,
@@ -883,8 +883,8 @@ public static partial class MarkdownPdfConverterExtensions {
             showValueAxisLabels: valueScale.ShowLabels);
     }
 
-    private static bool TryReadChartLegendPosition(MarkdownPdfJsonValue root, OfficeChartKind chartKind, out OfficeChartLegendPosition position, out string? warningMessage) {
-        position = chartKind == OfficeChartKind.Pie || chartKind == OfficeChartKind.Doughnut
+    private static bool TryReadChartLegendPosition(MarkdownPdfJsonValue root, OfficeChartType chartKind, out OfficeChartLegendPosition position, out string? warningMessage) {
+        position = chartKind == OfficeChartType.Pie || chartKind == OfficeChartType.Doughnut
             ? OfficeChartLegendPosition.Right
             : OfficeChartLegendPosition.Bottom;
         warningMessage = null;
@@ -994,7 +994,7 @@ public static partial class MarkdownPdfConverterExtensions {
                ReadNestedDisplay(radialScale, "angleLines") == false;
     }
 
-    private static bool ReadRenderedScaleGridDisplay(MarkdownPdfJsonValue root, OfficeChartKind chartKind) {
+    private static bool ReadRenderedScaleGridDisplay(MarkdownPdfJsonValue root, OfficeChartType chartKind) {
         ChartScaleVisibility xScale = ReadChartScaleVisibility(root, "x");
         ChartScaleVisibility yScale = ReadChartScaleVisibility(root, "y");
         return IsBarChart(chartKind) ? xScale.ShowGrid : yScale.ShowGrid;
@@ -1023,7 +1023,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return ReadBool(nested, "display");
     }
 
-    private static bool HasScatterSeriesLine(IReadOnlyList<OfficeChartSeries> series) {
+    private static bool HasScatterSeriesLine(IReadOnlyList<OfficeSeries> series) {
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
             if (series[seriesIndex].ConnectLine) {
                 return true;
@@ -1033,7 +1033,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return false;
     }
 
-    private static bool HasVisibleMarkers(IReadOnlyList<OfficeChartSeries> series) {
+    private static bool HasVisibleMarkers(IReadOnlyList<OfficeSeries> series) {
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
             if (series[seriesIndex].ShowMarkers) {
                 return true;
@@ -1043,9 +1043,9 @@ public static partial class MarkdownPdfConverterExtensions {
         return false;
     }
 
-    private static bool HasTranslucentChartColors(IReadOnlyList<OfficeChartSeries> series) {
+    private static bool HasTranslucentChartColors(IReadOnlyList<OfficeSeries> series) {
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
-            OfficeChartSeries item = series[seriesIndex];
+            OfficeSeries item = series[seriesIndex];
             if (IsTranslucentColor(item.Color) || HasTranslucentPointColor(item.PointColors)) {
                 return true;
             }
@@ -1135,76 +1135,76 @@ public static partial class MarkdownPdfConverterExtensions {
         return ReadBool(axis, "stacked");
     }
 
-    private static bool TryMapChartKind(string? type, bool horizontalIndexAxis, bool stacked, bool filledLineChart, out OfficeChartKind kind) {
+    private static bool TryMapChartKind(string? type, bool horizontalIndexAxis, bool stacked, bool filledLineChart, out OfficeChartType kind) {
         string normalized = NormalizeChartType(type);
         switch (normalized) {
             case "bar":
                 if (horizontalIndexAxis) {
-                    kind = stacked ? OfficeChartKind.BarStacked : OfficeChartKind.BarClustered;
+                    kind = stacked ? OfficeChartType.BarStacked : OfficeChartType.BarClustered;
                 } else {
-                    kind = stacked ? OfficeChartKind.ColumnStacked : OfficeChartKind.ColumnClustered;
+                    kind = stacked ? OfficeChartType.ColumnStacked : OfficeChartType.ColumnClustered;
                 }
                 return true;
             case "column":
-                kind = stacked ? OfficeChartKind.ColumnStacked : OfficeChartKind.ColumnClustered;
+                kind = stacked ? OfficeChartType.ColumnStacked : OfficeChartType.ColumnClustered;
                 return true;
             case "horizontalbar":
             case "barhorizontal":
-                kind = stacked ? OfficeChartKind.BarStacked : OfficeChartKind.BarClustered;
+                kind = stacked ? OfficeChartType.BarStacked : OfficeChartType.BarClustered;
                 return true;
             case "line":
                 kind = filledLineChart
-                    ? (stacked ? OfficeChartKind.AreaStacked : OfficeChartKind.Area)
-                    : (stacked ? OfficeChartKind.LineStacked : OfficeChartKind.Line);
+                    ? (stacked ? OfficeChartType.AreaStacked : OfficeChartType.Area)
+                    : (stacked ? OfficeChartType.LineStacked : OfficeChartType.Line);
                 return true;
             case "area":
-                kind = stacked ? OfficeChartKind.AreaStacked : OfficeChartKind.Area;
+                kind = stacked ? OfficeChartType.AreaStacked : OfficeChartType.Area;
                 return true;
             case "pie":
-                kind = OfficeChartKind.Pie;
+                kind = OfficeChartType.Pie;
                 return true;
             case "doughnut":
             case "donut":
-                kind = OfficeChartKind.Doughnut;
+                kind = OfficeChartType.Doughnut;
                 return true;
             case "scatter":
-                kind = OfficeChartKind.Scatter;
+                kind = OfficeChartType.Scatter;
                 return true;
             case "radar":
-                kind = OfficeChartKind.Radar;
+                kind = OfficeChartType.Radar;
                 return true;
             default:
-                kind = OfficeChartKind.ColumnClustered;
+                kind = OfficeChartType.ColumnClustered;
                 return false;
         }
     }
 
-    private static bool IsLineChart(OfficeChartKind chartKind) =>
-        chartKind == OfficeChartKind.Line ||
-        chartKind == OfficeChartKind.LineStacked ||
-        chartKind == OfficeChartKind.LineStacked100;
+    private static bool IsLineChart(OfficeChartType chartKind) =>
+        chartKind == OfficeChartType.Line ||
+        chartKind == OfficeChartType.LineStacked ||
+        chartKind == OfficeChartType.LineStacked100;
 
-    private static bool IsAreaChart(OfficeChartKind chartKind) =>
-        chartKind == OfficeChartKind.Area ||
-        chartKind == OfficeChartKind.AreaStacked ||
-        chartKind == OfficeChartKind.AreaStacked100;
+    private static bool IsAreaChart(OfficeChartType chartKind) =>
+        chartKind == OfficeChartType.Area ||
+        chartKind == OfficeChartType.AreaStacked ||
+        chartKind == OfficeChartType.AreaStacked100;
 
-    private static bool IsCartesianChart(OfficeChartKind chartKind) =>
+    private static bool IsCartesianChart(OfficeChartType chartKind) =>
         IsBarChart(chartKind) ||
         IsColumnChart(chartKind) ||
         IsLineChart(chartKind) ||
         IsAreaChart(chartKind) ||
-        chartKind == OfficeChartKind.Scatter;
+        chartKind == OfficeChartType.Scatter;
 
-    private static bool IsBarChart(OfficeChartKind chartKind) =>
-        chartKind == OfficeChartKind.BarClustered ||
-        chartKind == OfficeChartKind.BarStacked ||
-        chartKind == OfficeChartKind.BarStacked100;
+    private static bool IsBarChart(OfficeChartType chartKind) =>
+        chartKind == OfficeChartType.BarClustered ||
+        chartKind == OfficeChartType.BarStacked ||
+        chartKind == OfficeChartType.BarStacked100;
 
-    private static bool IsColumnChart(OfficeChartKind chartKind) =>
-        chartKind == OfficeChartKind.ColumnClustered ||
-        chartKind == OfficeChartKind.ColumnStacked ||
-        chartKind == OfficeChartKind.ColumnStacked100;
+    private static bool IsColumnChart(OfficeChartType chartKind) =>
+        chartKind == OfficeChartType.ColumnClustered ||
+        chartKind == OfficeChartType.ColumnStacked ||
+        chartKind == OfficeChartType.ColumnStacked100;
 
     private static string NormalizeChartType(string? value) {
         if (string.IsNullOrWhiteSpace(value)) {

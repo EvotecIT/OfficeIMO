@@ -86,7 +86,7 @@ public sealed class PowerPointConnectorDiagramExportTests {
 
         // SVG point units may become CSS pixels on import. Sample in the authored slide coordinates.
         OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing!,
-            presentation.SlideSize.WidthPoints / drawing!.Width, OfficeColor.White);
+            presentation.SlideSize.Width.ToPoints() / drawing!.Width, OfficeColor.White);
         foreach ((string name, double x, double y, bool painted) in samples) {
             OfficeColor pixel = rendered.GetPixel((int)x, (int)y);
             Assert.True(IsWhite(pixel) != painted, $"{name} in visual HTML: observed {pixel}.");
@@ -95,9 +95,9 @@ public sealed class PowerPointConnectorDiagramExportTests {
 
     static bool IsWhite(OfficeColor color) => color.R > 245 && color.G > 245 && color.B > 245;
 
-    static PowerPointPresentation CreateDiagram() {
-        var presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(720, 540);
+    static PowerPointDocument CreateDiagram() {
+        var presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(720),OfficeIMO.OfficeLength.Points(540));
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Title);
         // PowerPoint authors these editing prompts into the layout placeholders.
         foreach (Shape placeholder in slide.SlidePart.SlideLayoutPart!.SlideLayout.CommonSlideData!.ShapeTree!.Elements<Shape>()) {

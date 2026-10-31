@@ -14,23 +14,23 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsTableCellParagraphSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(220, 140);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(140));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 90);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(90));
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Cell spaced first";
-            cell.FontSize = 12;
-            cell.PaddingLeftPoints = 0D;
-            cell.PaddingTopPoints = 0D;
-            cell.PaddingRightPoints = 0D;
-            cell.PaddingBottomPoints = 0D;
+            cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingBottom = global::OfficeIMO.OfficeLength.Points(0D);
             PowerPointParagraph first = cell.Paragraphs.Single();
             PowerPointParagraph second = cell.AddParagraph("Cell spaced second");
             PowerPointSlideVisualInfo unspaced = slide.CreateVisualSnapshot();
-            first.SetSpaceAfterPoints(16);
-            second.SetSpaceBeforePoints(4);
+            first.SetSpaceAfter(global::OfficeIMO.OfficeLength.Points(16));
+            second.SetSpaceBefore(global::OfficeIMO.OfficeLength.Points(4));
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
@@ -55,20 +55,20 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsTableCellLineSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(220, 140);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(140));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 90);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(90));
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Cell line spacing";
-            cell.FontSize = 12;
-            cell.PaddingLeftPoints = 0D;
-            cell.PaddingTopPoints = 0D;
-            cell.PaddingRightPoints = 0D;
-            cell.PaddingBottomPoints = 0D;
+            cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingBottom = global::OfficeIMO.OfficeLength.Points(0D);
             PowerPointParagraph first = cell.Paragraphs.Single();
-            first.SetLineSpacingPoints(22);
+            first.SetLineSpacing(global::OfficeIMO.OfficeLength.Points(22));
             cell.AddParagraph("Cell next line");
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
@@ -93,17 +93,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsDefaultMultiParagraphTableCellInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(220, 140);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(140));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 90);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(90));
             PowerPointTableCell cell = table.GetCell(0, 0);
-            cell.FontSize = 12;
-            cell.PaddingLeftPoints = 0D;
-            cell.PaddingTopPoints = 0D;
-            cell.PaddingRightPoints = 0D;
-            cell.PaddingBottomPoints = 0D;
+            cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingBottom = global::OfficeIMO.OfficeLength.Points(0D);
             cell.SetParagraphs(new[] { "Cell first", "Cell second" });
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
@@ -122,29 +122,29 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsScaledGroupedTableCellTextMetricsInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(240, 140);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(140));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 80, 30);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(30));
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Grouped";
-            cell.FontSize = 10;
-            cell.PaddingLeftPoints = 3;
-            cell.PaddingTopPoints = 2;
-            cell.PaddingRightPoints = 4;
-            cell.PaddingBottomPoints = 1;
+            cell.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+            cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(3);
+            cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(2);
+            cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(4);
+            cell.PaddingBottom = global::OfficeIMO.OfficeLength.Points(1);
 
-            PowerPointAutoShape anchor = slide.AddRectanglePoints(110, 20, 10, 10);
+            PowerPointAutoShape anchor = slide.AddRectangle(OfficeIMO.OfficeLength.Points(110), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10));
             slide.GroupShapes(new PowerPointShape[] { table, anchor }, "Scaled table group");
             GroupShape group = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
                 .Elements<GroupShape>()
                 .Single();
             A.TransformGroup transform = group.GroupShapeProperties!.TransformGroup!;
-            transform.Extents!.Cx = PowerPointUnits.FromPoints(200);
-            transform.Extents.Cy = PowerPointUnits.FromPoints(60);
-            transform.ChildExtents!.Cx = PowerPointUnits.FromPoints(100);
-            transform.ChildExtents.Cy = PowerPointUnits.FromPoints(30);
+            transform.Extents!.Cx = global::OfficeIMO.OfficeLength.Points(200).ToEmus();
+            transform.Extents.Cy = global::OfficeIMO.OfficeLength.Points(60).ToEmus();
+            transform.ChildExtents!.Cx = global::OfficeIMO.OfficeLength.Points(100).ToEmus();
+            transform.ChildExtents.Cy = global::OfficeIMO.OfficeLength.Points(30).ToEmus();
             slide.SlidePart.Slide.Save();
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
@@ -165,17 +165,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsTableCellListMarkersInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(260, 180);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 200, 120);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(120));
             PowerPointTableCell cell = table.GetCell(0, 0);
-            cell.FontSize = 12;
-            cell.PaddingLeftPoints = 0D;
-            cell.PaddingTopPoints = 0D;
-            cell.PaddingRightPoints = 0D;
-            cell.PaddingBottomPoints = 0D;
+            cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingBottom = global::OfficeIMO.OfficeLength.Points(0D);
             cell.SetBullets(new[] { "Cell bullet", "Cell second" });
             cell.AddNumberedList(new[] { "Cell number", "Cell next" }, startAt: 5);
             cell.AddBullets(new[] { "Cell nested" }, level: 1);
@@ -201,17 +201,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsSingleTableCellBulletInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(220, 120);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(120));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 70);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(70));
             PowerPointTableCell cell = table.GetCell(0, 0);
-            cell.FontSize = 12;
-            cell.PaddingLeftPoints = 0D;
-            cell.PaddingTopPoints = 0D;
-            cell.PaddingRightPoints = 0D;
-            cell.PaddingBottomPoints = 0D;
+            cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(0D);
+            cell.PaddingBottom = global::OfficeIMO.OfficeLength.Points(0D);
             cell.SetBullets(new[] { "Only bullet" });
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();

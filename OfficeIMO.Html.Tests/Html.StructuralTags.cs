@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
             var paragraph = doc.Paragraphs[0];
 
             Assert.Equal("Menu", paragraph.Text);
-            Assert.Equal(30d, paragraph.IndentationBeforePoints);
+            Assert.Equal(30d, paragraph.IndentationBefore?.ToPoints());
         }
 
         [Fact]

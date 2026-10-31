@@ -91,15 +91,15 @@ public static partial class MarkdownPdfConverterExtensions {
             pdf.H3(text);
         } else {
             double fontSize = heading.Level == 4 ? 13D : 11.5D;
-            PdfCore.PdfColor headingColor = ResolveManualHeadingColor(visualTheme);
+            global::OfficeIMO.OfficeColor headingColor = ResolveManualHeadingColor(visualTheme);
             pdf.Paragraph(builder => {
-                builder.Bold(true).FontSize(fontSize);
+                builder.Bold(true).FontSize(global::OfficeIMO.OfficeLength.Points(fontSize));
                 AppendInlines(builder, heading.Inlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true, color: headingColor, fontSize: fontSize));
-            }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 8, SpacingAfter = 4, KeepWithNext = true });
+            }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(8), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4), KeepWithNext = true });
         }
     }
 
-    private static PdfCore.PdfColor ResolveManualHeadingColor(MarkdownPdfStyle visualTheme) {
+    private static global::OfficeIMO.OfficeColor ResolveManualHeadingColor(MarkdownPdfStyle visualTheme) {
         PdfCore.PdfHeadingStyles? headingStyles = visualTheme.DocumentThemeSnapshot?.HeadingStyles;
         return headingStyles?.Level3?.Color ??
                headingStyles?.Level2?.Color ??
@@ -169,7 +169,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 items.RemoveAt(items.Count - 1);
                 if (items.Count > 0) {
                     PdfCore.PdfListStyle continuing = visualTheme.DocumentThemeSnapshot?.ListStyle ?? new PdfCore.PdfListStyle();
-                    continuing.SpacingAfter = continuing.ItemSpacing ?? 2D;
+                    continuing.SpacingAfter = continuing.ItemSpacing ?? OfficeLength.Points(2D);
                     pdf.RichNumbered(items, startNumber: batchStart, style: continuing);
                 }
                 pdf.RichNumbered(new[] { introducing }, startNumber: list.Start + i, style: KeepWithChildrenListStyle(visualTheme));
@@ -247,23 +247,23 @@ public static partial class MarkdownPdfConverterExtensions {
     private static void RenderChecklistTable(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> taskItems, MarkdownPdfExportOptions options, MarkdownPdfStyle visualTheme) {
         var rows = new List<PdfCore.PdfTableCell[]>();
         var icons = new Dictionary<(int Row, int Column), PdfCore.PdfCellIcon>();
-        var fills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+        var fills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
         PdfCore.PdfTableStyle style = visualTheme.ChecklistTableStyleSnapshot;
-        double fontSize = style.FontSize ?? 10D;
+        double fontSize = style.FontSize?.ToPoints() ?? 10D;
         double iconSize = Math.Max(8.5D, Math.Min(10.5D, fontSize));
         double opticalBaselineOffset = (iconSize / 2D) - (fontSize * 0.4625D);
         for (int i = 0; i < taskItems.Count; i++) {
             ListItem item = taskItems[i];
-            PdfCore.PdfColor iconColor = item.Checked ? visualTheme.ChecklistCheckedIconColorSnapshot : visualTheme.ChecklistUncheckedIconColorSnapshot;
-            PdfCore.PdfColor textColor = item.Checked ? visualTheme.ChecklistCheckedTextColorSnapshot : visualTheme.ChecklistUncheckedTextColorSnapshot;
-            PdfCore.PdfColor? fillColor = item.Checked ? visualTheme.ChecklistCheckedFillColorSnapshot : visualTheme.ChecklistUncheckedFillColorSnapshot;
+            global::OfficeIMO.OfficeColor iconColor = item.Checked ? visualTheme.ChecklistCheckedIconColorSnapshot : visualTheme.ChecklistUncheckedIconColorSnapshot;
+            global::OfficeIMO.OfficeColor textColor = item.Checked ? visualTheme.ChecklistCheckedTextColorSnapshot : visualTheme.ChecklistUncheckedTextColorSnapshot;
+            global::OfficeIMO.OfficeColor? fillColor = item.Checked ? visualTheme.ChecklistCheckedFillColorSnapshot : visualTheme.ChecklistUncheckedFillColorSnapshot;
             InlineStyle textStyle = CreateInlineStyle(visualTheme, options.Anchors).With(color: textColor);
             IReadOnlyList<PdfTextRun> runs = CreateListItemRuns(item, includeTaskMarker: false, textStyle);
             icons[(i, 0)] = new PdfCore.PdfCellIcon {
                 Kind = item.Checked ? PdfCore.PdfCellIconKind.CheckBoxChecked : PdfCore.PdfCellIconKind.CheckBoxUnchecked,
                 Color = iconColor,
-                Size = iconSize,
-                OffsetY = opticalBaselineOffset
+                Size = global::OfficeIMO.OfficeLength.Points(iconSize),
+                OffsetY = global::OfficeIMO.OfficeLength.Points(opticalBaselineOffset)
             };
             if (fillColor != null) {
                 fills[(i, 0)] = fillColor.Value;
@@ -312,19 +312,19 @@ public static partial class MarkdownPdfConverterExtensions {
         var indentStyle = new PdfCore.PdfPanelStyle {
             Background = null,
             BorderColor = null,
-            BorderWidth = 0D,
-            PaddingX = indent,
-            PaddingY = 0D,
-            SpacingBefore = 0D,
-            SpacingAfter = 4D
+            BorderWidth = OfficeLength.Zero,
+            PaddingX = OfficeLength.Points(indent),
+            PaddingY = OfficeLength.Zero,
+            SpacingBefore = OfficeLength.Zero,
+            SpacingAfter = OfficeLength.Points(4D)
         };
         RenderBlocksWithPanelRuns(pdf, children, document, options, visualTheme, indentStyle);
     }
 
     private static double ListItemTextIndent(MarkdownPdfStyle visualTheme, int markerCharacters) {
         PdfCore.PdfListStyle? list = visualTheme.DocumentThemeSnapshot?.ListStyle;
-        double fontSize = list?.FontSize ?? 11D;
+        double fontSize = list?.FontSize?.ToPoints() ?? 11D;
         double markerWidth = markerCharacters == 0 ? fontSize * 0.35D : fontSize * 0.56D * markerCharacters;
-        return (list?.LeftIndent ?? 18D) + markerWidth + (list?.MarkerGap ?? 6D);
+        return (list?.LeftIndent.ToPoints() ?? 18D) + markerWidth + (list?.MarkerGap?.ToPoints() ?? 6D);
     }
 }

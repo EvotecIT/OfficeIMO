@@ -412,7 +412,7 @@ public sealed partial class PdfReadPage {
                 out string? richContents,
                 out string? richContentsPlainText,
                 out double? effectiveFontSize,
-                out PdfColor? effectiveTextColor,
+                out global::OfficeIMO.OfficeColor? effectiveTextColor,
                 out PdfAlign? effectiveTextAlign,
                 cancellationToken);
             ReadAnnotationVisualStyleMetadata(
@@ -1964,7 +1964,7 @@ public sealed partial class PdfReadPage {
         out string? richContents,
         out string? richContentsPlainText,
         out double? effectiveFontSize,
-        out PdfColor? effectiveTextColor,
+        out global::OfficeIMO.OfficeColor? effectiveTextColor,
         out PdfAlign? effectiveTextAlign,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -1987,7 +1987,7 @@ public sealed partial class PdfReadPage {
         effectiveFontSize = PdfDefaultAppearanceParser.TryReadFontSize(defaultAppearance, out double defaultAppearanceFontSize, cancellationToken)
             ? defaultAppearanceFontSize
             : parsedDefaultStyle.FontSize;
-        effectiveTextColor = PdfDefaultAppearanceParser.TryReadTextColor(defaultAppearance, out PdfColor defaultAppearanceTextColor, cancellationToken)
+        effectiveTextColor = PdfDefaultAppearanceParser.TryReadTextColor(defaultAppearance, out global::OfficeIMO.OfficeColor defaultAppearanceTextColor, cancellationToken)
             ? defaultAppearanceTextColor
             : parsedDefaultStyle.TextColor;
         effectiveTextAlign = TryReadFreeTextAlignment(annotation, parsedDefaultStyle.TextAlign);

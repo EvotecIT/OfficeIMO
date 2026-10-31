@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel.Tests {
 
         private static byte[] CreateStringDiscoveryWorkbook(int recordType, ushort[] units, string? failure = null) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Text");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Ready");

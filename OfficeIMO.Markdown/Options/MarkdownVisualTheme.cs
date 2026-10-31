@@ -148,7 +148,7 @@ public sealed class MarkdownVisualTheme {
     /// <summary>Plain profile with minimal visual opinions.</summary>
     public static MarkdownVisualTheme Plain() => new MarkdownVisualTheme(OfficeVisualThemeKind.Plain, "Plain", MarkdownHtmlStyle.Clean) {
         _palette = new MarkdownVisualPalette(),
-        _table = new MarkdownTableVisualStyle { BorderWidth = 0.5, CellPaddingX = 5, CellPaddingY = 4 }
+        _table = new MarkdownTableVisualStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5), CellPaddingX = global::OfficeIMO.OfficeLength.Points(5), CellPaddingY = global::OfficeIMO.OfficeLength.Points(4) }
     };
 
     /// <summary>Neutral Word-like profile for general documents.</summary>
@@ -181,7 +181,7 @@ public sealed class MarkdownVisualTheme {
             TableHeaderText = OfficeColor.Parse("#0F172A"),
             TableStripeBackground = OfficeColor.Parse("#F8FAFC")
         },
-        _table = new MarkdownTableVisualStyle { BorderWidth = 0.5, CellPaddingX = 6, CellPaddingY = 5 }
+        _table = new MarkdownTableVisualStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5), CellPaddingX = global::OfficeIMO.OfficeLength.Points(6), CellPaddingY = global::OfficeIMO.OfficeLength.Points(5) }
     };
 
     /// <summary>GitHub-inspired profile for README-style exports.</summary>
@@ -214,7 +214,7 @@ public sealed class MarkdownVisualTheme {
             TableHeaderText = OfficeColor.Parse("#1F2937"),
             TableStripeBackground = OfficeColor.Parse("#F8FAFC")
         },
-        _table = new MarkdownTableVisualStyle { BorderWidth = 0.4, CellPaddingX = 4, CellPaddingY = 3 }
+        _table = new MarkdownTableVisualStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(0.4), CellPaddingX = global::OfficeIMO.OfficeLength.Points(4), CellPaddingY = global::OfficeIMO.OfficeLength.Points(3) }
     };
 
     /// <summary>Report-oriented profile with stronger hierarchy and tables.</summary>
@@ -231,7 +231,7 @@ public sealed class MarkdownVisualTheme {
             TableHeaderText = OfficeColor.Parse("#172554"),
             TableStripeBackground = OfficeColor.Parse("#EFF6FF")
         },
-        _table = new MarkdownTableVisualStyle { BorderWidth = 0.7, CellPaddingX = 6, CellPaddingY = 5 }
+        _table = new MarkdownTableVisualStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(0.7), CellPaddingX = global::OfficeIMO.OfficeLength.Points(6), CellPaddingY = global::OfficeIMO.OfficeLength.Points(5) }
     };
 
     /// <summary>Returns a copy of this theme with the requested color scheme applied.</summary>

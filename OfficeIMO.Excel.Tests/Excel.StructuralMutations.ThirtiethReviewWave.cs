@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_NormalizeCellsWithImplicitReferences() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Implicit");
+            ExcelSheet sheet = document.AddSheet("Implicit");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             Row row = Assert.Single(sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>());
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CellValueReplacement_ReclaimsOnlyExclusiveInCellImageAssets() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Exclusive");
 
             sheet.CellValue(1, 1, "Replacement");
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImage_RichValueRelationshipMetadataReadIsBounded() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng);
             ExtendedPart relationshipPart = document.WorkbookPartRoot.Parts
                 .Select(pair => pair.OpenXmlPart)
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableConnectionWithoutQueryPart_TargetsWorksheetParameterRemapping() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "ImportedTableConnection",
                 WorksheetName = sheet.Name,
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RemoveQueryBackedTable_PreservedTableDropsNativeBindingAttributes() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "DetachConnection",
                 WorksheetName = sheet.Name,

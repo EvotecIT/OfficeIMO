@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("[*] PowerPoint - Designer composition deck");
             string filePath = Path.Join(folderPath, "Designer PowerPoint Deck.pptx");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
             PowerPointDesignRecipe recipe = PowerPointDesignRecipe.FindBuiltIn("consulting portfolio")
                 ?? PowerPointDesignRecipe.ConsultingPortfolio;
@@ -139,7 +139,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             plan.AddCustom("Raw composition", composer => {
                 composer.AddTitle("Raw composition", "Use primitives when the slide needs its own structure.");
-                PowerPointLayoutBox[] rows = composer.ContentRows(2, gutterCm: 0.55);
+                PowerPointLayoutBox[] rows = composer.ContentRows(2, gutter: OfficeLength.Centimeters(0.55));
                 composer.AddCardGrid(new[] {
                     new PowerPointCardContent("Story", new[] { "Title block", "Narrative area" }),
                     new PowerPointCardContent("Evidence", new[] { "Metrics", "Visual support" }),
@@ -149,13 +149,13 @@ namespace OfficeIMO.Examples.PowerPoint {
                     Variant = PowerPointCardGridLayoutVariant.AccentTop
                 });
 
-                PowerPointLayoutBox[] lowerColumns = rows[1].SplitColumnsCm(2, 0.65);
+                PowerPointLayoutBox[] lowerColumns = rows[1].SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(0.65));
                 composer.AddCalloutBand("Composer regions keep the slide flexible without requiring manual coordinates.",
-                    lowerColumns[0].TakeTopCm(1.45));
+                    lowerColumns[0].TakeTop(OfficeIMO.OfficeLength.Centimeters(1.45)));
                 composer.AddMetricStrip(new[] {
                     new PowerPointMetric("3", "primitives"),
                     new PowerPointMetric("1", "shared grid")
-                }, lowerColumns[1].TakeTopCm(1.45));
+                }, lowerColumns[1].TakeTop(OfficeIMO.OfficeLength.Centimeters(1.45)));
             }, "composed", options => options.FooterRight = "Composable");
 
             presentation.Compose(plan, PowerPointCompositionOptions.FromDesign(design));

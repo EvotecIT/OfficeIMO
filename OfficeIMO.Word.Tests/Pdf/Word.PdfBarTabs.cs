@@ -62,8 +62,8 @@ public sealed class WordPdfBarTabTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = 1080;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(54D);
         level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new W.Tabs(Tab(W.TabStopValues.Number)), 0);
         level.OpenXmlElement.NumberingSymbolRunProperties = new W.NumberingSymbolRunProperties(
             new W.RunFonts { Ascii = ManagedTextShapingTestAssets.FamilyName, HighAnsi = ManagedTextShapingTestAssets.FamilyName },
@@ -152,7 +152,7 @@ public sealed class WordPdfBarTabTests {
         ConfigureParagraph(paragraph, "FIRST");
         SetTabs(paragraph, Tab(W.TabStopValues.Bar));
         WordPdfExportOptions options = Options();
-        options.PdfOptions!.HeaderFontSize = 10D;
+        options.PdfOptions!.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(10D);
 
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         PdfConversionWarning warning = Assert.Single(result.Warnings,
@@ -172,7 +172,7 @@ public sealed class WordPdfBarTabTests {
         document.AddParagraph("BODY");
         WordParagraph paragraph = header ? document.HeaderDefaultOrCreate.AddParagraph() : document.AddParagraph();
         ConfigureParagraph(paragraph, string.Empty);
-        paragraph.AddShape(48D, 36D, "#00A060");
+        paragraph.AddShape(OfficeIMO.OfficeLength.Points(48D), OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeColor.Parse("#00A060"));
         SetTabs(paragraph, Tab(W.TabStopValues.Bar));
         string sourceXml = paragraph._paragraph.OuterXml;
 
@@ -198,7 +198,7 @@ public sealed class WordPdfBarTabTests {
         WordTable table = header ? document.HeaderDefaultOrCreate.AddTable(1, 1) : document.AddTable(1, 1);
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         ConfigureParagraph(paragraph, string.Empty);
-        paragraph.AddShape(48D, 36D, "#00A060");
+        paragraph.AddShape(OfficeIMO.OfficeLength.Points(48D), OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeColor.Parse("#00A060"));
         SetTabs(paragraph, Tab(W.TabStopValues.Bar));
         string sourceXml = paragraph._paragraph.OuterXml;
 
@@ -387,9 +387,9 @@ public sealed class WordPdfBarTabTests {
         ConfigureParagraph(middle, string.Empty);
         middle.AddTextBox("INNER", WordImageTextWrapping.Square);
         middle.AddShapeGroup(new[] {
-            new WordShapeGroupItem(WordShapeType.Rectangle, 0D, 0D, 16D, 8D) { FillColorHex = "00FF00" },
-            new WordShapeGroupItem(WordShapeType.Rectangle, 16D, 0D, 16D, 8D) { FillColorHex = "00FF00" }
-        }, 180D, 30D);
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0D), OfficeLength.Points(0D), OfficeLength.Points(16D), OfficeLength.Points(8D)) { FillColorHex = "00FF00" },
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(16D), OfficeLength.Points(0D), OfficeLength.Points(16D), OfficeLength.Points(8D)) { FillColorHex = "00FF00" }
+        }, OfficeLength.Points(180D), OfficeLength.Points(30D));
         if (anchored) {
             var anchor = middle._paragraph.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor>()
                 .Single(candidate => candidate.Descendants<DocumentFormat.OpenXml.Drawing.GraphicData>()
@@ -469,7 +469,7 @@ public sealed class WordPdfBarTabTests {
     private static void ConfigureParagraph(WordParagraph paragraph, string text) {
         paragraph.Text = text;
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         W.ParagraphProperties properties = paragraph._paragraph.ParagraphProperties ??= new W.ParagraphProperties();
         properties.SpacingBetweenLines = new W.SpacingBetweenLines {
             Before = "0", After = "0", Line = "240", LineRule = W.LineSpacingRuleValues.Auto

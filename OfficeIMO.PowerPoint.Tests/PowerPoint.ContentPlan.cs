@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             for (int index = 0; index < pixels.Length; index += 4) { pixels[index + 1] = 120; pixels[index + 2] = 180; pixels[index + 3] = 255; }
             File.WriteAllBytes(path, OfficePngWriter.EncodeRgba(40, 24, pixels));
             try {
-                using var document = PowerPointPresentation.Create();
+                using var document = PowerPointDocument.Create();
                 var result = document.Compose(new PowerPointDeckPlan().AddContent("Evidence", new PowerPointLayoutBlock[] {
                     new PowerPointLayoutCard("Review", "Keep the image and the narrative.", image: path)
                 }), Options());
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void TwoContentKeepsItsLedeAndOptionalColumnTitles() {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var result = document.Compose(new PowerPointDeckPlan().AddContent("Evidence", new PowerPointLayoutBlock[] {
                 new PowerPointLayoutText("Both sources matter."),
                 new PowerPointLayoutColumn("Decisions", new PowerPointLayoutBlock[] { new PowerPointLayoutList(new[] { "Review first" }) }),
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
         [InlineData(PowerPointLayout.Auto)]
         [InlineData(PowerPointLayout.Closing)]
         public void ClosingKeepsBothSubtitleAndLede(PowerPointLayout layout) {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var plan = new PowerPointDeckPlan();
             for (int i = 0; i < 4; i++) plan.AddContent("Evidence " + i, Array.Empty<PowerPointLayoutBlock>());
             plan.AddContent("Actions", new PowerPointLayoutBlock[] {
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PreviewAndRenderUseTheLogicalPlanPositionAfterTableContinuations() {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var table = new PowerPointLayoutTable(new[] { "Evidence" },
                 Enumerable.Range(1, 5).Select(index => (IReadOnlyList<string>)new[] { "Row " + index }).ToArray()) { MaximumRows = 1 };
             var plan = new PowerPointDeckPlan()
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void UnsupportedSemanticMixturesFailBeforeAddingSlides() {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             Assert.Throws<ArgumentException>(() => new PowerPointContentPlanSlide("Mixed", new PowerPointLayoutBlock[] {
                 new PowerPointLayoutKpi("12", "Deliveries"), new PowerPointLayoutText("Keep the explanation")
             }));
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ClosingRequestsKeepNestedAndLongListsThroughTheAutomaticFallback() {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var items = Enumerable.Range(1, 6).Select(index => new PowerPointLayoutListItem("Action " + index, index == 2 ? 2 : 1));
             var result = document.Compose(new PowerPointDeckPlan().AddContent("Actions", new PowerPointLayoutBlock[] {
                 new PowerPointLayoutList(items)
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
         [InlineData(PowerPointLayout.Title)]
         [InlineData(PowerPointLayout.TitleAndContent)]
         public void IncompatibleExplicitLayoutsFallBackWithoutLosingTables(PowerPointLayout layout) {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var plan = new PowerPointDeckPlan().AddContent("Two tables", new PowerPointLayoutBlock[] {
                 new PowerPointLayoutTable(new[] { "First" }, new IReadOnlyList<string>[] { new[] { "Alpha" } }),
                 new PowerPointLayoutTable(new[] { "Second" }, new IReadOnlyList<string>[] { new[] { "Beta" } })
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void QuoteRequestsKeepMultipleParagraphsThroughTheAutomaticFallback() {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var result = document.Compose(new PowerPointDeckPlan().AddContent(null, new PowerPointLayoutBlock[] {
                 new PowerPointLayoutText(new[] { "First observation.", "Second observation." })
             }, PowerPointLayout.Quote), Options());
@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ContentPreviewsSelectTheSameKpiLayoutWithoutAddingSlides() {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var plan = new PowerPointDeckPlan().AddContent("Results", new PowerPointLayoutBlock[] { new PowerPointLayoutKpi("12", "Deliveries") });
             Assert.Equal("Kpi", Assert.Single(document.PreviewComposition(plan, Options())).LayoutVariant);
             Assert.Empty(document.Slides);
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
         [InlineData(OfficeColorRole.Accent6, "accent6")]
         [InlineData(OfficeColorRole.TextMuted, "dk2")]
         public void ContentColoursRetainTheirExactNativeThemeSlot(OfficeColorRole role, string expected) {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var plan = new PowerPointDeckPlan().AddContent("Results", new PowerPointLayoutBlock[] {
                 new PowerPointLayoutKpi("12", "Deliveries", "+2", OfficeColor.Parse(role.ToString()))
             });
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ExplicitContentColourStaysLiteralWhenItEqualsAThemeColour() {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var options = Options();
             document.Compose(new PowerPointDeckPlan(), options);
             string hex = document.GetThemeColor(PowerPointThemeColor.Accent1)!;
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(fill.Elements<DocumentFormat.OpenXml.Drawing.SchemeColor>());
         }
 
-        private static DocumentFormat.OpenXml.Drawing.SolidFill SavedMetricChangeFill(PowerPointPresentation document) {
+        private static DocumentFormat.OpenXml.Drawing.SolidFill SavedMetricChangeFill(PowerPointDocument document) {
             using var stream = new MemoryStream();
             document.Save(stream);
             stream.Position = 0;
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ContentColoursKeepThemeRolesAndNativeAlpha() {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             document.Compose(new PowerPointDeckPlan()
                 .AddContent("Results", new PowerPointLayoutBlock[] { new PowerPointLayoutKpi("12", "Deliveries", "+2", OfficeColor.Accent2) })
                 .AddContent("Review", new PowerPointLayoutBlock[] {
@@ -211,7 +211,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PreflightAndTableSnapshotsResolveTheNativeThemeReferences() {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var result = document.Compose(new PowerPointDeckPlan()
                 .AddContent("Quarterly delivery review", Array.Empty<PowerPointLayoutBlock>(), subtitle: "Evidence, results and next steps")
                 .AddContent("Evidence", new PowerPointLayoutBlock[] {
@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void UntitledContentCanSelectAQuoteWithoutAnArtificialVisibleTitle() {
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var result = document.Compose(new PowerPointDeckPlan().AddContent(null,
                 new PowerPointLayoutBlock[] { new PowerPointLayoutText("Evidence before decisions.") }), Options());
             var slide = Assert.Single(result.Slides);
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
                     new PowerPointLayoutStep("Deliver", "Verify the result")
                 })
                 .AddContent("Next steps", new PowerPointLayoutBlock[] { new PowerPointLayoutList(new[] { "Share the findings" }) });
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var result = document.Compose(plan, Options());
             Assert.Equal(5, result.Slides.Count);
             Assert.Equal(document.Slides.ToArray(), result.Slides.ToArray());
@@ -265,7 +265,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             document.Save(stream);
             stream.Position = 0;
-            using var loaded = PowerPointPresentation.Load(stream);
+            using var loaded = PowerPointDocument.Load(stream);
             Assert.Equal(5, loaded.Slides.Count);
             Assert.Equal(quoted.Notes, loaded.Slides[2].Notes.Text);
         }
@@ -280,7 +280,7 @@ namespace OfficeIMO.Tests {
             var plan = contentPlan
                 ? new PowerPointDeckPlan().AddContent("Evidence", new PowerPointLayoutBlock[] { new PowerPointLayoutTable(headers, rows) })
                 : new PowerPointDeckPlan().AddAppendixTable("Evidence", null, new PowerPointTableData(headers, rows));
-            using var document = PowerPointPresentation.Create();
+            using var document = PowerPointDocument.Create();
             var result = document.Compose(plan, Options());
             Assert.True(result.Slides.Count > 1);
             Assert.Equal(document.Slides.ToArray(), result.Slides.ToArray());
@@ -289,7 +289,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             document.Save(stream);
             stream.Position = 0;
-            using var loaded = PowerPointPresentation.Load(stream);
+            using var loaded = PowerPointDocument.Load(stream);
             Assert.Equal(result.Slides.Count, loaded.Slides.Count);
             Assert.Equal(35, loaded.Slides.Sum(slide => slide.Tables.Single().Rows - 1));
         }

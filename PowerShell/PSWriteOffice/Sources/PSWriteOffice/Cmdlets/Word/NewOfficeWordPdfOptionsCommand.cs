@@ -110,10 +110,10 @@ public sealed class NewOfficeWordPdfOptionsCommand : PSCmdlet {
         if (HasMargins()) {
             PdfPageMargins defaults = PdfPageMargins.Normal;
             options.Margins = new PdfPageMargins(
-                MarginLeft ?? defaults.Left,
-                MarginTop ?? defaults.Top,
-                MarginRight ?? defaults.Right,
-                MarginBottom ?? defaults.Bottom);
+                MarginLeft.HasValue ? OfficeIMO.OfficeLength.Points(MarginLeft.Value) : defaults.Left,
+                MarginTop.HasValue ? OfficeIMO.OfficeLength.Points(MarginTop.Value) : defaults.Top,
+                MarginRight.HasValue ? OfficeIMO.OfficeLength.Points(MarginRight.Value) : defaults.Right,
+                MarginBottom.HasValue ? OfficeIMO.OfficeLength.Points(MarginBottom.Value) : defaults.Bottom);
         }
         if (!string.IsNullOrWhiteSpace(Title)) options.Title = Title;
         if (!string.IsNullOrWhiteSpace(Author)) options.Author = Author;

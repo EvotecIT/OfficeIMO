@@ -27,8 +27,8 @@ public static partial class WordPdfConverterExtensions {
                 var inner = new NativePdfColumnFlow(content, _flow.PageSize);
                 foreach (var item in _objects) item.Render(inner);
             }, new OfficeIMO.Pdf.PdfPanelStyle {
-                PaddingX = 0D, PaddingY = 0D, BorderWidth = 0D,
-                SpacingBefore = _style.SpacingBefore, SpacingAfter = _style.SpacingAfter ?? 0D,
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0D), PaddingY = global::OfficeIMO.OfficeLength.Points(0D), BorderWidth = global::OfficeIMO.OfficeLength.Points(0D),
+                SpacingBefore = _style.SpacingBefore, SpacingAfter = global::OfficeIMO.OfficeLength.Points((_style.SpacingAfter?.ToPoints()) ?? 0D),
                 KeepTogether = true, KeepWithNext = _style.KeepWithNext,
                 AnchoredCanvas = _style.AnchoredCanvas,
                 MinimumContentHeight = _minimumHeight,

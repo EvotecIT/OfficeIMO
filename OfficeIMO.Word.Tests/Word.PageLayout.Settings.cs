@@ -19,7 +19,7 @@ public partial class Word {
         document.Sections[0].DifferentOddAndEvenPages = true;
         document.Sections[0].AddEndnoteProperties(WordNumberFormat.Decimal,
             WordEndnotePosition.DocumentEnd, WordNoteNumberRestart.Continuous, startNumber: 1);
-        document.Sections[0].Margins.Gutter = 400;
+        document.Sections[0].Margins.Gutter = global::OfficeIMO.OfficeLength.Points(20D);
         document.AddParagraph("Margin settings");
         byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
 
@@ -39,7 +39,7 @@ public partial class Word {
         Assert.Equal(gutterAtTop, loaded.Settings.GutterAtTop);
         Assert.True(loaded.Settings.TrackRevisions);
         Assert.True(loaded.Sections[0].DifferentOddAndEvenPages);
-        Assert.Equal(400U, loaded.Sections[0].Margins.Gutter);
+        Assert.Equal(400U, checked((uint)(loaded.Sections[0].Margins.Gutter.GetValueOrDefault().ToTwips())));
         Assert.Equal(EndnotePositionValues.DocumentEnd,
             loaded.Sections[0].EndnoteProperties.EndnotePosition!.Val!.Value);
         Assert.Equal("Margin settings", Assert.Single(loaded.Paragraphs).Text);

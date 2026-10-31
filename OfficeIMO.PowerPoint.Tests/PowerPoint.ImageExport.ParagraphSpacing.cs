@@ -12,17 +12,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsTextBoxParagraphSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(220, 120);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(120));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint spaced first", 20, 20, 190, 80);
-            textBox.FontSize = 12;
-            textBox.SetTextMarginsPoints(0, 0, 0, 0);
+            PowerPointTextBox textBox = slide.AddTextBox("PowerPoint spaced first",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(190),global::OfficeIMO.OfficeLength.Points(80));
+            textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            textBox.SetTextMargins(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
             PowerPointParagraph second = textBox.AddParagraph("PowerPoint spaced second");
             PowerPointSlideVisualInfo unspaced = slide.CreateVisualSnapshot();
-            textBox.Paragraphs[0].SetSpaceAfterPoints(18);
-            second.SetSpaceBeforePoints(6);
+            textBox.Paragraphs[0].SetSpaceAfter(global::OfficeIMO.OfficeLength.Points(18));
+            second.SetSpaceBefore(global::OfficeIMO.OfficeLength.Points(6));
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
@@ -47,14 +47,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_ProjectsTextBoxLineSpacingInNativeTextSpans() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(220, 120);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(120));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("PowerPoint line spacing", 20, 20, 190, 80);
-            textBox.FontSize = 12;
-            textBox.SetTextMarginsPoints(0, 0, 0, 0);
-            textBox.Paragraphs[0].SetLineSpacingPoints(24);
+            PowerPointTextBox textBox = slide.AddTextBox("PowerPoint line spacing",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(190),global::OfficeIMO.OfficeLength.Points(80));
+            textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            textBox.SetTextMargins(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
+            textBox.Paragraphs[0].SetLineSpacing(global::OfficeIMO.OfficeLength.Points(24));
             textBox.AddParagraph("PowerPoint next line");
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();

@@ -4,22 +4,29 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using System.Text.Json;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void Test_GoogleSheetsPivot_ReportsUnsupportedMiddleValuesPlacement(bool valuesOnRows) {
+        public void Test_GoogleSheetsPivot_ReportsUnsupportedMiddleValuesPlacement(bool valuesOnRows)
+        {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Product"); sheet.CellValue(1, 3, "Amount");
-            sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, "A"); sheet.CellValue(2, 3, 10d);
-            var fields = new[] { "Region", "Product" };
-            sheet.AddPivotTable("A1:C2", "E1", "Pivot",
-                rowFields: valuesOnRows ? fields : Array.Empty<string>(),
-                columnFields: valuesOnRows ? Array.Empty<string>() : fields,
-                dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"),
-                    new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "Entries") }, dataOnRows: valuesOnRows);
+            var sheet = document.AddSheet("Data");
+            sheet.CellValue(1, 1, "Region");
+            sheet.CellValue(1, 2, "Product");
+            sheet.CellValue(1, 3, "Amount");
+            sheet.CellValue(2, 1, "North");
+            sheet.CellValue(2, 2, "A");
+            sheet.CellValue(2, 3, 10d);
+            var fields = new[]
+            {
+                "Region",
+                "Product"
+            };
+            sheet.AddPivotTable("A1:C2", "E1", options: new ExcelPivotTableOptions { Name = "Pivot", RowFields = (valuesOnRows ? fields : Array.Empty<string>())is { } authoredRowFields1 ? System.Linq.Enumerable.ToList(authoredRowFields1) : System.Array.Empty<string>(), ColumnFields = (valuesOnRows ? Array.Empty<string>() : fields)is { } authoredColumnFields2 ? System.Linq.Enumerable.ToList(authoredColumnFields2) : System.Array.Empty<string>(), DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"), new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "Entries") }, DataOnRows = valuesOnRows });
             var definition = sheet.WorksheetPart.PivotTableParts.Single().PivotTableDefinition!;
             var axis = valuesOnRows ? (DocumentFormat.OpenXml.OpenXmlCompositeElement)definition.RowFields! : definition.ColumnFields!;
             axis.RemoveAllChildren();
@@ -35,14 +42,15 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(false, "HORIZONTAL", ExcelPivotTableAxis.AxisColumn)]
         [InlineData(true, "VERTICAL", ExcelPivotTableAxis.AxisRow)]
-        public void Test_GoogleSheetsPivot_PreservesMeasureOrientationAndRealValuesNamedField(bool valuesOnRows, string layout, ExcelPivotTableAxis axis) {
+        public void Test_GoogleSheetsPivot_PreservesMeasureOrientationAndRealValuesNamedField(bool valuesOnRows, string layout, ExcelPivotTableAxis axis)
+        {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Values"); sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, 10d);
-            sheet.AddPivotTable("A1:B2", "D1", "Pivot", rowFields: new[] { "Values" },
-                dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"),
-                    new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "Entries") }, dataOnRows: valuesOnRows);
+            var sheet = document.AddSheet("Data");
+            sheet.CellValue(1, 1, "Values");
+            sheet.CellValue(1, 2, "Amount");
+            sheet.CellValue(2, 1, "North");
+            sheet.CellValue(2, 2, 10d);
+            sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions { Name = "Pivot", RowFields = new[] { "Values" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue"), new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Count, "Entries") }, DataOnRows = valuesOnRows });
             var metadata = Assert.Single(sheet.GetPivotTables());
             Assert.Equal(new[] { "Values" }, metadata.RowSourceFields);
             Assert.Empty(metadata.ColumnSourceFields);
@@ -54,8 +62,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(request.Columns);
             Assert.Equal(layout, request.ValueLayout);
             var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
-            var pivot = payload.Requests.Where(r => r.UpdateCells != null).SelectMany(r => r.UpdateCells!.Rows)
-                .SelectMany(r => r.Values).Select(c => c.PivotTable).Single(p => p != null)!;
+            var pivot = payload.Requests.Where(r => r.UpdateCells != null).SelectMany(r => r.UpdateCells!.Rows).SelectMany(r => r.Values).Select(c => c.PivotTable).Single(p => p != null)!;
             Assert.Equal(layout, pivot.ValueLayout);
             using var json = JsonDocument.Parse(JsonSerializer.Serialize(pivot));
             Assert.Equal(layout, json.RootElement.GetProperty("valueLayout").GetString());

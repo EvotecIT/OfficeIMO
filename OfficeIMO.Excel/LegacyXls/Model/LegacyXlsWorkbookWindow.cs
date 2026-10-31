@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents workbook window geometry and display flags decoded from a legacy Window1 record.
     /// </summary>
-    public sealed class LegacyXlsWorkbookWindow {
+    internal sealed class LegacyXlsWorkbookWindow {
         /// <summary>
         /// Creates workbook window metadata.
         /// </summary>

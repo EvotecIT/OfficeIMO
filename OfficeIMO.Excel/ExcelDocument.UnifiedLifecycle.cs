@@ -58,10 +58,11 @@ public partial class ExcelDocument {
         } else {
             document = Load(options.TemplateStream ?? throw new ArgumentException("A template is required.", nameof(options)), loadOptions);
         }
+        if (options.Theme != null) document.SetWorkbookThemeXml(CreateWorkbookThemeXml(options.Theme));
         document.FilePath = path;
         document._sourceStream = destination;
         document._persistenceMode = options.PersistenceMode;
-        if (options.FirstSheetName != null && document.Sheets.Count == 0) document.AddWorksheet(options.FirstSheetName);
+        if (options.FirstSheetName != null && document.Sheets.Count == 0) document.AddSheet(options.FirstSheetName);
         return document;
     }
 

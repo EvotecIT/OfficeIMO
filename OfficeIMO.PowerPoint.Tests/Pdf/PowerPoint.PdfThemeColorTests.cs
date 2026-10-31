@@ -11,24 +11,24 @@ namespace OfficeIMO.Tests.Pdf;
 public class PowerPointPdfThemeColorTests {
     [Fact]
     public void PdfThemeColors_ResolveTransformedShapeFrameAndLineColors() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(300, 200);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         presentation.SetThemeColor(PowerPointThemeColor.Accent1, "5078A0");
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "14283C");
         presentation.SetThemeColor(PowerPointThemeColor.Accent3, "285078");
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
-        PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 10, 10, 60, 40);
+        PowerPointAutoShape shape = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(40));
         Shape nativeShape = Assert.IsType<Shape>(shape.Element);
         SetFill(nativeShape, new A.SolidFill(new A.SchemeColor(
             new A.Shade { Val = 50000 }, new A.Alpha { Val = 50000 }) {
             Val = A.SchemeColorValues.Accent1
         }));
-        PowerPointTextBox frame = slide.AddTextBoxPoints(string.Empty, 80, 10, 60, 40);
+        PowerPointTextBox frame = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(60),global::OfficeIMO.OfficeLength.Points(40));
         Shape nativeFrame = Assert.IsType<Shape>(frame.Element);
         SetFill(nativeFrame, new A.SolidFill(new A.SchemeColor(new A.Shade { Val = 50000 }) {
             Val = A.SchemeColorValues.Accent2
         }));
-        PowerPointAutoShape line = slide.AddLinePoints(10, 90, 140, 90);
+        PowerPointAutoShape line = slide.AddLine(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(90));
         Shape nativeLine = Assert.IsType<Shape>(line.Element);
         nativeLine.ShapeProperties!.RemoveAllChildren<A.Outline>();
         nativeLine.ShapeProperties.Append(new A.Outline(new A.SolidFill(
@@ -57,8 +57,8 @@ public class PowerPointPdfThemeColorTests {
 
     [Fact]
     public void PdfThemeColors_ApplyStyleMatrixAndReferenceTransformsInOrder() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(300, 200);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         presentation.SetThemeColor(PowerPointThemeColor.Accent1, "5078A0");
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
         A.FormatScheme format = slide.ResolvedFormatScheme!;
@@ -71,7 +71,7 @@ public class PowerPointPdfThemeColorTests {
         lines.ReplaceChild(new A.Outline(new A.SolidFill(new A.SchemeColor(new A.Shade { Val = 50000 }) {
             Val = A.SchemeColorValues.PhColor
         })) { Width = 12700 }, lines.ChildElements[0]);
-        PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 10, 10, 60, 40);
+        PowerPointAutoShape shape = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(40));
         Shape native = Assert.IsType<Shape>(shape.Element);
         SetFill(native, null);
         native.ShapeProperties!.RemoveAllChildren<A.Outline>();
@@ -79,7 +79,7 @@ public class PowerPointPdfThemeColorTests {
         native.ShapeStyle = Style(1U, new A.SchemeColor(new A.Shade { Val = 50000 }) {
             Val = A.SchemeColorValues.Accent1
         }, 1U, new A.RgbColorModelHex { Val = "285078" });
-        PowerPointTextBox frame = slide.AddTextBoxPoints(string.Empty, 90, 10, 60, 40);
+        PowerPointTextBox frame = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(60),global::OfficeIMO.OfficeLength.Points(40));
         Shape nativeFrame = Assert.IsType<Shape>(frame.Element);
         SetFill(nativeFrame, null);
         nativeFrame.ShapeStyle = Style(2U, new A.RgbColorModelHex { Val = "0000FF" });
@@ -95,9 +95,9 @@ public class PowerPointPdfThemeColorTests {
 
     [Fact]
     public void PdfThemeColors_ExplicitFillAndNoFillOverrideStyles() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
-        PowerPointAutoShape source = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 10, 10, 60, 40);
+        PowerPointAutoShape source = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(40));
         Shape native = Assert.IsType<Shape>(source.Element);
         native.ShapeStyle = Style(1U, new A.RgbColorModelHex { Val = "FF0000" },
             1U, new A.RgbColorModelHex { Val = "00FF00" });
@@ -115,9 +115,9 @@ public class PowerPointPdfThemeColorTests {
     [InlineData(1000U)]
     [InlineData(uint.MaxValue)]
     public void PdfThemeColors_InvalidMatrixIndicesDoNotPaintReferenceColors(uint index) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
-        PowerPointAutoShape source = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 10, 10, 60, 40);
+        PowerPointAutoShape source = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(40));
         Shape native = Assert.IsType<Shape>(source.Element);
         SetFill(native, null);
         native.ShapeProperties!.RemoveAllChildren<A.Outline>();
@@ -133,7 +133,7 @@ public class PowerPointPdfThemeColorTests {
     [InlineData(2, "283C50", "0.157 0.235 0.314 rg")]
     public void PdfThemeColors_UseSlideColorMapForInheritedBackgroundAndShape(int overrideKind,
         string expected, string fillOperator) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.SetThemeColor(PowerPointThemeColor.Light1, "283C50");
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "102030");
         presentation.SetThemeColor(PowerPointThemeColor.Accent3, "304050");
@@ -154,7 +154,7 @@ public class PowerPointPdfThemeColorTests {
         }
         layout.SlideLayout.CommonSlideData!.Background = new Background(new BackgroundProperties(
             new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Background1 })));
-        PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 10, 10, 60, 40);
+        PowerPointAutoShape shape = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(40));
         SetFill(Assert.IsType<Shape>(shape.Element), new A.SolidFill(
             new A.SchemeColor { Val = A.SchemeColorValues.Background1 }));
 
@@ -177,8 +177,8 @@ public class PowerPointPdfThemeColorTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PdfThemeColors_ResolveBackgroundStyleThroughThemeOverride(bool useSlideOverride) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(300, 200);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
         SlideLayoutPart layout = slide.SlidePart.SlideLayoutPart!;
         A.ThemeElements master = layout.SlideMasterPart!.ThemePart!.Theme!.ThemeElements!;
@@ -199,7 +199,7 @@ public class PowerPointPdfThemeColorTests {
         slide.SlidePart.Slide.CommonSlideData!.Background = new Background(new BackgroundStyleReference(
             new A.SchemeColor(new A.Alpha { Val = 50000 }) { Val = A.SchemeColorValues.Accent2 }) { Index = 1001U });
 
-        PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 10, 10, 60, 40);
+        PowerPointAutoShape shape = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(40));
         Shape native = Assert.IsType<Shape>(shape.Element);
         SetFill(native, null);
         native.ShapeStyle = Style(1001U, new A.SchemeColor(new A.Alpha { Val = 50000 }) {
@@ -222,8 +222,8 @@ public class PowerPointPdfThemeColorTests {
     [InlineData("layout")]
     [InlineData("layoutPhClr")]
     public void PdfThemeColors_ResolveOrdinaryTextWithConsumingSlideMapAndFontReference(string source) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(300, 200);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "112233");
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
         SlideLayoutPart layout = slide.SlidePart.SlideLayoutPart!;
@@ -235,9 +235,9 @@ public class PowerPointPdfThemeColorTests {
         map.SetAttributes(layout.SlideMasterPart!.SlideMaster.ColorMap!.GetAttributes());
         map.SetAttribute(new OpenXmlAttribute("tx1", string.Empty, "accent2"));
         slide.SlidePart.Slide.ColorMapOverride = new ColorMapOverride(map);
-        PowerPointTextBox box = slide.AddTextBoxPoints("Mapped theme text", 10, 10, 260, 70);
+        PowerPointTextBox box = slide.AddTextBox("Mapped theme text",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(70));
         box.FontName = "Helvetica";
-        box.FontSize = 12;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         Shape native = Assert.IsType<Shape>(box.Element);
         PowerPointParagraph paragraph = box.Paragraphs[0];
         PowerPointTextRun run = paragraph.Runs[0];
@@ -292,16 +292,16 @@ public class PowerPointPdfThemeColorTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PdfThemeColors_UseSharedGradientStrokeAndEffectAppearance(bool textFrame) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(300, 200);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "5078A0");
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
         var map = new A.OverrideColorMapping();
         map.SetAttributes(slide.SlidePart.SlideLayoutPart!.SlideMasterPart!.SlideMaster.ColorMap!.GetAttributes());
         map.SetAttribute(new OpenXmlAttribute("tx1", string.Empty, "accent2"));
         slide.SlidePart.Slide.ColorMapOverride = new ColorMapOverride(map);
-        PowerPointShape source = textFrame ? slide.AddTextBoxPoints(string.Empty, 20, 20, 80, 60)
-            : slide.AddShapePoints(OfficePresetShapeType.Triangle, 20, 20, 80, 60);
+        PowerPointShape source = textFrame ? slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(60))
+            : slide.AddShape(OfficePresetShapeType.Triangle, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(60));
         Shape native = Assert.IsType<Shape>(source.Element);
         SetFill(native, null);
         A.FillStyleList fills = slide.ResolvedFormatScheme!.GetFirstChild<A.FillStyleList>()!;
@@ -346,9 +346,9 @@ public class PowerPointPdfThemeColorTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PdfThemeColors_ReportUnsupportedMatrixPatternAndPathGradient(bool pattern) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
-        PowerPointTextBox frame = slide.AddTextBoxPoints(string.Empty, 20, 20, 80, 60);
+        PowerPointTextBox frame = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(60));
         Shape native = Assert.IsType<Shape>(frame.Element);
         SetFill(native, null);
         OpenXmlElement fill;

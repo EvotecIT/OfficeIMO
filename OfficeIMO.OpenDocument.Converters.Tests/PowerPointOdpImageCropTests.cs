@@ -19,15 +19,15 @@ public sealed class PowerPointOdpImageCropTests {
     public void PowerPointCropUsesIntrinsicPixelsAndDensityAtEveryFrameSize(double dpiX, double dpiY,
         double leftPoints, double rightPoints) {
         byte[] bytes = Grid(dpiX, dpiY);
-        using PowerPointPresentation source = PowerPointPresentation.Create();
-        source.SlideSize.WidthPoints = 400;
-        source.SlideSize.HeightPoints = 300;
+        using PowerPointDocument source = PowerPointDocument.Create();
+        source.SlideSize.Width= OfficeIMO.OfficeLength.Points(400);
+        source.SlideSize.Height= OfficeIMO.OfficeLength.Points(300);
         PowerPointSlide slide = source.AddSlide();
         foreach (double width in new[] { 120D, 240D }) {
             using var stream = new MemoryStream(bytes);
-            PowerPointPicture picture = slide.AddPicture(stream, OfficeImageFormat.Png,
-                PowerPointLayoutBox.FromPoints(20, 30, width, 90));
-            picture.Bounds = PowerPointLayoutBox.FromPoints(20, 30, width, 90);
+            PowerPointPicture picture = slide.AddImage(stream, OfficeImageFormat.Png,
+                new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(20),OfficeIMO.OfficeLength.Points(30),OfficeIMO.OfficeLength.Points(width),OfficeIMO.OfficeLength.Points(90)));
+            picture.Bounds = new PowerPointLayoutBox(OfficeLength.Points(20), OfficeLength.Points(30), OfficeLength.Points(width), OfficeLength.Points(90));
             picture.Crop(25, 12.5, 12.5, 12.5);
         }
 
@@ -46,7 +46,7 @@ public sealed class PowerPointOdpImageCropTests {
         }
         Assert.Equal(120, images[0].Bounds.Width.ToPoints());
         Assert.Equal(240, images[1].Bounds.Width.ToPoints());
-        using PowerPointPresentation roundTrip = reopened.ToPowerPointPresentation();
+        using PowerPointDocument roundTrip = reopened.ToPowerPointDocument();
         foreach (PowerPointPicture picture in roundTrip.Slides[0].Pictures) AssertCrop(picture, .25, .125, .125, .125);
         AssertNoCropLoss(conversion.Report);
     }
@@ -65,21 +65,21 @@ public sealed class PowerPointOdpImageCropTests {
             image.Crop = Insets(vertical, right, vertical, left);
         }
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         byte[] pptx = target.ToBytes();
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(pptx));
+        using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(pptx));
         PowerPointPicture[] pictures = reopened.Slides[0].Pictures.ToArray();
         Assert.Equal(2, pictures.Length);
         foreach (PowerPointPicture picture in pictures) {
             AssertCrop(picture, .25, .125, .125, .125);
             Assert.Equal(bytes, picture.GetImageBytes());
-            Assert.Equal(20, picture.LeftPoints);
-            Assert.Equal(30, picture.TopPoints);
-            Assert.Equal(90, picture.HeightPoints);
+            Assert.Equal(20, picture.Left.ToPoints());
+            Assert.Equal(30, picture.Top.ToPoints());
+            Assert.Equal(90, picture.Height.ToPoints());
         }
-        Assert.Equal(120, pictures[0].WidthPoints);
-        Assert.Equal(240, pictures[1].WidthPoints);
+        Assert.Equal(120, pictures[0].Width.ToPoints());
+        Assert.Equal(240, pictures[1].Width.ToPoints());
         AssertNoCropLoss(conversion.Report);
     }
 
@@ -104,15 +104,15 @@ public sealed class PowerPointOdpImageCropTests {
         if (kind == "malformed") image.EnsureGraphicStyle().SetProperty(OdfNamespaces.Style + "graphic-properties",
             OdfNamespaces.Fo + "clip", "rect(0pt 0pt 0pt 10%)");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         PowerPointPicture picture = Assert.Single(target.Slides[0].Pictures);
         Assert.Equal(bytes, picture.GetImageBytes());
-        Assert.Equal(240, picture.WidthPoints);
-        Assert.Equal(90, picture.HeightPoints);
+        Assert.Equal(240, picture.Width.ToPoints());
+        Assert.Equal(90, picture.Height.ToPoints());
         AssertCrop(picture, 0, 0, 0, 0);
         AssertCropLoss(conversion.Report);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointPresentationResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -122,8 +122,8 @@ public sealed class PowerPointOdpImageCropTests {
         OdpPresentation source = OdpPresentation.Create();
         OdpImage image = source.AddSlide().AddImage(bytes, "pixel.png", OdfRect.FromCentimeters(1, 1, 2, 2));
         image.Crop = OdfInsets.FromCentimeters(0, 0, 0, .2);
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
-        using PowerPointPresentation target = conversion.Value;
+        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        using PowerPointDocument target = conversion.Value;
         AssertCrop(Assert.Single(target.Slides[0].Pictures), 0, 0, 0, 0);
         AssertCropLoss(conversion.Report);
     }
@@ -136,11 +136,11 @@ public sealed class PowerPointOdpImageCropTests {
     [InlineData("", "0")]
     public void UnsupportedPowerPointCropDoesNotBecomeAClampedOdpCrop(string left, string right) {
         byte[] bytes = Grid();
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointSlide slide = source.AddSlide();
         using var stream = new MemoryStream(bytes);
-        slide.AddPicture(stream, OfficeImageFormat.Png, PowerPointLayoutBox.FromPoints(20, 30, 240, 90))
-            .Bounds = PowerPointLayoutBox.FromPoints(20, 30, 240, 90);
+        slide.AddImage(stream, OfficeImageFormat.Png, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(20),OfficeIMO.OfficeLength.Points(30),OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(90)))
+            .Bounds = new PowerPointLayoutBox(OfficeLength.Points(20), OfficeLength.Points(30), OfficeLength.Points(240), OfficeLength.Points(90));
         Picture raw = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!.Descendants<Picture>().Single();
         raw.BlipFill!.SourceRectangle = new A.SourceRectangle();
         raw.BlipFill.SourceRectangle.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "l", "", left));
@@ -159,11 +159,10 @@ public sealed class PowerPointOdpImageCropTests {
     public void CroppedPowerPointVectorRetainsItsPayloadAndReportsCropLoss() {
         byte[] bytes = System.Text.Encoding.UTF8.GetBytes(
             "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"160\" height=\"80\"><rect width=\"160\" height=\"80\" fill=\"red\"/></svg>");
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         using var stream = new MemoryStream(bytes);
-        PowerPointPicture picture = source.AddSlide().AddPicture(stream, OfficeImageFormat.Svg,
-            PowerPointLayoutBox.FromPoints(20, 30, 240, 90));
-        picture.Bounds = PowerPointLayoutBox.FromPoints(20, 30, 240, 90);
+        PowerPointPicture picture = source.AddSlide().AddImage(stream, OfficeImageFormat.Svg, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(20),OfficeIMO.OfficeLength.Points(30),OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(90)));
+        picture.Bounds = new PowerPointLayoutBox(OfficeLength.Points(20), OfficeLength.Points(30), OfficeLength.Points(240), OfficeLength.Points(90));
         picture.Crop(25, 0, 0, 0);
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
         OdpImage image = Assert.Single(conversion.Value.Slides[0].Shapes.OfType<OdpImage>());
@@ -183,9 +182,9 @@ public sealed class PowerPointOdpImageCropTests {
     [Fact]
     public void PowerPointCropThatCollapsesAtOdfLengthPrecisionIsExplicitLoss() {
         byte[] bytes = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         using var stream = new MemoryStream(bytes);
-        source.AddSlide().AddPicture(stream, OfficeImageFormat.Png, PowerPointLayoutBox.FromPoints(20, 30, 240, 90)).Crop(99.999, 0, 0, 0);
+        source.AddSlide().AddImage(stream, OfficeImageFormat.Png, new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(20),OfficeIMO.OfficeLength.Points(30),OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(90))).Crop(99.999, 0, 0, 0);
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
         OdpImage image = Assert.Single(conversion.Value.Slides[0].Shapes.OfType<OdpImage>());
         Assert.Null(image.Crop);

@@ -18,7 +18,7 @@ public sealed class PdfSearchableWorkflowTests {
         try {
             string source = Path.Combine(root, "source.pdf");
             string output = Path.Combine(root, "output.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             byte[] original = File.ReadAllBytes(source);
             byte[] previous = [1, 2, 3, 4];
             File.WriteAllBytes(output, previous);
@@ -75,7 +75,7 @@ public sealed class PdfSearchableWorkflowTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-ocr-provider-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
-            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
             bool recognized = false;
             int reads = 0;
             string output = Path.Combine(root, "searchable.pdf");
@@ -106,7 +106,7 @@ public sealed class PdfSearchableWorkflowTests {
         Directory.CreateDirectory(root);
         try {
             string source = Path.Combine(root, "source.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             byte[] bytes = [];
             var recoveryStore = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root, "recovery"));
             var request = new PdfSearchableWorkflowRequest {

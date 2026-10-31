@@ -16,7 +16,7 @@ public sealed class OfficeBatchOutputSelectionTests {
         try {
             string source = Path.Combine(root, "review.md");
             string outputDirectory = Directory.CreateDirectory(Path.Combine(root, "pdf")).FullName;
-            string destination = Path.Combine(outputDirectory, "review.md.pdf");
+            string destination = Path.Combine(outputDirectory, "review.pdf");
             File.WriteAllText(source, "# Output selection\n\nNew conversion evidence.");
             DateTime sourceTime = new(2025, 1, 2, 0, 0, 0, DateTimeKind.Utc);
             File.SetLastWriteTimeUtc(source, sourceTime);

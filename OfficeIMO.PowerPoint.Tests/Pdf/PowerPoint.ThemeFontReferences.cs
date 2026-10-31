@@ -18,8 +18,8 @@ public sealed class PowerPointThemeFontReferenceTests {
         var theme = OfficeTheme.Modern.WithFonts(new OfficeThemeFonts(
             new OfficeThemeFont("Georgia", new[] { "serif" }),
             new OfficeThemeFont("Courier New", new[] { "monospace" })));
-        using var document = PowerPointPresentation.Create(new PowerPointCreateOptions { Theme = theme });
-        document.AddSlide().AddTextBoxPoints("ResolvedFont", 50, 50, 600, 60).FontName = reference;
+        using var document = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = theme });
+        document.AddSlide().AddTextBox("ResolvedFont", OfficeLength.Points(50), OfficeLength.Points(50), OfficeLength.Points(600), OfficeLength.Points(60)).FontName = reference;
         var options = new PowerPointPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         using var converted = document.ToPdf(options, out var report);
         Assert.Contains(report.Diagnostics, warning => warning.Code == "font-family-substitution" && warning.Message.IndexOf(family, StringComparison.Ordinal) >= 0);
@@ -33,8 +33,8 @@ public sealed class PowerPointThemeFontReferenceTests {
         var theme = OfficeTheme.Modern.WithFonts(new OfficeThemeFonts(
             new OfficeThemeFont("HeadingFixture", new[] { "serif" }),
             new OfficeThemeFont("BodyFixture", new[] { "sans-serif" })));
-        using var document = PowerPointPresentation.Create(new PowerPointCreateOptions { Theme = theme });
-        var box = document.AddSlide().AddTextBoxPoints("ResolvedFont", 50, 50, 600, 60);
+        using var document = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = theme });
+        var box = document.AddSlide().AddTextBox("ResolvedFont", OfficeLength.Points(50), OfficeLength.Points(50), OfficeLength.Points(600), OfficeLength.Points(60));
         box.FontName = reference;
         var options = new PowerPointPdfExportOptions {
             PdfOptions = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(

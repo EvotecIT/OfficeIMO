@@ -121,10 +121,10 @@ public class RtfParagraphFormattingTests {
         WordParagraph paragraph = word.AddParagraph("Boxed");
         paragraph.ShadingFillColorHex = "E6F2FF";
         paragraph.Borders.TopStyle = WordBorderStyle.Single;
-        paragraph.Borders.TopSize = 12U;
+        paragraph.Borders.TopSize = OfficeLength.Points(1.5);
         paragraph.Borders.TopColorHex = "4472C4";
         paragraph.Borders.LeftStyle = WordBorderStyle.Double;
-        paragraph.Borders.LeftSize = 8U;
+        paragraph.Borders.LeftSize = OfficeLength.Points(1);
         paragraph.Borders.LeftColorHex = "00AA55";
 
         RtfDocument rtfDocument = word.ToRtfDocument();
@@ -146,10 +146,10 @@ public class RtfParagraphFormattingTests {
         WordParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs);
         Assert.Equal("E6F2FF", roundTripParagraph.ShadingFillColorHex);
         Assert.Equal(WordBorderStyle.Single, roundTripParagraph.Borders.TopStyle);
-        Assert.Equal(12U, roundTripParagraph.Borders.TopSize);
+        Assert.Equal(OfficeLength.Points(1.5), roundTripParagraph.Borders.TopSize);
         Assert.Equal("4472C4", roundTripParagraph.Borders.TopColorHex);
         Assert.Equal(WordBorderStyle.Double, roundTripParagraph.Borders.LeftStyle);
-        Assert.Equal(8U, roundTripParagraph.Borders.LeftSize);
+        Assert.Equal(OfficeLength.Points(1), roundTripParagraph.Borders.LeftSize);
         Assert.Equal("00AA55", roundTripParagraph.Borders.LeftColorHex);
     }
 
@@ -169,10 +169,10 @@ public class RtfParagraphFormattingTests {
         WordParagraph wordParagraph = Assert.Single(word.Paragraphs);
         Assert.Equal("E6F2FF", wordParagraph.ShadingFillColorHex);
         Assert.Equal(WordBorderStyle.Single, wordParagraph.Borders.TopStyle);
-        Assert.Equal(12U, wordParagraph.Borders.TopSize);
+        Assert.Equal(OfficeLength.Points(1.5), wordParagraph.Borders.TopSize);
         Assert.Equal("4472C4", wordParagraph.Borders.TopColorHex);
         Assert.Equal(WordBorderStyle.Double, wordParagraph.Borders.LeftStyle);
-        Assert.Equal(8U, wordParagraph.Borders.LeftSize);
+        Assert.Equal(OfficeLength.Points(1), wordParagraph.Borders.LeftSize);
         Assert.Equal("00AA55", wordParagraph.Borders.LeftColorHex);
     }
 

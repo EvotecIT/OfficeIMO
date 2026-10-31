@@ -16,17 +16,17 @@ internal static partial class PdfWriter {
 
         double Inset(bool enabled, PdfCellBorderSide? side) {
             PdfCellBorderSide? resolved = enabled ? ResolveCellBorderSide(side, border) : null;
-            return IsRenderableCellBorderSide(resolved) ? resolved!.Width / 2D : 0D;
+            return IsRenderableCellBorderSide(resolved) ? resolved!.Width.ToPoints() / 2D : 0D;
         }
     }
 
     private static double GetCellBorderPairOutset(PdfCellBorderSide? side) =>
         IsRenderableCellBorderSide(side) && side!.LineStyle == PdfCellBorderLineStyle.TwoLine
-            ? side.CenteredPair ? GetDoubleBorderGap(side.Width) / 2D : 0D : 0D;
+            ? side.CenteredPair ? GetDoubleBorderGap(side.Width.ToPoints()) / 2D : 0D : 0D;
 
     private static double GetCellBorderPairInset(PdfCellBorderSide? side) =>
         IsRenderableCellBorderSide(side) && side!.LineStyle == PdfCellBorderLineStyle.TwoLine
-            ? GetDoubleBorderGap(side.Width) - GetCellBorderPairOutset(side) : 0D;
+            ? GetDoubleBorderGap(side.Width.ToPoints()) - GetCellBorderPairOutset(side) : 0D;
 
     private static bool HasPairedCellBorder(PdfCellBorder border) =>
         HasPair(border.Top, ResolveCellBorderSide(border.TopBorderSnapshot, border)) ||
@@ -47,7 +47,7 @@ internal static partial class PdfWriter {
             _ => border.Left ? ResolveCellBorderSide(border.LeftBorderSnapshot, border) : null
         };
         return IsRenderableCellBorderSide(side) && side!.LineStyle == PdfCellBorderLineStyle.TwoLine
-            ? GetCellBorderPairInset(side) + side.Width / 2D : 0D;
+            ? GetCellBorderPairInset(side) + side.Width.ToPoints() / 2D : 0D;
     }
 
     private static PdfTableStyle PreparePairedTableBorders(TableBlock table, PdfTableStyle style) {
@@ -109,16 +109,16 @@ internal static partial class PdfWriter {
                     prepared.CellPaddings[entry.Key] = padding;
                 }
                 PdfCellPadding? authored = GetTableCellPaddingOverride(style, entry.Key.Row, entry.Key.Column);
-                padding.Top = (authored?.Top ?? GetTableCellPaddingTop(style)) + entry.Value.Top;
-                padding.Bottom = (authored?.Bottom ?? GetTableCellPaddingBottom(style)) + entry.Value.Bottom;
+                padding.Top = global::OfficeIMO.OfficeLength.Points((authored?.Top?.ToPoints() ?? GetTableCellPaddingTop(style)) + entry.Value.Top);
+                padding.Bottom = global::OfficeIMO.OfficeLength.Points((authored?.Bottom?.ToPoints() ?? GetTableCellPaddingBottom(style)) + entry.Value.Bottom);
             }
             foreach (var entry in borders) {
                 if (!entry.Value.PaintInsideFrame) continue;
                 if (!prepared.CellPaddings.TryGetValue(entry.Key, out PdfCellPadding? padding))
                     prepared.CellPaddings[entry.Key] = padding = new PdfCellPadding();
                 PdfCellPadding? authored = GetTableCellPaddingOverride(style, entry.Key.Row, entry.Key.Column);
-                padding.Left = (authored?.Left ?? GetTableCellPaddingLeft(style)) + InsideThickness(entry.Value, false);
-                padding.Right = (authored?.Right ?? GetTableCellPaddingRight(style)) + InsideThickness(entry.Value, true);
+                padding.Left = global::OfficeIMO.OfficeLength.Points((authored?.Left?.ToPoints() ?? GetTableCellPaddingLeft(style)) + InsideThickness(entry.Value, false));
+                padding.Right = global::OfficeIMO.OfficeLength.Points((authored?.Right?.ToPoints() ?? GetTableCellPaddingRight(style)) + InsideThickness(entry.Value, true));
             }
             // The prepared snapshot already includes the inset. Deferred slices
             // and nested measurements must not add it a second time.
@@ -141,7 +141,7 @@ internal static partial class PdfWriter {
         void ReserveNeighbour(bool enabled, PdfCellBorderSide? side, System.Collections.Generic.HashSet<int>? hidden, int segment,
             (int Row, int Column) coordinate, TableCellBorderEdge edge) {
             if (!enabled || !IsRenderableCellBorderSide(side) || hidden?.Contains(segment) == true || !owners.TryGetValue(coordinate, out var anchor)) return;
-            double clearance = Math.Max(0D, GetCellBorderPairOutset(side) + side!.Width / 2D - spacing);
+            double clearance = Math.Max(0D, GetCellBorderPairOutset(side) + side!.Width.ToPoints() / 2D - spacing);
             if (clearance <= 0D) return;
             if (addBorderInsets && (edge == TableCellBorderEdge.Top || edge == TableCellBorderEdge.Bottom)) {
                 var inset = verticalInsets[anchor];
@@ -157,20 +157,20 @@ internal static partial class PdfWriter {
                 prepared.CellPaddings[anchor] = padding;
             }
             switch (edge) {
-                case TableCellBorderEdge.Top: padding.Top = Math.Max(GetTableCellPaddingTop(prepared, anchor.Row, anchor.Column), clearance); break;
-                case TableCellBorderEdge.Right: padding.Right = Math.Max(GetTableCellPaddingRight(prepared, anchor.Row, anchor.Column), clearance); break;
-                case TableCellBorderEdge.Bottom: padding.Bottom = Math.Max(GetTableCellPaddingBottom(prepared, anchor.Row, anchor.Column), clearance); break;
-                default: padding.Left = Math.Max(GetTableCellPaddingLeft(prepared, anchor.Row, anchor.Column), clearance); break;
+                case TableCellBorderEdge.Top: padding.Top = global::OfficeIMO.OfficeLength.Points(Math.Max(GetTableCellPaddingTop(prepared, anchor.Row, anchor.Column), clearance)); break;
+                case TableCellBorderEdge.Right: padding.Right = global::OfficeIMO.OfficeLength.Points(Math.Max(GetTableCellPaddingRight(prepared, anchor.Row, anchor.Column), clearance)); break;
+                case TableCellBorderEdge.Bottom: padding.Bottom = global::OfficeIMO.OfficeLength.Points(Math.Max(GetTableCellPaddingBottom(prepared, anchor.Row, anchor.Column), clearance)); break;
+                default: padding.Left = global::OfficeIMO.OfficeLength.Points(Math.Max(GetTableCellPaddingLeft(prepared, anchor.Row, anchor.Column), clearance)); break;
             }
         }
     }
 
     private static double GetOwnTableCellVerticalBorderInset(PdfTableStyle style, PdfCellBorder? border, bool top) {
-        if (border == null) return style.BorderColor.HasValue ? style.BorderWidth / 2D : 0D;
+        if (border == null) return style.BorderColor.HasValue ? style.BorderWidth.ToPoints() / 2D : 0D;
         bool enabled = top ? border.Top : border.Bottom;
         PdfCellBorderSide? side = ResolveCellBorderSide(top ? border.TopBorderSnapshot : border.BottomBorderSnapshot, border);
         if (!enabled || !IsRenderableCellBorderSide(side)) return 0D;
         if (border.PaintInsideFrame) return side!.PaintThickness;
-        return side!.Width / 2D + (side.LineStyle == PdfCellBorderLineStyle.TwoLine ? GetCellBorderPairInset(side) : 0D);
+        return side!.Width.ToPoints() / 2D + (side.LineStyle == PdfCellBorderLineStyle.TwoLine ? GetCellBorderPairInset(side) : 0D);
     }
 }

@@ -7,9 +7,9 @@ public sealed class PdfTableCellCheckBox {
     private readonly PdfFormFieldStyle _style;
 
     /// <summary>Creates a table-cell check box.</summary>
-    public PdfTableCellCheckBox(string name, bool isChecked = false, double size = 12, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) {
+    public PdfTableCellCheckBox(string name, bool isChecked = false, global::OfficeIMO.OfficeLength? size = null, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
-        Guard.Positive(size, nameof(size));
+        Guard.Positive((size?.ToPoints() ?? 12), nameof(size));
         Guard.NotNullOrWhiteSpace(checkedValueName, nameof(checkedValueName));
         if (string.Equals(checkedValueName, "Off", System.StringComparison.Ordinal)) {
             throw new System.ArgumentException("Table cell check box selected value name cannot be Off.", nameof(checkedValueName));
@@ -17,7 +17,7 @@ public sealed class PdfTableCellCheckBox {
 
         Name = name;
         IsChecked = isChecked;
-        Size = size;
+        Size = (size ?? global::OfficeIMO.OfficeLength.Points(12));
         CheckedValueName = checkedValueName;
         _style = style?.Clone() ?? new PdfFormFieldStyle();
     }
@@ -29,7 +29,7 @@ public sealed class PdfTableCellCheckBox {
     public bool IsChecked { get; }
 
     /// <summary>Visual square size in points.</summary>
-    public double Size { get; }
+    public global::OfficeIMO.OfficeLength Size { get; }
 
     /// <summary>PDF button appearance state name used when checked.</summary>
     public string CheckedValueName { get; }

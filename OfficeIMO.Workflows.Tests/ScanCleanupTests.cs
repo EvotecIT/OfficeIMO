@@ -27,7 +27,7 @@ public sealed class ScanCleanupTests {
     public async Task ProviderScanCopyNeverOpensTheSourceForWriting(bool deferred) {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-scan-provider-" + Guid.NewGuid().ToString("N"));
         const string sourceLocation = "content://scan/source";
-        byte[] source = PdfDocument.Create(c => c.Page(p => p.Size(200, 100).Margin(0))).ToBytes();
+        byte[] source = PdfDocument.Create(c => c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(0)))).ToBytes();
         int writes = 0;
         try {
             var recovery = new OfficeWorkflowOutputRecoveryStore(root);
@@ -55,8 +55,8 @@ public sealed class ScanCleanupTests {
         try {
             string input = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "cleaned.pdf");
             var document = PdfDocument.Create(compose => {
-                compose.Page(page => page.Size(200, 300).Content(c => c.Item(i => i.Paragraph(p => p.Text("First page")))));
-                compose.Page(page => page.Size(300, 200).Content(c => c.Item(i => i.Paragraph(p => p.Text("Second page")))));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)).Content(c => c.Item(i => i.Paragraph(p => p.Text("First page")))));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(200)).Content(c => c.Item(i => i.Paragraph(p => p.Text("Second page")))));
             });
             byte[] source = document.ToBytes(); await File.WriteAllBytesAsync(input, source);
             var settings = new OfficeScanCleanupOptions {

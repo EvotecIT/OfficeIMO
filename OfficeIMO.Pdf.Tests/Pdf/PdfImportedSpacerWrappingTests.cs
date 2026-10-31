@@ -14,16 +14,16 @@ public class PdfImportedSpacerWrappingTests {
     public void ImportedCellSpacerDoesNotWidenRemainingChunkBudget(double spacerWidth, double firstTextX) {
         const string text = "a-a-a-a-a-a-a-a-a-a-a-a";
         var cell = new PdfTableCell(new[] {
-            PdfTextRun.Inline(new PdfInlineBox(spacerWidth, 0.01D, borderWidth: 0D) { IsTextSpacer = true }),
-            PdfTextRun.Normal(text, fontSize: 1D, font: PdfStandardFont.Helvetica)
+            PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(spacerWidth), global::OfficeIMO.OfficeLength.Points(0.01D), borderWidth: global::OfficeIMO.OfficeLength.Points(0D)) { IsTextSpacer = true }),
+            PdfTextRun.Normal(text, fontSize: global::OfficeIMO.OfficeLength.Points(1D), font: PdfStandardFont.Helvetica)
         });
         var options = new PdfCreateOptions {
-            PageWidth = 200D, PageHeight = 200D,
-            MarginLeft = 40D, MarginRight = 40D, MarginTop = 40D, MarginBottom = 40D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(200D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(40D), MarginRight = global::OfficeIMO.OfficeLength.Points(40D), MarginTop = global::OfficeIMO.OfficeLength.Points(40D), MarginBottom = global::OfficeIMO.OfficeLength.Points(40D)
         };
         var style = new PdfTableStyle {
-            HeaderRowCount = 0, ColumnWidthPoints = new List<double?> { 5D },
-            CellPaddingX = 0D, CellPaddingY = 0D, FontSize = 1D
+            HeaderRowCount = 0, ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(5D) },
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), FontSize = global::OfficeIMO.OfficeLength.Points(1D)
         };
         byte[] bytes = PdfDocument.Create(options).Table(new[] { new[] { cell } }, style: style).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);

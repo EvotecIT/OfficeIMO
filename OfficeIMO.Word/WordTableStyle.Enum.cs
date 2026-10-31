@@ -243,10 +243,6 @@ public enum WordTableStyle {
     ListTable7ColorfulAccent5,
     /// <summary>Colorful list table style 7 accent 6.</summary>
     ListTable7ColorfulAccent6,
-
-    /// <summary>
-    /// The default table style of the OfficeIMO Modern theme: a tinted bold header row with an
-    /// accent rule, hairline rows without vertical borders, light banding and theme cell padding.
-    /// </summary>
+    /// <summary>Native table styling from the document creation theme (Modern by default).</summary>
     OfficeIMOModern,
 };

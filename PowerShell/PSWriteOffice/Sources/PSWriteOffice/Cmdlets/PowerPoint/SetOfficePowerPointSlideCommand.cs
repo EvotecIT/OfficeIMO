@@ -21,7 +21,7 @@ public sealed class SetOfficePowerPointSlideCommand : OfficeCmdlet {
     public PowerPointSlideSelector Slide { get; set; } = null!;
     /// <summary>Gets or sets the document for numeric slide and template layout selection; omission uses the enclosing document block.</summary>
     [Parameter, ValidateNotNull]
-    public PowerPointPresentation? Document { get; set; }
+    public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets the title text; an empty string clears an existing title.</summary>
     [Parameter, AllowEmptyString]
     public string? Title { get; set; }
@@ -49,7 +49,7 @@ public sealed class SetOfficePowerPointSlideCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var document = Document ?? OfficeDocumentContext.Find<PowerPointPresentation>();
+        var document = Document ?? OfficeDocumentContext.Find<PowerPointDocument>();
         try {
             PowerPointSlide slide = Slide.Resolve(document);
             if (TemplateLayout == null && MyInvocation.BoundParameters.ContainsKey(nameof(Master)))

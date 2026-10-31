@@ -18,11 +18,11 @@ public sealed record PrintPagesPerSheetChoice(int Value, string Label);
 public sealed class PrintPreviewSheetViewModel : IDisposable {
     public PrintPreviewSheetViewModel(PdfRenderedPrintSheet sheet, string label) {
         const double maximumPreviewWidth = 350D;
-        double scale = maximumPreviewWidth / sheet.Plan.PaperSize.Width;
+        double scale = maximumPreviewWidth / sheet.Plan.PaperSize.Width.ToPoints();
         SheetNumber = sheet.Plan.SheetNumber;
         Label = label;
         Width = maximumPreviewWidth;
-        Height = sheet.Plan.PaperSize.Height * scale;
+        Height = sheet.Plan.PaperSize.Height.ToPoints() * scale;
         Placements = sheet.Plan.Placements;
         using var stream = new MemoryStream(sheet.GetPng(), writable: false);
         Image = Bitmap.DecodeToWidth(stream, (int)maximumPreviewWidth);

@@ -61,6 +61,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Provenance.C2pa" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Tool" />
+    <InternalsVisibleTo Include="OfficeIMO.Tool.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Studio" />
     <InternalsVisibleTo Include="OfficeIMO.Studio.Core" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />

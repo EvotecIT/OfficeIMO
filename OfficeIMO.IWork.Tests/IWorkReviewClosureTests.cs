@@ -88,7 +88,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         PowerPointTextRun reopenedRun = Assert.Single(Assert.Single(
             Assert.Single(reopened.Slides).Notes.Paragraphs).Runs);
         Assert.Equal(target, reopenedRun.Hyperlink);
@@ -138,8 +138,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(2, result.Value.Sheets.Count);
         Assert.Equal(1d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
         Assert.Equal(2d, result.Value.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
-        Assert.Equal(12.619047619047619d, result.Value.Sheets[0].DefaultColumnWidth);
-        Assert.Equal(25.952380952380953d, result.Value.Sheets[1].DefaultColumnWidth);
+        Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Characters(12.619047619047619d), result.Value.Sheets[0].DefaultColumnWidth);
+        Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Characters(25.952380952380953d), result.Value.Sheets[1].DefaultColumnWidth);
         Assert.Empty(result.Value.Sheets[0].GetColumnDefinitions());
         Assert.Empty(result.Value.Sheets[1].GetColumnDefinitions());
     }
@@ -189,9 +189,9 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void PowerPoint_shape_hyperlinks_round_trip_through_the_owner_model() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointTextBox textBox = presentation.AddSlide()
-            .AddTextBoxPoints("Linked", 10, 10, 100, 30);
+            .AddTextBox("Linked",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(30));
         var target = new Uri("https://example.com/keynote-shape");
 
         textBox.SetHyperlink(target);

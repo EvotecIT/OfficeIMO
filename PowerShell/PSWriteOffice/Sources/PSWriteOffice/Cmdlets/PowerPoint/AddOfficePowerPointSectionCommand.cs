@@ -21,7 +21,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public sealed class AddOfficePowerPointSectionCommand : OfficeCmdlet {
     /// <summary>Gets or sets the document; omission uses the enclosing scope or selected native slide's owner.</summary>
     [Parameter(ValueFromPipeline = true), ValidateNotNull]
-    public PowerPointPresentation? Document { get; set; }
+    public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets the section name.</summary>
     [Parameter(Mandatory = true, Position = 0), ValidateNotNullOrEmpty]
     public string Name { get; set; } = string.Empty;
@@ -34,7 +34,7 @@ public sealed class AddOfficePowerPointSectionCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var document = Document ?? OfficeDocumentContext.Find<PowerPointPresentation>() ?? Slide?.Slide?.OwnerPresentation;
+        var document = Document ?? OfficeDocumentContext.Find<PowerPointDocument>() ?? Slide?.Slide?.OwnerDocument;
         try {
             document = ResolveDocument(document);
             if (string.IsNullOrWhiteSpace(Name)) throw new ArgumentException("Section name cannot be empty.", nameof(Name));

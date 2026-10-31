@@ -7,7 +7,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
     [InlineData(false)]
     [InlineData(true)]
     public void RepeatedTableSideFiguresKeepTheOriginalOnTheFirstPageAndIndependentCopiesLater(bool chart) {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         string imagePath = Path.Combine(_root, "repeated-figure.png");
         File.WriteAllBytes(imagePath, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
@@ -30,7 +30,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         var figure = Assert.IsAssignableFrom<PowerPointShape>(System.Management.Automation.PSObject.AsPSObject(runspace.SessionStateProxy.GetVariable("figure")).BaseObject);
         if (chart) Assert.Contains(deck.Slides[0].Charts, item => ReferenceEquals(item, figure));
         else Assert.Contains(deck.Slides[0].Pictures, item => ReferenceEquals(item, figure));
-        using var saved = PowerPointPresentation.Load(Save(deck, "repeated-native-figure.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "repeated-native-figure.pptx"));
         for (int i = 0; i < saved.Slides.Count; i++) {
             PowerPointShape stored = chart ? Assert.Single(saved.Slides[i].Charts) : Assert.Single(saved.Slides[i].Pictures);
             Assert.Equal(i == 0 ? "First page edited" : "Repeated context", stored.AltText);
@@ -50,7 +50,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void CollectedFiguresReturnTheirLiveNativeObjectAndMoveTheirPartsToTheArrangedSlide(bool chart, bool leadingLists) {
-        using var deck = PowerPointPresentation.Create();
+        using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
         byte[] image = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         string imagePath = Path.Combine(_root, "figure.png");
@@ -84,7 +84,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         if (chart) Assert.Contains(deck.Slides[index].Charts, item => ReferenceEquals(item, figure));
         else Assert.Contains(deck.Slides[index].Pictures, item => ReferenceEquals(item, figure));
         Assert.Equal(new byte[] { 1, 2, 3, 4 }, figure.GetClickSoundBytes());
-        using var saved = PowerPointPresentation.Load(Save(deck, "native-figure.pptx"));
+        using var saved = PowerPointDocument.Load(Save(deck, "native-figure.pptx"));
         PowerPointShape stored = chart ? Assert.Single(saved.Slides[index].Charts) : Assert.Single(saved.Slides[index].Pictures);
         Assert.Equal("Edited after arrangement", stored.AltText);
         Assert.Equal("https://contoso.com/after-figure-arrangement", stored.Hyperlink?.AbsoluteUri);

@@ -26,7 +26,7 @@ public static partial class PowerPointPdfConverterExtensions {
             if (code == "text-box-overflow") {
                 AddWarning(options, slideNumber, code, diagnostic.Message,
                     new PdfCore.PdfLayoutDiagnostic(PdfCore.PdfLayoutDiagnosticKind.Overflow, "PowerPointTextBox",
-                        diagnostic.Message, x, y, width, height), diagnostic.LossKind);
+                        diagnostic.Message, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)), diagnostic.LossKind);
             } else {
                 AddWarning(options, slideNumber, code, diagnostic.Message, lossKind: diagnostic.LossKind);
             }
@@ -49,7 +49,7 @@ public static partial class PowerPointPdfConverterExtensions {
         if (!frame.FillColor.HasValue && frame.FillGradient == null && frame.FillRadialGradient == null
             && !frame.StrokeColor.HasValue) return;
         PptCore.PowerPointSlideImageRenderer.ApplyShapeTransformForExport(frame, textBox, width, height);
-        canvas.Shape(frame, x, y);
+        canvas.Shape(frame, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y));
     }
 
 }

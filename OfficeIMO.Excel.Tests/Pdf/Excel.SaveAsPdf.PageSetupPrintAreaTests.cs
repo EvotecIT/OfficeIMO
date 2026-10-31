@@ -29,8 +29,8 @@ public partial class Excel {
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
-                PageSize = new PdfCore.PdfPageSize(360, 240),
-                Margins = PdfCore.PdfPageMargins.Uniform(24),
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)),
                 HeaderRowCount = 1
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
@@ -156,18 +156,28 @@ public partial class Excel {
             sheet.Cell(3, 2, "Inside");
             sheet.Cell(3, 3, 10);
             sheet.Cell(10, 1, "OutsideData");
-            sheet.AddImage(3, 2, imageBytes, "image/png", widthPixels: 12, heightPixels: 12, name: "Inside image");
-            sheet.AddImage(10, 1, imageBytes, "image/png", widthPixels: 12, heightPixels: 12, name: "Outside image");
-            sheet.AddChartFromRange("B2:C3", row: 3, column: 2, widthPixels: 220, heightPixels: 120, type: ExcelChartType.ColumnClustered, title: "Inside Chart");
-            sheet.AddChartFromRange("B2:C3", row: 10, column: 1, widthPixels: 220, heightPixels: 120, type: ExcelChartType.ColumnClustered, title: "Outside Chart");
+            sheet.AddImage(3, 2, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(12),
+                Height = OfficeIMO.OfficeLength.Pixels(12),
+                Name = "Inside image"
+            });
+            sheet.AddImage(10, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(12),
+                Height = OfficeIMO.OfficeLength.Pixels(12),
+                Name = "Outside image"
+            });
+            sheet.AddChart(OfficeChartType.ColumnClustered, "B2:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 3, Column = 2, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(120), Title = "Inside Chart" });
+            sheet.AddChart(OfficeChartType.ColumnClustered, "B2:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 10, Column = 1, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(120), Title = "Outside Chart" });
             document.SetPrintArea(sheet, "B2:C3");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 UseWorksheetPrintAreas = true,
-                PageSize = new PdfCore.PdfPageSize(420, 320),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(320)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -207,7 +217,7 @@ public partial class Excel {
             sheet.Cell(1, 1, "Name");
             sheet.Cell(2, 1, "WorksheetPageSetup");
             sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(left: 0.25, right: 0.25, top: 0.5, bottom: 0.5);
+            sheet.SetMargins(left: OfficeLength.Inches(0.25), right: OfficeLength.Inches(0.25), top: OfficeLength.Inches(0.5), bottom: OfficeLength.Inches(0.5));
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -262,7 +272,7 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 PdfOptions = new PdfCore.PdfCreateOptions {
-                    PageSize = new PdfCore.PdfPageSize(300, 220)
+                    PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220))
                 }
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
@@ -290,7 +300,7 @@ public partial class Excel {
             var options = new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false
             }.UseRenderingProfile(OfficeRenderingProfile.Managed);
-            options.PdfOptions!.PageSize = new PdfCore.PdfPageSize(612, 792);
+            options.PdfOptions!.PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792));
 
             bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
@@ -339,7 +349,7 @@ public partial class Excel {
             }
 
             for (int row = 1; row <= 10; row++) {
-                sheet.SetRowHeight(row, 36D);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36D)));
             }
 
             sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
@@ -349,8 +359,8 @@ public partial class Excel {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
-                PageSize = new PdfCore.PdfPageSize(220, 144),
-                Margins = PdfCore.PdfPageMargins.Uniform(18)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(144)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(18))
             });
         }
 
@@ -362,14 +372,14 @@ public partial class Excel {
         Assert.Null(style.FixedRowHeights);
         Assert.NotNull(style.RowMinHeights);
         Assert.Equal(10, style.RowMinHeights!.Count);
-        Assert.InRange(style.RowMinHeights.Sum(height => height ?? 0D), 107D, 108.1D);
-        Assert.True(style.CellPaddingY < 3D, "Fit-to-height scaling should shrink default vertical padding along with row heights.");
-        Assert.NotNull(style.FontSize);
-        Assert.NotNull(style.HeaderFontSize);
-        Assert.NotNull(style.FooterFontSize);
-        Assert.InRange(style.FontSize!.Value, 3.2D, 3.4D);
-        Assert.Equal(style.FontSize.Value, style.HeaderFontSize!.Value);
-        Assert.Equal(style.FontSize.Value, style.FooterFontSize!.Value);
+        Assert.InRange(style.RowMinHeights!.Sum(height => height?.ToPoints() ?? 0D), 107D, 108.1D);
+        Assert.True(style.CellPaddingY.ToPoints() < 3D, "Fit-to-height scaling should shrink default vertical padding along with row heights.");
+        Assert.NotNull(style.FontSize?.ToPoints());
+        Assert.NotNull(style.HeaderFontSize?.ToPoints());
+        Assert.NotNull(style.FooterFontSize?.ToPoints());
+        Assert.InRange(style.FontSize!.Value.ToPoints(), 3.2D, 3.4D);
+        Assert.Equal(style.FontSize.Value.ToPoints(), style.HeaderFontSize!.Value.ToPoints());
+        Assert.Equal(style.FontSize.Value.ToPoints(), style.FooterFontSize!.Value.ToPoints());
     }
 
     [Fact]
@@ -393,8 +403,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PdfPageSize(300, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(18)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(18))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -431,8 +441,8 @@ public partial class Excel {
             var options = new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(420, 420),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(420)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             };
             bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
@@ -478,8 +488,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PdfPageSize(420, 360),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -506,8 +516,8 @@ public partial class Excel {
             sheet.Cell(2, 2, "LeftValueB");
             sheet.Cell(2, 3, "RightValueC");
             sheet.Cell(2, 4, "RightValueD");
-            sheet.SetColumnWidth(1, 16);
-            sheet.SetColumnWidth(3, 22);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(22));
             sheet.AddManualColumnPageBreak(2);
 
             Assert.Equal(new[] { 2 }, sheet.GetManualColumnPageBreaks());
@@ -516,8 +526,8 @@ public partial class Excel {
             var options = new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(560, 320),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(560),OfficeIMO.OfficeLength.Points(320)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             };
             bytes = document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
@@ -560,8 +570,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
-                PageSize = new PdfCore.PdfPageSize(360, 260),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(260)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 

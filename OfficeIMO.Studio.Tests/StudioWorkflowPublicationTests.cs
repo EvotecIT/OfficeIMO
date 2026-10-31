@@ -15,7 +15,7 @@ public sealed class StudioWorkflowPublicationTests {
             File.WriteAllText(input, "<html><body><p>Replacement</p></body></html>");
             string destinationFolder = Directory.CreateDirectory(Path.Combine(root, "documents")).FullName;
             string output = Path.Combine(destinationFolder, "document.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(output);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(output);
             byte[] original = File.ReadAllBytes(output);
             string alias = Path.Combine(root, "alias");
             Directory.CreateSymbolicLink(alias, destinationFolder);
@@ -69,7 +69,7 @@ public sealed class StudioWorkflowPublicationTests {
         try {
             string output = Path.Combine(root, "assembled.pdf");
             string source = Path.Combine(root, "source.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(200, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             File.Copy(source, output);
             using var session = TestAppBuilder.StartSession();
             await session.Dispatch(async () => {

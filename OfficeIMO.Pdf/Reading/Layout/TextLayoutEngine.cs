@@ -152,11 +152,11 @@ internal static partial class TextLayoutEngine {
         PdfTextLayoutOptions options,
         Action<long>? consumeWork,
         Action? cancellationCheck) {
-        if (options.IgnoreHeaderHeight <= 0D && options.IgnoreFooterHeight <= 0D) return spans;
+        if (options.IgnoreHeaderHeight.ToPoints() <= 0D && options.IgnoreFooterHeight.ToPoints() <= 0D) return spans;
         double visualHeight = page.GetVisualPageSize().Height;
         Matrix2D visualTransform = page.GetVisualPageTransform();
-        double bodyTop = options.IgnoreHeaderHeight;
-        double bodyBottom = visualHeight - options.IgnoreFooterHeight;
+        double bodyTop = options.IgnoreHeaderHeight.ToPoints();
+        double bodyBottom = visualHeight - options.IgnoreFooterHeight.ToPoints();
         var filtered = new List<PdfTextSpan>(spans.Count);
         for (int index = 0; index < spans.Count; index++) {
             cancellationCheck?.Invoke();
@@ -164,8 +164,8 @@ internal static partial class TextLayoutEngine {
             PdfTextSpan span = spans[index];
             double visualBaselineFromBottom = visualTransform.Transform(span.X, span.Y).Y;
             double visualBaselineFromTop = visualHeight - visualBaselineFromBottom;
-            if ((options.IgnoreHeaderHeight <= 0D || visualBaselineFromTop > bodyTop) &&
-                (options.IgnoreFooterHeight <= 0D || visualBaselineFromTop < bodyBottom)) {
+            if ((options.IgnoreHeaderHeight.ToPoints() <= 0D || visualBaselineFromTop > bodyTop) &&
+                (options.IgnoreFooterHeight.ToPoints() <= 0D || visualBaselineFromTop < bodyBottom)) {
                 filtered.Add(span);
             }
         }
@@ -528,7 +528,7 @@ internal static partial class TextLayoutEngine {
 /// <summary>
 /// Convenience helpers for callers to get column-aware text from a PdfReadPage.
 /// </summary>
-public static class PdfReadPageExtensions {
+internal static class PdfReadPageExtensions {
     /// <summary>
     /// Extracts text from a page with simple two-column detection when present.
     /// </summary>

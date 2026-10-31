@@ -15,6 +15,12 @@ namespace OfficeIMO.Word {
     /// Encapsulates an OMML equation or a legacy Word <c>EQ</c> field.
     /// </summary>
     public class WordEquation : WordElement {
+        /// <summary>Gets the paragraph handle containing this equation.</summary>
+        public WordParagraph Paragraph => _mathParagraph != null
+            ? new WordParagraph(_document, _paragraph, _mathParagraph)
+            : _officeMath != null ? new WordParagraph(_document, _paragraph, _officeMath)
+            : FieldParagraph ?? throw new InvalidOperationException("The equation has no attached paragraph.");
+
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         private DocumentFormat.OpenXml.Math.OfficeMath? _officeMath;

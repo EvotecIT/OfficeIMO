@@ -3685,7 +3685,7 @@ namespace OfficeIMO.Tests {
             intro.AddHyperLink(" Portal", new Uri("https://example.com"));
 
             var imageParagraph = document.AddParagraph("Image ");
-            var image = imageParagraph.InsertImage(imagePath, width: 2, height: 1, description: "Logo");
+            var image = imageParagraph.AddImage(imagePath, width: OfficeIMO.OfficeLength.Pixels(2), height: OfficeIMO.OfficeLength.Pixels(1), options: new OfficeIMO.Word.WordImageOptions { Description = "Logo" });
             image.Title = "Brand";
 
             var table = document.AddTable(2, 2, WordTableStyle.TableGrid);
@@ -3769,11 +3769,11 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Paragraph Layout";
 
             var paragraph = document.AddParagraph("Indented paragraph");
-            paragraph.IndentationBeforePoints = 24;
-            paragraph.IndentationAfterPoints = 12;
-            paragraph.IndentationFirstLinePoints = 18;
-            paragraph.LineSpacingBeforePoints = 6;
-            paragraph.LineSpacingAfterPoints = 9;
+            paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(24D);
+            paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(12D);
+            paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(18D);
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(6D);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(9D);
 
             return document;
         }
@@ -3793,8 +3793,7 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Auto Line Spacing";
 
             var paragraph = document.AddParagraph("Auto spaced paragraph");
-            paragraph.LineSpacing = 360;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((360) / 240D);
 
             return document;
         }
@@ -3816,9 +3815,9 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Paragraph Tab Stops";
 
             var paragraph = document.AddParagraph("Label");
-            paragraph.AddTabStop(1440, WordTabAlignment.Left, WordTabLeader.None);
+            paragraph.AddTabStop(OfficeLength.Points(72), WordTabAlignment.Left, WordTabLeader.None);
             paragraph.AddText("\tValue");
-            paragraph.AddTabStop(2880, WordTabAlignment.Decimal, WordTabLeader.Dot);
+            paragraph.AddTabStop(OfficeLength.Points(144), WordTabAlignment.Decimal, WordTabLeader.Dot);
             paragraph.AddText("\t12.34");
 
             return document;
@@ -3831,12 +3830,12 @@ namespace OfficeIMO.Tests {
             var section = document.Sections[0];
             section.PageSettings.PageSize = WordPageSize.A5;
             section.PageOrientation = OfficePageOrientation.Landscape;
-            section.Margins.Top = 720;
-            section.Margins.Bottom = 900;
-            section.Margins.Left = 1080U;
-            section.Margins.Right = 1260U;
-            section.Margins.HeaderDistance = 360U;
-            section.Margins.FooterDistance = 540U;
+            section.Margins.Top = global::OfficeIMO.OfficeLength.Points(36D);
+            section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(45D);
+            section.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
+            section.Margins.Right = global::OfficeIMO.OfficeLength.Points(63D);
+            section.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
+            section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(27D);
             section.DifferentFirstPage = true;
             section.PageNumberType.Start = 3;
 
@@ -3850,7 +3849,7 @@ namespace OfficeIMO.Tests {
 
             var section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 360;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(18);
             section.HasColumnSeparator = true;
 
             document.AddParagraph("Section columns paragraph");
@@ -3862,8 +3861,7 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Exact Line Spacing";
 
             var paragraph = document.AddParagraph("Exact spaced paragraph");
-            paragraph.LineSpacing = 360;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(360) * 635)));
 
             return document;
         }
@@ -3873,8 +3871,7 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs AtLeast Line Spacing";
 
             var paragraph = document.AddParagraph("AtLeast spaced paragraph");
-            paragraph.LineSpacing = 360;
-            paragraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Emus(checked((long)(360) * 635)));
 
             return document;
         }
@@ -3896,12 +3893,12 @@ namespace OfficeIMO.Tests {
             var paragraph = document.AddParagraph("Bordered paragraph");
             paragraph.Borders.TopStyle = WordBorderStyle.Single;
             paragraph.Borders.TopColorHex = "336699";
-            paragraph.Borders.TopSize = 8;
-            paragraph.Borders.TopSpace = 6;
+            paragraph.Borders.TopSize = OfficeLength.Points(1);
+            paragraph.Borders.TopSpace = OfficeLength.Points(6);
             paragraph.Borders.LeftStyle = WordBorderStyle.Single;
             paragraph.Borders.LeftColorHex = "CC3300";
-            paragraph.Borders.LeftSize = 12;
-            paragraph.Borders.LeftSpace = 4;
+            paragraph.Borders.LeftSize = OfficeLength.Points(1.5);
+            paragraph.Borders.LeftSpace = OfficeLength.Points(4);
 
             return document;
         }
@@ -3927,7 +3924,7 @@ namespace OfficeIMO.Tests {
         private WordDocument BuildGoogleDocsFootnoteBookmarkDocument(string filePath) {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Footnote Bookmarks";
-            var footnoteReferenceParagraph = document.AddParagraph("Body text").AddFootNote("Footnote text");
+            var footnoteReferenceParagraph = document.AddParagraph("Body text").AddFootNote("Footnote text").Paragraph;
             footnoteReferenceParagraph.FootNote!.Paragraphs!.Last().AddBookmark("FootnoteBookmark");
             return document;
         }
@@ -3996,7 +3993,10 @@ namespace OfficeIMO.Tests {
 
             var table = document.AddTable(2, 2, WordTableStyle.TableGrid);
             table.RepeatAsHeaderRowAtTheTopOfEachPage = true;
-            table.ColumnWidth = new List<int> { 1440, 2880 };
+            table.ColumnWidth = new List<WordTableWidth?> {
+                WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(72)),
+                WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(144))
+            };
             var firstCellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
             firstCellParagraph.Text = "Cell ";
             firstCellParagraph.AddFormattedText("Bold", bold: true);
@@ -4004,13 +4004,13 @@ namespace OfficeIMO.Tests {
             table.Rows[0].Cells[0].ShadingFillColorHex = "FFCC00";
             table.Rows[0].Cells[0].Borders.LeftStyle = WordBorderStyle.Single;
             table.Rows[0].Cells[0].Borders.LeftColorHex = "FF0000";
-            table.Rows[0].Cells[0].Borders.LeftSize = (UInt32Value)8U;
+            table.Rows[0].Cells[0].Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(1);
             table.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Dashed;
             table.Rows[0].Cells[0].Borders.TopColorHex = "0000FF";
-            table.Rows[0].Cells[0].Borders.TopSize = (UInt32Value)12U;
+            table.Rows[0].Cells[0].Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1.5);
             table.Rows[0].Cells[0].Borders.BottomStyle = WordBorderStyle.Dotted;
             table.Rows[0].Cells[0].Borders.BottomColorHex = "00AA00";
-            table.Rows[0].Cells[0].Borders.BottomSize = (UInt32Value)16U;
+            table.Rows[0].Cells[0].Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(2);
 
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Value";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "Alpha";
@@ -4025,7 +4025,7 @@ namespace OfficeIMO.Tests {
 
             var table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             var paragraph = table.Rows[0].Cells[0].Paragraphs[0];
-            var image = paragraph.InsertImage(imagePath, width: 1, height: 1, description: "CellLogo");
+            var image = paragraph.AddImage(imagePath, width: OfficeIMO.OfficeLength.Pixels(1), height: OfficeIMO.OfficeLength.Pixels(1), options: new OfficeIMO.Word.WordImageOptions { Description = "CellLogo" });
             image.Title = "CellBrand";
 
             return document;
@@ -4100,7 +4100,7 @@ namespace OfficeIMO.Tests {
             headerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
             headerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
             headerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
-            headerTable.Rows[0].Cells[0].Borders.RightSize = (UInt32Value)8U;
+            headerTable.Rows[0].Cells[0].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "H2";
             headerTable.Rows[1].Cells[0].Paragraphs[0].Text = "H3";
             headerTable.Rows[1].Cells[1].Paragraphs[0].Text = "H4";
@@ -4126,7 +4126,7 @@ namespace OfficeIMO.Tests {
             footerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
             footerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
             footerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
-            footerTable.Rows[0].Cells[0].Borders.RightSize = (UInt32Value)8U;
+            footerTable.Rows[0].Cells[0].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             footerTable.Rows[0].Cells[1].Paragraphs[0].Text = "F2";
             footerTable.Rows[1].Cells[0].Paragraphs[0].Text = "F3";
             footerTable.Rows[1].Cells[1].Paragraphs[0].Text = "F4";
@@ -4145,7 +4145,7 @@ namespace OfficeIMO.Tests {
             footerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
             footerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
             footerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
-            footerTable.Rows[0].Cells[0].Borders.RightSize = (UInt32Value)8U;
+            footerTable.Rows[0].Cells[0].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             footerTable.Rows[0].Cells[1].Paragraphs[0].Text = "F2";
             footerTable.Rows[1].Cells[0].Paragraphs[0].Text = "F3";
             footerTable.Rows[1].Cells[1].Paragraphs[0].Text = "F4";
@@ -4164,7 +4164,7 @@ namespace OfficeIMO.Tests {
             footerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
             footerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
             footerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
-            footerTable.Rows[0].Cells[0].Borders.RightSize = (UInt32Value)8U;
+            footerTable.Rows[0].Cells[0].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             footerTable.Rows[0].Cells[1].Paragraphs[0].Text = "F2";
             footerTable.Rows[1].Cells[0].Paragraphs[0].Text = "F3";
             footerTable.Rows[1].Cells[1].Paragraphs[0].Text = "F4";
@@ -4190,7 +4190,7 @@ namespace OfficeIMO.Tests {
             headerTable.Rows[0].Cells[0].ShadingFillColorHex = "D9EAF7";
             headerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
             headerTable.Rows[0].Cells[0].Borders.RightColorHex = "336699";
-            headerTable.Rows[0].Cells[0].Borders.RightSize = (UInt32Value)8U;
+            headerTable.Rows[0].Cells[0].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "H2";
             headerTable.Rows[1].Cells[0].Paragraphs[0].Text = "H3";
             headerTable.Rows[1].Cells[1].Paragraphs[0].Text = "H4";

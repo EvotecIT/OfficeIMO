@@ -45,10 +45,10 @@ public sealed class PdfBatchExportVisualTests {
                 Capture(window, $"batch-ready-{width}-{checkpointed}.png");
                 window.MouseDown(location, MouseButton.Left); window.MouseUp(location, MouseButton.Left);
                 if (archive.RunCommand.ExecutionTask is { } execution) await execution;
-                Assert.True(File.Exists(Path.Combine(output, "one.txt.pdf")), archive.Status);
+                Assert.True(File.Exists(Path.Combine(output, "one.pdf")), archive.Status);
                 Assert.Contains("3 completed", archive.Status);
                 Assert.Contains("1 skipped", archive.Status);
-                string text = OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(output, "one.txt.pdf")).Read().Text;
+                string text = OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(output, "one.pdf")).Read().Text;
                 Assert.Contains("<h1>Studio literal text</h1>", text);
                 if (checkpointed) {
                     await archive.RunCommand.ExecuteAsync(null);

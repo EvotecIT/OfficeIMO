@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
         [InlineData(0d, "1900-01-00")]
         public void Test_FormulaEvaluator_InvariantDateTextRetainsEarlyCalendar(double serial, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Dates");
+            var sheet = document.AddSheet("Dates");
             sheet.CellFormula(1, 1, $"TEXT({serial.ToString(CultureInfo.InvariantCulture)},\"yyyy-mm-dd\")");
             Assert.Equal(1, document.Calculate());
             Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? actual));

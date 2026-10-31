@@ -99,9 +99,9 @@ public sealed class PdfInlineFormTests {
             new PdfTableCell(new[] { PdfTextRun.Normal(cached) })
         } };
         byte[] source = PdfDocument.Create(Options(400, 160)).Table(rows, style: new PdfTableStyle {
-            HeaderRowCount = 0, HeaderBold = false, FontSize = 12, LineHeight = 1.2D,
-            CellPaddingX = 0, CellPaddingY = 0, BorderColor = null,
-            ColumnWidthPoints = new List<double?> { 110, 110, 110 }, MaxWidth = 330, PreserveWidth = true
+            HeaderRowCount = 0, HeaderBold = false, FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 1.2D,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderColor = null,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(110) }, MaxWidth = global::OfficeIMO.OfficeLength.Points(330), PreserveWidth = true
         }).ToBytes();
         PdfDocumentInfo info = PdfInspector.Inspect(source);
         Assert.Equal(2, info.FormFields.Count);
@@ -140,7 +140,7 @@ public sealed class PdfInlineFormTests {
 
     private static PdfInlineFormField CreateDescriptor(string name, bool choice, string value, string cached) {
         var style = new PdfFormFieldStyle {
-            BackgroundColor = null, BorderColor = null, BorderWidth = 0, TextColor = PdfColor.Black
+            BackgroundColor = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0), TextColor = global::OfficeIMO.OfficeColor.Black
         };
         PdfCanvasFormFieldItem item = choice
             ? PdfCanvasFormFieldItem.Choice(name, new[] {
@@ -162,12 +162,12 @@ public sealed class PdfInlineFormTests {
             PdfTextRun.Normal(cached.Substring(0, split)).WithFormField(descriptor),
             new PdfTextRun(cached.Substring(split), bold: true).WithFormField(descriptor),
             PdfTextRun.Normal(" TAIL")
-        }), style: new PdfParagraphStyle { SpacingAfter = 0, LineHeight = 1.2D });
+        }), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineHeight = 1.2D });
     }
 
     private static PdfCreateOptions Options(double width, double height) => new() {
-        PageWidth = width, PageHeight = height, MarginLeft = 18, MarginRight = 18,
-        MarginTop = 18, MarginBottom = 18, DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12
+        PageWidth = global::OfficeIMO.OfficeLength.Points(width), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(18), MarginRight = global::OfficeIMO.OfficeLength.Points(18),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(18), MarginBottom = global::OfficeIMO.OfficeLength.Points(18), DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
     };
 
     private static (int? Page, double X1, double Y1, double X2, double Y2)[] WidgetGeometry(PdfFormField field) =>

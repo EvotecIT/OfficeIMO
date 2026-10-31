@@ -102,67 +102,21 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the unit type used by the <see cref="Width"/> property.
-        /// </summary>
-        public WordTableWidthUnit? WidthType {
-            get {
-                if (_tableProperties != null && _tableProperties.TableWidth != null) {
-                    return _tableProperties.TableWidth.Type?.Value.ToOfficeEnum();
-                }
-
-                return null;
-            }
+        /// <summary>Gets or sets the directly authored preferred width. Null removes tblW and preserves the grid.</summary>
+        /// <remarks>Reading preserves native lexical and partial declarations. Unsupported declarations throw
+        /// when accessed as a value; native load/save retains them.</remarks>
+        public WordTableWidth? Width {
+            get => WordTableWidthNative.Read(_tableProperties?.TableWidth);
             set {
                 CheckTableProperties();
-                if (_tableProperties!.TableWidth == null) {
-                    if (value.HasValue) {
-                        _tableProperties.TableWidth = new TableWidth() {
-                            Type = value.Value.ToOpenXml(),
-                            Width = value.Value == WordTableWidthUnit.Auto ? "0" : "5000"
-                        };
-                    }
-                } else {
-                    if (value.HasValue) {
-                        _tableProperties.TableWidth.Type = value.Value.ToOpenXml();
-                        if (value.Value == WordTableWidthUnit.Auto) {
-                            _tableProperties.TableWidth.Width = "0";
-                        }
-                    } else {
-                        _tableProperties.TableWidth.Remove();
-                    }
+                if (!value.HasValue) {
+                    _tableProperties!.TableWidth?.Remove();
+                    return;
                 }
-                // Keep tblGrid consistent when width interpretation changes
-                if (!_suppressGridRefresh) { try { RefreshTblGridFromColumnWidths(); } catch { } }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets width of a table
-        /// </summary>
-        public int? Width {
-            get {
-                if (_tableProperties != null && _tableProperties.TableWidth != null) {
-                    if (!string.IsNullOrEmpty(_tableProperties.TableWidth.Width)) {
-                        if (int.TryParse(_tableProperties.TableWidth.Width, out var width)) {
-                            return width;
-                        }
-                    }
-                }
-                return null;
-            }
-            set {
-                CheckTableProperties();
-                if (_tableProperties!.TableWidth == null) {
-                    _tableProperties.TableWidth = new TableWidth() {
-                        Type = TableWidthUnitValues.Pct,
-                        Width = value?.ToString()
-                    };
-                } else {
-                    _tableProperties.TableWidth.Width = value?.ToString();
-                }
-                // Grid depends on overall width (for pct columns)
-                if (!_suppressGridRefresh) { try { RefreshTblGridFromColumnWidths(); } catch { } }
+                var width = new TableWidth();
+                WordTableWidthNative.Write(width, value.Value);
+                _tableProperties!.TableWidth = width;
+                if (!_suppressGridRefresh) RefreshTblGridFromColumnWidths();
             }
         }
 
@@ -343,9 +297,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         private static int GetSectionTextWidthTwips(WordDocument document) {
             WordSection? section = document.Sections.Count > 0 ? document.Sections[document.Sections.Count - 1] : null;
-            uint? pageWidth = section?.PageSettings?.Width;
+            long? pageWidth = section?.PageSettings?.Width?.ToTwips();
             if (section == null || !pageWidth.HasValue) return DefaultTableTextWidthTwips;
-            long width = pageWidth.Value - (long)section.Margins.Left - section.Margins.Right - section.Margins.Gutter;
+            long width = pageWidth.Value - (section.Margins.Left?.ToTwips() ?? 0) - (section.Margins.Right?.ToTwips() ?? 0) - (section.Margins.Gutter?.ToTwips() ?? 0);
             return width > MinimumDefaultColumnWidthTwips ? (int)Math.Min(width, int.MaxValue) : DefaultTableTextWidthTwips;
         }
 
@@ -565,7 +519,7 @@ namespace OfficeIMO.Word {
                     : _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Count() ?? 0;
             }
             for (int j = 0; j < cellsCount; j++) {
-                WordTableCell cell = new WordTableCell(_document, this, row);
+                row.AddCell();
             }
             try { RefreshTblGridFromColumnWidths(); } catch { }
         }

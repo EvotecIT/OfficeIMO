@@ -11,12 +11,12 @@ Exports presentation slides as PNG or SVG images with one result per slide.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Export-OfficePowerPointImage [-Path] <string> [-OutputPath] <string> [-Format <OfficeImageExportFormat>] [-Options <PowerPointPresentationImageExportOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficePowerPointImage [-Path] <string> [-OutputPath] <string> [-Format <OfficeImageExportFormat>] [-Options <PowerPointImageExportOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Presentation
 ```powershell
-Export-OfficePowerPointImage [-OutputPath] <string> -Presentation <PowerPointPresentation> [-Format <OfficeImageExportFormat>] [-Options <PowerPointPresentationImageExportOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficePowerPointImage [-OutputPath] <string> -Presentation <PowerPointDocument> [-Format <OfficeImageExportFormat>] [-Options <PowerPointImageExportOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -53,7 +53,7 @@ Accept wildcard characters: False
 Optional slide selection, size, scale, theme, and rendering settings.
 
 ```yaml
-Type: PowerPointPresentationImageExportOptions
+Type: PowerPointImageExportOptions
 Parameter Sets: Path, Presentation
 Aliases: None
 Possible values:
@@ -117,7 +117,7 @@ Accept wildcard characters: False
 Open presentation instance.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: Presentation
 Aliases: None
 Possible values:
@@ -134,7 +134,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

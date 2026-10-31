@@ -15,12 +15,12 @@ public class PdfDocumentDeferredTableTests {
         style.ConsumesVerticalFlow = false;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 300,
-                PageHeight = 500,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24
+                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(500),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24)
             })
             .TableDeferred(() => new[] {
                 new[] { "DeferredRowOne" },
@@ -44,12 +44,12 @@ public class PdfDocumentDeferredTableTests {
         style.ConsumesVerticalFlow = false;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 150,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(150),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
             .TableDeferred(() => Enumerable.Range(1, 12).Select(index => new[] { "DeferredRow" + index }), batchSize: 1, style: style)
             .Paragraph(paragraph => paragraph.Text("AfterDeferredRows"))
@@ -76,16 +76,16 @@ public class PdfDocumentDeferredTableTests {
         style.HeaderRowCount = 1;
         style.FooterRowCount = 1;
         style.Caption = "Deferred caption";
-        style.SpacingAfter = 8;
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(8);
 
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 300,
-                PageHeight = 500,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24,
-                DefaultFontSize = 9
+                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(500),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .TableDeferred(CreateRows, batchSize: 2, style: style)
             .Paragraph(paragraph => paragraph.Text("After table"));
@@ -123,13 +123,13 @@ public class PdfDocumentDeferredTableTests {
         style.RepeatHeaderRowCount = 1;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 260,
-                PageHeight = 150,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(150),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .TableDeferred(
                 () => CreateManyRows(18),
@@ -215,19 +215,19 @@ public class PdfDocumentDeferredTableTests {
     [Fact]
     public void TableDeferred_ParticipatesInPrecedingKeepWithNextMeasurement() {
         var options = new PdfCreateOptions {
-            PageWidth = 260,
-            PageHeight = 170,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text("IntroMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 70
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .Paragraph(paragraph => paragraph.Text("KeepWithDeferredTable"), style: new PdfParagraphStyle {
                 KeepWithNext = true

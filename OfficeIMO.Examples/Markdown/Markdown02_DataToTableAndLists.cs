@@ -22,9 +22,9 @@ namespace OfficeIMO.Examples.Markdown {
 
             var md = MarkdownDocument.Create()
                 .H1("Data → Markdown Examples")
-                .H2("Object → Table (Property/Value)")
-                .TableFrom(meta)
-                .H2("Auto header transform")
+                .H2("Object → Table (Property/Value)");
+            md.AddTable(meta);
+            md.H2("Auto header transform")
                 .Table(t => t.Columns(MarkdownHeaderTransforms.Pretty).FromAny(new { DmarcPolicy = "p=none", TlsGrade = "A", SpfAligned = true }))
                 .H2("Sequence of Objects → Table (with alignment)")
                 .Table(t => t.FromAny(people).Align(MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Right))
@@ -80,7 +80,7 @@ namespace OfficeIMO.Examples.Markdown {
                 new { Host = "evotec.pl", SPF = true, DMARC = "p=none", Score = 88 },
                 new { Host = "evotec.xyz", SPF = false, DMARC = "p=quarantine", Score = 92 }
             };
-            var opts = new TableFromOptions();
+            var opts = new OfficeTableOptions();
             opts.Include.UnionWith(new[] { "Host", "Score", "DMARC" });
             opts.Order.AddRange(new[] { "Host", "DMARC", "Score" });
             opts.HeaderRenames["DMARC"] = "DMARC Policy";
@@ -147,9 +147,9 @@ namespace OfficeIMO.Examples.Markdown {
 
             var md = MarkdownDocument.Create()
                 .H1("Auto Alignment Helpers")
-                .H2("TableFromAuto")
-                .TableFromAuto(rows)
-                .H2("TableAuto with builder")
+                .H2("Typed table with automatic alignment");
+            md.AddTable(rows, new MarkdownTableOptions());
+            md.H2("TableAuto with builder")
                 .TableAuto(t => t.FromAny(rows));
 
             File.WriteAllText(path, md.ToMarkdown(), Encoding.UTF8);

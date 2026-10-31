@@ -10,7 +10,7 @@ public sealed class PowerPointNativeThemeTintTests {
     [Fact]
     public void TintShadeOrderAndAlphaMatchSevenNativePowerPointControls() {
         string folder = Path.Combine(AppContext.BaseDirectory, "Documents", "PowerPointNativeThemeTint");
-        using var presentation = PowerPointPresentation.Load(Path.Combine(folder, "controls.pptx"));
+        using var presentation = PowerPointDocument.Load(Path.Combine(folder, "controls.pptx"));
         PowerPointSlide slide = Assert.Single(presentation.Slides);
         PowerPointAutoShape[] controls = slide.Shapes.OfType<PowerPointAutoShape>().ToArray();
         Assert.Equal(7, controls.Length);
@@ -35,7 +35,7 @@ public sealed class PowerPointNativeThemeTintTests {
     [Fact]
     public void LuminanceOrderAndInterleavedAlphaMatchSevenNativePowerPointControls() {
         string folder = Path.Combine(AppContext.BaseDirectory, "Documents", "PowerPointNativeThemeTint");
-        using var presentation = PowerPointPresentation.Load(Path.Combine(folder, "luminance-controls.pptx"));
+        using var presentation = PowerPointDocument.Load(Path.Combine(folder, "luminance-controls.pptx"));
         PowerPointSlide slide = Assert.Single(presentation.Slides);
         PowerPointAutoShape[] controls = slide.Shapes.OfType<PowerPointAutoShape>().ToArray();
         Assert.Equal(7, controls.Length);
@@ -63,7 +63,7 @@ public sealed class PowerPointNativeThemeTintTests {
     [Fact]
     public void TableBandTintMatchesNativePowerPointLinearRgbSample() {
         string folder = Path.Combine(AppContext.BaseDirectory, "Documents", "PowerPointNativeThemeTint");
-        using var presentation = PowerPointPresentation.Load(Path.Combine(folder, "p1-tables-charts.pptx"));
+        using var presentation = PowerPointDocument.Load(Path.Combine(folder, "p1-tables-charts.pptx"));
         PowerPointTable table = Assert.Single(presentation.Slides[1].Tables);
         OfficeColor expected = OfficeColor.FromRgb(204, 210, 216);
 

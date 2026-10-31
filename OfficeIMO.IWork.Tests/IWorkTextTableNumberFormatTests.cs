@@ -77,11 +77,11 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(expectedText, paragraph.Text);
             if (expectedColor.Length > 0) Assert.Equal(expectedColor, paragraph.ColorHex);
         } else {
-            using var result = source.ToPowerPointPresentationResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            using var result = source.ToPowerPointDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
             Assert.False(result.IsVisualFallback);
             cell = Assert.Single(Assert.Single(Assert.Single(result.Projection.Slides).Tables).Cells); report = result.Report;
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0);
             Assert.Equal(expectedText, target.Text);
             if (expectedColor.Length > 0) Assert.Equal(expectedColor, target.Paragraphs[0].Runs[0].Color);

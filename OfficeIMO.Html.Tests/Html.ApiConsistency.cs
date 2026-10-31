@@ -21,8 +21,10 @@ public sealed class HtmlApiConsistencyTests {
             document.ExportImage(OfficeImageExportFormat.Png, options));
 
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+        var imageOptions1 = new HtmlRenderOptions();
+        imageOptions1.Format = OfficeImageExportFormat.Png;
         Assert.Throws<OperationCanceledException>(() =>
-            document.ToImage().AsPng().Export(new CancellationToken(canceled: true)));
+            document.ExportImage(OfficeImageExportFormat.Png, imageOptions1, cancellationToken: new CancellationToken(canceled: true)));
     }
 
     [Fact]

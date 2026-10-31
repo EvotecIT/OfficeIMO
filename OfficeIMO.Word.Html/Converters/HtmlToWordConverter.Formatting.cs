@@ -170,7 +170,7 @@ namespace OfficeIMO.Word.Html {
 
         private static void SetRunFontSizePoints(WordParagraph run, double points) {
             if (points > 0d) {
-                run.FontSizePoints = points;
+                run.FontSize = OfficeLength.Points(points);
             }
         }
 
@@ -273,10 +273,11 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (parsed.LineHeight.HasValue) {
-                paragraph.LineSpacing = parsed.LineHeight.Value;
-                if (parsed.LineHeightRule.HasValue) {
-                    paragraph.LineSpacingRule = parsed.LineHeightRule.Value.ToOfficeEnum();
-                }
+                // CSS parsing is native-shaped; use the Word owner to interpret its units.
+                paragraph.LineSpacing = WordLineSpacing.Read(new DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines {
+                    Line = parsed.LineHeight.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    LineRule = parsed.LineHeightRule
+                });
             }
 
             if (TryParseFontSize(GetInlinePropertyValue(declaration, styleAttribute, "font-size"), out double fontSize)) {
@@ -284,7 +285,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (TryConvertToTwipAllowNegative(GetInlinePropertyRawValue(declaration, styleAttribute, "letter-spacing"), out int lsParagraph)) {
-                paragraph.SetSpacing(lsParagraph);
+                paragraph.SetSpacing(OfficeLength.Emus((long)lsParagraph * 635));
             }
 
             if (StyleRequestsPageBreakBefore(declaration, styleAttribute) || StyleTextRequestsPageBreak(styleAttribute, "break-before", "page-break-before")) {
@@ -318,14 +319,14 @@ namespace OfficeIMO.Word.Html {
 
             if (TryConvertToTwipAllowNegative(GetInlinePropertyRawValue(declaration, styleAttribute, "text-indent"), out int indent)) {
                 if (indent > 0) {
-                    paragraph.IndentationFirstLine = indent;
-                    paragraph.IndentationHanging = null;
+                    paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points((indent) / 20D);
+                    paragraph.IndentationHanging= null;
                 } else if (indent < 0) {
-                    paragraph.IndentationHanging = -indent;
-                    paragraph.IndentationFirstLine = null;
+                    paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points((-indent) / 20D);
+                    paragraph.IndentationFirstLine= null;
                 } else {
-                    paragraph.IndentationFirstLine = null;
-                    paragraph.IndentationHanging = null;
+                    paragraph.IndentationFirstLine= null;
+                    paragraph.IndentationHanging= null;
                 }
             }
 
@@ -335,20 +336,20 @@ namespace OfficeIMO.Word.Html {
             if (applyVerticalBoxSpacing) {
                 int before = (marginTop ?? 0) + (paddingTop ?? 0);
                 if (before > 0) {
-                    paragraph.LineSpacingBefore = before;
+                    paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points((before) / 20D);
                 }
                 int after = (marginBottom ?? 0) + (paddingBottom ?? 0);
                 if (after > 0) {
-                    paragraph.LineSpacingAfter = after;
+                    paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points((after) / 20D);
                 }
             }
             int left = (marginLeft ?? 0) + (paddingLeft ?? 0);
             if (left != 0) {
-                paragraph.IndentationBefore = left;
+                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points((left) / 20D);
             }
             int right = (marginRight ?? 0) + (paddingRight ?? 0);
             if (right != 0) {
-                paragraph.IndentationAfter = right;
+                paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points((right) / 20D);
             }
             return parsed;
         }
@@ -462,7 +463,7 @@ namespace OfficeIMO.Word.Html {
                 if (!Uri.TryCreate(match.Value, UriKind.Absolute, out var uri) || IsInvalidResolvedHref(uri, options)) {
                     AddFormattedSegment(paragraph, display, formatting, options);
                 } else {
-                    var linkRun = paragraph.AddHyperLink(display, uri);
+                    var linkRun = paragraph.AddHyperLink(display, uri).Paragraph;
                     ApplyFormatting(linkRun, formatting, options);
                 }
                 lastIndex = match.Index + match.Length;
@@ -555,7 +556,7 @@ namespace OfficeIMO.Word.Html {
             ApplyTextBackground(run, formatting, options);
             if (formatting.FontSize.HasValue) SetRunFontSizePoints(run, formatting.FontSize.Value);
             if (formatting.Caps.HasValue) run.SetCapsStyle(formatting.Caps.Value);
-            if (formatting.LetterSpacing.HasValue) run.SetSpacing(formatting.LetterSpacing.Value);
+            if (formatting.LetterSpacing.HasValue) run.SetSpacing(OfficeLength.Emus((long)formatting.LetterSpacing.Value * 635));
             if (!string.IsNullOrWhiteSpace(formatting.Language)) run.SetLanguage(formatting.Language!);
             if (!string.IsNullOrEmpty(formatting.FontFamily)) {
                 var font = ResolveFontFamily(formatting.FontFamily);

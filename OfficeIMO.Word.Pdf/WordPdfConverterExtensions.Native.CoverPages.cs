@@ -22,9 +22,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfCore.PdfPageSize pageSize = GetNativePageSize(section, options);
-            var rootFrame = new NativeVmlFrame(0D, 0D, pageSize.Width, pageSize.Height, pageSize.Width, pageSize.Height, 0D, 0D);
+            var rootFrame = new NativeVmlFrame(0D, 0D, pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), 0D, 0D);
             bool rendered = false;
-            pdf.Canvas(canvas => rendered = RenderNativeVmlCoverChildren(canvas, document, content.ChildElements, rootFrame, pageSize.Width, pageSize.Height, options?.CancellationToken ?? default) || rendered);
+            pdf.Canvas(canvas => rendered = RenderNativeVmlCoverChildren(canvas, document, content.ChildElements, rootFrame, pageSize.Width.ToPoints(), pageSize.Height.ToPoints(), options?.CancellationToken ?? default) || rendered);
             return rendered;
         }
 
@@ -176,7 +176,7 @@ namespace OfficeIMO.Word.Pdf {
 
                 bool hasVisibleFrame = !renderedImage || shape.StrokeColor.HasValue || shape.Shadow != null || shape.Kind == OfficeShapeKind.Line;
                 if (hasVisibleFrame && IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight)) {
-                    RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.Shape(shape, box.X, box.Y, new PdfCore.PdfDrawingStyle { Decorative = true }));
+                    RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.Shape(shape, global::OfficeIMO.OfficeLength.Points(box.X), global::OfficeIMO.OfficeLength.Points(box.Y), new PdfCore.PdfDrawingStyle { Decorative = true }));
                     rendered = true;
                 }
             }
@@ -186,7 +186,7 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfCanvasTextBoxStyle style = CreateNativeVmlTextBoxStyle(element, textRuns);
                 double textRotation = GetNativeVmlRotationDegrees(element) ?? 0D;
                 if (IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight)) {
-                    RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.TextBox(textRuns, box.X, box.Y, box.Width, box.Height, style, textRotation));
+                    RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.TextBox(textRuns, global::OfficeIMO.OfficeLength.Points(box.X), global::OfficeIMO.OfficeLength.Points(box.Y), global::OfficeIMO.OfficeLength.Points(box.Width), global::OfficeIMO.OfficeLength.Points(box.Height), style, textRotation));
                     rendered = true;
                 }
             }
@@ -217,10 +217,10 @@ namespace OfficeIMO.Word.Pdf {
 
             RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.Image(
                 preparedBytes,
-                box.X,
-                box.Y,
-                box.Width,
-                box.Height,
+                global::OfficeIMO.OfficeLength.Points(box.X),
+                global::OfficeIMO.OfficeLength.Points(box.Y),
+                global::OfficeIMO.OfficeLength.Points(box.Width),
+                global::OfficeIMO.OfficeLength.Points(box.Height),
                 new PdfCore.PdfImageStyle {
                     Fit = OfficeImageFit.Stretch
                 },

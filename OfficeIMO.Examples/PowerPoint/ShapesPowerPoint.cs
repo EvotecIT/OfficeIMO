@@ -12,21 +12,18 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine("[*] PowerPoint - Shape operations");
             string filePath = Path.Combine(folderPath, "Shape Operations.pptx");
             string imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "Kulek.jpg");
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+            using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
             PowerPointSlide slide = presentation.AddSlide();
             const double marginCm = 1.5;
             const double gutterCm = 1.0;
             const double titleHeightCm = 1.4;
             const double bodyGapCm = 0.8;
-            PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
-            PowerPointLayoutBox titleBox = PowerPointLayoutBox.FromCentimeters(
-                content.LeftCm, content.TopCm, content.WidthCm, titleHeightCm);
-            PowerPointLayoutBox bodyBox = PowerPointLayoutBox.FromCentimeters(
-                content.LeftCm,
-                content.TopCm + titleHeightCm + bodyGapCm,
-                content.WidthCm,
-                content.HeightCm - titleHeightCm - bodyGapCm);
-            PowerPointLayoutBox[] columns = bodyBox.SplitColumnsCm(2, gutterCm);
+            PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
+            PowerPointLayoutBox titleBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(titleHeightCm));
+            PowerPointLayoutBox bodyBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + titleHeightCm + bodyGapCm),                OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - titleHeightCm - bodyGapCm));
+            PowerPointLayoutBox[] columns = bodyBox.SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(gutterCm));
             PowerPointLayoutBox leftColumn = columns[0];
             PowerPointLayoutBox rightColumn = columns[1];
 
@@ -34,69 +31,65 @@ namespace OfficeIMO.Examples.PowerPoint {
                 slide.SetBackgroundImage(imagePath);
             }
 
-            PowerPointTextBox textBox = slide.AddTitle("Shapes and images", titleBox);
-            textBox.FontSize = 30;
+            PowerPointTextBox textBox = slide.AddTitle("Shapes and images",titleBox);
+            textBox.FontSize = global::OfficeIMO.OfficeLength.Points(30);
             textBox.Color = "1F4E79";
 
             const double captionGapCm = 0.6;
             const double captionHeightCm = 1.2;
-            double canvasHeightCm = leftColumn.HeightCm - captionGapCm - captionHeightCm;
-            PowerPointLayoutBox canvasBox = PowerPointLayoutBox.FromCentimeters(
-                leftColumn.LeftCm, leftColumn.TopCm, leftColumn.WidthCm, canvasHeightCm);
-            PowerPointLayoutBox captionBox = PowerPointLayoutBox.FromCentimeters(
-                leftColumn.LeftCm,
-                leftColumn.TopCm + canvasHeightCm + captionGapCm,
-                leftColumn.WidthCm,
-                captionHeightCm);
+            double canvasHeightCm = leftColumn.Height.ToCentimeters() - captionGapCm - captionHeightCm;
+            PowerPointLayoutBox canvasBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(leftColumn.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(canvasHeightCm));
+            PowerPointLayoutBox captionBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(leftColumn.Top.ToCentimeters() + canvasHeightCm + captionGapCm),                OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(captionHeightCm));
 
-            PowerPointAutoShape card = slide.AddRectangleCm(
-                    canvasBox.LeftCm, canvasBox.TopCm, canvasBox.WidthCm, canvasBox.HeightCm * 0.6,
+            PowerPointAutoShape card = slide.AddRectangle(
+                    canvasBox.Left, canvasBox.Top, canvasBox.Width, OfficeIMO.OfficeLength.Centimeters(canvasBox.Height.ToCentimeters() * 0.6),
                     "Hero Card")
                 .Fill("E7F7FF")
-                .Stroke("007ACC", 2);
+                .Stroke("007ACC", global::OfficeIMO.OfficeLength.Points(2));
             card.FillTransparency = 6;
             card.Rotation = -1.5;
 
-            PowerPointAutoShape accent = slide.AddRectangleCm(
-                    canvasBox.LeftCm + 0.7,
-                    canvasBox.TopCm + 0.7,
-                    canvasBox.WidthCm * 0.55,
-                    canvasBox.HeightCm * 0.35,
+            PowerPointAutoShape accent = slide.AddRectangle(
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Left.ToCentimeters() + 0.7),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Top.ToCentimeters() + 0.7),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Width.ToCentimeters() * 0.55),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Height.ToCentimeters() * 0.35),
                     "Accent Panel")
                 .Fill("FFF4E5")
-                .Stroke("C48A00", 1.5);
+                .Stroke("C48A00", global::OfficeIMO.OfficeLength.Points(1.5));
             accent.Rotation = 2;
             accent.BringToFront();
 
             const double badgeSizeCm = 2.1;
-            slide.AddEllipseCm(
-                    canvasBox.LeftCm + canvasBox.WidthCm - badgeSizeCm - 0.4,
-                    canvasBox.TopCm + 0.4,
-                    badgeSizeCm,
-                    badgeSizeCm,
+            slide.AddEllipse(
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Left.ToCentimeters() + canvasBox.Width.ToCentimeters() - badgeSizeCm - 0.4),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Top.ToCentimeters() + 0.4),
+                    OfficeIMO.OfficeLength.Centimeters(badgeSizeCm),
+                    OfficeIMO.OfficeLength.Centimeters(badgeSizeCm),
                     "Badge")
                 .Fill("FDEBD0")
-                .Stroke("D35400", 1.5);
+                .Stroke("D35400", global::OfficeIMO.OfficeLength.Points(1.5));
 
-            PowerPointAutoShape arrow = slide.AddShapeCm(
+            PowerPointAutoShape arrow = slide.AddShape(
                     OfficePresetShapeType.RightArrow,
-                    canvasBox.LeftCm + 0.4,
-                    canvasBox.TopCm + canvasBox.HeightCm * 0.68,
-                    canvasBox.WidthCm * 0.6,
-                    canvasBox.HeightCm * 0.25,
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Left.ToCentimeters() + 0.4),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Top.ToCentimeters() + canvasBox.Height.ToCentimeters() * 0.68),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Width.ToCentimeters() * 0.6),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Height.ToCentimeters() * 0.25),
                     "Flow Arrow")
                 .Fill("D9EAD3")
-                .Stroke("6AA84F", 1.5);
+                .Stroke("6AA84F", global::OfficeIMO.OfficeLength.Points(1.5));
             arrow.Rotation = -1;
 
             PowerPointTextBox label = slide.AddTextBox(
-                "Rotation, layering, and named shapes for lookup.",
-                captionBox);
-            label.FontSize = 14;
+                "Rotation, layering, and named shapes for lookup.",                captionBox);
+            label.FontSize = global::OfficeIMO.OfficeLength.Points(14);
             label.Color = "1F4E79";
 
             if (File.Exists(imagePath)) {
-                PowerPointPicture picture = slide.AddPicture(imagePath, rightColumn);
+                PowerPointPicture picture = slide.AddImage(imagePath,rightColumn);
                 // AddPicture keeps the image's aspect ratio; to fill the column instead, restore the box and crop.
                 picture.Left = rightColumn.Left;
                 picture.Top = rightColumn.Top;
@@ -104,7 +97,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 picture.Height = rightColumn.Height;
                 picture.FitToBox(crop: true);
             } else {
-                PowerPointTextBox placeholder = slide.AddTextBox("(image placeholder)", rightColumn);
+                PowerPointTextBox placeholder = slide.AddTextBox("(image placeholder)",rightColumn);
                 placeholder.FillColor = "F3F3F3";
                 placeholder.OutlineColor = "CCCCCC";
                 placeholder.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;

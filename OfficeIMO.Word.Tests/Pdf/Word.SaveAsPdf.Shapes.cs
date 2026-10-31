@@ -21,9 +21,9 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Before native shapes");
-                document.AddShape(WordShapeType.Rectangle, 100, 36, "#ccb399", "#1a334d", 2.5);
-                document.AddShape(WordShapeType.Ellipse, 60, 30, "#d0e6ff", "#224466", 1.25);
-                document.AddShape(WordShapeType.Line, 80, 0, "#ffffff", "#008000", 2);
+                document.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeColor.Parse("#ccb399"), OfficeIMO.OfficeColor.Parse("#1a334d"), OfficeIMO.OfficeLength.Points(2.5));
+                document.AddShape(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeColor.Parse("#d0e6ff"), OfficeIMO.OfficeColor.Parse("#224466"), OfficeIMO.OfficeLength.Points(1.25));
+                document.AddShape(WordShapeType.Line, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeColor.Parse("#ffffff"), OfficeIMO.OfficeColor.Parse("#008000"), OfficeIMO.OfficeLength.Points(2));
                 document.AddParagraph("After native shapes");
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Preserves_DrawingML_Line_Preset_As_Horizontal() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingLinePresetGeometry.docx");
             using WordDocument document = WordDocument.Create(docPath);
-            WordShape line = document.AddParagraph().AddShapeDrawing(WordShapeType.Line, 80, 24);
+            WordShape line = document.AddParagraph().AddShapeDrawing(WordShapeType.Line, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(24));
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeShape", BindingFlags.NonPublic | BindingFlags.Static)!;
             OfficeShape shape = Assert.IsType<OfficeShape>(method.Invoke(null, new object[] { line }));
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Before no-fill line");
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Line, 96, 1);
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Line, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(1));
                 document.AddParagraph("After no-fill line");
                 document.Save();
             }
@@ -105,16 +105,16 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Before native DrawingML shapes");
-                WordShape triangle = document.AddParagraph().AddShapeDrawing(WordShapeType.Triangle, 72, 48);
+                WordShape triangle = document.AddParagraph().AddShapeDrawing(WordShapeType.Triangle, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(48));
                 triangle.FillColorHex = "#99ccff";
                 triangle.StrokeColorHex = "#003366";
-                triangle.StrokeWeight = 1.5;
-                Assert.Equal(1.5, triangle.StrokeWeight);
-                WordShape diamond = document.AddParagraph().AddShapeDrawing(WordShapeType.Diamond, 64, 48);
+                triangle.StrokeWeight = OfficeIMO.OfficeLength.Points(1.5);
+                Assert.Equal(1.5, triangle.StrokeWeight!.Value.ToPoints());
+                WordShape diamond = document.AddParagraph().AddShapeDrawing(WordShapeType.Diamond, OfficeIMO.OfficeLength.Points(64), OfficeIMO.OfficeLength.Points(48));
                 diamond.FillColorHex = "#ffe699";
-                WordShape arrow = document.AddParagraph().AddShapeDrawing(WordShapeType.RightArrow, 96, 36);
+                WordShape arrow = document.AddParagraph().AddShapeDrawing(WordShapeType.RightArrow, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(36));
                 arrow.FillColorHex = "#b7e1cd";
-                WordShape star = document.AddParagraph().AddShapeDrawing(WordShapeType.Star5, 56, 56);
+                WordShape star = document.AddParagraph().AddShapeDrawing(WordShapeType.Star5, OfficeIMO.OfficeLength.Points(56), OfficeIMO.OfficeLength.Points(56));
                 star.FillColorHex = "#f4b183";
                 document.AddParagraph("After native DrawingML shapes");
                 document.Save();
@@ -146,11 +146,11 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Before remaining native DrawingML shapes");
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Heart, 64, 56).FillColorHex = "#ff0000";
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Cloud, 88, 52).FillColorHex = "#00ff00";
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Donut, 64, 64).FillColorHex = "#0000ff";
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Can, 64, 64).FillColorHex = "#ffff00";
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Cube, 72, 60).FillColorHex = "#00ffff";
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Heart, OfficeIMO.OfficeLength.Points(64), OfficeIMO.OfficeLength.Points(56)).FillColorHex = "#ff0000";
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Cloud, OfficeIMO.OfficeLength.Points(88), OfficeIMO.OfficeLength.Points(52)).FillColorHex = "#00ff00";
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Donut, OfficeIMO.OfficeLength.Points(64), OfficeIMO.OfficeLength.Points(64)).FillColorHex = "#0000ff";
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Can, OfficeIMO.OfficeLength.Points(64), OfficeIMO.OfficeLength.Points(64)).FillColorHex = "#ffff00";
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Cube, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(60)).FillColorHex = "#00ffff";
                 document.AddParagraph("After remaining native DrawingML shapes");
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -181,11 +181,11 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Before additional native DrawingML shapes");
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Parallelogram, 72, 40).FillColorHex = "#ff00ff";
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Trapezoid, 72, 40).FillColorHex = "#ff9900";
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Chevron, 80, 44).FillColorHex = "#808080";
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Plus, 56, 56).FillColorHex = "#008080";
-                document.AddParagraph().AddShapeDrawing(WordShapeType.LeftRightArrow, 96, 40).FillColorHex = "#800000";
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Parallelogram, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(40)).FillColorHex = "#ff00ff";
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Trapezoid, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(40)).FillColorHex = "#ff9900";
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Chevron, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(44)).FillColorHex = "#808080";
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Plus, OfficeIMO.OfficeLength.Points(56), OfficeIMO.OfficeLength.Points(56)).FillColorHex = "#008080";
+                document.AddParagraph().AddShapeDrawing(WordShapeType.LeftRightArrow, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(40)).FillColorHex = "#800000";
                 document.AddParagraph("After additional native DrawingML shapes");
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -213,9 +213,9 @@ namespace OfficeIMO.Tests {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingSchemeShape.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingSchemeShape.pdf");
 
-            using (WordDocument document = WordDocument.Create(docPath)) {
+            using (WordDocument document = WordDocument.Create(docPath, new WordCreateOptions { Theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(accent1: OfficeColor.FromRgb(68, 114, 196), accent2: OfficeColor.FromRgb(237, 125, 49))) })) {
                 document.AddParagraph("Before scheme shape");
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 96, 44);
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(44));
                 document.AddParagraph("After scheme shape");
                 document.Save();
             }
@@ -261,9 +261,9 @@ namespace OfficeIMO.Tests {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingGradientShape.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingGradientShape.pdf");
 
-            using (WordDocument document = WordDocument.Create(docPath)) {
+            using (WordDocument document = WordDocument.Create(docPath, new WordCreateOptions { Theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(accent1: OfficeColor.FromRgb(68, 114, 196), accent2: OfficeColor.FromRgb(237, 125, 49))) })) {
                 document.AddParagraph("Before gradient shape");
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 112, 48);
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(112), OfficeIMO.OfficeLength.Points(48));
                 document.AddParagraph("After gradient shape");
                 document.Save();
             }
@@ -342,9 +342,9 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Renders_DrawingML_Solid_Fill_Alpha_Once() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingSolidAlphaShape.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingSolidAlphaShape.pdf");
-            using (WordDocument document = WordDocument.Create(docPath)) {
+            using (WordDocument document = WordDocument.Create(docPath, new WordCreateOptions { Theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(accent1: OfficeColor.FromRgb(68, 114, 196), accent2: OfficeColor.FromRgb(237, 125, 49))) })) {
                 document.AddParagraph("Before solid alpha shape");
-                document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 112, 48);
+                document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(112), OfficeIMO.OfficeLength.Points(48));
                 document.AddParagraph("After solid alpha shape");
                 document.Save();
             }
@@ -408,7 +408,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Before native text box");
                 WordTextBox textBox = document.AddTextBox("Native text box body");
-                textBox.WidthCentimeters = 7;
+                textBox.Width = OfficeLength.Centimeters(7);
+            textBox.RelativeWidthPercentage = 0;
                 textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Center;
                 textBox.Paragraphs[0].Bold = true;
                 document.AddParagraph("After native text box");

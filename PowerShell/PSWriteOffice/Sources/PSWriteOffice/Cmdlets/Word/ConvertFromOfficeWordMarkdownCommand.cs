@@ -298,8 +298,8 @@ public sealed class ConvertFromOfficeWordMarkdownCommand : AsyncPSCmdlet {
         options.ReaderOptions = readerOptions;
         TrySetOptionProperty(options, "FitImagesToPageContentWidth", FitImagesToPageContentWidth.IsPresent ? true : null);
         TrySetOptionProperty(options, "FitImagesToContextWidth", FitImagesToContextWidth.IsPresent ? true : null);
-        TrySetOptionProperty(options, "MaxImageWidthPixels", MaxImageWidthPixels);
-        TrySetOptionProperty(options, "MaxImageHeightPixels", MaxImageHeightPixels);
+        if (MaxImageWidthPixels.HasValue) options.MaxImageWidth = global::OfficeIMO.OfficeLength.Pixels(MaxImageWidthPixels.Value);
+        if (MaxImageHeightPixels.HasValue) options.MaxImageHeight = global::OfficeIMO.OfficeLength.Pixels(MaxImageHeightPixels.Value);
         TrySetOptionProperty(options, "MaxImageWidthPercentOfContent", MaxImageWidthPercentOfContent);
 
         if (AllowedImageDirectory != null) {

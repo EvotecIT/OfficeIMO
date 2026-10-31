@@ -18,8 +18,8 @@ public sealed class ScanPreparationVisualTests {
             var services = ((App)Application.Current!).Services;
             string source = Path.Combine(services.Paths.Root, "distinct-scan-pages.pdf");
             PdfDocument.Create(c => {
-                c.Page(p => p.Size(240, 320).Content(content => content.Item(i => i.Paragraph(t => t.Text("FIRST PORTRAIT PAGE")))));
-                c.Page(p => p.Size(320, 240).Content(content => content.Item(i => i.Paragraph(t => t.Text("SECOND LANDSCAPE PAGE")))));
+                c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(content => content.Item(i => i.Paragraph(t => t.Text("FIRST PORTRAIT PAGE")))));
+                c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240)).Content(content => content.Item(i => i.Paragraph(t => t.Text("SECOND LANDSCAPE PAGE")))));
             }).Save(source);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(source), services: services);
             model.OcrWorkbench.UseDocument(source);
@@ -91,7 +91,7 @@ public sealed class ScanPreparationVisualTests {
             var services = ((App)Application.Current!).Services;
             services.Preferences.Update(value => value with { Theme = width >= 1000 ? StudioThemePreference.Dark : StudioThemePreference.Light });
             string source = Path.Combine(services.Paths.Root, "scan.pdf"), output = Path.Combine(services.Paths.Root, "prepared.pdf");
-            PdfDocument.Create(c => c.Page(p => p.Size(240, 320).Content(content => content.Item(i => i.Paragraph(t => t.Text("Scanned page for review")))))).Save(source);
+            PdfDocument.Create(c => c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(content => content.Item(i => i.Paragraph(t => t.Text("Scanned page for review")))))).Save(source);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(source), pickSavePdf: _ => Task.FromResult<string?>(output), services: services);
             model.OcrWorkbench.UseDocument(source);
             var scan = model.OcrWorkbench.Scan; scan.Dpi = 72;

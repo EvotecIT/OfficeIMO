@@ -17,7 +17,7 @@ order: 30
 
 | Type | Purpose |
 |------|---------|
-| `PowerPointPresentation` | Root document for creating, loading, saving, and organizing slides |
+| `PowerPointDocument` | Root document for creating, loading, saving, and organizing slides |
 | `PowerPointSlide` | Individual slide surface for titles, text boxes, tables, charts, images, and notes |
 | `PowerPointTextBox` | Rich text container with bullets, formatted runs, margins, and auto-fit |
 | `PowerPointTable` | Strongly typed table surface with styles, column widths, row heights, and merged cells |
@@ -53,7 +53,7 @@ var best = brief.DescribeDeckPlanAlternatives(plan, 3)
     .OrderByDescending(alternative => alternative.ContentFitScore)
     .First();
 
-using var presentation = PowerPointPresentation.Create("proposal.pptx");
+using var presentation = PowerPointDocument.Create("proposal.pptx");
 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);
 composition.SelectBestAlternative = false;
@@ -67,32 +67,33 @@ presentation.Save();
 ## Quick start
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 
-using var presentation = PowerPointPresentation.Create("status-update.pptx");
+using var presentation = PowerPointDocument.Create("status-update.pptx");
 const double marginCm = 1.5;
 
-var content = presentation.SlideSize.GetContentBoxCm(marginCm);
+var content = presentation.SlideSize.GetContentBox(OfficeLength.Centimeters(marginCm));
 var slide = presentation.AddSlide();
 
-var title = slide.AddTitleCm(
+var title = slide.AddTitle(
     "Weekly Status",
-    content.LeftCm,
-    content.TopCm,
-    content.WidthCm,
-    1.4);
+    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(1.4));
 
 if (title.Paragraphs.Count > 0)
 {
     PowerPointTextStyle.Title.WithColor("1F4E79").Apply(title.Paragraphs[0]);
 }
 
-var agenda = slide.AddTextBoxCm(
+var agenda = slide.AddTextBox(
     string.Empty,
-    content.LeftCm,
-    content.TopCm + 2.0,
-    content.WidthCm,
-    content.HeightCm - 2.0);
+    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0),
+    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - 2.0));
 
 agenda.AddBullets(new[]
 {
@@ -123,7 +124,7 @@ blocks known loss by default:
 ```csharp
 using OfficeIMO.PowerPoint.LegacyPpt;
 
-using var presentation = PowerPointPresentation.Load("legacy-deck.ppt");
+using var presentation = PowerPointDocument.Load("legacy-deck.ppt");
 presentation.ReplaceText("Draft", "Approved");
 
 LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
@@ -140,7 +141,7 @@ conversions are blocked. Password-protected binary files use RC4 CryptoAPI for l
 
 ## Layout and content model
 
-- Use `SlideSize.GetContentBoxCm(...)` to reserve consistent margins around the live slide area.
+- Use `SlideSize.GetContentBox(OfficeLength.Centimeters(...))` to reserve consistent margins around the live slide area.
 - Use `GetColumnsCm(...)` when you want balanced two- or three-column compositions.
 - Work in centimeters, points, or EMUs through the built-in unit helpers depending on the scenario.
 - Add titles, text boxes, tables, charts, images, and notes to the same `PowerPointSlide` surface.

@@ -16,16 +16,16 @@ public sealed partial class PdfInvoiceDocument {
     private void ComposeClassic(PdfContentBuilder content) {
         content.H1(DocumentTitle);
         content.Table(new[] { new[] { Label(InvoicePdfText.Seller), Label(InvoicePdfText.Buyer) }, new[] { Party(_invoice.Seller), Party(_invoice.Buyer) } },
-            style: new PdfTableStyle { HeaderRowCount = 1, RowStripeFill = null, SpacingAfter = 8, FontSize = 9 });
+            style: new PdfTableStyle { HeaderRowCount = 1, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(8), FontSize = global::OfficeIMO.OfficeLength.Points(9) });
         var identity = new List<string[]> {
             new[] { Label(InvoicePdfText.Issued), Date(_invoice.IssueDate), Label(InvoicePdfText.Due), Date(_invoice.DueDate) }
         };
         if (_invoice.BuyerReference != null) identity.Add(new[] { Label(InvoicePdfText.BuyerReference), _invoice.BuyerReference, Label(InvoicePdfText.Currency), _invoice.Currency });
-        content.Table(identity, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = 14, FontSize = 9,
+        content.Table(identity, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(14), FontSize = global::OfficeIMO.OfficeLength.Points(9),
             ColumnWidthWeights = new List<double> { 1.2, 2.8, 1, 2 } });
         if (_invoice.Lines.Count != 0)
             content.Table(LineRows(), style: new PdfTableStyle {
-                HeaderRowCount = 1, SpacingAfter = 12, FontSize = 9,
+                HeaderRowCount = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(12), FontSize = global::OfficeIMO.OfficeLength.Points(9),
                 ColumnWidthWeights = LineColumnWeights(),
                 Alignments = LineColumnAlignments()
             });
@@ -41,7 +41,7 @@ public sealed partial class PdfInvoiceDocument {
             Money(tax.TaxableAmount), Money(tax.TaxAmount), Join(tax.ExemptionReasonCode, tax.ExemptionReason)
         }));
         if (_amounts.Taxes.Count != 0)
-            content.Table(taxes, style: new PdfTableStyle { HeaderRowCount = 1, FontSize = 9, SpacingAfter = 12,
+            content.Table(taxes, style: new PdfTableStyle { HeaderRowCount = 1, FontSize = OfficeLength.Points(9), SpacingAfter = OfficeLength.Points(12),
                 Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Left } });
         var summaryRows = new List<string[]>();
         void AddSummary(InvoicePdfText label, decimal? value) {
@@ -59,16 +59,16 @@ public sealed partial class PdfInvoiceDocument {
             new[] { Label(InvoicePdfText.AmountDue), Money(_amounts.PayableAmount) }
         });
         content.Flow(summary => summary.Table(summaryRows, style: new PdfTableStyle {
-            HeaderRowCount = 0, FontSize = 10, SpacingAfter = 14,
+            HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(10), SpacingAfter = global::OfficeIMO.OfficeLength.Points(14),
             Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right }
         }), new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
         ComposeDetails(content);
     }
     // Invoice sections are compact labels in a dense document rather than document-level headings.
     private static PdfHeadingStyle SectionHeadingStyle() => new PdfHeadingStyle {
-        FontSize = 12D, LineHeight = 1.2D, SpacingBefore = 14D, SpacingAfter = 6D, KeepWithNext = true
+        FontSize = OfficeLength.Points(12D), LineHeight = 1.2D, SpacingBefore = OfficeLength.Points(14D), SpacingAfter = OfficeLength.Points(6D), KeepWithNext = true
     };
-    private static PdfTableStyle PlainTable() => new PdfTableStyle { HeaderRowCount = 0, FontSize = 9, SpacingAfter = 10, RowStripeFill = null };
+    private static PdfTableStyle PlainTable() => new PdfTableStyle { HeaderRowCount = 0, FontSize = OfficeLength.Points(9), SpacingAfter = OfficeLength.Points(10), RowStripeFill = null };
     private string Label(InvoicePdfText text) => string.Join(_layout.LabelSeparator,
         _layout.Languages.Select(language => language[text]).Distinct(StringComparer.Ordinal));
     private string Money(decimal value) => value.ToString("#,##0.00", _layout.FormattingCulture) + " " + _invoice.Currency;

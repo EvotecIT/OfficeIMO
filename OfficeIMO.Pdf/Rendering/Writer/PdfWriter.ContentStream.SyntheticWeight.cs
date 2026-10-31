@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal sealed partial class ContentStreamBuilder {
     private bool _syntheticBold, _syntheticWeightScope;
     private int _textObjectStart;
-    private PdfColor _paintFillColor = PdfColor.Black, _textEntryFillColor = PdfColor.Black;
+    private OfficeColor _paintFillColor = OfficeColor.Black, _textEntryFillColor = OfficeColor.Black;
 
     internal static double SyntheticBoldStrokeWidth(double size) => size / 24D;
 

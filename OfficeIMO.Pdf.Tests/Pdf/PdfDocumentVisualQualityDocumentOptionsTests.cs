@@ -16,7 +16,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void GeneratedPageLimitStopsLayoutBeforeCreatingAnotherPage() {
         var options = new PdfCreateOptions {
-            PageHeight = 180, MarginTop = 24, MarginBottom = 24, MaxGeneratedPages = 1
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MaxGeneratedPages = 1
         };
         PdfDocument document = PdfDocument.Create(options)
             .Paragraph(p => p.Text(string.Join(" ", Enumerable.Repeat("A long paragraph", 80))));
@@ -28,7 +28,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void GeneratedPageLimitCountsDiscardedSpacerPages() {
         var options = new PdfCreateOptions {
-            PageHeight = 180, MarginTop = 24, MarginBottom = 24, MaxGeneratedPages = 2
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MaxGeneratedPages = 2
         };
         PdfDocument document = PdfDocument.Create(options)
             .Spacer(100_000)
@@ -42,8 +42,8 @@ public partial class PdfDocumentVisualQualityTests {
     public void GeneratedPageLimitAlsoAppliesToPagesComposedBeforeSettings() {
         PdfDocument document = PdfDocument.Create(_ => { });
         document.Compose(compose => compose.Page(page => page
-            .Size(300, 180)
-            .Margin(24)
+            .Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(180))
+            .Margin(global::OfficeIMO.OfficeLength.Points(24))
             .Content(content => content.Item(item => item.Paragraph(paragraph =>
                 paragraph.Text(string.Join(" ", Enumerable.Repeat("A long paragraph", 80))))))));
         document.Compose(compose => compose.Settings(settings => settings.MaxGeneratedPages = 1));
@@ -64,7 +64,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void Options_RejectInvalidPageGeometryAndTypography() {
         var widthException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = 0
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(0)
                 })
                 .Paragraph(p => p.Text("Invalid page width"))
                 .ToBytes());
@@ -73,7 +73,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var marginException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
-                    MarginLeft = -1
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(-1)
                 })
                 .Paragraph(p => p.Text("Invalid margin"))
                 .ToBytes());
@@ -82,9 +82,9 @@ public partial class PdfDocumentVisualQualityTests {
 
         var contentWidthException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = 100,
-                    MarginLeft = 50,
-                    MarginRight = 50
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(100),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(50),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(50)
                 })
                 .Paragraph(p => p.Text("No content width"))
                 .ToBytes());
@@ -93,9 +93,9 @@ public partial class PdfDocumentVisualQualityTests {
 
         var contentHeightException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
-                    PageHeight = 100,
-                    MarginTop = 60,
-                    MarginBottom = 40
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(100),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(60),
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(40)
                 })
                 .Paragraph(p => p.Text("No content height"))
                 .ToBytes());
@@ -104,7 +104,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var fontException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
-                    DefaultFontSize = double.NaN
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Zero
                 })
                 .Paragraph(p => p.Text("Invalid font size"))
                 .ToBytes());
@@ -123,7 +123,7 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create(new PdfCreateOptions {
                     ShowHeader = true,
                     HeaderFormat = "Header",
-                    HeaderFontSize = double.NaN
+                    HeaderFontSize = global::OfficeIMO.OfficeLength.Zero
                 })
                 .Paragraph(p => p.Text("Invalid header font size"))
                 .ToBytes());
@@ -142,8 +142,8 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create(new PdfCreateOptions {
                     ShowHeader = true,
                     HeaderFormat = "Header",
-                    MarginTop = 20,
-                    HeaderOffsetY = 21
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                    HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(21)
                 })
                 .Paragraph(p => p.Text("Header above page"))
                 .ToBytes());
@@ -185,7 +185,7 @@ public partial class PdfDocumentVisualQualityTests {
         var footerException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
                     ShowPageNumbers = true,
-                    FooterFontSize = double.PositiveInfinity
+                    FooterFontSize = global::OfficeIMO.OfficeLength.Zero
                 })
                 .Paragraph(p => p.Text("Invalid footer font size"))
                 .ToBytes());
@@ -203,8 +203,8 @@ public partial class PdfDocumentVisualQualityTests {
         var footerOffsetException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
                     ShowPageNumbers = true,
-                    MarginBottom = 20,
-                    FooterOffsetY = 21
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                    FooterOffsetY = global::OfficeIMO.OfficeLength.Points(21)
                 })
                 .Paragraph(p => p.Text("Footer below page"))
                 .ToBytes());
@@ -238,8 +238,8 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create()
                 .Compose(compose =>
                     compose.Page(page => {
-                        page.Size(200, 160);
-                        page.Margin(left: 100, top: 20, right: 100, bottom: 20);
+                        page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(160));
+                        page.Margin(left: global::OfficeIMO.OfficeLength.Points(100), top: global::OfficeIMO.OfficeLength.Points(20), right: global::OfficeIMO.OfficeLength.Points(100), bottom: global::OfficeIMO.OfficeLength.Points(20));
                         page.Content(content =>
                             content.Column(column =>
                                 column.Item().Paragraph(p => p.Text("No content width"))));

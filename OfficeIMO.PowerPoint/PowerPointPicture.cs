@@ -193,8 +193,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(imageHeight));
             }
 
-            double boxWidth = Width;
-            double boxHeight = Height;
+            double boxWidth = Width.ToEmus();
+            double boxHeight = Height.ToEmus();
             if (boxWidth <= 0 || boxHeight <= 0) {
                 throw new InvalidOperationException("Picture has invalid dimensions.");
             }
@@ -236,10 +236,10 @@ namespace OfficeIMO.PowerPoint {
                 long deltaX = (long)Math.Round((boxWidth - newWidth) / 2);
                 long deltaY = (long)Math.Round((boxHeight - newHeight) / 2);
 
-                Left += deltaX;
-                Top += deltaY;
-                Width = (long)Math.Round(newWidth);
-                Height = (long)Math.Round(newHeight);
+                Left += OfficeIMO.OfficeLength.Emus(deltaX);
+                Top += OfficeIMO.OfficeLength.Emus(deltaY);
+                Width = OfficeIMO.OfficeLength.Emus((long)Math.Round(newWidth));
+                Height = OfficeIMO.OfficeLength.Emus((long)Math.Round(newHeight));
             }
         }
 

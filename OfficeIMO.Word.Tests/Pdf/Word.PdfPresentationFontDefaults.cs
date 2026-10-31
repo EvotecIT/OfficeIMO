@@ -28,15 +28,15 @@ public partial class Word {
     public void SaveAsPdf_PresentationOptionsPreserveInheritedBodyTypography(bool profile, string setting) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("Inherited body font and size");
         var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
         else options.PdfOptions = new PdfCreateOptions();
         PdfCreateOptions configured = options.PdfOptions!;
         switch (setting) {
-            case "header-size": configured.HeaderFontSize = 24; break;
-            case "footer-size": configured.FooterFontSize = 24; break;
+            case "header-size": configured.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(24); break;
+            case "footer-size": configured.FooterFontSize = global::OfficeIMO.OfficeLength.Points(24); break;
             case "header-font": configured.HeaderFont = PdfStandardFont.Courier; break;
             case "footer-font": configured.FooterFont = PdfStandardFont.Courier; break;
             case "header-family": configured.HeaderFontFamily = "Courier New"; break;
@@ -68,7 +68,7 @@ public partial class Word {
         if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
         else options.PdfOptions = new PdfCreateOptions();
         options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
-        options.PdfOptions.HeaderFontSize = 24;
+        options.PdfOptions.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(24);
         using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Contains("Courier", letter.FontName, StringComparison.Ordinal));
     }
@@ -81,7 +81,7 @@ public partial class Word {
     public void SaveAsPdf_GeneratedPresentationRetainsItsExplicitFont(bool profile, bool footer) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("BODY");
         var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
@@ -110,14 +110,14 @@ public partial class Word {
     public void SaveAsPdf_DefaultSizeAssignmentPreservesTheInheritedFamily(bool profile, bool repeatProfile) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("BODY");
         var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         var fontless = new OfficeRenderingProfile("shaping-only");
         if (profile) options.UseRenderingProfile(fontless);
         else options.PdfOptions = new PdfCreateOptions();
-        double size = repeatProfile ? 13 : options.PdfOptions!.DefaultFontSize;
-        options.PdfOptions!.DefaultFontSize = size;
+        double size = repeatProfile ? 13 : options.PdfOptions!.DefaultFontSize.ToPoints();
+        options.PdfOptions!.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(size);
         if (repeatProfile) options.UseRenderingProfile(fontless, OfficeRenderingProfileApplyMode.Replace);
         using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(pdf.GetPage(1).Letters, letter => {

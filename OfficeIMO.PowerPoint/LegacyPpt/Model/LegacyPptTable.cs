@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents a native binary PowerPoint table decoded from an OfficeArt shape group.</summary>
-    public sealed class LegacyPptTable {
+    internal sealed class LegacyPptTable {
         private const ushort TablePropertiesId = 0x039F;
         private const int MaximumTableDimension = 1024;
         private const long MaximumTableGridCells = 100_000L;
@@ -174,7 +174,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents one native binary PowerPoint table cell.</summary>
-    public sealed class LegacyPptTableCell {
+    internal sealed class LegacyPptTableCell {
         internal LegacyPptTableCell(int row, int column, int rowSpan,
             int columnSpan, LegacyPptShape sourceShape,
             LegacyPptTableBorder? leftBorder,
@@ -221,7 +221,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Describes one native binary PowerPoint table border.</summary>
-    public readonly struct LegacyPptTableBorder {
+    internal readonly struct LegacyPptTableBorder {
         internal LegacyPptTableBorder(bool isVisible, string color,
             double widthPoints) {
             IsVisible = isVisible;

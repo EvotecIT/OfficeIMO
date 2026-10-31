@@ -4,7 +4,7 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private bool AppendFootnoteList(PdfListBlock block, double frameX, double frameWidth,
             FootnotePanel[] panels, List<FootnoteUnit> units) {
-            PreparedListLayout prepared = PrepareListLayout(block, frameWidth, currentOpts.DefaultFontSize, topLevelSpacing: false);
+            PreparedListLayout prepared = PrepareListLayout(block, frameWidth, currentOpts.DefaultFontSize.ToPoints(), topLevelSpacing: false);
             int start = units.Count;
             for (int itemIndex = 0; itemIndex < prepared.Items.Count; itemIndex++) {
                 PreparedListItem item = prepared.Items[itemIndex];
@@ -37,10 +37,10 @@ internal static partial class PdfWriter {
             if (!string.IsNullOrEmpty(item.Item.BookmarkName)) AddNamedDestinationName(item.Item.BookmarkName!, top);
             foreach (string alias in item.Item.BookmarkAliases) AddNamedDestinationName(alias, top);
             var placement = GetListMarkerPlacement(prepared, item);
-            double markerX = (originX ?? currentOpts.MarginLeft) + unit.FrameX + placement.X;
+            double markerX = (originX ?? currentOpts.MarginLeft.ToPoints()) + unit.FrameX + placement.X;
             double baseline = AdjustRichLineBaseline(FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), unit.Size, top),
                 unit.Line!, currentOpts, unit.Size);
-            PdfColor? color = prepared.Style?.MarkerColor ?? prepared.Block.Color ?? prepared.Style?.Color;
+            global::OfficeIMO.OfficeColor? color = prepared.Style?.MarkerColor ?? prepared.Block.Color ?? prepared.Style?.Color;
             int? markedContentId = RegisterTextStructureElement("Lbl");
             if (WriteListMarkerFallback(item.MarkerFallback, markerX, placement.Width, baseline, prepared.MarkerSize,
                     prepared.Leading, placement.Align, color, markedContentId)) return;

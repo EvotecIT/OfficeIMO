@@ -75,12 +75,12 @@ public partial class Word {
         WordParagraph paragraph = document.AddParagraph("Reset overrides");
         SetParagraphOverrides(paragraph, false);
         paragraph.OutlineLevel = 4;
-        paragraph.LineSpacingAfterPoints = 14;
+        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(14D);
         SetParagraphOverrides(paragraph, null);
         paragraph.OutlineLevel = null;
         AssertParagraphOverrides(paragraph, null);
         Assert.Null(paragraph.OutlineLevel);
-        Assert.Equal(14, paragraph.LineSpacingAfterPoints);
+        Assert.Equal(14, paragraph.LineSpacingAfter?.ToPoints());
         Assert.Empty(new OpenXmlValidator().Validate(paragraph._paragraph.ParagraphProperties!));
     }
 
@@ -125,7 +125,7 @@ public partial class Word {
             BasedOnStyleId = "Normal", PageBreakBefore = state, KeepWithNext = state,
             KeepLinesTogether = state, AvoidWidowAndOrphan = state, ContextualSpacing = state,
             SuppressLineNumbers = state, SuppressAutoHyphens = state, MirrorIndents = state,
-            OutlineLevel = 3, FontName = "Arial", SpacingAfterTwips = 200
+            OutlineLevel = 3, FontName = "Arial", SpacingAfter = global::OfficeIMO.OfficeLength.Emus(200L * 635)
         };
         using (WordDocument document = WordDocument.Create(path)) {
             Style style = definition.ToOpenXml();

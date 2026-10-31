@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
@@ -16,8 +17,8 @@ public class HtmlNativeTableWidths {
         using WordDocument reopened = WordDocument.Load(saved);
         WordTable table = Assert.Single(reopened.Tables);
         WordSection section = reopened.Sections[0];
-        int textWidth = (int)section.PageSettings.Width!.Value - (int)section.Margins.Left - (int)section.Margins.Right;
-        Assert.InRange(table.GridColumnWidth.Sum(), 1, textWidth);
+        int textWidth = (int)checked((uint?)(section.PageSettings.Width?.ToTwips()))!.Value - (int)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - (int)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()));
+        Assert.InRange(table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum(), 1, textWidth);
         Assert.Equal(5, table.Rows[0].Cells.Count);
         Assert.Contains("Fifth column is visible", table.Rows[0].Cells[4].Paragraphs.Select(p => p.Text));
     }
@@ -28,7 +29,7 @@ public class HtmlNativeTableWidths {
     public void HtmlToWord_AuthoredTableAndColumnWidthsArePreserved(string attributes, string columns, int width) {
         using WordDocument word = HtmlConversionDocument.Parse("<table " + attributes + ">" + columns + FiveColumns + "</table>").ToWord();
         WordTable table = Assert.Single(word.Tables);
-        Assert.Equal(width, table.GridColumnWidth.Sum());
+        Assert.Equal(width, table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum());
     }
 
     [Fact]
@@ -37,7 +38,7 @@ public class HtmlNativeTableWidths {
         WordTable outer = Assert.Single(word.Tables);
         WordTableCell containingCell = outer.Rows[0].Cells[1];
         WordTable nested = Assert.Single(containingCell.NestedTables);
-        Assert.InRange(nested.GridColumnWidth.Sum(), 1, containingCell.Width!.Value);
+        Assert.InRange(nested.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum(), 1, containingCell.Width!.Value.ToNativeValue());
     }
     [Theory]
     [InlineData("", "")]
@@ -54,7 +55,7 @@ public class HtmlNativeTableWidths {
         System.Xml.Linq.XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
         var nested = Assert.Single(document.Descendants(w + "sdtContent").Elements(w + "tbl"));
         int width = nested.Element(w + "tblGrid")!.Elements(w + "gridCol").Sum(col => (int)col.Attribute(w + "w")!);
-        Assert.InRange(width, 1, containingCell.Width!.Value - 216);
+        Assert.InRange(width, 1, containingCell.Width!.Value.ToNativeValue() - 216);
     }
 
     [Theory]
@@ -68,13 +69,13 @@ public class HtmlNativeTableWidths {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph("First section");
         WordSection target = word.AddSection();
-        target.PageSettings.Width = 7000;
-        target.Margins.Left = 1000;
-        target.Margins.Right = 1000;
+        target.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(350D);
+        target.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
+        target.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
         HtmlConversionDocument html = HtmlConversionDocument.Parse("<ul><li><table " + attributes + ">" + FiveColumns + "</table></li></ul>");
-        if (scope == "header") word.AddHtmlToHeader(html);
-        else if (scope == "footer") word.AddHtmlToFooter(html);
-        else word.AddHtmlToBody(html);
+        if (scope == "header") target.GetOrCreateHeader(WordHeaderFooterType.Default).AddHtml(html);
+        else if (scope == "footer") target.GetOrCreateFooter(WordHeaderFooterType.Default).AddHtml(html);
+        else word.AddHtml(html);
         using MemoryStream saved = new System.IO.MemoryStream(word.ToBytes());
         using var archive = new System.IO.Compression.ZipArchive(saved, System.IO.Compression.ZipArchiveMode.Read);
         XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
@@ -92,18 +93,18 @@ public class HtmlNativeTableWidths {
     [InlineData(true, 100, 5000, true)]
     [InlineData(false, 50, 2500, true)]
     [InlineData(true, 50, 2500, true)]
-    public void HtmlToWord_SharedStoryTableUsesTheSelectedLayoutSection(bool footer, int percent, int expectedWidth, bool inherited) {
+    public async System.Threading.Tasks.Task HtmlToWord_SharedStoryImageAndTableUseTheSelectedLayoutSection(bool footer, int percent, int expectedWidth, bool inherited) {
         using WordDocument word = WordDocument.Create();
         WordSection first = word.Sections[0];
-        first.PageSettings.Width = 12000;
-        first.Margins.Left = 1500;
-        first.Margins.Right = 1500;
+        first.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(600D);
+        first.Margins.Left = global::OfficeIMO.OfficeLength.Points(75D);
+        first.Margins.Right = global::OfficeIMO.OfficeLength.Points(75D);
         if (footer) first.GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph("Shared footer");
         else first.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Shared header");
         WordSection last = word.AddSection();
-        last.PageSettings.Width = 7000;
-        last.Margins.Left = 1000;
-        last.Margins.Right = 1000;
+        last.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(350D);
+        last.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
+        last.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
         if (footer) {
             var reference = first._sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.FooterReference>()!;
             last._sectionProperties.RemoveAllChildren<DocumentFormat.OpenXml.Wordprocessing.FooterReference>();
@@ -115,8 +116,38 @@ public class HtmlNativeTableWidths {
             if (!inherited) last._sectionProperties.PrependChild((DocumentFormat.OpenXml.Wordprocessing.HeaderReference)reference.CloneNode(true));
             last.Header.Default = first.Header.Default;
         }
-        HtmlConversionDocument html = HtmlConversionDocument.Parse("<ul><li><table style='width:" + percent + "%'>" + FiveColumns + "</table></li></ul>");
-        if (footer) word.AddHtmlToFooter(html); else word.AddHtmlToHeader(html);
+        const string pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
+        HtmlConversionDocument html = HtmlConversionDocument.Parse("<ul><li><table style='width:" + percent + "%'>" + FiveColumns +
+            "</table></li></ul><p><img src='data:image/png;base64," + pixel + "' width='1200' height='1200' style='max-width:100%' alt='Shared story image'></p>");
+        WordHeaderFooter story = footer ? first.Footer.Default! : first.Header.Default!;
+        if (percent == 100 && !inherited) {
+            using WordDocument foreign = WordDocument.Create();
+            string before = (story._header as DocumentFormat.OpenXml.OpenXmlElement ?? story._footer!).OuterXml;
+            if (footer) {
+                Assert.Throws<ArgumentException>(() => first.Footer.Default!.AddHtml(html, section: foreign.Sections[0]));
+                WordFooter unrelatedStory = last.GetOrCreateFooter(WordHeaderFooterType.First);
+                string unrelatedBefore = unrelatedStory._footer!.OuterXml;
+                await Assert.ThrowsAsync<ArgumentException>(() => unrelatedStory.AddHtmlAsync(html, section: first));
+                Assert.Equal(unrelatedBefore, unrelatedStory._footer.OuterXml);
+            } else {
+                await Assert.ThrowsAsync<ArgumentException>(() => first.Header.Default!.AddHtmlAsync(html, section: foreign.Sections[0]));
+                WordHeader unrelatedStory = last.GetOrCreateHeader(WordHeaderFooterType.First);
+                string unrelatedBefore = unrelatedStory._header!.OuterXml;
+                Assert.Throws<ArgumentException>(() => unrelatedStory.AddHtml(html, section: first));
+                Assert.Equal(unrelatedBefore, unrelatedStory._header.OuterXml);
+            }
+            Assert.Equal(before, (story._header as DocumentFormat.OpenXml.OpenXmlElement ?? story._footer!).OuterXml);
+        }
+        var created = footer
+            ? await first.Footer.Default!.AddHtmlAsync(html, section: last)
+            : first.Header.Default!.AddHtml(html, section: last);
+        Assert.NotEmpty(created);
+        Assert.DoesNotContain(created.OfType<WordParagraph>(), paragraph => paragraph.Text.Contains("Shared footer", StringComparison.Ordinal) || paragraph.Text.Contains("Shared header", StringComparison.Ordinal));
+        WordParagraph importedImage = Assert.Single(created.OfType<WordParagraph>(), paragraph => paragraph.Image != null);
+        Assert.Equal(250D, importedImage.Image!.Width!.Value.ToPoints(), 3);
+        importedImage.AddText("Imported image");
+        if (footer) first.Footer.Default!.AddHtml(html);
+        else await first.Header.Default!.AddHtmlAsync(html);
         using MemoryStream saved = new System.IO.MemoryStream(word.ToBytes());
         using WordDocument reopened = WordDocument.Load(saved);
         using MemoryStream resaved = new System.IO.MemoryStream(reopened.ToBytes());
@@ -124,29 +155,34 @@ public class HtmlNativeTableWidths {
         XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
         int[] widths = archive.Entries.Where(entry => entry.FullName.StartsWith(footer ? "word/footer" : "word/header", StringComparison.Ordinal) && entry.FullName.EndsWith(".xml", StringComparison.Ordinal))
             .SelectMany(entry => { using var xml = entry.Open(); return XDocument.Load(xml).Descendants(w + "tblGrid").Select(grid => grid.Elements(w + "gridCol").Sum(col => (int)col.Attribute(w + "w")!)).ToArray(); }).ToArray();
-        Assert.Equal(expectedWidth, Assert.Single(widths));
+        Assert.Equal(new[] { expectedWidth, 9000 * percent / 100 }, widths);
+        XNamespace wp = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+        long[] imageWidths = archive.Entries.Where(entry => entry.FullName.StartsWith(footer ? "word/footer" : "word/header", StringComparison.Ordinal) && entry.FullName.EndsWith(".xml", StringComparison.Ordinal))
+            .SelectMany(entry => { using var xml = entry.Open(); return XDocument.Load(xml).Descendants(wp + "extent").Select(extent => (long)extent.Attribute("cx")!).ToArray(); }).ToArray();
+        Assert.Equal(new[] { 5000L * 635, 9000L * 635 }, imageWidths);
+        Assert.Contains("Imported image", footer ? reopened.Sections[0].Footer.Default!.Paragraphs.Select(paragraph => paragraph.Text) : reopened.Sections[0].Header.Default!.Paragraphs.Select(paragraph => paragraph.Text));
     }
 
     [Fact]
     public void HtmlToWord_MovedPercentageTableUsesItsCurrentBodySection() {
         using WordDocument word = WordDocument.Create();
         WordSection first = word.Sections[0];
-        first.PageSettings.Width = 7000;
-        first.Margins.Left = 1000;
-        first.Margins.Right = 1000;
-        word.AddHtmlToBody(HtmlConversionDocument.Parse("<table style='width:100%'>" + FiveColumns + "</table>"));
+        first.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(350D);
+        first.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
+        first.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
+        word.AddHtml(HtmlConversionDocument.Parse("<table style='width:100%'>" + FiveColumns + "</table>"));
         WordTable table = Assert.Single(word.Tables);
-        Assert.Equal(5000, table.GridColumnWidth.Sum());
+        Assert.Equal(5000, table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum());
         WordSection last = word.AddSection();
-        last.PageSettings.Width = 12000;
-        last.Margins.Left = 1500;
-        last.Margins.Right = 1500;
+        last.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(600D);
+        last.Margins.Left = global::OfficeIMO.OfficeLength.Points(75D);
+        last.Margins.Right = global::OfficeIMO.OfficeLength.Points(75D);
         WordParagraph anchor = word.AddParagraph("Second section anchor");
         table.Remove();
         word.InsertTableAfter(anchor, table);
         using MemoryStream saved = new System.IO.MemoryStream(word.ToBytes());
         using WordDocument reopened = WordDocument.Load(saved);
-        Assert.Equal(9000, Assert.Single(reopened.Tables).GridColumnWidth.Sum());
+        Assert.Equal(9000, Assert.Single(reopened.Tables).GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum());
     }
 
 }

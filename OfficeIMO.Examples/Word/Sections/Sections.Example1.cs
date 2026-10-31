@@ -22,11 +22,11 @@ namespace OfficeIMO.Examples.Word {
 
                 section1.PageOrientation = OfficePageOrientation.Portrait;
 
-                section1.AddParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(20);
+                section1.AddParagraph("Test 1 - Should be after 1st section").SetFontFamily("Tahoma").SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
 
                 var section2 = document.AddSection();
 
-                section2.AddParagraph("Test 2 - Should be after 2nd section").SetFontFamily("Tahoma").SetFontSize(20);
+                section2.AddParagraph("Test 2 - Should be after 2nd section").SetFontFamily("Tahoma").SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
 
                 section2.PageOrientation = OfficePageOrientation.Landscape;
 

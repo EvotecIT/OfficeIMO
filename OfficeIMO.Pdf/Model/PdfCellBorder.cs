@@ -6,7 +6,7 @@ internal enum PdfCellBorderPriority { Table, Cell, Nil }
 /// Describes an override border for a single table cell.
 /// </summary>
 public sealed class PdfCellBorder {
-    private double _width = 0.5;
+    private global::OfficeIMO.OfficeLength _width = global::OfficeIMO.OfficeLength.Points(0.5);
     private PdfCellBorderSide? _topBorder;
     private PdfCellBorderSide? _rightBorder;
     private PdfCellBorderSide? _bottomBorder;
@@ -15,13 +15,13 @@ public sealed class PdfCellBorder {
     private PdfCellBorderSide? _diagonalDownBorder;
 
     /// <summary>Border color. Set to null or use a zero width to suppress the border.</summary>
-    public PdfColor? Color { get; set; } = new PdfColor(0.8, 0.8, 0.8);
+    public global::OfficeIMO.OfficeColor? Color { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8, 0.8, 0.8);
 
-    /// <summary>Border stroke width in points.</summary>
-    public double Width {
+    /// <summary>Border stroke width as a physical length.</summary>
+    public global::OfficeIMO.OfficeLength Width {
         get => _width;
         set {
-            if (value < 0 || double.IsNaN(value) || double.IsInfinity(value)) {
+            if (value.ToPoints() < 0 || double.IsNaN(value.ToPoints()) || double.IsInfinity(value.ToPoints())) {
                 throw new System.ArgumentException("Table cell border widths must be non-negative finite values.", nameof(Width));
             }
 

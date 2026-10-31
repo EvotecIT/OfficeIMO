@@ -42,9 +42,9 @@ namespace OfficeIMO.Excel.Pdf {
             foreach (WorksheetChartExportData chart in plan.Charts) {
                 ExcelChartInfo snapshot = chart.Snapshot;
                 if (TryGetWorksheetObjectOffset(plan, chunk, columnWidths, rowHeights, snapshot.RowIndex, snapshot.ColumnIndex, out double x, out double y,
-                        PixelsToPoints(snapshot.OffsetXPixels + snapshot.WidthPixels), PixelsToPoints(snapshot.OffsetYPixels + snapshot.HeightPixels))) {
-                    rects.Add((x + PixelsToPoints(snapshot.OffsetXPixels), y + PixelsToPoints(snapshot.OffsetYPixels),
-                        PixelsToPoints(snapshot.WidthPixels), PixelsToPoints(snapshot.HeightPixels)));
+                        (snapshot.OffsetX.ToPoints() + snapshot.Width.ToPoints()), (snapshot.OffsetY.ToPoints() + snapshot.Height.ToPoints()))) {
+                    rects.Add((x + snapshot.OffsetX.ToPoints(), y + snapshot.OffsetY.ToPoints(),
+                        snapshot.Width.ToPoints(), snapshot.Height.ToPoints()));
                 }
             }
 

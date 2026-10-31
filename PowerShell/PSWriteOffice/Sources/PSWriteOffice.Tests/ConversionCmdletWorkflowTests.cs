@@ -49,7 +49,7 @@ public sealed class ConversionCmdletWorkflowTests {
         try {
             string source = Path.Combine(root, "review.md");
             string outputDirectory = Directory.CreateDirectory(Path.Combine(root, "pdf")).FullName;
-            string destination = Path.Combine(outputDirectory, "review.md.pdf");
+            string destination = Path.Combine(outputDirectory, "review.pdf");
             string jobPath = Path.Combine(root, "review.officejob.json");
             string reportPath = Path.Combine(root, "run.json");
             File.WriteAllText(source, "# Saved source");

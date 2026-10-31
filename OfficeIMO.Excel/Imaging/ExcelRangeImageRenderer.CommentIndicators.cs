@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                double fontSize = run.FontSize ?? style.TextFontSize;
+                double fontSize = run.FontSize?.ToPoints() ?? style.TextFontSize;
                 OfficeColor color = ResolveArgb(run.FontColorArgb) ?? style.TextColor;
                 runs.Add(new OfficeRichTextRun(
                     run.Text,

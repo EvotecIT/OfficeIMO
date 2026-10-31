@@ -6,7 +6,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Shared content limits used by semantic PowerPoint deck plans.
     /// </summary>
-    public static class PowerPointDeckPlanLimits {
+    internal static class PowerPointDeckPlanLimits {
         /// <summary>Maximum narrative sections rendered by a case-study slide.</summary>
         public const int MaxCaseStudySections = 4;
         /// <summary>Maximum metrics visibly rendered by a case-study slide.</summary>

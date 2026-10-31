@@ -30,10 +30,10 @@ internal static class RealWorldWorkflowShowcase {
         string sourcePath = Path.Combine(output, "customer-delivery-summary.docx");
         #region Excerpt:customer-delivery-summary
         using WordDocument document = WordDocument.Create(sourcePath);
-        document.Settings.FontSize = 11;
+        document.Settings.FontSize = OfficeLength.Points(11);
         document.BuiltinDocumentProperties.Title = "Customer delivery summary";
         document.AddHeadersAndFooters();
-        document.HeaderDefaultOrCreate.AddParagraph("Northwind Operations · Quarterly service review").FontSize = 9;
+        document.HeaderDefaultOrCreate.AddParagraph("Northwind Operations · Quarterly service review").FontSize = global::OfficeIMO.OfficeLength.Points(9);
         document.FooterDefaultOrCreate.AddPageNumber(includeTotalPages: true);
 
         AddTitleBlock(document, "NORTHWIND OPERATIONS / QUARTERLY SERVICE REVIEW", "Customer delivery summary",
@@ -46,17 +46,17 @@ internal static class RealWorldWorkflowShowcase {
 
         AddHeading(document, "Incidents per week");
         // 600 px (6.25 in) fits the text width of both Letter and A4 pages with 1 in margins.
-        document.AddChart(OfficeChartKind.ColumnClustered, WeeklyIncidents, width: 600, height: 220);
+        document.AddChart(OfficeChartType.ColumnClustered, WeeklyIncidents, new OfficeChartOptions { Width = OfficeLength.Pixels(600), Height = OfficeLength.Pixels(220) });
 
         AddHeading(document, "Next steps");
         AddStatusTable(document, NextSteps, 40, 24, 18, 18);
 
         WordParagraph decision = document.AddParagraph("Decision requested: approve the delivery notes so the improvement backlog can start next sprint.");
         decision.ShadingFillColorHex = "EAF1FB";
-        decision.LineSpacingBeforePoints = 8;
+        decision.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(8D);
         decision.Borders.LeftStyle = WordBorderStyle.Single;
         decision.Borders.LeftColorHex = "235FB4";
-        decision.Borders.LeftSize = 24;
+        decision.Borders.LeftSize = OfficeLength.Points(3);
         #endregion
 
         document.Save();
@@ -83,25 +83,25 @@ internal static class RealWorldWorkflowShowcase {
     private static readonly OfficeChartData WeeklyIncidents = new(
         new[] { "Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6" },
         new[] {
-            new OfficeChartSeries("Last quarter", new double[] { 14, 13, 16, 12, 13, 14 }),
-            new OfficeChartSeries("This quarter", new double[] { 11, 9, 8, 7, 6, 5 })
+            new OfficeSeries("Last quarter", new double[] { 14, 13, 16, 12, 13, 14 }),
+            new OfficeSeries("This quarter", new double[] { 11, 9, 8, 7, 6, 5 })
         });
 
     // Small layout helpers for the delivery summary; every call inside them is the public OfficeIMO.Word API.
     private static WordParagraph AddHeading(WordDocument document, string text, int size = 14, int before = 8) {
         WordParagraph heading = document.AddParagraph(text);
         heading.Style = size > 20 ? WordParagraphStyles.Heading1 : WordParagraphStyles.Heading2;
-        heading.FontSize = size;
+        heading.FontSize = global::OfficeIMO.OfficeLength.Points(size);
         heading.Bold = true;
         heading.SetColorHex("17365D");
-        heading.LineSpacingBeforePoints = before;
-        heading.LineSpacingAfterPoints = 5;
+        heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(before);
+        heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(5D);
         return heading;
     }
 
     private static void AddTitleBlock(WordDocument document, string eyebrow, string title, string subtitle) {
         WordParagraph label = document.AddParagraph(eyebrow);
-        label.FontSize = 9;
+        label.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         label.Bold = true;
         label.SetColorHex("235FB4");
         AddHeading(document, title, 28, 4);
@@ -114,14 +114,14 @@ internal static class RealWorldWorkflowShowcase {
         for (int i = 0; i < kpis.Length; i++) {
             WordTableCell cell = strip.Rows[0].Cells[i];
             cell.ShadingFillColorHex = "EAF1FB";
-            cell.MarginTopCentimeters = 0.1;
-            cell.MarginBottomCentimeters = 0.1;
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
+            cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
             cell.Paragraphs[0].Text = kpis[i].Value;
-            cell.Paragraphs[0].FontSize = 22;
+            cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(22);
             cell.Paragraphs[0].Bold = true;
             cell.Paragraphs[0].SetColorHex("17365D");
             WordParagraph label = cell.AddParagraph(kpis[i].Label);
-            label.FontSize = 9;
+            label.FontSize = global::OfficeIMO.OfficeLength.Points(9);
             label.SetColorHex("526179");
         }
     }
@@ -131,8 +131,8 @@ internal static class RealWorldWorkflowShowcase {
         for (int row = 0; row < rows.Length; row++) {
             for (int column = 0; column < widths.Length; column++) {
                 WordTableCell cell = grid.Rows[row].Cells[column];
-                cell.MarginTopCentimeters = 0.12;
-                cell.MarginBottomCentimeters = 0.12;
+                cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.12D);
+                cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.12D);
                 cell.Paragraphs[0].Text = rows[row][column];
                 if (row == 0) {
                     cell.ShadingFillColorHex = "17365D";

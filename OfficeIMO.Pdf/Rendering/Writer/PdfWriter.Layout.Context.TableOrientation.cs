@@ -21,7 +21,7 @@ internal static partial class PdfWriter {
             double width = Math.Max(1D, frame.Height - left - right);
             double height = Math.Max(0D, frame.Width - top - bottom);
             var layout = CreateTableCellTextLayout(cell, width, font, fontSize, leading, currentOpts,
-                runFontSizeScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum,
+                runFontSizeScale, style.MinimumShrinkFontSize?.ToPoints() ?? 6D, style.AutoFitWidthUsesContentMinimum,
                 cancellationToken: cancellationToken);
             // Exact line spacing may be smaller than the glyphs. Retain every
             // column whose ink intersects the physical cell, preserving advances
@@ -36,7 +36,7 @@ internal static partial class PdfWriter {
                 PdfCellVerticalAlign.Bottom => unused,
                 _ => 0D
             };
-            double firstBaseline = frame.Width - top - offset - layout.TopSpacing - GetAscenderForOptions(font, fontSize, currentOpts) + style.RowBaselineOffset;
+            double firstBaseline = frame.Width - top - offset - layout.TopSpacing - GetAscenderForOptions(font, fontSize, currentOpts) + style.RowBaselineOffset.ToPoints();
             var lines = StripRichLineLinksWhenCellLinked(SliceTableCellLines(layout, 0, count), cell.LinkUri, cell.LinkDestinationName);
             var heights = SliceTableCellLineHeights(layout, 0, count, leading);
             var alignments = SliceTableCellLineAlignments(layout, 0, count);

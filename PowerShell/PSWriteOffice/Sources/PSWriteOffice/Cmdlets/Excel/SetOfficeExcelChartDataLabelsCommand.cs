@@ -105,12 +105,12 @@ public sealed class SetOfficeExcelChartDataLabelsCommand : PSWriteOffice.Cmdlets
 
             if (FontSizePoints.HasValue || Bold.HasValue || Italic.HasValue ||
                 !string.IsNullOrWhiteSpace(Color) || !string.IsNullOrWhiteSpace(FontName)) {
-                Chart.SetDataLabelTextStyle(FontSizePoints, Bold, Italic, Color, FontName);
+                Chart.SetDataLabelTextStyle(FontSizePoints.HasValue ? OfficeLength.Points(FontSizePoints.Value) : (OfficeLength?)null, Bold, Italic, Color != null ? OfficeColor.Parse(Color) : (OfficeColor?)null, FontName);
             }
 
             if (!string.IsNullOrWhiteSpace(FillColor) || !string.IsNullOrWhiteSpace(LineColor) ||
                 LineWidthPoints.HasValue || NoFill.IsPresent || NoLine.IsPresent) {
-                Chart.SetDataLabelShapeStyle(FillColor, LineColor, LineWidthPoints, NoFill.IsPresent, NoLine.IsPresent);
+                Chart.SetDataLabelShapeStyle(FillColor != null ? OfficeColor.Parse(FillColor) : (OfficeColor?)null, LineColor != null ? OfficeColor.Parse(LineColor) : (OfficeColor?)null, LineWidthPoints.HasValue ? OfficeLength.Points(LineWidthPoints.Value) : (OfficeLength?)null, NoFill.IsPresent, NoLine.IsPresent);
             }
 
             WritePassThru(Chart);

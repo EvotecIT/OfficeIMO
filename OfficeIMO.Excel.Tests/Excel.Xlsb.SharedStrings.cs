@@ -232,7 +232,7 @@ public partial class Excel {
 
     private static byte[] CreateSstWorkbook(bool largeTable, bool repeatFirstValue = false) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Text");
         sheet.CellValue(1, 2, "Value");
         sheet.CellValue(2, 1, "Replace");

@@ -32,7 +32,7 @@ public sealed class SetOfficePowerPointLayoutPlaceholderTextStyleCommand : PSCmd
 {
     /// <summary>Presentation to update (optional inside DSL).</summary>
     [Parameter(ValueFromPipeline = true)]
-    public PowerPointPresentation? Presentation { get; set; }
+    public PowerPointDocument? Presentation { get; set; }
 
     /// <summary>Slide master index.</summary>
     [Parameter]
@@ -113,7 +113,7 @@ public sealed class SetOfficePowerPointLayoutPlaceholderTextStyleCommand : PSCmd
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        PowerPointPresentation? presentation = null;
+        PowerPointDocument? presentation = null;
         try
         {
             if (Numbering.HasValue && !string.IsNullOrWhiteSpace(BulletChar))
@@ -130,7 +130,7 @@ public sealed class SetOfficePowerPointLayoutPlaceholderTextStyleCommand : PSCmd
             PowerPointNumberingScheme? numbering = ResolveNumbering();
             char? bulletChar = ResolveBulletChar();
 
-            presentation = Presentation ?? PowerPointDslContext.Require(this).Presentation;
+            presentation = Presentation ?? PowerPointDslContext.Require(this).Document;
             presentation.SetLayoutPlaceholderTextStyle(
                 Master,
                 Layout,
@@ -171,7 +171,7 @@ public sealed class SetOfficePowerPointLayoutPlaceholderTextStyleCommand : PSCmd
 
         if (FontSize != null)
         {
-            style = style.WithFontSize(FontSize);
+            style = style.WithFontSize(global::OfficeIMO.OfficeLength.Points(FontSize.Value));
         }
 
         if (!string.IsNullOrWhiteSpace(FontName))

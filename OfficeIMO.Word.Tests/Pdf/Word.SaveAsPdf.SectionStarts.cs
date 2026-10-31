@@ -46,7 +46,7 @@ public partial class Word {
     public void SaveAsPdf_SectionStartUsesContinuingNumberBeforeRestart(
         WordSectionBreakType breakType, int firstPages, int firstNumber, int secondNumber, int expectedPages, WordFileFormat format) {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].Margins.Left = 800; document.Sections[0].Margins.Right = 1400;
+        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(40D); document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
         document.Settings.MirrorMargins = true;
         document.Sections[0].AddPageNumbering(firstNumber);
         for (int page = 1; page <= firstPages; page++) document.AddParagraph("First" + page).PageBreakBeforeOverride = page > 1;
@@ -165,12 +165,12 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_InlinePageBreakAppliesFirstLineIndentOnlyOnce() {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].Margins.Left = 800;
-        document.Sections[0].Margins.Right = 1400;
+        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(40D);
+        document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
         document.Settings.MirrorMargins = true;
         WordParagraph paragraph = document.AddParagraph("Before");
-        paragraph.IndentationBeforePoints = 30;
-        paragraph.IndentationFirstLinePoints = 20;
+        paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(30D);
+        paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(20D);
         paragraph.AddBreak(WordBreakType.Page).AddText("After");
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
@@ -182,7 +182,7 @@ public partial class Word {
     public void SaveAsPdf_InlinePageBreakRetainsHyperlinkOnBothFragments() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph();
-        WordParagraph link = paragraph.AddHyperLink("Before", new Uri("https://example.com/section"));
+        WordParagraph link = paragraph.AddHyperLink("Before", new Uri("https://example.com/section")).Paragraph;
         link._hyperlink!.Elements<W.Run>().Single().Append(new W.Break { Type = W.BreakValues.Page }, new W.Text("After"));
         byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernChart_RejectsSeriesThatWouldOverflowTheBackingSheet() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             var series = Enumerable.Repeat(
                 new ExcelChartSeries("Value", new[] { 1d }),
                 ExcelA1.MaxColumns).ToArray();
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_QueryBackedTable_RequiresResolvableConnectionMetadata() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "MissingConnection",
                 WorksheetName = sheet.Name,
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernChart_UpdateDataPreservesSeriesFormattingAndIdentity() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart chart = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A", "B" },
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableResize_MapsSortReferencesToDataBoundaryAboveTotalsRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.AddTable("A1:B4", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);

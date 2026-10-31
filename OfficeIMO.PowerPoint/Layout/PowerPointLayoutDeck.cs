@@ -23,11 +23,11 @@ namespace OfficeIMO.PowerPoint {
     internal sealed class PowerPointLayoutDeck {
         private readonly HashSet<string> _onceCodes = new(StringComparer.Ordinal);
 
-        internal PowerPointLayoutDeck(PowerPointPresentation document) {
+        internal PowerPointLayoutDeck(PowerPointDocument document) {
             Document = document;
         }
 
-        internal PowerPointPresentation Document { get; }
+        internal PowerPointDocument Document { get; }
 
         /// <summary>Deck title shown in the footer; the first Title slide's title unless set.</summary>
         internal string? DeckTitle { get; set; }

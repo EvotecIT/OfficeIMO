@@ -57,7 +57,7 @@ public sealed class PdfConversionLossPropagationTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ImageExportCapturesLateInformationalLossAndRejectsItBeforeDelivery(bool fluent) {
+    public void ImageExportCapturesLateInformationalLossAndRejectsItBeforeDelivery(bool streamed) {
         var report = new PdfConversionReport();
         PdfDocument document = PdfDocument.Create().Deferred(_ => {
             report.Add(new PdfConversionWarning("renderer", "LateLoss", "page:1", "Late omission",
@@ -65,22 +65,22 @@ public sealed class PdfConversionLossPropagationTests {
             return item => item.Paragraph(paragraph => paragraph.Text("Content"));
         });
         var conversion = new PdfDocumentConversionResult(document, report);
-        var builder = conversion.ToImages();
+        var operation = conversion.CreateImageExportOperation(new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg });
         Assert.Empty(conversion.Warnings);
 
-        OfficeImageExportResult image = Assert.Single(fluent
-            ? builder.AsSvg().Export()
+        OfficeImageExportResult image = Assert.Single(streamed
+            ? operation.Export()
             : conversion.ExportImages(OfficeImageExportFormat.Svg));
         Assert.Contains(image.Diagnostics, diagnostic => diagnostic.Code == "LateLoss" &&
             diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        var strict = new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoLoss = true } };
+        var strict = new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg, FailOnLoss = true, Policy = new OfficeImageExportPolicy { RequireNoFailures = false } };
         int delivered = 0;
-        var failure = Assert.Throws<OfficeImageExportPolicyException>(() => {
-            if (fluent) conversion.ToImages(strict).AsSvg().ExportEach(_ => delivered++);
+        var failure = Assert.Throws<OfficeIMO.OfficeConversionException>(() => {
+            if (streamed) conversion.CreateImageExportOperation(strict).ExportEach(_ => delivered++);
             else conversion.ExportImages(OfficeImageExportFormat.Svg, strict);
         });
         Assert.Equal(0, delivered);
-        Assert.Contains(failure.Diagnostics, diagnostic => diagnostic.Code == "LateLoss");
+        Assert.Contains(Assert.IsType<OfficeIMO.OfficeConversionReport>(failure.Report).Diagnostics, diagnostic => diagnostic.Code == "LateLoss");
     }
 
     [Theory]
@@ -107,9 +107,9 @@ public sealed class PdfConversionLossPropagationTests {
         Assert.Equal(lossKind, fidelity.LossKind);
         Assert.Equal("source", fidelity.Source);
         Assert.Equal("source:1", fidelity.Location);
-        var strict = new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoLoss = true } };
-        var failure = Assert.Throws<OfficeImageExportPolicyException>(() => conversion.ToImages(strict).AsSvg().Export());
-        Assert.Contains(failure.Diagnostics, diagnostic =>
+        var strict = new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg, FailOnLoss = true, Policy = new OfficeImageExportPolicy { RequireNoFailures = false } };
+        var failure = Assert.Throws<OfficeIMO.OfficeConversionException>(() => conversion.CreateImageExportOperation(strict).Export());
+        Assert.Contains(Assert.IsType<OfficeIMO.OfficeConversionReport>(failure.Report).Diagnostics, diagnostic =>
             diagnostic.Code == "UnsupportedObject" && diagnostic.LossKind == lossKind);
     }
 

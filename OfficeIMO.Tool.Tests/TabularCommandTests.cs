@@ -45,7 +45,7 @@ public sealed class TabularCommandTests {
         string workbookPath = Path.Combine(directory, "metadata" + workbookExtension);
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Inventory");
+                ExcelSheet sheet = document.AddSheet("Inventory");
                 sheet.CellAt(1, 1).SetValue("Alpha");
                 sheet.CellAt(2, 1).SetValue("Beta");
                 sheet.CellAt(3, 1).SetValue("Gamma");
@@ -72,8 +72,8 @@ public sealed class TabularCommandTests {
         string workbookPath = Path.Combine(directory, "limits.xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                document.AddWorksheet("First");
-                document.AddWorksheet("Second");
+                document.AddSheet("First");
+                document.AddSheet("Second");
                 document.Save(workbookPath);
             }
 
@@ -110,7 +110,7 @@ public sealed class TabularCommandTests {
         string workbookPath = Path.Combine(directory, "encoded-target.xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                document.AddWorksheet("Encoded Target");
+                document.AddSheet("Encoded Target");
                 document.Save(workbookPath);
             }
 
@@ -148,7 +148,7 @@ public sealed class TabularCommandTests {
         const int MetadataLimit = 2 * 1024;
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Inventory");
+                ExcelSheet sheet = document.AddSheet("Inventory");
                 for (int row = 1; row <= 500; row++) {
                     sheet.CellAt(row, 1).SetValue("Value " + row);
                 }
@@ -347,7 +347,7 @@ public sealed class TabularCommandTests {
         string directory = CreateTestDirectory();
         string inputPath = Path.Combine(directory, "locked.xlsx");
         using (ExcelDocument document = ExcelDocument.Create()) {
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             document.Save(inputPath);
         }
 
@@ -415,8 +415,8 @@ public sealed class TabularCommandTests {
         string directory = CreateTestDirectory();
         string workbookPath = Path.Combine(directory, "broken-first-sheet.xlsx");
         using (ExcelDocument document = ExcelDocument.Create()) {
-            document.AddWorksheet("BrokenData");
-            document.AddWorksheet("MetadataOnly");
+            document.AddSheet("BrokenData");
+            document.AddSheet("MetadataOnly");
             document.Save(workbookPath);
         }
         using (ZipArchive archive = ZipFile.Open(workbookPath, ZipArchiveMode.Update)) {
@@ -493,7 +493,7 @@ public sealed class TabularCommandTests {
         string directory = CreateTestDirectory();
         string inputPath = Path.Combine(directory, "input.xlsx");
         using (ExcelDocument document = ExcelDocument.Create()) {
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             document.Save(inputPath);
         }
 

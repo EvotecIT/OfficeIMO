@@ -23,10 +23,10 @@ namespace OfficeIMO.Word.Pdf {
             bool[] explicitCellWidthColumns = new bool[columnCount];
             var spanningWidths = new List<(int Column, int Span, float Width)>();
 
-            List<int> gridColumnWidths = table.GridColumnWidth;
+            var gridColumnWidths = table.GridColumnWidth;
             if (gridColumnWidths.Count > 0) {
                 for (int i = 0; i < gridWidths.Length && i < gridColumnWidths.Count; i++) {
-                    gridWidths[i] = gridColumnWidths[i] / 20f;
+                    gridWidths[i] = (float)gridColumnWidths[i].ToPoints();
                     if (gridWidths[i] > 0f) {
                         widths[i] = gridWidths[i];
                     }
@@ -45,11 +45,11 @@ namespace OfficeIMO.Word.Pdf {
                     int columnSpan = System.Math.Max(1, cell.ColumnSpan);
                     float width = 0f;
                     bool hasExplicitCellWidth = false;
-                    double? absoluteWidth = TablePreferredWidth.AbsoluteCellPoints(cell);
+                    double? absoluteWidth = WordTableWidthNative.AbsoluteCellPoints(cell);
                     if (absoluteWidth.HasValue) {
                         width = (float)absoluteWidth.Value;
                         hasExplicitCellWidth = true;
-                    } else if (TablePreferredWidth.PreservesCellGrid(cell)) {
+                    } else if (WordTableWidthNative.PreservesCellGrid(cell)) {
                         for (int column = logicalColumn; column < logicalColumn + columnSpan && column < gridWidths.Length; column++)
                             width += gridWidths[column];
                         hasExplicitCellWidth = true;
@@ -133,7 +133,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static int ResolveColumnCount(WordTable table, List<IReadOnlyList<WordTableCell>> rows, int[] rowStartColumns, int[] rowTrailingColumns) {
-            List<int> gridColumnWidths = table.GridColumnWidth;
+            var gridColumnWidths = table.GridColumnWidth;
             if (gridColumnWidths.Count > 0) {
                 EnsureSupportedColumnCount(gridColumnWidths.Count);
                 return gridColumnWidths.Count;

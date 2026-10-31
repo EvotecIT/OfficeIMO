@@ -272,7 +272,7 @@ namespace OfficeIMO.Word.Html {
                     if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing) &&
                         (artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing chartDrawing &&
                             WordParagraph.DrawingOwnsChart(chartDrawing)
-                            ? new WordChart(run._document, run, chartDrawing) : includeAll ? run.Chart : null) is WordChart chart) {
+                            ? new WordChart(run._document,run,chartDrawing) : includeAll ? run.Chart : null) is WordChart chart) {
                         IElement? chartImage = CreateChartImage(htmlDoc, chart, options, ref embeddedImageBytes);
                         if (chartImage != null) target.Add(chartImage);
                         return true;
@@ -319,11 +319,11 @@ namespace OfficeIMO.Word.Html {
                                     srcSvg = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
                                 }
                                 SetOutputAttribute(htmlDoc, imgSvg, "src", srcSvg, "Image:src");
-                                if (imgObj.Width.HasValue) {
-                                    SetOutputAttribute(imgSvg, "width", ((int)Math.Round(imgObj.Width.Value)).ToString(CultureInfo.InvariantCulture), "Image:width");
+                                if (imgObj.Width is { } displayWidth) {
+                                    SetOutputAttribute(imgSvg, "width", ((int)Math.Round(displayWidth.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:width");
                                 }
-                                if (imgObj.Height.HasValue) {
-                                    SetOutputAttribute(imgSvg, "height", ((int)Math.Round(imgObj.Height.Value)).ToString(CultureInfo.InvariantCulture), "Image:height");
+                                if (imgObj.Height is { } displayHeight) {
+                                    SetOutputAttribute(imgSvg, "height", ((int)Math.Round(displayHeight.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:height");
                                 }
                                 if (!string.IsNullOrEmpty(imgObj.Description)) {
                                     SetOutputAttribute(imgSvg, "alt", imgObj.Description!, "Image:alt");
@@ -353,11 +353,11 @@ namespace OfficeIMO.Word.Html {
                             } else {
                                 SetOutputAttributeAfterValueReservation(htmlDoc, img, "src", src, "Image:src");
                             }
-                            if (imgObj.Width.HasValue) {
-                                SetOutputAttribute(img, "width", ((int)Math.Round(imgObj.Width.Value)).ToString(CultureInfo.InvariantCulture), "Image:width");
+                            if (imgObj.Width is { } displayWidth) {
+                                SetOutputAttribute(img, "width", ((int)Math.Round(displayWidth.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:width");
                             }
-                            if (imgObj.Height.HasValue) {
-                                SetOutputAttribute(img, "height", ((int)Math.Round(imgObj.Height.Value)).ToString(CultureInfo.InvariantCulture), "Image:height");
+                            if (imgObj.Height is { } displayHeight) {
+                                SetOutputAttribute(img, "height", ((int)Math.Round(displayHeight.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:height");
                             }
                             if (!string.IsNullOrEmpty(imgObj.Description)) {
                                 SetOutputAttribute(img, "alt", imgObj.Description!, "Image:alt");
@@ -991,9 +991,9 @@ namespace OfficeIMO.Word.Html {
                 if (IsCodeParagraph(para)) {
                     var pre = CreateOutputElement(htmlDoc, "pre");
                     ApplyBookmarkId(pre, para);
-                    if (para.IndentationBefore is int codeIndent && codeIndent > 0) {
+                    if (para.IndentationBefore is OfficeLength codeIndent && codeIndent > OfficeLength.Zero) {
                         // Code inside a list item keeps the item's indent.
-                        SetOutputAttribute(pre, "style", $"margin-left:{FormatTwips(codeIndent)}", "CodeBlock:indent");
+                        SetOutputAttribute(pre, "style", $"margin-left:{FormatTwips(checked((int)codeIndent.ToTwips()))}", "CodeBlock:indent");
                     }
                     var code = CreateOutputElement(htmlDoc, "code");
                     code.TextContent = GetCodeParagraphText(para);
@@ -1037,36 +1037,33 @@ namespace OfficeIMO.Word.Html {
                 // An indent is a margin, not a quotation. It stays visible even when the
                 // caller did not ask for the remaining indentation styles.
                 if (!isBlockQuote || options.IncludeParagraphIndentationStyles) {
-                    if (para.IndentationBefore.HasValue && para.IndentationBefore.Value != 0) {
-                        pStyles.Add($"margin-left:{FormatTwips(para.IndentationBefore.Value)}");
+                    if (para.IndentationBefore.HasValue && para.IndentationBefore.Value != OfficeLength.Zero) {
+                        pStyles.Add($"margin-left:{FormatTwips(checked((int)para.IndentationBefore.Value.ToTwips()))}");
                     }
-                    if (para.IndentationAfter.HasValue && para.IndentationAfter.Value != 0) {
-                        pStyles.Add($"margin-right:{FormatTwips(para.IndentationAfter.Value)}");
+                    if (para.IndentationAfter.HasValue && checked((int)(para.IndentationAfter.Value.ToTwips())) != 0) {
+                        pStyles.Add($"margin-right:{FormatTwips(checked((int)(para.IndentationAfter.Value.ToTwips())))}");
                     }
                 }
                 if (options.IncludeParagraphIndentationStyles) {
-                    if (para.IndentationFirstLine.HasValue && para.IndentationFirstLine.Value != 0) {
-                        pStyles.Add($"text-indent:{FormatTwips(para.IndentationFirstLine.Value)}");
-                    } else if (para.IndentationHanging.HasValue && para.IndentationHanging.Value != 0) {
-                        pStyles.Add($"text-indent:{FormatTwips(-para.IndentationHanging.Value)}");
+                    if (para.IndentationFirstLine.HasValue && para.IndentationFirstLine.Value != OfficeLength.Zero) {
+                        pStyles.Add($"text-indent:{FormatTwips(checked((int)para.IndentationFirstLine.Value.ToTwips()))}");
+                    } else if (para.IndentationHanging.HasValue && para.IndentationHanging.Value != OfficeLength.Zero) {
+                        pStyles.Add($"text-indent:{FormatTwips(-checked((int)para.IndentationHanging.Value.ToTwips()))}");
                     }
                 }
                 if (options.IncludeParagraphSpacingStyles) {
-                    if (para.LineSpacingBefore.HasValue && para.LineSpacingBefore.Value != 0) {
-                        pStyles.Add($"margin-top:{FormatTwips(para.LineSpacingBefore.Value)}");
+                    if (para.LineSpacingBefore.HasValue && checked((int)(para.LineSpacingBefore.Value.ToTwips())) != 0) {
+                        pStyles.Add($"margin-top:{FormatTwips(checked((int)(para.LineSpacingBefore.Value.ToTwips())))}");
                     }
-                    if (para.LineSpacingAfter.HasValue && para.LineSpacingAfter.Value != 0) {
-                        pStyles.Add($"margin-bottom:{FormatTwips(para.LineSpacingAfter.Value)}");
+                    if (para.LineSpacingAfter.HasValue && checked((int)(para.LineSpacingAfter.Value.ToTwips())) != 0) {
+                        pStyles.Add($"margin-bottom:{FormatTwips(checked((int)(para.LineSpacingAfter.Value.ToTwips())))}");
                     }
-                    if (para.LineSpacing.HasValue && para.LineSpacing.Value != 0) {
-                        var rule = para.LineSpacingRule;
-                        if (rule == null || rule == WordLineSpacingRule.Auto) {
-                            var multiple = para.LineSpacing.Value / 240.0;
-                            if (multiple > 0) {
-                                pStyles.Add($"line-height:{FormatNumber(multiple)}");
-                            }
-                        } else {
-                            pStyles.Add($"line-height:{FormatTwips(para.LineSpacing.Value)}");
+                    if (para.LineSpacing is WordLineSpacing lineSpacing) {
+                        if (lineSpacing.MultipleValue is double multiple && multiple > 0) {
+                            pStyles.Add($"line-height:{FormatNumber(multiple)}");
+                        } else if (lineSpacing.Height is global::OfficeIMO.OfficeLength height && height != global::OfficeIMO.OfficeLength.Zero) {
+                            // CSS has no minimum line-height mode; retain the existing approximation.
+                            pStyles.Add($"line-height:{FormatTwips(checked((int)height.ToTwips()))}");
                         }
                     }
                 }
@@ -1136,7 +1133,7 @@ namespace OfficeIMO.Word.Html {
                 var tableStyles = new List<string>();
                 var tableWidth = nestingDepth == 0
                     ? GetTopLevelTableWidthCss(table)
-                    : GetWidthCss(table.WidthType?.ToOpenXml(), table.Width);
+                    : GetWidthCss(table.Width);
                 if (!string.IsNullOrEmpty(tableWidth)) {
                     tableStyles.Add($"width:{tableWidth}");
                 }
@@ -1203,7 +1200,7 @@ namespace OfficeIMO.Word.Html {
                         }
 
                         var cellStyles = new List<string>();
-                        var width = GetWidthCss(cell.WidthType?.ToOpenXml(), cell.Width);
+                        var width = GetWidthCss(cell.Width);
                         if (!string.IsNullOrEmpty(width)) {
                             cellStyles.Add($"width:{width}");
                         }

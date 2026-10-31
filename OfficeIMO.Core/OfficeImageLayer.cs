@@ -3,7 +3,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Describes one positioned raster or SVG layer in a composed dependency-free image.
 /// </summary>
-public sealed class OfficeImageLayer {
+internal sealed class OfficeImageLayer {
     private OfficeImageLayer(double x, double y, double width, double height, OfficeRasterImage? rasterImage, string? svgInnerContent) {
         ValidateCoordinate(x, nameof(x));
         ValidateCoordinate(y, nameof(y));

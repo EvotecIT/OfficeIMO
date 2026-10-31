@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NeutralReader_DecodesPresetShapesConnectorsAndGroupHierarchy() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(ShapeFixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(ShapeFixturePath);
 
             LegacyPptSlide slide = Assert.Single(legacy.Slides);
             Assert.Equal(9, slide.Shapes.Count);
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NormalLoad_ProjectsPresetShapesConnectorsAndGroupsIntoValidPptxModel() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(ShapeFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(ShapeFixturePath);
 
             PowerPointSlide slide = Assert.Single(presentation.Slides);
             Assert.Equal(9, slide.Shapes.Count);
@@ -126,14 +126,14 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
 
             using MemoryStream pptx = new System.IO.MemoryStream(presentation.ToBytes());
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(pptx);
+            using PowerPointDocument reopened = PowerPointDocument.Load(pptx);
             Assert.Equal(9, reopened.Slides[0].Shapes.Count);
             Assert.Empty(reopened.ValidateDocument());
         }
 
         [Fact]
         public void NormalLoad_ProjectsScaledShapeGradientsWithResolvedEndpointColors() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(ShapeFixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(ShapeFixturePath);
             LegacyPptShape binaryDiamond = legacy.Slides[0].Shapes.Single(shape =>
                 shape.Text == "Diamond");
             Assert.Equal(7U, binaryDiamond.Style.FillType);
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("3E7FCC", binaryDiamond.FillColor);
             Assert.Equal("A4C1FF", binaryDiamond.FillBackColor);
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(ShapeFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(ShapeFixturePath);
             PowerPointTextBox diamond = presentation.Slides[0].TextBoxes.Single(shape =>
                 shape.Text == "Diamond");
             P.Shape element = Assert.IsType<P.Shape>(diamond.Element);
@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
                     Preset = A.ShapeTypeValues.Rectangle
                 });
 
-            PowerPointPresentation.ApplyLegacyShapeStyle(properties, source);
+            PowerPointDocument.ApplyLegacyShapeStyle(properties, source);
 
             A.GradientStop[] stops = properties.GetFirstChild<A.GradientFill>()!
                 .GetFirstChild<A.GradientStopList>()!
@@ -203,7 +203,7 @@ namespace OfficeIMO.Tests {
                     Preset = A.ShapeTypeValues.Rectangle
                 });
 
-            PowerPointPresentation.ApplyLegacyShapeStyle(properties, source);
+            PowerPointDocument.ApplyLegacyShapeStyle(properties, source);
 
             A.GradientStop[] stops = properties.GetFirstChild<A.GradientFill>()!
                 .GetFirstChild<A.GradientStopList>()!
@@ -217,7 +217,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void UnmodifiedShapeBinarySave_PreservesOriginalPackageExactly() {
             byte[] source = File.ReadAllBytes(ShapeFixturePath);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(ShapeFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(ShapeFixturePath);
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             Assert.Equal(source, presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
@@ -225,19 +225,19 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedConnectorAndGroupGeometryEdits_UseIncrementalAnchorRewrite() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(ShapeFixturePath);
+            LegacyPptDocument original = LegacyPptDocument.Load(ShapeFixturePath);
             LegacyPptShape originalConnector = original.Slides[0].Shapes.Single(shape =>
                 shape.Kind == LegacyPptShapeKind.Connector && shape.OfficeArtShapeType == 32);
             LegacyPptShape originalGroup = original.Slides[0].Shapes.Single(shape =>
                 shape.Kind == LegacyPptShapeKind.Group);
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(ShapeFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(ShapeFixturePath);
             PowerPointSlide slide = presentation.Slides[0];
             PowerPointConnectionShape connector = slide.Shapes.OfType<PowerPointConnectionShape>()
                 .Single(shape => shape.ShapeType == OfficePresetShapeType.StraightConnector1);
             PowerPointGroupShape group = Assert.Single(slide.Shapes.OfType<PowerPointGroupShape>());
-            connector.Left += 15875;
-            group.Top += 15875;
+            connector.Left+= OfficeIMO.OfficeLength.Emus(15875);
+            group.Top+= OfficeIMO.OfficeLength.Emus(15875);
             P.GroupShape groupElement = Assert.IsType<P.GroupShape>(
                 group.Element);
             A.TransformGroup groupTransform = groupElement
@@ -246,7 +246,7 @@ namespace OfficeIMO.Tests {
                 groupTransform.ChildOffset.X!.Value + 15875L);
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedConnector = saved.Slides[0].Shapes.Single(shape =>
                 shape.Kind == LegacyPptShapeKind.Connector && shape.OfficeArtShapeType == 32);
@@ -263,25 +263,25 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedGroupChildEdit_UsesIncrementalChildAnchorRewrite() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 ShapeFixturePath);
             LegacyPptShape originalGroup = Assert.Single(original.Slides)
                 .Shapes.Single(shape => shape.Kind
                     == LegacyPptShapeKind.Group);
             LegacyPptShape originalChild = originalGroup.Children[0];
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(ShapeFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(ShapeFixturePath);
             PowerPointSlide slide = presentation.Slides[0];
             PowerPointGroupShape group = Assert.Single(slide.Shapes.OfType<PowerPointGroupShape>());
             PowerPointShape child = slide.GetGroupChildren(group)[0];
 
-            child.Left += 15875;
+            child.Left+= OfficeIMO.OfficeLength.Emus(15875);
             child.Rotation = 18D;
             child.VerticalFlip = true;
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
             LegacyPptShape savedGroup = Assert.Single(saved.Slides).Shapes
@@ -300,7 +300,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NeutralReader_DecodesRotationAndFlips() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(TransformFixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(TransformFixturePath);
 
             LegacyPptSlide slide = Assert.Single(legacy.Slides);
             Assert.Equal(5, slide.Shapes.Count);
@@ -317,7 +317,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NormalLoad_ProjectsRotationAndFlipsIntoValidPptxModel() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(TransformFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(TransformFixturePath);
 
             PowerPointSlide slide = Assert.Single(presentation.Slides);
             PowerPointTextBox rotated = slide.TextBoxes.Single(shape => shape.Text == "Rotate 30");
@@ -352,12 +352,12 @@ namespace OfficeIMO.Tests {
                 placeholder: null, style, null, null, transform: transform,
                 groupCoordinateBounds: new LegacyPptBounds(0, 0, 400, 300),
                 children: new[] { child });
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             uint nextShapeId = 2;
 
             P.GroupShape group = Assert.IsType<P.GroupShape>(
-                PowerPointPresentation.CreateLegacyOpenXmlShape(slide.SlidePart, source,
+                PowerPointDocument.CreateLegacyOpenXmlShape(slide.SlidePart, source,
                     ref nextShapeId));
             A.TransformGroup projected = group.GroupShapeProperties!.TransformGroup!;
 
@@ -374,11 +374,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedTransformEdit_PreservesUnrelatedRichStyle() {
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 TransformFixturePath);
             LegacyPptShape originalShape = Assert.Single(original.Slides)
                 .Shapes.Single(item => item.Text == "Rotate 30");
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(TransformFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(TransformFixturePath);
             PowerPointTextBox shape = presentation.Slides[0].TextBoxes.Single(item =>
                 item.Text == "Rotate 30");
 
@@ -387,7 +387,7 @@ namespace OfficeIMO.Tests {
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             LegacyPptShape savedShape = Assert.Single(saved.Slides).Shapes
                 .Single(item => item.Text == "Rotate 30");
@@ -407,7 +407,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NeutralReader_DecodesConnectorSolverRuleAndConnectionSites() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(ConnectedFixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(ConnectedFixturePath);
 
             LegacyPptSlide slide = Assert.Single(legacy.Slides);
             LegacyPptShape start = slide.Shapes.Single(shape => shape.Text == "Start");
@@ -424,7 +424,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NormalLoad_ProjectsNativeConnectorAttachmentsAndPreservesBinaryExactly() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(ConnectedFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(ConnectedFixturePath);
 
             PowerPointSlide slide = Assert.Single(presentation.Slides);
             PowerPointTextBox start = slide.TextBoxes.Single(shape => shape.Text == "Start");
@@ -450,7 +450,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedConnectorAttachmentEdit_RemainsLossBlocked() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(ConnectedFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(ConnectedFixturePath);
             PowerPointConnectionShape connector = Assert.Single(presentation.Slides[0].Shapes
                 .OfType<PowerPointConnectionShape>());
             P.ConnectionShape element = Assert.IsType<P.ConnectionShape>(connector.Element);
@@ -466,7 +466,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NeutralReader_DecodesShapeSpecificAdjustmentSlots() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(AdjustedShapesFixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(AdjustedShapesFixturePath);
             LegacyPptSlide slide = Assert.Single(legacy.Slides);
 
             Assert.Equal(6480, slide.Shapes.Single(shape => shape.Text == "Round")
@@ -487,7 +487,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NeutralReader_DecodesOffsetShadowProperties() {
-            LegacyPptPresentation legacy = LegacyPptPresentation.Load(ShadowFixturePath);
+            LegacyPptDocument legacy = LegacyPptDocument.Load(ShadowFixturePath);
             LegacyPptShape[] shapes = Assert.Single(legacy.Slides).Shapes
                 .OrderBy(shape => shape.Bounds.Left)
                 .ToArray();
@@ -507,7 +507,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NormalLoad_ProjectsOffsetShadowsAndPreservesBinaryExactly() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(ShadowFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(ShadowFixturePath);
             PowerPointSlide slide = Assert.Single(presentation.Slides);
 
             A.OuterShadow first = GetOuterShadow(slide, "Shadow 45");
@@ -530,7 +530,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedRotatingShadowEdit_RemainsLossBlocked() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(ShadowFixturePath);
+            using PowerPointDocument presentation = PowerPointDocument.Load(ShadowFixturePath);
             A.OuterShadow shadow = GetOuterShadow(presentation.Slides[0], "Shadow 45");
 
             shadow.RotateWithShape = true;
@@ -542,7 +542,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NormalLoad_ProjectsOnlyProvenExactPresetAdjustments() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+            using PowerPointDocument presentation = PowerPointDocument.Load(
                 AdjustedShapesFixturePath);
             PowerPointSlide slide = Assert.Single(presentation.Slides);
 
@@ -562,7 +562,7 @@ namespace OfficeIMO.Tests {
         public void ImportedExactPresetAdjustmentEdit_UsesIncrementalFoptRewrite() {
             byte[] originalBytes = File.ReadAllBytes(
                 AdjustedShapesFixturePath);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+            using PowerPointDocument presentation = PowerPointDocument.Load(
                 AdjustedShapesFixturePath);
             PowerPointTextBox shape = presentation.Slides[0].TextBoxes.Single(item =>
                 item.Text == "Round");
@@ -576,9 +576,9 @@ namespace OfficeIMO.Tests {
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
                 string.Join(Environment.NewLine, preflight.Findings));
-            LegacyPptPresentation original = LegacyPptPresentation.Load(
+            LegacyPptDocument original = LegacyPptDocument.Load(
                 originalBytes);
-            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+            LegacyPptDocument saved = LegacyPptDocument.Load(
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
             LegacyPptShape originalRound = Assert.Single(original.Slides)

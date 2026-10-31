@@ -18,8 +18,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultAutofitPercentageTable.docx"));
 
         WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
-        table.WidthType = WordTableWidthUnit.Pct;
-        table.Width = 5000;
+        table.Width = WordTableWidth.Percent((5000) / 50d);
         table._tableProperties!.TableLayout?.Remove();
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Worksheet";
         table.Rows[0].Cells[1].Paragraphs[0].Text = "Purpose";
@@ -29,7 +28,7 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, null, 468D);
 
         Assert.True(style.AutoFitColumns);
-        Assert.Equal(468D, style.PreferredWidth);
+        Assert.Equal(468D, style.PreferredWidth?.ToPoints());
         Assert.Null(style.ColumnWidthWeights);
     }
 
@@ -39,14 +38,13 @@ public partial class Word {
 
         WordTable table = document.AddTable(1, 3, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle?.Remove();
-        table.WidthType = WordTableWidthUnit.Pct;
-        table.Width = 5000;
+        table.Width = WordTableWidth.Percent((5000) / 50d);
         table.LayoutMode = WordTableLayoutMode.AutoFit;
-        table.Rows[0].Cells[0].Width = 1200;
-        table.Rows[0].Cells[1].Width = 2400;
-        table.Rows[0].Cells[2].Width = 1200;
+        table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1200) * 635)));
+        table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
+        table.Rows[0].Cells[2].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1200) * 635)));
         foreach (WordTableCell cell in table.Rows[0].Cells) {
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(cell.Width?.ToNativeValue() ?? 5000) * 635)));
         }
 
         var configuredMinimums = new double?[] { 72D, null, 96D };
@@ -54,7 +52,7 @@ public partial class Word {
             PdfOptions = new PdfCore.PdfCreateOptions {
                 DefaultTableStyle = new PdfCore.PdfTableStyle {
                     AutoFitColumns = true,
-                    ColumnMinWidthPoints = configuredMinimums.ToList()
+                    ColumnMinWidths = (configuredMinimums.ToList()) is { } lengths2852 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths2852, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null
                 }
             }
         }, 468D);
@@ -68,9 +66,9 @@ public partial class Word {
             modifiers: null)!;
         applyColumnWidths.Invoke(null, new object?[] { table, layout, style, 468D });
 
-        Assert.Equal(72D, style.ColumnMinWidthPoints![0]);
-        Assert.NotNull(style.ColumnMinWidthPoints[1]);
-        Assert.Equal(96D, style.ColumnMinWidthPoints[2]);
+        Assert.Equal(72D, style.ColumnMinWidths![0]?.ToPoints());
+        Assert.NotNull(style.ColumnMinWidths[1]?.ToPoints());
+        Assert.Equal(96D, style.ColumnMinWidths[2]?.ToPoints());
         Assert.Equal(configuredMinimums, new double?[] { 72D, null, 96D });
     }
 
@@ -121,9 +119,9 @@ public partial class Word {
         PdfCore.PdfTableStyle percentStringStyle = CreateNativeTableStyleForTest(percentString, null, 400D);
         PdfCore.PdfTableStyle fiftiethsPercentStyle = CreateNativeTableStyleForTest(fiftiethsPercent, null, 400D);
 
-        Assert.Equal(300D, percentStringStyle.PreferredWidth);
+        Assert.Equal(300D, percentStringStyle.PreferredWidth?.ToPoints());
         Assert.True(percentStringStyle.PreserveWidth);
-        Assert.Equal(fiftiethsPercentStyle.PreferredWidth, percentStringStyle.PreferredWidth);
+        Assert.Equal(fiftiethsPercentStyle.PreferredWidth?.ToPoints(), percentStringStyle.PreferredWidth?.ToPoints());
     }
 
     [Fact]
@@ -131,8 +129,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAutofitPreferredWidth.docx"));
 
         WordTable table = document.AddTable(1, 3, WordTableStyle.TableGrid);
-        table.WidthType = WordTableWidthUnit.Pct;
-        table.Width = 5000;
+        table.Width = WordTableWidth.Percent((5000) / 50d);
         table.LayoutMode = WordTableLayoutMode.AutoFit;
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Date";
         table.Rows[0].Cells[1].Paragraphs[0].Text = "Narrative";
@@ -141,7 +138,7 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, null, 468D);
 
         Assert.True(style.AutoFitColumns);
-        Assert.Equal(468D, style.PreferredWidth);
+        Assert.Equal(468D, style.PreferredWidth?.ToPoints());
         Assert.True(style.PreserveWidth);
         Assert.Null(style.ColumnWidthWeights);
     }
@@ -160,10 +157,8 @@ public partial class Word {
         WordTable styledTable = document.AddTable(1, 2, WordTableStyle.TableGrid);
         styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericAutofitLayoutTable" };
         styledTable._tableProperties.TableLayout?.Remove();
-        styledTable.Rows[0].Cells[0].Width = 2160;
-        styledTable.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-        styledTable.Rows[0].Cells[1].Width = 2160;
-        styledTable.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
+        styledTable.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2160) * 635)));
+        styledTable.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2160) * 635)));
 
         PdfCore.PdfTableStyle styled = CreateNativeTableStyleForTest(styledTable);
 
@@ -172,10 +167,8 @@ public partial class Word {
         WordTable directFixedTable = document.AddTable(1, 2, WordTableStyle.TableGrid);
         directFixedTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericAutofitLayoutTable" };
         directFixedTable.LayoutMode = WordTableLayoutMode.Fixed;
-        directFixedTable.Rows[0].Cells[0].Width = 2160;
-        directFixedTable.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-        directFixedTable.Rows[0].Cells[1].Width = 2160;
-        directFixedTable.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
+        directFixedTable.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2160) * 635)));
+        directFixedTable.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2160) * 635)));
 
         PdfCore.PdfTableStyle direct = CreateNativeTableStyleForTest(directFixedTable);
 
@@ -197,23 +190,23 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
         Assert.Null(style.BorderColor);
-        Assert.Equal(0D, style.BorderWidth);
+        Assert.Equal(0D, style.BorderWidth.ToPoints());
         Assert.NotNull(style.CellBorders);
         PdfCore.PdfCellBorder topLeft = style.CellBorders[(0, 0)];
         Assert.True(topLeft.Top);
         Assert.True(topLeft.Right);
         Assert.True(topLeft.Bottom);
         Assert.True(topLeft.Left);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 0, 0), topLeft.TopBorder!.Color);
-        Assert.Equal(2D, topLeft.TopBorder.Width);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 0), topLeft.RightBorder!.Color);
-        Assert.Equal(1.5D, topLeft.RightBorder.Width);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 128, 0), topLeft.BottomBorder!.Color);
-        Assert.Equal(1D, topLeft.BottomBorder.Width);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), topLeft.TopBorder!.Color);
+        Assert.Equal(2D, topLeft.TopBorder.Width.ToPoints());
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0), topLeft.RightBorder!.Color);
+        Assert.Equal(1.5D, topLeft.RightBorder.Width.ToPoints());
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0), topLeft.BottomBorder!.Color);
+        Assert.Equal(1D, topLeft.BottomBorder.Width.ToPoints());
 
         PdfCore.PdfCellBorder bottomRight = style.CellBorders[(1, 1)];
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 0, 255), bottomRight.BottomBorder!.Color);
-        Assert.Equal(2.5D, bottomRight.BottomBorder.Width);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), bottomRight.BottomBorder!.Color);
+        Assert.Equal(2.5D, bottomRight.BottomBorder.Width.ToPoints());
     }
 
     [Fact]
@@ -238,8 +231,8 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
         Assert.Equal(1, style.HeaderRowCount);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), style.HeaderFill);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 255), style.HeaderTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), style.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255), style.HeaderTextColor);
     }
 
     [Fact]
@@ -264,8 +257,8 @@ public partial class Word {
         Assert.Equal(0, style.HeaderRowCount);
         Assert.Equal(0, style.RepeatHeaderRowCount);
         Assert.NotNull(style.CellFills);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), style.CellFills![(0, 0)]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), style.CellFills[(0, 1)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), style.CellFills![(0, 0)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), style.CellFills[(0, 1)]);
     }
 
     [Fact]
@@ -290,8 +283,8 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
         Assert.Equal(1, style.FooterRowCount);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(51, 102, 153), style.FooterFill);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 255), style.FooterTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153), style.FooterFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255), style.FooterTextColor);
     }
 
     [Fact]
@@ -325,16 +318,16 @@ public partial class Word {
         Assert.True(headerLeft.Bottom);
         Assert.True(headerRight.Bottom);
         Assert.False(headerLeft.Top);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), headerLeft.BottomBorder!.Color);
-        Assert.Equal(2D, headerLeft.BottomBorder.Width);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), headerLeft.BottomBorder!.Color);
+        Assert.Equal(2D, headerLeft.BottomBorder.Width.ToPoints());
 
         PdfCore.PdfCellBorder footerLeft = style.CellBorders![(2, 0)];
         PdfCore.PdfCellBorder footerRight = style.CellBorders![(2, 1)];
         Assert.True(footerLeft.Top);
         Assert.True(footerRight.Top);
         Assert.False(footerLeft.Bottom);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(68, 85, 102), footerLeft.TopBorder!.Color);
-        Assert.Equal(1.5D, footerLeft.TopBorder.Width);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(68, 85, 102), footerLeft.TopBorder!.Color);
+        Assert.Equal(1.5D, footerLeft.TopBorder.Width.ToPoints());
         Assert.False(style.CellBorders!.ContainsKey((1, 0)));
     }
 
@@ -362,10 +355,10 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
         Assert.NotNull(style.CellFills);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(204, 238, 255), style.CellFills![(0, 0)]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(204, 238, 255), style.CellFills![(1, 0)]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 204, 153), style.CellFills![(0, 2)]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 204, 153), style.CellFills![(1, 2)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(204, 238, 255), style.CellFills![(0, 0)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(204, 238, 255), style.CellFills![(1, 0)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 204, 153), style.CellFills![(0, 2)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 204, 153), style.CellFills![(1, 2)]);
         Assert.False(style.CellFills!.ContainsKey((0, 1)));
     }
 
@@ -397,12 +390,12 @@ public partial class Word {
         Assert.NotNull(style.CellBorders);
         Assert.True(style.CellBorders![(0, 0)].Right);
         Assert.True(style.CellBorders![(1, 0)].Right);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), style.CellBorders![(0, 0)].RightBorder!.Color);
-        Assert.Equal(1D, style.CellBorders![(0, 0)].RightBorder!.Width);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), style.CellBorders![(0, 0)].RightBorder!.Color);
+        Assert.Equal(1D, style.CellBorders![(0, 0)].RightBorder!.Width.ToPoints());
         Assert.True(style.CellBorders![(0, 2)].Left);
         Assert.True(style.CellBorders![(1, 2)].Left);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(68, 85, 102), style.CellBorders![(0, 2)].LeftBorder!.Color);
-        Assert.Equal(1.5D, style.CellBorders![(0, 2)].LeftBorder!.Width);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(68, 85, 102), style.CellBorders![(0, 2)].LeftBorder!.Color);
+        Assert.Equal(1.5D, style.CellBorders![(0, 2)].LeftBorder!.Width.ToPoints());
         Assert.False(style.CellBorders!.ContainsKey((0, 1)));
     }
 
@@ -436,12 +429,12 @@ public partial class Word {
         Assert.NotNull(style.CellBorders);
         Assert.True(style.CellBorders![(1, 0)].Top);
         Assert.True(style.CellBorders![(1, 0)].Bottom);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(170, 0, 0), style.CellBorders![(1, 0)].TopBorder!.Color);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(170, 0, 0), style.CellBorders![(1, 2)].BottomBorder!.Color);
+        Assert.Equal(OfficeColor.FromRgb(170, 0, 0), style.CellBorders![(1, 0)].TopBorder!.Color);
+        Assert.Equal(OfficeColor.FromRgb(170, 0, 0), style.CellBorders![(1, 2)].BottomBorder!.Color);
         Assert.True(style.CellBorders![(1, 1)].Left);
         Assert.True(style.CellBorders![(1, 1)].Right);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 68, 136), style.CellBorders![(1, 1)].LeftBorder!.Color);
-        Assert.Equal(1.5D, style.CellBorders![(1, 1)].LeftBorder!.Width);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 68, 136), style.CellBorders![(1, 1)].LeftBorder!.Color);
+        Assert.Equal(1.5D, style.CellBorders![(1, 1)].LeftBorder!.Width.ToPoints());
         Assert.False(style.CellBorders!.ContainsKey((0, 0)));
         Assert.False(style.CellBorders!.ContainsKey((2, 0)));
 
@@ -491,11 +484,11 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
         Assert.NotNull(style.CellPaddings);
-        Assert.Equal(16D, style.CellPaddings![(0, 0)].Left);
-        Assert.Equal(6D, style.CellPaddings![(0, 0)].Top);
-        Assert.Equal(14D, style.CellPaddings![(0, 2)].Right);
-        Assert.Equal(8D, style.CellPaddings![(1, 0)].Bottom);
-        Assert.Equal(10D, style.CellPaddings![(1, 1)].Left);
+        Assert.Equal(16D, style.CellPaddings![(0, 0)].Left?.ToPoints());
+        Assert.Equal(6D, style.CellPaddings![(0, 0)].Top?.ToPoints());
+        Assert.Equal(14D, style.CellPaddings![(0, 2)].Right?.ToPoints());
+        Assert.Equal(8D, style.CellPaddings![(1, 0)].Bottom?.ToPoints());
+        Assert.Equal(10D, style.CellPaddings![(1, 1)].Left?.ToPoints());
         Assert.False(style.CellPaddings!.ContainsKey((2, 0)));
 
         table.ConditionalFormattingNoHorizontalBand = true;
@@ -505,8 +498,8 @@ public partial class Word {
         Assert.NotNull(disabledBandingStyle.CellPaddings);
         Assert.False(disabledBandingStyle.CellPaddings!.ContainsKey((1, 0)));
         Assert.False(disabledBandingStyle.CellPaddings!.ContainsKey((1, 1)));
-        Assert.Equal(16D, disabledBandingStyle.CellPaddings![(0, 0)].Left);
-        Assert.Equal(14D, disabledBandingStyle.CellPaddings![(0, 2)].Right);
+        Assert.Equal(16D, disabledBandingStyle.CellPaddings![(0, 0)].Left?.ToPoints());
+        Assert.Equal(14D, disabledBandingStyle.CellPaddings![(0, 2)].Right?.ToPoints());
     }
 
     [Fact]
@@ -517,15 +510,15 @@ public partial class Word {
         table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
 
         var configuredStyle = new PdfCore.PdfTableStyle {
-            CellPaddingX = 8D,
-            CellPaddingY = 6D,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(8D),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D),
             BorderColor = null,
-            HeaderFill = PdfCore.PdfColor.FromRgb(10, 20, 30),
-            HeaderTextColor = PdfCore.PdfColor.FromRgb(240, 245, 250),
+            HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
+            HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250),
             RowStripeFill = null,
-            FontSize = 12.5D,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12.5D),
             LineHeight = 1.4D,
-            SpacingAfter = 11D
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(11D)
         };
 
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {
@@ -536,20 +529,20 @@ public partial class Word {
 
         Assert.Equal(1, style.HeaderRowCount);
         Assert.Equal(1, style.RepeatHeaderRowCount);
-        Assert.Equal(24D, style.PageContinuationSpacingBefore);
-        Assert.Equal(8D, style.CellPaddingX);
-        Assert.Equal(6D, style.CellPaddingY);
+        Assert.Equal(24D, style.PageContinuationSpacingBefore.ToPoints());
+        Assert.Equal(8D, style.CellPaddingX.ToPoints());
+        Assert.Equal(6D, style.CellPaddingY.ToPoints());
         Assert.Null(style.BorderColor);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(10, 20, 30), style.HeaderFill);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(240, 245, 250), style.HeaderTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), style.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250), style.HeaderTextColor);
         Assert.Null(style.RowStripeFill);
-        Assert.Equal(12.5D, style.FontSize);
+        Assert.Equal(12.5D, style.FontSize?.ToPoints());
         Assert.Equal(1.4D, style.LineHeight);
-        Assert.Equal(11D, style.SpacingAfter);
+        Assert.Equal(11D, style.SpacingAfter.ToPoints());
 
         Assert.Null(table.Style);
         Assert.Null(configuredStyle.CellBorders);
-        Assert.Null(configuredStyle.MaxWidth);
+        Assert.Null(configuredStyle.MaxWidth?.ToPoints());
     }
 
     [Fact]
@@ -557,15 +550,14 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTableStyleClone.docx"));
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle?.Remove();
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 1440;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
         table._tableProperties.TableCellSpacing = new TableCellSpacing { Width = "120", Type = TableWidthUnitValues.Dxa };
 
         var configuredStyle = new PdfCore.PdfTableStyle {
             HeaderRowCount = 0,
             RepeatHeaderRowCount = 0,
-            CellPaddingX = 8D,
-            CellPaddingY = 6D,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(8D),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D),
             FontSize = null,
             LineHeight = null,
             BorderColor = null
@@ -577,16 +569,16 @@ public partial class Word {
             }
         });
 
-        Assert.Equal(72D, style.PreferredWidth);
-        Assert.Equal(6D, style.CellSpacing);
-        Assert.Null(style.FontSize);
+        Assert.Equal(72D, style.PreferredWidth?.ToPoints());
+        Assert.Equal(6D, style.CellSpacing.ToPoints());
+        Assert.Null(style.FontSize?.ToPoints());
         Assert.Null(style.LineHeight);
 
         Assert.Equal(0, configuredStyle.HeaderRowCount);
         Assert.Equal(0, configuredStyle.RepeatHeaderRowCount);
-        Assert.Equal(0D, configuredStyle.CellSpacing);
-        Assert.Null(configuredStyle.MaxWidth);
-        Assert.Null(configuredStyle.FontSize);
+        Assert.Equal(0D, configuredStyle.CellSpacing.ToPoints());
+        Assert.Null(configuredStyle.MaxWidth?.ToPoints());
+        Assert.Null(configuredStyle.FontSize?.ToPoints());
         Assert.Null(configuredStyle.LineHeight);
     }
 
@@ -600,20 +592,20 @@ public partial class Word {
             PdfOptions = new PdfCore.PdfCreateOptions {
                 DefaultTableStyle = new PdfCore.PdfTableStyle {
                     BorderColor = null,
-                    HeaderFill = PdfCore.PdfColor.FromRgb(10, 20, 30),
+                    HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
                     FontSize = null,
                     LineHeight = null
                 }
             }
         });
 
-        Assert.Equal(PdfCore.PdfColor.Black, style.BorderColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.Black, style.BorderColor);
         Assert.Null(style.HeaderFill);
         Assert.False(style.HeaderBold);
-        Assert.Equal(11D, style.FontSize);
+        Assert.Equal(11D, style.FontSize?.ToPoints());
         Assert.Equal(1.220703125D, style.LineHeight);
-        Assert.Equal(0D, style.CellPaddingTop);
-        Assert.Equal(0D, style.CellPaddingBottom);
+        Assert.Equal(0D, style.CellPaddingTop?.ToPoints());
+        Assert.Equal(0D, style.CellPaddingBottom?.ToPoints());
     }
 
     [Fact]
@@ -643,10 +635,10 @@ public partial class Word {
 
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
-        Assert.Equal(6D, style.CellPaddingTop);
-        Assert.Equal(4D, style.CellPaddingBottom);
-        Assert.Equal(8D, style.CellPaddingLeft);
-        Assert.Equal(10D, style.CellPaddingRight);
+        Assert.Equal(6D, style.CellPaddingTop?.ToPoints());
+        Assert.Equal(4D, style.CellPaddingBottom?.ToPoints());
+        Assert.Equal(8D, style.CellPaddingLeft?.ToPoints());
+        Assert.Equal(10D, style.CellPaddingRight?.ToPoints());
         Assert.Equal(1.220703125D, style.LineHeight);
     }
 
@@ -667,7 +659,7 @@ public partial class Word {
 
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
-        Assert.Equal(36D, style.LeftIndent);
+        Assert.Equal(36D, style.LeftIndent.ToPoints());
     }
 
     [Fact]
@@ -684,12 +676,11 @@ public partial class Word {
 
         WordTable directTable = document.AddTable(1, 1, WordTableStyle.TableGrid);
         directTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericWidthTable" };
-        directTable.WidthType = WordTableWidthUnit.Dxa;
-        directTable.Width = 2880;
+        directTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
 
         PdfCore.PdfTableStyle direct = CreateNativeTableStyleForTest(directTable);
 
-        Assert.Equal(144D, direct.PreferredWidth);
+        Assert.Equal(144D, direct.PreferredWidth?.ToPoints());
         Assert.True(direct.PreserveWidth);
     }
 
@@ -710,7 +701,7 @@ public partial class Word {
 
         PdfCore.PdfTableStyle styled = CreateNativeTableStyleForTest(styledTable);
 
-        Assert.Equal(12D, styled.CellSpacing);
+        Assert.Equal(12D, styled.CellSpacing.ToPoints());
 
         WordTable directTable = document.AddTable(1, 2, WordTableStyle.TableGrid);
         directTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericSpacedTable" };
@@ -721,7 +712,7 @@ public partial class Word {
 
         PdfCore.PdfTableStyle direct = CreateNativeTableStyleForTest(directTable);
 
-        Assert.Equal(4D, direct.CellSpacing);
+        Assert.Equal(4D, direct.CellSpacing.ToPoints());
     }
 
     [Fact]
@@ -739,7 +730,7 @@ public partial class Word {
 
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
-        Assert.Equal(11D, style.FontSize);
+        Assert.Equal(11D, style.FontSize?.ToPoints());
         Assert.Equal(24D / 11D, style.LineHeight.GetValueOrDefault(), 6);
     }
 
@@ -759,7 +750,7 @@ public partial class Word {
 
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
-        Assert.Equal(11D, style.FontSize);
+        Assert.Equal(11D, style.FontSize?.ToPoints());
         Assert.Equal(1.220703125D, style.LineHeight);
     }
 
@@ -798,18 +789,18 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
                 DefaultTableStyle = new PdfCore.PdfTableStyle {
-                    CellPaddingTop = 12D,
-                    CellPaddingBottom = 13D,
+                    CellPaddingTop = global::OfficeIMO.OfficeLength.Points(12D),
+                    CellPaddingBottom = global::OfficeIMO.OfficeLength.Points(13D),
                     FontSize = null,
                     LineHeight = null
                 }
             }
         });
 
-        Assert.Equal(11D, style.FontSize);
+        Assert.Equal(11D, style.FontSize?.ToPoints());
         Assert.Equal(1.220703125D * 259D / 240D, style.LineHeight);
-        Assert.Equal(0D, style.CellPaddingTop);
-        Assert.Equal(0D, style.CellPaddingBottom);
+        Assert.Equal(0D, style.CellPaddingTop?.ToPoints());
+        Assert.Equal(0D, style.CellPaddingBottom?.ToPoints());
     }
 
     [Fact]
@@ -820,15 +811,15 @@ public partial class Word {
 
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
-                DefaultFontSize = 9D
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9D)
             }
         });
 
         Assert.Null(style.BorderColor);
-        Assert.Equal(11D, style.FontSize);
+        Assert.Equal(11D, style.FontSize?.ToPoints());
         Assert.Equal(1.220703125D * 259D / 240D, style.LineHeight);
-        Assert.Equal(0D, style.CellPaddingTop);
-        Assert.Equal(0D, style.CellPaddingBottom);
+        Assert.Equal(0D, style.CellPaddingTop?.ToPoints());
+        Assert.Equal(0D, style.CellPaddingBottom?.ToPoints());
     }
 
     [Fact]
@@ -858,7 +849,7 @@ public partial class Word {
 
         Assert.Equal(2, style.HeaderRowCount);
         Assert.Equal(2, style.RepeatHeaderRowCount);
-        Assert.Equal(0D, style.PageContinuationSpacingBefore);
+        Assert.Equal(0D, style.PageContinuationSpacingBefore.ToPoints());
     }
 
     [Fact]
@@ -872,6 +863,6 @@ public partial class Word {
 
         Assert.Equal(1, style.HeaderRowCount);
         Assert.Equal(0, style.RepeatHeaderRowCount);
-        Assert.Equal(0D, style.PageContinuationSpacingBefore);
+        Assert.Equal(0D, style.PageContinuationSpacingBefore.ToPoints());
     }
 }

@@ -8,10 +8,11 @@ namespace OfficeIMO;
 
 internal static partial class OfficeBatchExecutor {
     private static readonly JsonSerializerOptions ConfigurationJson = new() { IncludeFields = true,
-        Converters = { new PdfConfigurationConverter() } };
+        Converters = { new PdfConfigurationConverter(), new OfficeLengthFingerprintConverter(), new OfficeColorFingerprintConverter() } };
     private static readonly OfficeBatchConfigurationJsonContext ConfigurationContext = new(ConfigurationJson);
 
-    private static string CaptureConfiguration(OfficeBatchOptions settings) => Hash(string.Join("\n", Schema,
+    // Append-style checkpoints do not describe the destinations derived by this naming rule.
+    private static string CaptureConfiguration(OfficeBatchOptions settings) => Hash(string.Join("\n", Schema, "replace-source-extension.v1",
         settings.InputDirectory == null ? "selected-files" : OfficePathIdentity.GetPathIdentityKey(settings.InputDirectory),
         OfficePathIdentity.GetPathIdentityKey(settings.OutputDirectory), settings.TargetExtension));
 
@@ -41,7 +42,7 @@ internal static partial class OfficeBatchExecutor {
         return OfficeRuntimeCompatibility.ToHexString(hash.Hash!);
     }
 
-    private sealed class PdfConfigurationConverter : JsonConverter<PdfCreateOptions> {
+    internal sealed class PdfConfigurationConverter : JsonConverter<PdfCreateOptions> {
         public override PdfCreateOptions Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options) => throw new NotSupportedException();
         public override void Write(Utf8JsonWriter writer, PdfCreateOptions value, JsonSerializerOptions options) {
             if (value.TextShapingProvider != null)
@@ -88,5 +89,33 @@ internal static partial class OfficeBatchExecutor {
     private static async Task VerifyResourcesAsync(string? root, string input, string? expected, long limit, CancellationToken token) {
         if (root != null && await CaptureResourceIdentityAsync(root, input, limit, token).ConfigureAwait(false) != expected)
             throw new InvalidDataException("Conversion resources changed before publication; no output was replaced.");
+    }
+}
+
+/// <summary>Writes physical checkpoint dimensions as exact signed whole EMUs.</summary>
+internal sealed class OfficeLengthFingerprintConverter : JsonConverter<OfficeLength> {
+    public override OfficeLength Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options) =>
+        throw new NotSupportedException("Rendering fingerprints are write-only.");
+
+    public override void Write(Utf8JsonWriter writer, OfficeLength value, JsonSerializerOptions options) =>
+        writer.WriteNumberValue(value.ToEmus());
+}
+
+/// <summary>Retains unresolved roles and exact literal RGB channels in rendering identities.</summary>
+internal sealed class OfficeColorFingerprintConverter : JsonConverter<OfficeColor> {
+    public override OfficeColor Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options) =>
+        throw new NotSupportedException("Rendering fingerprints are write-only.");
+
+    public override void Write(Utf8JsonWriter writer, OfficeColor value, JsonSerializerOptions options) {
+        writer.WriteStartArray();
+        writer.WriteNumberValue((int)value.Role);
+        if (!value.IsThemeRole) {
+            var channels = value.ToNormalizedRgb();
+            writer.WriteNumberValue(channels.R);
+            writer.WriteNumberValue(channels.G);
+            writer.WriteNumberValue(channels.B);
+            writer.WriteNumberValue(value.A);
+        }
+        writer.WriteEndArray();
     }
 }

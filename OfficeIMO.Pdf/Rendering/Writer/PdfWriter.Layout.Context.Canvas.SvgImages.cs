@@ -38,7 +38,7 @@ internal static partial class PdfWriter {
             try {
                 OfficeDrawingImage image = OfficeDrawingImage.CreateWithInterpolation(block.Data, "image/svg+xml",
                     projection, interpolate: true, alternativeText: style.AlternativeText);
-                TryDrawSvgImageAt(image, 0D, currentOpts.PageHeight, item.LogicalOrder);
+                TryDrawSvgImageAt(image, 0D, currentOpts.PageHeight.ToPoints(), item.LogicalOrder);
             } finally {
                 if (clip != null) new ContentStreamBuilder(sb).RestoreState();
             }

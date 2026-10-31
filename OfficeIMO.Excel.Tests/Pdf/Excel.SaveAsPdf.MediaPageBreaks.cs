@@ -16,10 +16,10 @@ public partial class Excel {
     [InlineData(true, 2)]
     public void SaveAsPdf_ManualBreaksSeparateChartsOutsideThePopulatedCells(bool columnBreak, int cellPosition) {
         using ExcelDocument workbook = ExcelDocument.Create();
-        ExcelSheet sheet = workbook.AddWorksheet("Charts");
+        ExcelSheet sheet = workbook.AddSheet("Charts");
         var data = new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Values", new[] { 1D, 2D }) });
-        sheet.AddChart(data, 2, 2, 240, 180, title: "FirstChart");
-        sheet.AddChart(data, columnBreak ? 2 : 22, columnBreak ? 22 : 2, 240, 180, title: "SecondChart");
+        sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = 2, Column = 2, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(180), Title = "FirstChart" });
+        sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = columnBreak ? 2 : 22, Column = columnBreak ? 22 : 2, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(180), Title = "SecondChart" });
         if (cellPosition == 1) sheet.CellValue(1, 1, "EarlyCell");
         if (cellPosition == 2) sheet.CellValue(columnBreak ? 2 : 31, columnBreak ? 31 : 2, "LateCell");
         sheet.SetPageSetup(fitToWidth: columnBreak ? 0U : 1U, fitToHeight: columnBreak ? 1U : 0U);
@@ -31,7 +31,7 @@ public partial class Excel {
             ? loaded.Sheets[0].GetManualColumnPageBreaks() : loaded.Sheets[0].GetManualRowPageBreaks());
         using PdfCore.PdfDocument converted = loaded.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PdfPageSize(2000, 800), Margins = PdfCore.PdfPageMargins.Uniform(20)
+            PageSize = new PdfCore.PdfPageSize(OfficeLength.Points(2000), OfficeLength.Points(800)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeLength.Points(20))
         });
         using PdfPigDocument pdf = PdfPigDocument.Open(converted.ToBytes(new PdfCore.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
@@ -47,14 +47,14 @@ public partial class Excel {
     [InlineData(true)]
     public void SaveAsPdf_CompactLeadingChartStaysWhole(bool fit) {
         using ExcelDocument workbook = ExcelDocument.Create();
-        ExcelSheet sheet = workbook.AddWorksheet("Compact");
+        ExcelSheet sheet = workbook.AddSheet("Compact");
         sheet.CellValue(5, 1, "Anchor");
-        sheet.AddChart(new ExcelChartData(new[] { "A", "B" },
-            new[] { new ExcelChartSeries("Values", new[] { 1D, 2D }) }), 2, 2, 240, 180, title: "CompactChart");
+        sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "A", "B" },
+            new[] { new ExcelChartSeries("Values", new[] { 1D, 2D }) }), new ExcelChartOptions { Row = 2, Column = 2, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(180), Title = "CompactChart" });
         sheet.SetPageSetup(fitToWidth: fit ? 1U : 0U, fitToHeight: fit ? 1U : 0U);
         using PdfCore.PdfDocument converted = workbook.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PdfPageSize(2000, 800), Margins = PdfCore.PdfPageMargins.Uniform(20)
+            PageSize = new PdfCore.PdfPageSize(OfficeLength.Points(2000), OfficeLength.Points(800)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeLength.Points(20))
         });
         using PdfPigDocument pdf = PdfPigDocument.Open(converted.ToBytes(new PdfCore.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
@@ -69,20 +69,20 @@ public partial class Excel {
     [InlineData(ExcelPageOrder.DownThenOver, true)]
     public void SaveAsPdf_OrdersCellChunksAndMediaTilesTogether(ExcelPageOrder order, bool titles) {
         using ExcelDocument workbook = ExcelDocument.Create();
-        ExcelSheet sheet = workbook.AddWorksheet("Order");
+        ExcelSheet sheet = workbook.AddSheet("Order");
         sheet.CellValue(1, 1, "LeftCell"); sheet.CellValue(1, 2, "RightCell");
-        sheet.SetColumnWidth(1, 70); sheet.SetColumnWidth(2, 70);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(70)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(70));
         var data = new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Values", new[] { 1D, 2D }) });
-        sheet.AddChart(data, 2, 1, 200, 180, title: "TopLeft");
-        sheet.AddChart(data, 2, 2, 200, 180, title: "TopRight");
-        sheet.AddChart(data, 22, 1, 200, 180, title: "BottomLeft");
-        sheet.AddChart(data, 22, 2, 200, 180, title: "BottomRight");
+        sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = 2, Column = 1, Width = OfficeLength.Pixels(200), Height = OfficeLength.Pixels(180), Title = "TopLeft" });
+        sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = 2, Column = 2, Width = OfficeLength.Pixels(200), Height = OfficeLength.Pixels(180), Title = "TopRight" });
+        sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = 22, Column = 1, Width = OfficeLength.Pixels(200), Height = OfficeLength.Pixels(180), Title = "BottomLeft" });
+        sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = 22, Column = 2, Width = OfficeLength.Pixels(200), Height = OfficeLength.Pixels(180), Title = "BottomRight" });
         if (titles) workbook.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1);
         sheet.AddManualColumnPageBreak(1); sheet.AddManualRowPageBreak(21);
         sheet.SetPageSetup(fitToWidth: 0U, fitToHeight: 0U, pageOrder: order);
         using PdfCore.PdfDocument converted = workbook.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PdfPageSize(titles ? 2000 : 500, 800), Margins = PdfCore.PdfPageMargins.Uniform(20)
+            PageSize = new PdfCore.PdfPageSize(OfficeLength.Points(titles ? 2000 : 500), OfficeLength.Points(800)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeLength.Points(20))
         });
         using PdfPigDocument pdf = PdfPigDocument.Open(converted.ToBytes(new PdfCore.PdfSaveOptions { AllowLoss = true }));
         string[] expected = order == ExcelPageOrder.OverThenDown

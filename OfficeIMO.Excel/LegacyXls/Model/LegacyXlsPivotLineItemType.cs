@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the item type stored in an SXLI PivotTable line item.
     /// </summary>
-    public enum LegacyXlsPivotLineItemType {
+    internal enum LegacyXlsPivotLineItemType {
         /// <summary>Regular data item.</summary>
         Data = 0,
 

@@ -137,11 +137,11 @@ public sealed class AddOfficeMarkdownTableCommand : PSCmdlet
         var normalizedRows = PowerShellObjectNormalizer.NormalizeItems(projectedRows, options);
         if (DisableAutoAlign.IsPresent)
         {
-            doc.TableFrom(normalizedRows);
+            doc.AddTable((object)normalizedRows);
         }
         else
         {
-            doc.TableFromAuto(normalizedRows);
+            doc.AddTable((object)normalizedRows, new MarkdownTableOptions());
         }
     }
 

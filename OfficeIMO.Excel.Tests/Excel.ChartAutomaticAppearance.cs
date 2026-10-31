@@ -26,10 +26,10 @@ public sealed class ExcelChartAutomaticAppearanceTests {
         Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
 
         var fills = new List<string>();
-        if (snapshot.ChartType is ExcelChartType.Pie or ExcelChartType.Doughnut) {
+        if (snapshot.ChartType is OfficeChartType.Pie or OfficeChartType.Doughnut) {
             fills.AddRange(snapshot.Style!.Palette.Take(snapshot.Data.Categories.Count).Select(color => color.ToRgbHex()));
         } else {
-            bool lines = snapshot.ChartType is ExcelChartType.Line or ExcelChartType.Scatter or ExcelChartType.Stock;
+            bool lines = snapshot.ChartType is OfficeChartType.Line or OfficeChartType.Scatter or OfficeChartType.Stock;
             fills.AddRange(snapshot.Data.Series.Where(series => !lines || series.ShowMarkers)
                 .Select(series => series.SeriesColorArgb!.ToUpperInvariant()));
         }
@@ -59,7 +59,7 @@ public sealed class ExcelChartAutomaticAppearanceTests {
         using ExcelDocument document = ExcelDocument.Load(path);
         // The sheet prints at 100 %; a wide page keeps both charts on the first page.
         byte[] pdf = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(1600, 1000)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeLength.Points(1600), OfficeLength.Points(1000))
         }).ToBytes();
 
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));

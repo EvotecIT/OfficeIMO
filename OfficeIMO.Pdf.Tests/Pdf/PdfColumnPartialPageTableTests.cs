@@ -31,11 +31,11 @@ public sealed class PdfColumnPartialPageTableTests {
     [InlineData("unsplittable-row")]
     public void Columns_TableThatFitsAFullPageMovesPastPartialFramesInsteadOfThrowing(string constraint) {
         var style = TableStyle();
-        if (constraint == "minimum-row") style.RowMinHeights = new List<double?> { 260 };
-        if (constraint == "fixed-row") style.FixedRowHeights = new List<double?> { 260 };
+        if (constraint == "minimum-row") style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(260) };
+        if (constraint == "fixed-row") style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(260) };
         if (constraint == "caption") {
-            style.RowMinHeights = new List<double?> { 260 };
-            style.Caption = "TableCaption"; style.CaptionFontSize = 12; style.CaptionSpacingAfter = 0;
+            style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(260) };
+            style.Caption = "TableCaption"; style.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(12); style.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         }
         if (constraint == "kept-table") style.KeepTogether = true;
         if (constraint == "unsplittable-row") style.RowAllowBreakAcrossPages = new List<bool?> { false };
@@ -53,9 +53,9 @@ public sealed class PdfColumnPartialPageTableTests {
     [Fact]
     public void Columns_VisibleMergedCellSpanMovesTogetherToTheFullPhysicalPage() {
         var style = TableStyle();
-        style.FixedRowHeights = new List<double?> { 130, 130 };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(130), global::OfficeIMO.OfficeLength.Points(130) };
         var viewport = new PdfTableCell("MergedCell", rowSpan: 2)
-            .WithViewport(new PdfTableCellViewport(100, 260, 100, 260));
+            .WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(260)));
         using var pdf = PdfPigDocument.Open(RenderTable(new[] {
             new[] { viewport, new PdfTableCell("FirstRow") }, new[] { new PdfTableCell("SecondRow") }
         }, style));
@@ -72,15 +72,15 @@ public sealed class PdfColumnPartialPageTableTests {
     [InlineData(true)]
     public void Columns_TableCapacityIncludesPaddingOutsideTheColumnsAndRejectsAnImpossibleRetry(bool keepTable) {
         var style = TableStyle();
-        style.RowMinHeights = new List<double?> { 310 };
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(310) };
         style.KeepTogether = keepTable;
-        var options = new PdfCreateOptions { PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
-            MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12, MaxGeneratedPages = 3 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), MaxGeneratedPages = 3 };
         var document = PdfDocument.Create(options).Container(content => {
             content.Paragraph(p => p.Text("Prelude"), style: ParagraphStyle());
             content.Columns(columns => columns.Table(new[] { new[] { new PdfTableCell("TooTall") } }, style: style),
-                new PdfMultiColumnOptions { Gap = 20 });
-        }, new PdfPanelStyle { PaddingY = 20, PaddingX = 0 });
+                new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20) });
+        }, new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(20), PaddingX = global::OfficeIMO.OfficeLength.Points(0) });
         ArgumentException error = Assert.Throws<ArgumentException>(() => document.ToBytes());
         Assert.Contains("height", error.Message, StringComparison.Ordinal);
     }
@@ -89,7 +89,7 @@ public sealed class PdfColumnPartialPageTableTests {
     public void Columns_FittingHeaderAndMinimumBodyGroupMovesBeforePaintingTheHeader() {
         var style = TableStyle();
         style.HeaderRowCount = 1; style.MinimumBodyRowsOnFirstPage = 1;
-        style.RowMinHeights = new List<double?> { 20, 260 };
+        style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(260) };
         using var pdf = PdfPigDocument.Open(RenderTable(new[] {
             new[] { new PdfTableCell("Header") }, new[] { new PdfTableCell("Body") }
         }, style));
@@ -102,14 +102,14 @@ public sealed class PdfColumnPartialPageTableTests {
 
     [Fact]
     public void Columns_TableThatFitsThePaddedPhysicalPageStillAdvancesAndRendersOnce() {
-        var style = TableStyle(); style.RowMinHeights = new List<double?> { 290 }; style.KeepTogether = true;
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions { PageWidth = 500, PageHeight = 400,
-            MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12, MaxGeneratedPages = 3 })
+        var style = TableStyle(); style.RowMinHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(290) }; style.KeepTogether = true;
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), MaxGeneratedPages = 3 })
             .Container(outer => outer.Panel(inner => {
                 inner.Paragraph(p => p.Text("Prelude"), style: ParagraphStyle());
                 inner.Columns(columns => columns.Table(new[] { new[] { new PdfTableCell("FittingCell") } }, style: style),
-                    new PdfMultiColumnOptions { Gap = 20 });
-            }, new PdfPanelStyle { PaddingY = 10, PaddingX = 0 }), new PdfPanelStyle { PaddingY = 20, PaddingX = 0 }).ToBytes());
+                    new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20) });
+            }, new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(10), PaddingX = global::OfficeIMO.OfficeLength.Points(0) }), new PdfPanelStyle { PaddingY = global::OfficeIMO.OfficeLength.Points(20), PaddingX = global::OfficeIMO.OfficeLength.Points(0) }).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "FittingCell");
         Assert.Single(pdf.GetPage(2).GetWords(), word => word.Text == "FittingCell");
@@ -119,16 +119,16 @@ public sealed class PdfColumnPartialPageTableTests {
 
     private static byte[] Render(int lines, bool keepTogether, PdfTableStyle style) {
         var runs = new[] { PdfTextRun.Normal(string.Join("\n", Enumerable.Range(1, lines).Select(index => $"Cell{index:D3}"))) };
-        var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 12,
-            lineSpacing: PdfLineSpacing.Exactly(20), widowControl: false, keepTogether: keepTogether) });
+        var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(12),
+            lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false, keepTogether: keepTogether) });
         return RenderTable(new[] { new[] { cell } }, style);
     }
     private static byte[] RenderTable(PdfTableCell[][] rows, PdfTableStyle style) =>
-        PdfDocument.Create(new PdfCreateOptions { PageWidth=500, PageHeight=400, MarginLeft=40, MarginRight=40,
-            MarginTop=40, MarginBottom=40, DefaultFontSize=12 })
+        PdfDocument.Create(new PdfCreateOptions { PageWidth=global::OfficeIMO.OfficeLength.Points(500), PageHeight=global::OfficeIMO.OfficeLength.Points(400), MarginLeft=global::OfficeIMO.OfficeLength.Points(40), MarginRight=global::OfficeIMO.OfficeLength.Points(40),
+            MarginTop=global::OfficeIMO.OfficeLength.Points(40), MarginBottom=global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize=global::OfficeIMO.OfficeLength.Points(12) })
             .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 12).Select(index => $"Before{index:D3}"))), style: ParagraphStyle())
             .Columns(content => content.Table(rows, style: style),
-                new PdfMultiColumnOptions { Gap=20, BalanceTableRowLines=true })
+                new PdfMultiColumnOptions { Gap=global::OfficeIMO.OfficeLength.Points(20), BalanceTableRowLines=true })
             .Paragraph(p => p.Text("AfterColumns"), style: ParagraphStyle()).ToBytes();
     private static double X(PdfPigDocument pdf, int page, string marker) =>
         pdf.GetPage(page).GetWords().Single(word => word.Text == marker).BoundingBox.Left;
@@ -138,9 +138,9 @@ public sealed class PdfColumnPartialPageTableTests {
         foreach (int index in Enumerable.Range(1, 12)) Assert.Single(words, word => word.Text == $"Before{index:D3}");
         Assert.Single(words, word => word.Text == "AfterColumns");
     }
-    private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing=PdfLineSpacing.Exactly(20),
-        SpacingBefore=0, SpacingAfter=0, WidowControl=false };
-    private static PdfTableStyle TableStyle() => new() { HeaderRowCount=0, CellPaddingX=0, CellPaddingY=0,
-        FontSize=12, LineHeight=20D/12D, BorderWidth=0, RowSeparatorWidth=0, SpacingBefore=0, SpacingAfter=0,
+    private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing=PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
+        SpacingBefore=global::OfficeIMO.OfficeLength.Points(0), SpacingAfter=global::OfficeIMO.OfficeLength.Points(0), WidowControl=false };
+    private static PdfTableStyle TableStyle() => new() { HeaderRowCount=0, CellPaddingX=global::OfficeIMO.OfficeLength.Points(0), CellPaddingY=global::OfficeIMO.OfficeLength.Points(0),
+        FontSize=global::OfficeIMO.OfficeLength.Points(12), LineHeight=20D/12D, BorderWidth=global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth=global::OfficeIMO.OfficeLength.Points(0), SpacingBefore=global::OfficeIMO.OfficeLength.Points(0), SpacingAfter=global::OfficeIMO.OfficeLength.Points(0),
         MinimumBodyRowsOnFirstPage=0, MinimumBodyRowsOnLastPage=0 };
 }

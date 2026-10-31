@@ -487,10 +487,10 @@ internal static partial class PdfRedactionApplier {
         }
 
         byte[] rewritten = (byte[])pixels.Clone();
-        byte red = imageEncoder.EncodeSample(0, options.FillColor.R);
-        byte green = imageEncoder.EncodeSample(1, options.FillColor.G);
-        byte blue = imageEncoder.EncodeSample(2, options.FillColor.B);
-        byte gray = imageEncoder.EncodeSample(0, ToGray(options.FillColor.R, options.FillColor.G, options.FillColor.B));
+        byte red = imageEncoder.EncodeSample(0, options.FillColor.ToNormalizedRgb().R);
+        byte green = imageEncoder.EncodeSample(1, options.FillColor.ToNormalizedRgb().G);
+        byte blue = imageEncoder.EncodeSample(2, options.FillColor.ToNormalizedRgb().B);
+        byte gray = imageEncoder.EncodeSample(0, ToGray(options.FillColor.ToNormalizedRgb().R, options.FillColor.ToNormalizedRgb().G, options.FillColor.ToNormalizedRgb().B));
 
         int rewrittenPixelCount = 0;
         for (int row = y0; row < y1; row++) {
@@ -550,9 +550,9 @@ internal static partial class PdfRedactionApplier {
             return false;
         }
 
-        byte red = ToColorByte(options.FillColor.R);
-        byte green = ToColorByte(options.FillColor.G);
-        byte blue = ToColorByte(options.FillColor.B);
+        byte red = ToColorByte(options.FillColor.ToNormalizedRgb().R);
+        byte green = ToColorByte(options.FillColor.ToNormalizedRgb().G);
+        byte blue = ToColorByte(options.FillColor.ToNormalizedRgb().B);
         int rewrittenPixelCount = 0;
         for (int row = y0; row < y1; row++) {
             int rowOffset = row * width * 4;

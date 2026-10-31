@@ -16,7 +16,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.CompatibilitySettings.CompatibilityMode = mode;
         document.Sections[0].ColumnCount = 2;
-        document.Sections[0].ColumnsSpace = 400;
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         WordParagraph leader = document.AddParagraph("Lead001\nLead002\nLead003");
         ConfigurePartialColumnParagraph(leader);
         leader.KeepWithNextOverride = true;
@@ -53,7 +53,7 @@ public partial class Word {
         document.CompatibilitySettings.CompatibilityMode = mode;
         ConfigurePartialColumnParagraph(document.AddParagraph(string.Join("\n", Enumerable.Range(1, 12).Select(index => $"Prelude{index:D3}"))));
         WordSection columns = document.AddSection(WordSectionBreakType.Continuous);
-        columns.ColumnCount = 2; columns.ColumnsSpace = 400;
+        columns.ColumnCount = 2; columns.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         WordParagraph paragraph = document.AddParagraph(string.Join("\n", Enumerable.Range(1, 13).Select(index => $"Marker{index:D3}")));
         ConfigurePartialColumnParagraph(paragraph); paragraph.KeepLinesTogetherOverride = true;
         document.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
@@ -74,8 +74,11 @@ public partial class Word {
     [InlineData(WordFileFormat.Doc)]
     public void SaveAsPdf_NativeUnequalColumnsRetainAnOmittedGapAfterSaveReload(WordFileFormat format) {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].ColumnsSpace = 720;
-        document.Sections[0].ColumnDefinitions = new[] { new WordSectionColumn(3000), new WordSectionColumn(4000, 0) };
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
+        document.Sections[0].ColumnDefinitions = new[] {
+            new WordSectionColumn(OfficeLength.Points(150)),
+            new WordSectionColumn(OfficeLength.Points(200), OfficeLength.Zero)
+        };
         WordParagraph paragraph = document.AddParagraph();
         ConfigurePartialColumnParagraph(paragraph);
         paragraph.AddText("LeftColumn"); paragraph.AddBreak(WordBreakType.Column); paragraph.AddText("RightColumn");
@@ -105,7 +108,7 @@ public partial class Word {
                 WordParagraph first = document.AddParagraph("FirstShaded");
                 WordParagraph second = document.AddParagraph("SecondShaded");
                 ConfigurePartialColumnParagraph(first); ConfigurePartialColumnParagraph(second);
-                first.LineSpacingAfterPoints = 8; second.LineSpacingBeforePoints = 12; second.LineSpacingAfterPoints = 6;
+                first.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D); second.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D); second.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
                 if (shaded) first.ShadingFillColorHex = second.ShadingFillColorHex = "00FFFF";
                 ConfigurePartialColumnParagraph(document.AddParagraph("AfterShading"));
                 source = document.ToBytes(format);
@@ -140,8 +143,8 @@ public partial class Word {
                 ConfigurePartialColumnParagraph(document.AddParagraph("Before"));
                 WordParagraph paragraph = document.AddParagraph("IndentedFirst\nIndentedSecond");
                 ConfigurePartialColumnParagraph(paragraph);
-                paragraph.IndentationBeforePoints = 12; paragraph.IndentationFirstLinePoints = 6;
-                paragraph.LineSpacingBeforePoints = 12; paragraph.LineSpacingAfterPoints = 8;
+                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(12D); paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(6D);
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D); paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
                 if (shaded) paragraph.ShadingFillColorHex = "00FFFF";
                 ConfigurePartialColumnParagraph(document.AddParagraph("After"));
                 source = document.ToBytes(format);
@@ -170,7 +173,7 @@ public partial class Word {
     public void SaveAsPdf_ShadedKeepWithNextParagraphMovesWithItsFollowingBodyInColumns(WordFileFormat format) {
         byte[] source;
         using (WordDocument document = WordDocument.Create()) {
-            document.Sections[0].ColumnCount = 2; document.Sections[0].ColumnsSpace = 400;
+            document.Sections[0].ColumnCount = 2; document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
             ConfigurePartialColumnParagraph(document.AddParagraph(string.Join("\n", Enumerable.Range(1, 15).Select(index => $"Prelude{index:D3}"))));
             WordParagraph heading = document.AddParagraph("ShadedHeading");
             ConfigurePartialColumnParagraph(heading); heading.ShadingFillColorHex = "00FFFF"; heading.KeepWithNextOverride = true;
@@ -199,14 +202,14 @@ public partial class Word {
     public void SaveAsPdf_DecoratedParagraphsPreserveExactSpacingAndBalancedContinuation(WordFileFormat format, int lines, bool border) {
         byte[] source;
         using (WordDocument document = WordDocument.Create()) {
-            WordSection section = document.Sections[0]; section.ColumnCount = 2; section.ColumnsSpace = 400;
+            WordSection section = document.Sections[0]; section.ColumnCount = 2; section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
             WordParagraph paragraph = document.AddParagraph(string.Join("\n", Enumerable.Range(1, lines).Select(index => $"Nested{index:D3}")));
             ConfigurePartialColumnParagraph(paragraph);
             if (border) {
                 WordParagraphBorders borders = paragraph.Borders;
                 borders.LeftStyle = borders.RightStyle = borders.TopStyle = borders.BottomStyle = WordBorderStyle.Single;
-                borders.LeftSize = borders.RightSize = borders.TopSize = borders.BottomSize = 4;
-                borders.LeftSpace = borders.RightSpace = borders.TopSpace = borders.BottomSpace = 0;
+                borders.LeftSize = borders.RightSize = borders.TopSize = borders.BottomSize = OfficeLength.Points(0.5);
+                borders.LeftSpace = borders.RightSpace = borders.TopSpace = borders.BottomSpace = OfficeLength.Points(0);
             } else paragraph.ShadingFillColorHex = "00FFFF";
             document.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
             ConfigurePartialColumnParagraph(document.AddParagraph("AfterContinuous"));

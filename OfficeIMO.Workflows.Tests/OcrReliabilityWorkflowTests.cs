@@ -15,7 +15,7 @@ public sealed class OcrReliabilityWorkflowTests {
         Directory.CreateDirectory(root);
         try {
             string source = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "output.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             byte[] original = File.ReadAllBytes(source), previous = [1, 2, 3];
             File.WriteAllBytes(output, previous);
             var engine = new DelegateOcrEngine("failure", (_, _) => failure == "exception"
@@ -54,7 +54,7 @@ public sealed class OcrReliabilityWorkflowTests {
         Directory.CreateDirectory(root);
         try {
             string source = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "output.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             byte[] original = File.ReadAllBytes(source);
             var engine = new DelegateOcrEngine("fixture", (_, _) => Task.FromResult(new OcrResult {
                 Spans = [Word("Mispelled")], Diagnostics = [new OcrDiagnostic {

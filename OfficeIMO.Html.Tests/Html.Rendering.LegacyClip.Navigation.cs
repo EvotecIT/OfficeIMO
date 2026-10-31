@@ -15,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
             + "<a href='#target'>Go</a><div id='target' style='clip-path:" + clipPath + "'>Hidden</div><p>After</p>";
         var options = new HtmlRenderOptions {
             ViewportWidth = 300D, ViewportHeight = 100D,
-            PageSize = new OfficePageSize(300D / 96D, 100D / 96D), Margins = HtmlRenderMargins.All(0D)
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)), Margins = HtmlRenderMargins.All(0D)
         };
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
         HtmlRenderRequest request = HtmlRenderRequest.Create(
@@ -93,7 +93,7 @@ public sealed partial class HtmlRenderingTests {
             + "transform:translateY(" + shift.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "px);transform-origin:0 0'><div id='target'>Hidden</div></div>";
         var options = new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(300D / 96D, 100D / 96D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(300D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)),
             Margins = HtmlRenderMargins.All(0), ViewportWidth = 300, ViewportHeight = 300,
             HonorCssPageRules = false, AllowSystemFontFallback = false
         };

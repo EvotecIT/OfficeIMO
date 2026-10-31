@@ -77,7 +77,7 @@ public class HtmlRenderingOutputBenchmarks {
         _drawing = _renderedPage.CreateDrawing();
         _pdfOptions = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(8.5D, 11D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(8.5D), global::OfficeIMO.OfficeLength.Inches(11D)),
             Margins = HtmlRenderMargins.All(36D)
         };
     }
@@ -287,14 +287,14 @@ internal static class HtmlBenchmarkCorpus {
 
     internal static HtmlRenderOptions CreatePagedOptions() => new HtmlRenderOptions {
         Mode = HtmlRenderMode.Paged,
-        PageSize = new OfficePageSize(5D, 4D),
+        PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5D), global::OfficeIMO.OfficeLength.Inches(4D)),
         Margins = HtmlRenderMargins.All(32D),
         BackgroundColor = OfficeColor.White
     };
 
     internal static HtmlRenderOptions CreateStaticStandardsOptions() => new HtmlRenderOptions {
         Mode = HtmlRenderMode.Paged,
-        PageSize = new OfficePageSize(5D, 4D),
+        PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5D), global::OfficeIMO.OfficeLength.Inches(4D)),
         Margins = HtmlRenderMargins.All(32D),
         BackgroundColor = OfficeColor.White,
         FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss

@@ -70,7 +70,7 @@ internal static partial class PdfWriter {
                 List<RichSeg> line = lines[index];
                 if (line.Any(segment => !segment.IsLineBoxStrut &&
                     (segment.InlineElement is PdfInlineBox box
-                        ? box.Background.HasValue || box.BorderColor.HasValue && box.BorderWidth > 0D
+                        ? box.Background.HasValue || box.BorderColor.HasValue && box.BorderWidth.ToPoints() > 0D
                         : segment.InlineElement == null && !string.IsNullOrWhiteSpace(segment.Text)))) {
                     double inkBaseline = AdjustRichLineBaseline(baseline, line, currentOpts, fontSize, font);
                     GetRichLineInkMetrics(line, currentOpts, out double ascent, out double descent);
@@ -91,7 +91,7 @@ internal static partial class PdfWriter {
             PdfLayoutDiagnosticKind kind, double x, double top, double itemWidth, double itemHeight,
             PdfConversionWarningSeverity severity = PdfConversionWarningSeverity.Warning) {
             if (!currentOpts.HasDiagnosticsReport) return;
-            double yFromTop = currentOpts.PageHeight - top;
+            double yFromTop = currentOpts.PageHeight.ToPoints() - top;
             string occurrence = FormattableString.Invariant($"{source} on page {pages.Count + 1} at {x:0.###},{yFromTop:0.###}");
             currentOpts.AddLayoutDiagnostic(code, occurrence, message, kind, severity,
                 x, yFromTop, itemWidth, itemHeight);

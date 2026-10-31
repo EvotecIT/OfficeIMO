@@ -39,7 +39,7 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 /// </example>
 [Cmdlet(VerbsSecurity.Protect, "OfficeDocument", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
 [OutputType(typeof(FileInfo), typeof(OfficeIMO.Word.WordDocument), typeof(OfficeIMO.Excel.ExcelDocument),
-    typeof(OfficeIMO.PowerPoint.PowerPointPresentation), typeof(PdfDocument))]
+    typeof(OfficeIMO.PowerPoint.PowerPointDocument), typeof(PdfDocument))]
 public sealed class ProtectOfficeDocumentCommand : PSCmdlet {
     private readonly List<string> _paths = new();
     private readonly List<object> _documents = new();

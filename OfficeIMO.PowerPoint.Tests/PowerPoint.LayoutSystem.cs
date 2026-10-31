@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NewPresentation_WritesThemeTextStylesAndPlaceholders() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PresentationPart part = presentation.OpenXmlDocument.PresentationPart!;
             SlideMasterPart master = part.SlideMasterParts.First();
             P.TextStyles styles = master.SlideMaster!.TextStyles!;
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ThemeFonts_CarryMatchingPanoseAndFamily() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             A.FontScheme scheme = presentation.OpenXmlDocument.PresentationPart!.SlideMasterParts.First().ThemePart!.Theme!.ThemeElements!.FontScheme!;
             Assert.Equal("Aptos", scheme.MajorFont!.LatinFont!.Typeface!.Value);
             Assert.Equal("020B0004020202020204", scheme.MajorFont.LatinFont.Panose!.Value);
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
         public void CreateOptionsTheme_DrivesThemePartAndTextStyles() {
             OfficeTheme theme = OfficeTheme.Modern.WithFonts(new OfficeThemeFonts(
                 new OfficeThemeFont("Georgia", new[] { "serif" }), new OfficeThemeFont("Arial", new[] { "sans-serif" })));
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(new PowerPointCreateOptions { Theme = theme });
+            using PowerPointDocument presentation = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = theme });
             Assert.Equal("Georgia", presentation.GetThemeFonts().MajorLatin);
             Assert.Equal("Arial", presentation.GetThemeFonts().MinorLatin);
             Assert.Equal(theme.Palette.Accent1.ToRgbHex(), presentation.GetThemeColor(PowerPointThemeColor.Accent1));
@@ -99,16 +99,16 @@ namespace OfficeIMO.Tests {
         public void AddPicture_KeepsImageAspectRatioInsideTheBox() {
             string portrait = TempImage(70, 100);
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create();
+                using PowerPointDocument presentation = PowerPointDocument.Create();
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture picture = slide.AddPicturePoints(portrait, 100, 100, 300, 200);
-                Assert.Equal(0.7, picture.Width / (double)picture.Height, 2);
-                Assert.Equal(200, Points(picture.Height), 1);
-                Assert.Equal(100 + (300 - 140) / 2D, Points(picture.Left), 1);
+                PowerPointPicture picture = slide.AddImage(portrait, OfficeLength.Points(100), OfficeLength.Points(100), OfficeLength.Points(300), OfficeLength.Points(200));
+                Assert.Equal(0.7, picture.Width.ToPoints() / picture.Height.ToPoints(), 2);
+                Assert.Equal(200, (picture.Height).ToPoints(), 1);
+                Assert.Equal(100 + (300 - 140) / 2D, (picture.Left).ToPoints(), 1);
 
                 // Cropping to fill crops the long axis of a portrait image: top and bottom.
-                picture.Width = PowerPointUnits.FromPoints(300);
-                picture.Height = PowerPointUnits.FromPoints(200);
+                picture.Width = OfficeLength.Points(300);
+                picture.Height = OfficeLength.Points(200);
                 picture.FitToBox(crop: true);
                 Assert.True(picture.CropTopRatio > 0.2);
                 Assert.Equal(picture.CropTopRatio, picture.CropBottomRatio, 3);
@@ -120,20 +120,20 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void TableFrame_FollowsGridWhenColumnsAndRowsChange() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTable table = slide.AddTablePoints(3, 3, 40, 40, 875, 390);
-            table.SetColumnWidthsPoints(200, 180, 180);
-            for (int r = 0; r < table.Rows; r++) table.SetRowHeightPoints(r, 30);
-            Assert.Equal(560, Points(table.Width), 1);
-            Assert.Equal(90, Points(table.Height), 1);
+            PowerPointTable table = slide.AddTable(3, 3, OfficeLength.Points(40), OfficeLength.Points(40), OfficeLength.Points(875), OfficeLength.Points(390));
+            table.SetColumnWidths(OfficeLength.Points(200), OfficeLength.Points(180), OfficeLength.Points(180));
+            for (int r = 0; r < table.Rows; r++) table.SetRowHeight(r, OfficeLength.Points(30));
+            Assert.Equal(560, (table.Width).ToPoints(), 1);
+            Assert.Equal(90, (table.Height).ToPoints(), 1);
             table.AddRow();
-            Assert.Equal(Enumerable.Range(0, table.Rows).Sum(r => table.GetRowHeight(r)), table.Height);
+            Assert.Equal(Enumerable.Range(0, table.Rows).Sum(r => table.GetRowHeight(r).ToEmus()), table.Height.ToEmus());
         }
 
         [Fact]
         public void LongTable_SplitsIntoBalancedSlidesWithRepeatedHeaderAndRange() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             var slide = new PowerPointLayoutSlide { Title = "Workstreams" };
             slide.Blocks.Add(Table(17));
             IReadOnlyList<PowerPointSlide> slides = PowerPointLayoutEngine.AddSlides(presentation, slide);
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
 
             var grid = PowerPointLayoutGrid.For(presentation, presentation.LayoutTheme);
             foreach (PowerPointTable table in tables) {
-                Assert.True(Points(table.Top + table.Height) <= grid.LiveBottom + 0.5, "The table runs into the footer.");
+                Assert.True((table.Top + table.Height).ToPoints() <= grid.LiveBottom + 0.5, "The table runs into the footer.");
                 // Continuation rows keep the table's own row height.
                 Assert.Equal(tables[0].GetRowHeight(1), table.GetRowHeight(1));
                 A.RunProperties run = table.TableElement.Descendants<A.RunProperties>().Skip(table.Columns).First();
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void LongList_ShrinksThenSplitsEvenlyAndContinuesNumbering() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             var slide = new PowerPointLayoutSlide { Title = "Habits that keep generated decks readable" };
             slide.Blocks.Add(new PowerPointLayoutList(Enumerable.Range(1, 14).Select(i => "Keep one idea on each slide, item " + i), numbered: true));
             IReadOnlyList<PowerPointSlide> slides = PowerPointLayoutEngine.AddSlides(presentation, slide);
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void LongTitle_SplitsAtColonIntoTitleAndSubtitle() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             var slide = new PowerPointLayoutSlide {
                 Title = "Remote staff intake pilot: why it should continue through the first quarter of next year before any wider rollout is approved"
             };
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ContentSlide_UsesTitlePlaceholderSectionEyebrowAndNativeFooter() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.LayoutDeck.FooterText = "Northwind review";
             PowerPointLayoutEngine.AddSlides(presentation, new PowerPointLayoutSlide { Title = "Quarterly review" });
             PowerPointLayoutEngine.AddSlides(presentation, new PowerPointLayoutSlide { Title = "Performance" });
@@ -259,7 +259,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void TextFrames_AreNeverShorterThanTheirLines() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             var plan = new PowerPointDeckPlan()
                 .AddSection("Operating model", "One semantic plan and one renderer")
                 .AddCardGrid("Ownership", "Concrete objects remain editable", new[] {
@@ -276,7 +276,7 @@ namespace OfficeIMO.Tests {
                 foreach (PowerPointTextBox box in slide.TextBoxes.Where(t => !string.IsNullOrWhiteSpace(t.Text))) {
                     P.Shape shape = Shapes(slide).Single(s => s.NonVisualShapeProperties!.NonVisualDrawingProperties!.Name == box.Name);
                     int largest = shape.Descendants<A.RunProperties>().Select(r => r.FontSize?.Value ?? 0).DefaultIfEmpty(0).Max();
-                    Assert.True(Points(box.Height) + 0.5 >= largest / 100D, box.Name + " is shorter than one line of its text.");
+                    Assert.True((box.Height).ToPoints() + 0.5 >= largest / 100D, box.Name + " is shorter than one line of its text.");
                     Assert.True(largest == 0 || largest >= 1000, box.Name + " uses text below 10 pt.");
                 }
             }
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void LogoNames_ShrinkSoNoWordBreaks() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             var slide = new PowerPointLayoutSlide { Title = "Partners", Layout = PowerPointLayout.Logos };
             foreach (string name in new[] { "Brother", "Samsung", "Hewlett Packard Enterprise", "Lenovo", "Dell", "Cisco", "Fortinet", "Microsoft", "Amazon" }) {
                 slide.Blocks.Add(new PowerPointLayoutCard(name, image: "missing.png"));
@@ -309,7 +309,7 @@ namespace OfficeIMO.Tests {
     
         [Fact]
         public void DesignerDeck_KeepsContentInsideTheLiveArea() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             var rows = Enumerable.Range(1, 20).Select(i => (IEnumerable<string>)new[] { "Workstream " + i, i % 3 == 0 ? "At risk" : "On track", (50 + i) + "%" });
             var plan = new PowerPointDeckPlan()
                 .AddSection("Executive delivery review", "Editable, measured and ready for inspection")
@@ -349,7 +349,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 foreach (PowerPointTable table in slide.Tables) {
-                    Assert.True(Points(table.Top + table.Height) <= grid.LiveBottom + 0.5, "A table runs into the footer band.");
+                    Assert.True((table.Top + table.Height).ToPoints() <= grid.LiveBottom + 0.5, "A table runs into the footer band.");
                 }
             }
 
@@ -358,11 +358,11 @@ namespace OfficeIMO.Tests {
     
         [Fact]
         public void LayoutCharts_DropTheFrameAndKeepSliceLabelsReadable() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             var slide = new PowerPointLayoutSlide { Title = "Ticket mix by channel" };
             var data = new OfficeChartData(new[] { "Email", "Phone", "Chat", "Walk-up" },
-                new[] { new OfficeChartSeries("Tickets", new double[] { 42, 28, 18, 12 }) });
-            slide.Blocks.Add(new PowerPointLayoutChart(OfficeChartKind.Doughnut, data));
+                new[] { new OfficeSeries("Tickets", new double[] { 42, 28, 18, 12 }) });
+            slide.Blocks.Add(new PowerPointLayoutChart(OfficeChartType.Doughnut, data));
             PowerPointSlide added = PowerPointLayoutEngine.AddSlides(presentation, slide).Single();
             PowerPointChart chart = added.Charts.Single();
             DocumentFormat.OpenXml.Drawing.Charts.ChartSpace space = chart.GetChart().Parent as DocumentFormat.OpenXml.Drawing.Charts.ChartSpace
@@ -388,13 +388,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void TemplateDeck_KeepsTheTemplateTitleAndStartsContentBelowIt() {
             byte[] template;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide();
                 template = source.ToBytes();
             }
 
             using var input = new MemoryStream(template);
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
+            using PowerPointDocument presentation = PowerPointDocument.Load(input);
             var slide = new PowerPointLayoutSlide { Title = "Quarter at a glance" };
             slide.Blocks.Add(new PowerPointLayoutKpi("$4.2M", "Revenue", "+12%"));
             slide.Blocks.Add(new PowerPointLayoutKpi("38%", "Margin", "+2 pt"));
@@ -403,7 +403,7 @@ namespace OfficeIMO.Tests {
             P.Shape title = Shapes(added).Single(s => Placeholder(s)?.Type?.Value == P.PlaceholderValues.Title);
             Assert.Null(title.ShapeProperties!.Transform2D); // position, font and size come from the template layout
             Assert.Null(title.Descendants<A.RunProperties>().First().FontSize);
-            double titleBottom = added.GetLayoutPlaceholder(PowerPointPlaceholderType.Title)!.Value.Bounds!.Value.BottomPoints;
+            double titleBottom = added.GetLayoutPlaceholder(PowerPointPlaceholderType.Title)!.Value.Bounds!.Value.Bottom.ToPoints();
             foreach (P.Shape shape in Shapes(added).Where(s => s.NonVisualShapeProperties!.NonVisualDrawingProperties!.Name!.Value!.StartsWith("Metric"))) {
                 Assert.True(Points(shape.ShapeProperties!.Transform2D!.Offset!.Y!.Value) >= titleBottom, "Content overlaps the template title.");
             }
@@ -411,7 +411,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Compose_ReportsLayoutDiagnosticsInThePreflight() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             var plan = new PowerPointDeckPlan().AddLogoWall("Partners", null, new[] { new PowerPointLogoItem("Contoso") },
                 configure: options => options.FeaturedImagePath = "certificate.png");
             PowerPointCompositionResult result = presentation.Compose(plan,

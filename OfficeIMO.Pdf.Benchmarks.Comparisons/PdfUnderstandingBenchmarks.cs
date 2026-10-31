@@ -58,7 +58,8 @@ internal sealed class PdfStructuredReadBenchmarkScenario {
         PdfUnderstandingBenchmarkValidation.Observe(ReadDocument());
 
     private PdfDocumentReadResult ReadDocument() {
-        PdfDocument document = PdfDocument.Load(_pdf);
+        using var documentStream = new MemoryStream(_pdf, writable: false);
+        using PdfDocument document = PdfDocument.Load(documentStream);
         return document.Read(_options);
     }
 }

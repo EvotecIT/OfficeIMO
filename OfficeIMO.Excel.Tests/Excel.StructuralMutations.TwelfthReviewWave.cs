@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMove_RejectsPartialDestinationHyperlinkRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Move");
             sheet.SetHyperlink(1, 2, "https://destination.example/", display: "Destination", style: false);
             Hyperlink hyperlink = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Hyperlink>());
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_MutationRollback_RestoresDeletedHyperlinkRelationships() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetHyperlink(1, 1, "https://rollback.example/", display: "Rollback", style: false);
             HyperlinkRelationship relationship = Assert.Single(sheet.WorksheetPart.HyperlinkRelationships);
             string relationshipId = relationship.Id;
@@ -51,8 +51,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ColumnCellAndMoveMutations_RemapViewScenarioAndWorkbookSources() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
             data.CellValue(2, 2, 1);
             data.CellValue(3, 3, 2);
             var pane = new Pane { TopLeftCell = "B2" };
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_NamedStyleRedefinition_RejectsAmbiguousSharedStyleFormat() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Source");
             sheet.CellAt(1, 1).SetFillColor("C6EFCE");
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;

@@ -89,7 +89,7 @@ public sealed class ReaderPdfOptions {
             MergePageContinuations = options.MergePageContinuations,
             RejoinSoftHyphens = options.RejoinSoftHyphens,
             MaximumSegmentsPerParagraph = options.MaximumSegmentsPerParagraph,
-            GeometryTolerancePoints = options.GeometryTolerancePoints,
+            GeometryTolerance = options.GeometryTolerance,
             MinimumConfidence = options.MinimumConfidence
         };
     }

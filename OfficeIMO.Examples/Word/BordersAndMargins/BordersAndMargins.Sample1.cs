@@ -14,20 +14,20 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Sections[0].Borders.LeftStyle = WordBorderStyle.PalmsColor;
                 document.Sections[0].Borders.LeftColor = OfficeIMO.OfficeColor.Aqua;
-                document.Sections[0].Borders.LeftSpace = 24;
-                document.Sections[0].Borders.LeftSize = 24;
+                document.Sections[0].Borders.LeftSpace = OfficeLength.Points(24);
+                document.Sections[0].Borders.LeftSize = OfficeLength.Points(3);
 
                 document.Sections[0].Borders.RightStyle = WordBorderStyle.BabyPacifier;
                 document.Sections[0].Borders.RightColor = OfficeIMO.OfficeColor.Red;
-                document.Sections[0].Borders.RightSize = 12;
+                document.Sections[0].Borders.RightSize = OfficeLength.Points(1.5);
 
                 document.Sections[0].Borders.TopStyle = WordBorderStyle.SharksTeeth;
                 document.Sections[0].Borders.TopColor = OfficeIMO.OfficeColor.GreenYellow;
-                document.Sections[0].Borders.TopSize = 10;
+                document.Sections[0].Borders.TopSize = OfficeLength.Points(1.25);
 
                 document.Sections[0].Borders.BottomStyle = WordBorderStyle.Thick;
                 document.Sections[0].Borders.BottomColor = OfficeIMO.OfficeColor.Blue;
-                document.Sections[0].Borders.BottomSize = 15;
+                document.Sections[0].Borders.BottomSize = OfficeLength.Points(1.875);
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

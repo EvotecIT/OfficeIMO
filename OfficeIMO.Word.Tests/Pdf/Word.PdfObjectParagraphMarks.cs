@@ -135,9 +135,9 @@ public partial class Word {
         var section = document._wordprocessingDocument.MainDocumentPart!.Document!.Body!.GetFirstChild<W.SectionProperties>()!;
         section.RemoveAllChildren<W.Columns>();
         section.Append(new W.Columns { ColumnCount = 2, EqualWidth = true, Space = "720" });
-        WordShape shape = document.AddParagraph().AddShape(48, 36, "#00A060");
+        WordShape shape = document.AddParagraph().AddShape(OfficeLength.Points(48), OfficeLength.Points(36), OfficeColor.Parse("#00A060"));
         shape.Hidden = true;
-        shape.Height = 1e30;
+        shape.Height = OfficeLength.Emus(long.MaxValue);
 
         var error = Assert.Throws<OfficeConversionException>(() => document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
@@ -173,14 +173,14 @@ public partial class Word {
             section.Append(new W.Columns { ColumnCount = 2, EqualWidth = true, Space = "720" });
         }
         var first = document.AddParagraph("A");
-        if (!wide) first.LineSpacingAfterPoints = 610D;
+        if (!wide) first.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(610D);
         var p = document.AddParagraph();
         p._paragraph.ParagraphProperties = wide
             ? new W.ParagraphProperties(new W.SpacingBetweenLines { Line = "1600", LineRule = W.LineSpacingRuleValues.AtLeast })
             : new W.ParagraphProperties(new W.KeepNext());
         using var image = new MemoryStream(OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(64, 32, OfficeColor.Green), OfficeImageExportFormat.Png));
-        p.InsertImage(image, "boundary.png", wide ? 1000D * 96D / 72D : 64D, wide ? 100D * 96D / 72D : 32D);
+        p.AddImage(image, "boundary.png", OfficeIMO.OfficeLength.Pixels(wide ? 1000D * 96D / 72D : 64D), OfficeIMO.OfficeLength.Pixels(wide ? 100D * 96D / 72D : 32D));
         document.AddParagraph("B");
         return document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
@@ -190,11 +190,11 @@ public partial class Word {
         Action<UglyToad.PdfPig.Content.Page>? inspect = null) {
         using WordDocument document = WordDocument.Create();
         SetObjectMarkNormalStyle(document);
-        document.AddParagraph("A").LineSpacingAfterPoints = neighborSpacing;
+        document.AddParagraph("A").LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(neighborSpacing);
         if (kind != "none") {
             void AddBlank() {
                 WordParagraph blank = document.AddParagraph();
-                if (spacedBlank) { blank.LineSpacingBeforePoints = 20D; blank.LineSpacingAfterPoints = 20D; }
+                if (spacedBlank) { blank.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(20D); blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(20D); }
             }
             if (blankBefore) AddBlank();
             WordParagraph p = document.AddParagraph();
@@ -207,8 +207,8 @@ public partial class Word {
                     });
                     p.SetStyleId("ObjectSpacing");
                 } else {
-                    p.LineSpacingBeforePoints = 20;
-                    p.LineSpacingAfterPoints = 20;
+                    p.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(20D);
+                    p.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(20D);
                 }
             }
             if (minimumHeight > 0D) {
@@ -227,38 +227,37 @@ public partial class Word {
             }
             if (kind.StartsWith("group", StringComparison.Ordinal)) {
                 p.AddShapeGroup(new[] {
-                    new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 24, kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36) { FillColorHex = "00A060" },
-                    new WordShapeGroupItem(WordShapeType.Rectangle, 24, 0, 24, kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36) { FillColorHex = "00A060" }
+                    new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(24), OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36)) { FillColorHex = "00A060" },
+                    new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(24), OfficeLength.Points(0), OfficeLength.Points(24), OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36)) { FillColorHex = "00A060" }
                 });
             } else if (kind.StartsWith("shape-inline", StringComparison.Ordinal)) {
-                WordShape shape = WordShape.AddDrawingShape(p, WordShapeType.Rectangle, 48, kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36);
+                WordShape shape = WordShape.AddDrawingShape(p, WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(48), OfficeIMO.OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36));
                 shape.FillColorHex = "00A060";
             } else if (kind.StartsWith("shape", StringComparison.Ordinal) || kind == "hidden-shape") {
-                WordShape shape = p.AddShape(48, kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36, "#00A060");
+                WordShape shape = p.AddShape(OfficeIMO.OfficeLength.Points(48), OfficeIMO.OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36), OfficeIMO.OfficeColor.Parse("#00A060"));
                 if (kind == "hidden-shape") shape.Hidden = true;
             } else {
                 using var image = new MemoryStream(OfficeRasterImageEncoder.Encode(
                     new OfficeRasterImage(64, 32, OfficeColor.Green), OfficeImageExportFormat.Png));
-                WordImage inserted = p.InsertImage(image, "mark.png", 64, kind == "image-short" ? 8 : 32,
-                    kind == "anchored-image" ? WordImageTextWrapping.InFrontOfText : WordImageTextWrapping.InLineWithText);
+                WordImage inserted = p.AddImage(image, "mark.png", OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(kind == "image-short" ? 8 : 32), options: new OfficeIMO.Word.WordImageOptions { Wrapping = kind == "anchored-image" ? WordImageTextWrapping.InFrontOfText : WordImageTextWrapping.InLineWithText });
                 if (kind == "anchored-image") {
                     inserted.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     inserted.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-                    inserted.HorizontalPositionOffset = 140 * 12700;
-                    inserted.VerticalPositionOffset = 160 * 12700;
+                    inserted.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(140 * 12700);
+                    inserted.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(160 * 12700);
                 }
                 if (mixedAnchor) {
                     image.Position = 0;
-                    WordImage anchored = p.InsertImage(image, "anchor.png", 64, 32, WordImageTextWrapping.InFrontOfText);
+                    WordImage anchored = p.AddImage(image, "anchor.png", OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
                     anchored.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     anchored.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-                    anchored.HorizontalPositionOffset = 140 * 12700;
-                    anchored.VerticalPositionOffset = 160 * 12700;
+                    anchored.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(140 * 12700);
+                    anchored.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(160 * 12700);
                 }
             }
             if (followingBlank) AddBlank();
         }
-        document.AddParagraph("B").LineSpacingBeforePoints = neighborSpacing;
+        document.AddParagraph("B").LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(neighborSpacing);
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

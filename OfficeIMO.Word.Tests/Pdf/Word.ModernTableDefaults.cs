@@ -42,7 +42,7 @@ public partial class Word {
             new W.StyleRunProperties(new W.Italic { Val = true });
         WordParagraph text = cell.Paragraphs[0];
         text.Text = "OVERRIDE";
-        text.FontSize = 18;
+        text.FontSize = OfficeLength.Points(18);
         text.ColorHex = "008000";
         text.Bold = false;
         text.Italic = false;
@@ -63,7 +63,7 @@ public partial class Word {
         Assert.False(authored.BoldComplexScript!.Val!.Value);
         Assert.False(authored.Italic!.Val!.Value);
         Assert.False(authored.ItalicComplexScript!.Val!.Value);
-        using var model = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(100) });
+        using var model = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeLength.Points(100)) });
         using var pdf = PdfPigDocument.Open(model.ToBytes());
         var page = pdf.GetPage(1);
         var word = Assert.Single(page.GetWords(), word => word.Text == "OVERRIDE");

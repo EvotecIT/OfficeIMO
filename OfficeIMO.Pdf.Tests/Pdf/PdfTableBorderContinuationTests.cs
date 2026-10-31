@@ -12,19 +12,19 @@ public sealed class PdfTableBorderContinuationTests {
         style.BorderColor = null;
         style.AllowRowBreakAcrossPages = false;
         style.CellPaddingFromBorderInterior = true;
-        style.CellPaddingTop = 10D;
-        style.CellPaddingBottom = 10D;
+        style.CellPaddingTop = OfficeLength.Points(10D);
+        style.CellPaddingBottom = OfficeLength.Points(10D);
         style.CellBorders = Enumerable.Range(0, rows.Length).ToDictionary(
             index => (index, 0),
             _ => new PdfCellBorder {
-                Color = PdfColor.Black,
-                TopBorder = new PdfCellBorderSide { Color = PdfColor.Black, Width = 1D },
-                BottomBorder = new PdfCellBorderSide { Color = PdfColor.Black, Width = 8D }
+                Color = OfficeColor.Black,
+                TopBorder = new PdfCellBorderSide { Color = OfficeColor.Black, Width = OfficeLength.Points(1D) },
+                BottomBorder = new PdfCellBorderSide { Color = OfficeColor.Black, Width = OfficeLength.Points(8D) }
             });
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 220D, PageHeight = 140D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+            PageWidth = OfficeLength.Points(220D), PageHeight = OfficeLength.Points(140D),
+            MarginLeft = OfficeLength.Points(20D), MarginRight = OfficeLength.Points(20D), MarginTop = OfficeLength.Points(20D), MarginBottom = OfficeLength.Points(20D)
         }).Table(rows, style: style).ToBytes();
 
         using var pdf = PdfPigDocument.Open(bytes);

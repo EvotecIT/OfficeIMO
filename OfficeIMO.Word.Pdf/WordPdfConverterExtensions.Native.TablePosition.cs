@@ -22,12 +22,12 @@ namespace OfficeIMO.Word.Pdf {
                     ? PdfCore.PdfTableVerticalAlignment.Inside : vertical == W.VerticalAlignmentValues.Outside
                         ? PdfCore.PdfTableVerticalAlignment.Outside : PdfCore.PdfTableVerticalAlignment.Top;
             return new PdfCore.PdfTablePosition(horizontalAnchor, verticalAnchor, alignment, verticalAlignment,
-                horizontal.HasValue ? 0 : (position.TablePositionX?.Value ?? 0) / 20D,
-                vertical.HasValue ? 0 : (position.TablePositionY?.Value ?? 0) / 20D,
-                Math.Max(0, (position.LeftFromText?.Value ?? 0) / 20D),
-                Math.Max(0, (position.RightFromText?.Value ?? 0) / 20D),
-                Math.Max(0, (position.TopFromText?.Value ?? 0) / 20D),
-                Math.Max(0, (position.BottomFromText?.Value ?? 0) / 20D),
+                global::OfficeIMO.OfficeLength.Points(horizontal.HasValue ? 0 : (position.TablePositionX?.Value ?? 0) / 20D),
+                global::OfficeIMO.OfficeLength.Points(vertical.HasValue ? 0 : (position.TablePositionY?.Value ?? 0) / 20D),
+                global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.LeftFromText?.Value ?? 0) / 20D)),
+                global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.RightFromText?.Value ?? 0) / 20D)),
+                global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.TopFromText?.Value ?? 0) / 20D)),
+                global::OfficeIMO.OfficeLength.Points(Math.Max(0, (position.BottomFromText?.Value ?? 0) / 20D)),
                 mirrorHorizontalOnEvenPages: horizontal == W.HorizontalAlignmentValues.Inside || horizontal == W.HorizontalAlignmentValues.Outside,
                 allowOverlap: allowOverlap);
         }

@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static PdfCore.PdfPageMargins ToPdfMargins(ExcelSheetPageMargins margins) {
-            return PdfCore.PdfPageMargins.FromInches(margins.Left, margins.Top, margins.Right, margins.Bottom);
+            return new OfficeIMO.Pdf.PdfPageMargins(margins.Left,margins.Top,margins.Right,margins.Bottom);
         }
 
         private static IReadOnlyList<string> GetSheetNames(ExcelDocumentReader reader, ExcelPdfExportOptions options) {
@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 byte[] bytes = image.ToBytes();
-                if (bytes.Length == 0 || image.WidthPixels <= 0 || image.HeightPixels <= 0) {
+                if (bytes.Length == 0 || image.Width <= OfficeLength.Zero || image.Height <= OfficeLength.Zero) {
                     AddWarning(
                         options,
                         sheetName,
@@ -98,13 +98,13 @@ namespace OfficeIMO.Excel.Pdf {
                     : image.Description;
                 images.Add(new WorksheetImageExportData(
                     preparedBytes,
-                    PixelsToPoints(image.WidthPixels),
-                    PixelsToPoints(image.HeightPixels),
+                    image.Width.ToPoints(),
+                    image.Height.ToPoints(),
                     ExcelA1.CellReference(image.RowIndex, image.ColumnIndex),
                     image.RowIndex,
                     image.ColumnIndex,
-                    PixelsToPoints(image.OffsetXPixels),
-                    PixelsToPoints(image.OffsetYPixels),
+                    image.OffsetX.ToPoints(),
+                    image.OffsetY.ToPoints(),
                     image.RotationDegrees,
                     image.FlipHorizontal,
                     image.FlipVertical,
@@ -209,7 +209,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             foreach (ExcelChartSeries series in snapshot.Data.Series) {
-                ExcelChartType effectiveType = series.ChartType ?? snapshot.ChartType;
+                OfficeChartType effectiveType = series.ChartType ?? snapshot.ChartType;
                 if (effectiveType == snapshot.ChartType) {
                     continue;
                 }

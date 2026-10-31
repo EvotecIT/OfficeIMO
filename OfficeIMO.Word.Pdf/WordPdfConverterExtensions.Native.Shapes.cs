@@ -85,8 +85,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static (double Width, double Height)? GetNativeShapeDimensions(WordShape shape) {
-            double width = shape.Width;
-            double height = shape.Height;
+            double width = shape.WidthPoints;
+            double height = shape.HeightPoints;
             if (width > 0 && height > 0) {
                 return (width, height);
             }
@@ -180,9 +180,9 @@ namespace OfficeIMO.Word.Pdf {
                 } else if (TryGetNativeDrawingSolidFillColor(shapeProperties, out OfficeColor drawingFill, themeColors)) {
                     nativeShape.FillColor = drawingFill;
                 } else {
-                    PdfCore.PdfColor? fill = ParseNativeColor(wordShape.FillColorHex);
+                    global::OfficeIMO.OfficeColor? fill = ParseNativeColor(wordShape.FillColorHex);
                     if (fill.HasValue) {
-                        nativeShape.FillColor = fill.Value.ToOfficeColor();
+                        nativeShape.FillColor = fill.Value;
                     }
                 }
 
@@ -206,12 +206,15 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfColor? stroke = hasDrawingStrokeColor ? PdfCore.PdfColor.FromOfficeColor(drawingStroke) : ParseNativeColor(wordShape.StrokeColorHex);
-            nativeShape.StrokeColor = (stroke ?? PdfCore.PdfColor.Black).ToOfficeColor();
+            global::OfficeIMO.OfficeColor? stroke = hasDrawingStrokeColor ? drawingStroke : ParseNativeColor(wordShape.StrokeColorHex);
+            OfficeColor strokeColor = stroke ?? OfficeColor.Black;
+            // This native shape carries stroke alpha separately for running-canvas admission.
+            var strokeRgb = strokeColor.ToNormalizedRgb();
+            nativeShape.StrokeColor = OfficeColor.FromNormalizedRgb(strokeRgb.R, strokeRgb.G, strokeRgb.B);
             // Transfer the shared resolver's completed alpha once alongside RGB.
             // Running text-box admission also relies on this separate-opacity contract.
             if (hasDrawingStrokeColor) nativeShape.StrokeOpacity = drawingStroke.A / 255D;
-            nativeShape.StrokeWidth = Math.Max(0D, wordShape.StrokeWeight ?? 1D);
+            nativeShape.StrokeWidth = Math.Max(0D, wordShape.StrokeWeightPoints ?? 1D);
             nativeShape.StrokeDashStyle = MapNativeDrawingPresetDash(drawingOutline);
         }
 

@@ -7,10 +7,10 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>Resolves authored row heights into physical Word cell boxes, including effective vertical cell margins.</summary>
         private static void ApplyNativeUnspacedTableRowMargins(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style) {
             // Spaced cells use their independent border-frame geometry instead.
-            if (style.CellSpacing > 0D || style.BorderFrame?.Border != null) return;
+            if (style.CellSpacing.ToPoints() > 0D || style.BorderFrame?.Border != null) return;
             IReadOnlyList<WordTableRow> sourceRows = table.Rows;
-            var minimums = style.RowMinHeights == null ? new List<double?>() : new List<double?>(style.RowMinHeights);
-            var fixedHeights = style.FixedRowHeights == null ? new List<double?>() : new List<double?>(style.FixedRowHeights);
+            var minimums = style.RowMinHeights?.ConvertAll(static length => length?.ToPoints()) ?? new List<double?>();
+            var fixedHeights = style.FixedRowHeights?.ConvertAll(static length => length?.ToPoints()) ?? new List<double?>();
             while (minimums.Count < sourceRows.Count) minimums.Add(null);
             while (fixedHeights.Count < sourceRows.Count) fixedHeights.Add(null);
             bool hasMinimum = false, hasFixed = false;
@@ -31,8 +31,8 @@ namespace OfficeIMO.Word.Pdf {
                     hasMinimum = true;
                 }
             }
-            if (hasFixed) style.FixedRowHeights = fixedHeights;
-            if (hasMinimum) style.RowMinHeights = minimums;
+            if (hasFixed) style.FixedRowHeights = (fixedHeights) is { } lengths2322 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths2322, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
+            if (hasMinimum) style.RowMinHeights = (minimums) is { } lengths2386 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths2386, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
         }
 
         private static double GetNativeTableRowBorderInset(TableLayout layout, PdfCore.PdfTableStyle style, int row, bool top) {
@@ -41,7 +41,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordTableCell cell in layout.Rows[row]) {
                 if (IsNativeHorizontalMergeContinuation(cell)) continue;
                 if (!IsNativeVerticalMergeContinuation(cell)) {
-                    double thickness = style.BorderColor.HasValue ? style.BorderWidth : 0D;
+                    double thickness = style.BorderColor.HasValue ? style.BorderWidth.ToPoints() : 0D;
                     if (style.CellBorders?.TryGetValue((row, column), out PdfCore.PdfCellBorder? border) == true)
                         thickness = GetNativeFrameSide(border, top)?.PaintThickness ?? 0D;
                     maximum = Math.Max(maximum, thickness / 2D);
@@ -60,8 +60,8 @@ namespace OfficeIMO.Word.Pdf {
                 if (!IsNativeVerticalMergeContinuation(cell)) {
                     PdfCore.PdfCellPadding? padding = null;
                     style.CellPaddings?.TryGetValue((row, column), out padding);
-                    double ownTop = padding?.Top ?? style.CellPaddingTop ?? style.CellPaddingY;
-                    double ownBottom = padding?.Bottom ?? style.CellPaddingBottom ?? style.CellPaddingY;
+                    double ownTop = padding?.Top?.ToPoints() ?? style.CellPaddingTop?.ToPoints() ?? style.CellPaddingY.ToPoints();
+                    double ownBottom = padding?.Bottom?.ToPoints() ?? style.CellPaddingBottom?.ToPoints() ?? style.CellPaddingY.ToPoints();
                     if (ownTop < top && style.BorderFrame?.Border != null &&
                         style.CellBorders?.TryGetValue((row, column), out PdfCore.PdfCellBorder? border) == true &&
                         border.PaintInsideFrame) {
@@ -75,7 +75,7 @@ namespace OfficeIMO.Word.Pdf {
                         // Replace the effective PDF value without modifying source cells or caller-owned padding objects.
                         style.CellPaddings ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
                         style.CellPaddings[(row, column)] = new PdfCore.PdfCellPadding {
-                            Left = padding?.Left, Right = padding?.Right, Bottom = bottom, Top = top
+                            Left = padding?.Left, Right = padding?.Right, Bottom = global::OfficeIMO.OfficeLength.Points(bottom), Top = global::OfficeIMO.OfficeLength.Points(top)
                         };
                     }
                 }

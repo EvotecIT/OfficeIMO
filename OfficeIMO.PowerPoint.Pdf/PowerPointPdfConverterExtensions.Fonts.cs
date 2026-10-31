@@ -7,22 +7,22 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
-    private static PdfCore.PdfCreateOptions CreatePdfOptions(PptCore.PowerPointPresentation presentation, PowerPointPdfExportOptions options) {
+    private static PdfCore.PdfCreateOptions CreatePdfOptions(PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions options) {
         PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfCreateOptions();
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.PowerPoint.Pdf");
 
         if (options.PageLayout == PowerPointPdfPageLayout.NotesPages) {
-            pdfOptions.PageWidth = 612D;
-            pdfOptions.PageHeight = 792D;
+            pdfOptions.PageWidth = global::OfficeIMO.OfficeLength.Points(612D);
+            pdfOptions.PageHeight = global::OfficeIMO.OfficeLength.Points(792D);
         } else if (options.PageLayout == PowerPointPdfPageLayout.Handouts) {
-            pdfOptions.PageWidth = 792D;
-            pdfOptions.PageHeight = 612D;
+            pdfOptions.PageWidth = global::OfficeIMO.OfficeLength.Points(792D);
+            pdfOptions.PageHeight = global::OfficeIMO.OfficeLength.Points(612D);
         } else {
-            pdfOptions.PageWidth = presentation.SlideSize.WidthPoints;
-            pdfOptions.PageHeight = presentation.SlideSize.HeightPoints;
+            pdfOptions.PageWidth = presentation.SlideSize.Width;
+            pdfOptions.PageHeight = presentation.SlideSize.Height;
         }
-        pdfOptions.Margins = PdfCore.PdfPageMargins.Uniform(0);
+        pdfOptions.Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0));
         bool preserveConfiguredFontSlots = options.HasExplicitPdfFontConfiguration;
         if (!string.IsNullOrWhiteSpace(options.FontFamily) &&
             TryApplyPdfFontFamily(options.FontFamily, pdfOptions, options.ResourcePolicy.AllowSystemFontEmbedding)) {
@@ -42,7 +42,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PowerPointPdfExportOptions options,
         bool preserveConfiguredFontSlots,
         IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots,
-        PptCore.PowerPointPresentation presentation) {
+        PptCore.PowerPointDocument presentation) {
         if (!options.ResourcePolicy.AllowSystemFontEmbedding ||
             options.TextFallbacks == PdfCore.PdfTextFallbackFeatures.None) {
             return;
@@ -70,7 +70,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static bool PresentationRequiresConservativeTextFallbacks(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         PowerPointPdfExportOptions options) {
         foreach (PptCore.PowerPointSlide slide in presentation.Slides) {
             if (!options.IncludesSlide(slide)) {
@@ -117,7 +117,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static IEnumerable<string?> EnumeratePresentationFallbackText(
-        PptCore.PowerPointPresentation presentation,
+        PptCore.PowerPointDocument presentation,
         PowerPointPdfExportOptions options) {
         foreach (PptCore.PowerPointSlide slide in presentation.Slides) {
             if (!options.IncludesSlide(slide)) {
@@ -148,11 +148,11 @@ public static partial class PowerPointPdfConverterExtensions {
         return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
     }
 
-    private static HashSet<PdfCore.PdfStandardFont> RegisterPresentationFonts(PdfCore.PdfCreateOptions pdfOptions, PptCore.PowerPointPresentation presentation, PowerPointPdfExportOptions options, bool preserveConfiguredFontSlots) {
+    private static HashSet<PdfCore.PdfStandardFont> RegisterPresentationFonts(PdfCore.PdfCreateOptions pdfOptions, PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions options, bool preserveConfiguredFontSlots) {
         var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(preserveConfiguredFontSlots);
-        double pageWidth = presentation.SlideSize.WidthPoints;
-        double pageHeight = presentation.SlideSize.HeightPoints;
+        double pageWidth = presentation.SlideSize.Width.ToPoints();
+        double pageHeight = presentation.SlideSize.Height.ToPoints();
         IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
         for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
             PptCore.PowerPointSlide slide = slides[slideIndex];
@@ -347,11 +347,15 @@ public static partial class PowerPointPdfConverterExtensions {
             var paragraphStyle = PptCore.PowerPointEffectiveRunStyleResolver.ResolveParagraph(
                 paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle);
             RegisterPresentationFontCandidate(paragraphStyle.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
-            foreach (var inline in paragraph.InlineNodes) {
-                if (inline.Run == null) continue;
-                foreach (var segment in PptCore.PowerPointEffectiveRunStyleResolver.ResolveSegments(
-                    inline.Run, paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle)) {
-                    RegisterPresentationFontCandidate(segment.Style.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
+            foreach (PptCore.PowerPointParagraphInline inline in paragraph.InlineNodes) {
+                if (inline.Run is not { } run || string.IsNullOrEmpty(inline.Text)) continue;
+                // Measurement and painting resolve inherited and script-specific faces,
+                // including fields. Register those same families before creating the PDF measurer.
+                foreach (PptCore.PowerPointEffectiveTextSegment segment in PptCore.PowerPointEffectiveRunStyleResolver.ResolveSegments(
+                    run, paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle)) {
+                    RegisterPresentationFontCandidate(segment.Style.FontName ?? textBox.FontName
+                        ?? PptCore.PowerPointTextDefaults.ResolveBodyLatinFont(textBox.OwnerSlide),
+                        pdfOptions, registeredFamilies, registeredFontSlots, options, slideNumber);
                 }
             }
         }

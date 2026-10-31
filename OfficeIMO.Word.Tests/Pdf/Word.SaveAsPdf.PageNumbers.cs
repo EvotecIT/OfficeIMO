@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddHeadersAndFooters();
                 WordParagraph footerParagraph = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native roman field footer ");
-                footerParagraph.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman, separator: " / ");
+                footerParagraph.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.UpperRoman, separator: " / ");
                 document.AddParagraph("Native roman field footer first page");
                 document.AddPageBreak();
                 document.AddParagraph("Native roman field footer second page");

@@ -44,7 +44,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         // Region boxes already hold whole paragraphs, so a whitespace strip of one and a half ems through them is a
         // column gutter even when it is narrower than the page-level gutter option.
         double minimumVerticalGap = Math.Min(
-            Math.Max(context.LayoutOptions.MinGutterWidth, medianFontSize * 1.5D),
+            Math.Max(context.LayoutOptions.MinGutterWidth.ToPoints(), medianFontSize * 1.5D),
             Math.Max(9D, medianFontSize * 1.5D));
         PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
             context.LayoutOptions.ReadingDirection,

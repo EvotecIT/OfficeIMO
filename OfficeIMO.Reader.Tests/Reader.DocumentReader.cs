@@ -46,7 +46,7 @@ public sealed class ReaderDocumentReaderTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
         try {
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorksheet("Data");
+                var sheet = doc.AddSheet("Data");
                 sheet.Cell(1, 1, "Name");
                 sheet.Cell(1, 2, "Value");
                 sheet.Cell(2, 1, "A");
@@ -105,7 +105,7 @@ public sealed class ReaderDocumentReaderTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using ExcelDocument document = ExcelDocument.Create(path);
-            document.AddWorksheet("Data").CellValue(1, 1, "Preserved record warning");
+            document.AddSheet("Data").CellValue(1, 1, "Preserved record warning");
 
             typeof(ExcelDocument)
                 .GetProperty(nameof(ExcelDocument.SourceFormat))!
@@ -158,7 +158,7 @@ public sealed class ReaderDocumentReaderTests {
         string encryptedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (var doc = ExcelDocument.Create(sourcePath)) {
-                var sheet = doc.AddWorksheet("SecureData");
+                var sheet = doc.AddSheet("SecureData");
                 sheet.Cell(1, 1, "Name");
                 sheet.Cell(1, 2, "Value");
                 sheet.Cell(2, 1, "Token");
@@ -194,7 +194,7 @@ public sealed class ReaderDocumentReaderTests {
     public void DocumentReader_CanReadPowerPoint() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
         try {
-            using (var presentation = PowerPointPresentation.Create(path)) {
+            using (var presentation = PowerPointDocument.Create(path)) {
                 var slide = presentation.AddSlide();
                 slide.AddTextBox("Hello Reader");
                 slide.Notes.Text = "Notes";
@@ -257,8 +257,8 @@ public sealed class ReaderDocumentReaderTests {
         string path = Path.Combine(Path.GetTempPath(),
             Guid.NewGuid().ToString("N") + ".ppt");
         try {
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Reader encrypted PPT");
                 source.Save(path,new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
             }
@@ -292,8 +292,8 @@ public sealed class ReaderDocumentReaderTests {
         string path = Path.Combine(Path.GetTempPath(),
             Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Reader encrypted PPTX");
                 source.Save(path,new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
             }
@@ -327,8 +327,8 @@ public sealed class ReaderDocumentReaderTests {
         string path = Path.Combine(Path.GetTempPath(),
             Guid.NewGuid().ToString("N") + ".pptx");
         try {
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Reader encrypted PPTX");
                 source.Save(path,new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
             }
@@ -359,8 +359,8 @@ public sealed class ReaderDocumentReaderTests {
         byte[] encrypted;
         var randomBytes = new byte[32 * 1024];
         new Random(42).NextBytes(randomBytes);
-        using (PowerPointPresentation source =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument source =
+               PowerPointDocument.Create()) {
             source.AddSlide().AddTextBox(
                 Convert.ToBase64String(randomBytes));
             encrypted = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
@@ -408,8 +408,8 @@ public sealed class ReaderDocumentReaderTests {
             Guid.NewGuid().ToString("N"));
         try {
             byte[] encrypted;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Reader encrypted PPTX");
                 encrypted = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
             }
@@ -1093,13 +1093,13 @@ public sealed class ReaderDocumentReaderTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
         try {
             var pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
             pdf.H1("PDF Title");
             pdf.Paragraph(p => p.Text("This is a PDF body."));

@@ -29,7 +29,7 @@ public sealed class PdfLayoutDiagnosticOwnershipTests {
             SaveEvidence(abortOuter ? "inner-before-aborted-outer" : "inner-before-completed-outer", inner);
             if (abortOuter) throw new OuterProbeAbortedException();
             content.Paragraph(paragraph => paragraph.Text("HEADER"));
-        }, 18D));
+        }, global::OfficeIMO.OfficeLength.Points(18D)));
         outer.Paragraph(paragraph => paragraph.Text("OUTER"));
 
         if (abortOuter) Assert.Throws<OuterProbeAbortedException>(() => outer.ToBytes());
@@ -52,22 +52,22 @@ public sealed class PdfLayoutDiagnosticOwnershipTests {
 
     private static byte[] WriteClippedDocument(PdfConversionReport report) =>
         PdfDocument.Create(Options().ReportDiagnosticsTo(report, "Inner"))
-            .Canvas(canvas => canvas.TextBox("First\nSecond\nThird", 24D, 24D, 120D, 18D,
+            .Canvas(canvas => canvas.TextBox("First\nSecond\nThird", global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(18D),
                 new PdfCanvasTextBoxStyle {
-                    FontSize = 9D, PaddingX = 0D, PaddingY = 0D, Background = null, BorderColor = null
+                    FontSize = global::OfficeIMO.OfficeLength.Points(9D), PaddingX = global::OfficeIMO.OfficeLength.Points(0D), PaddingY = global::OfficeIMO.OfficeLength.Points(0D), Background = null, BorderColor = null
                 })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
     private static void AssertClippingWarning(IReadOnlyList<PdfConversionWarning> warnings) {
         PdfConversionWarning warning = Assert.Single(warnings, item => item.Code == "canvas-text-box-content-clipped");
         Assert.Equal("Inner", warning.Converter);
         Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
-        Assert.Equal(18D, warning.LayoutDiagnostic.Height);
+        Assert.Equal(18D, (warning.LayoutDiagnostic.Height?.ToPoints()));
     }
 
     private static PdfCreateOptions Options() => new() {
-        PageWidth = 240D, PageHeight = 320D, MarginLeft = 24D, MarginRight = 24D,
-        MarginTop = 32D, MarginBottom = 32D, DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = 11D, ShowHeader = false, ShowPageNumbers = false
+        PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(320D), MarginLeft = global::OfficeIMO.OfficeLength.Points(24D), MarginRight = global::OfficeIMO.OfficeLength.Points(24D),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(32D), MarginBottom = global::OfficeIMO.OfficeLength.Points(32D), DefaultFont = PdfStandardFont.Helvetica,
+        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11D), ShowHeader = false, ShowPageNumbers = false
     };
 
     private static void SaveEvidence(string name, byte[] bytes) {

@@ -22,12 +22,12 @@ public partial class Excel {
             nativeFont.FontName!.Val = "Calibri";
             nativeFont.FontSize!.Val = 11D;
             ExcelSheet sheet = workbook.Sheets[0];
-            sheet.SetColumnWidth(1, 50);
-            sheet.SetColumnWidth(2, 80);
-            sheet.SetColumnWidth(3, 40);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(50));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(80));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(40));
             for (int row = 1; row <= 24; row++) {
                 for (int column = 1; column <= 3; column++) sheet.CellValue(row, column, "Cell");
-                sheet.SetRowHeight(row, 24);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             }
             sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.A4);
             workbook.Save();

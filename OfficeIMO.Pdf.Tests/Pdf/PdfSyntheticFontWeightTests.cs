@@ -20,11 +20,11 @@ public sealed class PdfSyntheticFontWeightTests {
         var options = new PdfCreateOptions { EmbedDefaultFonts = false };
         if (named) options.RegisterNamedFontFamily(family);
         else options.UseFontFamily(family);
-        PdfColor ink = PdfColor.FromRgb(25, 140, 77);
+        OfficeColor ink = OfficeColor.FromRgb(25, 140, 77);
         using PdfDocument source = PdfDocument.Create(options).Compose(composition => composition.Content(content => content
             .Paragraph(paragraph => {
                 if (named) paragraph.FontFamily("Weight proof");
-                paragraph.FontSize(24).Text("LEFT ").Bold(true).Italic(italic).Color(ink).Text("BOLD")
+                paragraph.FontSize(OfficeLength.Points(24)).Text("LEFT ").Bold(true).Italic(italic).Color(ink).Text("BOLD")
                     .Bold(false).Italic(false).ResetColor().Text(" RIGHT");
             })
             .Paragraph(paragraph => paragraph.Text("AFTER"))));
@@ -32,10 +32,10 @@ public sealed class PdfSyntheticFontWeightTests {
         PdfReadPage page = Assert.Single(PdfReadDocument.Open(bytes).Pages);
         PdfTextSpan heavy = Assert.Single(page.GetTextSpans(), span => span.Text.Contains("BOLD", StringComparison.Ordinal));
         Assert.Equal(physicalBold ? 0 : 2, heavy.TextRenderingMode);
-        Assert.Equal(ink.ToOfficeColor(), heavy.Color);
+        Assert.Equal(ink, heavy.Color);
         if (!physicalBold) {
             Assert.True(heavy.OutlineStroke.HasValue);
-            Assert.Equal(ink.ToOfficeColor(), heavy.OutlineStroke.Value.Color);
+            Assert.Equal(ink, heavy.OutlineStroke.Value.Color);
             Assert.Equal(1D, heavy.OutlineStroke.Value.Width, 3);
         }
         Assert.All(page.GetTextSpans().Where(span => !span.Text.Contains("BOLD", StringComparison.Ordinal)), span => {
@@ -53,8 +53,8 @@ public sealed class PdfSyntheticFontWeightTests {
     [InlineData((byte)128, false)]
     [InlineData((byte)128, true)]
     public void SyntheticDrawingWeightUsesTheForegroundAlpha(byte alpha, bool tagged) {
-        var options = new PdfCreateOptions { EmbedDefaultFonts = false, PageWidth = 300, PageHeight = 120,
-            MarginLeft = 0, MarginTop = 0, MarginRight = 0, MarginBottom = 0 }.RegisterNamedFontFamily(
+        var options = new PdfCreateOptions { EmbedDefaultFonts = false, PageWidth = OfficeLength.Points(300), PageHeight = OfficeLength.Points(120),
+            MarginLeft = OfficeLength.Points(0), MarginTop = OfficeLength.Points(0), MarginRight = OfficeLength.Points(0), MarginBottom = OfficeLength.Points(0) }.RegisterNamedFontFamily(
             new PdfEmbeddedFontFamily("Weight proof", Font("Regular")));
         if (tagged) options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
         var drawing = new OfficeDrawing(240, 100).AddRichText(new[] {
@@ -84,9 +84,9 @@ public sealed class PdfSyntheticFontWeightTests {
     [Fact]
     public void WeightAddedMidParagraphRestoresTheSurroundingStrokeState() {
         var stream = new System.Text.StringBuilder();
-        new ContentStreamBuilder(stream).LineWidth(7).StrokeColor(PdfColor.FromRgb(255, 0, 0)).StrokeDash(4D, 2D)
+        new ContentStreamBuilder(stream).LineWidth(7).StrokeColor(OfficeColor.FromRgb(255, 0, 0)).StrokeDash(4D, 2D)
             .BeginText().Font("F1", 24).TextMatrix(20, 50).ShowHexText("41")
-            .Font("F1", 24, syntheticBold: true).TextMatrix(50, 50).FillColor(PdfColor.FromRgb(0, 0, 255)).ShowHexText("42")
+            .Font("F1", 24, syntheticBold: true).TextMatrix(50, 50).FillColor(OfficeColor.FromRgb(0, 0, 255)).ShowHexText("42")
             .Font("F1", 24).TextMatrix(80, 50).ShowHexText("43").EndText()
             .MoveTo(10, 20).LineTo(100, 20).StrokePath();
         PdfReadPage page = Assert.Single(PdfReadDocument.Open(NativePage(stream.ToString())).Pages);
@@ -108,14 +108,14 @@ public sealed class PdfSyntheticFontWeightTests {
     [InlineData(0.5D, true)]
     public void SyntheticWatermarkAppliesOpacityOnce(double opacity, bool tagged) {
         var options = new PdfCreateOptions {
-            EmbedDefaultFonts = false, PageWidth = 300, PageHeight = 120,
-            MarginLeft = 0, MarginTop = 0, MarginRight = 0, MarginBottom = 0,
+            EmbedDefaultFonts = false, PageWidth = OfficeLength.Points(300), PageHeight = OfficeLength.Points(120),
+            MarginLeft = OfficeLength.Points(0), MarginTop = OfficeLength.Points(0), MarginRight = OfficeLength.Points(0), MarginBottom = OfficeLength.Points(0),
             TextWatermark = new PdfTextWatermark("WAVE") {
-                FontSize = 54D, RotationAngle = 0D, Color = PdfColor.FromRgb(25, 140, 77), Opacity = opacity
+                FontSize = OfficeLength.Points(54D), RotationAngle = 0D, Color = OfficeColor.FromRgb(25, 140, 77), Opacity = opacity
             }
         }.UseFontFamily(new PdfEmbeddedFontFamily("Weight proof", Font("Regular")));
         if (tagged) options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
-        using PdfDocument document = PdfDocument.Create(options).Compose(c => c.Content(t => t.Paragraph(p => p.Color(PdfColor.White).Text("BODY"))));
+        using PdfDocument document = PdfDocument.Create(options).Compose(c => c.Content(t => t.Paragraph(p => p.Color(OfficeColor.White).Text("BODY"))));
         byte[] bytes = document.ToBytes();
         Assert.Contains("WAVE", PdfReadDocument.Open(bytes, new PdfLoadOptions { IncludeArtifactText = true }).ExtractText(), StringComparison.Ordinal);
         if (tagged) Assert.DoesNotContain("WAVE", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);

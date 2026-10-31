@@ -337,7 +337,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Linked logo")
-                    .AddImage(new Uri("https://example.com/assets/logo.png"), 64, 32, description: "Linked logo");
+                    .AddImage(new Uri("https://example.com/assets/logo.png"), OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { Description = "Linked logo" });
                 document.Save();
             }
 

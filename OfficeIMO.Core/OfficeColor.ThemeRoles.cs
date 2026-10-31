@@ -37,6 +37,8 @@ public readonly partial struct OfficeColor {
     private OfficeColor(OfficeColorRole role) {
         _r = _g = _b = 0;
         _a = 255;
+        _hasNormalizedRgb = false;
+        _normalizedR = _normalizedG = _normalizedB = 0D;
         Role = role;
     }
     /// <summary>Gets whether resolution against a theme is required.</summary>

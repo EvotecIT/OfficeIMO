@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 
@@ -25,8 +27,7 @@ internal static partial class Tables {
             wordTable1.Rows[1].Cells[0].Paragraphs[0].Text = "Longer text example to show wrapping...";
             // Setting width=100 with Pct is invalid (should be 5000 for 100%)
             // Word will likely treat this strangely or default
-            wordTable1.WidthType = WordTableWidthUnit.Pct;
-            wordTable1.Width = 100;
+            wordTable1.Width = WordTableWidth.Percent(2);
             wordTable1.Alignment = WordTableAlignment.Center;
             Console.WriteLine($"Table 2 - Invalid Pct Width Layout: {wordTable1.LayoutMode}");
             document.AddParagraph();
@@ -41,8 +42,7 @@ internal static partial class Tables {
             // --- Full Width (100% Percentage) ---
             document.AddParagraph("Table 4: Full Width (100% Pct)").Style = WordParagraphStyles.Heading1;
             WordTable wordTable3 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
-            wordTable3.WidthType = WordTableWidthUnit.Pct;
-            wordTable3.Width = 5000; // 5000 = 100%
+            wordTable3.Width = WordTableWidth.Percent(100); // 5000 = 100%
             wordTable3.Rows[0].Cells[0].Paragraphs[0].Text = "100%";
             Console.WriteLine($"Table 4 - 100% Pct Layout: {wordTable3.LayoutMode}");
             document.AddParagraph();
@@ -50,8 +50,7 @@ internal static partial class Tables {
             // --- Specific Percentage Width ---
             document.AddParagraph("Table 5: 50% Width (Pct)").Style = WordParagraphStyles.Heading1;
             WordTable wordTable4 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
-            wordTable4.WidthType = WordTableWidthUnit.Pct;
-            wordTable4.Width = 2500; // 50 * 50 = 2500 = 50%
+            wordTable4.Width = WordTableWidth.Percent(50); // 50 * 50 = 2500 = 50%
             wordTable4.Rows[0].Cells[0].Paragraphs[0].Text = "50%";
             Console.WriteLine($"Table 5 - 50% Pct Layout: {wordTable4.LayoutMode}");
             document.AddParagraph();
@@ -59,8 +58,7 @@ internal static partial class Tables {
             // --- Setting Width and then AutoFitting to Window ---
             document.AddParagraph("Table 6: Initially 50%, then AutoFit to Window").Style = WordParagraphStyles.Heading1;
             WordTable wordTable5 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
-            wordTable5.WidthType = WordTableWidthUnit.Pct;
-            wordTable5.Width = 2500; // Set to 50%
+            wordTable5.Width = WordTableWidth.Percent(50); // Set to 50%
             Console.WriteLine($"Table 6 - Before AutoFit Window: {wordTable5.LayoutMode}");
             wordTable5.AutoFitToWindow(); // Now make it 100% with distributed columns
             wordTable5.Rows[0].Cells[0].Paragraphs[0].Text = "AutoFit Window";
@@ -87,22 +85,18 @@ internal static partial class Tables {
             WordTable wordTable8 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
             wordTable8.Rows[0].Cells[0].Paragraphs[0].Text = "Col Widths";
             // Setting individual widths often requires careful management
-            wordTable8.ColumnWidth = new List<int>() { 1000, 500, 500, 750 }; // Example Pct widths
-            wordTable8.ColumnWidthType = WordTableWidthUnit.Pct;
+            wordTable8.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(20), WordTableWidth.Percent(10), WordTableWidth.Percent(10), WordTableWidth.Percent(15) }; // Example Pct widths
             // Need to ensure table width matches column sum if Fixed/Pct
-            wordTable8.Width = 1000 + 500 + 500 + 750; // Sum = 2750 (55%)
-            wordTable8.WidthType = WordTableWidthUnit.Pct;
-            wordTable8.LayoutMode = WordTableLayoutMode.Fixed;
+            wordTable8.Width = WordTableWidth.Percent(55.0); // Sum = 2750 (55%)
+                        wordTable8.LayoutMode = WordTableLayoutMode.Fixed;
             Console.WriteLine($"Table 9 - Individual Pct Cols: {wordTable8.LayoutMode}");
             document.AddParagraph();
 
             document.AddParagraph("Table 10: More Individual Column Widths (Pct)").Style = WordParagraphStyles.Heading1;
             WordTable wordTable9 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
             wordTable9.Rows[0].Cells[0].Paragraphs[0].Text = "More Cols";
-            wordTable9.ColumnWidth = new List<int>() { 1000, 500, 500, 750 };
-            wordTable9.ColumnWidthType = WordTableWidthUnit.Pct;
-            wordTable9.WidthType = WordTableWidthUnit.Pct; // Setting table type is good practice
-            wordTable9.Width = 2750; // Ensure table width matches
+            wordTable9.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(20), WordTableWidth.Percent(10), WordTableWidth.Percent(10), WordTableWidth.Percent(15) };
+                        wordTable9.Width = WordTableWidth.Percent(55.0); // Ensure table width matches
             wordTable9.LayoutMode = WordTableLayoutMode.Fixed;
             Console.WriteLine($"Table 10 - More Pct Cols: {wordTable9.LayoutMode}");
             document.AddParagraph();
@@ -111,8 +105,7 @@ internal static partial class Tables {
             document.AddParagraph("Table 11: Set Col Widths, then AutoFit Window").Style = WordParagraphStyles.Heading1;
             WordTable wordTable10 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
             wordTable10.Rows[0].Cells[0].Paragraphs[0].Text = "Cols then Fit";
-            wordTable10.ColumnWidth = new List<int>() { 1000, 500, 500, 750 };
-            wordTable10.ColumnWidthType = WordTableWidthUnit.Pct;
+            wordTable10.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(20), WordTableWidth.Percent(10), WordTableWidth.Percent(10), WordTableWidth.Percent(15) };
             Console.WriteLine($"Table 11 - Before AutoFit Window: {wordTable10.LayoutMode}");
             wordTable10.AutoFitToWindow(); // Overrides column settings for 100% width
             Console.WriteLine($"Table 11 - After AutoFit Window: {wordTable10.LayoutMode}");
@@ -123,11 +116,9 @@ internal static partial class Tables {
             WordTable wordTable11 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
             wordTable11.Rows[0].Cells[0].Paragraphs[0].Text = "Manual Dist";
             // Sum = 2748 (approx 55%), let's aim for 4 columns at ~13.75% = 687.5, use 687
-            wordTable11.ColumnWidth = new List<int>() { 687, 687, 687, 687 }; // Sum = 2748
-            wordTable11.ColumnWidthType = WordTableWidthUnit.Pct;
-            wordTable11.Width = 2748; // Set table width to match sum
-            wordTable11.WidthType = WordTableWidthUnit.Pct;
-            wordTable11.LayoutMode = WordTableLayoutMode.Fixed;
+            wordTable11.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(13.74), WordTableWidth.Percent(13.74), WordTableWidth.Percent(13.74), WordTableWidth.Percent(13.74) }; // Sum = 2748
+            wordTable11.Width = WordTableWidth.Percent(54.96); // Set table width to match sum
+                        wordTable11.LayoutMode = WordTableLayoutMode.Fixed;
             Console.WriteLine($"Table 12 - Manual Distribution: {wordTable11.LayoutMode}");
             document.AddParagraph();
 
@@ -135,11 +126,9 @@ internal static partial class Tables {
             document.AddParagraph("Table 13: 100% via Equal Column Widths").Style = WordParagraphStyles.Heading1;
             WordTable wordTable12 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
             wordTable12.Rows[0].Cells[0].Paragraphs[0].Text = "100% via Cols";
-            wordTable12.ColumnWidth = new List<int>() { 1250, 1250, 1250, 1250 }; // 4 * 1250 = 5000 (100%)
-            wordTable12.ColumnWidthType = WordTableWidthUnit.Pct;
-            wordTable12.Width = 5000; // Set table width to match
-            wordTable12.WidthType = WordTableWidthUnit.Pct;
-            // Optional: Could set LayoutType = Fixed, but Window behavior is implicit here
+            wordTable12.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(25), WordTableWidth.Percent(25), WordTableWidth.Percent(25), WordTableWidth.Percent(25) }; // 4 * 1250 = 5000 (100%)
+            wordTable12.Width = WordTableWidth.Percent(100.0); // Set table width to match
+                        // Optional: Could set LayoutType = Fixed, but Window behavior is implicit here
             Console.WriteLine($"Table 13 - 100% via Cols: {wordTable12.LayoutMode}");
             document.AddParagraph();
 

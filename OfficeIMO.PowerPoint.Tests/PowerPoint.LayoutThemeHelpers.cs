@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void CanSelectLayoutsByTypeAndName() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 int titleOnlyIndex = presentation.GetLayoutIndex(PowerPointSlideLayoutType.TitleOnly);
 
                 PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         public void CanSetThemeColorsAndFonts() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SetThemeColor(PowerPointThemeColor.Accent1, "FF0000");
                     presentation.SetThemeLatinFonts("Aptos", "Calibri");
                     presentation.Save();
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
         public void SetThemeLatinFontsPreservesExistingScriptFontAttributes() {
             string filePath = CreateTempFilePath(".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SetThemeFonts(new PowerPointThemeFontSet(
                         majorLatin: "Major Latin",
                         minorLatin: "Minor Latin",
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                     master.ThemePart.Theme.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     presentation.SetThemeLatinFonts("Updated Major Latin", "Updated Minor Latin");
                     presentation.Save();
                     Assert.Empty(presentation.ValidateDocument());
@@ -122,20 +122,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void DefaultThemeColors_IncludeSystemColorBackedEntries() {
+        public void ThemeColors_IncludeSystemColorBackedEntries() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
+
+                // Supply system-backed entries explicitly; their resolved values are the contract.
+                A.ColorScheme scheme = presentation.OpenXmlDocument.PresentationPart!
+                    .SlideMasterParts.Single().ThemePart!.Theme!.ThemeElements!.ColorScheme!;
+                scheme.Dark1Color!.RemoveAllChildren();
+                scheme.Dark1Color.Append(new A.SystemColor {
+                    Val = A.SystemColorValues.WindowText, LastColor = "000000"
+                });
+                scheme.Light1Color!.RemoveAllChildren();
+                scheme.Light1Color.Append(new A.SystemColor {
+                    Val = A.SystemColorValues.Window, LastColor = "FFFFFF"
+                });
+                presentation.SetThemeColor(PowerPointThemeColor.Accent1, "156082");
 
                 IReadOnlyDictionary<PowerPointThemeColor, string> colors = presentation.GetThemeColors();
 
-                // New presentations take their palette from the default theme; light 1 keeps the system window colour.
-                string text = OfficeIMO.OfficeTheme.Default.Palette.Text.ToRgbHex();
+                // Native system-backed entries resolve their stored fallback colours.
+                string text = "000000";
                 Assert.Equal(text, presentation.GetThemeColor(PowerPointThemeColor.Dark1));
                 Assert.Equal("FFFFFF", presentation.GetThemeColor(PowerPointThemeColor.Light1));
                 Assert.Equal(text, colors[PowerPointThemeColor.Dark1]);
                 Assert.Equal("FFFFFF", colors[PowerPointThemeColor.Light1]);
-                Assert.Equal(OfficeIMO.OfficeTheme.Default.Palette.Accent1.ToRgbHex(), colors[PowerPointThemeColor.Accent1]);
+                Assert.Equal("156082", colors[PowerPointThemeColor.Accent1]);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -147,7 +160,7 @@ namespace OfficeIMO.Tests {
         public void CanSetThemeFontsAcrossScripts() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.SetThemeFonts(new PowerPointThemeFontSet(
                         majorLatin: "Aptos",
                         minorLatin: "Calibri",

@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel {
                             if (rowIndex > 0 && (row.Hidden?.Value == true || row.CustomHeight?.Value == true || row.Height != null || customFormat || styleIndex != null || outlineLevel != null || collapsed)) {
                                 worksheetSnapshot.AddRow(new ExcelRowInfo {
                                     Index = rowIndex,
-                                    Height = row.Height?.Value,
+                                    StoredHeight = row.Height?.Value,
                                     Hidden = row.Hidden?.Value == true,
                                     CustomHeight = row.CustomHeight?.Value == true,
                                     CustomFormat = customFormat,
@@ -221,7 +221,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    snapshot.AddWorksheet(worksheetSnapshot);
+                    snapshot.AddSheet(worksheetSnapshot);
                 }
 
                 var definedNames = workbook.DefinedNames;
@@ -411,7 +411,7 @@ namespace OfficeIMO.Excel {
                 VerticalTextAlignment = font?.VerticalTextAlignment?.Val?.Value.ToOfficeEnum(),
                 FontName = font?.FontName?.Val?.Value,
                 IsFontFamilyExplicit = (cellFormat.FontId?.Value ?? 0U) != 0U,
-                FontSize = font?.FontSize?.Val?.Value,
+                FontSize = font?.FontSize?.Val?.Value is double fontSize ? OfficeLength.Points(fontSize) : null,
                 FontColorArgb = context.GetColorArgb(font?.Color),
                 FillColorArgb = context.GetFillColorArgb(fill),
                 FillPatternType = context.GetFillPatternType(fill),

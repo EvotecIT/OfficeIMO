@@ -22,7 +22,7 @@ public sealed class PdfMirroredMarginFlowTests {
                     break;
                 case "table":
                     content.Table(markers.Select(marker => new[] { marker }), style: new PdfTableStyle {
-                        HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 2
+                        HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(2)
                     });
                     break;
                 case "list":
@@ -34,7 +34,7 @@ public sealed class PdfMirroredMarginFlowTests {
                         .PercentColumn(50, column => column.Text("RightColumn")));
                     break;
                 case "container":
-                    content.Element(outer => outer.Padding(2, 7).Content(nested => nested.Element(inner => inner.Padding(2, 5).Content(body => {
+                    content.Element(outer => outer.Padding(global::OfficeIMO.OfficeLength.Points(2), global::OfficeIMO.OfficeLength.Points(7)).Content(nested => nested.Element(inner => inner.Padding(global::OfficeIMO.OfficeLength.Points(2), global::OfficeIMO.OfficeLength.Points(5)).Content(body => {
                         foreach (string marker in markers) body.Text(marker);
                     }))));
                     content.Text("AfterContainer");
@@ -71,8 +71,8 @@ public sealed class PdfMirroredMarginFlowTests {
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(70, pdf.GetPage(1).GetWords().Single().BoundingBox.Left, 3);
         Assert.Equal(40, pdf.GetPage(2).GetWords().Single().BoundingBox.Left, 3);
-        Assert.Equal(40, options.MarginLeft);
-        Assert.Equal(70, options.MarginRight);
+        Assert.Equal(40, options.MarginLeft.ToPoints());
+        Assert.Equal(70, options.MarginRight.ToPoints());
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public sealed class PdfMirroredMarginFlowTests {
     public void MirroredMarginsPreserveAbsoluteCanvasCoordinates() {
         var document = PdfDocument.Create(builder => builder.Content(content => content
             .Text("First").PageBreak().Text("Flow")
-            .Canvas(canvas => canvas.Text("Canvas", 15, 60, 100, 20))), MirroredOptions());
+            .Canvas(canvas => canvas.Text("Canvas", global::OfficeIMO.OfficeLength.Points(15), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)))), MirroredOptions());
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(70, FindMarkerX(pdf.GetPage(2), "Flow")!.Value, 3);
         Assert.Equal(15, FindMarkerX(pdf.GetPage(2), "Canvas")!.Value, 3);
@@ -118,9 +118,9 @@ public sealed class PdfMirroredMarginFlowTests {
     [InlineData(true)]
     public void MirroredMarginsFollowKeepTogetherMoves(bool table) {
         var document = PdfDocument.Create(builder => builder.Content(content => {
-            content.Text("Seed").Spacer(130);
+            content.Text("Seed").Spacer(global::OfficeIMO.OfficeLength.Points(130));
             if (table) content.Table(new[] { new[] { "Moved" }, new[] { "Together" } },
-                style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, KeepTogether = true });
+                style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true });
             else content.Text("Moved\nTogether", style: new PdfParagraphStyle { KeepTogether = true });
         }), MirroredOptions());
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -135,11 +135,11 @@ public sealed class PdfMirroredMarginFlowTests {
     [InlineData("radio")]
     public void MirroredMarginsMoveFlowFormWidgetRectanglesWithTheirPage(string kind) {
         var document = PdfDocument.Create(builder => builder.Content(content => {
-            content.Text("Seed").Spacer(130);
+            content.Text("Seed").Spacer(global::OfficeIMO.OfficeLength.Points(130));
             switch (kind) {
-                case "text": content.TextField("Field", width: 80); break;
+                case "text": content.TextField("Field", width: global::OfficeIMO.OfficeLength.Points(80)); break;
                 case "checkbox": content.CheckBox("Field"); break;
-                case "choice": content.ChoiceField("Field", new[] { "A" }, width: 80); break;
+                case "choice": content.ChoiceField("Field", new[] { "A" }, width: global::OfficeIMO.OfficeLength.Points(80)); break;
                 case "radio": content.RadioButtonGroup("Field", new[] { "A" }); break;
             }
         }), MirroredOptions());
@@ -149,9 +149,9 @@ public sealed class PdfMirroredMarginFlowTests {
     }
 
     private static PdfCreateOptions MirroredOptions() => new() {
-        PageWidth = 300, PageHeight = 200,
-        MarginLeft = 40, MarginRight = 70, MarginTop = 20, MarginBottom = 20,
-        MirrorMargins = true, DefaultFontSize = 10, CompressContentStreams = false
+        PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(70), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+        MirrorMargins = true, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10), CompressContentStreams = false
     };
 
     private static double? FindMarkerX(UglyToad.PdfPig.Content.Page page, string marker) {

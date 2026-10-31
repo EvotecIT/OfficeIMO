@@ -114,7 +114,7 @@ public sealed class ExcelHtmlSaveOptions {
     public ExcelHtmlHeaderMode HeaderMode { get; set; } = ExcelHtmlHeaderMode.FirstRow;
 
     /// <summary>Options used by the existing Excel SVG visual export lane.</summary>
-    public ExcelWorkbookImageExportOptions? VisualOptions { get; set; }
+    public ExcelImageExportOptions? VisualOptions { get; set; }
 
     /// <summary>
     /// Includes a deterministic semantic inventory for pivot tables. Interactive pivot behavior,

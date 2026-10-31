@@ -12,9 +12,15 @@ namespace OfficeIMO;
 
 /// <summary>Inspects documents through the native format handlers included by the front-door package.</summary>
 public static partial class OfficeDocument {
+    /// <summary>Inspects a local file using default inspection options.</summary>
+    public static OfficeDocumentInfo Inspect(string path) => Inspect(path, null, default);
+
+    /// <summary>Inspects a local file using the supplied inspection options.</summary>
+    public static OfficeDocumentInfo Inspect(string path, OfficeInspectOptions? options) => Inspect(path, options, default);
+
     /// <summary>Returns bounded content, native inspection metadata and explicit coverage findings without modifying the source.</summary>
-    public static OfficeDocumentInfo Inspect(string path, OfficeInspectOptions? options = null,
-        CancellationToken cancellationToken = default) {
+    public static OfficeDocumentInfo Inspect(string path, OfficeInspectOptions? options,
+        CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A document path is required.", nameof(path));
         OfficeInspectOptions settings = options ?? new();
         if (settings.Formats == null || ((settings.IncludeContent || settings.IncludeSummary) && settings.Reader == null)) throw new ArgumentException("Reader and format settings are required.", nameof(options));
@@ -31,7 +37,7 @@ public static partial class OfficeDocument {
             result.ContentSafety = extension.ToLowerInvariant() switch {
                 ".docx" or ".docm" or ".dotx" or ".dotm" => WordDocument.InspectContentSafety(source, settings.ContentSafety, cancellationToken),
                 ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlsb" or ".xls" or ".xlam" => ExcelDocument.InspectContentSafety(source, settings.ContentSafety),
-                ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" => PowerPointPresentation.InspectContentSafety(source, settings.ContentSafety),
+                ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" => PowerPointDocument.InspectContentSafety(source, settings.ContentSafety),
                 ".pdf" => PdfDocument.InspectContentSafety(source, settings.ContentSafety, settings.Formats.Pdf?.ReadOptions),
                 _ => throw new NotSupportedException("Concealed-content inspection is not supported for this source format.")
             };
@@ -42,7 +48,7 @@ public static partial class OfficeDocument {
             result.Provenance = extension.ToLowerInvariant() switch {
                 ".docx" or ".docm" or ".dotx" or ".dotm" => WordDocument.InspectProvenance(source, provenance),
                 ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlsb" or ".xlam" => ExcelDocument.InspectProvenance(source, provenance),
-                ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" => PowerPointPresentation.InspectProvenance(source, provenance),
+                ".pptx" or ".pptm" or ".potx" or ".potm" or ".ppsx" or ".ppsm" => PowerPointDocument.InspectProvenance(source, provenance),
                 ".pdf" => PdfProvenance.InspectFile(source, provenance, settings.Formats.Pdf?.ReadOptions),
                 _ => throw new NotSupportedException("Provenance inspection is not supported for this source format.")
             };

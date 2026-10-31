@@ -28,11 +28,11 @@ internal static class EditableTargetExporter {
     internal static EditableExport SaveAndReopen(HtmlConversionDocument source, string target, string output, string documentName) {
         switch (target) {
             case "word": {
-                HtmlToWordResult result = source.ToWordDocumentResult();
+                HtmlToWordResult result = source.ConvertToWordWithEvidence();
                 string artifact = Path.Combine(output, documentName + ".docx");
                 using (WordDocument document = result.RequireValue()) document.Save(artifact);
                 using WordDocument loaded = WordDocument.Load(artifact);
-                return new EditableExport(result.Report, artifact, loaded.ToHtmlResult().RequireValue(),
+                return new EditableExport(result.Report, artifact, loaded.ConvertToHtmlWithEvidence().RequireValue(),
                     NativeTables: EditableNativeTableEvidence.FromWord(loaded));
             }
             case "excel": {
@@ -47,13 +47,13 @@ internal static class EditableTargetExporter {
                     NativeTables: EditableNativeTableEvidence.FromExcel(loaded));
             }
             case "powerpoint": {
-                HtmlToPowerPointResult result = source.ToPowerPointPresentationResult(new HtmlToPowerPointOptions {
+                HtmlToPowerPointResult result = source.ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
                     Mode = HtmlImportMode.Generic,
                     ImportEditableLayoutRegions = true
                 });
                 string artifact = Path.Combine(output, documentName + ".pptx");
-                using (PowerPointPresentation presentation = result.RequireValue()) presentation.Save(artifact);
-                using PowerPointPresentation loaded = PowerPointPresentation.Load(artifact);
+                using (PowerPointDocument presentation = result.RequireValue()) presentation.Save(artifact);
+                using PowerPointDocument loaded = PowerPointDocument.Load(artifact);
                 return new EditableExport(result.Report, artifact, loaded.ToHtml(),
                     PictureCount: loaded.Slides.Sum(slide => slide.Pictures.Count()),
                     LinkedPictureCount: loaded.Slides.Sum(slide => slide.Pictures.Count(picture => picture.Hyperlink != null)),
@@ -96,7 +96,7 @@ internal static class EditableTargetExporter {
                 }), NativeTables: EditableNativeTableEvidence.FromRtf(loaded));
             }
             case "markdown": {
-                HtmlToMarkdownResult result = source.ToMarkdownDocumentResult();
+                HtmlToMarkdownResult result = source.ConvertToMarkdownWithEvidence(new MarkdownHtmlImportOptions());
                 string artifact = Path.Combine(output, documentName + ".md");
                 result.RequireValue().Save(artifact);
                 MarkdownDocument loaded = MarkdownDocument.Load(artifact);

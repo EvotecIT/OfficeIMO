@@ -12,11 +12,11 @@ public class RtfPdfImportTests {
     public void PdfToRtf_PreservesLogicalRunColorSizeAndFontStyle() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph
-                .Color(PdfCore.PdfColor.FromRgb(255, 0, 0))
-                .FontSize(14)
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
+                .FontSize(global::OfficeIMO.OfficeLength.Points(14))
                 .Bold("Bold red")
-                .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
-                .FontSize(9)
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
+                .FontSize(global::OfficeIMO.OfficeLength.Points(9))
                 .Italic(" italic blue"))
             .ToBytes();
 
@@ -50,9 +50,9 @@ public class RtfPdfImportTests {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph
                 .Text("\u2022 ")
-                .Color(PdfCore.PdfColor.FromRgb(255, 0, 0))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
                 .Bold("Bold red")
-                .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
                 .Italic(" italic blue"))
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
@@ -220,13 +220,13 @@ public class RtfPdfImportTests {
 
     private static byte[] CreateSemanticPdf() =>
         PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 360,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "PDF Import Title", author: "OfficeIMO", subject: "PDF to RTF", keywords: "pdf,rtf")
             .H1("Clinical Summary")

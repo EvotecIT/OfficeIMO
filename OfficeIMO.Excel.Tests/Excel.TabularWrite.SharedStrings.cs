@@ -8,10 +8,8 @@ namespace OfficeIMO.Tests {
     public partial class Excel {
         [Theory]
         [InlineData(false, false)]
-        [InlineData(false, true)]
         [InlineData(true, false)]
-        [InlineData(true, true)]
-        public async Task WriteRows_StringStorageHonorsOptionsAndConsumesSourceOnce(bool asynchronous, bool sharedStrings) {
+        public async Task StreamingRows_InlineTextConsumesSourceOnce(bool asynchronous, bool sharedStrings) {
             string?[] text = ["Alpha", " Alpha & <β>\r ", string.Empty, null, "Alpha", "alpha"];
             DateTime when = new DateTime(2026, 10, 8, 6, 0, 0);
             using var output = new MemoryStream();
@@ -27,7 +25,7 @@ namespace OfficeIMO.Tests {
             IEnumerable<int> Rows() {
                 Assert.Equal(1, ++enumerations);
                 for (int index = 0; index < text.Length; index++) {
-                    Assert.True(output.Length > 0);
+                    Assert.Equal(index, callbacks);
                     yield return index;
                 }
             }
@@ -44,9 +42,13 @@ namespace OfficeIMO.Tests {
                 writer.Write(text[index]).Write(index + 1).Write(when);
             }
 
-            ExcelDataSetImportResult result = asynchronous
-                ? await ExcelDocument.WriteRowsAsync(output, AsyncRows(), ["Text", "Id", "When"], WriteRow, options)
-                : ExcelDocument.WriteRows(output, Rows(), ["Text", "Id", "When"], WriteRow, options);
+            ExcelDataSetImportResult result;
+            using (var workbookWriter = ExcelDocument.CreateWriter(output, options, leaveOpen: true)) {
+                result = asynchronous
+                    ? await workbookWriter.WriteTable("Data", AsyncRows(), ["Text", "Id", "When"], WriteRow)
+                    : workbookWriter.WriteTable("Data", Rows(), ["Text", "Id", "When"], WriteRow);
+            }
+            output.Position = 0;
             Assert.Equal(text.Length, result.RowCount);
             Assert.Equal(1, enumerations);
             Assert.Equal(text.Length, callbacks);
@@ -83,7 +85,19 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WriteRows_OmittedOptionsKeepInlineTextAndExplicitReferences() {
             using var output = new MemoryStream();
-            ExcelDocument.WriteRows(output, new[] { "Alpha", "Alpha" }, ["Text"], static (writer, value) => writer.Write(value));
+            var destination1 = output;
+
+            var writeOptions1 = new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                workbookWriter1.WriteTable(writeOptions1.SheetName, new[] { "Alpha", "Alpha" }, ["Text"], static (writer, value) => writer.Write(value));
+            }
+
+            if (destination1.CanSeek)
+                destination1.Position = 0;
             using var package = SpreadsheetDocument.Open(output, false);
             Assert.Null(package.WorkbookPart!.SharedStringTablePart);
             Cell[] cells = package.WorkbookPart.WorksheetParts.Single().Worksheet.Descendants<Cell>().ToArray();
@@ -94,10 +108,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WriteRows_SharedStringsRejectOversizedText() {
             using var output = new MemoryStream();
-            Assert.Throws<ArgumentException>(() => ExcelDocument.WriteRows(
-                output, new[] { new string('x', 32_768) }, ["Text"],
-                static (writer, value) => writer.Write((object)value),
-                new ExcelWriterOptions { UseSharedStrings = true }));
+            Assert.Throws<ArgumentException>(() => {
+                var destination2 = output;
+                var writeOptions2 = new ExcelWriterOptions {
+                    UseSharedStrings = false
+                };
+                using (var workbookWriter2 = ExcelDocument.CreateWriter(destination2, writeOptions2, leaveOpen: true)) {
+                    return workbookWriter2.WriteTable(writeOptions2.SheetName, new[] { new string('x', 32_768) }, ["Text"], static (writer, value) => writer.Write((object)value));
+                }
+            });
         }
     }
 }

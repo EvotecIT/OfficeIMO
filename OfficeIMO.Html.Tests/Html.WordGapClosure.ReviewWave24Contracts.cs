@@ -38,11 +38,11 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordTable table = Assert.Single(document.Tables);
         WordSection section = Assert.Single(document.Sections);
-        int pageWidth = (int)(section.PageSettings.Width ?? WordPageSizes.A4.WidthTwips);
-        int contentWidth = pageWidth - (int)section.Margins.Left - (int)section.Margins.Right;
+        int pageWidth = (int)(checked((uint?)(section.PageSettings.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())));
+        int contentWidth = pageWidth - (int)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - (int)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()));
 
-        Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
-        Assert.Equal(contentWidth - 600, table.Width);
+        Assert.Equal(WordTableWidthKind.Length, table.Width?.Kind);
+        Assert.Equal(contentWidth - 600, table.Width?.ToNativeValue());
     }
 
     [Fact]
@@ -96,9 +96,9 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text == "Text");
 
-        Assert.Null(paragraph.IndentationBefore);
-        Assert.Null(paragraph.IndentationAfter);
-        Assert.Null(paragraph.LineSpacingBefore);
-        Assert.Null(paragraph.LineSpacingAfter);
+        Assert.Null(checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(paragraph.IndentationAfter?.ToTwips())));
+        Assert.Null(checked((int?)(paragraph.LineSpacingBefore?.ToTwips())));
+        Assert.Null(checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
     }
 }

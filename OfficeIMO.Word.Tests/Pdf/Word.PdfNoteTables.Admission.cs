@@ -34,7 +34,7 @@ public partial class Word {
         if (profile == "image") {
             W.Paragraph anchor = rows[0].Elements<W.TableCell>().First().Elements<W.Paragraph>().Single();
             using var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng((byte)0, (byte)180, (byte)80));
-            new WordParagraph(source, anchor).AddText(string.Empty).InsertImage(pixels, "merged-note.png", 24, 16);
+            new WordParagraph(source, anchor).AddText(string.Empty).AddImage(pixels, "merged-note.png", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(16));
         } else if (profile == "fixed") {
             rows[1].TableRowProperties = new W.TableRowProperties(new W.TableRowHeight { Val = 500U, HeightType = W.HeightRuleValues.Exact });
         } else if (profile == "cantSplit") {

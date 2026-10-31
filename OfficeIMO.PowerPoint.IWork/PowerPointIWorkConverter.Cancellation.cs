@@ -5,7 +5,7 @@ namespace OfficeIMO.PowerPoint.IWork;
 
 public static partial class PowerPointIWorkConverter {
     /// <summary>Converts a Keynote file or directory bundle with cancellation and returns the destination document.</summary>
-    public static PowerPointPresentation ConvertKeynoteToPowerPoint(string path,
+    public static PowerPointDocument ConvertKeynoteToPowerPoint(string path,
         IWorkReadOptions? readOptions, IWorkConversionOptions? conversionOptions,
         CancellationToken cancellationToken) =>
         ConvertKeynoteToPowerPointResult(path, readOptions, conversionOptions, cancellationToken).RequireCompleteEditableReconstruction();
@@ -22,7 +22,7 @@ public static partial class PowerPointIWorkConverter {
     }
 
     /// <summary>Converts a Keynote caller-owned ZIP stream with cancellation and returns the destination document.</summary>
-    public static PowerPointPresentation ConvertKeynoteToPowerPoint(Stream stream,
+    public static PowerPointDocument ConvertKeynoteToPowerPoint(Stream stream,
         IWorkReadOptions? readOptions, IWorkConversionOptions? conversionOptions,
         CancellationToken cancellationToken) =>
         ConvertKeynoteToPowerPointResult(stream, readOptions, conversionOptions, cancellationToken).RequireCompleteEditableReconstruction();

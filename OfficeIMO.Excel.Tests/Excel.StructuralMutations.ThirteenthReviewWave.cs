@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ColumnDeletion_VisitsRowsAfterRemovingAnEmptyRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Remove");
             sheet.CellValue(2, 2, "Shift");
 
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFilterState_AppliesDefaultCellColorMode() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.WorksheetPart.Worksheet.Append(new AutoFilter(
                 new FilterColumn(new ColorFilter { FormatId = 0U }) { ColumnId = 0U }) {
@@ -51,13 +51,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeTransfer_BoundsCopiedImagesButMovesWithoutReadingPayloads() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             byte[] imageBytes = new byte[256_000];
             imageBytes[0] = 0x89;
             imageBytes[1] = 0x50;
             imageBytes[2] = 0x4E;
             imageBytes[3] = 0x47;
-            sheet.AddImage(1, 1, imageBytes, "image/png", 8, 8);
+            sheet.AddImage(1, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(8),
+                Height = OfficeIMO.OfficeLength.Pixels(8)
+            });
             var options = new ExcelMutationPlanOptions { MaximumSnapshotCharacters = 128_000 };
 
             InvalidOperationException copy = Assert.Throws<InvalidOperationException>(() =>
@@ -73,7 +77,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ColumnPlanning_ChargesConnectionsAndVmlElementsToScanBudget() {
             using (var connectionDocument = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = connectionDocument.AddWorksheet("Data");
+                ExcelSheet sheet = connectionDocument.AddSheet("Data");
                 Parameter parameter = AttachCellBackedConnection(connectionDocument, sheet, "A1");
                 _ = connectionDocument.OpenXmlDocument.WorkbookPart?.ThemePart?.Theme;
                 var options = new ExcelMutationPlanOptions { MaximumScannedElements = 128 };
@@ -95,7 +99,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var vmlDocument = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = vmlDocument.AddWorksheet("Data");
+                ExcelSheet sheet = vmlDocument.AddSheet("Data");
                 sheet.SetComment(1, 1, "Comment", "Author");
                 _ = vmlDocument.OpenXmlDocument.WorkbookPart?.ThemePart?.Theme;
                 var options = new ExcelMutationPlanOptions { MaximumScannedElements = 128 };

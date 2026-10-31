@@ -7,10 +7,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Optional template copied into a new presentation.</summary>
         public string? Template { get; set; }
 
-        /// <summary>
-        ///     Theme for a new presentation: colours, fonts, slide text styles and the layout grid. Defaults to
-        ///     <see cref="OfficeTheme.Modern" />. Ignored when <see cref="Template" /> is set, because the template brings its own.
-        /// </summary>
+        /// <summary>Theme for a new deck. Null uses OfficeTheme.Default; a template keeps its styling unless a theme is explicitly supplied.</summary>
         public OfficeTheme? Theme { get; set; }
 
     }

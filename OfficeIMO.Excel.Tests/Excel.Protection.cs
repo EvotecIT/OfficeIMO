@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelProtection.TableEditing.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, "NA");
@@ -44,8 +44,8 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("EMEA", 200);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTableAsTable(table, includeHeaders: true, tableName: "Sales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { IncludeHeaders = true, Name = "Sales", Style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2 }, row: 1, column: 1);
                 sheet.ProtectTableEditing();
                 document.Save();
             }

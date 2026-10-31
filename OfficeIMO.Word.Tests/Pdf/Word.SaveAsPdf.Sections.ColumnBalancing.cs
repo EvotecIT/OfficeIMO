@@ -34,7 +34,7 @@ public partial class Word {
             if (compatibility.Parent == null) settings.AddChild(compatibility, true);
             compatibility.AddChild(new NoColumnBalance { Val = suppressBalancing }, true);
             document.Sections[0].ColumnCount = 2;
-            document.Sections[0].ColumnsSpace = 400;
+            document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
             AddParagraph(string.Join("\n", Enumerable.Range(1, lineCount).Select(index => $"BalanceLine{index:D3}")));
             document.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
             AddParagraph("AfterContinuous");
@@ -43,11 +43,10 @@ public partial class Word {
             void AddParagraph(string text) {
                 WordParagraph paragraph = document.AddParagraph(text);
                 paragraph.FontFamily = "Arial";
-                paragraph.FontSize = 12;
-                paragraph.LineSpacing = 400;
-                paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-                paragraph.LineSpacingBeforePoints = 0;
-                paragraph.LineSpacingAfterPoints = 0;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.AvoidWidowAndOrphanOverride = false;
             }
         }
@@ -56,8 +55,8 @@ public partial class Word {
             Assert.Equal(suppressBalancing, loaded.CompatibilitySettings.DoNotBalanceTextColumns);
             loaded.SaveAsPdf(target, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PdfPageSize(500, 400),
-                Margins = PdfCore.PdfPageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(400)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
         using var pdf = PdfPigDocument.Open(File.ReadAllBytes(target));

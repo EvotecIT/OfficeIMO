@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsCustomSheetViewRowBreaks() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var pageBreak = new Break { Id = 5U, ManualPageBreak = true };
             var rowBreaks = new RowBreaks(pageBreak) {
                 Count = 1U,
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsCustomSheetViewRowBreaks() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("keep");
             var pageBreak = new Break { Id = (uint)ExcelA1.MaxRows, ManualPageBreak = true };
             sheet.WorksheetPart.Worksheet.Append(new CustomSheetViews(
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsOffice2010SortConditions() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Value");
             sheet.CellAt(2, 1).SetValue(1);
             sheet.CellAt(3, 1).SetValue(2);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_InvalidatesExtendedChartDimensionCaches() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(2, 1).SetValue(1);
             sheet.CellAt(3, 1).SetValue(2);
             DrawingsPart drawingsPart = sheet.WorksheetPart.AddNewPart<DrawingsPart>();

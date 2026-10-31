@@ -18,18 +18,18 @@ public sealed class WordChartThemeDefaultsTests {
     [InlineData(true, true)]
     public void PointPaintUpdatesKeepNativeMarkerChoices(bool pointStyles, bool visible) {
         var original = new OfficeChartData(new[] { "A", "B", "C" },
-            new[] { new OfficeChartSeries("Sales", new[] { 1D, 2D, 3D }) });
+            new[] { new OfficeSeries("Sales", new[] { 1D, 2D, 3D }) });
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Line, original);
+        WordChart chart = document.AddChart(OfficeChartType.Line, original);
         chart.ChartPart!.ChartSpace!.Descendants<C.Marker>().Single().Symbol!.Val = visible
             ? C.MarkerStyleValues.Diamond : C.MarkerStyleValues.None;
         var series = pointStyles
-            ? new OfficeChartSeries("Sales", new[] { 3D, 4D, 5D }).WithPointStyles(
+            ? new OfficeSeries("Sales", new[] { 3D, 4D, 5D }).WithPointStyles(
                 new OfficeChartPointStyle?[] { new(fillColor: OfficeColor.Green), null, null })
-            : new OfficeChartSeries("Sales", new[] { 3D, 4D, 5D }, null, null,
+            : new OfficeSeries("Sales", new[] { 3D, 4D, 5D }, null, null,
                 new OfficeColor?[] { OfficeColor.Green, null, null });
         var updated = new OfficeChartData(original.Categories, new[] { series });
-        chart.SetData(OfficeChartKind.Line, updated);
+        chart.SetData(OfficeChartType.Line, updated);
         using var stream = new MemoryStream(document.ToBytes());
         using WordprocessingDocument saved = WordprocessingDocument.Open(stream, false);
         C.Marker marker = saved.MainDocumentPart!.ChartParts.Single().ChartSpace!.Descendants<C.Marker>().Single();
@@ -41,8 +41,8 @@ public sealed class WordChartThemeDefaultsTests {
     [Fact]
     public void NewChartsWriteSharedThemeFontsAndGeometryIntoTheSavedDocument() {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "East", "West" }, new[] { new OfficeChartSeries("Sales", new[] { 30D, 42D }) }))
+        document.AddChart(OfficeChartType.ColumnClustered,
+            new OfficeChartData(new[] { "East", "West" }, new[] { new OfficeSeries("Sales", new[] { 30D, 42D }) }))
             .SetTitle("Sales by region");
         using var stream = new MemoryStream(document.ToBytes());
         using WordprocessingDocument saved = WordprocessingDocument.Open(stream, false);

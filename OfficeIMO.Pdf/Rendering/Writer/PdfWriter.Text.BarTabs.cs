@@ -58,8 +58,8 @@ internal static partial class PdfWriter {
                 double origin = ResolveRichLineXOrigin(xOrigin, firstLineX, lineXOffsets, index) + line.BarOriginOffset;
                 if (top > bottom) {
                     foreach (PdfTabStop stop in stops) {
-                        double x = origin + stop.Position;
-                        content.StrokeColor(stop.BarColor).LineWidth(stop.BarWidth)
+                        double x = origin + stop.Position.ToPoints();
+                        content.StrokeColor(stop.BarColor).LineWidth(stop.BarWidth.ToPoints())
                             .MoveTo(x, top).LineTo(x, bottom).StrokePath();
                     }
                 }

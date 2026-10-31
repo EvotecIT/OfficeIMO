@@ -35,9 +35,9 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        private PowerPointChart SetAxisTitleTextStyle<TAxis>(double? fontSizePoints, bool? bold, bool? italic,
+        private PowerPointChart SetAxisTitleTextStyle<TAxis>(OfficeLength? fontSize, bool? bold, bool? italic,
             string? color, string? fontName, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
-            ValidateTextStyle(fontSizePoints, color, fontName);
+            ValidateTextStyle(fontSize, color, fontName);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -62,7 +62,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSizePoints, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSize, bold, italic, color, fontName);
             Save();
             return this;
         }
@@ -95,9 +95,9 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
-        private PowerPointChart SetAxisLabelTextStyle<TAxis>(double? fontSizePoints, bool? bold, bool? italic,
+        private PowerPointChart SetAxisLabelTextStyle<TAxis>(OfficeLength? fontSize, bool? bold, bool? italic,
             string? color, string? fontName, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
-            ValidateTextStyle(fontSizePoints, color, fontName);
+            ValidateTextStyle(fontSize, color, fontName);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -112,7 +112,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            ApplyTextStyle(EnsureTextPropertiesRunProperties(axis), fontSizePoints, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(axis), fontSize, bold, italic, color, fontName);
             Save();
             return this;
         }
@@ -143,7 +143,7 @@ namespace OfficeIMO.PowerPoint {
 
             ClearTextStyle(runProps);
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.RestoreAxisTextDefaults(runProps,
-                OwnerSlide?.OwnerPresentation?.LayoutTheme.Theme ?? OfficeTheme.Default);
+                OwnerSlide?.OwnerDocument?.LayoutTheme.Theme ?? OfficeTheme.Default);
             Save();
             return this;
         }
@@ -200,8 +200,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private PowerPointChart SetAxisGridlines<TAxis>(bool showMajor, bool showMinor, string? lineColor,
-            double? lineWidthPoints, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
-            ValidateAxisGridlinesStyle(lineColor, lineWidthPoints);
+            OfficeLength? lineWidth, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
+            ValidateAxisGridlinesStyle(lineColor, lineWidth);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -216,7 +216,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            ApplyGridlines(axis, showMajor, showMinor, lineColor, lineWidthPoints);
+            ApplyGridlines(axis, showMajor, showMinor, lineColor, lineWidth);
             Save();
             return this;
         }

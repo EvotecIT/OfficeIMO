@@ -53,7 +53,7 @@ public partial class Word {
         WordParagraph cell = word.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0].Paragraphs[0];
         byte[] bytes = OfficeRasterImageEncoder.Encode(
             new OfficeRasterImage(2, 2, OfficeColor.Red), OfficeImageExportFormat.Png);
-        using (var imageStream = new MemoryStream(bytes)) cell.InsertImage(imageStream, "nested.png", 10, 10);
+        using (var imageStream = new MemoryStream(bytes)) cell.AddImage(imageStream, "nested.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
         W.Run imageRun = (W.Run)cell._run!.CloneNode(true);
         cell._run.Remove();
         W.Paragraph nested = new(imageRun);

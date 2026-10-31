@@ -29,12 +29,12 @@ public sealed class DrawBatchWorkflowTests {
                 Assert.Contains(restored.Diagnostics, d => d.Code == finding.Code && d.Location! == finding.Location
                     && d.Format == finding.Format && d.LossKind == finding.LossKind);
 
-            byte[] originalOutput = File.ReadAllBytes(Path.Combine(request.OutputDirectory, "drawing.fodg.pdf"));
+            byte[] originalOutput = File.ReadAllBytes(Path.Combine(request.OutputDirectory, "drawing.pdf"));
             request.MaximumXmlCharactersInPart = 256;
             var changed = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
             Assert.Equal(1, changed.Failed);
             Assert.Equal(1, changed.Reused);
-            Assert.Equal(originalOutput, File.ReadAllBytes(Path.Combine(request.OutputDirectory, "drawing.fodg.pdf")));
+            Assert.Equal(originalOutput, File.ReadAllBytes(Path.Combine(request.OutputDirectory, "drawing.pdf")));
         } finally { Directory.Delete(root, true); }
     }
 
@@ -57,8 +57,8 @@ public sealed class DrawBatchWorkflowTests {
             var result = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
             Assert.Equal(1, result.Completed);
             Assert.Equal(1, result.Failed);
-            Assert.True(File.Exists(Path.Combine(request.OutputDirectory, "text.txt.pdf")));
-            Assert.False(File.Exists(Path.Combine(request.OutputDirectory, "drawing.fodg.pdf")));
+            Assert.True(File.Exists(Path.Combine(request.OutputDirectory, "text.pdf")));
+            Assert.False(File.Exists(Path.Combine(request.OutputDirectory, "drawing.pdf")));
         } finally { Directory.Delete(root, true); }
     }
 

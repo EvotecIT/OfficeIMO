@@ -16,26 +16,26 @@ internal static partial class PdfWriter {
             activeContainerScopes.RemoveAt(activeContainerScopes.Count - 1);
             try {
                 currentOpts = scope.ParentOptions;
-                width = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+                width = currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints();
                 PdfPanelStyle style = ResolveContainerStyle(next);
                 if (!style.FrameStartPaddingTopOverride.HasValue) return false;
-                double spacingAfter = GetContainerSpacingAfter(scope.Style, y - currentOpts.MarginBottom);
-                if (spacingAfter > 0D && (spacingAfter > y - currentOpts.MarginBottom || y - currentOpts.MarginBottom <= .5D))
+                double spacingAfter = GetContainerSpacingAfter(scope.Style, y - currentOpts.MarginBottom.ToPoints());
+                if (spacingAfter > 0D && (spacingAfter > y - currentOpts.MarginBottom.ToPoints() || y - currentOpts.MarginBottom.ToPoints() <= .5D))
                     return true;
                 y -= spacingAfter;
-                var frame = ResolveContainerFrame(next, style, currentOpts.MarginLeft, width);
-                var visual = MeasureContainerFirstVisual(next, style, frame.X + style.PaddingX, frame.ContentWidth);
-                double needed = ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.TopPadding +
-                    style.FragmentPaddingReservation + style.FragmentBottomInset + visual.Height;
+                var frame = ResolveContainerFrame(next, style, currentOpts.MarginLeft.ToPoints(), width);
+                var visual = MeasureContainerFirstVisual(next, style, frame.X + style.PaddingX.ToPoints(), frame.ContentWidth);
+                double needed = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) + style.TopPadding +
+                    style.FragmentPaddingReservation + style.FragmentBottomInset.ToPoints() + visual.Height;
                 if (ShouldAdvanceForBlockHeight(needed) || visual.Overflow != PdfKeepTogetherOverflowBehavior.Reject &&
                     (y < GetCurrentFramePageStartY() - .001D || IsPartialPhysicalColumnFrame())) return true;
                 if (!style.KeepTogether && !style.KeepWithNext) return false;
-                double? height = MeasureWholeBlockHeight(next, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                double? height = MeasureWholeBlockHeight(next, currentOpts.MarginLeft.ToPoints(), width, currentOpts.DefaultFontSize.ToPoints());
                 if (!height.HasValue) return false;
                 if (style.KeepTogether && ShouldAdvanceForBlockHeight(height.Value)) return true;
                 if (style.KeepWithNext && nextIndex + 1 < blocks.Count) {
-                    double nextHeight = MeasureCurrentFrameKeepNextHeight(blocks, nextIndex + 1, currentOpts.MarginLeft,
-                        width, currentOpts.DefaultFontSize, height.Value);
+                    double nextHeight = MeasureCurrentFrameKeepNextHeight(blocks, nextIndex + 1, currentOpts.MarginLeft.ToPoints(),
+                        width, currentOpts.DefaultFontSize.ToPoints(), height.Value);
                     double keepHeight = height.Value + nextHeight;
                     return nextHeight > .001D && keepHeight <= GetMaximumBlockContinuationHeight() + .001D &&
                         ShouldAdvanceForBlockHeight(keepHeight);

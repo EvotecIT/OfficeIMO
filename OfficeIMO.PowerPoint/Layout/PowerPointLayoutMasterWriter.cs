@@ -42,7 +42,25 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
+            WriteDefaultTableTextColor(presentationPart, theme);
+
             presentationPart.Presentation.Save();
+        }
+
+        // The built-in table uses light accent tints even on a dark slide. Keep
+        // its body text dark without assigning direct cell formatting, so an
+        // explicitly selected table style and explicit cell colors still win.
+        private static void WriteDefaultTableTextColor(PresentationPart presentationPart, PowerPointLayoutTheme theme) {
+            if (!theme.Theme.IsDark) return;
+            var styles = presentationPart.TableStylesPart?.TableStyleList;
+            var style = styles?.Elements<A.TableStyleEntry>().FirstOrDefault(item =>
+                item.StyleId?.Value == "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}");
+            var textStyle = style?.GetFirstChild<A.WholeTable>()?.GetFirstChild<A.TableCellTextStyle>();
+            var inheritedColor = textStyle?.GetFirstChild<A.SchemeColor>();
+            if (inheritedColor?.Val?.Value != A.SchemeColorValues.Dark1) return;
+            inheritedColor.Remove();
+            textStyle!.AppendChild(new A.RgbColorModelHex { Val = theme.Background });
+            styles!.Save();
         }
 
         // ---------------------------------------------------------------- theme part

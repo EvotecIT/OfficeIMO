@@ -116,7 +116,7 @@ namespace OfficeIMO.PowerPoint {
 
             if (chart.GetFirstChild<C.Title>() == null) {
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.ApplyTitle(chartTitle,
-                    OwnerSlide?.OwnerPresentation?.LayoutTheme.Theme ?? OfficeTheme.Default);
+                    OwnerSlide?.OwnerDocument?.LayoutTheme.Theme ?? OfficeTheme.Default);
                 chart.InsertAt(chartTitle, 0);
             }
 
@@ -127,9 +127,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the chart title text style.
         /// </summary>
-        public PowerPointChart SetTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null,
+        public PowerPointChart SetTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
             string? color = null, string? fontName = null) {
-            ValidateTextStyle(fontSizePoints, color, fontName);
+            ValidateTextStyle(fontSize, color, fontName);
 
             C.Chart chart = GetChart();
             C.Title? title = chart.GetFirstChild<C.Title>();
@@ -142,7 +142,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSizePoints, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureChartTextRunProperties(chartText), fontSize, bold, italic, color, fontName);
             Save();
             return this;
         }
@@ -210,9 +210,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the legend text style.
         /// </summary>
-        public PowerPointChart SetLegendTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null,
+        public PowerPointChart SetLegendTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
             string? color = null, string? fontName = null) {
-            ValidateTextStyle(fontSizePoints, color, fontName);
+            ValidateTextStyle(fontSize, color, fontName);
 
             C.Chart chart = GetChart();
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
@@ -220,7 +220,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSizePoints, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSize, bold, italic, color, fontName);
             Save();
             return this;
         }

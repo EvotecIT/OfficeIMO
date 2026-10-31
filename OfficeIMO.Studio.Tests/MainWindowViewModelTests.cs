@@ -61,7 +61,7 @@ public sealed class MainWindowViewModelTests {
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "editable.pdf");
         PdfDocument.Create(compose => compose.Page(page => page
-            .Size(600D, 800D)
+            .Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))
             .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Sensitive review text"))))))
             .Save(path);
 
@@ -100,7 +100,7 @@ public sealed class MainWindowViewModelTests {
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "editable.pdf");
         byte[] source = PdfDocument.Create(compose => compose.Page(page => page
-            .Size(600D, 800D)
+            .Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))
             .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Sensitive review text")))))).ToBytes();
         byte[] annotated = PdfDocument.Load(new System.IO.MemoryStream(source)).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Text",
@@ -137,7 +137,7 @@ public sealed class MainWindowViewModelTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-annotation-update-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "editable.pdf");
-        byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
+        byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)))).ToBytes();
         byte[] annotated = PdfDocument.Load(new System.IO.MemoryStream(source)).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Text",
             Rectangle = [40D, 50D, 60D, 70D],
@@ -188,7 +188,7 @@ public sealed class MainWindowViewModelTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-image-picker-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "editable.pdf");
-        PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).Save(path);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)))).Save(path);
         int picks = 0;
 
         try {
@@ -438,7 +438,7 @@ public sealed class MainWindowViewModelTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-shell-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "editable.pdf");
-        PdfDocument.Create(compose => compose.Page(page => page.Size(500, 700))).Save(path);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(700)))).Save(path);
 
         try {
             using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
@@ -660,8 +660,8 @@ public sealed class MainWindowViewModelTests {
         Directory.CreateDirectory(root);
         string first = Path.Combine(root, "first.pdf");
         string second = Path.Combine(root, "second.pdf");
-        PdfDocument.Create(compose => compose.Page(page => page.Size(500, 700))).Save(first);
-        PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).Save(second);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(700)))).Save(first);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).Save(second);
 
         try {
             using (var viewModel = new MainWindowViewModel(
@@ -692,7 +692,7 @@ public sealed class MainWindowViewModelTests {
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "four-pages.pdf");
         PdfDocument.Create(compose => {
-            for (int page = 0; page < 4; page++) compose.Page(item => item.Size(500 + page, 700));
+            for (int page = 0; page < 4; page++) compose.Page(item => item.Size(global::OfficeIMO.OfficeLength.Points(500 + page), global::OfficeIMO.OfficeLength.Points(700)));
         }).Save(path);
 
         try {
@@ -716,8 +716,8 @@ public sealed class MainWindowViewModelTests {
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "links.pdf");
         PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(500, 700));
-            compose.Page(page => page.Size(500, 700));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(700)));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(700)));
         }).Save(path);
 
         try {
@@ -739,8 +739,8 @@ public sealed class MainWindowViewModelTests {
         Directory.CreateDirectory(root);
         string first = Path.Combine(root, "first.pdf");
         string second = Path.Combine(root, "second.pdf");
-        PdfDocument.Create(compose => compose.Page(page => page.Size(500, 700))).Save(first);
-        PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).Save(second);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(700)))).Save(first);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).Save(second);
         UnsavedChangesDecision decision = UnsavedChangesDecision.Cancel;
 
         try {

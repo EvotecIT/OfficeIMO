@@ -83,9 +83,24 @@ public partial class Excel {
             sheet.Cell(2, 2, "FirstArea");
             sheet.Cell(5, 4, "SecondArea");
             sheet.Cell(10, 1, "ExcludedValue");
-            sheet.AddImage(2, 2, image, "image/png", widthPixels: 12, heightPixels: 12, name: "First image");
-            sheet.AddImage(5, 4, image, "image/png", widthPixels: 12, heightPixels: 12, name: "Second image");
-            sheet.AddImage(10, 1, image, "image/png", widthPixels: 12, heightPixels: 12, name: "Excluded image");
+            sheet.AddImage(2, 2, image, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(12),
+                Height = OfficeIMO.OfficeLength.Pixels(12),
+                Name = "First image"
+            });
+            sheet.AddImage(5, 4, image, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(12),
+                Height = OfficeIMO.OfficeLength.Pixels(12),
+                Name = "Second image"
+            });
+            sheet.AddImage(10, 1, image, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(12),
+                Height = OfficeIMO.OfficeLength.Pixels(12),
+                Name = "Excluded image"
+            });
             document.SetPrintArea(sheet, "B2:C3,'Report, O''Brien'!$D$5:$E$6", save: false);
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
             Assert.Equal(2, sheet.GetPrintAreas().Count);

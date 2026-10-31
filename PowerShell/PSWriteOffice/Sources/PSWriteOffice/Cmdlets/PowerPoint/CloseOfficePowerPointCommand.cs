@@ -14,11 +14,11 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// Close-OfficePowerPoint -Document $deck</code>
 /// </example>
 [Cmdlet(VerbsCommon.Close, "OfficePowerPoint")]
-public sealed class CloseOfficePowerPointCommand : OfficeDocumentCmdlet<PowerPointPresentation> {
+public sealed class CloseOfficePowerPointCommand : OfficeDocumentCmdlet<PowerPointDocument> {
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        PowerPointPresentation document = GetDocument();
-        try { PowerPointDocumentService.ClosePresentation(document, save: false, show: false); }
+        PowerPointDocument document = GetDocument();
+        try { PowerPointDocumentService.CloseDocument(document, save: false, show: false); }
         catch (PipelineStoppedException) { throw; }
         catch (System.Exception error) { ItemError(error, "document-close-failed", document); }
     }

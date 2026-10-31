@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_WorkbookReader_EnforcesRowMetadataBudget() {
             byte[] package;
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Rows");
+                ExcelSheet sheet = document.AddSheet("Rows");
                 sheet.CellValue(1, 1, "one");
                 sheet.CellValue(2, 1, "two");
                 package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
@@ -210,7 +210,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_PackageDetector_DoesNotMisclassifyXmlWorkbookPackages() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data").CellValue(1, 1, "XML package");
+            document.AddSheet("Data").CellValue(1, 1, "XML package");
             byte[] package = document.ToBytes();
 
             Assert.False(XlsbPackageDetector.TryFindWorkbookPart(package, out _));
@@ -449,7 +449,7 @@ namespace OfficeIMO.Tests {
 
             IReadOnlyDictionary<int, ExcelRowInfo> rows = sheet.GetRowDefinitions().ToDictionary(row => row.Index);
             Assert.Equal(3, rows.Count);
-            Assert.Equal(30D, rows[1].Height);
+            Assert.Equal(30D, (rows[1].Height?.PhysicalLength?.ToPoints()));
             Assert.True(rows[1].CustomHeight);
             Assert.True(rows[3].Hidden);
             Assert.Equal((byte)2, rows[4].OutlineLevel);
@@ -480,7 +480,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Edited", value);
             Assert.Equal("A1:D5", sheet.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()?.Reference?.Value);
             Assert.Equal("A1:C1", Assert.Single(sheet.GetMergedRanges()).A1Range);
-            Assert.Equal(30D, sheet.GetRowDefinitions().Single(row => row.Index == 1).Height);
+            Assert.Equal(30D, (sheet.GetRowDefinitions().Single(row => row.Index == 1).Height?.PhysicalLength?.ToPoints()));
             Assert.True(sheet.GetColumnDefinitions().Single(column => column.StartIndex == 4).Hidden);
             Assert.Equal(PaneStateValues.FrozenSplit, sheet.WorksheetPart.Worksheet
                 .GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>()?.GetFirstChild<Pane>()?.State?.Value);
@@ -498,10 +498,10 @@ namespace OfficeIMO.Tests {
             using ExcelDocument converted = ExcelDocument.Load(new MemoryStream(destination.ToArray(), writable: false));
             ExcelSheet sheet = Assert.Single(converted.Sheets);
             Assert.Equal("A1:D5", sheet.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()?.Reference?.Value);
-            Assert.Equal(9D, sheet.DefaultColumnWidth);
-            Assert.Equal(18D, sheet.DefaultRowHeight);
+            Assert.Equal(ExcelColumnWidth.Characters(9D), sheet.DefaultColumnWidth);
+            Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)), sheet.DefaultRowHeight);
             Assert.Equal("A1:C1", Assert.Single(sheet.GetMergedRanges()).A1Range);
-            Assert.Equal(30D, sheet.GetRowDefinitions().Single(row => row.Index == 1).Height);
+            Assert.Equal(30D, (sheet.GetRowDefinitions().Single(row => row.Index == 1).Height?.PhysicalLength?.ToPoints()));
             Assert.True(sheet.GetRowDefinitions().Single(row => row.Index == 3).Hidden);
             Assert.True(sheet.GetColumnDefinitions().Single(column => column.StartIndex == 4).Hidden);
             Pane pane = Assert.IsType<Pane>(sheet.WorksheetPart.Worksheet
@@ -1164,7 +1164,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Xlsb_NewWorkbook_SyncAndAsyncSaveProduceReadableNativePackages() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data").CellValue(1, 1, "XLSB");
+            document.AddSheet("Data").CellValue(1, 1, "XLSB");
             using var synchronousDestination = new MemoryStream();
             using var asynchronousDestination = new MemoryStream();
 
@@ -1186,11 +1186,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesMultipleSheetsValuesVisibilityAndDimensions() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet values = document.AddWorksheet("Values");
+            ExcelSheet values = document.AddSheet("Values");
             values.CellValue(2, 2, "Text");
             values.CellValue(3, 3, 42.5D);
             values.CellValue(4, 4, true);
-            ExcelSheet hidden = document.AddWorksheet("Hidden Data");
+            ExcelSheet hidden = document.AddSheet("Hidden Data");
             hidden.CellValue(1, 1, "Hidden");
             hidden.SetHidden(true);
 
@@ -1213,7 +1213,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Xlsb_NewWorkbook_StreamsToNonSeekableDestinations() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Streamed").CellValue(1, 1, "BIFF12");
+            document.AddSheet("Streamed").CellValue(1, 1, "BIFF12");
             using var synchronousDestination = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
             using var asynchronousDestination = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
 
@@ -1231,7 +1231,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesCommonFormulaTokensAndCachedResults() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Formula");
+            ExcelSheet sheet = document.AddSheet("Formula");
             sheet.CellValue(1, 1, 2D);
             sheet.CellValue(2, 1, 3D);
             sheet.CellFormula(3, 1, "SUM(A1:A2)");
@@ -1252,7 +1252,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_RejectsUnsupportedFormulaBeforeTouchingDestinationContent() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Formula").CellFormula(1, 1, "Sheet1!A1");
+            document.AddSheet("Formula").CellFormula(1, 1, "Sheet1!A1");
             byte[] sentinel = Enumerable.Range(0, 64).Select(index => (byte)index).ToArray();
             using var destination = new MemoryStream();
             destination.Write(sentinel, 0, sentinel.Length);
@@ -1269,7 +1269,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), "officeimo-new-native-" + Guid.NewGuid().ToString("N") + ".xlsb");
             try {
                 using (ExcelDocument document = ExcelDocument.Create()) {
-                    ExcelSheet sheet = document.AddWorksheet("Sequential");
+                    ExcelSheet sheet = document.AddSheet("Sequential");
                     sheet.CellValue(1, 1, "First");
                     document.Save(path);
                     Assert.Equal(ExcelFileFormat.Xlsb, document.SourceFormat);
@@ -1291,7 +1291,7 @@ namespace OfficeIMO.Tests {
             var date = new DateTime(2024, 2, 29);
             using ExcelDocument document = ExcelDocument.Create();
             document.DateSystem = ExcelDateSystem.NineteenFour;
-            ExcelSheet sheet = document.AddWorksheet("Styled");
+            ExcelSheet sheet = document.AddSheet("Styled");
             sheet.CellValue(1, 1, "Heading");
             sheet.CellBold(1, 1);
             sheet.CellBackground(1, 1, "#4472C4");
@@ -1321,7 +1321,7 @@ namespace OfficeIMO.Tests {
         [InlineData("pivot")]
         public void Xlsb_NewWorkbook_RejectsOversizedStyleNamesBeforeEncoding(string target) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Styles");
+            ExcelSheet sheet = document.AddSheet("Styles");
             sheet.CellValue(1, 1, "Value");
             sheet.CellBold(1, 1);
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
@@ -1344,15 +1344,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesWorksheetGeometry() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Geometry");
+            ExcelSheet sheet = document.AddSheet("Geometry");
             sheet.CellValue(1, 1, "Merged heading");
             sheet.CellValue(5, 4, "Extent");
-            sheet.SetDefaultColumnWidth(9D);
-            sheet.SetDefaultRowHeight(18D);
-            sheet.SetColumnWidth(1, 20D);
+            sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(9D));
+            sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20D));
             sheet.SetColumnHidden(4, true);
             sheet.SetColumnOutline(3, 2, collapsed: true);
-            sheet.SetRowHeight(1, 30D);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30D)));
             sheet.SetRowHidden(3, true);
             sheet.SetRowOutline(4, 2, collapsed: true);
             sheet.Freeze(topRows: 1, leftCols: 1);
@@ -1362,13 +1362,13 @@ namespace OfficeIMO.Tests {
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             ExcelSheet result = Assert.Single(reloaded.Sheets);
             Assert.Equal("A1:D5", result.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()?.Reference?.Value);
-            Assert.Equal(9D, result.DefaultColumnWidth);
-            Assert.Equal(18D, result.DefaultRowHeight);
-            Assert.Equal(30D, result.GetRowDefinitions().Single(row => row.Index == 1).Height);
+            Assert.Equal(ExcelColumnWidth.Characters(9D), result.DefaultColumnWidth);
+            Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)), result.DefaultRowHeight);
+            Assert.Equal(30D, (result.GetRowDefinitions().Single(row => row.Index == 1).Height?.PhysicalLength?.ToPoints()));
             Assert.True(result.GetRowDefinitions().Single(row => row.Index == 3).Hidden);
             Assert.Equal((byte)2, result.GetRowDefinitions().Single(row => row.Index == 4).OutlineLevel);
             Assert.True(result.GetRowDefinitions().Single(row => row.Index == 4).Collapsed);
-            Assert.Equal(20D, result.GetColumnDefinitions().Single(column => column.StartIndex == 1).Width);
+            Assert.Equal(20D, (result.GetColumnDefinitions().Single(column => column.StartIndex == 1).Width?.CharacterCount));
             Assert.True(result.GetColumnDefinitions().Single(column => column.StartIndex == 4).Hidden);
             Assert.Equal((byte)2, result.GetColumnDefinitions().Single(column => column.StartIndex == 3).OutlineLevel);
             Assert.True(result.GetColumnDefinitions().Single(column => column.StartIndex == 3).Collapsed);
@@ -1384,8 +1384,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesExternalAndInternalHyperlinks() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet links = document.AddWorksheet("Links");
-            ExcelSheet target = document.AddWorksheet("Target Sheet");
+            ExcelSheet links = document.AddSheet("Links");
+            ExcelSheet target = document.AddSheet("Target Sheet");
             links.SetHyperlink(
                 1,
                 1,
@@ -1438,7 +1438,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesCalculationProperties() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Calculation").CellValue(1, 1, 1D);
+            document.AddSheet("Calculation").CellValue(1, 1, 1D);
             document.WorkbookRoot.Append(new CalculationProperties {
                 CalculationId = 42U,
                 CalculationMode = CalculateModeValues.AutoNoTable,
@@ -1489,7 +1489,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesClassicWorkbookProtection() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Protected").CellValue(1, 1, "Locked structure");
+            document.AddSheet("Protected").CellValue(1, 1, "Locked structure");
             document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
                 ProtectStructure = true,
                 ProtectWindows = true,
@@ -1533,8 +1533,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesAndProjectsDefinedNamesAndPrintRanges() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet data = document.AddWorksheet("Data Sheet");
-            document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data Sheet");
+            document.AddSheet("Summary");
             document.SetNamedRange("RevenueData", "'Data Sheet'!A1:B3", save: false, hidden: true);
             data.SetNamedRange("LocalCell", "C2", save: false);
             document.SetPrintArea(data, "A1:C10", save: false);
@@ -1598,7 +1598,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesAndProjectsCommonWorksheetMetadata() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             sheet.CellValue(1, 1, "Status");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(2, 1, "Open");
@@ -1623,7 +1623,7 @@ namespace OfficeIMO.Tests {
                 horizontalCentered: true,
                 verticalCentered: false,
                 save: false);
-            sheet.SetMargins(0.25D, 0.35D, 0.45D, 0.55D, 0.2D, 0.3D);
+            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.45D), OfficeLength.Inches(0.55D), OfficeLength.Inches(0.2D), OfficeLength.Inches(0.3D));
             sheet.SetPageSetup(
                 fitToWidth: 1U,
                 fitToHeight: 0U,

@@ -7,11 +7,11 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartNiceAxisTests {
-    private static OfficeDrawing RenderColumns(OfficeChartKind kind, OfficeChartLayout? layout, params double[][] series) {
+    private static OfficeDrawing RenderColumns(OfficeChartType kind, OfficeChartLayout? layout, params double[][] series) {
         string[] categories = Enumerable.Range(1, series[0].Length).Select(i => "C" + i).ToArray();
         return OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Axis", null, kind,
-            new OfficeChartData(categories, series.Select((values, index) => new OfficeChartSeries("S" + index, values)).ToArray()),
+            new OfficeChartData(categories, series.Select((values, index) => new OfficeSeries("S" + index, values)).ToArray()),
             widthPoints: 360D, heightPoints: 240D, layout: layout ?? new OfficeChartLayout(showLegend: false)));
     }
 
@@ -20,7 +20,7 @@ public sealed class DrawingChartNiceAxisTests {
     [Fact]
     public void AutomaticValueAxisUsesRoundStepsWithHeadroom() {
         // Word draws this chart on 0-250 in steps of 50.
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.ColumnClustered, null,
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.ColumnClustered, null,
             new[] { 10D, 35D, 18D, 23D }, new[] { 15D, 30D, 8D, 18D }, new[] { 13D, 20D, 230D, 150D });
         List<string> texts = Texts(drawing);
         foreach (string tick in new[] { "0", "50", "100", "150", "200", "250" }) Assert.Contains(tick, texts);
@@ -34,7 +34,7 @@ public sealed class DrawingChartNiceAxisTests {
     [InlineData(32D, new[] { "0", "10", "20", "30", "40" })]
     [InlineData(27D, new[] { "0", "5", "10", "15", "20", "25", "30" })]
     public void AutomaticValueAxisPicksFourToSixRoundIntervals(double maximum, string[] expected) {
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.ColumnClustered, null, new[] { maximum / 3D, maximum });
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.ColumnClustered, null, new[] { maximum / 3D, maximum });
         List<string> texts = Texts(drawing);
         foreach (string tick in expected) Assert.Contains(tick, texts);
         Assert.DoesNotContain(maximum.ToString(System.Globalization.CultureInfo.InvariantCulture), texts);
@@ -42,7 +42,7 @@ public sealed class DrawingChartNiceAxisTests {
 
     [Fact]
     public void TallestColumnStaysBelowTopOfPlot() {
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.ColumnClustered, null, new[] { 40D, 80D });
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.ColumnClustered, null, new[] { 40D, 80D });
         OfficeDrawingText top = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "100");
         OfficeDrawingText eighty = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "80");
         OfficeDrawingShape tallest = drawing.Shapes
@@ -55,7 +55,7 @@ public sealed class DrawingChartNiceAxisTests {
 
     [Fact]
     public void PercentStackedAxisStopsAtOneHundredPercent() {
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.ColumnStacked100, null, new[] { 1D, 2D }, new[] { 3D, 1D });
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.ColumnStacked100, null, new[] { 1D, 2D }, new[] { 3D, 1D });
         List<string> texts = Texts(drawing);
         Assert.Contains("100%", texts);
         Assert.DoesNotContain("120%", texts);
@@ -63,7 +63,7 @@ public sealed class DrawingChartNiceAxisTests {
 
     [Fact]
     public void ExplicitBoundsAndUnitsAreKept() {
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.ColumnClustered,
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.ColumnClustered,
             new OfficeChartLayout(showLegend: false, verticalAxisMinimum: 0D, verticalAxisMaximum: 90D, verticalAxisMajorUnit: 30D),
             new[] { 10D, 81D });
         List<string> texts = Texts(drawing);
@@ -73,7 +73,7 @@ public sealed class DrawingChartNiceAxisTests {
 
     [Fact]
     public void ExplicitMaximumWithAutomaticUnitUsesRoundTicks() {
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.ColumnClustered,
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.ColumnClustered,
             new OfficeChartLayout(showLegend: false, verticalAxisMaximum: 92.5D), new[] { 10D, 81D });
         List<string> texts = Texts(drawing);
         Assert.Contains("80", texts);
@@ -82,14 +82,14 @@ public sealed class DrawingChartNiceAxisTests {
 
     [Fact]
     public void NegativeValuesGetRoundBoundsOnBothSides() {
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.ColumnClustered, null, new[] { -10D, 50D });
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.ColumnClustered, null, new[] { -10D, 50D });
         List<string> texts = Texts(drawing);
         foreach (string tick in new[] { "-20", "0", "20", "40", "60" }) Assert.Contains(tick, texts);
     }
 
     [Fact]
     public void VerticalAxisTitleIsRotatedBesideTheTickLabels() {
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.ColumnClustered,
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.ColumnClustered,
             new OfficeChartLayout(showLegend: false, valueAxisTitle: "Revenue", verticalAxisDisplayUnitLabel: "Thousands USD"),
             new[] { 10D, 35D });
         OfficeDrawingText title = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Revenue");
@@ -110,9 +110,9 @@ public sealed class DrawingChartNiceAxisTests {
 
     [Fact]
     public void LinearTrendlineIsDrawnWithEquationAndRSquared() {
-        var series = new OfficeChartSeries("Sales", new[] { 3D, 5D, 7D, 9D })
+        var series = new OfficeSeries("Sales", new[] { 3D, 5D, 7D, 9D })
             .WithTrendline(new OfficeChartTrendline(OfficeChartTrendlineType.Linear, displayEquation: true, displayRSquared: true));
-        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Trend", null, OfficeChartKind.ColumnClustered,
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Trend", null, OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { series }), 360D, 240D,
             layout: new OfficeChartLayout(showLegend: false)));
         Assert.Contains(Texts(drawing), text => text == "y = 2x + 1   R\u00B2 = 1");
@@ -120,7 +120,7 @@ public sealed class DrawingChartNiceAxisTests {
 
     [Fact]
     public void TopLegendStartsAtTheLeftWithPackedEntries() {
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.ColumnClustered,
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.ColumnClustered,
             new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Top), new[] { 1D, 2D }, new[] { 2D, 3D }, new[] { 3D, 1D });
         OfficeDrawingText[] entries = drawing.Elements.OfType<OfficeDrawingText>().Where(text => text.Text is "S0" or "S1" or "S2")
             .OrderBy(text => text.X).ToArray();
@@ -131,7 +131,7 @@ public sealed class DrawingChartNiceAxisTests {
 
     [Fact]
     public void LineSeriesLegendUsesAStrokeSwatch() {
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.Line,
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.Line,
             new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Top), new[] { 1D, 2D }, new[] { 2D, 3D });
         OfficeDrawingText entry = drawing.Elements.OfType<OfficeDrawingText>().First(text => text.Text == "S0");
         Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.Height == 0D &&
@@ -140,7 +140,7 @@ public sealed class DrawingChartNiceAxisTests {
 
     [Fact]
     public void NeighbouringDataLabelsDoNotOverlap() {
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.ColumnClustered,
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.ColumnClustered,
             new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true, dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd),
             new[] { 10D, 20D }, new[] { 12D, 21D }, new[] { 11D, 20.5D });
         var labels = drawing.Elements.OfType<OfficeDrawingText>()
@@ -159,7 +159,7 @@ public sealed class DrawingChartNiceAxisTests {
 
     [Fact]
     public void AreaLabelsAreDrawnAboveEveryAreaFill() {
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.Area,
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.Area,
             new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true), new[] { 100D, 1D, 18D }, new[] { 13D, 20D, 230D });
         List<object> elements = drawing.Elements.Cast<object>().ToList();
         int lastFill = elements.FindLastIndex(element => element is OfficeDrawingShape shape && shape.Shape.FillColor.HasValue &&
@@ -170,7 +170,7 @@ public sealed class DrawingChartNiceAxisTests {
 
     [Fact]
     public void CoincidentDataLabelsAreMovedApart() {
-        OfficeDrawing drawing = RenderColumns(OfficeChartKind.Line,
+        OfficeDrawing drawing = RenderColumns(OfficeChartType.Line,
             new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true, dataLabelPosition: OfficeChartDataLabelPosition.Top),
             new[] { 12D, 18D }, new[] { 12D, 18D });
         OfficeDrawingText[] twelves = drawing.Elements.OfType<OfficeDrawingText>().Where(text => text.Text == "12" && text.X > 30D).ToArray();

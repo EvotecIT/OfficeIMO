@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static ExcelSheet CreateOrdersTable(ExcelDocument document, int orders) {
-            ExcelSheet sheet = document.AddWorksheet("Orders");
+            ExcelSheet sheet = document.AddSheet("Orders");
             sheet.CellValue(1, 1, "Customer");
             sheet.CellValue(1, 2, "Date");
             sheet.CellValue(1, 3, "Amount");
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SetTableTotals_ReusesAReservedBlankLastRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Orders");
+            ExcelSheet sheet = document.AddSheet("Orders");
             sheet.CellValue(1, 1, "Customer");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(2, 1, "Contoso");
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AddTable_GivesWideTablesLandscapePrintSettingsAndRepeatedHeaders() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Wide");
+            ExcelSheet sheet = document.AddSheet("Wide");
             for (int column = 1; column <= 16; column++) {
                 sheet.CellValue(1, column, "Column " + column);
                 sheet.CellValue(2, column, column);

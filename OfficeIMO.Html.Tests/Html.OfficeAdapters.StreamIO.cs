@@ -17,7 +17,7 @@ public class HtmlOfficeAdaptersStreamIO {
     [Fact]
     public async Task ExcelHtml_StreamAndAsyncApisUseUtf8WithoutBomAndLeaveStreamsOpen() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorksheet("Data").CellValue(1, 1, "Zażółć");
+        workbook.AddSheet("Data").CellValue(1, 1, "Zażółć");
         using var htmlStream = new MemoryStream();
 
         await workbook.SaveAsHtmlAsync(htmlStream);
@@ -35,7 +35,7 @@ public class HtmlOfficeAdaptersStreamIO {
 
     [Fact]
     public async Task PowerPointHtml_StreamAndAsyncApisUseUtf8WithoutBomAndLeaveStreamsOpen() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.AddSlide().AddTextBox("Zażółć");
         using var htmlStream = new MemoryStream();
 
@@ -46,8 +46,8 @@ public class HtmlOfficeAdaptersStreamIO {
         Assert.False(HasUtf8Bom(htmlBytes));
         htmlStream.Position = 0;
         HtmlConversionDocument htmlDocument = await HtmlConversionDocument.LoadAsync(htmlStream);
-        HtmlToPowerPointResult result = htmlDocument.ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = htmlDocument.ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         Assert.True(result.Succeeded);
         Assert.True(htmlStream.CanRead);
     }

@@ -17,7 +17,7 @@ public static partial class OfficeOperationCapabilityCatalog {
             new[] { ".xlsx", ".xlsm", ".xltx", ".xltm", ".xlam" },
             new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve, OfficeOperationKind.Inspect, OfficeOperationKind.Validate });
         AddNativeLifecycle(rows, "powerpoint-openxml", "OfficeIMO.PowerPoint", "PowerPoint.OpenXml",
-            "PowerPointPresentation.Create / Load / Save",
+            "PowerPointDocument.Create / Load / Save",
             "OfficeIMO.PowerPoint.Tests create, load, edit, save, and preservation contracts",
             new[] { ".pptx", ".pptm", ".potx", ".potm", ".ppsx", ".ppsm", ".ppam" },
             new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Preserve, OfficeOperationKind.Inspect, OfficeOperationKind.Validate });

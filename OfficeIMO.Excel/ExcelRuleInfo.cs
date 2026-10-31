@@ -55,8 +55,8 @@ namespace OfficeIMO.Excel {
         public bool? DifferentialFontStrike { get; set; }
         /// <summary>Gets or sets the rule's differential format font family, when present.</summary>
         public string? DifferentialFontName { get; set; }
-        /// <summary>Gets or sets the rule's differential format font size in points, when present.</summary>
-        public double? DifferentialFontSize { get; set; }
+        /// <summary>Gets or sets the rule's physical differential font size, when present. Authored sizes must be between 1 and 409 points.</summary>
+        public OfficeLength? DifferentialFontSize { get; set; }
         /// <summary>Gets or sets the rule's differential format border, when present.</summary>
         public ExcelCellBorderInfo? DifferentialBorder { get; set; }
         /// <summary>Gets or sets formulas attached to the rule.</summary>

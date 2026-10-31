@@ -17,9 +17,16 @@ public static partial class OfficeConverter {
         CancellationToken cancellationToken = default) => ConvertAsync(SelectBatchTarget(options ?? new(), outputDirectory, target)
             with { InputDirectory = sourceDirectory, InputPaths = null }, progress, cancellationToken);
 
+    /// <summary>Runs a portable batch definition without a progress callback.</summary>
+    public static Task<OfficeBatchReport> ConvertAsync(OfficeBatchOptions options) => ConvertAsync(options, null, default);
+
+    /// <summary>Runs a portable batch definition and reports each completed item.</summary>
+    public static Task<OfficeBatchReport> ConvertAsync(OfficeBatchOptions options, IProgress<OfficeBatchItemReport>? progress) =>
+        ConvertAsync(options, progress, default);
+
     /// <summary>Runs a portable batch definition, retaining bounded observations and complete counts.</summary>
     public static async Task<OfficeBatchReport> ConvertAsync(OfficeBatchOptions options,
-        IProgress<OfficeBatchItemReport>? progress = null, CancellationToken cancellationToken = default) {
+        IProgress<OfficeBatchItemReport>? progress, CancellationToken cancellationToken) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         var collector = new OfficeBatchReportCollector();
         DateTimeOffset started = DateTimeOffset.UtcNow;

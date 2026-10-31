@@ -36,7 +36,7 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
         var output = shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
         Assert.Equal(path, Assert.IsType<FileInfo>(Assert.Single(output).BaseObject).FullName);
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         Assert.Empty(saved.ValidateDocument());
         Assert.Equal(6, saved.Slides.Count);
         Assert.Contains("Quarterly sales", Text(saved.Slides[0]));
@@ -60,7 +60,7 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
         Assert.Empty(saved.Slides.Last().Tables);
         var chart = Assert.Single(saved.Slides.Last().Charts);
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
-        Assert.Equal(OfficeChartKind.ColumnClustered, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.ColumnClustered, snapshot.ChartKind);
         // Composed chart labels are native slide text above the plot, aligned with the content column.
         Assert.Contains(saved.Slides.Last().TextBoxes, box => box.Text == "Sales by region");
         Assert.Equal(new[] { "West", "East", "West", "East", "West", "East", "West" }, snapshot.Data.Categories);
@@ -82,7 +82,7 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
             """);
         Assert.Empty(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         Assert.Empty(saved.ValidateDocument());
         Assert.Contains("automatic", Text(saved.Slides[0]));
         var tables = saved.Slides.SelectMany(slide => slide.Tables).ToArray();
@@ -103,7 +103,7 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
         shell.AddScript(Sales + "\n$rows | Export-OfficePowerPoint -Path $target -MaxRows 10 " + arguments);
         Assert.Empty(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
-        using var saved = PowerPointPresentation.Load((string)runspace.SessionStateProxy.GetVariable("target"));
+        using var saved = PowerPointDocument.Load((string)runspace.SessionStateProxy.GetVariable("target"));
         var summaries = saved.Slides.Where(slide => Text(slide).Contains("At a glance", StringComparison.Ordinal)).ToArray();
         if (!summaryExpected) { Assert.Empty(summaries); return; }
         Assert.NotEmpty(summaries);
@@ -133,13 +133,13 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
             """);
         Assert.Empty(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         Assert.Equal(2, saved.Slides.Count);
         Assert.Empty(saved.Slides.SelectMany(slide => slide.Tables));
         Assert.DoesNotContain("At a glance", string.Join("\n", saved.Slides.Select(Text)));
         var chart = Assert.Single(saved.Slides[1].Charts);
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
-        Assert.Equal(OfficeChartKind.BarClustered, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.BarClustered, snapshot.ChartKind);
         Assert.Equal(new[] { 12.5D, 24.75D }, Assert.Single(snapshot.Data.Series).Values);
     }
 
@@ -154,7 +154,7 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
             """);
         Assert.Empty(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         var table = Assert.Single(saved.Slides.SelectMany(slide => slide.Tables));
         AssertHeaders(new[] { table }, "Amount", "Tags", "Detail");
         Assert.Equal("12,5", table.GetCell(1, 0).Text);
@@ -173,7 +173,7 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
         shell.AddScript(Sales + "\n$rows | Export-OfficePowerPoint -Path $target -Theme $customTheme -Accent '#A43158' -NoSummary");
         Assert.Empty(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         Assert.Equal("A43158", saved.GetThemeColor(PowerPointThemeColor.Accent1));
         Assert.Equal(source.Palette.Background.ToRgbHex(), saved.GetThemeColor(PowerPointThemeColor.Light1));
         Assert.Equal(source.Fonts.Body.Family, saved.GetThemeLatinFonts().MinorLatin);
@@ -188,7 +188,7 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
     [InlineData(".potx", true)]
     public void TemplateRetainsNativeMastersFontsAndPaletteWhileReplacingItsSampleSlides(string templateExtension, bool useAccentRole) {
         string templatePath = Path.Combine(_root, "template" + templateExtension), path = Path.Combine(_root, "from-template.pptx");
-        using (var template = PowerPointPresentation.Create(new PowerPointCreateOptions { Theme = OfficeTheme.Classic })) {
+        using (var template = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = OfficeTheme.Classic })) {
             template.SetThemeColorForAllMasters(PowerPointThemeColor.Accent2, "987654");
             template.SetThemeLatinFontsForAllMasters("Georgia", "Verdana");
             var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand("123456", "template"));
@@ -210,13 +210,13 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
         Assert.False(shell.HadErrors, Errors(shell));
         using (var exportedPackage = PresentationDocument.Open(path, false))
             Assert.Equal(PresentationDocumentType.Presentation, exportedPackage.DocumentType);
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         Assert.Equal("Georgia", saved.GetThemeLatinFonts().MajorLatin);
         Assert.Equal("Verdana", saved.GetThemeLatinFonts().MinorLatin);
         Assert.Equal(useAccentRole ? "987654" : OfficeTheme.Classic.Palette.Accent1.ToRgbHex(),
             saved.GetThemeColor(PowerPointThemeColor.Accent1));
         Assert.DoesNotContain("Template sample", string.Join("\n", saved.Slides.Select(Text)));
-        using var source = PowerPointPresentation.Load(templatePath);
+        using var source = PowerPointDocument.Load(templatePath);
         Assert.Equal(source.OpenXmlDocument.PresentationPart!.SlideMasterParts.Count(), saved.OpenXmlDocument.PresentationPart!.SlideMasterParts.Count());
         Assert.Equal(source.GetSlideLayouts().Count, saved.GetSlideLayouts().Count);
         Assert.Equal(original, File.ReadAllBytes(templatePath));
@@ -257,7 +257,7 @@ public sealed class PowerPointObjectExportWorkflowTests : IDisposable {
         var result = shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
         Assert.Equal(path, Assert.IsType<FileInfo>(Assert.Single(result).BaseObject).FullName);
-        using var saved = PowerPointPresentation.Load(path);
+        using var saved = PowerPointDocument.Load(path);
         Assert.Equal(7, saved.Slides.SelectMany(slide => slide.Tables).Sum(table => table.Rows - 1));
         Assert.Empty(saved.ValidateDocument());
         Assert.Equal(new[] { path }, Directory.GetFileSystemEntries(_root));

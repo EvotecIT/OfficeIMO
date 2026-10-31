@@ -26,7 +26,7 @@ public class PdfContainerAndColumnTests {
     public void Columns_LeadingBreakLeavesTheFirstColumnEmpty() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Columns(columns => columns.ColumnBreak().Text("Right only"),
-                new PdfMultiColumnOptions { Gap = 24 }).ToBytes();
+                new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(24) }).ToBytes();
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal(1, read.NumberOfPages);
         Assert.Equal(318, read.GetPage(1).Letters[0].StartBaseLine.X, 1);
@@ -42,15 +42,15 @@ public class PdfContainerAndColumnTests {
                 columns.Paragraph(paragraph => paragraph.Text("Left two"));
                 columns.ColumnBreak();
                 columns.Paragraph(paragraph => paragraph.Text("Right one"));
-            }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = 24, BalanceLastPage = false })
+            }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = global::OfficeIMO.OfficeLength.Points(24), BalanceLastPage = false })
             .ToBytes();
 
         IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Load(bytes).Reader.TextBlocks();
         Assert.Single(blocks, block => block.Text.Contains("Left one", StringComparison.Ordinal));
         Assert.Single(blocks, block => block.Text.Contains("Right one", StringComparison.Ordinal));
         string raw = PdfTestContentText.ReadDecoded(bytes);
-        double secondColumnX = options.MarginLeft + (options.PageWidth - options.MarginLeft - options.MarginRight + 24D) / 2D;
-        Assert.Contains("1 0 0 1 " + options.MarginLeft.ToString(CultureInfo.InvariantCulture) + " ", raw, StringComparison.Ordinal);
+        double secondColumnX = options.MarginLeft.ToPoints() + (options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints() + 24D) / 2D;
+        Assert.Contains("1 0 0 1 " + options.MarginLeft.ToPoints().ToString(CultureInfo.InvariantCulture) + " ", raw, StringComparison.Ordinal);
         Assert.Contains("1 0 0 1 " + secondColumnX.ToString(CultureInfo.InvariantCulture) + " ", raw, StringComparison.Ordinal);
         Assert.Single(PdfReadDocument.Open(bytes).Pages);
     }
@@ -62,12 +62,12 @@ public class PdfContainerAndColumnTests {
                 content.H2("Container title");
                 content.Paragraph(paragraph => paragraph.Text("Container body"));
             }, new PdfPanelStyle {
-                Background = new PdfColor(0.9D, 0.95D, 1D),
-                BorderColor = new PdfColor(0.1D, 0.2D, 0.4D),
-                BorderWidth = 1.5D,
-                PaddingX = 12D,
-                PaddingY = 10D,
-                MaxWidth = 300D,
+                Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D),
+                BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1D, 0.2D, 0.4D),
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(1.5D),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(12D),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(10D),
+                MaxWidth = global::OfficeIMO.OfficeLength.Points(300D),
                 Align = PdfAlign.Center
             })
             .ToBytes();
@@ -83,13 +83,13 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Container_PaginatesAndDecoratesEveryPageFragment() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 260,
-            PageHeight = 180,
-            MarginLeft = 20,
-            MarginRight = 20,
-            MarginTop = 20,
-            MarginBottom = 20,
-            DefaultFontSize = 10,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             CompressContentStreams = false
         });
 
@@ -99,11 +99,11 @@ public class PdfContainerAndColumnTests {
                 content.Paragraph(paragraph => paragraph.Text("Decorated fragment line " + marker));
             }
         }, new PdfPanelStyle {
-            Background = new PdfColor(0.9D, 0.95D, 1D),
-            BorderColor = new PdfColor(0.1D, 0.2D, 0.4D),
-            BorderWidth = 1.5D,
-            PaddingX = 8D,
-            PaddingY = 6D,
+            Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D),
+            BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1D, 0.2D, 0.4D),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(1.5D),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(8D),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(6D),
             KeepTogether = false
         });
 
@@ -125,9 +125,9 @@ public class PdfContainerAndColumnTests {
                 .Text("Before break")
                 .PageBreak()
                 .Text("After break"), new PdfPanelStyle {
-                    Background = new PdfColor(0.9D, 0.95D, 1D),
-                    PaddingX = 6D,
-                    PaddingY = 6D
+                    Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D),
+                    PaddingX = global::OfficeIMO.OfficeLength.Points(6D),
+                    PaddingY = global::OfficeIMO.OfficeLength.Points(6D)
                 })
             .ToBytes();
 
@@ -142,13 +142,13 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_BalancesOneLongParagraphAtWrappedLineBoundaries() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 300,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 40,
-                MarginBottom = 40,
-                DefaultFontSize = 10,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 CompressContentStreams = false
             })
             .Columns(columns => columns.Paragraph(paragraph => paragraph
@@ -161,7 +161,7 @@ public class PdfContainerAndColumnTests {
                 .Text("ColumnLine07").LineBreak()
                 .Text("ColumnLine08")), new PdfMultiColumnOptions {
                     ColumnCount = 2,
-                    Gap = 20,
+                    Gap = global::OfficeIMO.OfficeLength.Points(20),
                     BalanceLastPage = true,
                     BalanceParagraphLines = true
                 })
@@ -179,13 +179,13 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_DefaultKeepTogetherParagraphIsNotSplitByLineBalancing() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 300,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 40,
-                MarginBottom = 40,
-                DefaultFontSize = 10,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 DefaultParagraphStyle = new PdfParagraphStyle {
                     KeepTogether = true
                 },
@@ -201,7 +201,7 @@ public class PdfContainerAndColumnTests {
                 .Text("KeepLine07").LineBreak()
                 .Text("KeepLine08")), new PdfMultiColumnOptions {
                     ColumnCount = 2,
-                    Gap = 20,
+                    Gap = global::OfficeIMO.OfficeLength.Points(20),
                     BalanceLastPage = true,
                     BalanceParagraphLines = true
                 })
@@ -220,26 +220,26 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_BalancedRichLinesPreserveSpaceBeforeInlineElements() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 300,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 40,
-                MarginBottom = 40,
-                DefaultFontSize = 10,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 CompressContentStreams = false
             })
             .Columns(columns => columns.Paragraph(paragraph => paragraph
-                .Text("ColumnLine01 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine02 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine03 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine04 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine05 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine06 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine07 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine08 ").InlineBox(8, 8).Text("after")), new PdfMultiColumnOptions {
+                .Text("ColumnLine01 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine02 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine03 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine04 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine05 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine06 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine07 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine08 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after")), new PdfMultiColumnOptions {
                     ColumnCount = 2,
-                    Gap = 20,
+                    Gap = global::OfficeIMO.OfficeLength.Points(20),
                     BalanceLastPage = true,
                     BalanceParagraphLines = true
                 })
@@ -257,13 +257,13 @@ public class PdfContainerAndColumnTests {
     [Fact]
     public void Columns_BalancedJustifiedParagraphPreservesSoftWrapJustification() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 300,
-                MarginLeft = 40,
-                MarginRight = 40,
-                MarginTop = 40,
-                MarginBottom = 40,
-                DefaultFontSize = 10,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(40),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(40),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(40),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                 CompressContentStreams = false
             })
             .Columns(columns => columns.Paragraph(paragraph => paragraph.Text(
@@ -271,7 +271,7 @@ public class PdfContainerAndColumnTests {
                 "amber bronze copper denim emerald fuchsia garnet hazel ivory jade khaki lilac magenta navy ochre peach quartz ruby silver teal umber violet wheat yellow zinc"),
                 align: PdfAlign.Justify), new PdfMultiColumnOptions {
                     ColumnCount = 2,
-                    Gap = 20,
+                    Gap = global::OfficeIMO.OfficeLength.Points(20),
                     BalanceLastPage = true,
                     BalanceParagraphLines = true
                 })

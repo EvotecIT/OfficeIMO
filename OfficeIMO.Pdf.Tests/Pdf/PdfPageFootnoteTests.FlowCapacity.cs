@@ -18,7 +18,7 @@ public partial class PdfPageFootnoteTests {
         var capture = new PdfLayoutPositionCapture();
         document.Content.Flow(body => {
             for (int index = 0; index < 6; index++) body.Text("BoundedBody" + index, style: Style());
-        }, new PdfFlowOptions { MinimumRemainingHeight = 10, OverflowBehavior = behavior }, capture);
+        }, new PdfFlowOptions { MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(10), OverflowBehavior = behavior }, capture);
         document.Content.Text("AfterBoundedFlow", style: Style());
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -38,7 +38,7 @@ public partial class PdfPageFootnoteTests {
         // The last continued-note page has 40pt of body room. A 50pt minimum
         // therefore requires the next unreserved page even for one 10pt line.
         document.Content.Flow(body => body.Text("MinimumHeightBody", style: Style()),
-            new PdfFlowOptions { MinimumRemainingHeight = 50 }, capture);
+            new PdfFlowOptions { MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(50) }, capture);
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         AssertContinuationCapacityNoteInventory(pdf);
@@ -59,7 +59,7 @@ public partial class PdfPageFootnoteTests {
             factories.Add(context);
             return body => body.Text("ContextPage" + context.PageNumber + "AtTop" + context.IsAtPageTop, style: Style());
         }, new PdfFlowOptions {
-            MinimumRemainingHeight = 20,
+            MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(20),
             ShowIf = context => { predicates.Add(context); return true; }
         }, capture);
         var followingContexts = new List<PdfFlowContext>();
@@ -72,16 +72,16 @@ public partial class PdfPageFootnoteTests {
         Assert.Contains("ContextPage3AtTopTrue", pdf.GetPage(3).Text, StringComparison.Ordinal);
         Assert.Contains("AfterContextBody", pdf.GetPage(3).Text, StringComparison.Ordinal);
         Assert.DoesNotContain("ContextPage2", string.Concat(pdf.GetPages().Select(page => page.Text)), StringComparison.Ordinal);
-        Assert.Contains(predicates, context => context.PageNumber == 1 && Math.Abs(context.AvailableHeight) < .001D);
-        Assert.Contains(factories, context => context.PageNumber == 1 && Math.Abs(context.AvailableHeight) < .001D);
-        Assert.Contains(factories, context => context.PageNumber == 2 && Math.Abs(context.AvailableHeight) < .001D);
-        Assert.Contains(factories, context => context.PageNumber == 3 && Math.Abs(context.AvailableHeight - 40D) < .001D);
-        Assert.All(factories, context => Assert.Equal(100D, context.FullContentHeight, 3));
+        Assert.Contains(predicates, context => context.PageNumber == 1 && Math.Abs(context.AvailableHeight.ToPoints()) < .001D);
+        Assert.Contains(factories, context => context.PageNumber == 1 && Math.Abs(context.AvailableHeight.ToPoints()) < .001D);
+        Assert.Contains(factories, context => context.PageNumber == 2 && Math.Abs(context.AvailableHeight.ToPoints()) < .001D);
+        Assert.Contains(factories, context => context.PageNumber == 3 && Math.Abs(context.AvailableHeight.ToPoints() - 40D) < .001D);
+        Assert.All(factories, context => Assert.Equal(100D, context.FullContentHeight.ToPoints(), 3));
         Assert.All(predicates, context => Assert.False(context.IsAtPageTop));
         Assert.All(factories, context => Assert.Equal(context.PageNumber > 1, context.IsAtPageTop));
         Assert.All(followingContexts, context => {
             Assert.Equal(3, context.PageNumber);
-            Assert.Equal(30D, context.AvailableHeight, 3);
+            Assert.Equal(30D, context.AvailableHeight.ToPoints(), 3);
             Assert.False(context.IsAtPageTop);
         });
         Assert.NotEmpty(followingContexts);

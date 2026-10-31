@@ -15,13 +15,13 @@ public class PdfReadbackCancellationOwnerTests {
         PdfFreeTextDefaultStyle parsed = PdfFreeTextStyleParser.ParseDefaultStyle(style, cancellation.Token);
         Assert.Equal(12D, parsed.FontSize);
         Assert.Equal(PdfAlign.Right, parsed.TextAlign);
-        Assert.Equal(new PdfColor(1D, 0D, 0D), parsed.TextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 0D), parsed.TextColor);
 
         string appearance = new string('x', 100_000) + " /F1 13 Tf 1 0 0 rg";
         Assert.True(PdfDefaultAppearanceParser.TryReadFontSize(appearance, out double fontSize, cancellation.Token));
         Assert.Equal(13D, fontSize);
-        Assert.True(PdfDefaultAppearanceParser.TryReadTextColor(appearance, out PdfColor color, cancellation.Token));
-        Assert.Equal(new PdfColor(1D, 0D, 0D), color);
+        Assert.True(PdfDefaultAppearanceParser.TryReadTextColor(appearance, out global::OfficeIMO.OfficeColor color, cancellation.Token));
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 0D), color);
     }
 
     [Fact]

@@ -91,6 +91,7 @@
     <InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odg.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Xps.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.DjVu.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Publisher.Pdf" />
   </ItemGroup>
 
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Invoicing.Pdf" /></ItemGroup>
@@ -110,4 +111,8 @@
   </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Shared.Tests" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Web.Converter" /><InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" /></ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Studio" />
+    <InternalsVisibleTo Include="PSWriteOffice" />
+  </ItemGroup>
 </Project>

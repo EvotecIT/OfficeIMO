@@ -13,19 +13,19 @@ public sealed class PdfTableTextClipBoundsTests {
     [InlineData("column", false)]
     [InlineData("canvas", false)]
     public void Cell_clip_policy_survives_style_copy_and_retains_authored_glyph_positions(string frame, bool containText) {
-        var options = new PdfCreateOptions { PageWidth = 240, PageHeight = 180,
-            MarginTop = 24, MarginBottom = 24, MarginLeft = 24, MarginRight = 24,
-            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 48, CompressContentStreams = false };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(48), CompressContentStreams = false };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.ClipTextToCellBounds = containText;
-        style.ColumnWidthPoints = new List<double?> { 100 };
-        style.FixedRowHeights = new List<double?> { 24 };
-        style.CellPaddingX = 0; style.CellPaddingY = 0; style.CellSpacing = 0;
-        style.SpacingBefore = 0; style.SpacingAfter = 0;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(24) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0); style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         var runs = new[] { new PdfTextRun("A") };
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
-            leftIndent: -30, lineSpacing: PdfLineSpacing.Exactly(6)) });
+            leftIndent: global::OfficeIMO.OfficeLength.Points(-30), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6))) });
         var cells = new[] { new[] { cell } };
         var document = PdfDocument.Create(options);
         style = style.Clone();
@@ -33,7 +33,7 @@ public sealed class PdfTableTextClipBoundsTests {
             "flow" => document.Table(cells, style: style).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "column" => document.Compose(compose => compose.Page(page => page.Content(content =>
                 content.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)))))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
-            "canvas" => document.Canvas(canvas => canvas.Table(cells, 24, 24, 100, 24, style)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+            "canvas" => document.Canvas(canvas => canvas.Table(cells, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), style)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             _ => throw new ArgumentOutOfRangeException(nameof(frame))
         };
         string content = System.Text.Encoding.ASCII.GetString(bytes);

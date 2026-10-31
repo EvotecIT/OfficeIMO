@@ -13,7 +13,7 @@ public partial class Word {
     [InlineData(",")]
     public void Decimal_symbol_survives_save_load_and_can_be_cleared_without_invalid_values(string value) {
         using var document = WordDocument.Create();
-        document.AddParagraph("One\t123.45").AddTabStop(720, WordTabAlignment.Decimal);
+        document.AddParagraph("One\t123.45").AddTabStop(OfficeLength.Points(36), WordTabAlignment.Decimal);
         document.Settings.DecimalSymbol = value;
         foreach (string invalid in new[] { "", "..", "\t", "\uD800" })
             Assert.Throws<ArgumentException>(() => document.Settings.DecimalSymbol = invalid);

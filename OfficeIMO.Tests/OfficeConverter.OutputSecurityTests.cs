@@ -51,7 +51,7 @@ public sealed class OfficeConverterOutputSecurityTests {
             using var encrypted = new MemoryStream(output);
             if (targetExtension == ".docx") { using var document = WordDocument.Load(encrypted, new WordLoadOptions { Password = password }); Assert.NotEmpty(document.Sections); }
             else if (targetExtension == ".xlsx") { using var document = ExcelDocument.Load(encrypted, new ExcelLoadOptions { Password = password }); Assert.NotEmpty(document.Sheets); }
-            else { using var document = PowerPointPresentation.Load(encrypted, new PowerPointLoadOptions { Password = password }); Assert.NotEmpty(document.Slides); }
+            else { using var document = PowerPointDocument.Load(encrypted, new PowerPointLoadOptions { Password = password }); Assert.NotEmpty(document.Slides); }
         } finally { Directory.Delete(directory, true); }
     }
 
@@ -88,7 +88,7 @@ public sealed class OfficeConverterOutputSecurityTests {
             string assets = Path.Combine(directory, "assets"); Directory.CreateDirectory(assets);
             string sidecar = Path.Combine(assets, "01-chart.svg");
             using (var source = WordDocument.Create(input)) {
-                var chart = source.AddChart("Chart", width: 400, height: 240);
+                var chart = source.AddChart("Chart",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
                 chart.AddCategories(new List<string> { "Q1", "Q2" });
                 chart.AddBar("Series", new List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
                 source.Save();

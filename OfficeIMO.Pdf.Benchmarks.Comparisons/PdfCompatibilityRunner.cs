@@ -16,10 +16,12 @@ internal static class PdfCompatibilityRunner {
                 byte[] pdf = PdfDocumentGenerators.Generate(producer, scenario);
                 PdfBenchmarkValidation.ValidateGenerated(pdf, scenario, producer.ToString());
                 if (scale == PdfBenchmarkScale.Easy) {
+                    using var input = new MemoryStream(pdf, writable: false);
+                    using var document = OfficeIMO.Pdf.PdfDocument.Load(input);
                     File.WriteAllBytes(Path.Combine(outputDirectory, producer + ".pdf"), pdf);
                     File.WriteAllText(
                         Path.Combine(outputDirectory, producer + ".debug.txt"),
-                        OfficeIMO.Pdf.PdfDocument.Load(pdf).Debug(new OfficeIMO.Pdf.PdfDebuggerOptions {
+                        document.Debug(new OfficeIMO.Pdf.PdfDebuggerOptions {
                             IncludeDecodedStreamPreviews = true,
                             MaxDecodedStreamPreviewBytes = 32 * 1024
                         }).ToText());

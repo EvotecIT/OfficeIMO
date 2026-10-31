@@ -15,10 +15,10 @@ public sealed class StudioPageWorkflowIntakeTests {
             string other = Path.Combine(root, "other.pdf");
             string folder = Path.Combine(root, "split");
             PdfDocument.Create(document => {
-                document.Page(page => page.Size(250, 350));
-                document.Page(page => page.Size(300, 400));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(250), global::OfficeIMO.OfficeLength.Points(350)));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)));
             }).Save(source);
-            PdfDocument.Create(document => document.Page(page => page.Size(450, 550))).Save(other);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(450), global::OfficeIMO.OfficeLength.Points(550)))).Save(other);
             MainWindowViewModel? model = null;
             using (model = new MainWindowViewModel(_ => Task.FromResult<string?>(null),
                 pickImportPdfs: _ => {
@@ -62,7 +62,7 @@ public sealed class StudioPageWorkflowIntakeTests {
             string other = Path.Combine(root, "other.pdf");
             string output = Path.Combine(root, "output.pdf");
             string folder = Path.Combine(root, "split");
-            PdfDocument.Create(document => document.Page(page => page.Size(250, 350))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(250), global::OfficeIMO.OfficeLength.Points(350)))).Save(source);
             File.Copy(source, other);
             var selected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var resume = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

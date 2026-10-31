@@ -25,26 +25,24 @@ public partial class Word {
     [InlineData(200D, true, true, true)]
     public void SaveAsPdf_ExactFirstLinesRetainRunningStoriesWhenTheyOverflow(double height, bool header, bool footer, bool prefix) {
         using WordDocument source = WordDocument.Create();
-        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = 720;
+        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
         if (header) SetStory(source.HeaderDefaultOrCreate);
         if (footer) SetStory(source.FooterDefaultOrCreate);
         if (prefix) {
             WordParagraph preceding = source.AddParagraph("P");
-            preceding.FontSize = 12;
-            preceding.LineSpacingPoints = 12;
-            preceding.LineSpacingRule = WordLineSpacingRule.Exact;
-            preceding.LineSpacingBeforePoints = preceding.LineSpacingAfterPoints = 0;
+            preceding.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            preceding.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12));
+            preceding.LineSpacingBefore = preceding.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         WordParagraph paragraph = source.AddParagraph();
         paragraph._paragraph.RemoveAllChildren<W.Run>();
         paragraph._paragraph.Append(TextLine("A", 12, true), TextLine("B", 12, false));
-        paragraph.LineSpacingPoints = height;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(height));
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 300), Margins = PdfPageMargins.Uniform(72)
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(prefix ? 3 : 2, pdf.NumberOfPages);
         if (prefix) Assert.Equal("P", Assert.Single(pdf.GetPage(1).Letters).Value);
@@ -59,9 +57,8 @@ public partial class Word {
         static void SetStory(WordHeaderFooter story) {
             for (int index = 0; index < 3; index++) {
                 WordParagraph blank = story.AddParagraph();
-                blank.LineSpacingPoints = 32;
-                blank.LineSpacingRule = WordLineSpacingRule.Exact;
-                blank.LineSpacingBeforePoints = blank.LineSpacingAfterPoints = 0;
+                blank.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(32));
+                blank.LineSpacingBefore = blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
         }
     }

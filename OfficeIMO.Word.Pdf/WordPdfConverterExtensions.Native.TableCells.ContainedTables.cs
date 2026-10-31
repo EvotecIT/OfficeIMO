@@ -32,13 +32,13 @@ public static partial class WordPdfConverterExtensions {
         PdfCore.PdfTableStyle style = CreateNativeTableStyle(table, layout.Rows.Count, options, null,
             defaults, tableDefaults, layout, fonts);
         if (style.Position != null || !style.ConsumesVerticalFlow || style.Caption != null || style.ShrinkTextToFit ||
-            style.FixedRowHeights?.Any(height => height.HasValue) == true)
+            style.FixedRowHeights?.ConvertAll(static length => length?.ToPoints())?.Any(height => height.HasValue) == true)
             return false;
         foreach (IReadOnlyList<WordTableCell> row in layout.Rows) {
             foreach (WordTableCell cell in row) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 if (GetNativeCellRowSpan(cell) > 1 ||
-                    style.AutoFitColumns && TablePreferredWidth.CanDisableCellWrapping(cell) && !cell.WrapText)
+                    style.AutoFitColumns && WordTableWidthNative.CanDisableCellWrapping(cell) && !cell.WrapText)
                     return false;
                 NativeTableCellEmbeddedContent content = CreateNativeTableCellEmbeddedContent(cell, options,
                     interactiveControls: defaults.RunningContentContext == null);
@@ -85,12 +85,12 @@ public static partial class WordPdfConverterExtensions {
         // This adjustment follows percentage scaling, just as it does for an
         // absolute fixed width in ApplyNativeFixedTableMinimumWidths.
         style.ResolvedWidthAdjustment = style.BorderFrame != null
-            ? -2D * style.CellSpacing : 0D;
+            ? -2D * style.CellSpacing.ToPoints() : 0D;
         if (style.AutoFitColumns) {
             style.PreferredWidth = null;
             style.PreferredWidthFraction = fraction;
             style.PreserveWidth = true;
-            style.AutoFitWidthUsesContentMinimum = style.CellSpacing <= 0D;
+            style.AutoFitWidthUsesContentMinimum = style.CellSpacing.ToPoints() <= 0D;
             List<double?> sourcePreferences = CreateNativeAutoFitColumnPreferences(layout);
             if (sourcePreferences.Count > 0 && sourcePreferences.All(value => value is > 0D)) {
                 // Fully authored cell boxes in a percentage frame reserve their

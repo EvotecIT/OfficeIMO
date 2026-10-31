@@ -286,13 +286,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or Sets default font size for the whole document. Default is 11.
         /// </summary>
-        public int? FontSize {
+        public global::OfficeIMO.OfficeLength? FontSize {
             get {
                 var runPropertiesBaseStyle = GetDefaultStyleProperties();
                 if (runPropertiesBaseStyle != null) {
                     var fontSize = runPropertiesBaseStyle.FontSize?.Val;
                     if (fontSize != null) {
-                        return int.Parse(fontSize!, CultureInfo.InvariantCulture) / 2;
+                        return global::OfficeIMO.OfficeLength.Emus((long)int.Parse(fontSize!, CultureInfo.InvariantCulture) * 6350);
                     }
                 }
                 return null;
@@ -303,7 +303,7 @@ namespace OfficeIMO.Word {
                     if (runPropertiesBaseStyle.FontSize == null) {
                         runPropertiesBaseStyle.FontSize = new FontSize();
                     }
-                    runPropertiesBaseStyle.FontSize.Val = value.HasValue ? (value.Value * 2).ToString(CultureInfo.InvariantCulture) : null;
+                    runPropertiesBaseStyle.FontSize.Val = value.HasValue ? checked((int)value.Value.ToHalfPoints()).ToString(CultureInfo.InvariantCulture) : null;
                 } else {
                     throw new InvalidOperationException("Could not set font size. Styles not found.");
                 }
@@ -313,13 +313,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or Sets default font size complex script for the whole document. Default is 11.
         /// </summary>
-        public int? FontSizeComplexScript {
+        public global::OfficeIMO.OfficeLength? FontSizeComplexScript {
             get {
                 var runPropertiesBaseStyle = GetDefaultStyleProperties();
                 if (runPropertiesBaseStyle != null) {
                     var fontSize = runPropertiesBaseStyle.FontSizeComplexScript?.Val;
                     if (fontSize != null) {
-                        return int.Parse(fontSize!, CultureInfo.InvariantCulture) / 2;
+                        return global::OfficeIMO.OfficeLength.Emus((long)int.Parse(fontSize!, CultureInfo.InvariantCulture) * 6350);
                     }
                 }
                 return null;
@@ -330,7 +330,7 @@ namespace OfficeIMO.Word {
                     if (runPropertiesBaseStyle.FontSizeComplexScript == null) {
                         runPropertiesBaseStyle.FontSizeComplexScript = new FontSizeComplexScript();
                     }
-                    runPropertiesBaseStyle.FontSizeComplexScript.Val = value.HasValue ? (value.Value * 2).ToString(CultureInfo.InvariantCulture) : null;
+                    runPropertiesBaseStyle.FontSizeComplexScript.Val = value.HasValue ? checked((int)value.Value.ToHalfPoints()).ToString(CultureInfo.InvariantCulture) : null;
                 } else {
                     throw new InvalidOperationException("Could not set font size complex script. Styles not found.");
                 }

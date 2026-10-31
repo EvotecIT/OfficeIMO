@@ -34,8 +34,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -59,10 +59,10 @@ public partial class Excel {
         byte[] bytes;
         byte[] summaryOnlyBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.Cell(1, 1, "Name");
             summary.SetInternalLink(2, 1, "Details!B3", display: "Open Details B3");
-            ExcelSheet details = document.AddWorksheet("Details");
+            ExcelSheet details = document.AddSheet("Details");
             details.Cell(1, 1, "Details Target");
             details.Cell(2, 1, "DestinationValue");
             details.Cell(3, 2, "CellSpecificTarget");
@@ -76,16 +76,16 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             summaryOnlyBytes = document.ToPdf(new ExcelPdfExportOptions {
                 SheetNames = new[] { "Summary" },
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -120,8 +120,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -138,10 +138,10 @@ public partial class Excel {
 
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.Cell(1, 1, "Name");
             summary.SetInternalLink(2, 1, "Details!B200", display: "Open Details B200");
-            ExcelSheet details = document.AddWorksheet("Details");
+            ExcelSheet details = document.AddSheet("Details");
             details.Cell(1, 1, "Details Header");
             details.Cell(2, 1, "Visible Detail");
             details.Cell(200, 2, "Hidden Target");
@@ -151,8 +151,8 @@ public partial class Excel {
             bytes = document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PdfPageSize(360, 220),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 

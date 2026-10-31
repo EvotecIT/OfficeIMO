@@ -48,13 +48,13 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.Report.IsPartialEditableReconstruction);
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+        using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
         var table = Assert.Single(reopened.Slides.SelectMany(slide => slide.Tables));
         for (int row = 0; row < 3; row++) for (int column = 0; column < 3; column++) {
             var paragraph = Assert.Single(table.GetCell(row, column).Paragraphs);
             Assert.Equal(OfficeIMO.PowerPoint.PowerPointTextAlignment.Center, paragraph.Alignment);
             Assert.All(paragraph.Runs, run => {
-                Assert.Equal(32, run.FontSizePoints);
+                Assert.Equal(OfficeLength.Points(32), run.FontSize);
                 Assert.Equal("HelveticaNeue", run.FontName);
                 Assert.Equal(row == 0, run.Bold);
             });
@@ -76,7 +76,7 @@ public sealed partial class IWorkBoundaryTests {
             foreach (IWorkTableCell source in table.Cells) {
                 IWorkTextStyle style = table.GetParagraphStyle(source.Row, source.Column)!.TextStyle;
                 var paragraph = reopened.Tables[index].Rows[source.Row - 1].Cells[source.Column - 1].Paragraphs[0];
-                Assert.Equal(Math.Round(style.FontSizePoints!.Value * 2, MidpointRounding.AwayFromZero) / 2, paragraph.FontSizePoints);
+                Assert.Equal(Math.Round(style.FontSizePoints!.Value * 2, MidpointRounding.AwayFromZero) / 2, paragraph.FontSize?.ToPoints());
                 Assert.Equal(style.FontName, paragraph.FontFamily);
             }
         }
@@ -114,26 +114,26 @@ public sealed partial class IWorkBoundaryTests {
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             var numeric = reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0];
-            Assert.Equal("42", numeric.Text); Assert.False(numeric.Bold); Assert.Equal(18, numeric.FontSizePoints);
+            Assert.Equal("42", numeric.Text); Assert.False(numeric.Bold); Assert.Equal(18, numeric.FontSize?.ToPoints());
             Assert.Equal(OfficeIMO.Word.WordParagraphAlignment.Right, numeric.ParagraphAlignment);
-            Assert.Equal(20, reopened.Tables[0].Rows[2].Cells[1].Paragraphs[0].FontSizePoints);
+            Assert.Equal(20, reopened.Tables[0].Rows[2].Cells[1].Paragraphs[0].FontSize?.ToPoints());
         } else if (kind == IWorkDocumentKind.Numbers) {
             using var result = source.ToExcelDocumentResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
             var sheet = reopened.Sheets[0]; Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out var value)); Assert.Equal(OfficeIMO.Excel.ExcelCellValueKind.Number, value!.Kind); Assert.Equal("42", value.RawValue);
-            Assert.Equal(18, sheet.GetCellStyle(1, 1).FontSize); Assert.False(sheet.GetCellStyle(1, 1).Bold);
+            Assert.Equal(18, sheet.GetCellStyle(1, 1).FontSize?.ToPoints()); Assert.False(sheet.GetCellStyle(1, 1).Bold);
             Assert.Equal("right", sheet.GetCellStyle(1, 1).HorizontalAlignment);
-            Assert.Equal(20, sheet.GetCellStyle(3, 2).FontSize);
+            Assert.Equal(20, sheet.GetCellStyle(3, 2).FontSize?.ToPoints());
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToPowerPointDocumentResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables);
-            Assert.Equal(18, target.GetCell(0, 0).Paragraphs[0].Runs[0].FontSizePoints);
+            Assert.Equal(18, target.GetCell(0, 0).Paragraphs[0].Runs[0].FontSize?.ToPoints());
             Assert.False(target.GetCell(0, 0).Paragraphs[0].Runs[0].Bold);
             Assert.Equal(OfficeIMO.PowerPoint.PowerPointTextAlignment.Right, target.GetCell(0, 0).Paragraphs[0].Alignment);
-            Assert.Equal(20, target.GetCell(2, 1).Paragraphs[0].Runs[0].FontSizePoints);
+            Assert.Equal(20, target.GetCell(2, 1).Paragraphs[0].Runs[0].FontSize?.ToPoints());
         }
         package.Position = 0;
         Assert.Throws<InvalidDataException>(() => {
@@ -190,7 +190,7 @@ public sealed partial class IWorkBoundaryTests {
             using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback); Assert.Equal(size, result.Projection.Sheets[0].Tables[0].GetParagraphStyle(1, 1)!.TextStyle.FontSizePoints);
         } else {
-            using var result = source.ToPowerPointPresentationResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToPowerPointDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback); Assert.Equal(size, result.Projection.Slides[0].Tables[0].GetParagraphStyle(1, 1)!.TextStyle.FontSizePoints);
         }
     }
@@ -257,17 +257,17 @@ public sealed partial class IWorkBoundaryTests {
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             var paragraphs = reopened.Tables[0].Rows[0].Cells[0].Paragraphs;
             Assert.Equal(2, paragraphs.Count);
-            Assert.All(paragraphs, paragraph => { Assert.Equal(36, paragraph.FontSizePoints); Assert.True(paragraph.Bold); });
-            Assert.Equal(18, reopened.Tables[0].Rows[0].Cells[1].Paragraphs[0].FontSizePoints);
+            Assert.All(paragraphs, paragraph => { Assert.Equal(36, paragraph.FontSize?.ToPoints()); Assert.True(paragraph.Bold); });
+            Assert.Equal(18, reopened.Tables[0].Rows[0].Cells[1].Paragraphs[0].FontSize?.ToPoints());
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy); Assert.False(result.IsVisualFallback);
+            using var result = source.ToPowerPointDocumentResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables);
             Assert.Equal(2, target.GetCell(0, 0).Paragraphs.Count);
             Assert.All(target.GetCell(0, 0).Paragraphs, paragraph => Assert.All(paragraph.Runs,
-                run => { Assert.Equal(36, run.FontSizePoints); Assert.True(run.Bold); }));
-            Assert.Equal(18, target.GetCell(0, 1).Paragraphs[0].Runs[0].FontSizePoints);
+                run => { Assert.Equal(36, run.FontSize?.ToPoints()); Assert.True(run.Bold); }));
+            Assert.Equal(18, target.GetCell(0, 1).Paragraphs[0].Runs[0].FontSize?.ToPoints());
         }
     }
 
@@ -299,11 +299,11 @@ public sealed partial class IWorkBoundaryTests {
         var cells = reopened.Tables[0].Rows[0].Cells;
         Assert.Contains("Styled", cells[0].Paragraphs.Select(paragraph => paragraph.Text));
         Assert.All(cells[0].Paragraphs, paragraph => {
-            Assert.Equal(expectedBefore, paragraph.LineSpacingBeforePoints);
-            Assert.Equal(expectedAfter, paragraph.LineSpacingAfterPoints);
+            Assert.Equal(expectedBefore, paragraph.LineSpacingBefore?.ToPoints());
+            Assert.Equal(expectedAfter, paragraph.LineSpacingAfter?.ToPoints());
         });
-        Assert.Equal(12d, cells[1].Paragraphs[0].LineSpacingBeforePoints);
-        Assert.Equal(8d, cells[1].Paragraphs[0].LineSpacingAfterPoints);
+        Assert.Equal(12d, cells[1].Paragraphs[0].LineSpacingBefore?.ToPoints());
+        Assert.Equal(8d, cells[1].Paragraphs[0].LineSpacingAfter?.ToPoints());
     }
 
     [Theory]
@@ -318,7 +318,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(result.IsVisualFallback);
             Assert.Equal(fontSize, result.Projection.Tables[0].GetCell(1, 1)!.RichText!.Paragraphs[0].Style.TextStyle.FontSizePoints);
         } else {
-            using var result = source.ToPowerPointPresentationResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToPowerPointDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback);
             Assert.Equal(fontSize, result.Projection.Slides[0].Tables[0].GetCell(1, 1)!.RichText!.Paragraphs[0].Style.TextStyle.FontSizePoints);
         }
@@ -368,10 +368,10 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out var value));
             Assert.Equal(richText ? "Styled\n" : "42", richText ? value!.Text : value!.RawValue);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointDocumentResult(policy);
             Assert.Null(result.Projection.Slides[0].Tables[0].GetParagraphStyle(1, 1)!.TextStyle.Bold);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var table = reopened.Slides[0].Tables.Single();
             Assert.False(table.FirstRow); Assert.False(table.FirstColumn); Assert.False(table.LastRow); Assert.False(table.BandedRows);
             Assert.Equal(richText ? "Styled" + Environment.NewLine : "42", table.GetCell(0, 0).Text);

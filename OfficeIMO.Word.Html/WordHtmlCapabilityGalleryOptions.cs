@@ -4,7 +4,7 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Options for saving an HTML-to-Word-to-HTML capability gallery scenario.
     /// </summary>
-    public sealed class WordHtmlCapabilityGalleryOptions {
+    internal sealed class WordHtmlCapabilityGalleryOptions {
         /// <summary>Stable scenario identifier used for file names and manifests.</summary>
         public string ScenarioId { get; set; } = "word-html-roundtrip";
 

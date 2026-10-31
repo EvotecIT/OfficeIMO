@@ -148,10 +148,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/cell/{cell.Row}:{cell.Column}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{cell.Value}|{cell.Formula}|{StyleFingerprint(cell.Style)}|{HyperlinkFingerprint(cell.Hyperlink)}|{RichTextFingerprint(cell.RichTextRuns)}|{cell.Comment?.Author}|{cell.Comment?.Text}"));
                 }
                 foreach (ExcelRowInfo row in sheet.Rows) {
-                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/row/{row.Index}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{row.Height}|{row.Hidden}|{row.OutlineLevel}"));
+                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/row/{row.Index}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{(row.Height?.PhysicalLength?.ToPoints())}|{row.Hidden}|{row.OutlineLevel}"));
                 }
                 foreach (ExcelColumnInfo column in sheet.Columns) {
-                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/column/{column.StartIndex}:{column.EndIndex}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{column.Width}|{column.Hidden}|{column.OutlineLevel}"));
+                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/column/{column.StartIndex}:{column.EndIndex}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{(column.Width?.CharacterCount)}|{column.Hidden}|{column.OutlineLevel}"));
                 }
                 for (int validationIndex = 0; validationIndex < sheet.Validations.Count; validationIndex++) {
                     ExcelDataValidationInspectionInfo validation = sheet.Validations[validationIndex];
@@ -250,7 +250,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         private static string StyleFingerprint(ExcelCellStyleInfo? style) {
             if (style == null) return string.Empty;
-            return GoogleWorkspaceCheckpointFormat.Format($"{style.NumberFormatId}|{style.NumberFormatCode}|{style.IsDateLike}|{style.Bold}|{style.Italic}|{style.Underline}|{style.Strikethrough}|{style.FontName}|{style.FontSize}|{style.FontColorArgb}|{style.FillColorArgb}|{BorderFingerprint(style.Border)}|{style.HorizontalAlignment}|{style.VerticalAlignment}|{style.WrapText}|{style.TextRotation}|{style.TextIndent}");
+            return GoogleWorkspaceCheckpointFormat.Format($"{style.NumberFormatId}|{style.NumberFormatCode}|{style.IsDateLike}|{style.Bold}|{style.Italic}|{style.Underline}|{style.Strikethrough}|{style.FontName}|{style.FontSize?.ToPoints()}|{style.FontColorArgb}|{style.FillColorArgb}|{BorderFingerprint(style.Border)}|{style.HorizontalAlignment}|{style.VerticalAlignment}|{style.WrapText}|{style.TextRotation}|{style.TextIndent}");
         }
 
         private static string BorderFingerprint(ExcelCellBorderInfo? border) {
@@ -265,7 +265,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             hyperlink == null ? string.Empty : $"{hyperlink.IsExternal}|{hyperlink.Target}";
 
         private static string RichTextFingerprint(IReadOnlyList<ExcelRichTextRun> runs) => string.Join("~", runs.Select(run =>
-            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strikethrough}|{run.FontName}|{run.FontSize}|{run.FontColor}")));
+            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strikethrough}|{run.FontName}|{run.FontSize?.ToPoints()}|{run.FontColor}")));
 
         private static string Hash(string value) {
             using SHA256 sha = SHA256.Create();

@@ -35,5 +35,10 @@ public class PdfPageImportSourceScalingBenchmarks {
     }
 
     [Benchmark]
-    public byte[] AppendAllSourcePages() => PdfDocument.Load(_target).Pages.Append(_source).ToBytes();
+    public byte[] AppendAllSourcePages() {
+        using var input = new MemoryStream(_target, writable: false);
+        using PdfDocument source = PdfDocument.Load(input);
+        using PdfDocument output = source.Pages.Append(_source);
+        return output.ToBytes();
+    }
 }

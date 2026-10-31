@@ -17,17 +17,16 @@ public static partial class ProjectReportWorkflow {
             token.ThrowIfCancellationRequested();
             var paragraph = document.AddParagraph();
             paragraph.PageBreakBefore = index++ > 0;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             double scale = Math.Min((view.PageWidth - 2 * view.PageMargin) / image.Width,
                 (view.PageHeight - 2 * view.PageMargin - 20) / image.Height);
             using var stream = new MemoryStream(image.Bytes);
-            paragraph.AddImage(stream, "project-chart-" + index + ".png", image.Width * scale * 96 / 72, image.Height * scale * 96 / 72,
-                description: view.Title + " · " + ProjectView.KindTitle(view.Kind) + " · page " + index);
+            paragraph.AddImage(stream, "project-chart-" + index + ".png", OfficeIMO.OfficeLength.Pixels(image.Width * scale * 96 / 72), OfficeIMO.OfficeLength.Pixels(image.Height * scale * 96 / 72), options: new OfficeIMO.Word.WordImageOptions { Description = view.Title + " · " + ProjectView.KindTitle(view.Kind) + " · page " + index });
         }, options.Images, token);
         if (options.IncludeDataTables) document.AddPageBreak();
     }
 
-    private static void AddPowerPointCharts(PowerPointPresentation presentation, ProjectView view, ProjectOfficeReportOptions options, CancellationToken token) {
+    private static void AddPowerPointCharts(PowerPointDocument presentation, ProjectView view, ProjectOfficeReportOptions options, CancellationToken token) {
         ExportImages(view, OfficeImageExportFormat.Png, image => {
             token.ThrowIfCancellationRequested();
             if (presentation.Slides.Count >= view.MaxPages) throw new InvalidOperationException("Report exceeds MaxPages.");
@@ -35,7 +34,7 @@ public static partial class ProjectReportWorkflow {
             double scale = Math.Min(view.PageWidth / image.Width, view.PageHeight / image.Height);
             double width = image.Width * scale, height = image.Height * scale;
             using var stream = new MemoryStream(image.Bytes);
-            slide.AddPicturePoints(stream, OfficeImageFormat.Png, (view.PageWidth - width) / 2, (view.PageHeight - height) / 2, width, height);
+            slide.AddImage(stream, OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points((view.PageWidth - width) / 2), OfficeIMO.OfficeLength.Points((view.PageHeight - height) / 2), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
         }, options.Images, token);
     }
 }

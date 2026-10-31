@@ -29,10 +29,10 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         Assert.Equal("AuthoringProbe", warning.Converter);
         Assert.Equal(PdfConversionWarningSeverity.Warning, warning.Severity);
         Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
-        Assert.Equal(24D, warning.LayoutDiagnostic.X);
-        Assert.Equal(24D, warning.LayoutDiagnostic.Y);
-        Assert.Equal(120D, warning.LayoutDiagnostic.Width);
-        Assert.Equal(18D, warning.LayoutDiagnostic.Height);
+        Assert.Equal(24D, (warning.LayoutDiagnostic.X?.ToPoints()));
+        Assert.Equal(24D, (warning.LayoutDiagnostic.Y?.ToPoints()));
+        Assert.Equal(120D, (warning.LayoutDiagnostic.Width?.ToPoints()));
+        Assert.Equal(18D, (warning.LayoutDiagnostic.Height?.ToPoints()));
         Assert.True(report.HasLoss);
     }
 
@@ -46,7 +46,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void CellObjectOverflowIsReportedAsPreservedContent(string frame, bool overflows) {
         var report = new PdfConversionReport();
         var cell = PdfTableCell.WithCheckBoxes(string.Empty, new[] {
-            new PdfTableCellCheckBox("Probe", size: overflows ? 36 : 12)
+            new PdfTableCellCheckBox("Probe", size: global::OfficeIMO.OfficeLength.Points(overflows ? 36 : 12))
         });
         byte[] bytes = RenderTable(frame, report, cell, 18);
         PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
@@ -69,16 +69,16 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void TextBoxClippingReachesConversionReportWithoutRequiringCallback(bool overflows) {
         var report = new PdfConversionReport();
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.TextBox(
-            overflows ? "First\nSecond\nThird" : "First", 24, 24, 120, 18,
+            overflows ? "First\nSecond\nThird" : "First", global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18),
             new PdfCanvasTextBoxStyle {
-                FontSize = 9, PaddingX = 0, PaddingY = 0, Background = null, BorderColor = null
+                FontSize = global::OfficeIMO.OfficeLength.Points(9), PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), Background = null, BorderColor = null
             })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("First", pdf.GetPage(1).Text);
         if (overflows) {
             PdfConversionWarning warning = Assert.Single(report.Warnings, warning => warning.Code == "canvas-text-box-content-clipped");
             Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
-            Assert.Equal(24D, warning.LayoutDiagnostic.Y);
+            Assert.Equal(24D, (warning.LayoutDiagnostic.Y?.ToPoints()));
             Assert.True(report.HasLoss);
         } else {
             Assert.DoesNotContain(report.Warnings, warning => warning.Code == "canvas-text-box-content-clipped");
@@ -92,7 +92,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void PlainCanvasTextReportsFullyClippedLines(bool overflows) {
         var report = new PdfConversionReport();
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.Text(
-            overflows ? "First\nSecond\nThird" : "First", 24, 24, 120, 18, fontSize: 9)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+            overflows ? "First\nSecond\nThird" : "First", global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18), fontSize: global::OfficeIMO.OfficeLength.Points(9))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("First", pdf.GetPage(1).Text);
         Assert.Equal(overflows, report.Warnings.Any(warning => warning.Code == "canvas-text-content-clipped"));
@@ -108,10 +108,10 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         if (table) {
             PdfTableStyle style = CreateTableStyle(18);
             style.LineHeight = 12; // A 108-point advance; the sole 9-point glyph line still fits.
-            document.Canvas(canvas => canvas.Table(new[] { new[] { "Fits" } }, 24, 24, 120, 18, style));
+            document.Canvas(canvas => canvas.Table(new[] { new[] { "Fits" } }, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18), style));
         } else {
-            document.Canvas(canvas => canvas.TextBox("Fits", 24, 24, 120, 18,
-                new PdfCanvasTextBoxStyle { FontSize = 9, LineHeight = 108, PaddingX = 0, PaddingY = 0 }));
+            document.Canvas(canvas => canvas.TextBox("Fits", global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18),
+                new PdfCanvasTextBoxStyle { FontSize = global::OfficeIMO.OfficeLength.Points(9), LineHeight = global::OfficeIMO.OfficeLength.Points(108), PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0) }));
         }
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Contains("Fits", pdf.GetPage(1).Text);
@@ -126,7 +126,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void CellObjectBeyondPhysicalPageIsReportedAsClipped(string frame) {
         var report = new PdfConversionReport();
         var cell = PdfTableCell.WithCheckBoxes(string.Empty, new[] {
-            new PdfTableCellCheckBox("OffPageProbe", size: 180)
+            new PdfTableCellCheckBox("OffPageProbe", size: global::OfficeIMO.OfficeLength.Points(180))
         });
         PdfFormField field = Assert.Single(PdfInspector.Inspect(RenderTable(frame, report, cell, 18)).FormFields);
         Assert.True(Assert.Single(field.Widgets).Y1 < 0);
@@ -151,7 +151,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         if (overflows) {
             PdfConversionWarning warning = Assert.Single(report.Warnings, warning => warning.Code == "table-cell-content-clipped");
             Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
-            Assert.Equal(120D, warning.LayoutDiagnostic.Width);
+            Assert.Equal(120D, (warning.LayoutDiagnostic.Width?.ToPoints()));
             Assert.True(report.HasLoss);
         } else {
             Assert.Contains("Fits", pdf.GetPage(1).Text);
@@ -172,7 +172,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         const int letters = 20;
         var text = new string('W', letters);
         var cell = (explicitFontSize
-            ? new PdfTableCell(new[] { new PdfTextRun(text, fontSize: 14) })
+            ? new PdfTableCell(new[] { new PdfTextRun(text, fontSize: global::OfficeIMO.OfficeLength.Points(14)) })
             : new PdfTableCell(text)).WithNoWrap().WithShrinkTextToFit();
         using PdfPigDocument pdf = PdfPigDocument.Open(RenderTable(frame, report, cell, 18));
         var painted = pdf.GetPage(1).Letters;
@@ -202,7 +202,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void SeparateClippedCellsKeepDistinctOccurrences() {
         var report = new PdfConversionReport();
         var style = CreateTableStyle(18);
-        style.FixedRowHeights = new List<double?> { 18, 18 };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(18) };
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Table(new[] {
             new[] { new PdfTableCell("First\nHiddenOne") },
             new[] { new PdfTableCell("Second\nHiddenTwo") }
@@ -223,30 +223,30 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
             "flow" => document.Table(rows, style: style).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "column" => document.Compose(compose => compose.Page(page => page.Content(content =>
                 content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)))))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
-            "canvas" => document.Canvas(canvas => canvas.Table(rows, 24, 24, 120, fixedHeight!.Value, style)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+            "canvas" => document.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(fixedHeight!.Value), style)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             _ => throw new ArgumentOutOfRangeException(nameof(frame))
         };
     }
 
     private static PdfCreateOptions CreateOptions(PdfConversionReport report) => new PdfCreateOptions {
-        PageWidth = 260, PageHeight = 180,
-        MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24,
-        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9
+        PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
     }.ReportDiagnosticsTo(report, "AuthoringProbe");
 
     private static PdfTableStyle CreateTableStyle(double? fixedHeight) {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.RepeatHeaderRowCount = 0;
-        style.FontSize = 9;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         style.LineHeight = 4D / 3D; // Table line height is a multiplier: 9-point text advances 12 points.
-        style.CellPaddingX = 0;
-        style.CellPaddingY = 0;
-        style.CellSpacing = 0;
-        style.SpacingBefore = 0;
-        style.SpacingAfter = 0;
-        style.ColumnWidthPoints = new List<double?> { 120 };
-        style.FixedRowHeights = fixedHeight.HasValue ? new List<double?> { fixedHeight } : null;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(120) };
+        style.FixedRowHeights = (fixedHeight.HasValue ? new List<double?> { fixedHeight } : null) is { } lengths13387 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths13387, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
         return style;
     }
 }

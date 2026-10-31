@@ -51,18 +51,15 @@ namespace OfficeIMO.Examples.Word {
                 WordTable nested = table.Rows[0].Cells[0].AddTable(1, 1);
                 nested.Rows[0].Cells[0].Paragraphs[0].Text = "N1";
 
-                document.AddParagraph().AddImage(imagePath, 50, 50);
+                document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
                 document.AddHyperLink("OfficeIMO", new Uri("https://evotec.xyz"), addStyle: true);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     PageSize = OfficeIMO.Pdf.PdfPageSizes.A4,
                     Orientation = OfficePageOrientation.Landscape,
-                    Margins = OfficeIMO.Pdf.PdfPageMargins.FromCentimeters(
-                        left: 2,
-                        top: 2,
-                        right: 2,
-                        bottom: 1)
+                    Margins = new OfficeIMO.Pdf.PdfPageMargins(
+left: OfficeIMO.OfficeLength.Centimeters(2),top: OfficeIMO.OfficeLength.Centimeters(2),right: OfficeIMO.OfficeLength.Centimeters(2),bottom: OfficeIMO.OfficeLength.Centimeters(1))
                 });
             }
         }
@@ -78,7 +75,7 @@ namespace OfficeIMO.Examples.Word {
 
                 using (MemoryStream pdfStream = new MemoryStream()) {
                     document.SaveAsPdf(pdfStream, new WordPdfExportOptions {
-                        PageSize = new OfficeIMO.Pdf.PdfPageSize(300, 500)
+                        PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(500))
                     });
                     File.WriteAllBytes(pdfPath, pdfStream.ToArray());
                 }

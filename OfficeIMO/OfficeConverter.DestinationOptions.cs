@@ -39,7 +39,7 @@ public static partial class OfficeConverter {
                         await model.SaveAsync(saved, settings.ExcelSave, token).ConfigureAwait(false);
                     break;
                 case OfficeDocumentFormat.PowerPoint:
-                    using (var model = await PowerPointPresentation.LoadAsync(output, new PowerPointLoadOptions {
+                    using (var model = await PowerPointDocument.LoadAsync(output, new PowerPointLoadOptions {
                         MaxInputBytes = settings.MaximumOutputBytes, Password = zip ? null : settings.PowerPointSave!.Password
                     }, token).ConfigureAwait(false))
                         await model.SaveAsync(saved, settings.PowerPointSave, token).ConfigureAwait(false);

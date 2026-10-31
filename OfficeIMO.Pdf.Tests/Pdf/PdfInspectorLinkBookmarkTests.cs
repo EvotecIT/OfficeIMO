@@ -66,14 +66,14 @@ public partial class PdfInspectorTests {
     [Fact]
     public void Inspect_ReadsGeneratedWrappedAndRowColumnHeadingLinks() {
         var wrappedOptions = new PdfCreateOptions {
-            PageWidth = 140,
-            PageHeight = 160,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+            PageWidth = global::OfficeIMO.OfficeLength.Points(140),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(160),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] wrappedBytes = PdfDocument.Create(wrappedOptions)
@@ -94,7 +94,7 @@ public partial class PdfInspectorTests {
 
         byte[] rowBytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -118,14 +118,14 @@ public partial class PdfInspectorTests {
     [Fact]
     public void Inspect_ReadsGeneratedImageLinks() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 180,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Image(CreateMinimalRgbPng(), 80, 40, PdfAlign.Center, fit: OfficeImageFit.Contain, linkUri: "https://evotec.xyz/image", linkContents: "Image metadata")
             .ToBytes();
@@ -149,14 +149,14 @@ public partial class PdfInspectorTests {
             .AddShape(OfficeShape.Rectangle(60, 30), 0, 0);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Shape(OfficeShape.Rectangle(40, 20), PdfAlign.Right, linkUri: "https://evotec.xyz/shape", linkContents: "Shape metadata")
             .Drawing(drawing, PdfAlign.Center, spacingBefore: 6, linkUri: "https://evotec.xyz/drawing", linkContents: "Drawing metadata")
@@ -188,14 +188,14 @@ public partial class PdfInspectorTests {
     [Fact]
     public void Inspect_ReadsGeneratedConvenienceVectorLinks() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 180,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Rectangle(40, 20, align: PdfAlign.Center, linkUri: "https://evotec.xyz/rectangle", linkContents: "Rectangle metadata")
             .ToBytes();
@@ -217,14 +217,14 @@ public partial class PdfInspectorTests {
     [Fact]
     public void Preflight_AllowsGeneratedBookmarkNamedDestinationsForReadAndRewrite() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 180,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Bookmark("Intro")
             .Paragraph(p => p.Text("Bookmarked paragraph."))
@@ -249,14 +249,14 @@ public partial class PdfInspectorTests {
     [Fact]
     public void Inspect_ReadsGeneratedBookmarkLinksAsNamedDestinationLinks() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = 220,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.LinkToBookmark("Details", "Details", contents: "Internal jump"))
             .Spacer(20)

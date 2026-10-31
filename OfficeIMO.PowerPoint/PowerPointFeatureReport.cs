@@ -286,7 +286,7 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<string> Details { get; }
     }
 
-    public sealed partial class PowerPointPresentation {
+    public sealed partial class PowerPointDocument {
         private const int MaxFeatureInspectionParts = 100_000;
         private const int MaxFeatureInspectionRelationships = 500_000;
         private const int MaxFeatureInspectionDepth = 128;
@@ -1311,7 +1311,7 @@ namespace OfficeIMO.PowerPoint {
                 && hasCreated
                 && comment.GetFirstChild<P188.TextBodyType>()
                     is P188.TextBodyType body
-                && PowerPointPresentation.HasPlainModernCommentTextBody(body)
+                && PowerPointDocument.HasPlainModernCommentTextBody(body)
                 && (comment is not P188.Comment rootComment
                     || rootComment.GetFirstChild<P188.Point2DType>()
                         is not P188.Point2DType position

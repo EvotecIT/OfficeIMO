@@ -9,9 +9,9 @@ public sealed class PdfColumnTerminalSpacingTests {
     [InlineData(0, 40)]
     [InlineData(20, 60)]
     public void Columns_TerminalSpacingRetainsBalancedBreakpointsAndIsSnapshotted(double spacing, double followingOffset) {
-        var options = new PdfMultiColumnOptions { Gap = 20, FinalColumnSpacingAfter = spacing };
+        var options = new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), FinalColumnSpacingAfter = global::OfficeIMO.OfficeLength.Points(spacing) };
         var document = Render(options);
-        options.FinalColumnSpacingAfter = 100;
+        options.FinalColumnSpacingAfter = global::OfficeIMO.OfficeLength.Points(100);
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.InRange(Word(pdf, 1, "Column003").BoundingBox.Left, 259.9, 260.1);
@@ -20,7 +20,7 @@ public sealed class PdfColumnTerminalSpacingTests {
 
     [Fact]
     public void Columns_TerminalSpacingStopsAtThePhysicalPageMargin() {
-        using var pdf = PdfPigDocument.Open(Render(new PdfMultiColumnOptions { Gap = 20, FinalColumnSpacingAfter = 1000 }).ToBytes());
+        using var pdf = PdfPigDocument.Open(Render(new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), FinalColumnSpacingAfter = global::OfficeIMO.OfficeLength.Points(1000) }).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.InRange(Word(pdf, 1, "Column003").BoundingBox.Left, 259.9, 260.1);
         Assert.Equal(Word(pdf, 1, "Column001").BoundingBox.Top, Word(pdf, 2, "AfterColumns").BoundingBox.Top, 2);
@@ -28,22 +28,22 @@ public sealed class PdfColumnTerminalSpacingTests {
 
     [Fact]
     public void Columns_TerminalSpacingFollowsTheLastOccupiedColumnBeforeAnExplicitEmptyColumn() {
-        var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false };
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions { PageWidth = 500, PageHeight = 400,
-            MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12 })
+        var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) })
             .Columns(content => {
                 content.Paragraph(p => p.Text("Column001\nColumn002"), style: style);
                 content.ColumnBreak();
-            }, new PdfMultiColumnOptions { Gap = 20, BalanceLastPage = false, FinalColumnSpacingAfter = 20 })
+            }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false, FinalColumnSpacingAfter = global::OfficeIMO.OfficeLength.Points(20) })
             .Paragraph(p => p.Text("AfterColumns"), style: style).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Equal(60D, Word(pdf, 1, "Column001").BoundingBox.Top - Word(pdf, 1, "AfterColumns").BoundingBox.Top, 2);
     }
 
     private static PdfDocument Render(PdfMultiColumnOptions options) {
-        var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(20), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false };
-        return PdfDocument.Create(new PdfCreateOptions { PageWidth = 500, PageHeight = 400, MarginLeft = 40, MarginRight = 40,
-            MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12 })
+        var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
+        return PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) })
             .Columns(content => content.Paragraph(p => p.Text("Column001\nColumn002\nColumn003\nColumn004"), style: style), options)
             .Paragraph(p => p.Text("AfterColumns"), style: style);
     }

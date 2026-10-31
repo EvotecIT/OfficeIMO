@@ -309,9 +309,9 @@ namespace OfficeIMO.Word.Html {
                             paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionDescription);
                             ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
-                            var currentIndent = paragraph.IndentationBefore ?? 0;
+                            var currentIndent = checked((int?)(paragraph.IndentationBefore?.ToTwips())) ?? 0;
                             if (currentIndent < 720) {
-                                paragraph.IndentationBefore = 720;
+                                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
                             }
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell, headerFooter, headingList);
@@ -344,7 +344,7 @@ namespace OfficeIMO.Word.Html {
                                 if (doc.StyleExists("Quote")) {
                                     para.SetStyleId("Quote");
                                 }
-                                para.IndentationBefore = 720;
+                                para.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
                                 HtmlSemanticMetadata.MarkBlockquote(para);
                                 ApplyParagraphStyleFromCss(
                                     para,
@@ -789,9 +789,9 @@ namespace OfficeIMO.Word.Html {
                                         listStack, fmtAnchor, cell, headerFooter, headingList);
                                     linkParaAnchor = inlineContent.Count > 0
                                         ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, anchor, tooltip: title ?? string.Empty, moveContent: true)
-                                        : currentParagraph!.AddHyperLink(element.TextContent, anchor);
+                                        : currentParagraph!.AddHyperLink(element.TextContent, anchor).Paragraph;
                                 } else {
-                                    linkParaAnchor = currentParagraph!.AddHyperLink(element.TextContent, anchor);
+                                    linkParaAnchor = currentParagraph!.AddHyperLink(element.TextContent, anchor).Paragraph;
                                 }
 
                                 if (!string.IsNullOrEmpty(options.FontFamily)) {
@@ -837,9 +837,9 @@ namespace OfficeIMO.Word.Html {
                                         listStack, fmtExternal, cell, headerFooter, headingList);
                                     linkPara = inlineContent.Count > 0
                                         ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, resolvedUri, tooltip: title ?? string.Empty, moveContent: true)
-                                        : currentParagraph!.AddHyperLink(element.TextContent, resolvedUri);
+                                        : currentParagraph!.AddHyperLink(element.TextContent, resolvedUri).Paragraph;
                                 } else {
-                                    linkPara = currentParagraph!.AddHyperLink(element.TextContent, resolvedUri);
+                                    linkPara = currentParagraph!.AddHyperLink(element.TextContent, resolvedUri).Paragraph;
                                 }
 
                                 if (!string.IsNullOrEmpty(options.FontFamily)) {
@@ -894,6 +894,12 @@ namespace OfficeIMO.Word.Html {
                                         out int? knownWidth)
                                     ? knownWidth
                                     : WordTable.EstimateCellContentWidthInDxa(doc, cell._tableCell);
+                            if (cell == null && headerFooter != null) {
+                                resolveImageContainerWidthTwips = () => Math.Max(1,
+                                    (int)(section.PageSettings.Width?.ToTwips() ?? WordPageSizes.A4.Width.ToTwips())
+                                    - (int)section.Margins.Left.GetValueOrDefault().ToTwips()
+                                    - (int)section.Margins.Right.GetValueOrDefault().ToTwips());
+                            }
                             ProcessImage(
                                 (IHtmlImageElement)element,
                                 doc,
@@ -1009,22 +1015,22 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (TryGetUInt32Attribute(element, "data-page-width-twips", out var width)) {
-                section.PageSettings.Width = width;
+                section.PageSettings.Width= ((width) is { } wordLength62092 ? global::OfficeIMO.OfficeLength.Points((wordLength62092) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
             if (TryGetUInt32Attribute(element, "data-page-height-twips", out var height)) {
-                section.PageSettings.Height = height;
+                section.PageSettings.Height= ((height) is { } wordLength62251 ? global::OfficeIMO.OfficeLength.Points((wordLength62251) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
             if (TryGetInt32Attribute(element, "data-margin-top-twips", out var top)) {
-                section.Margins.Top = top;
+                section.Margins.Top = global::OfficeIMO.OfficeLength.Points((top) / 20D);
             }
             if (TryGetUInt32Attribute(element, "data-margin-right-twips", out var right)) {
-                section.Margins.Right = right;
+                section.Margins.Right = global::OfficeIMO.OfficeLength.Points((right) / 20D);
             }
             if (TryGetInt32Attribute(element, "data-margin-bottom-twips", out var bottom)) {
-                section.Margins.Bottom = bottom;
+                section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((bottom) / 20D);
             }
             if (TryGetUInt32Attribute(element, "data-margin-left-twips", out var left)) {
-                section.Margins.Left = left;
+                section.Margins.Left = global::OfficeIMO.OfficeLength.Points((left) / 20D);
             }
         }
 

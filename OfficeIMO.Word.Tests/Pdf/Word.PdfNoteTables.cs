@@ -35,7 +35,7 @@ public partial class Word {
         items[3].AddBookmark("NoteTableAnchor");
         var imageParagraph = new WordParagraph(source, cells[1].Elements<W.Paragraph>().Single());
         using (var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng((byte)0, (byte)180, (byte)80)))
-            imageParagraph.AddText(string.Empty).InsertImage(pixels, "note-table.png", 24, 16);
+            imageParagraph.AddText(string.Empty).AddImage(pixels, "note-table.png", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(16));
         var linkParagraph = new W.Paragraph();
         cells[1].Append(linkParagraph);
         new WordParagraph(source, linkParagraph).AddHyperLink("CELLLINK", new Uri("https://example.test/note-table"));
@@ -166,8 +166,8 @@ public partial class Word {
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string original = main.Document.OuterXml + main.FootnotesPart?.Footnotes?.OuterXml + main.EndnotesPart?.Endnotes?.OuterXml;
         WordPdfExportOptions options = FootnoteDiagnosticOptions();
-        options.PageSize = new PdfPageSize(360D, 260D);
-        options.Margins = PdfPageMargins.Uniform(30D);
+        options.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(360D),OfficeIMO.OfficeLength.Points(260D));
+        options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D));
         options.PdfOptions = new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers };
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         for (int serialization = 0; serialization < 2; serialization++) {

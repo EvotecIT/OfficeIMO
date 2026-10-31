@@ -84,7 +84,7 @@ public partial class Word {
         WordParagraph[] paragraphs = spaced.Paragraphs.ToArray();
         for (int index = 0; index < paragraphs.Length; index++) {
             if (grid) paragraphs[index]._paragraph.ParagraphProperties!.SpacingBetweenLines!.BeforeLines = 100;
-            else paragraphs[index].LineSpacingBeforePoints = 30;
+            else paragraphs[index].LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(30D);
             if (route == "explicit-break" && index > 0) {
                 paragraphs[index]._paragraph.ParagraphProperties!.Append(new PageBreakBefore());
                 plain.Paragraphs[index]._paragraph.ParagraphProperties!.Append(new PageBreakBefore());
@@ -165,6 +165,50 @@ public partial class Word {
         Assert.Equal(secondAdvance, baselines[1] - baselines[2], 3);
     }
 
+    [Theory]
+    [InlineData("document")]
+    [InlineData("paragraph-style")]
+    [InlineData("table-style")]
+    public void SaveAsPdf_OmittedAutomaticRuleRetainsInheritedLineUnits(string location) {
+        using WordDocument explicitRule = CreateOmittedAutomaticLineUnitsDocument(location, true);
+        using WordDocument omittedRule = CreateOmittedAutomaticLineUnitsDocument(location, false);
+        // Exercise persisted native declarations, not only an in-memory typed round trip.
+        using WordDocument explicitSaved = WordDocument.Load(new System.IO.MemoryStream(explicitRule.ToBytes()));
+        using WordDocument omittedSaved = WordDocument.Load(new System.IO.MemoryStream(omittedRule.ToBytes()));
+        double[] expected = ExportGridDocumentBaselines(explicitSaved);
+        double[] actual = ExportGridDocumentBaselines(omittedSaved);
+        Assert.Equal(3, expected.Length);
+        Assert.Equal(expected.Length, actual.Length);
+        for (int index = 0; index < expected.Length; index++) Assert.Equal(expected[index], actual[index], 3);
+    }
+
+    private static WordDocument CreateOmittedAutomaticLineUnitsDocument(string location, bool explicitRule) {
+        WordDocument document = CreateLineUnitsDocument(false, WordLineSpacingRule.Auto, 360);
+        Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+        foreach (Style style in styles.Elements<Style>())
+            if (style.StyleParagraphProperties != null) style.StyleParagraphProperties.SpacingBetweenLines = null;
+        ParagraphPropertiesBaseStyle defaults = styles.DocDefaults!.ParagraphPropertiesDefault!.ParagraphPropertiesBaseStyle!;
+        defaults.SpacingBetweenLines = null;
+        WordParagraph[] paragraphs = document.Paragraphs.ToArray();
+        foreach (WordParagraph paragraph in paragraphs) paragraph.LineSpacing = null;
+        var spacing = new SpacingBetweenLines { Line = "360", BeforeLines = 100,
+            LineRule = explicitRule ? LineSpacingRuleValues.Auto : null };
+        if (location == "document") defaults.SpacingBetweenLines = spacing;
+        else if (location == "paragraph-style") {
+            Style normal = styles.Elements<Style>().Single(style => style.StyleId?.Value == "Normal");
+            (normal.StyleParagraphProperties ??= new StyleParagraphProperties()).SpacingBetweenLines = spacing;
+        } else {
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
+            table.ConditionalFormattingFirstRow = false;
+            Style grid = styles.Elements<Style>().Single(style => style.StyleId?.Value == "TableGrid");
+            (grid.StyleParagraphProperties ??= new StyleParagraphProperties()).SpacingBetweenLines = spacing;
+            TableCell cell = table.Rows[0].Cells[0]._tableCell;
+            cell.RemoveAllChildren<Paragraph>();
+            foreach (WordParagraph paragraph in paragraphs) { paragraph._paragraph.Remove(); cell.Append(paragraph._paragraph); }
+        }
+        return document;
+    }
+
     private static WordDocument CreateLineUnitsDocument(bool grid, WordLineSpacingRule rule, int line, string route = "body") {
         WordDocument source = WordDocument.Create();
         if (grid) source.Sections[0]._sectionProperties.Append(new DocGrid { Type = DocGridValues.Lines, LinePitch = 360 });
@@ -174,10 +218,10 @@ public partial class Word {
         });
         foreach (char text in "ABC") {
             WordParagraph paragraph = list?.AddItem(text.ToString()) ?? source.AddParagraph(text.ToString());
-            paragraph.FontSize = 11;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
             paragraph.FontFamily = "Arial";
-            paragraph.LineSpacing = line; paragraph.LineSpacingRule = rule;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacing = (rule) switch { global::OfficeIMO.Word.WordLineSpacingRule.Exact => global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(line) * 635))), global::OfficeIMO.Word.WordLineSpacingRule.AtLeast => global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Emus(checked((long)(line) * 635))), _ => global::OfficeIMO.Word.WordLineSpacing.Multiple((line) / 240D) };
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         return source;
     }

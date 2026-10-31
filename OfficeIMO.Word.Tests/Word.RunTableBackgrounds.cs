@@ -331,7 +331,7 @@ public sealed class WordRunTableBackgroundTests {
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "BACKGROUND";
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         return document;
     }
 

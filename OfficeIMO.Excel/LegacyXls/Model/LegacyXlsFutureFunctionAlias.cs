@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a future Excel function alias carried by a BIFF defined-name record.
     /// </summary>
-    public sealed class LegacyXlsFutureFunctionAlias {
+    internal sealed class LegacyXlsFutureFunctionAlias {
         /// <summary>
         /// Creates metadata for an Excel future-function compatibility alias.
         /// </summary>

@@ -5,25 +5,31 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Fluent;
 using Xunit;
 
-namespace OfficeIMO.Tests {
+namespace OfficeIMO.Tests
+{
     /// <summary>
     /// Tests for freezing rows and columns.
     /// </summary>
-    public partial class Excel {
+    public partial class Excel
+    {
         [Fact]
-        public void Test_FreezeTopRows() {
+        public void Test_FreezeTopRows()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "FreezeTopRows.xlsx");
-            using (var document = ExcelDocument.Create(filePath)) {
-                document.AsFluent()
-                    .Sheet("Data", s => s.Freeze(topRows: 1))
-                    .End()
-                    .Save();
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet1 = document.AddSheet("Data");
+
+                    sheet1.Freeze(topRows: 1);
+                    document.Save();
+                }
             }
 
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 var workbookPart = spreadsheet.WorkbookPart!;
                 WorksheetPart wsPart = workbookPart.WorksheetParts.First();
                 SheetView? sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
@@ -31,7 +37,6 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(pane);
                 Assert.Equal(PaneValues.BottomLeft, pane!.ActivePane?.Value);
                 Assert.Equal("A2", pane.TopLeftCell?.Value);
-
                 Selection[] selections = sheetView!.Elements<Selection>().ToArray();
                 Assert.Equal(2, selections.Length);
                 Selection bottomLeft = selections.Single(s => s.Pane?.Value == PaneValues.BottomLeft);
@@ -40,7 +45,6 @@ namespace OfficeIMO.Tests {
                 Selection topLeft = selections.Single(s => s.Pane == null);
                 Assert.Equal("A1", topLeft.ActiveCell?.Value);
                 Assert.Equal("A1", topLeft.SequenceOfReferences?.InnerText);
-
                 OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
                 var errors = validator.Validate(wsPart.Worksheet).ToList();
                 Assert.Empty(errors);
@@ -48,16 +52,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_FreezeLeftColumns() {
+        public void Test_FreezeLeftColumns()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "FreezeLeftColumns.xlsx");
-            using (var document = ExcelDocument.Create(filePath)) {
-                document.AsFluent()
-                    .Sheet("Data", s => s.Freeze(leftCols: 2))
-                    .End()
-                    .Save();
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet3 = document.AddSheet("Data");
+
+                    sheet3.Freeze(leftCols: 2);
+                    document.Save();
+                }
             }
 
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 var workbookPart = spreadsheet.WorkbookPart!;
                 WorksheetPart wsPart = workbookPart.WorksheetParts.First();
                 SheetView? sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
@@ -65,7 +74,6 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(pane);
                 Assert.Equal(PaneValues.TopRight, pane!.ActivePane?.Value);
                 Assert.Equal("C1", pane.TopLeftCell?.Value);
-
                 Selection[] selections = sheetView!.Elements<Selection>().ToArray();
                 Assert.Equal(2, selections.Length);
                 Selection topRight = selections.Single(s => s.Pane?.Value == PaneValues.TopRight);
@@ -74,7 +82,6 @@ namespace OfficeIMO.Tests {
                 Selection topLeft = selections.Single(s => s.Pane == null);
                 Assert.Equal("A1", topLeft.ActiveCell?.Value);
                 Assert.Equal("A1", topLeft.SequenceOfReferences?.InnerText);
-
                 OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
                 var errors = validator.Validate(wsPart.Worksheet).ToList();
                 Assert.Empty(errors);
@@ -82,16 +89,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_FreezeTopRowsAndLeftColumns() {
+        public void Test_FreezeTopRowsAndLeftColumns()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "FreezeTopRowsAndLeftColumns.xlsx");
-            using (var document = ExcelDocument.Create(filePath)) {
-                document.AsFluent()
-                    .Sheet("Data", s => s.Freeze(topRows: 1, leftCols: 1))
-                    .End()
-                    .Save();
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet5 = document.AddSheet("Data");
+
+                    sheet5.Freeze(topRows: 1, leftCols: 1);
+                    document.Save();
+                }
             }
 
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 var workbookPart = spreadsheet.WorkbookPart!;
                 WorksheetPart wsPart = workbookPart.WorksheetParts.First();
                 SheetView? sheetView = wsPart.Worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>();
@@ -101,20 +113,27 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1D, pane.VerticalSplit?.Value);
                 Assert.Equal(PaneValues.BottomRight, pane.ActivePane?.Value);
                 Assert.Equal("B2", pane.TopLeftCell?.Value);
-
                 Selection[] selections = sheetView!.Elements<Selection>().ToArray();
                 Assert.Equal(4, selections.Length);
                 Selection topRight = selections.Single(s => s.Pane?.Value == PaneValues.TopRight);
                 Selection bottomLeft = selections.Single(s => s.Pane?.Value == PaneValues.BottomLeft);
                 Selection bottomRight = selections.Single(s => s.Pane?.Value == PaneValues.BottomRight);
                 Selection topLeft = selections.Single(s => s.Pane == null);
-                foreach (Selection sel in new[] { topRight, bottomLeft, bottomRight }) {
+                foreach (Selection sel in new[]
+                {
+                    topRight,
+                    bottomLeft,
+                    bottomRight
+                }
+
+                )
+                {
                     Assert.Equal(pane.TopLeftCell?.Value, sel.ActiveCell?.Value);
                     Assert.Equal(pane.TopLeftCell?.Value, sel.SequenceOfReferences?.InnerText);
                 }
+
                 Assert.Equal("A1", topLeft.ActiveCell?.Value);
                 Assert.Equal("A1", topLeft.SequenceOfReferences?.InnerText);
-
                 OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
                 var errors = validator.Validate(wsPart.Worksheet).ToList();
                 Assert.Empty(errors);
@@ -122,26 +141,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_UnfreezeRetainsNeutralSheetViewAndAuthoredRowHeight() {
+        public void Test_UnfreezeRetainsNeutralSheetViewAndAuthoredRowHeight()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "FreezeUnfreeze.xlsx");
-            using (var document = ExcelDocument.Create(filePath)) {
-                document.AsFluent()
-                    .Sheet("Data", s => {
-                        s.Freeze(topRows: 1, leftCols: 1);
-                        s.Freeze();
-                    })
-                    .End()
-                    .Save();
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                {
+                    var sheet7 = document.AddSheet("Data");
+
+                    sheet7.Freeze(topRows: 1, leftCols: 1);
+                    sheet7.Freeze();
+                    document.Save();
+                }
             }
 
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
                 var workbookPart = spreadsheet.WorkbookPart!;
                 WorksheetPart wsPart = workbookPart.WorksheetParts.First();
                 SheetViews views = Assert.IsType<SheetViews>(wsPart.Worksheet.GetFirstChild<SheetViews>());
                 SheetView view = Assert.Single(views.Elements<SheetView>());
                 Assert.Equal(0U, view.WorkbookViewId!.Value);
                 Assert.Null(view.GetFirstChild<Pane>());
-
                 OpenXmlValidator validator = new OpenXmlValidator(FileFormatVersions.Microsoft365);
                 var errors = validator.Validate(wsPart.Worksheet).ToList();
                 Assert.Empty(errors);
@@ -149,4 +170,3 @@ namespace OfficeIMO.Tests {
         }
     }
 }
-

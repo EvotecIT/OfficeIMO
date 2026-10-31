@@ -1,5 +1,4 @@
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -15,8 +14,8 @@ public partial class Excel {
     [Fact]
     public void TableFrom_KeepsPinnedColumnsFirst() {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "TableFromPinnedColumns.xlsx"));
-        var composer = new SheetComposer(document, "Data");
-        composer.TableFrom(new[] { new PinnedColumnRow() }, title: null, configure: options => {
+        var composer = document.AddSheet("Data").Report();
+        composer.AddTable(new[] { new PinnedColumnRow() }, title: null, configure: options => {
             options.PinnedFirst = new[] { nameof(PinnedColumnRow.Domain), nameof(PinnedColumnRow.Score) };
         });
 

@@ -50,7 +50,7 @@ public sealed class ExcelLegacyCalculationSaveTests {
 
     [Fact]
     public void Fresh_workbooks_and_document_level_calculation_settings_apply_to_native_saves() {
-        using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
+        using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
         sheet.CellFormula(1, 1, "1+2"); sheet.RecalculateSupportedFormulas();
         byte[] cleared = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls,  ClearCachedFormulaResultsBeforeSave = true });
         using var blank = ExcelDocument.Load(new MemoryStream(cleared));

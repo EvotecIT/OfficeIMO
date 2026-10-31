@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaAuthoring_PreservesRetainedCachesButMarksEveryFormulaKindDirty() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Calc");
+            ExcelSheet sheet = document.AddSheet("Calc");
 
             sheet.CellValue(1, 1, 4d);
             sheet.CellValue(1, 2, 4d);
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_NamedStyleValidation_RejectsInvalidXmlBeforeStylesheetMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetBold();
             string originalStyles = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!.OuterXml;
 
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryBackedTable_RejectsDuplicateConnectionInsideTransactionalOwner() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             using var start = new ManualResetEventSlim(false);
             int successes = 0;
             Task[] callers = Enumerable.Range(0, 8).Select(index => Task.Run(() => {
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_SheetBatch_DoesNotExposeItsUnlockedFastPathToAnotherThread() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ReaderWriterLockSlim workbookLock = document.EnsureLock();
             using var batchEntered = new ManualResetEventSlim(false);
             using var releaseBatch = new ManualResetEventSlim(false);

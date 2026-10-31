@@ -20,7 +20,7 @@ public class PdfEmbeddedFontRenderingTests {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg }));
 
         OfficeFontFace face = Assert.Single(drawing.Fonts.Faces);
         // Generated subsets carry a six-letter tag before the font name.
@@ -46,7 +46,7 @@ public class PdfEmbeddedFontRenderingTests {
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg }));
 
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.font-substitution");
     }

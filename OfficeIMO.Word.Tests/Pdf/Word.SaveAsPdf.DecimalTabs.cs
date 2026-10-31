@@ -22,8 +22,8 @@ public partial class Word {
         WordTableCell? cell = inTable ? document.AddTable(1, 1).Rows[0].Cells[0] : null;
         foreach (string text in new[] { "Grouped\t" + grouped, "Control\t" + control }) {
             WordParagraph paragraph = cell == null ? document.AddParagraph(text) : cell.AddParagraph(text);
-            paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-            paragraph.AddTabStop(4000, WordTabAlignment.Decimal);
+            paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            paragraph.AddTabStop(OfficeLength.Points(200), WordTabAlignment.Decimal);
         }
         using var output = new MemoryStream();
         document.SaveAsPdf(output, new WordPdfExportOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });

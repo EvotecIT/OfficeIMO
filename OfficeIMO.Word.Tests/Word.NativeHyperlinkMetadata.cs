@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true, "\r\n")]
         public void NativeDocHyperlinkMetadataRejectsFieldBoundariesWithoutChangingDocx(bool targetFrame, string boundary) {
             using WordDocument source = WordDocument.Create();
-            WordParagraph paragraph = source.AddParagraph().AddHyperLink("Guide", new Uri("https://example.test/guide"));
+            WordParagraph paragraph = source.AddParagraph().AddHyperLink("Guide", new Uri("https://example.test/guide")).Paragraph;
             if (targetFrame) {
                 paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Hyperlink>().Single().TargetFrame = "Window" + boundary + "Name";
             } else {
@@ -51,8 +51,8 @@ namespace OfficeIMO.Tests {
             using WordDocument source = WordDocument.Create();
             const string tooltip = "Read \"Guide\" \\l literal — zażółć";
             WordParagraph paragraph = internalLink
-                ? source.AddParagraph().AddHyperLink("Guide", "Destination", tooltip: tooltip)
-                : source.AddParagraph().AddHyperLink("Guide", new Uri("https://example.test/guide"), tooltip: tooltip);
+                ? source.AddParagraph().AddHyperLink("Guide", "Destination", tooltip: tooltip).Paragraph
+                : source.AddParagraph().AddHyperLink("Guide", new Uri("https://example.test/guide"), tooltip: tooltip).Paragraph;
             paragraph.Hyperlink!.TargetFrame = frame;
             source.AddParagraph("Destination").AddBookmark("Destination");
             string sourceXml = source._wordprocessingDocument!.MainDocumentPart!.Document.OuterXml;
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
         [InlineData(" ")]
         public void NativeDocHyperlinkMetadataPreservesAuthoredEmptyTooltip(string? tooltip) {
             using WordDocument source = WordDocument.Create();
-            WordParagraph paragraph = source.AddParagraph().AddHyperLink("Guide", new Uri("https://example.test/guide"));
+            WordParagraph paragraph = source.AddParagraph().AddHyperLink("Guide", new Uri("https://example.test/guide")).Paragraph;
             paragraph.Hyperlink!.Tooltip = tooltip;
             using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
             Assert.Equal(tooltip, Assert.Single(loaded.HyperLinks).Tooltip);
@@ -90,9 +90,9 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void NativeDocHyperlinkMetadataKeepsAdjacentDifferentLinks(bool differentFrames) {
             using WordDocument source = WordDocument.Create();
-            WordParagraph first = source.AddParagraph().AddHyperLink("First", new Uri("https://example.test/guide"), tooltip: "First tip");
+            WordParagraph first = source.AddParagraph().AddHyperLink("First", new Uri("https://example.test/guide"), tooltip: "First tip").Paragraph;
             first.Hyperlink!.TargetFrame = WordHyperlinkTargetFrame._self;
-            WordParagraph second = first.AddHyperLink("Second", new Uri("https://example.test/guide"), tooltip: differentFrames ? "First tip" : "Second tip");
+            WordParagraph second = first.AddHyperLink("Second", new Uri("https://example.test/guide"), tooltip: differentFrames ? "First tip" : "Second tip").Paragraph;
             second.Hyperlink!.TargetFrame = differentFrames ? WordHyperlinkTargetFrame._blank : WordHyperlinkTargetFrame._self;
             using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
             WordHyperLink[] links = loaded.HyperLinks.ToArray();
@@ -125,11 +125,11 @@ namespace OfficeIMO.Tests {
                 source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0],
                 source.HeaderDefaultOrCreate.AddParagraph(),
                 source.FooterDefaultOrCreate.AddParagraph(),
-                source.AddParagraph("Reference").AddFootNote("Footnote prefix").FootNote!.Paragraphs!.Single(p => p.Text == "Footnote prefix"),
-                source.AddParagraph("Reference").AddEndNote("Endnote prefix").EndNote!.Paragraphs!.Single(p => p.Text == "Endnote prefix")
+                source.AddParagraph("Reference").AddFootNote("Footnote prefix").Paragraph.FootNote!.Paragraphs!.Single(p => p.Text == "Footnote prefix"),
+                source.AddParagraph("Reference").AddEndNote("Endnote prefix").Paragraph.EndNote!.Paragraphs!.Single(p => p.Text == "Endnote prefix")
             };
             for (int index = 0; index < paragraphs.Length; index++) {
-                WordParagraph link = paragraphs[index].AddHyperLink("Guide " + index, new Uri("https://example.test/guide"), tooltip: "Tip " + index);
+                WordParagraph link = paragraphs[index].AddHyperLink("Guide " + index, new Uri("https://example.test/guide"), tooltip: "Tip " + index).Paragraph;
                 link.Hyperlink!.TargetFrame = WordHyperlinkTargetFrame._blank;
             }
             using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));

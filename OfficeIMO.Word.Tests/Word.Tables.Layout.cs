@@ -24,46 +24,44 @@ namespace OfficeIMO.Tests {
                 // Scenario 2: Full Width (100% Pct) - equivalent to AutoFitToWindow
                 WordTable table2 = document.AddTable(3, 3, WordTableStyle.PlainTable1);
                 table2.Rows[0].Cells[0].Paragraphs[0].Text = "100% Pct";
-                table2.WidthType = WordTableWidthUnit.Pct;
-                table2.Width = 5000;
+                table2.Width = WordTableWidth.Percent((5000) / 50d);
                 Assert.Equal(WordTableLayoutMode.AutoFit, table2.LayoutMode);
-                Assert.Equal(WordTableWidthUnit.Pct, table2.WidthType);
-                Assert.Equal(5000, table2.Width);
+                Assert.Equal(WordTableWidthKind.Percent, table2.Width?.Kind);
+                Assert.Equal(5000, table2.Width?.ToNativeValue());
 
                 // Scenario 3: Specific Percentage Width (50%)
                 WordTable table3 = document.AddTable(3, 3, WordTableStyle.PlainTable1);
                 table3.Rows[0].Cells[0].Paragraphs[0].Text = "50% Pct";
-                table3.WidthType = WordTableWidthUnit.Pct;
-                table3.Width = 2500;
+                table3.Width = WordTableWidth.Percent((2500) / 50d);
                 // A percentage below 100% is a fixed-width table.
                 table3.LayoutMode = WordTableLayoutMode.Fixed;
                 Assert.Equal(WordTableLayoutMode.Fixed, table3.LayoutMode);
-                Assert.Equal(WordTableWidthUnit.Pct, table3.WidthType);
-                Assert.Equal(2500, table3.Width);
+                Assert.Equal(WordTableWidthKind.Percent, table3.Width?.Kind);
+                Assert.Equal(2500, table3.Width?.ToNativeValue());
 
                 // Scenario 4: Using AutoFitToWindow() method
                 WordTable table4 = document.AddTable(3, 3, WordTableStyle.PlainTable1);
                 table4.Rows[0].Cells[0].Paragraphs[0].Text = "AutoFit Window Method";
                 table4.AutoFitToWindow();
                 Assert.Equal(WordTableLayoutMode.Fixed, table4.LayoutMode);
-                Assert.Equal(WordTableWidthUnit.Pct, table4.WidthType);
-                Assert.Equal(5000, table4.Width);
+                Assert.Equal(WordTableWidthKind.Percent, table4.Width?.Kind);
+                Assert.Equal(5000, table4.Width?.ToNativeValue());
 
                 // Scenario 5: Using SetFixedWidth() method (75%)
                 WordTable table5 = document.AddTable(3, 3, WordTableStyle.PlainTable1);
                 table5.Rows[0].Cells[0].Paragraphs[0].Text = "Fixed 75% Method";
                 table5.SetFixedWidth(75);
                 Assert.Equal(WordTableLayoutMode.Fixed, table5.LayoutMode);
-                Assert.Equal(WordTableWidthUnit.Pct, table5.WidthType);
-                Assert.Equal(3750, table5.Width);
+                Assert.Equal(WordTableWidthKind.Percent, table5.Width?.Kind);
+                Assert.Equal(3750, table5.Width?.ToNativeValue());
 
                 // Scenario 6: Using AutoFitToContents() method
                 WordTable table6 = document.AddTable(3, 3, WordTableStyle.PlainTable1);
                 table6.Rows[0].Cells[0].Paragraphs[0].Text = "AutoFit Contents Method";
                 table6.AutoFitToContents();
                 Assert.Equal(WordTableLayoutMode.AutoFit, table6.LayoutMode);
-                Assert.Equal(WordTableWidthUnit.Auto, table6.WidthType);
-                Assert.Equal(0, table6.Width);
+                Assert.Equal(WordTableWidthKind.Auto, table6.Width?.Kind);
+                Assert.Equal(0, table6.Width?.ToNativeValue());
 
                 // Scenario 7: Using LayoutMode property setter
                 WordTable table7 = document.AddTable(3, 3, WordTableStyle.PlainTable1);
@@ -74,7 +72,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordTableLayoutMode.Fixed, table7.LayoutMode);
                 table7.LayoutMode = WordTableLayoutMode.Fixed;
                 Assert.Equal(WordTableLayoutMode.Fixed, table7.LayoutMode);
-                Assert.Equal(5000, table7.Width);
+                Assert.Equal(5000, table7.Width?.ToNativeValue());
 
                 document.Save();
             }
@@ -88,26 +86,26 @@ namespace OfficeIMO.Tests {
 
                 // Verify Table 2 (100% Pct)
                 Assert.Equal(WordTableLayoutMode.AutoFit, document.Tables[1].LayoutMode);
-                Assert.Equal(5000, document.Tables[1].Width);
+                Assert.Equal(5000, document.Tables[1].Width?.ToNativeValue());
 
                 // Verify Table 3 (50% Pct Fixed)
                 Assert.Equal(WordTableLayoutMode.Fixed, document.Tables[2].LayoutMode);
-                Assert.Equal(2500, document.Tables[2].Width);
+                Assert.Equal(2500, document.Tables[2].Width?.ToNativeValue());
 
                 // Verify Table 4 (AutoFitToWindow method)
                 Assert.Equal(WordTableLayoutMode.Fixed, document.Tables[3].LayoutMode);
-                Assert.Equal(5000, document.Tables[3].Width);
+                Assert.Equal(5000, document.Tables[3].Width?.ToNativeValue());
 
                 // Verify Table 5 (SetFixedWidth 75%)
                 Assert.Equal(WordTableLayoutMode.Fixed, document.Tables[4].LayoutMode);
-                Assert.Equal(3750, document.Tables[4].Width);
+                Assert.Equal(3750, document.Tables[4].Width?.ToNativeValue());
 
                 // Verify Table 6 (AutoFitToContents method)
                 Assert.Equal(WordTableLayoutMode.AutoFit, document.Tables[5].LayoutMode);
 
                 // Verify Table 7 (AutoFitToWindow helper followed by the fixed algorithm)
                 Assert.Equal(WordTableLayoutMode.Fixed, document.Tables[6].LayoutMode);
-                Assert.Equal(5000, document.Tables[6].Width);
+                Assert.Equal(5000, document.Tables[6].Width?.ToNativeValue());
             }
         }
 
@@ -117,20 +115,18 @@ namespace OfficeIMO.Tests {
 
             using WordDocument document = WordDocument.Create(filePath);
             WordTable table = document.AddTable(1, 2);
-            table.WidthType = WordTableWidthUnit.Dxa;
-            table.Width = 4320;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-            table.Rows[0].Cells[0].Width = 1800;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4320) * 635)));
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1800) * 635)));
 
             table.LayoutMode = WordTableLayoutMode.AutoFit;
-            Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
-            Assert.Equal(4320, table.Width);
-            Assert.Equal(1800, table.Rows[0].Cells[0].Width);
+            Assert.Equal(WordTableWidthKind.Length, table.Width?.Kind);
+            Assert.Equal(4320, table.Width?.ToNativeValue());
+            Assert.Equal(1800, table.Rows[0].Cells[0].Width?.ToNativeValue());
 
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
-            Assert.Equal(4320, table.Width);
-            Assert.Equal(1800, table.Rows[0].Cells[0].Width);
+            Assert.Equal(WordTableWidthKind.Length, table.Width?.Kind);
+            Assert.Equal(4320, table.Width?.ToNativeValue());
+            Assert.Equal(1800, table.Rows[0].Cells[0].Width?.ToNativeValue());
         }
     }
 }

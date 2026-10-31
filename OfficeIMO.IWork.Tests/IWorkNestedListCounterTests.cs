@@ -39,10 +39,10 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("  2. Child continued", IWorkReadProjection.RichTextMarkdown(content.Paragraphs[6]));
         if (kind == IWorkDocumentKind.Keynote) {
             package.Position = 0;
-            using var result = IWorkSourceDocument.Open(package).ToPowerPointPresentationResult(new() {
+            using var result = IWorkSourceDocument.Open(package).ToPowerPointDocumentResult(new() {
                 Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved);
+            using var reopened = PowerPointDocument.Load(saved);
             var paragraphs = Assert.Single(Assert.Single(reopened.Slides).Tables).GetCell(0, 0).Paragraphs;
             Assert.Equal(new int?[] { 7, 1, null, 8, null, null, 2, 5, 3, null },
                 paragraphs.Select(paragraph => paragraph.NumberingStartAt));

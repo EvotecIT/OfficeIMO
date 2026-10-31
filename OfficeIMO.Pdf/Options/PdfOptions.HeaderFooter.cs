@@ -47,8 +47,8 @@ public sealed partial class PdfCreateOptions {
             MarkFontConfigurationAssigned();
         }
     }
-    /// <summary>Header font size in points.</summary>
-    public double HeaderFontSize {
+    /// <summary>Header font size.</summary>
+    public OfficeLength HeaderFontSize {
         get => _headerFontSize;
         set {
             _headerFontSize = value;
@@ -56,7 +56,7 @@ public sealed partial class PdfCreateOptions {
         }
     }
     /// <summary>Header text color. When null, the current PDF fill color is preserved.</summary>
-    public PdfColor? HeaderTextColor { get; set; }
+    public global::OfficeIMO.OfficeColor? HeaderTextColor { get; set; }
     /// <summary>Header alignment.</summary>
     public PdfAlign HeaderAlign {
         get => _headerAlign;
@@ -65,8 +65,8 @@ public sealed partial class PdfCreateOptions {
             _headerAlign = value;
         }
     }
-    /// <summary>Header baseline Y offset above the top margin (points). Default 18.</summary>
-    public double HeaderOffsetY { get; set; } = 18;
+    /// <summary>Header baseline Y offset above the top margin. Default 18 points.</summary>
+    public OfficeLength HeaderOffsetY { get; set; } = OfficeLength.Points(18);
 
     /// <summary>When true, renders page numbers in the footer using <see cref="FooterFormat"/>.</summary>
     public bool ShowPageNumbers { get; set; } // default false
@@ -100,16 +100,17 @@ public sealed partial class PdfCreateOptions {
             MarkFontConfigurationAssigned();
         }
     }
-    /// <summary>Footer font size in points.</summary>
-    public double FooterFontSize {
-        get => _footerFontSize;
+    /// <summary>Footer font size.</summary>
+    public OfficeLength FooterFontSize {
+        get => !_hasExplicitFooterFontSize && _useOfficeThemeDefaults ? EffectiveTheme.Footer.FontSize : _footerFontSize;
         set {
             _footerFontSize = value;
+            _hasExplicitFooterFontSize = true;
             MarkFontConfigurationAssigned();
         }
     }
     /// <summary>Footer text color. When null, the current PDF fill color is preserved.</summary>
-    public PdfColor? FooterTextColor { get; set; }
+    public global::OfficeIMO.OfficeColor? FooterTextColor { get; set; }
     /// <summary>Footer alignment.</summary>
     public PdfAlign FooterAlign {
         get => _footerAlign;
@@ -118,8 +119,8 @@ public sealed partial class PdfCreateOptions {
             _footerAlign = value;
         }
     }
-    /// <summary>Footer baseline Y position from bottom margin (points). Default 18.</summary>
-    public double FooterOffsetY { get; set; } = 18;
+    /// <summary>Footer baseline Y position from bottom margin. Default 18 points.</summary>
+    public OfficeLength FooterOffsetY { get; set; } = OfficeLength.Points(18);
 
     /// <summary>First visible page number for this document or section flow. Default 1.</summary>
     public int PageNumberStart {

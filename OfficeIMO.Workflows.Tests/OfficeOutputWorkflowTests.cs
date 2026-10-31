@@ -1214,13 +1214,13 @@ public sealed class OfficeOutputWorkflowTests {
 
         Assert.Equal([2, 1], plan.SelectedPages);
         PdfPrintSheet sheet = Assert.Single(plan.Sheets);
-        Assert.True(sheet.PaperSize.Width > sheet.PaperSize.Height);
+        Assert.True(sheet.PaperSize.Width.ToPoints() > sheet.PaperSize.Height.ToPoints());
         Assert.Equal([2, 1], sheet.Placements.Select(static placement => placement.PageNumber));
         Assert.All(sheet.Placements, placement => {
             Assert.True(placement.X >= 0D);
             Assert.True(placement.Y >= 0D);
-            Assert.True(placement.X + placement.Width <= sheet.PaperSize.Width + 0.01D);
-            Assert.True(placement.Y + placement.Height <= sheet.PaperSize.Height + 0.01D);
+            Assert.True(placement.X + placement.Width <= sheet.PaperSize.Width.ToPoints() + 0.01D);
+            Assert.True(placement.Y + placement.Height <= sheet.PaperSize.Height.ToPoints() + 0.01D);
             Assert.False(placement.IsClipped);
         });
     }
@@ -1246,8 +1246,8 @@ public sealed class OfficeOutputWorkflowTests {
             Assert.True(placement.SlotHeight > 0D);
             Assert.True(placement.X < placement.SlotX || placement.Y < placement.SlotY ||
                         placement.Width > placement.SlotWidth || placement.Height > placement.SlotHeight);
-            Assert.True(placement.SlotX + placement.SlotWidth <= sheet.PaperSize.Width);
-            Assert.True(placement.SlotY + placement.SlotHeight <= sheet.PaperSize.Height);
+            Assert.True(placement.SlotX + placement.SlotWidth <= sheet.PaperSize.Width.ToPoints());
+            Assert.True(placement.SlotY + placement.SlotHeight <= sheet.PaperSize.Height.ToPoints());
         });
     }
 
@@ -1267,10 +1267,10 @@ public sealed class OfficeOutputWorkflowTests {
 
         PdfPrintSheet sheet = Assert.Single(plan.Sheets);
         PdfPrintPlacement placement = Assert.Single(sheet.Placements);
-        Assert.True(sheet.PaperSize.Width > sheet.PaperSize.Height);
+        Assert.True(sheet.PaperSize.Width.ToPoints() > sheet.PaperSize.Height.ToPoints());
         Assert.True(placement.Width > placement.Height);
-        Assert.True(placement.X + placement.Width <= sheet.PaperSize.Width + 0.01D);
-        Assert.True(placement.Y + placement.Height <= sheet.PaperSize.Height + 0.01D);
+        Assert.True(placement.X + placement.Width <= sheet.PaperSize.Width.ToPoints() + 0.01D);
+        Assert.True(placement.Y + placement.Height <= sheet.PaperSize.Height.ToPoints() + 0.01D);
     }
 
     [Fact]
@@ -1288,7 +1288,7 @@ public sealed class OfficeOutputWorkflowTests {
 
         PdfPrintPlan plan = PdfPrintPlanner.Create(new PdfPrintPlanRequest {
             InputPath = input,
-            PaperSize = new PdfPageSize(1000D, 1000D),
+            PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(1000D),OfficeIMO.OfficeLength.Points(1000D)),
             Orientation = PdfPrintOrientation.Portrait,
             ScaleMode = PdfPrintScaleMode.ActualSize,
             Margin = 0D

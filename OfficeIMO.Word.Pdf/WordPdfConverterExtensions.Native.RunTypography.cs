@@ -15,8 +15,8 @@ namespace OfficeIMO.Word.Pdf {
             double? FontSize,
             PdfCore.PdfStandardFont? Font,
             string? FontFamily,
-            PdfCore.PdfColor? Color,
-            PdfCore.PdfColor? BackgroundColor) {
+            global::OfficeIMO.OfficeColor? Color,
+            global::OfficeIMO.OfficeColor? BackgroundColor) {
             public bool SmallCaps { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
             public NativeTextSpacing ListMarkerTextSpacing { get; init; }
@@ -50,7 +50,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void ApplyNativeTextStyle(PdfCore.PdfParagraphBuilder builder, NativeResolvedTextStyle style) {
             builder.HorizontalTextScaling(style.TextSpacing.WidthPercentage ?? 100D);
-            builder.CharacterSpacing(style.TextSpacing.CharacterSpacing ?? 0D);
+            builder.CharacterSpacing(global::OfficeIMO.OfficeLength.Points(style.TextSpacing.CharacterSpacing ?? 0D));
             builder.FeatureSettings(style.TextSpacing.ResolveFeatureSettings(style.EffectiveFontSize));
             builder.Bold(style.Bold);
             builder.Italic(style.Italic);
@@ -58,7 +58,7 @@ namespace OfficeIMO.Word.Pdf {
             builder.Strike(style.StrikeStyle);
             builder.Baseline(style.Baseline);
             if (style.FontSize.HasValue) {
-                builder.FontSize(style.FontSize.Value);
+                builder.FontSize(global::OfficeIMO.OfficeLength.Points(style.FontSize.Value));
             }
 
             if (!string.IsNullOrWhiteSpace(style.FontFamily)) {
@@ -119,19 +119,19 @@ namespace OfficeIMO.Word.Pdf {
                 characterStyleDefaults.Baseline ??
                 styleDefaults.Baseline ??
                 tableRunStyleDefaults.Baseline ?? resolvedNativeDefaults.RunStyle.Baseline);
-            double? fontSize = paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0
-                ? paragraph.FontSizePoints.Value
+            double? fontSize = paragraph.NativeFontSizePoints.HasValue && paragraph.NativeFontSizePoints.Value > 0
+                ? paragraph.NativeFontSizePoints.Value
                 : characterStyleDefaults.FontSize ?? styleDefaults.FontSize ?? tableRunStyleDefaults.FontSize;
             fontSize = ResolveNativeComplexScriptFontSize(fontSize, runProperties, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
             // The paragraph wrapper's first run supplies no formatting inheritance to sibling runs.
             PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
             string? fontFamily = ResolveNativeTextRunFontFamily(paragraph, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
 
-            PdfCore.PdfColor? color = TryGetNativeRunColor(runProperties, out PdfCore.PdfColor? directColor)
+            global::OfficeIMO.OfficeColor? color = TryGetNativeRunColor(runProperties, out global::OfficeIMO.OfficeColor? directColor)
                 ? directColor
                 : ResolveNativeInheritedRunColor(characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
             color = ResolveNativeGroupedHeaderFooterTextColor(paragraph, color);
-            PdfCore.PdfColor? background = MapNativeHighlight(
+            global::OfficeIMO.OfficeColor? background = MapNativeHighlight(
                 WordRunFormatting.ResolveRunHighlight(paragraph, tableRunStyleDefaults.Highlight));
             background ??= ParseNativeColor(WordRunFormatting.ResolveRunShadingFillColorHex(paragraph));
 
@@ -148,7 +148,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void ResetNativeTextStyle(PdfCore.PdfParagraphBuilder builder) {
             builder.HorizontalTextScaling(100D)
-                .CharacterSpacing(0D)
+                .CharacterSpacing(global::OfficeIMO.OfficeLength.Points(0D))
                 .ResetFeatureSettings()
                 .Bold(false)
                 .Italic(false)

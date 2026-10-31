@@ -53,8 +53,8 @@ public partial class PdfPageFootnoteTests {
         var document = PdfDocument.Create(options);
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
             body.Text("SupportedNote", style: Style());
-            body.Image(PdfPngTestImages.Create16BitRgbPng(), 4, 4, style: new PdfImageStyle { SpacingBefore = 0, SpacingAfter = 0 });
-            body.HR(style: new PdfHorizontalRuleStyle { SpacingBefore = 0, SpacingAfter = 0 });
+            body.Image(PdfPngTestImages.Create16BitRgbPng(), global::OfficeIMO.OfficeLength.Points(4), global::OfficeIMO.OfficeLength.Points(4), style: new PdfImageStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
+            body.HR(style: new PdfHorizontalRuleStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
         });
         document.Content.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
 

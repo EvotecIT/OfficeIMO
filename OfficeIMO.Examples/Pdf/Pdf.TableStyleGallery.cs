@@ -26,11 +26,11 @@ namespace OfficeIMO.Examples.Pdf {
             foreach (string styleName in PdfTableStyles.SupportedWordStyleNames) {
                 PdfTableStyle style = PdfTableStyles.FromWordTableStyle(styleName);
                 style.Caption = styleName;
-                style.CaptionColor = PdfColor.FromRgb(80, 90, 100);
-                style.CaptionFontSize = 8.5;
-                style.CaptionSpacingAfter = 4;
-                style.SpacingBefore = 6;
-                style.SpacingAfter = 6;
+                style.CaptionColor = OfficeColor.FromRgb(80, 90, 100);
+                style.CaptionFontSize = OfficeLength.Points(8.5);
+                style.CaptionSpacingAfter = OfficeLength.Points(4);
+                style.SpacingBefore = OfficeLength.Points(6);
+                style.SpacingAfter = OfficeLength.Points(6);
                 style.ColumnWidthWeights = new List<double> { 76, 70, 300 };
                 style.AutoFitColumns = false;
                 style.Alignments = new List<PdfColumnAlign> {

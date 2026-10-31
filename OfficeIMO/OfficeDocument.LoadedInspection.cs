@@ -13,10 +13,16 @@ using OfficeIMO.Word;
 namespace OfficeIMO;
 
 public static partial class OfficeDocument {
+    /// <summary>Inspects the current in-memory native model using default inspection options.</summary>
+    public static OfficeDocumentInfo Inspect(object document) => Inspect(document, null, default);
+
+    /// <summary>Inspects the current in-memory native model using the supplied inspection options.</summary>
+    public static OfficeDocumentInfo Inspect(object document, OfficeInspectOptions? options) => Inspect(document, options, default);
+
     /// <summary>Inspects a live native model without opening its associated path, saving it or disposing caller-owned state.</summary>
     /// <remarks>Counts describe the current in-memory model, including unsaved edits. Optional native details are detached snapshots.</remarks>
-    public static OfficeDocumentInfo Inspect(object document, OfficeInspectOptions? options = null,
-        CancellationToken cancellationToken = default) {
+    public static OfficeDocumentInfo Inspect(object document, OfficeInspectOptions? options,
+        CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         OfficeInspectOptions settings = options ?? new();
         if (settings.Reader == null || settings.Formats == null) throw new ArgumentException("Reader and format settings are required.", nameof(options));
@@ -26,7 +32,7 @@ public static partial class OfficeDocument {
         var result = new OfficeDocumentInfo(document switch {
             WordDocument word => word.FilePath ?? string.Empty,
             ExcelDocument excel => excel.FilePath ?? string.Empty,
-            PowerPointPresentation presentation => presentation.FilePath ?? string.Empty,
+            PowerPointDocument presentation => presentation.FilePath ?? string.Empty,
             PdfDocument pdf => pdf.FilePath ?? string.Empty,
             VisioDocument visio => visio.FilePath ?? string.Empty,
             OfficeDocumentReadResult read => read.Source?.Path ?? string.Empty,
@@ -52,7 +58,7 @@ public static partial class OfficeDocument {
                 if (settings.Detailed) result.Details = excel.Inspect(settings.ExcelInspection ?? settings.Formats.Excel?.ReadOptions, cancellationToken);
                 if (settings.IncludeContent) result.Content = excel.ReadDocument(result.Source, settings.Reader, settings.Formats.Excel, cancellationToken);
                 break;
-            case PowerPointPresentation presentation:
+            case PowerPointDocument presentation:
                 result.Format = ReaderInputKind.PowerPoint;
                 result.SlideCount = presentation.Slides.Count;
                 if (settings.Detailed) result.Details = presentation.Inspect(settings.PowerPointInspection);

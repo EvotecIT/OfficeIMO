@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                 run => {
                     Assert.Equal("Bold", run.Text);
                     Assert.Equal("Consolas", run.FontName);
-                    Assert.Equal(13d, run.FontSize);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(13d), run.FontSize);
                     Assert.Equal("FF123456", run.FontColor);
                     Assert.True(run.Bold);
                     Assert.True(run.Italic);
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
                 run => {
                     Assert.Equal(" plain", run.Text);
                     Assert.Equal("Arial", run.FontName);
-                    Assert.Equal(11d, run.FontSize);
+                    Assert.Equal(global::OfficeIMO.OfficeLength.Points(11d), run.FontSize);
                     Assert.False(run.Bold);
                 });
 

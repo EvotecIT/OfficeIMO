@@ -34,10 +34,10 @@ internal static class DocumentDelivery {
             if (index > 0) document.AddPageBreak();
             var specimen = specimens[index];
             var heading = document.AddParagraph().AddText(Heading(specimen));
-            heading.FontFamily = Style.FontFamily; heading.FontSizePoints = Style.HeadingSizePoints;
+            heading.FontFamily = Style.FontFamily; heading.FontSize = global::OfficeIMO.OfficeLength.Points(Style.HeadingSizePoints);
             document.AddParagraph().AddVisualArtifact(specimen.Artifact);
             var caption = document.AddParagraph().AddText(specimen.Caption);
-            caption.FontFamily = Style.FontFamily; caption.FontSizePoints = Style.CaptionSizePoints;
+            caption.FontFamily = Style.FontFamily; caption.FontSize = global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints);
         }
         document.Save();
     }
@@ -45,35 +45,35 @@ internal static class DocumentDelivery {
     private static void WriteExcel(string path, IReadOnlyList<VisualSpecimen> specimens) {
         using var document = ExcelDocument.Create(path);
         foreach (var specimen in specimens) {
-            var sheet = document.AddWorksheet(specimen.Name);
-            for (int column = 1; column <= 9; column++) sheet.SetColumnWidth(column, 12D);
-            for (int row = 1; row <= 26; row++) sheet.SetRowHeight(row, 18D);
+            var sheet = document.AddSheet(specimen.Name);
+            for (int column = 1; column <= 9; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(12D));
+            for (int row = 1; row <= 26; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
             sheet.MergeRange("B1:I2");
             sheet.CellValue(1, 2, Heading(specimen));
-            sheet.CellFontName(1, 2, Style.FontFamily); sheet.CellFontSize(1, 2, Style.HeadingSizePoints);
+            sheet.CellFontName(1, 2, Style.FontFamily); sheet.CellFontSize(1, 2, global::OfficeIMO.OfficeLength.Points(Style.HeadingSizePoints));
             // The picture remains within the authored Letter print width after the half-inch margins.
             sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
             sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);
             sheet.AddVisualArtifact("B4:I18", specimen.Artifact);
             sheet.MergeRange("B21:I23");
             sheet.CellValue(21, 2, specimen.Caption);
-            sheet.CellFontName(21, 2, Style.FontFamily); sheet.CellFontSize(21, 2, Style.CaptionSizePoints);
+            sheet.CellFontName(21, 2, Style.FontFamily); sheet.CellFontSize(21, 2, global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints));
             sheet.CellWrapText(21, 2);
         }
         document.Save();
     }
 
     private static void WritePowerPoint(string path, IReadOnlyList<VisualSpecimen> specimens) {
-        using var presentation = PowerPointPresentation.Create(path);
+        using var presentation = PowerPointDocument.Create(path);
         presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
-        double slideWidth = presentation.SlideSize.WidthPoints, slideHeight = presentation.SlideSize.HeightPoints;
+        double slideWidth = presentation.SlideSize.Width.ToPoints(), slideHeight = presentation.SlideSize.Height.ToPoints();
         foreach (var specimen in specimens) {
             var slide = presentation.AddSlide();
             var colors = VisualTheme.Graphite().Resolve(specimen.Mode);
             slide.BackgroundColor = colors.Background.ToHex().TrimStart('#');
             Text(slide, Heading(specimen), 36D, 16D, slideWidth - 72D, 30D, Style.HeadingSizePoints, colors.Foreground.ToHex());
             slide.AddVisualArtifact(specimen.Artifact,
-                PowerPointLayoutBox.FromPoints(36D, 60D, slideWidth - 72D, slideHeight - 130D));
+                new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(36D),OfficeIMO.OfficeLength.Points(60D),OfficeIMO.OfficeLength.Points(slideWidth - 72D),OfficeIMO.OfficeLength.Points(slideHeight - 130D)));
             Text(slide, specimen.Caption, 36D, slideHeight - 52D,
                 slideWidth - 72D, 36D, Style.CaptionSizePoints, colors.Foreground.ToHex());
         }
@@ -81,7 +81,7 @@ internal static class DocumentDelivery {
     }
 
     private static void WritePdf(string path, IReadOnlyList<VisualSpecimen> specimens) {
-        var options = new PdfCreateOptions { PageSize = PdfPageSizes.A4, DefaultFontSize = Style.CaptionSizePoints };
+        var options = new PdfCreateOptions { PageSize = PdfPageSizes.A4, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints) };
         options.EnableTaggedPdfCatalogMarkers();
         PdfDocument.Create(document => document.Content(content => {
             for (int index = 0; index < specimens.Count; index++) {
@@ -108,9 +108,8 @@ internal static class DocumentDelivery {
 
     private static void Text(PowerPointSlide slide, string text, double left, double top, double width, double height,
         double size, string color) {
-        var box = slide.AddTextBox(text, PowerPointUnits.FromPoints(left), PowerPointUnits.FromPoints(top),
-            PowerPointUnits.FromPoints(width), PowerPointUnits.FromPoints(height));
-        box.FontName = Style.FontFamily; box.FontSize = (int)Math.Round(size); box.Color = color.TrimStart('#');
+        var box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),            global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
+        box.FontName = Style.FontFamily; box.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(size)); box.Color = color.TrimStart('#');
     }
 
     private static string Heading(VisualSpecimen specimen) => specimen.Artifact.Title + " · " + specimen.ModeName;

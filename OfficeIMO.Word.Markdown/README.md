@@ -42,6 +42,17 @@ using var wordDocument = markdownDocument.ToWord();
 
 Use `MarkdownDocument.ToWord()` when you already have a typed AST and want to avoid flattening back to Markdown text before Word conversion.
 
+For staged parsing, use the import options to configure the Markdown reader before preparing images or converting into a template:
+
+```csharp
+string source = "# Report\n\nPrepared from Markdown.";
+var options = new WordMarkdownImportOptions();
+using var markdown = MarkdownDocument.Parse(source, options.CreateReaderOptions());
+using WordDocument document = markdown.ToWord(options);
+```
+
+The factory returns a fresh reader configuration with the Word semantic fences and import settings applied.
+
 ## What it maps
 
 - Word to Markdown with headings, paragraphs, lists, task items, tables, images, links, code, footnotes, and GitHub-friendly output.
@@ -85,9 +96,11 @@ For HTML input, add `OfficeIMO.Markdown.Html`, parse with `HtmlConversionDocumen
 
 ```csharp
 using OfficeIMO.Markdown;
+using OfficeIMO.Word.Markdown;
 var options = new WordMarkdownImportOptions {
     AllowLocalImages = true,
     FitImagesToPageContentWidth = true,           // page width minus margins
+    MaxImageWidth = OfficeIMO.OfficeLength.Inches(5), // optional physical cap
     MaxImageWidthPercentOfContent = 85            // optional percent-based cap
 };
 
@@ -96,7 +109,7 @@ using var doc = MarkdownDocument.Parse("# Report\n\nBody").ToWord(options);
 
 - Typed contract is available via `WordMarkdownImportOptions.ImageLayout`.
 - `PreferNarrativeSingleLineDefinitions = true` keeps isolated `Label: value` lines as narrative paragraphs while still allowing grouped definition-list blocks.
-- `OnImageLayoutDiagnostic` can be used to inspect final width/height and applied layout constraints.
+- `OnImageLayoutDiagnostic` reports requested, natural, effective-limit, and final dimensions as nullable `OfficeLength` values. Natural image pixels are interpreted at 96 DPI; use `ToPixels()` for that projection or `ToPoints()` for points.
 
 ## Word -> Markdown layout and visual fallback options
 
@@ -120,15 +133,18 @@ doc.SaveAsMarkdown("report.md", options);
 ## Explicit IntelligenceX transcript contract
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Markdown;
-var options = MarkdownToWordPresets.CreateIntelligenceXTranscript(
+using OfficeIMO.Word.Markdown;
+
+var options = WordMarkdownImportOptions.CreateIntelligenceXTranscript(
     allowedImageDirectories: new[] { @"C:\Exports\Images" },
-    visualMaxWidthPx: 760);
+    visualMaxWidth: OfficeLength.Pixels(760));
 
 using var doc = MarkdownDocument.Parse("# Report\n\nBody").ToWord(options);
 ```
 
-- `MarkdownToWordPresets.CreateIntelligenceXTranscript(...)` is the explicit DOCX preset for IX transcript export.
+- `WordMarkdownImportOptions.CreateIntelligenceXTranscript(...)` is the explicit DOCX preset for IX transcript export.
 - That preset now reuses the shared `MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(...)` contract, including legacy IX visual JSON upgrades through document transforms.
 - `MarkdownToWordCapabilities.PreservesNarrativeSingleLineDefinitionsAsSeparateParagraphs()` exposes the grouped `Label: value` capability probe as a reusable OfficeIMO contract instead of host-local reflection logic.
 

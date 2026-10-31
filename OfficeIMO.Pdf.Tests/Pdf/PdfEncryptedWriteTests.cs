@@ -142,7 +142,7 @@ public class PdfEncryptedWriteTests {
     [Fact]
     public void GeneratedEncryptedFormPdfRequiresOwnerOrExplicitOverrideForFullRewrite() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .TextField("Name", width: 180, height: 24, value: "Ada")
+            .TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada")
             .ToBytes();
 
         var userOptions = new PdfLoadOptions { Password = "open" };

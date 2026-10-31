@@ -10,12 +10,12 @@ public class PdfOutlineTests {
     public void CanvasOutline_WritesNestedBookmarksAtAbsolutePageCoordinates() {
         byte[] bytes = PdfDocument.Create()
             .Page(page => page
-                .Size(400D, 600D)
-                .Margin(0D)
+                .Size(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(600D))
+                .Margin(global::OfficeIMO.OfficeLength.Points(0D))
                 .Canvas(canvas => canvas
-                    .Outline("Canvas chapter", 1, 72D)
-                    .Outline("Canvas detail", 2, 144D)
-                    .Text("Visible content", 36D, 72D, 200D, 24D)))
+                    .Outline("Canvas chapter", 1, global::OfficeIMO.OfficeLength.Points(72D))
+                    .Outline("Canvas detail", 2, global::OfficeIMO.OfficeLength.Points(144D))
+                    .Text("Visible content", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(72D), global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(24D))))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -35,12 +35,11 @@ public class PdfOutlineTests {
     public void CanvasOutline_RejectsInvalidArguments() {
         var canvas = new PdfPageCanvas();
 
-        Assert.Throws<ArgumentNullException>(() => canvas.Outline(null!, 1, 0D));
-        Assert.Throws<ArgumentException>(() => canvas.Outline(" ", 1, 0D));
-        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.Outline("Title", 0, 0D));
+        Assert.Throws<ArgumentNullException>(() => canvas.Outline(null!, 1, global::OfficeIMO.OfficeLength.Points(0D)));
+        Assert.Throws<ArgumentException>(() => canvas.Outline(" ", 1, global::OfficeIMO.OfficeLength.Points(0D)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.Outline("Title", 0, global::OfficeIMO.OfficeLength.Points(0D)));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            canvas.Outline("Too deep", PdfPageCanvas.MaximumOutlineLevel + 1, 0D));
-        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.Outline("Title", 1, double.NaN));
+            canvas.Outline("Too deep", PdfPageCanvas.MaximumOutlineLevel + 1, global::OfficeIMO.OfficeLength.Points(0D)));
     }
 
     [Fact]

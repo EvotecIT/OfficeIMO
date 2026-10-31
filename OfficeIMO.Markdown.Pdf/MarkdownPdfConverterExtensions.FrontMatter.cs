@@ -43,8 +43,8 @@ public static partial class MarkdownPdfConverterExtensions {
         pdf.H1(title, PdfCore.PdfAlign.Left, visualTheme.DocumentHeaderTitleColorSnapshot, style: new PdfCore.PdfHeadingStyle {
             FontSize = visualTheme.DocumentHeaderTitleFontSizeSnapshot,
             LineHeight = 1.12,
-            SpacingBefore = 0,
-            SpacingAfter = 3,
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(3),
             Color = visualTheme.DocumentHeaderTitleColorSnapshot,
             KeepWithNext = true
         });
@@ -61,7 +61,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 defaultColor: visualTheme.DocumentHeaderSubtitleColorSnapshot,
                 style: new PdfCore.PdfParagraphStyle {
                     LineHeight = 1.25,
-                    SpacingAfter = 4,
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
                     KeepWithNext = true
                 });
         }
@@ -75,16 +75,16 @@ public static partial class MarkdownPdfConverterExtensions {
                 defaultColor: visualTheme.DocumentHeaderMetadataColorSnapshot,
                 style: new PdfCore.PdfParagraphStyle {
                     LineHeight = 1.2,
-                    SpacingAfter = 6,
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(6),
                     KeepWithNext = true
                 });
         }
 
         pdf.HR(style: new PdfCore.PdfHorizontalRuleStyle {
             Color = visualTheme.DocumentHeaderRuleColorSnapshot,
-            Thickness = 0.8,
-            SpacingBefore = 2,
-            SpacingAfter = 12,
+            Thickness = global::OfficeIMO.OfficeLength.Points(0.8),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(12),
             KeepWithNext = false
         });
         return true;

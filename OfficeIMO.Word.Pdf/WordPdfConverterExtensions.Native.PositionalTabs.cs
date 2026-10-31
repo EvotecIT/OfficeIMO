@@ -26,8 +26,8 @@ public static partial class WordPdfConverterExtensions {
         } else {
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, defaults);
             if (WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true) ApplyNativeInlineListIndent(paragraph, style);
-            left = style.LeftIndent;
-            right = style.RightIndent;
+            left = style.LeftIndent.ToPoints();
+            right = style.RightIndent.ToPoints();
         }
         // Native controls distinguish center tabs from a symmetric midpoint of
         // the indented frame: an indent-relative center follows the leading

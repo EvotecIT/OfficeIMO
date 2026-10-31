@@ -9,7 +9,7 @@ using System.Xml.Linq;
 namespace OfficeIMO.Security;
 
 /// <summary>Shared bounded VBA signature inspection, managed validation, and portable signing.</summary>
-public static partial class OfficeVbaSignatureService {
+internal static partial class OfficeVbaSignatureService {
     private const string VbaProjectContentType = "application/vnd.ms-office.vbaProject";
     private const string LegacyRelationship = "http://schemas.microsoft.com/office/2006/relationships/vbaProjectSignature";
     private const string AgileRelationship = "http://schemas.microsoft.com/office/2014/relationships/vbaProjectSignatureAgile";

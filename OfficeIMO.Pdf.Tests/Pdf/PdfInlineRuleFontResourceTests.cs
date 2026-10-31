@@ -44,7 +44,7 @@ public sealed class PdfInlineRuleFontResourceTests {
             ? new[] { PdfTextRun.Normal("A"), Rule(sourceStyle, maximumWidth: null), PdfTextRun.Normal(" B") }
             : new[] { PdfTextRun.Normal("A"), new PdfTextRun("\t", fontFamily: Family, tabLeader: leader), Rule(sourceStyle), PdfTextRun.Normal("B") };
         var document = PdfDocument.Create(options);
-        if (artifactCanvas) document.Canvas(canvas => canvas.Artifact(artifact => artifact.TextBox(runs, 20D, 20D, 100D, 100D)));
+        if (artifactCanvas) document.Canvas(canvas => canvas.Artifact(artifact => artifact.TextBox(runs, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D))));
         else document.Paragraph(p => p.Runs(runs));
         byte[] bytes = document.ToBytes();
 
@@ -80,13 +80,13 @@ public sealed class PdfInlineRuleFontResourceTests {
     }
 
     private static PdfTextRun Rule(PdfTextRun style, double? maximumWidth = 30D) =>
-        PdfTextRun.Inline(new PdfInlineRule(.5D, PdfColor.Black, maximumWidth: maximumWidth), style);
+        PdfTextRun.Inline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), global::OfficeIMO.OfficeColor.Black, maximumWidth: ((maximumWidth).HasValue ? global::OfficeIMO.OfficeLength.Points((maximumWidth).Value) : (global::OfficeIMO.OfficeLength?)null)), style);
 
     private static PdfCreateOptions Options() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', '.', 'A', 'B');
         return new PdfCreateOptions {
-            PageWidth = 140D, PageHeight = 160D, MarginLeft = 20D, MarginRight = 20D,
-            MarginTop = 20D, MarginBottom = 20D, DefaultFontSize = 10D, DefaultFont = PdfStandardFont.Helvetica
+            PageWidth = global::OfficeIMO.OfficeLength.Points(140D), PageHeight = global::OfficeIMO.OfficeLength.Points(160D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D), DefaultFont = PdfStandardFont.Helvetica
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(Family, font, bold: font));
     }
 

@@ -51,7 +51,7 @@ public partial class PdfFontFamilyTests {
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(candidates, slots));
         string directText = fallbackOwned ? "★" : "AB";
         var document = PdfDocument.Create(options);
-        if (canvas) document.Canvas(paint => paint.Text(directText, 0, 0, 100, 20, font: PdfStandardFont.TimesRoman));
+        if (canvas) document.Canvas(paint => paint.Text(directText, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20), font: PdfStandardFont.TimesRoman));
         else document.Paragraph(paragraph => paragraph.Font(PdfStandardFont.TimesRoman).Text(directText));
 
         byte[] bytes = document.Panel(content => content

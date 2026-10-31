@@ -13,9 +13,9 @@ public sealed partial class HtmlRenderingTests {
         var result = HtmlConversionDocument.Parse("<p>Source content</p>").ConvertToPdfWithEvidence(new HtmlToPdfOptions {
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
         });
-        void AddTargetClip(PdfCore.PdfPageCanvas canvas) => canvas.Clip(0D, 0D, 1D, 1D, clipped =>
-            clipped.Text("Clipped target content", 10D, 10D, 80D, 30D, fontSize: 12D));
-        result.Value.Page(page => page.Size(100D, 100D).Margin(0D).Canvas(canvas => {
+        void AddTargetClip(PdfCore.PdfPageCanvas canvas) => canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(1D), global::OfficeIMO.OfficeLength.Points(1D), clipped =>
+            clipped.Text("Clipped target content", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(30D), fontSize: global::OfficeIMO.OfficeLength.Points(12D)));
+        result.Value.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D)).Margin(global::OfficeIMO.OfficeLength.Points(0D)).Canvas(canvas => {
             if (nestedUnderSourceClip) canvas.SourceClip(0D, 0D, 100D, 100D, AddTargetClip);
             else AddTargetClip(canvas);
         }));
@@ -34,9 +34,9 @@ public sealed partial class HtmlRenderingTests {
         var result = HtmlConversionDocument.Parse("<p>Source content</p>").ConvertToPdfWithEvidence(new HtmlToPdfOptions {
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
         });
-        result.Value.Page(page => page.Size(100D, 100D).Margin(0D).Canvas(canvas =>
+        result.Value.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D)).Margin(global::OfficeIMO.OfficeLength.Points(0D)).Canvas(canvas =>
             canvas.SourceClip(0D, 0D, 100D, 100D, sourcePaint =>
-                sourcePaint.Text("Clipped target content", 10D, 10D, 80D, 1D, fontSize: 12D))));
+                sourcePaint.Text("Clipped target content", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(1D), fontSize: global::OfficeIMO.OfficeLength.Points(12D)))));
 
         using var output = new MemoryStream();
         PdfCore.PdfSaveResult saved = result.TrySaveWithEvidence(output);

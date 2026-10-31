@@ -50,41 +50,41 @@ public sealed class PdfRichLineBaselineTests {
 
     private static byte[] Render(string frame, bool namedFont, bool mixed) {
         const string family = "Line Box Test";
-        var options = new PdfCreateOptions { PageWidth = 300, PageHeight = 300,
-            MarginTop = 30, MarginBottom = 30, MarginLeft = 30, MarginRight = 30, DefaultFontSize = 8 };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8) };
         if (namedFont) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C')));
-        var style = new PdfParagraphStyle { FontSize = 8, SpacingBefore = 0, SpacingAfter = 0,
+        var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             LineSpacing = PdfLineSpacing.Multiple(1.4) };
         Action<PdfParagraphBuilder> text = p => {
             if (namedFont) p.FontFamily(family);
-            if (mixed) p.FontSize(8).Text("A\n").FontSize(24).Text("B\n").FontSize(8).Text("C");
-            else p.FontSize(24).Text("A");
+            if (mixed) p.FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text("A\n").FontSize(global::OfficeIMO.OfficeLength.Points(24)).Text("B\n").FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text("C");
+            else p.FontSize(global::OfficeIMO.OfficeLength.Points(24)).Text("A");
         };
         var document = PdfDocument.Create(options);
         if (frame == "flow") document.Paragraph(text, style: style);
         else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column => column.Paragraph(text, style: style)));
         else if (frame == "canvas") {
             var runs = mixed ? new[] { Run("A\n", 8), Run("B\n", 24), Run("C", 8) } : new[] { Run("A", 24) };
-            document.Canvas(canvas => canvas.TextBox(runs, 30, 30, 240, 240, new PdfCanvasTextBoxStyle {
-                Font = PdfStandardFont.TimesRoman, FontSize = 8, LineHeight = 8 * 1.4,
-                PaddingX = 0, PaddingY = 0, Background = null, BorderColor = null
+            document.Canvas(canvas => canvas.TextBox(runs, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(240), new PdfCanvasTextBoxStyle {
+                Font = PdfStandardFont.TimesRoman, FontSize = global::OfficeIMO.OfficeLength.Points(8), LineHeight = global::OfficeIMO.OfficeLength.Points(8 * 1.4),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), Background = null, BorderColor = null
             }));
         }
         else {
             var runs = mixed
                 ? new[] { Run("A\n", 8), Run("B\n", 24), Run("C", 8) }
                 : new[] { Run("A", 24) };
-            var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 8, lineSpacing: style.LineSpacing) },
+            var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(8), lineSpacing: style.LineSpacing) },
                 linkUri: frame == "linked-table" ? "https://example.com/cell" : null);
             var tableStyle = PdfTableStyles.Minimal();
-            tableStyle.HeaderRowCount = 0; tableStyle.FontSize = 8;
-            tableStyle.CellPaddingX = 0; tableStyle.CellPaddingY = 0; tableStyle.SpacingBefore = 0;
+            tableStyle.HeaderRowCount = 0; tableStyle.FontSize = global::OfficeIMO.OfficeLength.Points(8);
+            tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0); tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0); tableStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0);
             document.Table(new[] { new[] { cell } }, style: tableStyle);
         }
         return document.ToBytes();
 
-        PdfTextRun Run(string value, double size) => new(value, fontSize: size, font: PdfStandardFont.Helvetica,
+        PdfTextRun Run(string value, double size) => new(value, fontSize: global::OfficeIMO.OfficeLength.Points(size), font: PdfStandardFont.Helvetica,
             fontFamily: namedFont ? family : null, linkUri: frame == "linked-table" ? "https://example.com/run" : null);
     }
 }

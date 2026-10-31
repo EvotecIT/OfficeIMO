@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Pdf {
             var options = new PdfCreateOptions {
                 HeaderFormat = "OfficeIMO.Pdf headers and footers",
                 HeaderAlign = PdfAlign.Left,
-                HeaderOffsetY = 18,
+                HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18),
                 ShowHeader = true,
                 FooterAlign = PdfAlign.Center,
                 ShowPageNumbers = true
@@ -20,15 +20,15 @@ namespace OfficeIMO.Examples.Pdf {
                 .PanelParagraph(
                     p => p.Text("A page break starts a new section while retaining the document header and footer."),
                     new PdfPanelStyle {
-                        Background = PdfColor.FromRgb(248, 250, 252),
-                        BorderColor = PdfColor.FromRgb(183, 194, 207),
-                        PaddingX = 9,
-                        PaddingY = 7
+                        Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
+                        PaddingX = global::OfficeIMO.OfficeLength.Points(9),
+                        PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                     })
                 .PageBreak()
                 .H2("Continuation Page", PdfAlign.Left)
                 .Paragraph(p => p.Text("Page numbers stay correct after an explicit page break."))
-                .Paragraph(p => p.Text("Right-aligned continuation note."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))), options)
+                .Paragraph(p => p.Text("Right-aligned continuation note."), PdfAlign.Right, OfficeColor.FromRgb(80, 80, 80))), options)
                 .Meta(title: "OfficeIMO.Pdf Headers and Footers", author: "OfficeIMO")
                 .Save(path);
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });

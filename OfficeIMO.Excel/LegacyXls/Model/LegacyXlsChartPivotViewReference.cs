@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes an SBaseRef PivotTable-view range referenced by a chart.
     /// </summary>
-    public sealed class LegacyXlsChartPivotViewReference {
+    internal sealed class LegacyXlsChartPivotViewReference {
         internal LegacyXlsChartPivotViewReference(int firstRow, int firstColumn, int lastRow, int lastColumn) {
             FirstRow = firstRow;
             FirstColumn = firstColumn;

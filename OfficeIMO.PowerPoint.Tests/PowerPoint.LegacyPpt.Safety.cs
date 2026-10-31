@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PackageReader_EnforcesFileWideRecordCountBudget() {
             byte[] bytes = CreatePresentationBytes();
-            LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument source = LegacyPptDocument.Load(bytes);
             var unrestricted = new LegacyPptImportOptions();
             int maximumSingleTree = source.Package.PersistObjects.Values
                 .Select(persistObject => LegacyPptRecordReader.ReadSingle(
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
             Assert.True(combinedPersistTreeCount > maximumSingleTree);
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                LegacyPptPresentation.Load(bytes, new LegacyPptImportOptions {
+                LegacyPptDocument.Load(bytes, new LegacyPptImportOptions {
                     MaxRecordCount = maximumSingleTree
                 }));
 
@@ -86,8 +86,8 @@ namespace OfficeIMO.Tests {
             const string Password = "persist-budget";
             byte[] bytes;
             byte[] encrypted;
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Create()) {
                 for (int index = 0; index < 32; index++) {
                     presentation.AddSlide().AddTextBox(
                         "Persist budget " + index);
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
                 encrypted = presentation.ToEncryptedBytes(Password,
                     PowerPointFileFormat.Ppt);
             }
-            LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument source = LegacyPptDocument.Load(bytes);
             int persistIdCount = source.Package.UserEdits.Sum(edit =>
                 edit.PersistObjectOffsets.Count);
             Assert.True(persistIdCount > 16);
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
                 StringComparison.OrdinalIgnoreCase);
 
             InvalidDataException encryptedException = Assert.Throws<
-                InvalidDataException>(() => LegacyPptPresentation.Load(
+                InvalidDataException>(() => LegacyPptDocument.Load(
                 encrypted, new LegacyPptImportOptions {
                     Password = Password,
                     MaxRecordCount = 16
@@ -121,11 +121,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PackageReader_EnforcesDocumentStreamSizeBudget() {
             byte[] bytes = CreatePresentationBytes();
-            LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument source = LegacyPptDocument.Load(bytes);
             int limit = source.Package.DocumentStream.Length - 1;
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                LegacyPptPresentation.Load(bytes,
+                LegacyPptDocument.Load(bytes,
                     new LegacyPptImportOptions { MaxInputBytes = limit }));
 
             Assert.Contains("exceeds", exception.Message,
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes = CreatePresentationBytes();
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                LegacyPptPresentation.Load(bytes,
+                LegacyPptDocument.Load(bytes,
                     new LegacyPptImportOptions { MaxSlideCount = 1 }));
 
             Assert.Contains("slide count", exception.Message,
@@ -157,11 +157,11 @@ namespace OfficeIMO.Tests {
                 };
 
                 InvalidDataException pathException = Assert.Throws<
-                    InvalidDataException>(() => LegacyPptPresentation.Load(
+                    InvalidDataException>(() => LegacyPptDocument.Load(
                     path, options));
                 using var stream = new ReadGuardStream(bytes.Length);
                 InvalidDataException streamException = Assert.Throws<
-                    InvalidDataException>(() => LegacyPptPresentation.Load(
+                    InvalidDataException>(() => LegacyPptDocument.Load(
                     stream, options));
 
                 Assert.Contains("exceeds", pathException.Message,
@@ -192,15 +192,15 @@ namespace OfficeIMO.Tests {
                 writable: false);
 
             Assert.Throws<InvalidDataException>(() =>
-                PowerPointPresentation.Load(loadStream, loadOptions));
+                PowerPointDocument.Load(loadStream, loadOptions));
             Assert.Throws<InvalidDataException>(() =>
-                PowerPointPresentation.LoadEncrypted(encryptedStream,
+                PowerPointDocument.LoadEncrypted(encryptedStream,
                     "password", loadOptions));
             await Assert.ThrowsAsync<InvalidDataException>(() =>
-                PowerPointPresentation.LoadAsync(loadAsyncStream,
+                PowerPointDocument.LoadAsync(loadAsyncStream,
                     loadOptions));
             await Assert.ThrowsAsync<InvalidDataException>(() =>
-                PowerPointPresentation.LoadEncryptedAsync(
+                PowerPointDocument.LoadEncryptedAsync(
                     encryptedAsyncStream, "password", loadOptions));
 
             var paddedBytes = new byte[256 * 1024];
@@ -208,7 +208,7 @@ namespace OfficeIMO.Tests {
             using var nonSeekable = new CountingNonSeekableReadStream(
                 paddedBytes);
             Assert.Throws<InvalidDataException>(() =>
-                PowerPointPresentation.Load(nonSeekable, loadOptions));
+                PowerPointDocument.Load(nonSeekable, loadOptions));
             Assert.Equal(paddedBytes.Length, nonSeekable.BytesRead);
         }
 
@@ -229,11 +229,11 @@ namespace OfficeIMO.Tests {
                 };
 
                 InvalidDataException syncException = Assert.Throws<
-                    InvalidDataException>(() => PowerPointPresentation.Load(
+                    InvalidDataException>(() => PowerPointDocument.Load(
                     path, options));
                 InvalidDataException asyncException = await Assert
                     .ThrowsAsync<InvalidDataException>(() =>
-                        PowerPointPresentation.LoadAsync(path, options));
+                        PowerPointDocument.LoadAsync(path, options));
 
                 Assert.Contains("maximum size", syncException.Message,
                     StringComparison.OrdinalIgnoreCase);
@@ -258,7 +258,7 @@ namespace OfficeIMO.Tests {
 
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                PowerPointPresentation.Load(
+                PowerPointDocument.Load(
                     input, options));
 
             Assert.Equal(OfficePackageSecurityRule.PackageSize,
@@ -280,7 +280,7 @@ namespace OfficeIMO.Tests {
 
             OfficePackageSecurityException exception = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                PowerPointPresentation.Load(
+                PowerPointDocument.Load(
                     input, options));
 
             Assert.Equal(OfficePackageSecurityRule.PackageSize,
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PresentationFacade_TemporaryStorageIsOwnerOnlyOnUnix() {
             if (OperatingSystem.IsWindows()) return;
-            using FileStream temporary = PowerPointPresentation
+            using FileStream temporary = PowerPointDocument
                 .CreateTemporaryInputStream(useAsync: false);
             const UnixFileMode accessBits = UnixFileMode.UserRead
                 | UnixFileMode.UserWrite
@@ -326,8 +326,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task PresentationFacade_EnforcesExplicitPackageInputBudgetForOpenXml() {
             byte[] packageBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Package input budget");
                 packageBytes = source.ToBytes();
             }
@@ -342,7 +342,7 @@ namespace OfficeIMO.Tests {
                 writable: false);
             OfficePackageSecurityException syncException = Assert.Throws<
                 OfficePackageSecurityException>(() =>
-                PowerPointPresentation.Load(syncInput, options));
+                PowerPointDocument.Load(syncInput, options));
             Assert.Equal(OfficePackageSecurityRule.PackageSize,
                 syncException.Rule);
 
@@ -350,7 +350,7 @@ namespace OfficeIMO.Tests {
                 writable: false);
             OfficePackageSecurityException asyncException = await Assert
                 .ThrowsAsync<OfficePackageSecurityException>(() =>
-                PowerPointPresentation.LoadAsync(asyncInput, options));
+                PowerPointDocument.LoadAsync(asyncInput, options));
             Assert.Equal(OfficePackageSecurityRule.PackageSize,
                 asyncException.Rule);
 
@@ -358,7 +358,7 @@ namespace OfficeIMO.Tests {
                 packageBytes);
             OfficePackageSecurityException nonSeekableException = Assert
                 .Throws<OfficePackageSecurityException>(() =>
-                PowerPointPresentation.Load(nonSeekable, options));
+                PowerPointDocument.Load(nonSeekable, options));
             Assert.Equal(OfficePackageSecurityRule.PackageSize,
                 nonSeekableException.Rule);
             Assert.Equal(maxBytes + 1, nonSeekable.BytesRead);
@@ -369,12 +369,12 @@ namespace OfficeIMO.Tests {
                 File.WriteAllBytes(path, packageBytes);
                 OfficePackageSecurityException pathException = Assert.Throws<
                     OfficePackageSecurityException>(() =>
-                    PowerPointPresentation.Load(path, options));
+                    PowerPointDocument.Load(path, options));
                 Assert.Equal(OfficePackageSecurityRule.PackageSize,
                     pathException.Rule);
                 OfficePackageSecurityException asyncPathException = await
                     Assert.ThrowsAsync<OfficePackageSecurityException>(() =>
-                        PowerPointPresentation.LoadAsync(path, options));
+                        PowerPointDocument.LoadAsync(path, options));
                 Assert.Equal(OfficePackageSecurityRule.PackageSize,
                     asyncPathException.Rule);
             } finally {
@@ -386,8 +386,8 @@ namespace OfficeIMO.Tests {
         public async Task EncryptedPresentationFacade_EnforcesTypedPackageInputBudget() {
             const string password = "typed-package-limit";
             byte[] encrypted;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Encrypted package budget");
                 encrypted = source.ToEncryptedBytes(password);
             }
@@ -401,7 +401,7 @@ namespace OfficeIMO.Tests {
                        writable: false)) {
                 OfficePackageSecurityException exception = Assert.Throws<
                     OfficePackageSecurityException>(() =>
-                    PowerPointPresentation.LoadEncrypted(syncInput,
+                    PowerPointDocument.LoadEncrypted(syncInput,
                         password, options));
                 Assert.Equal(OfficePackageSecurityRule.PackageSize,
                     exception.Rule);
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
                        writable: false)) {
                 OfficePackageSecurityException exception = await Assert
                     .ThrowsAsync<OfficePackageSecurityException>(() =>
-                        PowerPointPresentation.LoadEncryptedAsync(asyncInput,
+                        PowerPointDocument.LoadEncryptedAsync(asyncInput,
                             password, options));
                 Assert.Equal(OfficePackageSecurityRule.PackageSize,
                     exception.Rule);
@@ -419,7 +419,7 @@ namespace OfficeIMO.Tests {
                        encrypted)) {
                 OfficePackageSecurityException exception = Assert.Throws<
                     OfficePackageSecurityException>(() =>
-                    PowerPointPresentation.LoadEncrypted(nonSeekable,
+                    PowerPointDocument.LoadEncrypted(nonSeekable,
                         password, options));
                 Assert.Equal(OfficePackageSecurityRule.PackageSize,
                     exception.Rule);
@@ -432,13 +432,13 @@ namespace OfficeIMO.Tests {
                 File.WriteAllBytes(path, encrypted);
                 OfficePackageSecurityException pathException = Assert.Throws<
                     OfficePackageSecurityException>(() =>
-                    PowerPointPresentation.LoadEncrypted(path, password,
+                    PowerPointDocument.LoadEncrypted(path, password,
                         options));
                 Assert.Equal(OfficePackageSecurityRule.PackageSize,
                     pathException.Rule);
                 OfficePackageSecurityException asyncPathException = await
                     Assert.ThrowsAsync<OfficePackageSecurityException>(() =>
-                        PowerPointPresentation.LoadEncryptedAsync(path,
+                        PowerPointDocument.LoadEncryptedAsync(path,
                             password, options));
                 Assert.Equal(OfficePackageSecurityRule.PackageSize,
                     asyncPathException.Rule);
@@ -452,8 +452,8 @@ namespace OfficeIMO.Tests {
             const string password = "openxml-budget";
             byte[] packageBytes;
             byte[] encryptedBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Open XML remains unbounded");
                 packageBytes = source.ToBytes();
                 encryptedBytes = source.ToEncryptedBytes(password);
@@ -471,35 +471,35 @@ namespace OfficeIMO.Tests {
 
             using var packageInput = new MemoryStream(packageBytes,
                 writable: false);
-            using PowerPointPresentation package =
-                PowerPointPresentation.Load(packageInput, packageOptions);
+            using PowerPointDocument package =
+                PowerPointDocument.Load(packageInput, packageOptions);
             Assert.Single(package.Slides);
 
             using var packageAsyncInput = new MemoryStream(packageBytes,
                 writable: false);
-            using PowerPointPresentation packageAsync =
-                await PowerPointPresentation.LoadAsync(packageAsyncInput,
+            using PowerPointDocument packageAsync =
+                await PowerPointDocument.LoadAsync(packageAsyncInput,
                     packageOptions);
             Assert.Single(packageAsync.Slides);
 
             using var encryptedInput = new MemoryStream(encryptedBytes,
                 writable: false);
-            using PowerPointPresentation encrypted =
-                PowerPointPresentation.LoadEncrypted(encryptedInput,
+            using PowerPointDocument encrypted =
+                PowerPointDocument.LoadEncrypted(encryptedInput,
                     password, encryptedOptions);
             Assert.Single(encrypted.Slides);
 
             using var encryptedNonSeekable =
                 new CountingNonSeekableReadStream(encryptedBytes);
-            using PowerPointPresentation encryptedFromNonSeekable =
-                PowerPointPresentation.LoadEncrypted(encryptedNonSeekable,
+            using PowerPointDocument encryptedFromNonSeekable =
+                PowerPointDocument.LoadEncrypted(encryptedNonSeekable,
                     password, encryptedOptions);
             Assert.Single(encryptedFromNonSeekable.Slides);
 
             using var encryptedAsyncInput = new MemoryStream(encryptedBytes,
                 writable: false);
-            using PowerPointPresentation encryptedAsync =
-                await PowerPointPresentation.LoadEncryptedAsync(
+            using PowerPointDocument encryptedAsync =
+                await PowerPointDocument.LoadEncryptedAsync(
                     encryptedAsyncInput, password, encryptedOptions);
             Assert.Single(encryptedAsync.Slides);
         }
@@ -511,8 +511,8 @@ namespace OfficeIMO.Tests {
             new Random(42).NextBytes(randomBytes);
             string largeText = Convert.ToBase64String(randomBytes);
             byte[] encryptedBytes;
-            using (PowerPointPresentation source =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                   PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox(largeText);
                 encryptedBytes = source.ToEncryptedBytes(password);
             }
@@ -526,8 +526,8 @@ namespace OfficeIMO.Tests {
 
             using var syncInput = new CountingNonSeekableReadStream(
                 encryptedBytes);
-            using PowerPointPresentation sync =
-                PowerPointPresentation.LoadEncrypted(syncInput, password,
+            using PowerPointDocument sync =
+                PowerPointDocument.LoadEncrypted(syncInput, password,
                     options);
             Assert.Equal(largeText.Length,
                 Assert.Single(sync.Slides[0].TextBoxes).Text.Length);
@@ -535,8 +535,8 @@ namespace OfficeIMO.Tests {
 
             using var asyncInput = new CountingNonSeekableReadStream(
                 encryptedBytes);
-            using PowerPointPresentation asyncPresentation =
-                await PowerPointPresentation.LoadEncryptedAsync(asyncInput,
+            using PowerPointDocument asyncPresentation =
+                await PowerPointDocument.LoadEncryptedAsync(asyncInput,
                     password, options);
             Assert.Equal(largeText.Length,
                 Assert.Single(asyncPresentation.Slides[0].TextBoxes)
@@ -551,8 +551,8 @@ namespace OfficeIMO.Tests {
             byte[] secondStorage = CreateOleTestStorage("Second storage");
             byte[] bytes;
             byte[] encryptedBytes;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = created.AddSlide();
                 using var first = new MemoryStream(firstStorage,
                     writable: false);
@@ -565,14 +565,14 @@ namespace OfficeIMO.Tests {
                     PowerPointFileFormat.Ppt);
             }
 
-            LegacyPptPresentation unrestricted =
-                LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument unrestricted =
+                LegacyPptDocument.Load(bytes);
             Assert.Equal(2, unrestricted.OleObjects.Count);
             long decodedBytes = unrestricted.OleObjects.Sum(item =>
                 (long)item.Length);
 
             InvalidDataException exception = Assert.Throws<
-                InvalidDataException>(() => LegacyPptPresentation.Load(bytes,
+                InvalidDataException>(() => LegacyPptDocument.Load(bytes,
                 new LegacyPptImportOptions {
                     MaxDecodedStorageBytes = decodedBytes - 1
                 }));
@@ -587,12 +587,12 @@ namespace OfficeIMO.Tests {
             };
             using var input = new MemoryStream(bytes, writable: false);
             Assert.Throws<InvalidDataException>(() =>
-                PowerPointPresentation.Load(input, loadOptions));
+                PowerPointDocument.Load(input, loadOptions));
 
             using var encryptedInput = new MemoryStream(encryptedBytes,
                 writable: false);
             Assert.Throws<InvalidDataException>(() =>
-                PowerPointPresentation.LoadEncrypted(encryptedInput,
+                PowerPointDocument.LoadEncrypted(encryptedInput,
                     Password, loadOptions));
         }
 
@@ -604,30 +604,30 @@ namespace OfficeIMO.Tests {
             byte[] secondImage = OfficePngWriter.Encode(new OfficeRasterImage(
                 4, 4, OfficeColor.FromRgb(40, 50, 60)));
             byte[] bytes;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = created.AddSlide();
                 using (var first = new MemoryStream(firstImage,
                            writable: false)) {
-                    slide.AddPicture(first,
+                    slide.AddImage(first,
                         OfficeIMO.Drawing.OfficeImageFormat.Png);
                 }
                 using (var second = new MemoryStream(secondImage,
                            writable: false)) {
-                    slide.AddPicture(second,
+                    slide.AddImage(second,
                         OfficeIMO.Drawing.OfficeImageFormat.Png,
-                        left: 1000000);
+                        left: global::OfficeIMO.OfficeLength.Emus(1000000));
                 }
                 bytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
-            LegacyPptPresentation unrestricted =
-                LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument unrestricted =
+                LegacyPptDocument.Load(bytes);
             Assert.Equal(2, unrestricted.BlipStoreEntries.Count);
             long decodedBytes = unrestricted.BlipStoreEntries.Sum(entry =>
                 (long)entry.ImageByteCount);
 
             InvalidDataException exception = Assert.Throws<
-                InvalidDataException>(() => LegacyPptPresentation.Load(bytes,
+                InvalidDataException>(() => LegacyPptDocument.Load(bytes,
                 new LegacyPptImportOptions {
                     MaxDecodedStorageBytes = decodedBytes - 1
                 }));
@@ -645,25 +645,25 @@ namespace OfficeIMO.Tests {
                 new OfficeRasterImage(4, 4,
                     OfficeColor.FromRgb(40, 50, 60)));
             byte[] bytes;
-            using (PowerPointPresentation created =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument created =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = created.AddSlide();
                 using (var first = new MemoryStream(firstImage,
                            writable: false)) {
-                    slide.AddPicture(first,
+                    slide.AddImage(first,
                         OfficeIMO.Drawing.OfficeImageFormat.Png);
                 }
                 using (var second = new MemoryStream(secondImage,
                            writable: false)) {
-                    slide.AddPicture(second,
+                    slide.AddImage(second,
                         OfficeIMO.Drawing.OfficeImageFormat.Png,
-                        left: 1000000);
+                        left: global::OfficeIMO.OfficeLength.Emus(1000000));
                 }
                 bytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
-            LegacyPptPresentation source =
-                LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument source =
+                LegacyPptDocument.Load(bytes);
             byte[] document = (byte[])source.Package.DocumentStream.Clone();
             LegacyPptRecord root = LegacyPptRecordReader.ReadSingle(
                 document, checked((int)source.Package.PersistObjectOffsets[
@@ -681,8 +681,8 @@ namespace OfficeIMO.Tests {
                     ["PowerPoint Document"] = document
                 });
 
-            LegacyPptPresentation aliased =
-                LegacyPptPresentation.Load(aliasedBytes);
+            LegacyPptDocument aliased =
+                LegacyPptDocument.Load(aliasedBytes);
 
             Assert.Equal(2, aliased.BlipStoreEntries.Count);
             Assert.Equal(aliased.BlipStoreEntries[0].BlipPayloadSha256,
@@ -777,7 +777,7 @@ namespace OfficeIMO.Tests {
                 MaxInputBytes = expanded.Length
             };
             OfficeInspectionResourceLimitException exception = Assert.Throws<
-                OfficeInspectionResourceLimitException>(() => LegacyPptPresentation.Load(
+                OfficeInspectionResourceLimitException>(() => LegacyPptDocument.Load(
                     expanded, importOptions));
 
             Assert.Equal("powerpoint", exception.Owner);
@@ -787,7 +787,7 @@ namespace OfficeIMO.Tests {
                 writable: false);
             OfficeInspectionResourceLimitException routeException = Assert.Throws<
                 OfficeInspectionResourceLimitException>(() =>
-                PowerPointPresentation.LoadEncrypted(encryptedRoute,
+                PowerPointDocument.LoadEncrypted(encryptedRoute,
                     "password", new PowerPointLoadOptions {
                         LegacyPptImportOptions = importOptions
                     }));
@@ -824,7 +824,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PackageReader_RejectsCyclicUserEditChain() {
             byte[] bytes = CreatePresentationBytes();
-            LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument source = LegacyPptDocument.Load(bytes);
             byte[] document = (byte[])source.Package.DocumentStream.Clone();
             int previousEditOffset = checked((int)source.Package.CurrentEditOffset + 16);
             WriteUInt32(document, previousEditOffset,
@@ -835,7 +835,7 @@ namespace OfficeIMO.Tests {
                 });
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                LegacyPptPresentation.Load(cyclic));
+                LegacyPptDocument.Load(cyclic));
 
             Assert.Contains("cycle", exception.Message,
                 StringComparison.OrdinalIgnoreCase);
@@ -844,7 +844,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PackageReader_SharesPersistRecordsAliasedByOffset() {
             byte[] bytes = CreatePresentationBytes();
-            LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument source = LegacyPptDocument.Load(bytes);
             byte[] document = (byte[])source.Package.DocumentStream.Clone();
             uint directoryOffset = source.Package.UserEdits[0]
                 .PersistDirectoryOffset;
@@ -888,7 +888,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PackageReader_RejectsOverlappingPersistRecordRanges() {
             byte[] bytes = CreatePresentationBytes();
-            LegacyPptPresentation source = LegacyPptPresentation.Load(bytes);
+            LegacyPptDocument source = LegacyPptDocument.Load(bytes);
             byte[] document = (byte[])source.Package.DocumentStream.Clone();
             LegacyPptRecord directory = LegacyPptRecordReader.ReadSingle(
                 document, checked((int)source.Package.UserEdits[0]
@@ -935,8 +935,8 @@ namespace OfficeIMO.Tests {
         }
 
         private static byte[] CreatePresentationBytes() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Safety fixture");
             presentation.AddSlide().AddTextBox("Second safety slide");
             return presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });

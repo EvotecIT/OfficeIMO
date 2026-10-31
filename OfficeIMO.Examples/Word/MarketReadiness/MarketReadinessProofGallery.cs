@@ -147,7 +147,7 @@ namespace OfficeIMO.Examples.Word {
             document.AddParagraph("Accepted:").AddCheckBox(false, "Accepted Alias", "Accepted");
             document.AddParagraph("Due:").AddDatePicker(new DateTime(2026, 1, 1), "Due Alias", "DueDate");
             document.AddParagraph("Priority:").AddDropDownList(new[] { "Low", "Medium", "High" }, "Priority Alias", "Priority");
-            document.AddParagraph("Logo:").AddPictureControl(logoSourcePath, 24, 24, "Logo Alias", "Logo");
+            document.AddParagraph("Logo:").AddPictureControl(logoSourcePath, OfficeLength.Pixels(24), OfficeLength.Pixels(24), "Logo Alias", "Logo");
             document.AddParagraph("Tasks:").AddRepeatingSection("Tasks", "Tasks Alias", "Tasks");
 
             var values = new Dictionary<string, object?> {

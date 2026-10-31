@@ -16,16 +16,16 @@ public sealed class ExcelConditionalIconFidelityTests {
     [InlineData(ExcelIconSet.FiveArrows, 5)]
     public void FlowTable_YellowArrowDirectionsMatchTheirConditionalValues(ExcelIconSet iconSet, int count) {
         using var document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Directions");
+        ExcelSheet sheet = document.AddSheet("Directions");
         for (int row = 1; row <= count; row++) {
             sheet.CellValue(row, 1, row - 1);
-            sheet.SetRowHeight(row, 30);
+            sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         }
         sheet.AddConditionalIconSet("A1:A" + count, iconSet, showValue: false, reverseIconOrder: false,
             percentThresholds: null, numberThresholds: Enumerable.Range(0, count).Select(value => (double)value).ToArray());
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable, IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PdfPageSize(360, 360), Margins = PdfCore.PdfPageMargins.Uniform(0)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(360)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var yellow = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Pages[0].GetIdentityVisualPrimitives()
             .Where(item => item.FillColor is OfficeColor color && color.R == 255 && color.G == 192 && color.B == 0)
@@ -59,15 +59,15 @@ public sealed class ExcelConditionalIconFidelityTests {
     [InlineData(50, false)]
     public void Symbols_RenderActualArtworkAndReserveTextInPdfAndPng(int percent, bool showValue) {
         using var document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Icons");
-        sheet.SetColumnWidth(1, 20);
-        sheet.SetMargins(0, 0, 0, 0);
+        ExcelSheet sheet = document.AddSheet("Icons");
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
+        sheet.SetMargins(OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(0));
         sheet.SetPageSetup(scale: (uint)percent);
         int[] values = { 123, 456, 789 };
         for (int row = 1; row <= 3; row++) {
             sheet.CellValue(row, 1, values[row - 1]);
             sheet.CellAlign(row, 1, ExcelHorizontalAlignment.Left);
-            sheet.SetRowHeight(row, 24);
+            sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
         }
         sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeSymbols2, showValue, false,
             percentThresholds: null, numberThresholds: new[] { 0D, 300D, 600D });
@@ -78,7 +78,7 @@ public sealed class ExcelConditionalIconFidelityTests {
 
         byte[] pdfBytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
-            PageSize = new PdfCore.PdfPageSize(360, 240), Margins = PdfCore.PdfPageMargins.Uniform(0)
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(240)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(pdfBytes);
         double worksheetScale = percent / 100D;
@@ -94,7 +94,7 @@ public sealed class ExcelConditionalIconFidelityTests {
         }
 
         double imageScale = percent / 50D;
-        byte[] png = sheet.Range("A1:A3").ToPng(new ExcelImageExportOptions { ShowGridlines = false, Scale = imageScale });
+        byte[] png = sheet.Range("A1:A3").ToImage(new ExcelImageExportOptions { ShowGridlines = false, Scale = imageScale });
         Assert.True(OfficePngReader.TryDecode(png, out var image));
         AssertSymbolArtwork(image!, 32D * imageScale);
         foreach (var cell in snapshot.Cells) {
@@ -122,7 +122,7 @@ public sealed class ExcelConditionalIconFidelityTests {
     public void ImportedCustomNoIconsAndNumericThresholds_AgreeInPdfAndPng(bool showValue, bool allNoIcons) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            ExcelSheet sheet = document.AddWorksheet("Custom");
+            ExcelSheet sheet = document.AddSheet("Custom");
             sheet.CellValue(1, 1, -1);
             sheet.CellValue(2, 1, 0);
             sheet.CellValue(3, 1, 1);
@@ -165,7 +165,7 @@ public sealed class ExcelConditionalIconFidelityTests {
             Assert.Equal(3, selected.Row);
             Assert.Equal(OfficeConditionalIconKind.GreenCheck, selected.Kind);
         }
-        string svg = imported.Range("A1:A3").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+        string svg = System.Text.Encoding.UTF8.GetString(imported.Range("A1:A3").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
         if (!showValue) {
             Assert.DoesNotContain(">-1<", svg, StringComparison.Ordinal);
             Assert.DoesNotContain(">0<", svg, StringComparison.Ordinal);

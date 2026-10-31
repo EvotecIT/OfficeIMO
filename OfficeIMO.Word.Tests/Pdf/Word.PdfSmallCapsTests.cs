@@ -14,7 +14,7 @@ public sealed class WordPdfSmallCapsTests {
     public void InheritedSmallCapsRestoreFullSizeAfterLowercaseText(bool hyperlink) {
         using WordDocument document = CreateDocument();
         WordParagraph paragraph = document.AddParagraph();
-        if (hyperlink) paragraph.AddHyperLink("aB", new Uri("https://example.com/caps")).CapsStyle = WordCapsStyle.SmallCaps;
+        if (hyperlink) paragraph.AddHyperLink("aB", new Uri("https://example.com/caps")).Paragraph.CapsStyle = WordCapsStyle.SmallCaps;
         else {
             paragraph.Text = "aB";
             paragraph.SetSmallCaps();
@@ -32,14 +32,14 @@ public sealed class WordPdfSmallCapsTests {
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle?.Remove();
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
-        if (hyperlink) paragraph.AddHyperLink("AB", new Uri("https://example.com/caps")).CapsStyle = WordCapsStyle.SmallCaps;
+        if (hyperlink) paragraph.AddHyperLink("AB", new Uri("https://example.com/caps")).Paragraph.CapsStyle = WordCapsStyle.SmallCaps;
         else {
             paragraph.Text = "AB";
             paragraph.SetSmallCaps();
         }
         WordPdfExportOptions options = Options();
         options.PdfOptions = new PdfCreateOptions {
-            DefaultTableStyle = new PdfTableStyle { FontSize = 18D, HeaderRowCount = 0 }
+            DefaultTableStyle = new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(18D), HeaderRowCount = 0 }
         };
         using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal("AB", pdf.GetPage(1).Text);
@@ -61,7 +61,7 @@ public sealed class WordPdfSmallCapsTests {
     public void SmallCapsUsesNativeHalfPointSizesAndKeepsOriginalCapitals(double fontSize, double smallSize) {
         using WordDocument document = CreateDocument();
         WordParagraph run = document.AddParagraph("Aa 1!");
-        run.FontSizePoints = fontSize;
+        run.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
         run.SetSmallCaps();
         using var pdf = OpenPdf(document);
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value != " ").ToArray();
@@ -145,7 +145,7 @@ public sealed class WordPdfSmallCapsTests {
     public void SmallCapsMeasuresReducedGlyphsBeforeWrappingMixedCaseWords() {
         using WordDocument document = CreateDocument();
         document.AddParagraph("MMMMmmmm Z").SetSmallCaps();
-        using var pdf = OpenPdf(document, new PdfPageSize(115, 300));
+        using var pdf = OpenPdf(document, new PdfPageSize(OfficeIMO.OfficeLength.Points(115),OfficeIMO.OfficeLength.Points(300)));
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value != " ").ToArray();
         Assert.Equal("MMMMMMMMZ", string.Concat(letters.Select(letter => letter.Value)));
         Assert.All(letters.Take(8), letter => Assert.Equal(letters[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
@@ -175,7 +175,7 @@ public sealed class WordPdfSmallCapsTests {
         using WordDocument document = CreateDocument();
         const string uri = "https://example.com/small-caps";
         WordParagraph paragraph = document.AddParagraph();
-        paragraph.AddHyperLink("AaBb", new Uri(uri), tooltip: "Small caps reference").CapsStyle = WordCapsStyle.SmallCaps;
+        paragraph.AddHyperLink("AaBb", new Uri(uri), tooltip: "Small caps reference").Paragraph.CapsStyle = WordCapsStyle.SmallCaps;
         byte[] bytes = document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal("AABB", pdf.GetPage(1).Text);
@@ -200,7 +200,7 @@ public sealed class WordPdfSmallCapsTests {
 
     private static WordPdfExportOptions Options(PdfPageSize? pageSize = null) => new() {
         IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-        PageSize = pageSize, Margins = PdfPageMargins.Uniform(20)
+        PageSize = pageSize, Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
     };
 
     private static PdfPigDocument OpenPdf(WordDocument document, PdfPageSize? pageSize = null) =>

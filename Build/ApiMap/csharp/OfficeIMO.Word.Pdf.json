@@ -1,22 +1,6 @@
 {
   "package": "OfficeIMO.Word.Pdf",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
-  "summary": {
-    "changes": 17,
-    "byAction": {
-      "change": 4,
-      "merge": 3,
-      "move": 3,
-      "remove": 6,
-      "rename": 1
-    },
-    "byCategory": {
-      "conversion": 14,
-      "options": 1,
-      "package": 2
-    },
-    "packageMoves": 2
-  },
   "projectReferences": {
     "csproj": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
     "targetFrameworks": [
@@ -388,6 +372,41 @@
       "signature": "WordFieldUpdateOptions.WithPdfLayoutPagination() : WordFieldUpdateOptions",
       "note": "Keeps native PAGEREF/NUMPAGES/TOC layout in OfficeIMO.Word.Pdf. Returns independent options with a statically bound internal layout provider; OfficeIMO.Word remains PDF-independent. Direct UseLayoutPagination callers select the converter through this extension.",
       "status": "applied"
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Word page images expose options-based ToImage/ToImageAsync, SaveAsImage/SaveAsImageAsync and aggregate SaveAsImages/SaveAsImagesAsync. Rendering kernels and snapshot reading remain on the existing Word adapter.",
+      "reason": "The Word map image entries apply to the forward Word.Pdf adapter after the Phase A package move.",
+      "files": [
+        "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.Conversion.cs",
+        "OfficeIMO.Word.Pdf/Imaging/ImageExportOperations.cs",
+        "OfficeIMO.Word.Pdf/Imaging/WordImageExportBuilder.cs",
+        "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.RasterFormats.cs",
+        "OfficeIMO.Word.Pdf/README.md"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "The Word image cmdlet keeps its existing detailed PassThru values through an internal SaveImageResults operation and friend access. The public save API returns only OfficeConversionReport. Sync image conversion/saving accepts cancellation, and the out-report form follows the options-then-report order used by the PDF/HTML/Markdown adapters.",
+      "reason": "Mechanical consumer closure and shared-owner preservation for the approved API change.",
+      "files": [
+        "OfficeIMO.Word.Pdf/Imaging/ImageExportOperations.cs",
+        "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.Conversion.cs",
+        "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs"
+      ]
+    },
+    {
+      "category": "consumers",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.ChartForgeX.Examples/OfficeIMO.ChartForgeX.Examples.csproj",
+        "OfficeIMO.ChartForgeX.Examples/DeliveryEvidence.cs"
+      ],
+      "note": "The saved-document evidence example references Word.Pdf directly for Word page images after the package move. PDF evidence uses public path loading with document disposal."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
@@ -397,5 +416,21 @@
     "frameworks": "No framework is dropped in 3.6. Original library TFMs and Windows net472 conditions remain; the front door and both Workflows projects support the full set. Modern-only engines stay conditional.",
     "packageDirection": "Word.Pdf and PowerPoint.Pdf export native documents. Reverse reconstruction is Pdf.Word and Pdf.PowerPoint; Excel reconstruction is Pdf.Excel. Word page images live in Word.Pdf.",
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
+  },
+  "summary": {
+    "changes": 17,
+    "byAction": {
+      "rename": 1,
+      "merge": 3,
+      "change": 4,
+      "remove": 6,
+      "move": 3
+    },
+    "byCategory": {
+      "conversion": 14,
+      "package": 2,
+      "options": 1
+    },
+    "packageMoves": 2
   }
 }

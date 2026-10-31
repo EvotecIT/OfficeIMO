@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -31,14 +32,13 @@ public partial class Word {
         for (int column = 0; column < 3; column++)
             table.Rows[0].Cells[column].Paragraphs[0].Text = "Span" + column;
         if (automaticLeft) {
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Auto;
-            table.Rows[0].Cells[0].Width = 0;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Auto;
         }
         int[] spanStarts = rightSpanFirst ? new[] { 1, 0 } : new[] { 0, 1 };
         for (int row = 0; row < spanStarts.Length; row++)
             AddAutomaticControlSpan(table, preferences, spanStarts[row],
                 shortSpanFirst && row == 0 ? 12 : 24, automaticLeft);
-        table.GridColumnWidth = preferences.Select(value => value * 20).ToList();
+        table.GridColumnWidth = preferences.Select(value => value * 20).ToList().Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var words = page.GetWords().ToList();
@@ -61,8 +61,8 @@ public partial class Word {
     public void SaveAsPdf_AutomaticMergedMinimumFitsAConstrainedFrame(
         int leftPreference, int rightPreference, int bodyWidth, double firstWidth) {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].PageSettings.Width = (uint)((bodyWidth + 144) * 20);
-        document.Sections[0].Margins.Left = 1440; document.Sections[0].Margins.Right = 1440;
+        document.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(((uint)((bodyWidth + 144) * 20)) / 20D);
+        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(72D); document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
         int[] preferences = { leftPreference, rightPreference };
         WordTable table = CreateAutomaticWidthControl(document, preferences.Select(value => value * 20).ToArray());
         for (int column = 0; column < 2; column++) table.Rows[0].Cells[column].Paragraphs[0].Text = "Span" + column;
@@ -85,8 +85,8 @@ public partial class Word {
     public void SaveAsPdf_AutomaticThreeColumnSpanRespectsPreferencesAndPadding(
         int gridShape, int bodyWidth, double firstWidth, double secondWidth) {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].PageSettings.Width = (uint)((bodyWidth + 144) * 20);
-        document.Sections[0].Margins.Left = 1440; document.Sections[0].Margins.Right = 1440;
+        document.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(((uint)((bodyWidth + 144) * 20)) / 20D);
+        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(72D); document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
         int[] preferences = gridShape == 0 ? new[] { 40, 80, 120 }
             : gridShape == 1 ? new[] { 120, 80, 40 } : new[] { 80, 80, 80 };
         WordTable table = CreateAutomaticWidthControl(document, preferences.Select(value => value * 20).ToArray());
@@ -107,19 +107,18 @@ public partial class Word {
         WordTableRow row = table.AddRow();
         for (int column = 0; column < preferences.Length; column++) {
             WordTableCell cell = row.Cells[column];
-            cell.WidthType = automaticLeft && column == 0 ? WordTableWidthUnit.Auto : WordTableWidthUnit.Dxa;
-            cell.Width = cell.WidthType == WordTableWidthUnit.Auto ? 0 : preferences[column] * 20;
-            cell.MarginLeftWidth = 108; cell.MarginRightWidth = 108;
-            cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
+            cell.Width = TableWidthFixture(automaticLeft && column == 0 ? WordTableWidthKind.Auto : WordTableWidthKind.Length, cell.Width?.Kind == WordTableWidthKind.Auto ? 0 : preferences[column] * 20);
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D); cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             var paragraph = cell.Paragraphs[0];
             paragraph.Text = "Span" + column;
-            paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = 240;
+            paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
         }
         WordTableCell merged = row.Cells[startColumn];
         merged.MergeHorizontally(columnSpan - 1);
-        merged.WidthType = WordTableWidthUnit.Auto; merged.Width = 0;
+        merged.Width = WordTableWidth.Auto;
         merged.Paragraphs[0].Text = new string('W', characterCount);
     }
 
@@ -136,10 +135,10 @@ public partial class Word {
         int cachedGridTwips, int bodyWidth, int spacingTwips, int automaticColumn, double expectedAdvance) {
         using WordDocument document = WordDocument.Create();
         var section = document.Sections[0];
-        section.PageSettings.Width = (uint)((bodyWidth + 144) * 20);
-        section.Margins.Left = 1440; section.Margins.Right = 1440;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(((uint)((bodyWidth + 144) * 20)) / 20D);
+        section.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D); section.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
         WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
-        table.WidthType = WordTableWidthUnit.Auto; table.Width = 0;
+        table.Width = WordTableWidth.Auto;
         table._tableProperties.TableLayout?.Remove();
         table._tableProperties.TableBorders = new W.TableBorders(
             new W.TopBorder { Val = W.BorderValues.Single, Size = 8U },
@@ -153,16 +152,15 @@ public partial class Word {
         };
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
-            cell.WidthType = automaticColumn == column ? WordTableWidthUnit.Auto : WordTableWidthUnit.Dxa;
-            cell.Width = automaticColumn == column ? 0 : automaticColumn == 2 ? (column == 0 ? 1200 : 3300) : 2250;
-            cell.MarginLeftWidth = 0; cell.MarginRightWidth = 0;
-            cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
+            cell.Width = TableWidthFixture(automaticColumn == column ? WordTableWidthKind.Auto : WordTableWidthKind.Length, automaticColumn == column ? 0 : automaticColumn == 2 ? (column == 0 ? 1200 : 3300) : 2250);
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero; cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             var paragraph = cell.Paragraphs[0];
             paragraph.Text = column == 0 ? "ABCDEFGHIJ" : "Z";
-            paragraph.FontFamily = "Courier New"; paragraph.FontSize = 10;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+            paragraph.FontFamily = "Courier New"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
-        table.GridColumnWidth = new List<int> { cachedGridTwips / 2, cachedGridTwips / 2 };
+        table.GridColumnWidth = new List<int> { cachedGridTwips / 2, cachedGridTwips / 2 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier }

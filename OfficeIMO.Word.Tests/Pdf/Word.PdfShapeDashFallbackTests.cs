@@ -16,7 +16,7 @@ public sealed class WordPdfShapeDashFallbackTests {
     public void MissingPresetDashValueRetainsSolidShapeAndText(bool otherNamespace) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Before");
-        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 96, 44);
+        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(44));
         document.AddParagraph("After");
         var shape = document._wordprocessingDocument.MainDocumentPart!.Document.Descendants<Wps.ShapeProperties>().First();
         var dash = new A.PresetDash();

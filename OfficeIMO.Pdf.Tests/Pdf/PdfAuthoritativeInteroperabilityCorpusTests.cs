@@ -63,7 +63,7 @@ public sealed class PdfAuthoritativeInteroperabilityCorpusTests {
             PdfDocumentInfo info = PdfInspector.Inspect(bytes);
             string text = document.ExtractText();
             IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(bytes, options: new PdfPageRenderOptions {
-                Format = PdfPageRenderFormat.Svg,
+                Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg,
                 ContinueOnError = true,
                 MaxPages = 4
             });
@@ -110,7 +110,7 @@ public sealed class PdfAuthoritativeInteroperabilityCorpusTests {
                     StringComparer.Ordinal),
                 id + " produced unexpected render diagnostics: " + string.Join(", ", renders.SelectMany(render => render.CapabilityDiagnostics).Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal)));
             IReadOnlyList<PdfPageRenderResult> repeatedRenders = PdfPageImageRenderer.RenderPages(bytes, options: new PdfPageRenderOptions {
-                Format = PdfPageRenderFormat.Svg,
+                Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg,
                 ContinueOnError = true,
                 MaxPages = 4
             });

@@ -11,18 +11,18 @@ public sealed class PdfDecimalRichFieldTests {
     [InlineData(PdfTextWhitespaceMode.Preserve, '.', "1234", false)]
     public void DecimalTabsAnchorCompleteMixedFontFieldsAtTheSelectedSeparatorOrFieldEnd(
         PdfTextWhitespaceMode whitespace, char separator, string number, bool hasSeparator) {
-        var style = new PdfParagraphStyle { TextWhitespaceMode = whitespace, SpacingAfter = 0D };
-        style.AddTabStop(200D, PdfTabAlignment.DecimalSeparator).DecimalSeparator = separator;
+        var style = new PdfParagraphStyle { TextWhitespaceMode = whitespace, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(200D), PdfTabAlignment.DecimalSeparator).DecimalSeparator = separator;
         var options = new PdfCreateOptions {
-            PageWidth = 420D, PageHeight = 180D, MarginLeft = 20D, MarginRight = 20D,
-            MarginTop = 20D, MarginBottom = 20D, DefaultFontSize = 12D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(420D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
         };
         byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] {
             PdfTextRun.Normal("LABEL\t"),
-            PdfTextRun.Normal("USD ", fontSize: 9D, font: PdfStandardFont.HelveticaBold),
-            PdfTextRun.Normal(number, fontSize: 16D, font: PdfStandardFont.Courier)
-                .WithHorizontalTextScaling(125D).WithCharacterSpacing(.5D),
-            PdfTextRun.Normal(" net", fontSize: 8D, font: PdfStandardFont.TimesRoman)
+            PdfTextRun.Normal("USD ", fontSize: global::OfficeIMO.OfficeLength.Points(9D), font: PdfStandardFont.HelveticaBold),
+            PdfTextRun.Normal(number, fontSize: global::OfficeIMO.OfficeLength.Points(16D), font: PdfStandardFont.Courier)
+                .WithHorizontalTextScaling(125D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(.5D)),
+            PdfTextRun.Normal(" net", fontSize: global::OfficeIMO.OfficeLength.Points(8D), font: PdfStandardFont.TimesRoman)
         }), style: style).ToBytes();
 
         using var pdf = PdfPigDocument.Open(bytes);
@@ -41,12 +41,12 @@ public sealed class PdfDecimalRichFieldTests {
     [InlineData(PdfTabAlignment.Center)]
     [InlineData(PdfTabAlignment.DecimalSeparator)]
     public void TabFieldsRemeasureWhenWrappingSelectsAnEarlierNonLeftStop(PdfTabAlignment alignment) {
-        var style = new PdfParagraphStyle { SpacingAfter = 0D };
-        style.AddTabStop(90D, alignment).DecimalSeparator = '.';
-        style.AddTabStop(170D, PdfTabAlignment.Left);
+        var style = new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(90D), alignment).DecimalSeparator = '.';
+        style.AddTabStop(global::OfficeIMO.OfficeLength.Points(170D), PdfTabAlignment.Left);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = 220D, PageHeight = 180D, MarginLeft = 20D, MarginRight = 20D,
-            MarginTop = 20D, MarginBottom = 20D, DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 10D
+            PageWidth = global::OfficeIMO.OfficeLength.Points(220D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
         }).Paragraph(paragraph => paragraph.Text("PREFIXPREFIXPREFIX\tUSD 12.50 net"), style: style).ToBytes();
 
         using var pdf = PdfPigDocument.Open(bytes);

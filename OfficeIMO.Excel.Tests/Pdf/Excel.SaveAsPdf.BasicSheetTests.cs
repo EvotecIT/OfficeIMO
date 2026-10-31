@@ -17,10 +17,10 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_BoundsAggregateDenseWorksheetPositionsBeforePlanningTheNextSheet() {
         using var document = ExcelDocument.Create();
-        ExcelSheet first = document.AddWorksheet("First");
+        ExcelSheet first = document.AddSheet("First");
         first.CellValue(1, 1, "A");
         first.CellValue(2, 2, "B");
-        ExcelSheet second = document.AddWorksheet("Second");
+        ExcelSheet second = document.AddSheet("Second");
         second.CellValue(1, 1, "C");
         second.CellValue(2, 2, "D");
 
@@ -72,8 +72,8 @@ public partial class Excel {
             delivery.Cell(2, 1, "PDF workbench");
             delivery.Cell(2, 2, "Ready");
             delivery.AddTable("A1:B2", hasHeader: true, name: "DeliveryTable", style: ExcelTableStyle.TableStyleMedium2);
-            document.AddWorksheet("Empty one");
-            document.AddWorksheet("Empty two");
+            document.AddSheet("Empty one");
+            document.AddSheet("Empty two");
             document.Save();
 
             bytes = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -95,7 +95,7 @@ public partial class Excel {
             delivery.Cell(1, 1, "Workstream");
             delivery.Cell(2, 1, "PDF workbench");
 
-            ExcelSheet excluded = document.AddWorksheet("Excluded");
+            ExcelSheet excluded = document.AddSheet("Excluded");
             excluded.Cell(10, 1, "Owner");
             excluded.Cell(10, 2, "Status");
             excluded.Cell(11, 1, "OfficeIMO");
@@ -121,7 +121,7 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Delivery" })) {
             ExcelSheet delivery = document.Sheets[0];
             delivery.Cell(1, 1, "PDF workbench");
-            document.AddWorksheet("Empty cell");
+            document.AddSheet("Empty cell");
             document.Save();
         }
 
@@ -172,14 +172,14 @@ public partial class Excel {
         var configuredStyle = new PdfCore.PdfTableStyle {
             HeaderRowCount = 0,
             RepeatHeaderRowCount = 0,
-            CellPaddingX = 9,
-            CellPaddingY = 7,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(9),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(7),
             BorderColor = null,
-            HeaderFill = PdfCore.PdfColor.FromRgb(10, 20, 30),
-            HeaderTextColor = PdfCore.PdfColor.FromRgb(240, 245, 250),
+            HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
+            HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250),
             RowStripeFill = null,
-            FontSize = 10.5D,
-            SpacingAfter = 12D
+            FontSize = global::OfficeIMO.OfficeLength.Points(10.5D),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(12D)
         };
 
         PdfCore.PdfDocument pdfDocument;
@@ -208,14 +208,14 @@ public partial class Excel {
 
         Assert.Equal(1, style.HeaderRowCount);
         Assert.Equal(1, style.RepeatHeaderRowCount);
-        Assert.Equal(9, style.CellPaddingX);
-        Assert.Equal(7, style.CellPaddingY);
+        Assert.Equal(9, style.CellPaddingX.ToPoints());
+        Assert.Equal(7, style.CellPaddingY.ToPoints());
         Assert.Null(style.BorderColor);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(10, 20, 30), style.HeaderFill);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(240, 245, 250), style.HeaderTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), style.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250), style.HeaderTextColor);
         Assert.Null(style.RowStripeFill);
-        Assert.Equal(10.5D, style.FontSize);
-        Assert.Equal(12D, style.SpacingAfter);
+        Assert.Equal(10.5D, style.FontSize?.ToPoints());
+        Assert.Equal(12D, style.SpacingAfter.ToPoints());
 
         Assert.Equal(0, configuredStyle.HeaderRowCount);
         Assert.Equal(0, configuredStyle.RepeatHeaderRowCount);
@@ -239,7 +239,7 @@ public partial class Excel {
                 HeaderRowCount = 1,
                 WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
                 PdfOptions = new PdfCore.PdfCreateOptions {
-                    DefaultFontSize = 9D
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9D)
                 }
             });
         }
@@ -248,11 +248,11 @@ public partial class Excel {
         PdfCore.TableBlock table = Assert.Single(page.Blocks.OfType<PdfCore.TableBlock>());
         PdfCore.PdfTableStyle style = table.Style!;
 
-        Assert.Equal(4D, style.CellPaddingX);
-        Assert.Equal(3D, style.CellPaddingY);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(230, 238, 247), style.HeaderFill);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(31, 78, 121), style.HeaderTextColor);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(248, 250, 252), style.RowStripeFill);
+        Assert.Equal(4D, style.CellPaddingX.ToPoints());
+        Assert.Equal(3D, style.CellPaddingY.ToPoints());
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(230, 238, 247), style.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121), style.HeaderTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252), style.RowStripeFill);
     }
 
     [Fact]
@@ -261,11 +261,11 @@ public partial class Excel {
 
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.Cell(1, 1, "Metric");
             summary.Cell(2, 1, "SelectedValue");
             summary.SetHeaderFooter(headerCenter: "Selected Header &A");
-            ExcelSheet internalSheet = document.AddWorksheet("Internal");
+            ExcelSheet internalSheet = document.AddSheet("Internal");
             internalSheet.Cell(1, 1, "HiddenValue");
             document.Save();
 
@@ -290,9 +290,9 @@ public partial class Excel {
         byte[] visibleBytes;
         byte[] explicitHiddenBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet visible = document.AddWorksheet("Visible");
+            ExcelSheet visible = document.AddSheet("Visible");
             visible.Cell(1, 1, "VisibleSheetValue");
-            ExcelSheet hidden = document.AddWorksheet("Hidden");
+            ExcelSheet hidden = document.AddSheet("Hidden");
             hidden.Cell(1, 1, "HiddenSheetValue");
             hidden.SetHidden(true);
             Assert.True(hidden.Hidden);

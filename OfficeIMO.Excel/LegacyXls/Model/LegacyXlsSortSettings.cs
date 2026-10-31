@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents worksheet sort dialog metadata parsed from a legacy BIFF Sort record.
     /// </summary>
-    public sealed class LegacyXlsSortSettings {
+    internal sealed class LegacyXlsSortSettings {
         /// <summary>
         /// Creates sort settings parsed from a BIFF Sort record.
         /// </summary>

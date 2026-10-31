@@ -7,19 +7,19 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class ServiceCatalog {
     internal static void Create(string folder) {
         OfficeThemePalette palette = OfficeTheme.Default.Palette;
-        PdfColor muted = PdfColor.FromOfficeColor(palette.TextMuted);
+        OfficeColor muted = palette.TextMuted;
         PdfPanelStyle Note(OfficeColor accent) => new PdfPanelStyle {
-            Background = PdfColor.FromOfficeColor(palette.Background), BorderColor = PdfColor.FromOfficeColor(accent),
-            BorderWidth = 0.75, PaddingX = 10, PaddingY = 8
+            Background = palette.Background, BorderColor = accent,
+            BorderWidth = OfficeLength.Points(0.75), PaddingX = OfficeLength.Points(10), PaddingY = OfficeLength.Points(8)
         };
         PdfDocument.Create(pdf => pdf.Content(content => {
             content.Title("Choose the support you need");
-            content.Paragraph(p => p.FontSize(9).Text("Northwind \u00B7 Service catalog"), defaultColor: muted);
+            content.Paragraph(p => p.FontSize(OfficeLength.Points(9)).Text("Northwind \u00B7 Service catalog"), defaultColor: muted);
             content.Subtitle("Three example offerings, with scope and handover expectations visible before work starts.");
             // The offerings and their notes sit in two rows, so the three notes start on one line
             // even when the lists above them differ in length.
             content.Row(row => {
-                row.Gap(18);
+                row.Gap(global::OfficeIMO.OfficeLength.Points(18));
                 row.RelativeColumn(column => column
                     .H2("Essentials")
                     .Paragraph(p => p.Bold("Keep the service running."))
@@ -34,7 +34,7 @@ internal static class ServiceCatalog {
                     .Bullets(new[] { "Readiness assessment", "Recovery walkthrough", "Receiving-team training" }));
             });
             content.Row(row => {
-                row.Gap(18);
+                row.Gap(OfficeLength.Points(18));
                 row.RelativeColumn(column => column
                     .PanelParagraph(p => p.Text("Best for a stable service with a small support queue."), Note(palette.Accent1)));
                 row.RelativeColumn(column => column
@@ -44,7 +44,7 @@ internal static class ServiceCatalog {
             });
             content.H2("Before choosing");
             content.Paragraph(p => p.Text("Confirm the service owner, support hours, and expected response process. These are sample offerings rather than a commercial contract."));
-        }), new PdfCreateOptions { DefaultFontSize = 10, ShowPageNumbers = true })
+        }), new PdfCreateOptions { DefaultFontSize = OfficeLength.Points(10), ShowPageNumbers = true })
             .Meta(title: "Northwind service catalog", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));
     }

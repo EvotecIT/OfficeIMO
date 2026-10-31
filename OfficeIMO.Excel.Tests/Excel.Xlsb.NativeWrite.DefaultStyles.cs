@@ -14,14 +14,13 @@ namespace OfficeIMO.Tests {
         [InlineData(true, true)]
         public void Xlsb_NewUnformattedTextWorkbookDefinesDefaultStyle(bool multipleSheets, bool sharedStrings) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             if (multipleSheets) {
                 sheet.CellValue(1, 1, "Text");
                 sheet.CellValue(2, 1, "value");
-                document.AddWorksheet("Other").CellValue(1, 1, "other");
+                document.AddSheet("Other").CellValue(1, 1, "other");
             } else {
-                sheet.InsertObjects(new[] { "value" }, includeHeaders: true, startRow: 1,
-                    ("Text", static value => value));
+                sheet.WriteData(new[] { "value" }, includeHeaders: true, row: 1, ("Text", static value => value));
             }
 
             byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = sharedStrings });
@@ -44,7 +43,7 @@ namespace OfficeIMO.Tests {
             var rows = new SnapshotXlsbRows(aboveCaptureLimit: true);
             rows.Values[0][2] = null;
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             var source = new ExcelDirectTabularSource("Data", rows, includeHeaders: true, preserveMissingValues: true);
             using var destination = new MemoryStream();
 

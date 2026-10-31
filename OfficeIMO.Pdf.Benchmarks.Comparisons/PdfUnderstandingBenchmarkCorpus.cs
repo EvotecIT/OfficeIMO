@@ -33,7 +33,7 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                 }
 
                 string suffix = AlphabeticPageToken(pageNumber);
-                string header = "HEADER-P" + suffix;
+                string header = "HEADER-P" + pageNumber.ToString("D3", System.Globalization.CultureInfo.InvariantCulture);
                 string title = "TITLE-P" + suffix;
                 string leftOne = "LEFT-ONE-P" + suffix;
                 string leftTwo = "LEFT-TWO-P" + suffix;
@@ -44,7 +44,7 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                 string list = "LIST-P" + suffix;
                 string caption = "CAPTION-P" + suffix;
                 string table = "TABLE-P" + suffix;
-                string footer = "FOOTER-P" + suffix;
+                string footer = "FOOTER-P" + pageNumber.ToString("D3", System.Globalization.CultureInfo.InvariantCulture);
                 string ownerHeader = "OH-P" + suffix;
                 string amountHeader = "AH-P" + suffix;
                 string statusHeader = "SH-P" + suffix;
@@ -68,23 +68,23 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                 });
 
                 content.Canvas(canvas => canvas
-                    .Text(header + " semantic benchmark running header", 36D, 8D, 520D, 22D, fontSize: 10D)
-                    .Text(title + " Structured understanding spanning heading", 36D, 48D, 520D, 28D, fontSize: 18D)
-                    .Text(leftOne + " left opening", 36D, 112D, 200D, 24D, fontSize: 11D)
-                    .Text(leftTwo + " left indented", 66D, 164D, 170D, 24D, fontSize: 11D)
-                    .Text(leftThree + " left closing", 36D, 216D, 200D, 24D, fontSize: 11D)
-                    .Text(rightOne + " right opening", 340D, 112D, 206D, 24D, fontSize: 11D)
-                    .Text(rightTwo + " right middle", 340D, 164D, 206D, 24D, fontSize: 11D)
-                    .Text(rightThree + " right closing", 340D, 216D, 206D, 24D, fontSize: 11D)
-                    .Text("1. " + list + " classified list item", 36D, 292D, 510D, 24D, fontSize: 11D)
-                    .Text(CaptionLabel(pageNumber) + " 1. " + caption + " classified table caption", 36D, 370D, 510D, 18D, fontSize: 9D)
+                    .Text(header + " semantic benchmark running header", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(8D), global::OfficeIMO.OfficeLength.Points(520D), global::OfficeIMO.OfficeLength.Points(22D), fontSize: global::OfficeIMO.OfficeLength.Points(10D))
+                    .Text(title + " Structured understanding spanning heading", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(48D), global::OfficeIMO.OfficeLength.Points(520D), global::OfficeIMO.OfficeLength.Points(28D), fontSize: global::OfficeIMO.OfficeLength.Points(18D))
+                    .Text(leftOne + " left opening", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(112D), global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
+                    .Text(leftTwo + " left indented", global::OfficeIMO.OfficeLength.Points(66D), global::OfficeIMO.OfficeLength.Points(164D), global::OfficeIMO.OfficeLength.Points(170D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
+                    .Text(leftThree + " left closing", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(216D), global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
+                    .Text(rightOne + " right opening", global::OfficeIMO.OfficeLength.Points(340D), global::OfficeIMO.OfficeLength.Points(112D), global::OfficeIMO.OfficeLength.Points(206D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
+                    .Text(rightTwo + " right middle", global::OfficeIMO.OfficeLength.Points(340D), global::OfficeIMO.OfficeLength.Points(164D), global::OfficeIMO.OfficeLength.Points(206D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
+                    .Text(rightThree + " right closing", global::OfficeIMO.OfficeLength.Points(340D), global::OfficeIMO.OfficeLength.Points(216D), global::OfficeIMO.OfficeLength.Points(206D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
+                    .Text("1. " + list + " classified list item", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(292D), global::OfficeIMO.OfficeLength.Points(510D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(11D))
+                    .Text(CaptionLabel(pageNumber) + " 1. " + caption + " classified table caption", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(370D), global::OfficeIMO.OfficeLength.Points(510D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(9D))
                     .Table(new[] {
                         new[] { table, ownerHeader, amountHeader, statusHeader },
                         new[] { accountOne, ownerOne, amountOne, statusOne },
                         new[] { accountTwo, ownerTwo, amountTwo, statusTwo },
                         new[] { accountThree, ownerThree, amountThree, statusThree }
-                    }, 36D, 390D, 510D, 190D, style: new PdfTableStyle { HeaderRowCount = 1 })
-                    .Text(footer + " semantic benchmark running footer", 36D, 756D, 510D, 18D, fontSize: 12D));
+                    }, global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(390D), global::OfficeIMO.OfficeLength.Points(510D), global::OfficeIMO.OfficeLength.Points(190D), style: new PdfTableStyle { HeaderRowCount = 1 })
+                    .Text(footer + " semantic benchmark running footer", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(756D), global::OfficeIMO.OfficeLength.Points(510D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(12D)));
 
                 expectations.Add(new PdfUnderstandingBenchmarkExpectation(
                     pageNumber,
@@ -136,7 +136,9 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
         }));
 
         byte[] continuationPdf = CreateContinuationPdf();
-        int continuationPageCount = PdfReadDocument.Open(continuationPdf).Pages.Count;
+        using var continuationInput = new MemoryStream(continuationPdf, writable: false);
+        using PdfDocument continuationDocument = PdfDocument.Load(continuationInput);
+        int continuationPageCount = continuationDocument.Pages.Count;
         var continuationPairs = Enumerable.Range(1, Math.Max(0, continuationPageCount - 1))
             .Select(static page => (page, page + 1))
             .ToArray();
@@ -163,17 +165,17 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
         return PdfDocument.Create(pdf => pdf.Content(content => content.Table(rows, style: new PdfTableStyle {
                 HeaderRowCount = 1,
                 RepeatHeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 82, 82, 82, 82 },
-                CellPaddingX = 3,
-                CellPaddingY = 2
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(82), global::OfficeIMO.OfficeLength.Points(82), global::OfficeIMO.OfficeLength.Points(82), global::OfficeIMO.OfficeLength.Points(82) },
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(3),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(2)
             })), new PdfCreateOptions {
-                PageWidth = 420,
-                PageHeight = 260,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24,
-                DefaultFontSize = 8
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8)
             })
             .ToBytes();
     }

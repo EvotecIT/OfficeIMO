@@ -73,10 +73,12 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Visio.Tests" />
+        <InternalsVisibleTo Include="PSWriteOffice" />
         <InternalsVisibleTo Include="OfficeIMO.Visio.Pdf" />
     </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.IO.Compression" />
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.9" />
         <Reference Include="System.IO.Compression" />
         <Reference Include="System.IO.Compression.FileSystem" />

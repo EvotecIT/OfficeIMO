@@ -63,7 +63,7 @@ public sealed partial class HtmlRenderingTests {
 
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(
             PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
-                PageSize = new OfficePageSize(180D / HtmlRenderOptions.CssPixelsPerInch, 80D / HtmlRenderOptions.CssPixelsPerInch),
+                PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(180D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(80D / HtmlRenderOptions.CssPixelsPerInch)),
                 Margins = HtmlRenderMargins.All(0D),
                 HonorCssPageRules = true
             })).ToBytes()).TaggedContent);
@@ -126,7 +126,7 @@ public sealed partial class HtmlRenderingTests {
         }
 
         string pdfText = PdfCore.PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(220D / HtmlRenderOptions.CssPixelsPerInch, 65D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(220D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(65D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = true
         })).ToBytes()).ExtractText();

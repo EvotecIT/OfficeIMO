@@ -23,7 +23,7 @@ public sealed class PdfInvoicePresentationOptionsTests {
             InvoicePdfLineColumn.Quantity, InvoicePdfLineColumn.Unit, InvoicePdfLineColumn.NetPrice, InvoicePdfLineColumn.Vat, InvoicePdfLineColumn.NetAmount }) layout.LineColumns.Add(column);
         var snapshot = PdfInvoiceDocument.Create(invoice, Contract(), layout);
         layout.LineColumns.Clear(); // A deferred render uses its captured column settings.
-        var options = Options(); options.PageWidth = 842; options.PageHeight = 595;
+        var options = Options(); options.PageWidth = global::OfficeIMO.OfficeLength.Points(842); options.PageHeight = global::OfficeIMO.OfficeLength.Points(595);
         byte[] pdf = snapshot.ToPdfBytes(options);
         WriteEvidence(modern ? "presentation-modern" : "presentation-classic", pdf);
         string text = PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractUnwrappedText();
@@ -88,7 +88,7 @@ public sealed class PdfInvoicePresentationOptionsTests {
         foreach (var column in new[] { InvoicePdfLineColumn.Item, InvoicePdfLineColumn.Period, InvoicePdfLineColumn.SellerItem,
             InvoicePdfLineColumn.BuyerItem, InvoicePdfLineColumn.StandardItem, InvoicePdfLineColumn.AccountingReference, priceColumn,
             InvoicePdfLineColumn.NetAmount }) layout.LineColumns.Add(column);
-        var options = Options(); options.PageWidth = 1191; options.PageHeight = 842;
+        var options = Options(); options.PageWidth = global::OfficeIMO.OfficeLength.Points(1191); options.PageHeight = global::OfficeIMO.OfficeLength.Points(842);
         string text = PdfDocument.Load(new System.IO.MemoryStream(PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPdfBytes(options))).ExtractUnwrappedText();
         foreach (string value in new[] { "SELLERKEY", "BUYERKEY", "1234567890128", "project-cost", "2026-08-31", "2026-09-10", price }) Assert.Contains(value, text);
         Assert.Equal(1, text.Split(new[] { "SELLERKEY" }, StringSplitOptions.None).Length - 1);

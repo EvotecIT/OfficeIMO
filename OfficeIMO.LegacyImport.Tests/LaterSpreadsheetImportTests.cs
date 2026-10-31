@@ -121,7 +121,7 @@ public sealed class LaterSpreadsheetImportTests {
     [Fact]
     public void ImportedCommentBatchObservesCancellationBetweenComments() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         using var cancellation = new CancellationTokenSource();
         Assert.Throws<OperationCanceledException>(() => sheet.AddImportedComments(
             new CancelingComments(cancellation), "Legacy source", cancellation.Token));

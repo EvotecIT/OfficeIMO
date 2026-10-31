@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -23,11 +24,11 @@ public partial class Word {
         int border, short margin, bool separate, double expectedGap) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateUnequalFixedMinimumControl(document, 1, 2250, 0);
-        table.Width = 60;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(60) * 635)));
         if (!separate) table._tableProperties.TableCellSpacing = null;
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, (uint)border, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points((border) / 8D), OfficeIMO.OfficeColor.Black);
         foreach (WordTableCell cell in table.Rows[0].Cells)
-            cell.MarginLeftWidth = cell.MarginRightWidth = margin;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points((margin) / 20D);
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         using var pdf = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
@@ -47,7 +48,7 @@ public partial class Word {
     public void SaveAsPdf_AbsoluteZeroSpacingRetainsTheSeparateBorderBaseline(int border) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateUnequalFixedMinimumControl(document, 1, 2250, 0);
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, (uint)border, OfficeIMO.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points((border) / 8D), OfficeIMO.OfficeColor.Black);
         using var separate = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double separateBaseline = Assert.Single(separate.GetPage(1).Letters, letter => letter.Value == "L").StartBaseLine.Y;
         table._tableProperties.TableCellSpacing = null;
@@ -67,8 +68,8 @@ public partial class Word {
         string unit, bool inherited, double expectedGap, double expectedInset) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateUnequalFixedMinimumControl(document, 1, 2250, 0);
-        table.Width = 60;
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 8U, OfficeIMO.OfficeColor.Black);
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(60) * 635)));
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(1), OfficeIMO.OfficeColor.Black);
         W.TableWidthUnitValues spacingUnit = unit == "dxa" ? W.TableWidthUnitValues.Dxa
             : unit == "auto" ? W.TableWidthUnitValues.Auto : W.TableWidthUnitValues.Pct;
         var spacing = new W.TableCellSpacing { Type = spacingUnit, Width = "0" };
@@ -98,7 +99,7 @@ public partial class Word {
         int border, short margin, int tableWidth, double expectedLeft, double expectedGap) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateUnequalFixedMinimumControl(document, 1, 20, 120);
-        table.Width = tableWidth;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(tableWidth) * 635)));
         W.BorderValues value = border == 0 ? W.BorderValues.Nil : W.BorderValues.Single;
         table._tableProperties.TableBorders = new W.TableBorders(
             new W.TopBorder { Val = value, Size = (uint)border },
@@ -107,7 +108,7 @@ public partial class Word {
             new W.RightBorder { Val = value, Size = (uint)border },
             new W.InsideVerticalBorder { Val = value, Size = (uint)border });
         foreach (WordTableCell cell in table.Rows[0].Cells)
-            cell.MarginLeftWidth = cell.MarginRightWidth = margin;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points((margin) / 20D);
         using var pdf = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         double left = Assert.Single(letters, letter => letter.Value == "L").StartBaseLine.X;
@@ -126,8 +127,8 @@ public partial class Word {
         WordTable table = CreateUnequalFixedMinimumControl(document, 2, first, spacing);
         table.Rows[0].Cells[0].MergeHorizontally(1);
         WordTableCell merged = table.Rows[0].Cells[0];
-        merged.Width = 4500;
-        merged.MarginLeftWidth = merged.MarginRightWidth = 400;
+        merged.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4500) * 635)));
+        merged.MarginLeft = merged.MarginRight = global::OfficeIMO.OfficeLength.Points(20D);
         merged.Paragraphs[0].Text = "Span";
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         using var pdf = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -150,11 +151,11 @@ public partial class Word {
         short spacing, short mergedMargin, short cellMargin, int first, double expectedGap) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateUnequalFixedMinimumControl(document, 2, first, spacing);
-        table.Rows[1].Cells[0].MarginLeftWidth = table.Rows[1].Cells[0].MarginRightWidth = cellMargin;
+        table.Rows[1].Cells[0].MarginLeft = table.Rows[1].Cells[0].MarginRight = global::OfficeIMO.OfficeLength.Points((cellMargin) / 20D);
         table.Rows[0].Cells[0].MergeHorizontally(1);
         WordTableCell merged = table.Rows[0].Cells[0];
-        merged.Width = 4500;
-        merged.MarginLeftWidth = merged.MarginRightWidth = mergedMargin;
+        merged.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4500) * 635)));
+        merged.MarginLeft = merged.MarginRight = global::OfficeIMO.OfficeLength.Points((mergedMargin) / 20D);
         merged.Paragraphs[0].Text = "S";
         using var pdf = PdfPigDocument.Open(document.ToPdf(UnequalFixedMinimumOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
@@ -169,10 +170,9 @@ public partial class Word {
     private static WordTable CreateUnequalFixedMinimumControl(WordDocument document, int rows, int first, short spacing) {
         WordTable table = document.AddTable(rows, 2, WordTableStyle.TableNormal);
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 4500;
-        table.GridColumnWidth = new List<int> { first, 4500 - first };
-        table.StyleDetails!.CellSpacing = spacing;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4500) * 635)));
+        table.GridColumnWidth = new List<int> { first, 4500 - first }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points((spacing) / 20D);
         table._tableProperties.TableBorders = new W.TableBorders(
             new W.TopBorder { Val = W.BorderValues.Nil }, new W.LeftBorder { Val = W.BorderValues.Nil },
             new W.BottomBorder { Val = W.BorderValues.Nil }, new W.RightBorder { Val = W.BorderValues.Nil },
@@ -180,9 +180,8 @@ public partial class Word {
         foreach (WordTableRow row in table.Rows)
             for (int column = 0; column < 2; column++) {
                 WordTableCell cell = row.Cells[column];
-                cell.WidthType = WordTableWidthUnit.Dxa;
-                cell.Width = column == 0 ? first : 4500 - first;
-                cell.MarginLeftWidth = cell.MarginRightWidth = 0;
+                cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(column == 0 ? first : 4500 - first) * 635)));
+                cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
                 cell.Paragraphs[0].Text = column == 0 ? "L" : "R";
             }
         return table;
@@ -190,6 +189,6 @@ public partial class Word {
 
     private static WordPdfExportOptions UnequalFixedMinimumOptions() => new() {
         IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-        PageSize = new PdfPageSize(600, 400), Margins = PdfPageMargins.Uniform(72)
+        PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(400)), Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
     };
 }

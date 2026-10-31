@@ -263,8 +263,8 @@
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the Word-to-Markdown evidence result: only a private helper and an internal evidence extension return it; public ToMarkdown returns MarkdownDocument plus OfficeConversionReport. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Markdown.MarkdownToWordResult",
@@ -275,8 +275,8 @@
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the Markdown-to-Word evidence result: only internal ConvertToWordWithEvidence returns it; public ToWord returns WordDocument and the shared report. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionResult<T>",
@@ -287,8 +287,8 @@
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide this evidence-only generic base. Its only incoming result subclasses are the two internalized evidence wrappers. Protected construction and public subclassability alone are not documented roots. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionReport",
@@ -299,8 +299,8 @@
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the evidence report: public Word/Markdown routes translate its contents to OfficeConversionReport. Incoming typed evidence result/exception/constructor paths all become internal together. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionDiagnostic",
@@ -311,8 +311,8 @@
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the typed evidence diagnostic: diagnostic sinks and raw-HTML delegates are already internal, and public reports carry OfficeDiagnostic. Its public constructor is not an incoming root. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConversionException",
@@ -323,8 +323,8 @@
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConversionResult.cs",
       "category": "conversion",
       "phase": "A/B",
-      "applied": "partial-phase-a",
-      "note": "The public lifecycle/conversion entry points use the unified options/report. Native preservation and projection models remain until the Phase B visibility analysis; they are not compatibility entry points."
+      "applied": "phase-b-applied",
+      "note": "Hide the evidence-specific exception: no README/guide/example or public incoming signature roots it. Public FailOnLoss uses the shared report.ThrowIfLoss contract. Preserve the existing runtime throw behavior of internal RequireValue/RequireNoLoss. Public lifecycle/conversion routes continue using the shared Core contract."
     },
     {
       "old": "OfficeIMO.Word.Markdown.ImageExportMode",
@@ -348,28 +348,28 @@
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
     },
     {
       "old": "OfficeIMO.Word.Markdown.MarkdownToWordOptions.CreateReaderOptions()",
       "kind": "method",
-      "action": "internalize",
-      "new": null,
-      "reason": "Converter plumbing on an options type (ApplyDefaults mutates a WordDocument; CreateReaderOptions builds parser options).",
+      "action": "keep",
+      "new": "WordMarkdownImportOptions.CreateReaderOptions() : MarkdownLoadOptions",
+      "reason": "Public source parsing must apply Word semantic fences and import reader settings before image preparation and template conversion. PSWriteOffice uses this existing library factory through public APIs, as required by the design.",
       "file": "OfficeIMO.Word.Markdown/Options/MarkdownToWordOptions.cs",
       "category": "visibility",
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "retained-public-contract"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-retained-public-contract",
+      "note": "The independent MarkdownDocument.Parse(text, options.CreateReaderOptions()).ToWord(options) workflow requires a configured reader model. No copied PowerShell configuration or new wrapper is added."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordToMarkdownOptions.CreateReaderOptions(MarkdownDialectProfile profile = OfficeIMO)",
@@ -382,11 +382,11 @@
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownSemanticBlocks",
@@ -399,28 +399,29 @@
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
     },
     {
       "old": "OfficeIMO.Word.Markdown.MarkdownToWordPresets",
       "kind": "type",
       "action": "merge",
-      "new": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions.CreateIntelligenceXTranscript(...) : WordMarkdownImportOptions",
+      "new": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions.CreateIntelligenceXTranscript(IReadOnlyList<string> allowedImageDirectories = null, OfficeLength? visualMaxWidth = null) : WordMarkdownImportOptions",
       "reason": "Options are created on the options type, as WordHtmlExportOptions.Create…Profile does. The preset is documented in the package README, so it stays public (design: Visibility) in the adapter that owns Markdown to Word (design: Packages).",
       "file": "OfficeIMO.Word.Markdown/Presets/MarkdownToWordPresets.cs",
       "category": "visibility",
       "notes": "Candidate.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The documented factory is merged into WordMarkdownImportOptions. Its visual width takes OfficeLength; the existing 96-DPI rounding, 320–2,000 pixel clamp, transcript defaults and local-image policy are preserved. No preset facade remains.",
+      "currentFile": "OfficeIMO.Word.Markdown/Options/WordMarkdownImportOptions.Transcript.cs"
     },
     {
       "old": "OfficeIMO.Word.Markdown.MarkdownImageLayoutOptions",
@@ -565,6 +566,111 @@
       "phase": "A",
       "applied": "applied",
       "note": "Omitted running content, explicit page breaks and unsupported content emit typed omission diagnostics. Image and SVG sidecars are staged until loss acceptance, preventing analysis or rejected saves from changing destination assets."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "The merged transcript factory replaces its raw visualMaxWidthPx argument with OfficeLength? visualMaxWidth. Maintained README and transcript/cross-pipeline consumers use the options factory directly."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Markdown import and retained tests use attached field, link and equation models, selecting Paragraph where paragraph formatting is required."
+    },
+    {
+      "phase": "B",
+      "action": "rename",
+      "old": "WordMarkdownImportOptions.MaxImageWidthPixels/MaxImageHeightPixels, image layout MaxWidthPixels/MaxHeightPixels and eight pixel-suffixed diagnostic dimensions.",
+      "new": "Unitless property names with nullable OfficeLength caps and requested/natural/effective/final dimensions.",
+      "reason": "Markdown image layout exposes physical document lengths while keeping intrinsic encoded pixel metadata and CSS-pixel calculations at their owning boundary.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word.Markdown/Options/MarkdownToWordOptions.cs",
+        "OfficeIMO.Word.Markdown/Options/MarkdownImageLayoutOptions.cs",
+        "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
+        "OfficeIMO.Word.Markdown/Options/WordMarkdownImportOptions.Transcript.cs",
+        "OfficeIMO.Word.Markdown/Converters/MarkdownToWordConverter.Images.cs",
+        "OfficeIMO.Word.Markdown/Converters/MarkdownToWordConverter.BlockRenderer.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/ConvertFromOfficeWordMarkdownCommand.cs",
+        "OfficeIMO.Markdown.Tests/Markdown.Images.cs",
+        "OfficeIMO.Markdown.Tests/Markdown.DefinitionListsToWord.cs",
+        "OfficeIMO.Word.Markdown/README.md"
+      ],
+      "note": "Null and nonpositive cap handling, aspect ratio, percentage hints and resource limits are unchanged. Native pixel calculations explicitly convert through 96-DPI OfficeLength.Pixels. Existing PowerShell pixel-named parameters keep their behavior through mechanical conversion to the new library properties.",
+      "propertyRenames": [
+        {
+          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions",
+          "old": "public double? MaxImageWidthPixels { get; set; }",
+          "new": "public global::OfficeIMO.OfficeLength? MaxImageWidth { get; set; }",
+          "applied": "phase-b-applied"
+        },
+        {
+          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions",
+          "old": "public double? MaxImageHeightPixels { get; set; }",
+          "new": "public global::OfficeIMO.OfficeLength? MaxImageHeight { get; set; }",
+          "applied": "phase-b-applied"
+        },
+        {
+          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImageLayoutOptions",
+          "old": "public double? MaxWidthPixels { get; set; }",
+          "new": "public global::OfficeIMO.OfficeLength? MaxWidth { get; set; }",
+          "applied": "phase-b-applied"
+        },
+        {
+          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImageLayoutOptions",
+          "old": "public double? MaxHeightPixels { get; set; }",
+          "new": "public global::OfficeIMO.OfficeLength? MaxHeight { get; set; }",
+          "applied": "phase-b-applied"
+        },
+        {
+          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImageLayoutDiagnostic",
+          "old": "public double? RequestedWidthPixels { get; set; }",
+          "new": "public global::OfficeIMO.OfficeLength? RequestedWidth { get; set; }",
+          "applied": "phase-b-applied"
+        },
+        {
+          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImageLayoutDiagnostic",
+          "old": "public double? RequestedHeightPixels { get; set; }",
+          "new": "public global::OfficeIMO.OfficeLength? RequestedHeight { get; set; }",
+          "applied": "phase-b-applied"
+        },
+        {
+          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImageLayoutDiagnostic",
+          "old": "public double? NaturalWidthPixels { get; set; }",
+          "new": "public global::OfficeIMO.OfficeLength? NaturalWidth { get; set; }",
+          "applied": "phase-b-applied"
+        },
+        {
+          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImageLayoutDiagnostic",
+          "old": "public double? NaturalHeightPixels { get; set; }",
+          "new": "public global::OfficeIMO.OfficeLength? NaturalHeight { get; set; }",
+          "applied": "phase-b-applied"
+        },
+        {
+          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImageLayoutDiagnostic",
+          "old": "public double? EffectiveMaxWidthPixels { get; set; }",
+          "new": "public global::OfficeIMO.OfficeLength? EffectiveMaxWidth { get; set; }",
+          "applied": "phase-b-applied"
+        },
+        {
+          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImageLayoutDiagnostic",
+          "old": "public double? EffectiveMaxHeightPixels { get; set; }",
+          "new": "public global::OfficeIMO.OfficeLength? EffectiveMaxHeight { get; set; }",
+          "applied": "phase-b-applied"
+        },
+        {
+          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImageLayoutDiagnostic",
+          "old": "public double? FinalWidthPixels { get; set; }",
+          "new": "public global::OfficeIMO.OfficeLength? FinalWidth { get; set; }",
+          "applied": "phase-b-applied"
+        },
+        {
+          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImageLayoutDiagnostic",
+          "old": "public double? FinalHeightPixels { get; set; }",
+          "new": "public global::OfficeIMO.OfficeLength? FinalHeight { get; set; }",
+          "applied": "phase-b-applied"
+        }
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

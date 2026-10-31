@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -28,8 +29,8 @@ public partial class Word {
                 WordTableCell cell = table.Rows[row].Cells[column];
                 cell.Paragraphs[0].Text = column == 0 ? "SA SA SA SA SA SA SA SA" : "SB SB SB SB";
                 ConfigurePartialColumnParagraph(cell.Paragraphs[0]);
-                cell.MarginLeftWidth = 108; cell.MarginRightWidth = 108;
-                cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
+                cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D); cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
+                cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
                 bool percentage = (row == column) == percentageFirst;
                 cell._tableCellProperties!.TableCellWidth = new W.TableCellWidth {
                     Type = percentage ? W.TableWidthUnitValues.Pct : W.TableWidthUnitValues.Dxa,
@@ -55,13 +56,13 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(2500, 1440, WordTableWidthUnit.Dxa, 41.9D)]
-    [InlineData(3750, 1440, WordTableWidthUnit.Dxa, 62.85D)]
-    [InlineData(2500, 0, WordTableWidthUnit.Auto, 80.9D)]
-    [InlineData(3750, 0, WordTableWidthUnit.Auto, 121.35D)]
-    [InlineData(2500, 0, WordTableWidthUnit.Dxa, 11.8D)]
+    [InlineData(2500, 1440, WordTableWidthKind.Length, 41.9D)]
+    [InlineData(3750, 1440, WordTableWidthKind.Length, 62.85D)]
+    [InlineData(2500, 0, WordTableWidthKind.Auto, 80.9D)]
+    [InlineData(3750, 0, WordTableWidthKind.Auto, 121.35D)]
+    [InlineData(2500, 0, WordTableWidthKind.Length, 11.8D)]
     public void SaveAsPdf_FixedAutomaticPercentageFramesRetainUsableCellWidthsInNarrowContainers(
-        int percentage, int otherWidth, WordTableWidthUnit otherType, double expectedFirstWidth) {
+        int percentage, int otherWidth, WordTableWidthKind otherType, double expectedFirstWidth) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateAutomaticWidthControl(document, 3000, 3000);
         table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -69,12 +70,11 @@ public partial class Word {
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.Paragraphs[0].Text = column == 0 ? "A" : "B";
-            cell.WidthType = column == 0 ? WordTableWidthUnit.Pct : otherType;
-            cell.Width = column == 0 ? percentage : otherWidth;
+            cell.Width = TableWidthFixture(column == 0 ? WordTableWidthKind.Percent : otherType, column == 0 ? percentage : otherWidth);
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(164D, 792D),
-            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72D)
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(164D),OfficeIMO.OfficeLength.Points(792D)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72D))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = Assert.Single(pdf.GetPages()).Letters;
         Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));
@@ -94,13 +94,12 @@ public partial class Word {
             Type = explicitFrame ? W.TableWidthUnitValues.Dxa : W.TableWidthUnitValues.Auto,
             Width = explicitFrame ? "6000" : "0"
         };
-        table.GridColumnWidth = new List<int> { 2000, 2000, 2000 };
+        table.GridColumnWidth = new List<int> { 2000, 2000, 2000 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         for (int column = 0; column < 3; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.Paragraphs[0].Text = ((char)('A' + column)).ToString();
-            cell.MarginLeftWidth = cell.MarginRightWidth = 54;
-            cell.WidthType = column == 0 ? WordTableWidthUnit.Pct : column == 1 ? WordTableWidthUnit.Dxa : WordTableWidthUnit.Auto;
-            cell.Width = column == 0 ? percentage : column == 1 ? 1440 : 0;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(2.7D);
+            cell.Width = TableWidthFixture(column == 0 ? WordTableWidthKind.Percent : column == 1 ? WordTableWidthKind.Length : WordTableWidthKind.Auto, column == 0 ? percentage : column == 1 ? 1440 : 0);
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = Assert.Single(pdf.GetPages()).Letters;
@@ -118,8 +117,8 @@ public partial class Word {
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.Paragraphs[0].Text = column == 0 ? "SA" : "SB";
-            cell.MarginLeftWidth = cell.MarginRightWidth = 54;
-            cell.WidthType = WordTableWidthUnit.Pct; cell.Width = 2500;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(2.7D);
+            cell.Width = WordTableWidth.Percent((2500) / 50d);
         }
         var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
         fonts.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial",
@@ -135,22 +134,21 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(WordTableWidthUnit.Auto, 3750, 125.35D)]
-    [InlineData(WordTableWidthUnit.Nil, 3750, 125.35D)]
-    [InlineData(WordTableWidthUnit.Auto, 5000, 100D)]
-    [InlineData(WordTableWidthUnit.Nil, 5000, 100D)]
+    [InlineData(WordTableWidthKind.Auto, 3750, 125.35D)]
+    [InlineData(WordTableWidthKind.Nil, 3750, 125.35D)]
+    [InlineData(WordTableWidthKind.Auto, 5000, 100D)]
+    [InlineData(WordTableWidthKind.Nil, 5000, 100D)]
     public void SaveAsPdf_SingleColumnPercentageFrameRemovesBothOuterSpacingSharesFromCachedWidths(
-        WordTableWidthUnit cachedType, int percentage, double expectedFrameWidth) {
+        WordTableWidthKind cachedType, int percentage, double expectedFrameWidth) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 2, 1, 120);
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table._tableProperties!.TableWidth = new W.TableWidth { Type = W.TableWidthUnitValues.Auto, Width = "0" };
-        table.GridColumnWidth = new List<int> { 2000 };
+        table.GridColumnWidth = new List<int> { 2000 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         for (int row = 0; row < 2; row++) {
             WordTableCell cell = table.Rows[row].Cells[0];
-            cell.MarginLeftWidth = cell.MarginRightWidth = 54;
-            cell.WidthType = row == 0 ? WordTableWidthUnit.Pct : cachedType;
-            cell.Width = row == 0 ? percentage : 0;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(2.7D);
+            cell.Width = TableWidthFixture(row == 0 ? WordTableWidthKind.Percent : cachedType, row == 0 ? percentage : 0);
             cell.Paragraphs[0].Text = "Alpha Bravo Charlie";
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

@@ -57,7 +57,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(ConvertUnitReport(source, kind, visual: false).IsPartialEditableReconstruction);
             using var strict = CommentPackage(kind);
             IWorkSourceDocument strictSource = IWorkSourceDocument.Open(strict, kind);
-            using var result = strictSource.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(result.IsVisualFallback);
+            using var result = strictSource.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(result.IsVisualFallback);
         }
     }
 

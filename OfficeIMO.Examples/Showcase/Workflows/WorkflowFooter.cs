@@ -7,7 +7,7 @@ internal static class WorkflowFooter {
     internal static void Add(WordDocument document, string title) {
         if (document.Footer?.Default == null) document.AddHeadersAndFooters();
         WordSection section = document.Sections[0];
-        int textWidth = (int)(section.PageSettings.Width!.Value - section.Margins.Left - section.Margins.Right);
+        OfficeLength textWidth = section.PageSettings.Width!.Value - section.Margins.Left!.Value - section.Margins.Right!.Value;
 
         // One paragraph with a right tab at the text width keeps the line from splitting.
         WordParagraph footer = document.Footer!.Default!.AddParagraph(title);
@@ -18,7 +18,7 @@ internal static class WorkflowFooter {
         footer.AddText(" of ");
         footer.AddField(WordFieldType.NumPages);
         foreach (WordParagraph run in footer.GetRuns()) {
-            run.FontSize = 9; // FontSize takes whole points; the design asks for 8.5.
+            run.FontSize = OfficeLength.Points(8.5);
             run.ColorHex = "5B6575";
         }
     }

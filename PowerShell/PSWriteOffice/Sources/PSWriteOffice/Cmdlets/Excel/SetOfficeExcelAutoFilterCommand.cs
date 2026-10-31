@@ -30,7 +30,7 @@ public sealed class SetOfficeExcelAutoFilterCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocument)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>Optional ExcelA1 AutoFilter range to create or replace before applying the condition.</summary>
+    /// <summary>Optional A1 AutoFilter range to create or replace before applying the condition.</summary>
     [Parameter]
     public string? Range { get; set; }
 

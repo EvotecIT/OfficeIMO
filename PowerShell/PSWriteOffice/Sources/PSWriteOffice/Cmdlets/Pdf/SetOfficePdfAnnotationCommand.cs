@@ -69,13 +69,13 @@ public sealed class SetOfficePdfAnnotationCommand : PSWriteOffice.Cmdlets.Office
             return;
         }
 
-        PdfColor? color = PdfCommandUtilities.ParseColor(Color);
+        global::OfficeIMO.OfficeColor? color = PdfCommandUtilities.ParseColor(Color);
         var options = new PdfAnnotationUpdateOptions {
             Contents = Contents,
             Title = Title,
             Name = Name,
             Flags = Flags,
-            Color = color.HasValue ? new[] { color.Value.R, color.Value.G, color.Value.B } : null,
+            Color = color.HasValue ? new[] { color.Value.ToNormalizedRgb().R, color.Value.ToNormalizedRgb().G, color.Value.ToNormalizedRgb().B } : null,
             RemoveActions = RemoveAction.IsPresent
         };
 

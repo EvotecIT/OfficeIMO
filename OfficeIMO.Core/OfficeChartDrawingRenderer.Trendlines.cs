@@ -19,17 +19,17 @@ public static partial class OfficeChartDrawingRenderer {
         IReadOnlyList<double> sharedX = scatter ? GetScatterXValues(categories) : Array.Empty<double>();
         ValueRange xRange = default;
         if (scatter) {
-            List<OfficeChartSeries> scatterSeries = GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList();
+            List<OfficeSeries> scatterSeries = GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList();
             xRange = ApplyValueAxisScale(GetScatterPointRanges(scatterSeries, sharedX).XRange, layout, horizontal: true);
         }
 
         var geometry = new OfficeDrawing(drawing.Width, drawing.Height);
         var labels = new List<(string Text, double X, double Y)>();
         for (int seriesIndex = 0; seriesIndex < snapshot.Data.Series.Count; seriesIndex++) {
-            OfficeChartSeries series = snapshot.Data.Series[seriesIndex];
+            OfficeSeries series = snapshot.Data.Series[seriesIndex];
             OfficeChartTrendline? trendline = series.Trendline;
             if (trendline == null) continue;
-            OfficeChartKind kind = GetEffectiveSeriesKind(snapshot, series);
+            OfficeChartType kind = GetEffectiveSeriesKind(snapshot, series);
             if (IsStackedBarOrColumnChart(kind) || IsPercentStackedBarOrColumnChart(kind) || IsStackedLineChart(kind) ||
                 IsPercentStackedLineChart(kind) || IsStackedAreaChart(kind) || IsPercentStackedAreaChart(kind)) continue;
             ValueRange range = hasSecondaryAxis && series.AxisGroup == OfficeChartAxisGroup.Secondary ? secondaryRange : primaryRange;
@@ -76,7 +76,7 @@ public static partial class OfficeChartDrawingRenderer {
 
             if (points.Count < 2) continue;
             OfficeColor color = trendline.Color ?? GetSeriesColor(style, snapshot.Data.Series, seriesIndex);
-            AddTrendlinePath(geometry, points, color, trendline.Width ?? 1.5D);
+            AddTrendlinePath(geometry, points, color, trendline.Width?.ToPoints() ?? 1.5D);
 
             var parts = new List<string>(2);
             if (trendline.DisplayEquation && equation != null) parts.Add(equation);

@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
         bool hasRemainingColumns = false;
         for (int column = 0; column < columns; column++) {
             double minimum = minimumWidths != null && column < minimumWidths.Length ? minimumWidths[column] : 0D;
-            minimum = Math.Max(minimum, GetOptionalColumnWidth(style.ColumnMinWidthPoints, column,
+            minimum = Math.Max(minimum, GetOptionalColumnWidth(style.ColumnMinWidths?.ConvertAll(static length => length?.ToPoints()), column,
                 "Table minimum column widths must be positive finite values.") ?? 0D);
             double preferred = preferredWidths != null && column < preferredWidths.Length ? preferredWidths[column] :
                 GetOptionalColumnWidth(style.AutoFitColumnPreferredWidthPoints, column,

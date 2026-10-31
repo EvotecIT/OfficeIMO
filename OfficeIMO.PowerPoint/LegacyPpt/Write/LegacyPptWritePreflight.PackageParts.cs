@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             "application/vnd.ms-office.vbaProject";
 
         private static void AddPackagePartFindings(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             ICollection<LegacyPptWriteFinding> findings) {
             PresentationDocument document = presentation.OpenXmlDocument;
             OpenXmlPart[] parts = EnumeratePackageParts(document).ToArray();
@@ -177,7 +177,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             or EmbeddedPackagePart;
 
         private static void AddUnmappedEmbeddedPartFinding(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             IReadOnlyCollection<OpenXmlPart> parts,
             ICollection<LegacyPptWriteFinding> findings) {
             var mapped = new HashSet<OpenXmlPart>(presentation.Slides

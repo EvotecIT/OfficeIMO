@@ -9,7 +9,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRender_NestedBreakBeforeStartsTheDescendantOnANewPage() {
         const string html = "<main><p>First marker</p><section style='break-before:page'>Second marker</section></main>";
-        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(4D, 3D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)) };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
@@ -23,7 +23,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='height:120px'>Prefix marker</div><main><div style='height:80px'>Before marker</div><div style='height:80px;break-before:page'>After marker</div></main>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(0D)
         };
 
@@ -38,7 +38,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRender_NestedRightPageBreakInsertsTheRequiredBlankLeftPage() {
         const string html = "<main><p>First marker</p><section style='break-before:right'>Right-page marker</section></main>";
-        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(4D, 3D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)) };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
@@ -51,7 +51,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRender_FirstDescendantBreakBeforeWinsAtACollapsedParentBoundary() {
         const string html = "<p>First marker</p><main style='break-before:left'><section style='break-before:right'>Right-page marker</section></main>";
-        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(4D, 3D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)) };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 
@@ -64,7 +64,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRender_NestedTrailingBreakAfterDoesNotCreateABlankFinalPage() {
         const string html = "<main><section style='break-after:page'>Only marker</section></main>";
-        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(4D, 3D) };
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)) };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
 

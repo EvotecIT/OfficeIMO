@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents non-frozen split pane metadata parsed from a legacy XLS worksheet view.
     /// </summary>
-    public sealed class LegacyXlsSplitPane {
+    internal sealed class LegacyXlsSplitPane {
         /// <summary>
         /// Creates legacy split pane metadata.
         /// </summary>

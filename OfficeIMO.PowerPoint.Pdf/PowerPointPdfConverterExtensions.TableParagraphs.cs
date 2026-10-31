@@ -35,18 +35,18 @@ public static partial class PowerPointPdfConverterExtensions {
             if (runs.Count == 0 || runs.All(run => string.IsNullOrEmpty(run.Text))) {
                 string? family = ReadRunFontName(cell, sources) ?? fallbackFontFamily;
                 runs.Clear();
-                runs.Add(new PdfCore.PdfTextRun(string.Empty, fontSize: fontSize, font: MapFont(family), fontFamily: family));
+                runs.Add(new PdfCore.PdfTextRun(string.Empty, fontSize: global::OfficeIMO.OfficeLength.Points(fontSize), font: MapFont(family), fontFamily: family));
             }
-            PdfCore.PdfLineSpacing lineSpacing = wrapped.LineSpacingPoints is double points
-                ? PdfCore.PdfLineSpacing.Exactly(Math.Max(1D, points))
+            PdfCore.PdfLineSpacing lineSpacing = wrapped.LineSpacing?.ToPoints() is double points
+                ? PdfCore.PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(Math.Max(1D, points)))
                 : PdfCore.PdfLineSpacing.Multiple(Math.Max(.01D, wrapped.LineSpacingMultiplier ?? fallbackLineHeight));
             paragraphs.Add(new PdfCore.PdfTableCellParagraph(runs,
-                spacingBefore: Math.Max(0D, wrapped.SpaceBeforePoints ?? 0D),
-                spacingAfter: Math.Max(0D, wrapped.SpaceAfterPoints ?? 0D),
+                spacingBefore: global::OfficeIMO.OfficeLength.Points(Math.Max(0D, wrapped.SpaceBefore?.ToPoints() ?? 0D)),
+                spacingAfter: global::OfficeIMO.OfficeLength.Points(Math.Max(0D, wrapped.SpaceAfter?.ToPoints() ?? 0D)),
                 align: MapAlign((wrapped.Alignment ?? cell.HorizontalAlignment).ToOpenXml()),
-                leftIndent: wrapped.LeftMarginPoints ?? 0D,
-                firstLineIndent: wrapped.IndentPoints ?? 0D,
-                fontSize: fontSize, lineSpacing: lineSpacing));
+                leftIndent: global::OfficeIMO.OfficeLength.Points(wrapped.LeftMargin?.ToPoints() ?? 0D),
+                firstLineIndent: global::OfficeIMO.OfficeLength.Points(wrapped.Indent?.ToPoints() ?? 0D),
+                fontSize: global::OfficeIMO.OfficeLength.Points(fontSize), lineSpacing: lineSpacing));
         }
         return paragraphs;
     }

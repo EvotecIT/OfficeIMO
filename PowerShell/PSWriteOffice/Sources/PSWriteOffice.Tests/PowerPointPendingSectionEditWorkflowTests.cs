@@ -9,7 +9,7 @@ public sealed partial class PowerPointContentWorkflowTests {
     [InlineData(false, true)]
     [InlineData(true, true)]
     public void AnUnusedEarlierSectionCannotCaptureLaterSlidesOrTheirContinuations(bool cover, bool reopenBeforeAppend) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         if (cover) document.AddSlide().AddTitle("Overview");
         using var runspace = Open(); runspace.SessionStateProxy.SetVariable("deck", document);
         using var start = PowerShell.Create(); start.Runspace = runspace;
@@ -19,8 +19,8 @@ public sealed partial class PowerPointContentWorkflowTests {
             """);
         var boundaries = start.Invoke().Select(item => Assert.IsType<PowerPointSectionInfo>(item.BaseObject)).ToArray();
         Assert.False(start.HadErrors, Errors(start)); Assert.Equal(2, boundaries.Length);
-        using var reopened = reopenBeforeAppend ? PowerPointPresentation.Load(new MemoryStream(document.ToBytes())) : null;
-        PowerPointPresentation active = reopened ?? document;
+        using var reopened = reopenBeforeAppend ? PowerPointDocument.Load(new MemoryStream(document.ToBytes())) : null;
+        PowerPointDocument active = reopened ?? document;
         runspace.SessionStateProxy.SetVariable("deck", active);
         runspace.SessionStateProxy.SetVariable("body", string.Join("\n", Enumerable.Range(1, 80).Select(i => "Regional results " + i)));
         using var append = PowerShell.Create(); append.Runspace = runspace;
@@ -29,7 +29,7 @@ public sealed partial class PowerPointContentWorkflowTests {
             PowerPointSlide -Document $deck -Title Margin { PowerPointParagraph 'Margin improved.' }
             """);
         Assert.Empty(append.Invoke()); Assert.False(append.HadErrors, Errors(append));
-        using var saved = PowerPointPresentation.Load(new MemoryStream(active.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(active.ToBytes()));
         Assert.Empty(saved.ValidateDocument());
         Assert.True(saved.Slides.Count > (cover ? 3 : 2), "The long paragraph must exercise continuation slides.");
         var optional = Assert.Single(saved.GetSections(), section => section.Name == "Optional");
@@ -47,9 +47,9 @@ public sealed partial class PowerPointContentWorkflowTests {
     [InlineData("remove-all")]
     [InlineData("import-before-end")]
     public void PendingSectionSurvivesExistingSlideEditsAndReopeningBeforeItsFirstSlide(string edit) {
-        using var document = PowerPointPresentation.Create();
+        using var document = PowerPointDocument.Create();
         document.AddSlide().AddTitle("Existing first"); document.AddSlide().AddTitle("Existing second");
-        using var source = PowerPointPresentation.Create(); source.AddSlide().AddTitle("Imported");
+        using var source = PowerPointDocument.Create(); source.AddSlide().AddTitle("Imported");
         using var runspace = Open(); runspace.SessionStateProxy.SetVariable("deck", document);
         using var start = PowerShell.Create(); start.Runspace = runspace;
         start.AddScript("PowerPointSection Results -Document $deck -PassThru");
@@ -63,7 +63,7 @@ public sealed partial class PowerPointContentWorkflowTests {
             case "import-before-end": document.ImportSlide(source, 0, 1); break;
             default: throw new ArgumentException("Unknown edit.", nameof(edit));
         }
-        using var reopened = PowerPointPresentation.Load(new MemoryStream(document.ToBytes()));
+        using var reopened = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Empty(reopened.ValidateDocument());
         var pending = Assert.Single(reopened.GetSections(), section => section.Name == "Results");
         Assert.Equal(boundary.Id, pending.Id);
@@ -74,7 +74,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         append.AddScript("PowerPointSlide -Document $deck -Title Revenue { PowerPointParagraph 'New results.' }");
         Assert.Empty(append.Invoke());
         Assert.False(append.HadErrors, Errors(append));
-        using var saved = PowerPointPresentation.Load(new MemoryStream(reopened.ToBytes()));
+        using var saved = PowerPointDocument.Load(new MemoryStream(reopened.ToBytes()));
         Assert.Empty(saved.ValidateDocument());
         Assert.Equal(existing + 1, saved.Slides.Count);
         var results = Assert.Single(saved.GetSections(), section => section.Name == "Results");

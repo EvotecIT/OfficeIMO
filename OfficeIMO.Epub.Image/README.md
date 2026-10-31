@@ -11,16 +11,22 @@ chapters and the extracted-text fallback keep HTML parsing.
 Load raw chapter HTML and resource payloads when visual fidelity matters:
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.Epub;
+using OfficeIMO.Epub.Image;
+using OfficeIMO.Html;
+
 EpubDocument book = EpubDocument.Load(path, new EpubReadOptions {
     IncludeRawHtml = true,
     IncludeResourceData = true
 });
 
+var imageOptions1 = new EpubImageExportOptions();
+imageOptions1.Mode = HtmlRenderMode.Paged;
+imageOptions1.Format = OfficeImageExportFormat.Png;
 IReadOnlyList<OfficeImageExportResult> pages = await book
-    .ToImages()
-    .Paged()
-    .AsPng()
-    .ExportAsync();
+    .ExportImagesAsync(OfficeImageExportFormat.Png, imageOptions1);
 ```
 
 When raw HTML or resource bytes were not retained, export remains available through a diagnosed plain-text or missing-resource fallback.
@@ -162,3 +168,5 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.Epub.Image` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
+
+`SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ExportImages` consumer overloads to process each image with its sequence metadata and diagnostics.

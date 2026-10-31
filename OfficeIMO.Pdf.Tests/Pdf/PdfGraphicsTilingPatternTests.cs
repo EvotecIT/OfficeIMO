@@ -84,7 +84,7 @@ public sealed class PdfGraphicsTilingPatternTests {
         var drawing = new OfficeDrawing(2D, 1D).AddTilingPattern(tile,
             new OfficeImagePlacement(0D, 0D, 2D, 1D), 1D, 1D, maximumTileCount: 3);
         var document = PdfDocument.Create(Options());
-        if (header) document.Header(builder => builder.Content(content => content.Drawing(drawing, spacingBefore: 0D, spacingAfter: 0D), 8D));
+        if (header) document.Header(builder => builder.Content(content => content.Drawing(drawing, spacingBefore: global::OfficeIMO.OfficeLength.Points(0D), spacingAfter: global::OfficeIMO.OfficeLength.Points(0D)), global::OfficeIMO.OfficeLength.Points(8D)));
         document.Drawing(drawing);
         if (!header) document.PageBreak().Drawing(drawing);
         var error = Assert.Throws<InvalidOperationException>(() => document.ToBytes());
@@ -108,6 +108,6 @@ public sealed class PdfGraphicsTilingPatternTests {
             12D, 10D, repeatX, repeatY, transform, originX: 3D, originY: 5D);
     }
 
-    private static PdfCreateOptions Options() => new PdfCreateOptions { PageWidth = 90D, PageHeight = 60D,
-        MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D };
+    private static PdfCreateOptions Options() => new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(90D), PageHeight = global::OfficeIMO.OfficeLength.Points(60D),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D) };
 }

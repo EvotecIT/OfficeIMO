@@ -649,15 +649,15 @@ public sealed class PdfRedactionPlan {
         identity.Append(':').Append(value.R).Append(',').Append(value.G).Append(',').Append(value.B).Append(',').Append(value.A);
     }
 
-    private static void AppendIdentityPdfColor(System.Text.StringBuilder identity, PdfColor? color) {
+    private static void AppendIdentityPdfColor(System.Text.StringBuilder identity, global::OfficeIMO.OfficeColor? color) {
         if (!color.HasValue) {
             identity.Append(":null");
             return;
         }
-        PdfColor value = color.Value;
-        identity.Append(':').Append(FormatIdentityNumber(value.R))
-            .Append(',').Append(FormatIdentityNumber(value.G))
-            .Append(',').Append(FormatIdentityNumber(value.B));
+        global::OfficeIMO.OfficeColor value = color.Value;
+        identity.Append(':').Append(FormatIdentityNumber(value.ToNormalizedRgb().R))
+            .Append(',').Append(FormatIdentityNumber(value.ToNormalizedRgb().G))
+            .Append(',').Append(FormatIdentityNumber(value.ToNormalizedRgb().B));
     }
 
     private static void AppendIdentityGradient(System.Text.StringBuilder identity, OfficeIMO.Drawing.OfficeLinearGradient? gradient) {

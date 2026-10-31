@@ -176,7 +176,7 @@ public sealed class PublisherPdfWorkflowTests {
             var reusedItems = new List<OfficeBatchItemReport>();
             Assert.Equal(2, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request, new InlineProgress(reusedItems))).Reused);
             Assert.Contains(Assert.Single(reusedItems, item => item.InputPath == input).Diagnostics, finding => finding.Code.StartsWith("PUB_", StringComparison.Ordinal));
-            string output = Path.Combine(request.OutputDirectory, "source.pub.pdf"); byte[] before = File.ReadAllBytes(output);
+            string output = Path.Combine(request.OutputDirectory, "source.pdf"); byte[] before = File.ReadAllBytes(output);
             ((OfficeIMO.Workflows.OfficeWorkflowRouteSettings)(request.ConversionOptions).RegisteredSettings!).PublisherRead!.MaximumPages = 1;
             var changed = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
             Assert.Equal(1, changed.Failed); Assert.Equal(1, changed.Reused); Assert.Equal(before, File.ReadAllBytes(output));

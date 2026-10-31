@@ -8,15 +8,17 @@ using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public void Test_InsertRows_UpdatesWorkbookReferencesAndRowBoundMetadata() {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.Insert.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet data = document.AddWorksheet("Data");
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet data = document.AddSheet("Data");
+                ExcelSheet summary = document.AddSheet("Summary");
 
                 data.CellAt(1, 1).SetValue("Value");
                 data.CellAt(1, 2).SetValue("Link");
@@ -111,8 +113,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.Delete.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet data = document.AddWorksheet("Data");
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet data = document.AddSheet("Data");
+                ExcelSheet summary = document.AddSheet("Summary");
                 for (int row = 1; row <= 5; row++) {
                     data.CellAt(row, 1).SetValue(row);
                 }
@@ -148,11 +150,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_InsertRows_UpdatesPivotSourceAndLocation() {
+        public void Test_InsertRows_UpdatesPivotSourceAndLocation()
+        {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.Pivot.xlsx");
-
-            using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet data = document.AddWorksheet("Data");
+            using (var document = ExcelDocument.Create(filePath))
+            {
+                ExcelSheet data = document.AddSheet("Data");
                 data.CellAt(1, 1).SetValue("Region");
                 data.CellAt(1, 2).SetValue("Sales");
                 data.CellAt(2, 1).SetValue("East");
@@ -161,26 +164,15 @@ namespace OfficeIMO.Tests {
                 data.CellAt(3, 2).SetValue(20);
                 data.CellAt(4, 1).SetValue("East");
                 data.CellAt(4, 2).SetValue(30);
-                data.AddPivotTable(
-                    sourceRange: "A1:B4",
-                    destinationCell: "E2",
-                    name: "SalesPivot",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
-
+                data.AddPivotTable("A1:B4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
                 data.InsertRows(2);
                 document.Save();
             }
 
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                PivotTablePart pivotPart = spreadsheet.WorkbookPart!.WorksheetParts
-                    .SelectMany(part => part.PivotTableParts)
-                    .Single();
-                WorksheetSource source = pivotPart.PivotTableCacheDefinitionPart!
-                    .PivotCacheDefinition!
-                    .CacheSource!
-                    .WorksheetSource!;
-
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false))
+            {
+                PivotTablePart pivotPart = spreadsheet.WorkbookPart!.WorksheetParts.SelectMany(part => part.PivotTableParts).Single();
+                WorksheetSource source = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheSource!.WorksheetSource!;
                 Assert.Equal("A1:B5", source.Reference!.Value);
                 Assert.Equal("E3:F4", pivotPart.PivotTableDefinition!.Location!.Reference!.Value);
                 Assert.True(pivotPart.PivotTableCacheDefinitionPart.PivotCacheDefinition.RefreshOnLoad!.Value);
@@ -196,19 +188,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.Chart.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet data = document.AddWorksheet("Data");
+                ExcelSheet data = document.AddSheet("Data");
                 data.CellAt(1, 1).SetValue("Category");
                 data.CellAt(1, 2).SetValue("Value");
                 data.CellAt(2, 1).SetValue("First");
                 data.CellAt(2, 2).SetValue(10);
                 data.CellAt(3, 1).SetValue("Second");
                 data.CellAt(3, 2).SetValue(20);
-                data.AddChartFromRange(
-                    "A1:B3",
-                    row: 1,
-                    column: 4,
-                    type: ExcelChartType.ColumnClustered,
-                    title: "Values");
+                data.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Title = "Values" });
 
                 ChartPart chartPart = data.WorksheetPart.DrawingsPart!.ChartParts.Single();
                 Assert.Contains(
@@ -245,7 +232,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.SharedFormula.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet data = document.AddWorksheet("Data");
+                ExcelSheet data = document.AddSheet("Data");
                 for (int row = 2; row <= 4; row++) {
                     data.CellAt(row, 1).SetValue(row);
                 }
@@ -297,8 +284,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.CrossSheetShared.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet data = document.AddWorksheet("Data");
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet data = document.AddSheet("Data");
+                ExcelSheet summary = document.AddSheet("Summary");
                 for (int row = 2; row <= 4; row++) {
                     data.CellAt(row, 1).SetValue(row);
                     summary.CellAt(row, 1).SetValue(row);
@@ -347,7 +334,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InsertRows_RejectsSharedFormulaFollowerOverflowBeforeMaterialization() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue(1);
             sheet.CellAt(2, 1).SetValue(2);
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
@@ -377,9 +364,10 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_InsertRows_RejectsReferenceOverflowAtomically() {
+        public void Test_InsertRows_RejectsReferenceOverflowAtomically()
+        {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Keep");
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("Item");
@@ -388,23 +376,15 @@ namespace OfficeIMO.Tests {
             document.SetNamedRange("Bottom", $"'Data'!A{ExcelA1.MaxRows}", save: false);
             sheet.Range("C1").Validation.CustomFormula($"A{ExcelA1.MaxRows}>0");
             DataValidation validation = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DataValidation>());
-            sheet.AddChartFromRange("A1:B2", row: 4, column: 4);
-            C.Formula chartFormula = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single()
-                .ChartSpace.Descendants<C.Formula>().First();
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 4 });
+            C.Formula chartFormula = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace.Descendants<C.Formula>().First();
             chartFormula.Text = $"'Data'!$A${ExcelA1.MaxRows}";
-            sheet.AddPivotTable(
-                "A1:B2",
-                "E5",
-                rowFields: new[] { "Keep" },
-                dataFields: new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) });
+            sheet.AddPivotTable("A1:B2", "E5", options: new ExcelPivotTableOptions { RowFields = new[] { "Keep" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum) } });
             PivotTablePart pivotPart = sheet.WorksheetPart.PivotTableParts.Single();
-            WorksheetSource pivotSource = pivotPart.PivotTableCacheDefinitionPart!
-                .PivotCacheDefinition!.CacheSource!.WorksheetSource!;
+            WorksheetSource pivotSource = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheSource!.WorksheetSource!;
             Location pivotLocation = pivotPart.PivotTableDefinition!.Location!;
             sheet.AddSparklines("A1:B1", "D1");
-            DocumentFormat.OpenXml.Office2010.Excel.Sparkline sparkline = Assert.Single(
-                sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>());
-
+            DocumentFormat.OpenXml.Office2010.Excel.Sparkline sparkline = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>());
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
             sheet.CellFormula(1, 10, "A1");
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
@@ -424,27 +404,22 @@ namespace OfficeIMO.Tests {
             sparkline.ReferenceSequence.Text = "D1";
             sheet.AddManualRowPageBreak(ExcelA1.MaxRows);
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
-
             Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
             Assert.Equal((uint)ExcelA1.MaxRows, Assert.Single(sheet.WorksheetPart.Worksheet.GetFirstChild<RowBreaks>()!.Elements<Break>()).Id!.Value);
         }
 
         [Fact]
-        public void Test_StructuralRows_RejectsEditsThroughPivotOutput() {
+        public void Test_StructuralRows_RejectsEditsThroughPivotOutput()
+        {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Region");
             sheet.CellAt(1, 2).SetValue("Sales");
             sheet.CellAt(2, 1).SetValue("East");
             sheet.CellAt(2, 2).SetValue(10);
             sheet.CellAt(3, 1).SetValue("West");
             sheet.CellAt(3, 2).SetValue(20);
-            sheet.AddPivotTable(
-                "A1:B3",
-                "E5",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
-
+            sheet.AddPivotTable("A1:B3", "E5", options: new ExcelPivotTableOptions { RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(6));
             Assert.Throws<InvalidOperationException>(() => sheet.DeleteRows(5));
             Assert.Equal("E5:F6", sheet.WorksheetPart.PivotTableParts.Single().PivotTableDefinition!.Location!.Reference!.Value);
@@ -455,7 +430,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.OwnedRanges.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Value");
             sheet.CellAt(1, 2).SetValue("Result");
             for (int row = 2; row <= 4; row++) {
@@ -483,7 +458,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.Bounds.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(ExcelA1.MaxRows, 1).SetValue("Last");
 
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.InsertRows(0));

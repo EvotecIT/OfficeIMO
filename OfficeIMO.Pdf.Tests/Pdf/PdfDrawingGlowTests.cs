@@ -197,8 +197,8 @@ public sealed class PdfDrawingGlowTests {
     }
 
     private static byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfCreateOptions {
-        PageWidth = drawing.Width, PageHeight = drawing.Height,
-        MarginLeft = 0D, MarginTop = 0D, MarginRight = 0D, MarginBottom = 0D,
+        PageWidth = global::OfficeIMO.OfficeLength.Points(drawing.Width), PageHeight = global::OfficeIMO.OfficeLength.Points(drawing.Height),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
         CompressContentStreams = false
     }).Drawing(drawing).ToBytes();
 }

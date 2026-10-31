@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Creates a short question-and-answer deck from structured training content.</summary>
 internal static class TrainingQuiz {
     internal static void Create(string folder) {
-        using PowerPointPresentation deck = PowerPointPresentation.Create(Path.Combine(folder, "example.pptx"));
+        using PowerPointDocument deck = PowerPointDocument.Create(Path.Combine(folder, "example.pptx"));
         AddSlide("What should happen first?",
             "A user reports that a shared service is unavailable.",
             new[] { "A / Restart every component", "B / Confirm impact and name the incident owner", "C / Wait for more reports" },
@@ -23,19 +23,19 @@ internal static class TrainingQuiz {
 
         void AddSlide(string title, string description, string[] points, string label, string fill) {
             PowerPointSlide slide = deck.AddSlide();
-            slide.AddRectangleCm(0, 0, 33.866, 19.05, "Background").Fill(fill).Stroke(fill, 0);
-            var eyebrow = slide.AddTextBoxCm(label, 1.6, 1.2, 29, 1);
-            eyebrow.FontSize = 15;
+            slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(33.866), OfficeIMO.OfficeLength.Centimeters(19.05), "Background").Fill(fill).Stroke(fill, global::OfficeIMO.OfficeLength.Points(0));
+            var eyebrow = slide.AddTextBox(label,global::OfficeIMO.OfficeLength.Centimeters(1.6),global::OfficeIMO.OfficeLength.Centimeters(1.2),global::OfficeIMO.OfficeLength.Centimeters(29),global::OfficeIMO.OfficeLength.Centimeters(1));
+            eyebrow.FontSize = global::OfficeIMO.OfficeLength.Points(15);
             eyebrow.Color = "526179";
-            var heading = slide.AddTextBoxCm(title, 1.6, 3, 29, 2.3);
-            heading.FontSize = 32;
+            var heading = slide.AddTextBox(title,global::OfficeIMO.OfficeLength.Centimeters(1.6),global::OfficeIMO.OfficeLength.Centimeters(3),global::OfficeIMO.OfficeLength.Centimeters(29),global::OfficeIMO.OfficeLength.Centimeters(2.3));
+            heading.FontSize = global::OfficeIMO.OfficeLength.Points(32);
             heading.Color = "17365D";
-            var introduction = slide.AddTextBoxCm(description, 1.6, 5.8, 29, 2);
-            introduction.FontSize = 21;
+            var introduction = slide.AddTextBox(description,global::OfficeIMO.OfficeLength.Centimeters(1.6),global::OfficeIMO.OfficeLength.Centimeters(5.8),global::OfficeIMO.OfficeLength.Centimeters(29),global::OfficeIMO.OfficeLength.Centimeters(2));
+            introduction.FontSize = global::OfficeIMO.OfficeLength.Points(21);
             introduction.Color = "526179";
             for (int index = 0; index < points.Length; index++) {
-                var point = slide.AddTextBoxCm(points[index], 2.2, 8.6 + index * 2.2, 28, 1.7);
-                point.FontSize = 23;
+                var point = slide.AddTextBox(points[index],global::OfficeIMO.OfficeLength.Centimeters(2.2),global::OfficeIMO.OfficeLength.Centimeters(8.6 + index * 2.2),global::OfficeIMO.OfficeLength.Centimeters(28),global::OfficeIMO.OfficeLength.Centimeters(1.7));
+                point.FontSize = global::OfficeIMO.OfficeLength.Points(23);
                 point.Color = "17365D";
             }
         }

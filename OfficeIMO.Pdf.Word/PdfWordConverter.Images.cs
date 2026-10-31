@@ -194,8 +194,7 @@ namespace OfficeIMO.Pdf.Word {
                 // text keep their page position unless the caller asked for positioned placement.
                 bool floatImage = canFloat && (options.PreserveImagePlacementPosition || hasOverlappingTextAfter);
                 if (floatImage) {
-                    imageParagraph.LineSpacingRule = WordLineSpacingRule.Exact;
-                    imageParagraph.LineSpacing = 1;
+                    imageParagraph.LineSpacing = WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(0.05));
                     PdfCore.PdfSelectionQuad visual = page.MapUserSpaceRectangleToVisual(
                         placement!.X,
                         placement.Y,
@@ -217,20 +216,14 @@ namespace OfficeIMO.Pdf.Word {
                                 ["ImagePaintOrder"] = placement.PaintOrder.ToString(CultureInfo.InvariantCulture)
                             });
                     }
-                    embeddedImage = imageParagraph.InsertImage(
-                        stream,
-                        fileName,
-                        width,
-                        height,
-                        wrapping,
-                        description);
+                    embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength1 ? OfficeIMO.OfficeLength.Pixels(imageLength1) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength2 ? OfficeIMO.OfficeLength.Pixels(imageLength2) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping, Description = description });
                     embeddedImage.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     embeddedImage.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-                    embeddedImage.HorizontalPositionOffset = PdfPointsToEmu(visual.Left);
-                    embeddedImage.VerticalPositionOffset = PdfPointsToEmu(visual.Top);
+                    embeddedImage.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(PdfPointsToEmu(visual.Left));
+                    embeddedImage.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(PdfPointsToEmu(visual.Top));
                     embeddedImage.ZOrder = imageContext.GetZOrder(placement);
                 } else {
-                    embeddedImage = imageParagraph.InsertImage(stream, fileName, width, height, description: description);
+                    embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength3 ? OfficeIMO.OfficeLength.Pixels(imageLength3) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength4 ? OfficeIMO.OfficeLength.Pixels(imageLength4) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Description = description });
                     if (placement != null && page.RotationDegrees != 0) {
                         embeddedImage.Rotation = page.RotationDegrees;
                     }
@@ -294,8 +287,8 @@ namespace OfficeIMO.Pdf.Word {
             ApplyCompactSpacing(paragraph);
             string description = string.Join(" ", figure.Labels.Select(static label => label.Text.Trim()).Where(static text => text.Length > 0));
             using var stream = new MemoryStream(png);
-            paragraph.InsertImage(stream, "vector-figure-p" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + ".png",
-                PdfPointsToWordPixels(figure.Width), PdfPointsToWordPixels(figure.Height), description: description);
+            paragraph.AddImage(stream, "vector-figure-p" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + ".png",
+                OfficeLength.Points(figure.Width), OfficeLength.Points(figure.Height), options: new WordImageOptions { Description = description });
             AddWarning(options, "pdf-vector-figure-rasterized", location,
                 "A vector drawing (such as a chart) was placed as a picture of its page region; its shapes and labels are not editable.",
                 PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Approximation,

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace OfficeIMO.Drawing;
 
-public static partial class OfficeGeometry {
+internal static partial class OfficeGeometry {
     // Coordinate-system-neutral routes shared by the Draw and Visio adapters.
     internal static OfficePoint[] CreateOrthogonalConnectorRoute(OfficePoint start, OfficePoint end, bool horizontalFirst, double offset) {
         ValidateRoutingPoint(start); ValidateRoutingPoint(end); ValidateRoutingNumber(offset);

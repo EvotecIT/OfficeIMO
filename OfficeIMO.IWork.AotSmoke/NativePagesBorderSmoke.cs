@@ -36,10 +36,10 @@ internal static class NativePagesBorderSmoke {
         using var reopened = WordDocument.Load(saved);
         using var native = WordDocument.Load(reference);
         var output = reopened.Tables.Single();
-        Require(output.RowHeight.SequenceEqual(new[] { 560, 540, 560, 560 }),
+        Require(output.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))).SequenceEqual(new[] { 560, 540, 560, 560 }),
             "Pages physical row heights did not account for Word bottom padding.");
-        Require(output.LayoutMode == WordTableLayoutMode.Fixed && output.WidthType == WordTableWidthUnit.Dxa
-            && output.Width == 8640 && output.GridColumnWidth.SequenceEqual(new[] { 2160, 2160, 2160, 2160 }),
+        Require(output.LayoutMode == WordTableLayoutMode.Fixed && output.Width == WordTableWidth.Length(OfficeIMO.OfficeLength.Points(432))
+            && output.GridColumnWidth.SequenceEqual(Enumerable.Repeat(OfficeIMO.OfficeLength.Points(108), 4)),
             "Pages standalone table did not retain its fixed grid.");
         var exported = native.Tables.Single();
         int edges = 0;
@@ -63,7 +63,7 @@ internal static class NativePagesBorderSmoke {
                     "Projected Pages border changed.");
                 Require(actual.Style == (width == 0 ? WordBorderStyle.Nil : WordBorderStyle.Single)
                     && appleSide.Style == actual.Style, "Saved/native Pages border style changed.");
-                if (width > 0) Require(actual.Size == checked((uint)(width * 8)) && appleSide.Size == actual.Size
+                if (width > 0) Require(actual.Size == OfficeLength.Points(width) && appleSide.Size == actual.Size
                     && actual.Color == rgb && appleSide.Color == rgb, "Saved/native Pages border width or color changed.");
                 edges++;
             }
@@ -73,7 +73,7 @@ internal static class NativePagesBorderSmoke {
         Console.WriteLine("PASS | native Pages table borders | 16 values, 64 independently decoded edges, hidden edge, physical row heights, fixed grid and complete inline-table flow");
     }
 
-    private static (WordBorderStyle? Style, uint? Size, string? Color) Side(WordTableCellBorder border, string side) => side switch {
+    private static (WordBorderStyle? Style, OfficeLength? Size, string? Color) Side(WordTableCellBorder border, string side) => side switch {
         "left" => (border.LeftStyle, border.LeftSize, border.LeftColorHex),
         "right" => (border.RightStyle, border.RightSize, border.RightColorHex),
         "top" => (border.TopStyle, border.TopSize, border.TopColorHex),

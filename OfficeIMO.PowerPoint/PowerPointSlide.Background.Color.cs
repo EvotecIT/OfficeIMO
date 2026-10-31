@@ -29,7 +29,7 @@ public partial class PowerPointSlide {
             fill.Append(new A.SchemeColor { Val = scheme.Value });
         } else {
             OfficeColor literal = color.IsThemeRole
-                ? color.Resolve(OwnerPresentation?.LayoutTheme.Theme ?? OfficeTheme.Default)
+                ? color.Resolve(OwnerDocument?.LayoutTheme.Theme ?? OfficeTheme.Default)
                 : color;
             BackgroundColor = literal.ToRgbHex();
             if (literal.A < 255) {

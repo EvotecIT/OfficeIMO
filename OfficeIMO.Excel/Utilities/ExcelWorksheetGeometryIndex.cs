@@ -111,7 +111,18 @@ namespace OfficeIMO.Excel.Utilities {
             return ExcelColumnGeometry.GetWidthPixels(column, _sheetFormat, _maximumDigitWidth, includeHidden: true);
         }
 
+        /// <summary>Resolves the font-dependent Excel column metric as a physical image-anchor length.</summary>
+        internal OfficeLength GetColumnLength(int columnIndex) => OfficeLength.Pixels(GetSimpleColumnWidthPixels(columnIndex));
+
+        /// <summary>Retains native point-based row geometry as whole EMUs for image anchoring.</summary>
+        internal OfficeLength GetRowLength(int rowIndex) => OfficeLength.Points(GetRowHeightPoints(rowIndex));
+
         internal int GetRowHeightPixels(int rowIndex) {
+            double points = GetRowHeightPoints(rowIndex);
+            return points <= 0D ? 0 : Math.Max(1, (int)Math.Round(points * 96D / 72D));
+        }
+
+        private double GetRowHeightPoints(int rowIndex) {
             _rows.TryGetValue(rowIndex, out X.Row? row);
             if (row?.Hidden?.Value == true) {
                 return 0;
@@ -133,7 +144,7 @@ namespace OfficeIMO.Excel.Utilities {
                 }
             }
 
-            return Math.Max(1, (int)Math.Round(heightPoints * 96D / 72D));
+            return heightPoints;
         }
 
         private double GetOverflowRowHeight(int rowIndex) {

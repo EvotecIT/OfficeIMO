@@ -11,32 +11,32 @@ namespace OfficeIMO.Examples.Pdf {
                 .Settings(options => {
                     options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
                     options.PageSize = PdfPageSizes.A4;
-                    options.Margins = PdfPageMargins.Uniform(64);
+                    options.Margins = PdfPageMargins.Uniform(OfficeLength.Points(64));
                     options.Language = "en-GB";
                 })
                 .Content(content => content
                     .Element(element => element
                         .Semantic(PdfSemanticRole.Article)
-                        .Background(PdfColor.FromRgb(248, 250, 252))
-                        .Border(PdfColor.FromRgb(148, 163, 184))
-                        .Padding(vertical: 16, horizontal: 18)
+                        .Background(OfficeColor.FromRgb(248, 250, 252))
+                        .Border(OfficeColor.FromRgb(148, 163, 184))
+                        .Padding(vertical: OfficeLength.Points(16), horizontal: OfficeLength.Points(18))
                         .KeepTogether()
                         .Content(article => article
                             .H1("Operational summary")
                             .Text("The same content receiver powers documents, pages, elements, components, and row columns.")
-                            .Spacer(10)
+                            .Spacer(global::OfficeIMO.OfficeLength.Points(10))
                             .Row(row => row
-                                .Gap(12)
-                                .FixedColumn(54, cell => cell
+                                .Gap(global::OfficeIMO.OfficeLength.Points(12))
+                                .FixedColumn(global::OfficeIMO.OfficeLength.Points(54), cell => cell
                                     .H3("ID")
                                     .Text("A-104"))
                                 .AutoColumn(cell => cell
                                     .H3("Owner")
-                                    .Text("Operations"), maximum: 100)
+                                    .Text("Operations"), maximum: global::OfficeIMO.OfficeLength.Points(100))
                                 .RelativeColumn(cell => cell
                                     .H3("Status")
                                     .Text("Validated through explicit fixed, automatic, and relative sizing.")))))
-                    .Spacer(12)
+                    .Spacer(global::OfficeIMO.OfficeLength.Points(12))
                     .Semantic(PdfSemanticRole.Section, section => section
                         .H2("Notes")
                         .Text("Semantic groups feed the tagged-PDF structure tree without changing visual flow."))))

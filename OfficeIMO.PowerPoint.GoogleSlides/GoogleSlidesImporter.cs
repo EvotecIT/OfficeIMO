@@ -31,8 +31,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             EnsureDownloadable(source, id);
             byte[] bytes = await drive.ExportAsync(id, GoogleDriveMimeTypes.MicrosoftPowerPoint, options.Progress, report, cancellationToken).ConfigureAwait(false);
             var stream = new MemoryStream(bytes, writable: true);
-            PowerPointPresentation presentation;
-            try { presentation = PowerPointPresentation.Load(stream, options.LoadOptions); } catch { stream.Dispose(); throw; }
+            PowerPointDocument presentation;
+            try { presentation = PowerPointDocument.Load(stream, options.LoadOptions); } catch { stream.Dispose(); throw; }
             report.Add(TranslationSeverity.Info, "DriveExportImport", "The Google presentation was exported to PPTX through Drive and loaded by OfficeIMO.", code: "SLIDES.IMPORT.DRIVE_EXPORT", action: TranslationAction.Preserve);
             return new GoogleSlidesImportResult(presentation, Reference(source, id, report), report);
         }
@@ -50,14 +50,14 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             GoogleSlidesApiPresentationResponse response = await transport.SendJsonAsync<GoogleSlidesApiPresentationResponse>(token.AccessToken, HttpMethod.Get,
                 $"https://slides.googleapis.com/v1/presentations/{Uri.EscapeDataString(id)}", null, GoogleWorkspaceRequestSafety.Safe, "Google Slides API", report,
                 GoogleSlidesJsonSerializerContext.Default.GoogleSlidesApiPresentationResponse, cancellationToken).ConfigureAwait(false);
-            PowerPointPresentation presentation = await ProjectAsync(response,
+            PowerPointDocument presentation = await ProjectAsync(response,
                 transport, token.AccessToken, options, report,
                 cancellationToken).ConfigureAwait(false);
             report.Add(TranslationSeverity.Info, "NativeImport", "Slides, text boxes, core text styles, tables, images, geometry, and speaker-note text were projected into OfficeIMO.", code: "SLIDES.IMPORT.NATIVE", action: TranslationAction.Preserve);
             return new GoogleSlidesImportResult(presentation, Reference(source, id, report, response), report);
         }
 
-        private static async Task<PowerPointPresentation> ProjectAsync(
+        private static async Task<PowerPointDocument> ProjectAsync(
             GoogleSlidesApiPresentationResponse source,
             GoogleWorkspaceHttpTransport transport,
             string token,
@@ -65,9 +65,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             TranslationReport report,
             CancellationToken cancellationToken) {
             var stream = new MemoryStream();
-            PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointDocument presentation = PowerPointDocument.CreateForImport(stream);
             try {
-                if (source.PageSize?.Width != null && source.PageSize.Height != null) presentation.SlideSize.SetSizePoints(ToPoints(source.PageSize.Width), ToPoints(source.PageSize.Height));
+                if (source.PageSize?.Width != null && source.PageSize.Height != null) presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(ToPoints(source.PageSize.Width)),OfficeIMO.OfficeLength.Points(ToPoints(source.PageSize.Height)));
                 foreach (GoogleSlidesApiPage sourceSlide in source.Slides) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.Hidden = sourceSlide.SlideProperties?.IsSkipped == true;
@@ -110,9 +110,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             string text = ExtractText(element.Shape.Text);
                             PowerPointTextBox box;
                             if (TryMapShapeType(element.Shape.ShapeType, out OfficePresetShapeType textShapeType)) {
-                                box = slide.AddTextShapePoints(textShapeType, text, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
+                                box = slide.AddTextShape(textShapeType, text, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(Math.Max(1, width)), OfficeIMO.OfficeLength.Points(Math.Max(1, height)), element.ObjectId);
                             } else {
-                                box = slide.AddTextBoxPoints(text, left, top, Math.Max(1, width), Math.Max(1, height));
+                                box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(Math.Max(1, width)),global::OfficeIMO.OfficeLength.Points(Math.Max(1, height)));
                                 if (!string.Equals(element.Shape.ShapeType, "TEXT_BOX", StringComparison.OrdinalIgnoreCase)) {
                                     report.Add(
                                         TranslationSeverity.Warning,
@@ -127,7 +127,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             ApplyTextRuns(box, element.Shape.Text);
                         } else if (element.Shape != null) {
                             if (TryMapShapeType(element.Shape.ShapeType, out OfficePresetShapeType shapeType)) {
-                                PowerPointAutoShape shape = slide.AddShapePoints(shapeType, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
+                                PowerPointAutoShape shape = slide.AddShape(shapeType, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(Math.Max(1, width)), OfficeIMO.OfficeLength.Points(Math.Max(1, height)), element.ObjectId);
                                 ApplyTransform(shape, geometry);
                                 ApplyShapeStyle(shape, element.Shape, report, element.ObjectId);
                             } else {
@@ -139,7 +139,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                     action: TranslationAction.Skip);
                             }
                         } else if (element.Table != null && element.Table.Rows > 0 && element.Table.Columns > 0) {
-                            PowerPointTable table = slide.AddTablePoints(element.Table.Rows, element.Table.Columns, left, top, Math.Max(1, width), Math.Max(1, height));
+                            PowerPointTable table = slide.AddTable(element.Table.Rows,element.Table.Columns,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(Math.Max(1, width)),global::OfficeIMO.OfficeLength.Points(Math.Max(1, height)));
                             ApplyTransform(table, geometry);
                             for (int row = 0; row < Math.Min(table.RowItems.Count, element.Table.TableRows.Count); row++) {
                                 for (int column = 0; column < Math.Min(table.RowItems[row].Cells.Count, element.Table.TableRows[row].TableCells.Count); column++) {
@@ -163,7 +163,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                     includeAuthorization: false,
                                     maxResponseBytes: options.MaxImageBytes).ConfigureAwait(false);
                                 using var image = new MemoryStream(bytes, writable: false);
-                                PowerPointPicture picture = slide.AddPicturePoints(image, DetectImageType(bytes), left, top, Math.Max(1, width), Math.Max(1, height));
+                                PowerPointPicture picture = slide.AddImage(image, DetectImageType(bytes), OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(Math.Max(1, width)), OfficeIMO.OfficeLength.Points(Math.Max(1, height)));
                                 ApplyTransform(picture, geometry);
                             } catch (Exception ex) when (!(ex is OperationCanceledException)) {
                                 report.Add(TranslationSeverity.Warning, "Images", "A native Google Slides image could not be downloaded; Drive-export import remains the broad fallback.", code: "SLIDES.IMPORT.IMAGE_FALLBACK", action: TranslationAction.Skip);
@@ -270,7 +270,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 "SUBSCRIPT" => -25D,
                 _ => null,
             };
-            if (style.FontSize != null) run.FontSize = (int)Math.Round(ToPoints(style.FontSize));
+            if (style.FontSize != null) run.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(ToPoints(style.FontSize)));
             if (!string.IsNullOrWhiteSpace(style.FontFamily)) run.FontName = style.FontFamily;
             if (style.ForegroundColor?.OpaqueColor?.RgbColor is GoogleSlidesApiRgbColor textColor) run.Color = ToHex(textColor);
             if (Uri.TryCreate(style.Link?.Url, UriKind.Absolute, out Uri? link)) run.Hyperlink = link;
@@ -348,7 +348,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             if (outline == null) return;
             if (string.Equals(outline.PropertyState, "NOT_RENDERED", StringComparison.OrdinalIgnoreCase)) {
                 target.OutlineColor = null;
-                target.OutlineWidthPoints = 0;
+                target.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
                 return;
             }
 
@@ -359,7 +359,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 AddShapeStyleDiagnostic(report, objectId, "outline uses a theme color that cannot be resolved without its inherited color scheme");
             }
             if (outline.Weight != null) {
-                target.OutlineWidthPoints = Math.Max(0, ToPoints(outline.Weight));
+                target.OutlineWidth = global::OfficeIMO.OfficeLength.Points(Math.Max(0, ToPoints(outline.Weight)));
             }
             if (outlineFill?.Alpha is double alpha && Math.Abs(alpha - 1d) > 0.0000001) {
                 AddShapeStyleDiagnostic(report, objectId, "outline transparency is not representable by the current PowerPoint shape API");

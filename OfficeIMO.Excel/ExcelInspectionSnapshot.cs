@@ -132,7 +132,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool HasPivotTables => PivotTablePartCount > 0;
 
-        internal void AddWorksheet(ExcelWorksheetInfo worksheet) {
+        internal void AddSheet(ExcelWorksheetInfo worksheet) {
             if (worksheet == null) throw new ArgumentNullException(nameof(worksheet));
             _worksheets.Add(worksheet);
         }
@@ -638,7 +638,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Excel column width in character units, when explicitly set.
         /// </summary>
-        public double? Width { get; internal set; }
+        public ExcelColumnWidth? Width => StoredWidth is double value ? ExcelColumnWidth.Characters(value) : (ExcelColumnWidth?)null;
+
+        /// <summary>Native character width retained exactly for format codecs.</summary>
+        internal double? StoredWidth { get; set; }
 
         /// <summary>
         /// Whether the definition represents a hidden column range.
@@ -678,7 +681,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Row height in points, when explicitly set.
         /// </summary>
-        public double? Height { get; internal set; }
+        public ExcelColumnWidth? Height => StoredHeight is double value ? ExcelColumnWidth.Length(OfficeLength.Points(value)) : (ExcelColumnWidth?)null;
+
+        /// <summary>Native point height retained exactly for format codecs.</summary>
+        internal double? StoredHeight { get; set; }
 
         /// <summary>
         /// Whether the row is hidden.
@@ -993,9 +999,9 @@ namespace OfficeIMO.Excel {
         public bool IsFontFamilyExplicit { get; internal set; }
 
         /// <summary>
-        /// Font size in points, when specified by the resolved style.
+        /// Physical font size, when specified by the resolved style.
         /// </summary>
-        public double? FontSize { get; internal set; }
+        public OfficeLength? FontSize { get; internal set; }
 
         /// <summary>
         /// Excel text rotation value from the resolved cell alignment, when specified.

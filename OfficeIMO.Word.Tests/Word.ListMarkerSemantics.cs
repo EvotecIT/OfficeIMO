@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
@@ -287,12 +288,12 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordList list = document.AddCustomBulletList('*', "Arial", "FF0000");
         WordListLevel level = list.Numbering.Levels[0];
         level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()!.Append(new Bold(), new FontSize { Val = "36" });
-        level.IndentationLeft = 2160;
-        level.IndentationHanging = 360;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-        table.Width = 7000;
+        table.Width = WordTableWidth.Length(OfficeLength.Points(350));
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.Width = 7000;
+        cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(7000) * 635)));
         cell.Paragraphs[0].Text = "PlainCell";
         AttachToList(cell.AddParagraph("CellStyle"), list.NumberId);
 
@@ -594,14 +595,14 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 2160;
-        list.Numbering.Levels[0].IndentationHanging = 360;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         document.AddParagraph("PlainBody");
         list.AddItem("UnmarkedBody");
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-        table.Width = 7000;
+        table.Width = WordTableWidth.Length(OfficeLength.Points(350));
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.Width = 7000;
+        cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(7000) * 635)));
         cell.Paragraphs[0].Text = "PlainCell";
         WordParagraph unmarkedCell = cell.AddParagraph("UnmarkedCell");
         AttachToList(unmarkedCell, list.NumberId);
@@ -620,8 +621,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 2160;
-        list.Numbering.Levels[0].IndentationHanging = 360;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         document.AddParagraph("Plain image line");
         list.AddItem("Unmarked image line");
 
@@ -635,18 +636,16 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void MarkerlessItemsKeepTheirIndentInSplitTableRows() {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 5000U;
-        section.PageSettings.Height = 3000U;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(250D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(150D);
         section.SetMargins(WordMargin.Narrow);
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 1800;
-        list.Numbering.Levels[0].IndentationHanging = 360;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 3600;
-        table.ColumnWidthType = WordTableWidthUnit.Dxa;
-        table.ColumnWidth = new List<int> { 3600 };
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
+        table.ColumnWidth = new List<int> { 3600 }.Select(value => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(value) * 635)))).ToList();
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Plain cell line";
         for (int index = 1; index <= 14; index++) {
@@ -670,24 +669,21 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void MarkerlessSplitTableTextStaysBeforeNonTextContent(bool useImage) {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 5000U;
-        section.PageSettings.Height = 3000U;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(250D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(150D);
         section.SetMargins(WordMargin.Narrow);
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 1800;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
         WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
-        outer.WidthType = WordTableWidthUnit.Dxa;
-        outer.Width = 3600;
-        outer.ColumnWidthType = WordTableWidthUnit.Dxa;
-        outer.ColumnWidth = new List<int> { 3600 };
+        outer.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
+        outer.ColumnWidth = new List<int> { 3600 }.Select(value => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(value) * 635)))).ToList();
         WordTableCell cell = outer.Rows[0].Cells[0];
         WordParagraph before = cell.Paragraphs[0];
         before.Text = "BeforeNested " + string.Join(" ", Enumerable.Repeat("wrapped", 8));
         AttachToList(before, list.NumberId);
         if (useImage) {
-            cell.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"),
-                20, 20, description: "Ordered image");
+            cell.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20), options: new OfficeIMO.Word.WordImageOptions { Description = "Ordered image" });
         } else {
             WordTable nested = cell.AddTable(1, 1, WordTableStyle.TableGrid);
             nested.Rows[0].Cells[0].Paragraphs[0].Text = "Nested block";

@@ -112,6 +112,11 @@ internal static partial class TableDetector {
         AttachDetachedHeaderRows(tables, pageLines, consumeWork, cancellationCheck);
         AbsorbWrappedRows(tables, pageLines, consumeWork, cancellationCheck);
         SplitColumnsAtAlignedChannels(tables, cancellationCheck);
+        List<TextLayoutEngine.TextLine> recoveryLines = nonLeaderBands.SelectMany(static band => band)
+            .Take(MaximumPositionedRecoveryLines).ToList();
+        RecoverCompactColumnRefinements(tables, recoveryLines, consumeWork, cancellationCheck);
+        if (RecoverStrongTwoRowTables(tables, recoveryLines, consumeWork, cancellationCheck))
+            RecoverCompactColumnRefinements(tables, recoveryLines, consumeWork, cancellationCheck);
         return tables;
     }
 

@@ -25,7 +25,7 @@ public partial class Word {
             foreach (var edge in edges) {
                 Assert.Equal(style, edge.Item1);
                 Assert.Null(edge.Item2);
-                Assert.Equal(style == WordBorderStyle.Nil ? (uint?)null : 4U, edge.Item3);
+                Assert.Equal(style == WordBorderStyle.Nil ? (global::OfficeIMO.OfficeLength?)null : global::OfficeIMO.OfficeLength.Points(0.5), edge.Item3);
                 Assert.Null(edge.Item4);
             }
         }

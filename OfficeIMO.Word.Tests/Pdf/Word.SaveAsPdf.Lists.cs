@@ -61,7 +61,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordList list = document.AddList(WordListStyle.Numbered);
             WordParagraph item = list.AddItem("List item with chart");
-            WordChart chart = item.AddChart("List Chart", false, 240, 160);
+            WordChart chart = item.AddChart("List Chart",false,OfficeIMO.OfficeLength.Pixels(240),OfficeIMO.OfficeLength.Pixels(160));
             chart.AddPie("Passed", 2);
             chart.AddPie("Failed", 1);
             document.AddParagraph("After list chart");
@@ -91,7 +91,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordList list = document.AddList(WordListStyle.Numbered);
             WordParagraph item = list.AddItem("List item with picture control");
-            item.AddPictureControl(imagePath, 48, 48, "List Logo", "ListLogo");
+            item.AddPictureControl(imagePath, OfficeLength.Pixels(48), OfficeLength.Pixels(48), "List Logo", "ListLogo");
             document.AddParagraph("After list picture control");
 
             document.Save();

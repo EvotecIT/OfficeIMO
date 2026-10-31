@@ -251,12 +251,12 @@ public sealed class PdfConversionScenarioManifestTests {
             var pdfOptions = new PdfCore.PdfCreateOptions {
                     CompressContentStreams = false,
                     CompressEmbeddedFonts = false,
-                    PageWidth = 520,
-                    PageHeight = 420,
-                    MarginLeft = 36,
-                    MarginRight = 36,
-                    MarginTop = 36,
-                    MarginBottom = 36
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(520),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(420),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
                 }
                 .UseRenderingProfile(renderingProfile);
             pdf = PdfCore.PdfDocument.Create(pdfOptions)
@@ -272,8 +272,8 @@ public sealed class PdfConversionScenarioManifestTests {
                     new[] { "Україна", "Київ", "Watch" }
                 }, style: new PdfCore.PdfTableStyle {
                     HeaderRowCount = 1,
-                    CellPaddingX = 6,
-                    CellPaddingY = 4
+                    CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                    CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
                 })
                 .Footer(footer => footer.Text("Generated proof {page}/{pages}"))
                 .ToBytes();
@@ -2264,13 +2264,13 @@ public sealed class PdfConversionScenarioManifestTests {
     private static byte[] CreateLogicalProofPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
-                PageWidth = 420,
-                PageHeight = 460,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(460),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "Logical PDF sample", author: "OfficeIMO")
             .H1("Logical Heading", linkUri: "https://example.com/logical-proof", linkContents: "Logical PDF sample")
@@ -2284,10 +2284,10 @@ public sealed class PdfConversionScenarioManifestTests {
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Logical proof pixel")
             .ToBytes();
@@ -2434,21 +2434,27 @@ public sealed class PdfConversionScenarioManifestTests {
             sheet.Cell(7, 4, "High");
             sheet.Cell(9, 1, "Dashboard note");
             sheet.Cell(9, 2, "Charts, image anchors, print area, and conditional formats stay reviewable.");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetColumnWidth(2, 12);
-            sheet.SetColumnWidth(3, 12);
-            sheet.SetColumnWidth(4, 14);
-            sheet.SetColumnWidth(5, 16);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(16));
             sheet.AddConditionalColorScale("B4:B7", "FFFFF2CC", "FF70AD47");
             sheet.AddConditionalDataBar("C4:C7", "FF5B9BD5");
-            sheet.AddImage(10, 1, PdfPngTestImages.CreateRgbPng(2, 2), "image/png", widthPixels: 36, heightPixels: 24, name: "Dashboard badge", altText: "Dashboard badge");
+            sheet.AddImage(10, 1, PdfPngTestImages.CreateRgbPng(2, 2), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(36),
+                Height = OfficeIMO.OfficeLength.Pixels(24),
+                Name = "Dashboard badge",
+                Description = "Dashboard badge"
+            });
             var chartData = new ExcelChartData(
                 new[] { "Renewals", "New business", "Services", "Expansion" },
                 new[] {
-                    new ExcelChartSeries("Actual", new[] { 128D, 92D, 76D, 54D }, ExcelChartType.ColumnClustered, DrawingCore.OfficeChartAxisGroup.Primary),
-                    new ExcelChartSeries("Target", new[] { 120D, 105D, 70D, 65D }, ExcelChartType.Line, DrawingCore.OfficeChartAxisGroup.Secondary)
+                    new ExcelChartSeries("Actual", new[] { 128D, 92D, 76D, 54D }, OfficeChartType.ColumnClustered, DrawingCore.OfficeChartAxisGroup.Primary),
+                    new ExcelChartSeries("Target", new[] { 120D, 105D, 70D, 65D }, OfficeChartType.Line, DrawingCore.OfficeChartAxisGroup.Secondary)
                 });
-            sheet.AddChart(chartData, row: 1, column: 5, widthPixels: 320, heightPixels: 190, type: ExcelChartType.ColumnClustered, title: "KPI Trend");
+            sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(190), Title = "KPI Trend" });
             sheet.SetHeaderFooter(headerCenter: "Excel Dashboard PDF Gate", footerRight: "Page &P of &N");
             sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
             document.SetPrintArea(sheet, "A1:H14", save: false);
@@ -2457,8 +2463,8 @@ public sealed class PdfConversionScenarioManifestTests {
             return (document.ToPdf(new ExcelPdfExportOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 3,
-                PageSize = new PdfCore.PdfPageSize(560, 360),
-                Margins = PdfCore.PdfPageMargins.Uniform(24)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(560),OfficeIMO.OfficeLength.Points(360)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
             })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         } finally {
             Directory.Delete(tempDirectory, recursive: true);
@@ -2467,24 +2473,24 @@ public sealed class PdfConversionScenarioManifestTests {
 
     private static byte[] CreatePowerPointLayoutThemeGroupsPdf() {
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        presentation.SlideSize.SetSizePoints(240, 160);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
         presentation.SetThemeColor(PowerPointThemeColor.Accent1, "1D4ED8");
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "16A34A");
         PowerPointSlide slide = presentation.AddSlide();
         slide.SetBackgroundGradient("172554", "38BDF8", 35D);
-        PowerPointTextBox title = slide.AddTextBoxPoints("Layout Theme Group Gate", 18, 8, 220, 34);
-        title.FontSize = 14;
+        PowerPointTextBox title = slide.AddTextBox("Layout Theme Group Gate",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(8),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(34));
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         title.Color = "FFFFFF";
-        PowerPointTextBox marker = slide.AddTextBoxPoints("Grouped transform marker", 20, 58, 150, 20);
-        marker.FontSize = 9;
+        PowerPointTextBox marker = slide.AddTextBox("Grouped transform marker",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(58),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(20));
+        marker.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         marker.Color = "0F172A";
-        PowerPointAutoShape preset = slide.AddShapePoints(OfficeIMO.Drawing.OfficePresetShapeType.Triangle, 176, 44, 36, 36);
+        PowerPointAutoShape preset = slide.AddShape(OfficeIMO.Drawing.OfficePresetShapeType.Triangle, OfficeIMO.OfficeLength.Points(176), OfficeIMO.OfficeLength.Points(44), OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(36));
         preset.FillColor = "1F4E79";
         preset.OutlineColor = "1F4E79";
-        PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 30, 20);
+        PowerPointAutoShape first = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20));
         first.FillColor = "FF0000";
-        PowerPointAutoShape second = slide.AddRectanglePoints(60, 20, 30, 20);
+        PowerPointAutoShape second = slide.AddRectangle(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20));
         second.FillColor = "00AA00";
         slide.GroupShapes(new PowerPointShape[] { first, second }, "Dashboard group");
         DocumentFormat.OpenXml.Presentation.GroupShape group = slide.SlidePart.Slide!.CommonSlideData!.ShapeTree!
@@ -2512,13 +2518,13 @@ public sealed class PdfConversionScenarioManifestTests {
 
     private static byte[] CreateLogicalDiagnosticsPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 460,
-                PageHeight = 380,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10,
+                PageWidth = OfficeLength.Points(460),
+                PageHeight = OfficeLength.Points(380),
+                MarginLeft = OfficeLength.Points(36),
+                MarginRight = OfficeLength.Points(36),
+                MarginTop = OfficeLength.Points(36),
+                MarginBottom = OfficeLength.Points(36),
+                DefaultFontSize = OfficeLength.Points(10),
                 // Built-in heading metrics keep this reading fixture independent of the document theme.
                 DefaultHeadingStyles = new PdfCore.PdfHeadingStyles()
             })
@@ -2531,10 +2537,10 @@ public sealed class PdfConversionScenarioManifestTests {
                 new[] { "Pipeline coverage", "84", "Sales" },
                 new[] { "Risk burn-down", "76", "Operations" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 150, 70, 110 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(110) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, alternativeText: "Wide diagnostics badge")
             .Image(PdfPngTestImages.CreateRgbPng(2, 3), 32, 48, alternativeText: "Tall diagnostics badge")
@@ -2543,12 +2549,12 @@ public sealed class PdfConversionScenarioManifestTests {
 
     private static byte[] CreateReaderOcrHandoffCorpusPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = 300,
-                PageHeight = 220,
-                MarginLeft = 24,
-                MarginRight = 24,
-                MarginTop = 24,
-                MarginBottom = 24
+                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(24)
             })
             .Image(PdfPngTestImages.CreateRgbPng(3, 2), 180, 120, alternativeText: "Scanned statement page")
             .ToBytes();

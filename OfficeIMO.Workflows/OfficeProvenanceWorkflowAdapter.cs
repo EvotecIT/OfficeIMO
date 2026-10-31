@@ -23,7 +23,7 @@ internal static class OfficeProvenanceWorkflowAdapter {
         return owner switch {
             ProvenanceOwner.Word => WordDocument.InspectProvenance(path, options),
             ProvenanceOwner.Excel => ExcelDocument.InspectProvenance(path, options),
-            ProvenanceOwner.PowerPoint => PowerPointPresentation.InspectProvenance(path, options),
+            ProvenanceOwner.PowerPoint => PowerPointDocument.InspectProvenance(path, options),
             ProvenanceOwner.Visio => VisioDocument.InspectProvenance(path, options),
             ProvenanceOwner.OpenDocument => OdfDocument.InspectProvenance(path, options),
             ProvenanceOwner.Epub => EpubDocument.InspectProvenance(path, options),
@@ -46,7 +46,7 @@ internal static class OfficeProvenanceWorkflowAdapter {
         return owner switch {
             ProvenanceOwner.Word => WordDocument.RemoveProvenance(inputPath, outputPath, options),
             ProvenanceOwner.Excel => ExcelDocument.RemoveProvenance(inputPath, outputPath, options),
-            ProvenanceOwner.PowerPoint => PowerPointPresentation.RemoveProvenance(inputPath, outputPath, options),
+            ProvenanceOwner.PowerPoint => PowerPointDocument.RemoveProvenance(inputPath, outputPath, options),
             ProvenanceOwner.Visio => VisioDocument.RemoveProvenance(inputPath, outputPath, options),
             ProvenanceOwner.OpenDocument => OdfDocument.RemoveProvenance(inputPath, outputPath, options),
             ProvenanceOwner.Epub => EpubDocument.RemoveProvenance(inputPath, outputPath, options),

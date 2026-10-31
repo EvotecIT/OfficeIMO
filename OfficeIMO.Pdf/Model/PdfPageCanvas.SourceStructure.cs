@@ -33,7 +33,7 @@ public sealed partial class PdfPageCanvas {
     /// <summary>Preserves drawing paint order while attaching adapter-supplied structure to retained source identities.</summary>
     internal void SourceStructuredDrawing(OfficeDrawing drawing, double width, double height,
         IReadOnlyDictionary<string, PdfCanvasSourceContent> sourceStructure) {
-        Drawing(drawing, 0, 0, width, height);
+        Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height));
         ((PdfCanvasDrawingItem)_items[_items.Count - 1]).SourceStructure = sourceStructure;
     }
 }
