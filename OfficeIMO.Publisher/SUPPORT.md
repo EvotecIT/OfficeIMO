@@ -445,6 +445,20 @@ image updates its applied appearances while retaining the page-owned placement's
 original asset. Multiple/paired master authoring, master inheritance and generic
 public native creation remain unqualified.
 
+The `linkedStoryCreation` record covers source-free creation of one story shared
+by three frames flowing through pages 1, 3 and 2, beside an independent story.
+Frame bindings, story reference counts and layout identifiers remain separate;
+the layout catalog contains generated slots. Explicit paragraph overrides use
+the existing paragraph codec. Complete text and terminal overflow survive native
+save/reopen and repeated public source saves on generated, native-normalized and
+independently authored files. The compact source profile preserves its opaque
+layout catalog; the normal native profile can omit an unused color palette.
+Five files complete 35 native operations, with 15 stable initial/resaved page
+pixel pairs. The edited independent control also matches its native overflow
+reference. Generated files differ from that reference in hyphenation and frame
+breaks; native language/CR defaults, general layout parity, repair-free opening
+and public template-free native creation remain unqualified.
+
 Crop source saving can set or clear all four edge fractions, including local
 zero overrides, and combine them with image replacement and bounds changes.
 `PUB_NATIVE_PICTURE_CROP_UNQUALIFIED` keeps native acceptance conservative for

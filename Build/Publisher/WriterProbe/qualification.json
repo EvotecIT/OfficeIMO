@@ -20899,5 +20899,187 @@
       "Managed/native text metrics and image interpolation remain separate limits; PowerShell parity is against managed engine with matching defaults.",
       "Repair-free opening remains unassessed."
     ]
+  },
+  "linkedStoryCreation": {
+    "schema": "officeimo.publisher.linked-story-creation.v1",
+    "sourceCommit": "2ab11ccb925bdbbf4476ab2ea04891544e522f7c",
+    "sourceFileHashBasis": "SHA-256 of canonical Git blob bytes at sourceCommit.",
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeLinkedStoryControl.ps1",
+        "sha256": "b99de9d4506502ce79acaf988593ed1e5b08c2bb61fb08aff75466fdacea0c8f"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "3061b78d80b3c99567b14180d63b23da707fce00abf5f9a5d227953f38d6883a"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "9c0279042325852305ddb2a02094cf276efc70ae04bcc1d1378b3e3318613ed4"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "23ae61508a59309c34875d38f423499cf2506ea1589070850946b7b7b9c562d5"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateCases.cs",
+        "sha256": "a620eb1a5d8ba68a806d4a6e0b96d935b1dca9058342eaf03003c80606323b98"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateLinkedStory.cs",
+        "sha256": "31f5cf11dfa781ba684709ac9bec3f752198007f6a72773fc662bdfe2624cea4"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidatePublicationSpec.cs",
+        "sha256": "956e112588a0cd49039f8181122b78edb20a7066a9b70c6e4f8e7f9e174ecd49"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateWriter.cs",
+        "sha256": "c77e566fffcb4b1f1516cf4d77bd4ec72aab57b4b5ee84fccd059e62c6c0bfa6"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/NativePublicationGraph.cs",
+        "sha256": "4d8aee3e2e95302d8da882d1edcba346dfce5ceebaea0634acf0a116d87c3588"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/Program.cs",
+        "sha256": "b568dd0df687c5c7fea296b8ae8a59ff7724a7b3986a4af0f3e26a0f86db7234"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/QuillCandidate.cs",
+        "sha256": "281422577eb27e03bf828528b0dfad0294e304d8e06ff6c4e57181d4f789ce85"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/QuillLayoutCatalog.cs",
+        "sha256": "a2a62f826b2eda44d0fc1d7802ecabf281f794eaa248118bfc2aff15e3eb6cb3"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/QuillParagraphFormatting.cs",
+        "sha256": "ab4d5b32e818a341c1731def7ca2af266a841eca11805c80338625b475909837"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherLinkedStoryCreationTests.cs",
+        "sha256": "663982361d08e935bcc81e161fde35943aed46ddbad2512139dc721073fea85b"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillSourceLayout.cs",
+        "sha256": "a847392ca536b3069ed7e40fe9cb8e7a5c33bfa404340f2d0013ec5929d08f23"
+      }
+    ],
+    "profile": "One complete story, three frames on physical pages 1,3,2, and one independent label; explicit Arial and 18-point line spacing; modern generation only.",
+    "cases": [
+      {
+        "name": "created",
+        "sha256": "7fd1e7f1e86a4f3507fbdbdf4d13cc71352337f6e7088041a3d79dfe8f74e2cf"
+      },
+      {
+        "name": "created-overflow",
+        "sha256": "5af62b138415ecd8aef89938a5a2404c2252f80682e4eba8d1a58a26e4a80a1e"
+      },
+      {
+        "name": "edited-created",
+        "sha256": "aae259524d8110748a50ab2b96c0e00b8cbdbad2dee321356ca2ca228e8cf1ee"
+      },
+      {
+        "name": "edited-normalized",
+        "sha256": "1528c16fa86b78e2b775ea9595c131318731a3db5b3516ada578ca5e9892c6b4"
+      },
+      {
+        "name": "edited-control",
+        "sha256": "0224ed8759da49c57bff63a1855a726ec7d6d30b7db7b189e8d36524b2649f19"
+      }
+    ],
+    "nativeFullFiles": 5,
+    "nativeOperations": 35,
+    "nativeResavePagePixelPairs": 15,
+    "independentNativePagePixelPairs": 6,
+    "independentAppearanceScope": "Only edited-control initial/resaved pages match the separately native-authored overflow control. Generated and normalized-generated specimens differ in hyphenation/frame breaks.",
+    "pixelComparisonDpi": 144,
+    "publicReloads": 10,
+    "managedPdfSvgPages": 30,
+    "previousCreationProfilesByteIdentical": 19,
+    "nativeStructure": {
+      "frameBindings": 4,
+      "stories": 2,
+      "linkedFrames": 3,
+      "storyReferenceCount": 3,
+      "layoutIdentity": "Independent IdLayout key, not frame cardinality.",
+      "frameCatalogOrder": "Story key then frame ordinal.",
+      "layoutCatalog": "Generated typed metadata and empty initialized slots for each frame; native loader applies geometry.",
+      "paragraphFormatting": "Existing production paragraph codec."
+    },
+    "sourceEditing": {
+      "profiles": [
+        "Generated compact Quill with MCLD",
+        "Native-normalized Quill without unused PL",
+        "Independent native reference"
+      ],
+      "operations": [
+        "Complete-story growth",
+        "Repeated growth/shrink saves",
+        "Terminal overflow retention"
+      ],
+      "preservation": [
+        "Chain/page/object identities",
+        "Independent label story",
+        "Opaque MCLD bytes",
+        "Unrelated logical streams and compound metadata"
+      ],
+      "fontColorResourceGrowth": "Unavailable resources remain explicitly refused."
+    },
+    "fixtures": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/LinkedStory/provenance.json",
+        "sha256": "2fd1e0ca7861cc710f3ac0ce6c81ab9d06eb7b7b95a99b2d632fad7df50c5e6d"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/LinkedStoryOverflow/provenance.json",
+        "sha256": "a8b45744899a36ff0227399e65632302e0825d3d1a7a1c20888d09c2c98deb48"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/GeneratedLinkedStory/provenance.json",
+        "sha256": "8beb28d7572c2dacb82c9e66c0a2e132e04dc69b45a071c3dce678bb56918ce8"
+      }
+    ],
+    "tests": {
+      "publisherPerFramework": 910,
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net472"
+      ],
+      "reader": 95,
+      "focused": 19,
+      "newRegression": "Three_frame_catalog_story_retains_cross_page_order_and_opaque_layout_through_repeated_text_saves",
+      "newFixtureCases": 4
+    },
+    "sourcePowerShell": {
+      "runtime": "7.6.9",
+      "pdfs": 5,
+      "pages": 15,
+      "actualOwnerAssemblyBound": true,
+      "pdfOptions": "Matching defaults on both in-process callers."
+    },
+    "validation": {
+      "unsigned": true,
+      "publisherPdfAndReaderPublisherNetstandard20Builds": true,
+      "sourcePowerShellBuild": true,
+      "probeNoIncrementalBuild": true,
+      "nativeProducer": "Microsoft Publisher16.0.20527.20088",
+      "automationSecurity": 3,
+      "ps7AndPs51SyntaxFiles": 4
+    },
+    "reproduction": [
+      "Create linked-story and linked-story-overflow through WriterProbe without a source publication.",
+      "Produce LinkedStory and LinkedStoryOverflow through the isolated native runner; retain explicit 18-point paragraph spacing.",
+      "Edit the complete shared story on generated, native-normalized and independent native inputs through public APIs.",
+      "Validate all five files with native Full; reload complete text, frame identity/order and overflow, then compare initial/resaved native pages.",
+      "Run repeated-save fixture cases and supported runtime/consumer checks; reproduce all19prior creation hashes."
+    ],
+    "limits": [
+      "Independent native control hyphenation and CR defaults differ from generated files; exact independent appearance remains unqualified.",
+      "Full ordinary-story text and overflow survive native save/reopen; three frame chain and independent story verified.",
+      "Repair-free opening and generic public native creation remain unqualified."
+    ]
   }
 }

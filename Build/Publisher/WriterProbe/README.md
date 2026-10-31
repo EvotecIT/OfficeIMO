@@ -36,6 +36,8 @@ dotnet $probe create cropped-image-pages ./candidate-cropped-images.pub ./first.
 dotnet $probe create shared-image-pages ./candidate-shared-images.pub ./first.png ./last.png
 dotnet $probe create mixed-object-pages ./candidate-mixed-objects.pub ./image.png
 dotnet $probe create master-content ./candidate-master-content.pub ./image.png
+dotnet $probe create linked-story ./candidate-linked-story.pub
+dotnet $probe create linked-story-overflow ./candidate-linked-overflow.pub
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create styled-text ./candidate-styled-text.pub
 dotnet $probe create shape ./candidate-shape.pub
@@ -301,6 +303,7 @@ Page, picture and image-asset counts depend on the selected case.
 | `shared-image-pages` | Uses public existing-image authoring for first/last-page placements of one asset, plus a distinct last-page asset. Native FBSE counts and delayed payloads follow model identity. Two PNG paths required. |
 | `mixed-object-pages` | Authors overlapping rectangle/picture/text/rectangle on the first page and text/picture/rectangle/picture on the last, with an empty middle page. Three pictures share one asset; two text frames own independent stories. One PNG path required. |
 | `master-content` | One master owns a rectangle, picture and text frame and is applied to three physical pages. Page-owned foreground overlaps the master; one page picture reuses the master asset. One PNG path required. |
+| `linked-story`, `linked-story-overflow` | One story flows through three frames on pages 1, 3 and 2, alongside an independent label. Fixed Arial text and 18-point line spacing; the longer specimen retains terminal overflow. |
 | `cropped-image-pages` | Uses the named-image model and public `SetPictureCrop` on the first picture, with distinct left/top/right/bottom fractions `0.25/0.125/0.0625/0.1875`. The shared OfficeArt encoder owns the native values. Two PNG paths required for this qualified specimen. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
@@ -465,6 +468,20 @@ Independent `MasterContent` controls retain master/foreground layering. Master
 text, rectangle bounds/fill and image replacement can be saved on generated,
 native-resaved and native-authored sources; the page-owned image remains on its
 original asset. Multiple/paired masters, inheritance and generic model serialization
+remain unqualified.
+
+The `linkedStoryCreation` record qualifies a three-frame story whose chain order
+differs from physical page order. Frame catalog rows are ordered by story and
+ordinal; the story's `CRef` count is independent of `IdLayout`. Generated Quill
+layout slots support every frame ordinal without copying a native layout cache.
+Paragraph overrides use the existing production paragraph codec. Source saves
+preserve opaque layout data on compact and native-normalized files, including a
+normal native profile without an unused palette. Native creation, growth and
+shrink saves retain both complete stories, chain identity and terminal overflow.
+All 19 earlier creation profiles remain byte-identical. Native open/save/reopen
+and stable resave pixels are qualified separately from independent appearance:
+the generated files do not reproduce the control's hyphenation and frame breaks.
+Language/CR defaults, repair-free opening and generic public native creation
 remain unqualified.
 
 The generated file and a public `SetPictureBounds` edit each match independently
