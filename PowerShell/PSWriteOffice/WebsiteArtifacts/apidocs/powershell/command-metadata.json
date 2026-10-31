@@ -2869,14 +2869,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Security/GetOfficePackageSecurityCommand.cs#L19"
     },
     {
-      "name": "Get-OfficePdf",
-      "kind": "Cmdlet",
-      "aliases": [],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfCommand.cs",
-      "sourceLine": 17,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfCommand.cs#L17"
-    },
-    {
       "name": "Get-OfficePdfAnnotation",
       "kind": "Cmdlet",
       "aliases": [],
@@ -4167,6 +4159,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/OpenOfficeMarkdownCommand.cs#L17"
     },
     {
+      "name": "Open-OfficePdf",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/OpenOfficePdfCommand.cs",
+      "sourceLine": 26,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/OpenOfficePdfCommand.cs#L26"
+    },
+    {
       "name": "Open-OfficePowerPoint",
       "kind": "Cmdlet",
       "aliases": [],
@@ -4283,8 +4283,8 @@
       "kind": "Cmdlet",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/RemoveOfficePdfPageCommand.cs",
-      "sourceLine": 21,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/RemoveOfficePdfPageCommand.cs#L21"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/RemoveOfficePdfPageCommand.cs#L18"
     },
     {
       "name": "Remove-OfficePowerPointSlide",
@@ -5007,8 +5007,8 @@
         "PdfMetadata"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/SetOfficePdfMetadataCommand.cs",
-      "sourceLine": 31,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/SetOfficePdfMetadataCommand.cs#L31"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/SetOfficePdfMetadataCommand.cs#L18"
     },
     {
       "name": "Set-OfficePdfPage",
