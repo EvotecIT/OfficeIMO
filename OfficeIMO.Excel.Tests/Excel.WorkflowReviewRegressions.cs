@@ -142,7 +142,9 @@ namespace OfficeIMO.Tests {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
             string xml = ReadSinglePackagePartText(spreadsheet.WorkbookPart!, "connections");
             Assert.Contains("<connections", xml, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("count=\"1\"", xml, StringComparison.OrdinalIgnoreCase);
+            Assert.Single(spreadsheet.WorkbookPart!.ConnectionsPart!.Connections!.Elements<Connection>());
+            Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator(FileFormatVersions.Microsoft365)
+                .Validate(spreadsheet));
             Assert.Contains("SalesConnection", xml, StringComparison.Ordinal);
         }
 

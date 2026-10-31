@@ -75,6 +75,7 @@ New-OfficeExcel -Path $path {
 
         ExcelTable -Data $legend -Name 'StatusLegend' -StartRow 7 -StartColumn 1 -TableStyle 'TableStyleMedium4' -AutoFit
         ExcelTable -Data $statusMix -Name 'StatusMix' -StartRow 7 -StartColumn 6 -TableStyle 'TableStyleMedium4' -AutoFit
+        ExcelColumn -Column 4 -AutoFit
         ExcelChart -Range 'F7:G10' -Address I7 -Type Doughnut -Title 'Status Mix' -Width 440px -Height 260px -PassThru |
             Set-OfficeExcelChartLegend -Position Right -PassThru |
             Set-OfficeExcelChartDataLabels -ShowValue $true -ShowCategoryName $true -Position OutsideEnd -PassThru |
@@ -153,10 +154,9 @@ Add-OfficeExcelPowerQueryMetadata -Path $path `
     -QueryTableName 'OperationalDashboardQueryTable' `
     -CommandText 'let Source = Excel.CurrentWorkbook(){[Name="ServiceHealth"]}[Content] in Source' `
     -Description 'Refresh metadata for Excel-compatible applications; PSWriteOffice does not execute Power Query.' `
-    -RefreshOnOpen `
+    -RefreshOnOpen
 
-
-$doctor = Test-OfficeExcelWorkbook -Path $path -SkipOpenXmlValidation
+$doctor = Test-OfficeExcelWorkbook -Path $path
 $accessibility = Test-OfficeExcelAccessibility -Path $path
 $streaming = Get-OfficeExcelStreamingContract -Path $path
 $commentAudit = Get-OfficeExcelCommentAudit -Path $path -IncludeComments
