@@ -186,6 +186,32 @@ test("explicit pivot column formats win over captured per-cell formats and retai
   assert.equal(formats.get(xfs[Number(cell[1])][1]), "0.0000%");
 });
 
+test("explicit pivot column formats override tone formats when the cell declares no number format", async () => {
+  for (const [format, expected] of [["0.00", "0.50"], ["", "0.5"]]) {
+    const snapshot = structuredClone(fixture.percent);
+    snapshot.rows[0].cells.v0_0 = { value: .5, text: "0.5", mode: "value", tone: "formatted" };
+    const options = { columnOptions: { v0_0: { format } }, tones: { formatted: { numberFormat: "0.00%" } } };
+    const pdf = await inspectPdf(await exportCanopy(capture(snapshot), "pdf", options));
+    assert.ok(pdf.pages.flatMap(page => page.lines).includes(expected), expected);
+    const zip = await readZip(await exportCanopy(capture(snapshot), "xlsx", options));
+    const xml = zip.get("xl/worksheets/sheet1.xml").content, styles = zip.get("xl/styles.xml").content;
+    const cell = /<c r="B2" s="(\d+)"[^>]*><v>([^<]+)<\/v>/.exec(xml);
+    assert.ok(cell); assert.equal(Number(cell[2]), .5);
+    const xfs = [.../<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/.exec(styles)[1].matchAll(/<xf\b[^>]*numFmtId="(\d+)"/g)];
+    const id = xfs[Number(cell[1])][1];
+    const formats = new Map([...styles.matchAll(/<numFmt numFmtId="(\d+)" formatCode="([^"]*)"/g)].map(m => [m[1], m[2]]));
+    if (format === "") assert.equal(id, "0"); else assert.equal(formats.get(id), format);
+  }
+});
+
+test("pivot PDF escaped literal percent affixes supply culture without scaling the raw number", async () => {
+  const snapshot = structuredClone(fixture.percent);
+  snapshot.rows[0].cells.v0_0 = { value: 12.5, text: "12.50", mode: "value", numberFormat: "0.00" };
+  snapshot.rows[0].cells.v0_1 = { value: 18.6, text: "18,6%", mode: "value", numberFormat: "0.0\\%" };
+  const pdf = await inspectPdf(await exportCanopy(capture(snapshot), "pdf")), lines = pdf.pages.flatMap(page => page.lines);
+  assert.ok(lines.includes("12,50")); assert.ok(lines.includes("18,6%"));
+});
+
 test("empty pivot intersections need no numeric display mode or format", async () => {
   const snapshot = structuredClone(fixture.snapshot), empty = snapshot.rows[0].cells.v0_0;
   empty.value = null; empty.text = ""; delete empty.mode; delete empty.numberFormat;

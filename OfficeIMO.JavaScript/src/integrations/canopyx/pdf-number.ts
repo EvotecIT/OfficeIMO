@@ -6,9 +6,9 @@ function numericProfile(format: string | undefined): { minimumFractionDigits: nu
   // No declared precision: whole values (including counts) stay whole.
   if (format === undefined || format === "General") return { minimumFractionDigits: 0, maximumFractionDigits: 20,
     percent: false, grouping: false, prefix: "", suffix: "" };
-  const match = /^((?:"[^"]*"|\\")*)(#,##)?0(?:\.([0#]+))?(%)?((?:"[^"]*"|\\")*)$/.exec(format);
+  const match = /^((?:"[^"]*"|\\["%])*)(#,##)?0(?:\.([0#]+))?(%)?((?:"[^"]*"|\\["%])*)$/.exec(format);
   if (!match || (match[3]?.length ?? 0) > 10) return undefined;
-  const literal = (text: string) => text.replace(/"([^"]*)"|\\(")/g, (_, quoted: string | undefined, escaped: string | undefined) => quoted ?? escaped!);
+  const literal = (text: string) => text.replace(/"([^"]*)"|\\(["%])/g, (_, quoted: string | undefined, escaped: string | undefined) => quoted ?? escaped!);
   return { minimumFractionDigits: (match[3]?.match(/0/g) ?? []).length, maximumFractionDigits: match[3]?.length ?? 0,
     percent: !!match[4], grouping: !!match[2], prefix: literal(match[1]!), suffix: literal(match[5]!) };
 }

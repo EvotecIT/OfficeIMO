@@ -11861,7 +11861,7 @@ _modules.set("040752afe195985e6f2e91f8c62fc13464c455fc44034b8cef4828851e05b83d",
 return _exports;
 })();
 
-const _m96 = _modules.get("c5f1468f31fe23c0bc7e2e1b3aa078058e51a2594ee254ea32bf11708d8d9bde") ?? (() => {
+const _m96 = _modules.get("36a9bb6248cc45e1b18686ddd2ca7d6045bd08775d540c8fac8fae75b9c12b82") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
 const { canopyPivot, pivotNumberFormat } = _m97;
@@ -12003,7 +12003,7 @@ function prepareCanopyExport(capture, format, options = {}) {
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
                     const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
-                    const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
+                    const nativeFormat = spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
                     const summary = format === "pdf" && pivot && (row.summary || row.grandTotal);
                     const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat || summary ? {
                         ...rowStyle, ...(summary ? { bold: true } : {}), ...cellStyle,
@@ -12031,7 +12031,7 @@ function prepareCanopyExport(capture, format, options = {}) {
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
 const _exports = Object.freeze({ canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("c5f1468f31fe23c0bc7e2e1b3aa078058e51a2594ee254ea32bf11708d8d9bde", _exports);
+_modules.set("36a9bb6248cc45e1b18686ddd2ca7d6045bd08775d540c8fac8fae75b9c12b82", _exports);
 return _exports;
 })();
 
@@ -12338,7 +12338,7 @@ _modules.set("eb8cf81d2a340cdb41301d59c667cef44f3ad1d6a19f717eb8137257b545115e",
 return _exports;
 })();
 
-const _m102 = _modules.get("0ecdaebae556f842abfa55a27fafab6d0f90864599f9e3a0bb71380053b412ad") ?? (() => {
+const _m102 = _modules.get("07a4ac2444ac5d649c4e040f94d338948abfb4a2d300005bdd47d35edaf122de") ?? (() => {
 const { createGroupedReport } = _m8;
 
 const { checkAbort } = _m4;
@@ -12544,7 +12544,7 @@ function canopyGrouped(source, request, options, limits, report, format) {
         ...(options.signal === undefined ? {} : { signal: options.signal }), ...(sourceLimits === undefined ? {} : { limits: sourceLimits }) });
 }
 const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
-_modules.set("0ecdaebae556f842abfa55a27fafab6d0f90864599f9e3a0bb71380053b412ad", _exports);
+_modules.set("07a4ac2444ac5d649c4e040f94d338948abfb4a2d300005bdd47d35edaf122de", _exports);
 return _exports;
 })();
 
@@ -12668,7 +12668,7 @@ _modules.set("ccfefc97a47cc288f2c9a2eed33fff323570e35193cedbd876ebb3e8fb78a42e",
 return _exports;
 })();
 
-const _m106 = _modules.get("aef19cd27ce9dc6a1ff2d30e2330b423417c261491d167590877a072e65d72d1") ?? (() => {
+const _m106 = _modules.get("8b895f152579de2e35e95094df749cd5b2e62fcc6eba9c914b0217af6a38bc7a") ?? (() => {
 const { ExportCell } = _m1;
 
 /** Fixed numeric formats affect PDF text, not the frozen numeric value used by other writers. */
@@ -12677,10 +12677,10 @@ function numericProfile(format) {
     if (format === undefined || format === "General")
         return { minimumFractionDigits: 0, maximumFractionDigits: 20,
             percent: false, grouping: false, prefix: "", suffix: "" };
-    const match = /^((?:"[^"]*"|\\")*)(#,##)?0(?:\.([0#]+))?(%)?((?:"[^"]*"|\\")*)$/.exec(format);
+    const match = /^((?:"[^"]*"|\\["%])*)(#,##)?0(?:\.([0#]+))?(%)?((?:"[^"]*"|\\["%])*)$/.exec(format);
     if (!match || (match[3]?.length ?? 0) > 10)
         return undefined;
-    const literal = (text) => text.replace(/"([^"]*)"|\\(")/g, (_, quoted, escaped) => quoted ?? escaped);
+    const literal = (text) => text.replace(/"([^"]*)"|\\(["%])/g, (_, quoted, escaped) => quoted ?? escaped);
     return { minimumFractionDigits: (match[3]?.match(/0/g) ?? []).length, maximumFractionDigits: match[3]?.length ?? 0,
         percent: !!match[4], grouping: !!match[2], prefix: literal(match[1]), suffix: literal(match[5]) };
 }
@@ -12786,11 +12786,11 @@ function canopyPdfNumbers(sample, columns) {
     });
 }
 const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
-_modules.set("aef19cd27ce9dc6a1ff2d30e2330b423417c261491d167590877a072e65d72d1", _exports);
+_modules.set("8b895f152579de2e35e95094df749cd5b2e62fcc6eba9c914b0217af6a38bc7a", _exports);
 return _exports;
 })();
 
-const _m105 = _modules.get("5bc11325fa7ca8b2b1a44cd58444e09cb1af01f418b7aabf4040b72a633eeb3f") ?? (() => {
+const _m105 = _modules.get("906dc03c4a0862ea5ba5bd6339abce4184c20587e2e70a062269fb4e7e98982a") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m1;
 
 const { inputRows, checkAbort, pause, taskYieldDue } = _m4;
@@ -12895,11 +12895,11 @@ async function withCanopyPdfLayout(source, captured, options, write) {
     }
 }
 const _exports = Object.freeze({ withCanopyPdfLayout: withCanopyPdfLayout });
-_modules.set("5bc11325fa7ca8b2b1a44cd58444e09cb1af01f418b7aabf4040b72a633eeb3f", _exports);
+_modules.set("906dc03c4a0862ea5ba5bd6339abce4184c20587e2e70a062269fb4e7e98982a", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("62899ae282b44b5d4b2b9503f76f912a9379c146130e6b773f20555d670a7e78") ?? (() => {
+const _m0 = _modules.get("65ce71f27374cea1742d2460096c50e6bc6601c68b7f178d4ac464104e4c5c6a") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -13038,7 +13038,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("62899ae282b44b5d4b2b9503f76f912a9379c146130e6b773f20555d670a7e78", _exports);
+_modules.set("65ce71f27374cea1742d2460096c50e6bc6601c68b7f178d4ac464104e4c5c6a", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

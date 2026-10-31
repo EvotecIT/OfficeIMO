@@ -125,7 +125,7 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         let value: import("../../core/index.js").CellValue = values === "display" || relativeLabel ? cell.text : cell.value;
         if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string") value = datetime(value, dateMode, clock);
         const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
-        const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
+        const nativeFormat = spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
         const summary = format === "pdf" && pivot && (row.summary || row.grandTotal);
         const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat || summary ? {
           ...rowStyle, ...(summary ? { bold: true } : {}), ...cellStyle,

@@ -11899,7 +11899,7 @@ function prepareCanopyExport(capture, format, options = {}) {
                     if (format === "xlsx" && values === "raw" && spec.kind === "datetime" && typeof value === "string")
                         value = datetime(value, dateMode, clock);
                     const capturedFormat = pivot && spec.kind === "number" && cell.value !== null ? pivotNumberFormat(cell) : undefined;
-                    const nativeFormat = capturedFormat === undefined ? undefined : spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
+                    const nativeFormat = spec.nativeFormatOverride === "" ? "General" : spec.nativeFormatOverride ?? capturedFormat;
                     const summary = format === "pdf" && pivot && (row.summary || row.grandTotal);
                     const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat || summary ? {
                         ...rowStyle, ...(summary ? { bold: true } : {}), ...cellStyle,
@@ -12567,10 +12567,10 @@ function numericProfile(format) {
     if (format === undefined || format === "General")
         return { minimumFractionDigits: 0, maximumFractionDigits: 20,
             percent: false, grouping: false, prefix: "", suffix: "" };
-    const match = /^((?:"[^"]*"|\\")*)(#,##)?0(?:\.([0#]+))?(%)?((?:"[^"]*"|\\")*)$/.exec(format);
+    const match = /^((?:"[^"]*"|\\["%])*)(#,##)?0(?:\.([0#]+))?(%)?((?:"[^"]*"|\\["%])*)$/.exec(format);
     if (!match || (match[3]?.length ?? 0) > 10)
         return undefined;
-    const literal = (text) => text.replace(/"([^"]*)"|\\(")/g, (_, quoted, escaped) => quoted ?? escaped);
+    const literal = (text) => text.replace(/"([^"]*)"|\\(["%])/g, (_, quoted, escaped) => quoted ?? escaped);
     return { minimumFractionDigits: (match[3]?.match(/0/g) ?? []).length, maximumFractionDigits: match[3]?.length ?? 0,
         percent: !!match[4], grouping: !!match[2], prefix: literal(match[1]), suffix: literal(match[5]) };
 }
