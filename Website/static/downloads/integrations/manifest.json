@@ -1,7 +1,7 @@
 {
   "sourceRepository": "EvotecIT/OfficeIMO",
   "modules": {
-    "PSWriteOffice": "3.0.8",
+    "PSWriteOffice": "3.5.2",
     "PSParseHTML": "3.0.3",
     "Mailozaurr": "3.0.2",
     "PSEventViewer": "4.0.1"

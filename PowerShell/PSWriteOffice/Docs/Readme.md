@@ -523,6 +523,9 @@ Clears generated PDF page background shapes.
 ### [Close-OfficeAccess](Close-OfficeAccess.md)
 Closes a native database without implicitly saving it.
 
+### [Close-OfficeEpub](Close-OfficeEpub.md)
+Completes an EPUB publication's lifecycle without saving.
+
 ### [Close-OfficeExcel](Close-OfficeExcel.md)
 Closes a live Excel workbook without saving pending changes.
 
@@ -819,9 +822,6 @@ Reads a native EML, EMLX, MSG, or TNEF artifact with bounded diagnostics.
 
 ### [Get-OfficeEmailMailbox](Get-OfficeEmailMailbox.md)
 Reads a native mbox mailbox with bounded per-message diagnostics.
-
-### [Get-OfficeEpub](Get-OfficeEpub.md)
-Loads a publication for package-preserving inspection or editing.
 
 ### [Get-OfficeEpubChapter](Get-OfficeEpubChapter.md)
 Projects chapters to searchable PowerShell objects.
@@ -1229,7 +1229,7 @@ Creates bounded email-store reader settings without requiring .NET constructor s
 Creates deterministic email writer settings through ordinary PowerShell parameters.
 
 ### [New-OfficeEpub](New-OfficeEpub.md)
-Creates an EPUB publication with native navigation and metadata.
+Creates a live EPUB publication or saves a completed chapter/resource block.
 
 ### [New-OfficeExcel](New-OfficeExcel.md)
 Creates a themed Excel workbook, returning a live workbook or saving a completed content block.
@@ -1372,6 +1372,9 @@ Creates a discoverable Word revision filter for Resolve-OfficeWordRevision.
 ### [New-OfficeWordTableCell](New-OfficeWordTableCell.md)
 Creates a reusable Word table cell definition for explicit table rows.
 
+### [Open-OfficeEpub](Open-OfficeEpub.md)
+Opens an EPUB publication, optionally saving an editing block atomically.
+
 ### [Open-OfficeMarkdown](Open-OfficeMarkdown.md)
 Opens native Markdown from a file or parses text; a file content block saves atomically.
 
@@ -1448,7 +1451,7 @@ Saves an email document as EML, EMLX, MSG, or TNEF with fidelity diagnostics.
 Saves a native mbox mailbox with output diagnostics.
 
 ### [Save-OfficeEpub](Save-OfficeEpub.md)
-Writes a validated EPUB package with explicit conflict and loss policies.
+Saves a native EPUB publication, rejecting loss unless explicitly allowed.
 
 ### [Save-OfficeExcel](Save-OfficeExcel.md)
 Saves a live Excel workbook without closing it.

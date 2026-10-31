@@ -4,42 +4,42 @@ Module Name: PSWriteOffice
 online version: https://github.com/EvotecIT/OfficeIMO
 schema: 2.0.0
 ---
-# Get-OfficeEpub
+# Close-OfficeEpub
 ## SYNOPSIS
-Loads a publication for package-preserving inspection or editing.
+Completes an EPUB publication's lifecycle without saving.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficeEpub [-Path] <string> [<CommonParameters>]
+Close-OfficeEpub -Document <EpubPublication> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Loads a publication for package-preserving inspection or editing.
+Completes an EPUB publication's lifecycle without saving.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-Get-Item ./book.epub | Get-OfficeEpub
+Close-OfficeEpub -Document $book
 ```
 
 
 ## PARAMETERS
 
-### -Path
-Literal EPUB path.
+### -Document
+Live publication to close without saving.
 
 ```yaml
-Type: String
+Type: EpubPublication
 Parameter Sets: __AllParameterSets
-Aliases: FullName, FilePath, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
-Position: 0
+Position: named
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -48,11 +48,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `OfficeIMO.Epub.EpubPublication`
 
 ## OUTPUTS
 
-- `OfficeIMO.Epub.EpubPublication`
+- `None`
 
 ## RELATED LINKS
 
