@@ -2,8 +2,9 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
-/// <summary>One page and its ordered semantic objects, before native identities are assigned.</summary>
-internal sealed record CandidatePublicationSpec(uint WidthEmu, uint HeightEmu, IReadOnlyList<CandidateObjectSpec> Objects);
+/// <summary>Ordered physical pages with semantic objects on the first page, before native identities are assigned.</summary>
+internal sealed record CandidatePublicationSpec(uint WidthEmu, uint HeightEmu, IReadOnlyList<CandidateObjectSpec> Objects,
+    int PhysicalPageCount = 1);
 
 internal enum CandidateObjectKind { TextBox, Rectangle, Picture }
 

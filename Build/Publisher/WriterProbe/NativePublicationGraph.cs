@@ -8,19 +8,23 @@ namespace OfficeIMO.Publisher.WriterProbe;
 /// The role boundaries follow recovered native rules; native opening remains unqualified.
 /// </summary>
 internal static class NativePublicationGraph {
-    internal const ushort OrderedPageCount = 6;
     internal const ushort MasterPageCount = 1;
     internal const ushort SpecialPageBoundary = 5;
     internal const uint DrawingId = 1;
     internal const uint RootShapeId = DrawingId << 10;
     private const int PhysicalPageIndex = 1;
 
+    // Native enumeration admits M..N-S inclusive: physical = N-S-M+1.
+    internal static ushort GetOrderedPageCount(CandidatePublicationSpec specification) =>
+        checked((ushort)(specification.PhysicalPageCount + MasterPageCount + SpecialPageBoundary - 1));
+
     internal static Graph Create(CandidatePublicationSpec specification, uint documentId) {
+        ushort orderedPageCount = GetOrderedPageCount(specification);
         uint width = specification.WidthEmu, height = specification.HeightEmu;
         uint firstPageId = documentId + 1;
         uint masterId = firstPageId;
         uint physicalId = firstPageId + PhysicalPageIndex;
-        uint firstObjectId = firstPageId + OrderedPageCount;
+        uint firstObjectId = firstPageId + orderedPageCount;
         var objects = new List<ObjectBinding>();
         var stories = new List<StoryBinding>();
         for (int index = 0; index < specification.Objects.Count; index++) {
@@ -37,15 +41,15 @@ internal static class NativePublicationGraph {
         uint printBlockId = quillDocumentId + 3;
         uint masterGeometryId = printBlockId + 1;
         uint colorSchemeId = masterGeometryId + 1;
-        byte[] references = Variable(2, 0xA0, Enumerable.Range(0, OrderedPageCount)
+        byte[] references = Variable(2, 0xA0, Enumerable.Range(0, orderedPageCount)
             .Select(index => Scalar(0, 0x70, firstPageId + (uint)index)).ToArray());
-        byte[] document = Chunk(Scalar(1, 0x20, OrderedPageCount), references, Scalar(3, 0x70, printBlockId),
+        byte[] document = Chunk(Scalar(1, 0x20, orderedPageCount), references, Scalar(3, 0x70, printBlockId),
             Variable(0x12, 0x88, Scalar(1, 0x20, width), Scalar(2, 0x20, height)),
             Scalar(0x20, 0x70, quillDocumentId),
             Scalar(0x22, 0x70, colorSchemeId),
             ShortScalar(0x2C, 0x18, SpecialPageBoundary), ShortScalar(0x2D, 0x18, MasterPageCount));
         var chunks = new List<NativeRecord> { new(0x44, null, document) };
-        for (int index = 0; index < OrderedPageCount; index++) {
+        for (int index = 0; index < orderedPageCount; index++) {
             bool isMaster = index < MasterPageCount;
             bool containsObjects = index == PhysicalPageIndex;
             var fields = new List<byte[]> {

@@ -5,6 +5,11 @@ internal static class CandidateCases {
     private static readonly CandidatePlacement DefaultPlacement = new(72, 72, 288, 108);
 
     internal static CandidatePublicationSpec Create(string kind, string? value) {
+        if (kind == "blank-pages") {
+            if (!int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int count)
+                || count < 1 || count > 16) throw new ArgumentException("The blank-pages case requires a page count from 1 to 16.");
+            return new CandidatePublicationSpec(612 * 12700, 792 * 12700, Array.Empty<CandidateObjectSpec>(), count);
+        }
         if (kind is not ("blank" or "text" or "styled-text" or "shape" or "image" or "combined")) throw new ArgumentException("Unknown candidate kind.");
         if (kind == "styled-text" && value != null) throw new ArgumentException("The styled-text case uses its fixed three-run sample.");
         CandidateObjectSpec[] objects = kind switch {

@@ -27,6 +27,7 @@ $probe = 'Build/Publisher/WriterProbe/bin/Release/net10.0/OfficeIMO.Publisher.Te
 dotnet $probe inventory ./reference.pub ./reference.inventory.json
 dotnet $probe diff ./native-text.pub ./native-textlong.pub ./text-change.diff.json
 dotnet $probe create blank ./candidate-blank.pub
+dotnet $probe create blank-pages ./candidate-two-blank-pages.pub 2
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create styled-text ./candidate-styled-text.pub
 dotnet $probe create shape ./candidate-shape.pub
@@ -44,6 +45,8 @@ dotnet $probe edit-paragraphs ./native-textparagraphs.pub ./edited-paragraphs.pu
 Output parent directories must exist. Existing outputs are never overwritten.
 Inventory input is bounded to 64 MiB, plain text to 4,096 characters and images
 to 1 MiB. Reports can contain complete recovered text; use synthetic fixtures.
+The `blank-pages` case requires a physical page count from 1 to 16. Other creation
+cases place their objects on a single physical page.
 
 `inventory` records compound metadata and hashes, known Contents fields, Quill
 directories, OfficeArt envelopes and a separate OfficeIMO reader result.
@@ -280,6 +283,7 @@ The current drawing specification supports one picture per publication.
 | Case | Objects and content |
 | --- | --- |
 | `blank` | Empty page. |
+| `blank-pages` | Requested count of empty physical pages, with one shared empty master; count argument required. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
 | `shape` | Solid red rectangle at `(72,72)`, size `288×108`, with a CR-only story. |
@@ -304,9 +308,11 @@ header provide the native recognition metadata. The Internal header contains
 version `0x00010000`, a reserved zero WORD, zero context flags at unaligned offset
 6 and a zero following-byte count at offset 10.
 
-The page graph has six ordered references: one master, one physical page and
-four utility pages. `DpgMaster=1` and `DpgSpecial=5` select the physical interval
-`[1, 6-5]`. Non-master pages reference the generated master. The master alone
+The page graph has `physical page count + 5` ordered references: one master,
+the physical pages and four utility pages. `DpgMaster=1` and `DpgSpecial=5`
+select the inclusive physical interval `[1, ordered count-5]`. The one-page
+cases retain their original six-reference encoding. Non-master pages reference
+the generated master. The master alone
 references an `OhMgPage` margin-guide record (`0x4C`) with explicit dimensions,
 four calculated coordinates `0,width,0,height`, two column guides, two row
 guides and zero gutters. Physical pages use the master relation for geometry.
@@ -362,6 +368,15 @@ inventories and both reference PDFs establish the expected text, character
 styles, object geometry and embedded image pixels before and after native
 resave. The original and resaved PDF renders were also inspected. Repair-free
 opening remains unassessed; these observations do not establish it.
+
+The record's `blankPageCreation` section separately qualifies generated two- and
+four-page blank publications through all seven native operations. Each physical
+page retains its order, page number, side and empty master relationship before
+and after resave. All 12 initial/resaved page renders match the independent
+native-written `BlankPages` reference at 144 dpi; the native resaves also reopen
+through OfficeIMO. Counts 1 and 16 have managed/structural checks in this record.
+All six original one-page creation cases remain byte-identical. This evidence
+does not qualify objects on later pages, additional masters or repair-free opening.
 
 Successful native opening, usable text ranges, saving, reopening and PDF export
 are separate observations. Retain the candidate SHA-256, application version,

@@ -23,20 +23,21 @@ internal static class Program {
                 return 0;
             }
             if (args.Length is >= 3 and <= 4 && args[0] == "create") {
-                byte[] bytes = CandidateWriter.Create(args[1], args.Length == 4 ? args[3] : null);
+                CandidatePublicationSpec specification = CandidateCases.Create(args[1], args.Length == 4 ? args[3] : null);
+                byte[] bytes = CandidateWriter.Create(specification);
                 WriteNew(args[2], bytes);
                 Console.WriteLine(JsonSerializer.Serialize(new {
                     schema = "officeimo.publisher.writer-probe.candidate.v1",
-                    profile = "template-free-one-page-probe",
+                    profile = specification.PhysicalPageCount == 1 ? "template-free-one-page-probe" : "template-free-blank-pages-probe",
                     hypothesis = args[0],
                     kind = args[1],
                     rootClassId = CandidateWriter.PublicationClassId,
                     pageGraph = new {
-                        orderedReferences = NativePublicationGraph.OrderedPageCount,
+                        orderedReferences = NativePublicationGraph.GetOrderedPageCount(specification),
                         dpgMaster = NativePublicationGraph.MasterPageCount,
                         dpgSpecial = NativePublicationGraph.SpecialPageBoundary,
                         firstPhysicalIndex = NativePublicationGraph.MasterPageCount,
-                        lastPhysicalIndex = NativePublicationGraph.OrderedPageCount - NativePublicationGraph.SpecialPageBoundary
+                        lastPhysicalIndex = NativePublicationGraph.GetOrderedPageCount(specification) - NativePublicationGraph.SpecialPageBoundary
                     },
                     output = Path.GetFullPath(args[2]),
                     bytes = bytes.Length,
@@ -57,7 +58,7 @@ internal static class Program {
                 else Console.WriteLine(json);
                 return 0;
             }
-            Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image|combined> <candidate.pub> [text-or-image-path]\npreserve <input.pub> <candidate.pub>\nedit <input.pub> <candidate.pub> <object-id> <x> <y> <width> <height> [RRGGBB]\nedit-text <input.pub> <candidate.pub> <story-id> <text>\nedit-story <input.pub> <candidate.pub> <story-id> <runs.json>\nrender <input.pub> <unused-output-directory>");
+            Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image|combined> <candidate.pub> [text-or-image-path]\ncreate blank-pages <candidate.pub> <page-count>\npreserve <input.pub> <candidate.pub>\nedit <input.pub> <candidate.pub> <object-id> <x> <y> <width> <height> [RRGGBB]\nedit-text <input.pub> <candidate.pub> <story-id> <text>\nedit-story <input.pub> <candidate.pub> <story-id> <runs.json>\nrender <input.pub> <unused-output-directory>");
             Console.Error.WriteLine("edit-paragraphs <input.pub> <candidate.pub> <story-id> <paragraph-run-arrays.json>");
             return 2;
         } catch (Exception exception) {

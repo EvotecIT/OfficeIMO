@@ -12,8 +12,7 @@ internal static class CandidateWriter {
     internal static readonly Guid PublicationClassId = new("00021201-0000-0000-00c0-000000000046");
     private static readonly Guid QuillSubClassId = new("08c8f6da-969d-11d1-8e02-00c04fb6fece");
 
-    internal static byte[] Create(string kind, string? value) {
-        CandidatePublicationSpec specification = CandidateCases.Create(kind, value);
+    internal static byte[] Create(CandidatePublicationSpec specification) {
         NativePublicationGraph.Graph graph = NativePublicationGraph.Create(specification, DocumentId);
         var streams = new List<OfficeCompoundStream> {
             new OfficeCompoundStream("Contents", Contents(graph)),
