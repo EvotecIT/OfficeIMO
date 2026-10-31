@@ -880,6 +880,7 @@ Use the [native codec structure and qualification record](../Build/Publisher/Wri
 #### PUB01 — Editable publication model
 
 - [ ] Evolve the existing model into the canonical editable owner for pages, masters, stories, linked frames, styles, tables, shapes and assets. Define units, identifiers, ownership and supported mutations; preserve complete stories and overflow. Generate the drawing scene from that model so edits reach every export without competing source and drawing state.
+- [ ] Carry run-language metadata through the canonical rich-text model, public authoring/copy paths and native source edits/creation using the [qualified language-field evidence](../OfficeIMO.Publisher/SUPPORT.md). Preserve omitted/inherited source semantics and opaque companion fields; qualify language changes and broader scripts independently.
 - [ ] Retain native provenance and records needed for safe save-back. Specify supported edits, unknown-record preservation and strict rejection of changes whose effects cannot be preserved. Keep public APIs usable without native record knowledge; migrate existing examples and consumers when an intentional API change is necessary.
 
 #### PUB02 — Qualified reading and rendering

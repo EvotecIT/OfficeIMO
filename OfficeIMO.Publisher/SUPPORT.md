@@ -486,6 +486,17 @@ difference. Every edited output matches its independent control. Native column
 balancing, general layout parity, repair-free opening and generic public native
 creation remain unqualified.
 
+The `nativeLanguageFeasibility` record isolates the language-dependent native
+layout gap. Scratch variants adding character property `0x12` with language ID
+1033 match every initial/resaved page of the independent two-page column and
+three-page linked-story controls. Adding only property `0x3E` retains the
+baseline differences; its semantic role remains opaque. Existing native French
+controls write `0x12=1036`, including ranges without `0x3E`. The experiment uses
+ordered native character fields and changes no process-global hyphenation
+option. The current text model and writer specimens do not yet expose this
+language value. Broader languages/scripts, paragraph-terminator defaults,
+managed hyphenation and column balancing require separate qualification.
+
 Crop source saving can set or clear all four edge fractions, including local
 zero overrides, and combine them with image replacement and bounds changes.
 `PUB_NATIVE_PICTURE_CROP_UNQUALIFIED` keeps native acceptance conservative for

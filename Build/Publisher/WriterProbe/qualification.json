@@ -21487,5 +21487,157 @@
       "Column balancing, broader layout modes and general native appearance parity remain unqualified.",
       "Repair-free native opening and generic public native creation remain unqualified."
     ]
+  },
+  "nativeLanguageFeasibility": {
+    "schema": "officeimo.publisher.native-language-field-feasibility.v1",
+    "sourceCommit": "8f1a10a57cdcfc97431b2eea04182df642f02cf2",
+    "sourceFile": {
+      "path": "Build/Publisher/WriterProbe/QuillCharacterFormatting.cs",
+      "sha256": "2d6a094cc6cda9fd96decec2c545e24e8e9eec20031796d4113f038d72689c10",
+      "basis": "Canonical Git blob before scratch-only character-record variation."
+    },
+    "method": "Compile the private probe sources with a scratch-only QuillCharacterFormatting override. Insert ordered DWORD property0x12=1033 before font0x24, property0x3E=1033 afterfont, or both. Leave all other source/model/codec inputs unchanged.",
+    "cases": [
+      {
+        "name": "frame-both-ordered",
+        "variant": "both",
+        "kind": "frame-layout",
+        "sha256": "69294f129c8d525881f37191564a4c02e958713febb82f0ec12fa86efd8ccc49",
+        "nativeOperations": 7,
+        "pixelPairs": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "overrideSha256": "6d8c982c7c5acbfff69603ea44519ddca385206de3ef2ce48875c47c607b088f"
+      },
+      {
+        "name": "linked-both-ordered",
+        "variant": "both",
+        "kind": "linked-story",
+        "sha256": "68e4a2eb3cd092c6ff6f2366c181442a21d880ff354f5c967118ea4321a7d83a",
+        "nativeOperations": 7,
+        "pixelPairs": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "overrideSha256": "6d8c982c7c5acbfff69603ea44519ddca385206de3ef2ce48875c47c607b088f"
+      },
+      {
+        "name": "primary-frame-layout",
+        "variant": "primary",
+        "kind": "frame-layout",
+        "sha256": "ac37b822d9af0ec91d5714c66f39402b6f517061e71b61572cc54fc2647430d2",
+        "nativeOperations": 7,
+        "pixelPairs": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "overrideSha256": "44ad65be5387a311e00f8bb4462ee3bc85b077a58067bed92ce8ea23888272f0"
+      },
+      {
+        "name": "primary-linked-story",
+        "variant": "primary",
+        "kind": "linked-story",
+        "sha256": "d9b6ccbe01eae6b80d0fc300c27231c276e913e9ca943d0b01087966c6abbcf8",
+        "nativeOperations": 7,
+        "pixelPairs": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "overrideSha256": "44ad65be5387a311e00f8bb4462ee3bc85b077a58067bed92ce8ea23888272f0"
+      },
+      {
+        "name": "secondary-frame-layout",
+        "variant": "secondary",
+        "kind": "frame-layout",
+        "sha256": "44bd827819068ac5b4a866a6c1803b0caf0ddda81b5046c5cf12beda516ba979",
+        "nativeOperations": 7,
+        "pixelPairs": [
+          false,
+          true,
+          false,
+          true
+        ],
+        "overrideSha256": "6a25bd30a172f564fdfd2e9649227d9a8369683552f4738bb072a3ac5eae72f1"
+      },
+      {
+        "name": "secondary-linked-story",
+        "variant": "secondary",
+        "kind": "linked-story",
+        "sha256": "f122417851e381cc5a846bf789f9b04247dab16dc28c38bb9fd37cfe7a448e70",
+        "nativeOperations": 7,
+        "pixelPairs": [
+          false,
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "overrideSha256": "6a25bd30a172f564fdfd2e9649227d9a8369683552f4738bb072a3ac5eae72f1"
+      }
+    ],
+    "nativeFullFiles": 6,
+    "nativeOperations": 42,
+    "independentPagePairs": 30,
+    "matchedIndependentPagePairs": 22,
+    "pixelComparisonDpi": 144,
+    "positive": "Both fields and0x12alone match every initial/resaved page of the independent two-page FrameCreation and three-page LinkedStory controls.",
+    "negative": "0x3Ealone retains the unqualified baseline differences: framepage1 and all3linkedstorypages before/afterresave.",
+    "controlledLanguage": "Native TableCellTyping LanguageID1036 controls write character field0x12=1036, including ranges without0x3E.0x3Esemantic role is not assigned by this experiment.",
+    "nativeRule": {
+      "characterLanguageField": "0x12/type0x22",
+      "languageValue": 1033,
+      "propertyOrder": "Ascending native OPL field order. An initial unsorted3E-before24variant was rejected on native open.",
+      "globalOption": "Frozen MSPUB AutoHyphenate getter atRVA3D5DD0 reads globalWORD RVA B46904 bit9; no process-global option was written."
+    },
+    "nativeIdentity": {
+      "publisherVersion": "16.0.20527.20088",
+      "publisherSha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+      "macroSecurity": 3
+    },
+    "analysis": {
+      "rea": "6.5.0; qualified entrypoint hash verified; retained story/SDF evidence hashes verified; no new target/import.",
+      "observation": "Bounded offline .pdata ownership and instruction-window disassembly from frozen Publisher input; indirect guard dispatch is not treated as a resolved logical callee.",
+      "accessors": [
+        {
+          "name": "COptions::get_AutoHyphenate",
+          "entry": "0x1403d5dd0",
+          "endExclusive": "0x1403d5e78"
+        },
+        {
+          "name": "COptions::put_AutoHyphenate",
+          "entry": "0x1403d85c0",
+          "endExclusive": "0x1403d86af"
+        },
+        {
+          "name": "CPubTextRange::get_LanguageID",
+          "entry": "0x1404794f0",
+          "endExclusive": "0x1404795ff"
+        },
+        {
+          "name": "CPubTextRange::put_LanguageID",
+          "entry": "0x14047b030",
+          "endExclusive": "0x14047b1ac"
+        }
+      ]
+    },
+    "limits": [
+      "Only English synthetic layout and linked-story controls compared; broader languages/scripts and native defaults remain unqualified.",
+      "Managed hyphenation, column balancing, repair-free opening and generic public native creation remain unqualified.",
+      "No production model/codec source or process-global option changed."
+    ]
   }
 }

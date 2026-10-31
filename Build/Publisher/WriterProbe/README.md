@@ -585,6 +585,17 @@ resulting column breaks; all edited files match the edited native reference.
 Column balancing, general appearance parity and repair-free opening remain
 separate qualification work.
 
+The `nativeLanguageFeasibility` experiment distinguishes the missing language
+field from the opaque companion character field. Ordered `0x12=1033` alone
+matches all ten initial/resaved page pairs for the column and linked-story
+controls; `0x3E=1033` alone leaves eight of those pairs different. Both fields
+also match all ten pairs. Native French controls independently associate
+`LanguageID=1036` with `0x12=1036`. These are scratch-only variations of the
+private character encoder; current model/CLI contracts are unchanged. Language
+metadata must reach native creation through the canonical text model before
+this evidence becomes a supported writer feature. Broader language/script and
+managed layout behavior remains separate.
+
 The `sourceEditing.tableText` record covers existing cell text saves with fixed
 grid, cell order and per-cell paragraph counts, including ordinary stories in
 the same publication and re-editing a native resave. Independent checks bind
