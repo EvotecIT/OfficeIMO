@@ -114,7 +114,7 @@ New-OfficePowerPoint -Path $path {
     Set-OfficePowerPointSlideSize -Preset Screen16x9
     PptDesignerDeck -Plan $plan -AccentColor '#008C95' -Seed 'workplace-support' -Purpose 'workplace support planning brief' -Name 'Workplace support plan' -Eyebrow 'Workplace support' -FooterLeft $dateText -FooterRight $dataLabel -CreativeDirectionPack Boardroom -LayoutStrategy ContentFirst
     $chartSlide = PowerPointSlide -Title 'Quarterly ticket demand' -PassThru
-    PowerPointChart -Slide $chartSlide -Type ClusteredColumn -Data $chartData -Category Site -Value 'Previous quarter', 'Current quarter' -Title "Tickets: $previous previous / $current current ($changeText)" -X 58 -Y 118 -Width 610 -Height 235
+    PowerPointChart -Slide $chartSlide -Type Column -InputObject $chartData -Category Site -Value 'Previous quarter', 'Current quarter' -Title "Tickets: $previous previous / $current current ($changeText)" -X 58 -Y 118 -Width 610 -Height 235
     PowerPointNotes -Slide $chartSlide -Text 'Both series are ticket counts. A change in demand alone does not establish improved service quality or its cause.'
     $tableSlide = PowerPointSlide -Title 'Owners and review dates' -PassThru
     PowerPointTable -Slide $tableSlide -InputObject $actions -X 54 -Y 120 -Width 612 -Height 200

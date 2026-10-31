@@ -23,7 +23,7 @@ Add-OfficePowerPointSection -Document $target -Name 'Intro' -Slide 1
 Add-OfficePowerPointSection -Document $target -Name 'Results' -Slide 2
 Rename-OfficePowerPointSection -Presentation $target -Name 'Results' -NewName 'Deep Dive'
 
-Update-OfficePowerPointText -Presentation $target -OldValue 'FY24' -NewValue 'FY25'
+Update-OfficePowerPointText -Document $target -OldValue 'FY24' -NewValue 'FY25'
 Copy-OfficePowerPointSlide -Presentation $target -Index 0 -InsertAt 1
 Import-OfficePowerPointSlide -Presentation $target -SourcePath $sourcePath -SourceIndex 0 -InsertAt 1
 

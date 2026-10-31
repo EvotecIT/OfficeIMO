@@ -23,7 +23,7 @@ New-OfficePowerPoint -Path $path {
     PowerPointNotes -Slide $cover -Text 'Open with the outcome: growth continued and the team needs three decisions.'
 
     $performance = PowerPointSlide -Title 'Performance trend' -PassThru
-    PowerPointChart -Slide $performance -InputObject $trend -Category Quarter -Value Revenue -Type ClusteredColumn -Title 'Revenue (USD millions)' -X 55 -Y 130 -Width 400 -Height 280
+    PowerPointChart -Slide $performance -InputObject $trend -Category Quarter -Value Revenue -Type Column -Title 'Revenue (USD millions)' -X 55 -Y 130 -Width 400 -Height 280
     PowerPointChart -Slide $performance -InputObject $trend -Category Quarter -Value Margin -Type Line -Title 'Operating margin (%)' -X 500 -Y 130 -Width 400 -Height 280
     Add-OfficePowerPointTextBox -Slide $performance -Content { PowerPointText "Revenue grew $revenueGrowth% from Q1; margin improved $marginChange percentage points." -Size 18 -Color '#0F172A' } -X 60 -Y 440 -Width 840 -Height 55
     PowerPointNotes -Slide $performance -Text 'Explain the margin improvement before discussing revenue.'

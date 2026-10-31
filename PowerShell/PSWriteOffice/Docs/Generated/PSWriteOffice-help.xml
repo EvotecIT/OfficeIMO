@@ -38483,16 +38483,28 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <maml:para>Supports default chart data or object-based category/series mappings for standard and scatter charts.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="Default">
+      <command:syntaxItem parameterSetName="Sample">
         <maml:name>Add-OfficePowerPointChart</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Column</maml:name>
+          <maml:description>
+            <maml:para>One-based start column in the native twelve-column grid; explicit X overrides it.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Height</maml:name>
           <maml:description>
-            <maml:para>Chart height in points.</maml:para>
+            <maml:para>Chart height; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -38509,14 +38521,26 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Slide</maml:name>
           <maml:description>
             <maml:para>Target slide that will receive the chart (optional inside DSL).</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
+            <maml:name>PowerPointSlideSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Span</maml:name>
+          <maml:description>
+            <maml:para>Number of grid columns; defaults to twelve, and explicit Width overrides it.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -38538,16 +38562,53 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <maml:description>
             <maml:para>Chart type to create.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointChartType</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeChartType</command:parameterValue>
           <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">ClusteredColumn</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ColumnClustered</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Column</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ColumnStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ColumnStacked100</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BarClustered</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Bar</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BarStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BarStacked100</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Line</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">LineStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">LineStacked100</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Area</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AreaStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AreaStacked100</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Scatter</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Radar</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Pie</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Doughnut</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Scatter</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Bubble</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Column3DClustered</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Column3DStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Column3DStacked100</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Bar3DClustered</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Bar3DStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Bar3DStacked100</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Line3D</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Area3D</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Area3DStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Area3DStacked100</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Pie3D</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">PieOfPie</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BarOfPie</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Stock</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Surface</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SurfaceWireframe</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SurfaceContour</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Funnel</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Waterfall</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BoxWhisker</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Treemap</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SurfaceContourWireframe</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Sunburst</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PowerPointChartType</maml:name>
+            <maml:name>OfficeChartType</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -38555,11 +38616,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Width</maml:name>
           <maml:description>
-            <maml:para>Chart width in points.</maml:para>
+            <maml:para>Chart width; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -38567,11 +38628,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>X</maml:name>
           <maml:description>
-            <maml:para>Left offset in points from the slide origin.</maml:para>
+            <maml:para>Left offset from the slide origin; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -38579,22 +38640,22 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Y</maml:name>
           <maml:description>
-            <maml:para>Top offset in points from the slide origin.</maml:para>
+            <maml:para>Top offset from the slide origin; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
       </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Categorical">
+      <command:syntaxItem parameterSetName="InputObject">
         <maml:name>Add-OfficePowerPointChart</maml:name>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Category</maml:name>
           <maml:description>
-            <maml:para>Property name used for category labels on standard charts.</maml:para>
+            <maml:para>Property used for category labels, or numeric X values on scatter charts.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -38604,18 +38665,30 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Height</maml:name>
+          <maml:name>Column</maml:name>
           <maml:description>
-            <maml:para>Chart height in points.</maml:para>
+            <maml:para>One-based start column in the native twelve-column grid; explicit X overrides it.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>Int32</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Data">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Height</maml:name>
+          <maml:description>
+            <maml:para>Chart height; numbers mean points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>InputObject</maml:name>
           <maml:description>
             <maml:para>Source objects used to build chart data.</maml:para>
@@ -38639,14 +38712,26 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Slide</maml:name>
           <maml:description>
             <maml:para>Target slide that will receive the chart (optional inside DSL).</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
+            <maml:name>PowerPointSlideSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Span</maml:name>
+          <maml:description>
+            <maml:para>Number of grid columns; defaults to twelve, and explicit Width overrides it.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -38668,16 +38753,53 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <maml:description>
             <maml:para>Chart type to create.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointChartType</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeChartType</command:parameterValue>
           <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">ClusteredColumn</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ColumnClustered</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Column</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ColumnStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ColumnStacked100</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BarClustered</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Bar</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BarStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BarStacked100</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Line</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">LineStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">LineStacked100</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Area</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AreaStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">AreaStacked100</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Scatter</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Radar</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Pie</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Doughnut</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Scatter</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Bubble</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Column3DClustered</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Column3DStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Column3DStacked100</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Bar3DClustered</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Bar3DStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Bar3DStacked100</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Line3D</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Area3D</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Area3DStacked</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Area3DStacked100</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Pie3D</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">PieOfPie</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BarOfPie</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Stock</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Surface</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SurfaceWireframe</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SurfaceContour</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Funnel</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Waterfall</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BoxWhisker</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Treemap</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SurfaceContourWireframe</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Sunburst</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PowerPointChartType</maml:name>
+            <maml:name>OfficeChartType</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -38685,7 +38807,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Value</maml:name>
           <maml:description>
-            <maml:para>Property names used as numeric series on standard charts.</maml:para>
+            <maml:para>Properties used as numeric series, or Y series on scatter charts.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
@@ -38697,11 +38819,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Width</maml:name>
           <maml:description>
-            <maml:para>Chart width in points.</maml:para>
+            <maml:para>Chart width; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -38709,11 +38831,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>X</maml:name>
           <maml:description>
-            <maml:para>Left offset in points from the slide origin.</maml:para>
+            <maml:para>Left offset from the slide origin; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -38721,153 +38843,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Y</maml:name>
           <maml:description>
-            <maml:para>Top offset in points from the slide origin.</maml:para>
+            <maml:para>Top offset from the slide origin; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Scatter">
-        <maml:name>Add-OfficePowerPointChart</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Height</maml:name>
-          <maml:description>
-            <maml:para>Chart height in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Data">
-          <maml:name>InputObject</maml:name>
-          <maml:description>
-            <maml:para>Source objects used to build chart data.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
-          <dev:type>
-            <maml:name>Object[]</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the object created or changed by the command.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Slide</maml:name>
-          <maml:description>
-            <maml:para>Target slide that will receive the chart (optional inside DSL).</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Title</maml:name>
-          <maml:description>
-            <maml:para>Optional chart title.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Type</maml:name>
-          <maml:description>
-            <maml:para>Chart type to create.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointChartType</command:parameterValue>
-          <command:parameterValueGroup>
-            <command:parameterValue required="false" variableLength="false">ClusteredColumn</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Line</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Pie</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Doughnut</command:parameterValue>
-            <command:parameterValue required="false" variableLength="false">Scatter</command:parameterValue>
-          </command:parameterValueGroup>
-          <dev:type>
-            <maml:name>PowerPointChartType</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Width</maml:name>
-          <maml:description>
-            <maml:para>Chart width in points.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>X</maml:name>
-          <maml:description>
-            <maml:para>Left offset in points from the slide origin.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>XProperty</maml:name>
-          <maml:description>
-            <maml:para>Property name used for the X axis on scatter charts.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Y</maml:name>
-          <maml:description>
-            <maml:para>Top offset in points from the slide origin.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
-          <dev:type>
-            <maml:name>Double</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>YProperty</maml:name>
-          <maml:description>
-            <maml:para>Property names used as numeric Y series on scatter charts.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
-          <dev:type>
-            <maml:name>String[]</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -38878,7 +38858,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Category</maml:name>
         <maml:description>
-          <maml:para>Property name used for category labels on standard charts.</maml:para>
+          <maml:para>Property used for category labels, or numeric X values on scatter charts.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -38888,18 +38868,30 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Height</maml:name>
+        <maml:name>Column</maml:name>
         <maml:description>
-          <maml:para>Chart height in points.</maml:para>
+          <maml:para>One-based start column in the native twelve-column grid; explicit X overrides it.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>Int32</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Data">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Height</maml:name>
+        <maml:description>
+          <maml:para>Chart height; numbers mean points.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeLength</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
         <maml:name>InputObject</maml:name>
         <maml:description>
           <maml:para>Source objects used to build chart data.</maml:para>
@@ -38923,14 +38915,26 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Slide</maml:name>
         <maml:description>
           <maml:para>Target slide that will receive the chart (optional inside DSL).</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
         <dev:type>
-          <maml:name>PowerPointSlide</maml:name>
+          <maml:name>PowerPointSlideSelector</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Span</maml:name>
+        <maml:description>
+          <maml:para>Number of grid columns; defaults to twelve, and explicit Width overrides it.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -38952,16 +38956,53 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <maml:description>
           <maml:para>Chart type to create.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointChartType</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeChartType</command:parameterValue>
         <command:parameterValueGroup>
-          <command:parameterValue required="false" variableLength="false">ClusteredColumn</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ColumnClustered</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Column</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ColumnStacked</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">ColumnStacked100</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">BarClustered</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Bar</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">BarStacked</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">BarStacked100</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Line</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">LineStacked</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">LineStacked100</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Area</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">AreaStacked</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">AreaStacked100</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Scatter</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Radar</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Pie</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Doughnut</command:parameterValue>
-          <command:parameterValue required="false" variableLength="false">Scatter</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Bubble</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Column3DClustered</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Column3DStacked</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Column3DStacked100</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Bar3DClustered</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Bar3DStacked</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Bar3DStacked100</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Line3D</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Area3D</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Area3DStacked</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Area3DStacked100</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Pie3D</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PieOfPie</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">BarOfPie</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Stock</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Surface</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SurfaceWireframe</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SurfaceContour</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Funnel</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Waterfall</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">BoxWhisker</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Treemap</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SurfaceContourWireframe</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Sunburst</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PowerPointChartType</maml:name>
+          <maml:name>OfficeChartType</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -38969,7 +39010,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Value</maml:name>
         <maml:description>
-          <maml:para>Property names used as numeric series on standard charts.</maml:para>
+          <maml:para>Properties used as numeric series, or Y series on scatter charts.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
         <dev:type>
@@ -38981,11 +39022,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Width</maml:name>
         <maml:description>
-          <maml:para>Chart width in points.</maml:para>
+          <maml:para>Chart width; numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -38993,23 +39034,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>X</maml:name>
         <maml:description>
-          <maml:para>Left offset in points from the slide origin.</maml:para>
+          <maml:para>Left offset from the slide origin; numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>XProperty</maml:name>
-        <maml:description>
-          <maml:para>Property name used for the X axis on scatter charts.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -39017,23 +39046,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Y</maml:name>
         <maml:description>
-          <maml:para>Top offset in points from the slide origin.</maml:para>
+          <maml:para>Top offset from the slide origin; numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>YProperty</maml:name>
-        <maml:description>
-          <maml:para>Property names used as numeric Y series on scatter charts.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
-        <dev:type>
-          <maml:name>String[]</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -39042,7 +39059,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointSlide</maml:name>
+          <maml:name>System.Object[]</maml:name>
         </dev:type>
       </command:inputType>
     </command:inputTypes>
@@ -39087,7 +39104,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
             )
             New-OfficePowerPoint -Path .\Examples\Documents\PowerPointScatter.pptx {
                 $slide = Add-OfficePowerPointSlide -PassThru
-                Add-OfficePowerPointChart -Slide $slide -Type Scatter -InputObject $rows -XProperty Quarter -YProperty Revenue -Title 'Revenue trend'
+                Add-OfficePowerPointChart -Slide $slide -Type Scatter -InputObject $rows -Category Quarter -Value Revenue -Title 'Revenue trend'
             }</dev:code>
         <dev:remarks>
           <maml:para>Creates a scatter chart using Quarter on the X axis and Revenue on the Y axis.</maml:para>
@@ -44850,6 +44867,30 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Column</maml:name>
+          <maml:description>
+            <maml:para>One-based start column in the native twelve-column grid; explicit X overrides it.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Culture</maml:name>
+          <maml:description>
+            <maml:para>Culture for formatting data; lengths always parse invariantly.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">CultureInfo</command:parameterValue>
+          <dev:type>
+            <maml:name>CultureInfo</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>DictionaryEntrySeparator</maml:name>
           <maml:description>
             <maml:para>Text used between entries when a cell contains a dictionary.</maml:para>
@@ -44876,23 +44917,23 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Height</maml:name>
           <maml:description>
-            <maml:para>Table height in points.</maml:para>
+            <maml:para>Table height; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>InputObject</maml:name>
           <maml:description>
             <maml:para>Source objects to convert into table rows.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
           <dev:type>
-            <maml:name>Object</maml:name>
+            <maml:name>Object[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -44986,17 +45027,29 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <maml:description>
             <maml:para>Target slide that will receive the table (optional inside DSL).</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
+            <maml:name>PowerPointSlideSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>StyleId</maml:name>
+          <maml:name>Span</maml:name>
           <maml:description>
-            <maml:para>Optional table style ID (GUID string).</maml:para>
+            <maml:para>Number of grid columns; defaults to twelve, and explicit Width overrides it.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Style</maml:name>
+          <maml:description>
+            <maml:para>Native table style name or GUID; omission retains the native theme style.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -45024,11 +45077,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Width</maml:name>
           <maml:description>
-            <maml:para>Table width in points.</maml:para>
+            <maml:para>Table width; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -45036,11 +45089,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>X</maml:name>
           <maml:description>
-            <maml:para>Left offset (in points) from the slide origin.</maml:para>
+            <maml:para>Left offset from the slide origin; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -45048,11 +45101,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Y</maml:name>
           <maml:description>
-            <maml:para>Top offset (in points) from the slide origin.</maml:para>
+            <maml:para>Top offset from the slide origin; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -45060,6 +45113,18 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       </command:syntaxItem>
       <command:syntaxItem parameterSetName="Size">
         <maml:name>Add-OfficePowerPointTable</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Column</maml:name>
+          <maml:description>
+            <maml:para>One-based start column in the native twelve-column grid; explicit X overrides it.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Columns</maml:name>
           <maml:description>
@@ -45075,11 +45140,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Height</maml:name>
           <maml:description>
-            <maml:para>Table height in points.</maml:para>
+            <maml:para>Table height; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -45113,17 +45178,29 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <maml:description>
             <maml:para>Target slide that will receive the table (optional inside DSL).</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
+            <maml:name>PowerPointSlideSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>StyleId</maml:name>
+          <maml:name>Span</maml:name>
           <maml:description>
-            <maml:para>Optional table style ID (GUID string).</maml:para>
+            <maml:para>Number of grid columns; defaults to twelve, and explicit Width overrides it.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Style</maml:name>
+          <maml:description>
+            <maml:para>Native table style name or GUID; omission retains the native theme style.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -45135,11 +45212,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Width</maml:name>
           <maml:description>
-            <maml:para>Table width in points.</maml:para>
+            <maml:para>Table width; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -45147,11 +45224,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>X</maml:name>
           <maml:description>
-            <maml:para>Left offset (in points) from the slide origin.</maml:para>
+            <maml:para>Left offset from the slide origin; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -45159,11 +45236,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Y</maml:name>
           <maml:description>
-            <maml:para>Top offset (in points) from the slide origin.</maml:para>
+            <maml:para>Top offset from the slide origin; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -45183,6 +45260,18 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Column</maml:name>
+        <maml:description>
+          <maml:para>One-based start column in the native twelve-column grid; explicit X overrides it.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Columns</maml:name>
         <maml:description>
@@ -45191,6 +45280,18 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameterValue required="true" variableLength="false">Int32</command:parameterValue>
         <dev:type>
           <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Culture</maml:name>
+        <maml:description>
+          <maml:para>Culture for formatting data; lengths always parse invariantly.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">CultureInfo</command:parameterValue>
+        <dev:type>
+          <maml:name>CultureInfo</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -45222,23 +45323,23 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Height</maml:name>
         <maml:description>
-          <maml:para>Table height in points.</maml:para>
+          <maml:para>Table height; numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>InputObject</maml:name>
         <maml:description>
           <maml:para>Source objects to convert into table rows.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
         <dev:type>
-          <maml:name>Object</maml:name>
+          <maml:name>Object[]</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -45344,17 +45445,29 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <maml:description>
           <maml:para>Target slide that will receive the table (optional inside DSL).</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
         <dev:type>
-          <maml:name>PowerPointSlide</maml:name>
+          <maml:name>PowerPointSlideSelector</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>StyleId</maml:name>
+        <maml:name>Span</maml:name>
         <maml:description>
-          <maml:para>Optional table style ID (GUID string).</maml:para>
+          <maml:para>Number of grid columns; defaults to twelve, and explicit Width overrides it.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Style</maml:name>
+        <maml:description>
+          <maml:para>Native table style name or GUID; omission retains the native theme style.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -45382,11 +45495,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Width</maml:name>
         <maml:description>
-          <maml:para>Table width in points.</maml:para>
+          <maml:para>Table width; numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -45394,11 +45507,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>X</maml:name>
         <maml:description>
-          <maml:para>Left offset (in points) from the slide origin.</maml:para>
+          <maml:para>Left offset from the slide origin; numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -45406,11 +45519,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Y</maml:name>
         <maml:description>
-          <maml:para>Top offset (in points) from the slide origin.</maml:para>
+          <maml:para>Top offset from the slide origin; numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -45419,11 +45532,17 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>System.Object</maml:name>
+          <maml:name>System.Object[]</maml:name>
         </dev:type>
       </command:inputType>
     </command:inputTypes>
-    <command:returnValues />
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.PowerPoint.PowerPointTable</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
     <maml:alertSet>
       <maml:alert>
         <maml:para></maml:para>
@@ -220880,142 +220999,19 @@ cell inside a deck that already exists.</maml:para>
       <command:verb>Update</command:verb>
       <command:noun>OfficePowerPointText</command:noun>
       <maml:description>
-        <maml:para>Replaces text in a PowerPoint slide or presentation.</maml:para>
+        <maml:para>Replaces text in the selected slide or document, including tables by default.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Can replace text in text boxes, tables, and optionally notes using the OfficeIMO text replacement helpers.</maml:para>
+      <maml:para>Uses the current slide inside PowerPointSlide and the current document inside an open document block. Notes are included only with IncludeNotes.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="Auto">
+      <command:syntaxItem parameterSetName="Document">
         <maml:name>Update-OfficePowerPointText</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeNotes</maml:name>
-          <maml:description>
-            <maml:para>Include notes text in the replacement operation.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeTables</maml:name>
-          <maml:description>
-            <maml:para>Include table cells in the replacement operation.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NewValue</maml:name>
-          <maml:description>
-            <maml:para>Replacement text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>OldValue</maml:name>
-          <maml:description>
-            <maml:para>Text to find.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the object created or changed by the command.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Presentation">
-        <maml:name>Update-OfficePowerPointText</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeNotes</maml:name>
-          <maml:description>
-            <maml:para>Include notes text in the replacement operation.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeTables</maml:name>
-          <maml:description>
-            <maml:para>Include table cells in the replacement operation.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NewValue</maml:name>
-          <maml:description>
-            <maml:para>Replacement text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>OldValue</maml:name>
-          <maml:description>
-            <maml:para>Text to find.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the object created or changed by the command.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Presentation</maml:name>
+          <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Presentation to update.</maml:para>
+            <maml:para>Document to update or to resolve a one-based slide position against; omission uses the current block.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
           <dev:type>
@@ -221024,13 +221020,10 @@ cell inside a deck that already exists.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Slide">
-        <maml:name>Update-OfficePowerPointText</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>IncludeNotes</maml:name>
           <maml:description>
-            <maml:para>Include notes text in the replacement operation.</maml:para>
+            <maml:para>Include speaker notes in the replacement operation.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -221039,22 +221032,10 @@ cell inside a deck that already exists.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>IncludeTables</maml:name>
-          <maml:description>
-            <maml:para>Include table cells in the replacement operation.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-          <dev:type>
-            <maml:name>Boolean</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
           <maml:name>NewValue</maml:name>
           <maml:description>
-            <maml:para>Replacement text.</maml:para>
+            <maml:para>Replacement text; null clears each match.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -221063,7 +221044,19 @@ cell inside a deck that already exists.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoTables</maml:name>
+          <maml:description>
+            <maml:para>Leave table cell text unchanged.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
           <maml:name>OldValue</maml:name>
           <maml:description>
             <maml:para>Text to find.</maml:para>
@@ -221087,14 +221080,14 @@ cell inside a deck that already exists.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Slide</maml:name>
           <maml:description>
-            <maml:para>Slide to update.</maml:para>
+            <maml:para>Native slide or one-based slide position; omission updates the current slide or whole document.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
+            <maml:name>PowerPointSlideSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -221102,10 +221095,22 @@ cell inside a deck that already exists.</maml:para>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Document to update or to resolve a one-based slide position against; omission uses the current block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>PowerPointDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>IncludeNotes</maml:name>
         <maml:description>
-          <maml:para>Include notes text in the replacement operation.</maml:para>
+          <maml:para>Include speaker notes in the replacement operation.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -221114,22 +221119,10 @@ cell inside a deck that already exists.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>IncludeTables</maml:name>
-        <maml:description>
-          <maml:para>Include table cells in the replacement operation.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
-        <dev:type>
-          <maml:name>Boolean</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="1" aliases="None">
         <maml:name>NewValue</maml:name>
         <maml:description>
-          <maml:para>Replacement text.</maml:para>
+          <maml:para>Replacement text; null clears each match.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -221138,7 +221131,19 @@ cell inside a deck that already exists.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoTables</maml:name>
+        <maml:description>
+          <maml:para>Leave table cell text unchanged.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
         <maml:name>OldValue</maml:name>
         <maml:description>
           <maml:para>Text to find.</maml:para>
@@ -221162,26 +221167,14 @@ cell inside a deck that already exists.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Presentation</maml:name>
-        <maml:description>
-          <maml:para>Presentation to update.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
-        <dev:type>
-          <maml:name>PowerPointDocument</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Slide</maml:name>
         <maml:description>
-          <maml:para>Slide to update.</maml:para>
+          <maml:para>Native slide or one-based slide position; omission updates the current slide or whole document.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
         <dev:type>
-          <maml:name>PowerPointSlide</maml:name>
+          <maml:name>PowerPointSlideSelector</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -221191,11 +221184,6 @@ cell inside a deck that already exists.</maml:para>
       <command:inputType>
         <dev:type>
           <maml:name>OfficeIMO.PowerPoint.PowerPointDocument</maml:name>
-        </dev:type>
-      </command:inputType>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointSlide</maml:name>
         </dev:type>
       </command:inputType>
     </command:inputTypes>
@@ -221213,18 +221201,19 @@ cell inside a deck that already exists.</maml:para>
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Replace fiscal year text across the whole deck.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$ppt = New-OfficePowerPoint -Path .\Examples\Documents\PowerPointUpdateText.pptx -NoSave
-            $slide = Add-OfficePowerPointSlide -Presentation $ppt -Layout 1 -PassThru
-            Add-OfficePowerPointTextBox -Slide $slide -Text 'FY24 summary'
-            Set-OfficePowerPointNotes -Slide $slide -Text 'Mention FY24 assumptions.'
-            $count = Update-OfficePowerPointText -Presentation $ppt -OldValue 'FY24' -NewValue 'FY25' -IncludeNotes -PassThru
-            $ppt | Close-OfficePowerPoint -Save</dev:code>
+        <maml:title>Update tokens across an existing deck.</maml:title>
+        <dev:code>Open-OfficePowerPoint -Path .\Account-Review.pptx {
+                Update-OfficePowerPointText '{{Customer}}' 'Northwind Traders' -IncludeNotes
+            }</dev:code>
         <dev:remarks>
-          <maml:para>Replaces matching text throughout the presentation and notes, returning the replacement count.</maml:para>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Update a slide while preserving its table data.</maml:title>
+        <dev:code>$count = Update-OfficePowerPointText -Document $deck -Slide 2 -OldValue 'FY24' -NewValue 'FY25' -NoTables -PassThru</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>

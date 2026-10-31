@@ -1745,7 +1745,7 @@ Updates legacy worksheet comments (notes) that match a filter.
 Replaces text in worksheet values.
 
 ### [Update-OfficePowerPointText](Update-OfficePowerPointText.md)
-Replaces text in a PowerPoint slide or presentation.
+Replaces text in the selected slide or document, including tables by default.
 
 ### [Update-OfficeRtfText](Update-OfficeRtfText.md)
 Applies lossless text and metadata edits to an RTF document.

@@ -11,12 +11,12 @@ Adds a table to a PowerPoint slide.
 ## SYNTAX
 ### InputObject (Default)
 ```powershell
-Add-OfficePowerPointTable [-InputObject] <Object> [-Slide <PowerPointSlide>] [-Property <string[]>] [-NoHeader] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-MaxRows <Int32>] [-NoSplit] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-StyleId <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointTable [-InputObject] <Object[]> [-Slide <PowerPointSlideSelector>] [-Property <string[]>] [-NoHeader] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-MaxRows <Int32>] [-NoSplit] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Style <string>] [-Culture <cultureinfo>] [-Column <Int32>] [-Span <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Size
 ```powershell
-Add-OfficePowerPointTable -Rows <int> -Columns <int> [-Slide <PowerPointSlide>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-StyleId <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointTable -Rows <int> -Columns <int> [-Slide <PowerPointSlideSelector>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Style <string>] [-Column <Int32>] [-Span <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -50,6 +50,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Column
+One-based start column in the native twelve-column grid; explicit X overrides it.
+
+```yaml
+Type: Int32
+Parameter Sets: InputObject, Size
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Columns
 Column count for an empty table.
 
@@ -60,6 +76,22 @@ Aliases: None
 Possible values:
 
 Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Culture
+Culture for formatting data; lengths always parse invariantly.
+
+```yaml
+Type: CultureInfo
+Parameter Sets: InputObject
+Aliases: None
+Possible values:
+
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -99,10 +131,10 @@ Accept wildcard characters: False
 ```
 
 ### -Height
-Table height in points.
+Table height; numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: InputObject, Size
 Aliases: None
 Possible values:
@@ -118,7 +150,7 @@ Accept wildcard characters: False
 Source objects to convert into table rows.
 
 ```yaml
-Type: Object
+Type: Object[]
 Parameter Sets: InputObject
 Aliases: None
 Possible values:
@@ -262,7 +294,7 @@ Accept wildcard characters: False
 Target slide that will receive the table (optional inside DSL).
 
 ```yaml
-Type: PowerPointSlide
+Type: PowerPointSlideSelector
 Parameter Sets: InputObject, Size
 Aliases: None
 Possible values:
@@ -274,8 +306,24 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -StyleId
-Optional table style ID (GUID string).
+### -Span
+Number of grid columns; defaults to twelve, and explicit Width overrides it.
+
+```yaml
+Type: Int32
+Parameter Sets: InputObject, Size
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Style
+Native table style name or GUID; omission retains the native theme style.
 
 ```yaml
 Type: String
@@ -307,10 +355,10 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Table width in points.
+Table width; numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: InputObject, Size
 Aliases: None
 Possible values:
@@ -323,10 +371,10 @@ Accept wildcard characters: False
 ```
 
 ### -X
-Left offset (in points) from the slide origin.
+Left offset from the slide origin; numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: InputObject, Size
 Aliases: None
 Possible values:
@@ -339,10 +387,10 @@ Accept wildcard characters: False
 ```
 
 ### -Y
-Top offset (in points) from the slide origin.
+Top offset from the slide origin; numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: InputObject, Size
 Aliases: None
 Possible values:
@@ -359,11 +407,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.Object`
+- `System.Object[]`
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.PowerPoint.PowerPointTable`
 
 ## RELATED LINKS
 
