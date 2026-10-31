@@ -29,6 +29,22 @@ public class PdfFallbackSelectionTextTests {
     }
 
     [Fact]
+    public void AddCoverageDrivenCandidates_WhitespaceOnlyFontsDoNotConsumeTheRequiredTextBudget() {
+        byte[] font = Font();
+        const string requiredText = " ABCDEF";
+        var available = new[] { Candidate("Space", font, new OfficeFontUnicodeRange(' ', ' ')) }
+            .Concat("ABCDEF".Select(character => Candidate(character.ToString(), font,
+                new OfficeFontUnicodeRange(character, character))))
+            .ToArray();
+        var selected = new List<PdfEmbeddedFontFallbackCandidate>();
+
+        PdfOptions.AddCoverageDrivenCandidates(available, requiredText, 6, selected, 0, 6);
+
+        Assert.Equal(new[] { "A", "B", "C", "D", "E", "F" }, selected.Select(candidate => candidate.FontName));
+        Assert.True(PdfTextDiagnostics.PlanEmbeddedFontFallbackText(requiredText, selected).IsFullyCovered);
+    }
+
+    [Fact]
     public void AddCoverageDrivenCandidates_WhitespaceLedElement_SelectsLaterCoveringFont() {
         byte[] font = Font();
         var available = new[] {

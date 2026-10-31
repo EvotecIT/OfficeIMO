@@ -103,7 +103,7 @@ public sealed partial class PdfOptions {
         var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (!string.IsNullOrEmpty(requiredText)) {
             int coveredLength = 0;
-            int selectableLength = requiredText!.Count(ch => ch >= ' ' && ch != '\u007F');
+            int selectableLength = CountRequiredFallbackTextLength(requiredText!);
             foreach (string familyNames in new[] {
                          document ? DefaultDocumentFontFamilyFallback : string.Empty,
                          multilingual ? DefaultDocumentMultilingualFontFamilyFallback : string.Empty,
@@ -196,7 +196,7 @@ public sealed partial class PdfOptions {
                 requiredText,
                 candidates,
                 "generated text fallback selection");
-            int nextCoveredLength = plan.Segments.Sum(segment => segment.Length);
+            int nextCoveredLength = plan.Segments.Sum(segment => CountRequiredFallbackTextLength(segment.Text));
             if (nextCoveredLength > coveredLength) {
                 coveredLength = nextCoveredLength;
             } else {
@@ -205,6 +205,11 @@ public sealed partial class PdfOptions {
         }
         return coveredLength;
     }
+
+    private static int CountRequiredFallbackTextLength(string text) =>
+        OfficeIMO.Drawing.OfficeTextElements.Enumerate(text)
+            .Where(element => element.Any(ch => ch >= ' ' && ch != '\u007F' && !char.IsWhiteSpace(ch)))
+            .Sum(element => element.Count(ch => ch >= ' ' && ch != '\u007F'));
 
     /// <summary>
     /// Registers generated-text fallback fonts by resolving an Office-style comma/semicolon-separated system font family list.
