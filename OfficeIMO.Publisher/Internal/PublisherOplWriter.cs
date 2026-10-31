@@ -24,6 +24,13 @@ internal static class PublisherOplWriter {
     internal static byte[] Boolean(byte id, bool value) => new[] { id, value ? (byte)0x0A : (byte)0x02 };
     internal static byte[] UInt16(byte id, ushort value, byte type = 0x12) => new[] { id, type, (byte)value, (byte)(value >> 8) };
     internal static byte[] UInt32(byte id, uint value, byte type = 0x22) => new[] { id, type, (byte)value, (byte)(value >> 8), (byte)(value >> 16), (byte)(value >> 24) };
+    /// <summary>Creates a length-prefixed chunk without an enclosing field identifier or type.</summary>
+    internal static byte[] Chunk(params byte[][] fields) {
+        byte[] field = Nested(0, 0x88, fields);
+        var chunk = new byte[field.Length - 2];
+        Buffer.BlockCopy(field, 2, chunk, 0, chunk.Length);
+        return chunk;
+    }
     internal static byte[] Nested(byte id, byte type, params byte[][] children) {
         int length = checked(4 + children.Sum(child => child.Length)); var bytes = new byte[length + 2]; bytes[0] = id; bytes[1] = type;
         for (int i = 0; i < 4; i++) bytes[2 + i] = (byte)(length >> (i * 8));

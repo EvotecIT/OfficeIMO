@@ -15,10 +15,15 @@ function Add-NativeImagePagesControl {
     Unused output path for the distinct wide synthetic PNG.
     .PARAMETER Edited
     Independently authors the state after moving and resizing the last image.
+    .PARAMETER ReplaceLast
+    Replaces the last picture with the first PNG while retaining both bounds.
+    .PARAMETER ReplacementJpegPath
+    Unused output path for a JPEG that replaces the last picture after its PNG replacement.
     .OUTPUTS
     The physical page count.
     #>
-    param($Document, $FirstPage, [string]$ImagePath, [string]$SecondImagePath, [switch]$Edited)
+    param($Document, $FirstPage, [string]$ImagePath, [string]$SecondImagePath, [switch]$Edited, [switch]$ReplaceLast,
+        [string]$ReplacementJpegPath)
 
     $middle = $Document.Pages.Add(1, 1)
     $objects.Add($middle)
@@ -34,6 +39,24 @@ function Add-NativeImagePagesControl {
     $second = $last.Shapes.AddPicture($SecondImagePath, 0, -1, $bounds[0], $bounds[1], $bounds[2], $bounds[3])
     $second.Name = 'LastPageImage'
     $objects.Add($second)
+    if ($ReplaceLast -or $ReplacementJpegPath) {
+        $format = $second.PictureFormat
+        $objects.Add($format)
+        $format.Replace($ImagePath, 1) # pbPictureInsertAsEmbedded
+        if ($ReplacementJpegPath) {
+            New-NativeReplacementJpeg $ReplacementJpegPath
+            $format.Replace($ReplacementJpegPath, 1)
+        }
+        $second.LockAspectRatio = 0
+        $format.CropLeft = 0
+        $format.CropTop = 0
+        $format.CropRight = 0
+        $format.CropBottom = 0
+        $second.Left = $bounds[0]
+        $second.Top = $bounds[1]
+        $second.Width = $bounds[2]
+        $second.Height = $bounds[3]
+    }
     $expectedShapes.Add([pscustomobject]@{ name = 'LastPageImage'; kind = 'Image'; left = $bounds[0]; top = $bounds[1]; width = $bounds[2]; height = $bounds[3] })
     return 3
 }

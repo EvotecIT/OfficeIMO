@@ -39,13 +39,7 @@
         "width": 192,
         "height": 96
       }
-    ],
-    "pictureReplacement": {
-      "targetName": "PhysicalPictureOriginal",
-      "method": "PictureFormat.Replace",
-      "insertAs": "Embedded",
-      "framePolicy": "Restore authored bounds and zero crop after replacement."
-    }
+    ]
   },
   "nativePages": [
     {
@@ -159,13 +153,13 @@
   "files": {
     "publication": {
       "name": "native-imagepages.pub",
-      "sha256": "1917fd588a513788c954485c9fa988407a6480af6b1f7190eb6dbaab4714714a"
+      "sha256": "53f284d3e33189292fed89052d062ebfd4066d80b0ff18221ef67dadbefb1d22"
     },
     "reference": {
       "name": "native-imagepages.pdf",
-      "sha256": "0f101466a3509210b3b133af2fc5e32005bcdcbf4485d0e8c685f5bacf37ae37"
+      "sha256": "cd33663bddbe0c6a4ea64d6071e87bf241224b9d6d4db73c6f47c25814990cf7"
     },
-    "replacementImage": {
+    "secondSourceImage": {
       "name": "native-imagepages-replacement.png",
       "sha256": "98e64eb0771135ce8a3672978263e86118439752c2625a7cdb64f3347d1e58d8"
     },

@@ -39,6 +39,9 @@ internal static class NativePublicationGraph {
         uint printBlockId = quillDocumentId + 3;
         uint masterGeometryId = printBlockId + 1;
         uint colorSchemeId = masterGeometryId + 1;
+        ObjectBinding[] namedPictures = objects.Where(item => item.Source.ImageName != null).ToArray();
+        var pictureResources = namedPictures.Select((item, index) => (item.Id, ResourceId: colorSchemeId + 1 + (uint)index))
+            .ToDictionary(pair => pair.Id, pair => pair.ResourceId);
         byte[] references = Variable(2, 0xA0, Enumerable.Range(0, orderedPageCount)
             .Select(index => Scalar(0, 0x70, firstPageId + (uint)index)).ToArray());
         byte[] document = Chunk(Scalar(1, 0x20, orderedPageCount), references, Scalar(3, 0x70, printBlockId),
@@ -63,9 +66,15 @@ internal static class NativePublicationGraph {
             fields.Add(Scalar(0x10, 0x20, isMaster ? 3U : 5U));
             chunks.Add(new NativeRecord(0x43, documentId, Chunk(fields.ToArray())));
         }
-        foreach (ObjectBinding item in objects) chunks.Add(new NativeRecord(item.Source.NativeKind,
-            firstPageId + MasterPageCount + (uint)item.Source.PageIndex,
-            item.Story != null ? Chunk(Scalar(0x27, 0x20, item.Story.Key), Scalar(0x28, 0x20, 0)) : Chunk()));
+        foreach (ObjectBinding item in objects) {
+            var fields = new List<byte[]>();
+            if (item.Story != null) {
+                fields.Add(Scalar(0x27, 0x20, item.Story.Key)); fields.Add(Scalar(0x28, 0x20, 0));
+            }
+            if (pictureResources.TryGetValue(item.Id, out uint resource)) fields.Add(Scalar(0x3A, 0x70, resource));
+            chunks.Add(new NativeRecord(item.Source.NativeKind,
+                firstPageId + MasterPageCount + (uint)item.Source.PageIndex, Chunk(fields.ToArray())));
+        }
         // The ordinary native loader obtains its Quill document through field
         // 0x20 and kind 0x5B. Its frame/story catalogs use generated rows for the
         // ordered text-bearing objects; publications without stories retain empty catalogs.
@@ -89,6 +98,9 @@ internal static class NativePublicationGraph {
             Variable(2, 0x90, Variable(0, 0x88)))));
         chunks.Add(new NativeRecord(0x4C, masterId, CandidateMasterGeometry.Create(width, height)));
         chunks.Add(new NativeRecord(0x5C, documentId, CandidateColorScheme.CreateDefault()));
+        foreach (ObjectBinding picture in namedPictures)
+            chunks.Add(new NativeRecord(0x66, picture.Id, Chunk(Variable(3, 0xC0,
+                Encoding.Unicode.GetBytes(picture.Source.ImageName + "\0")))));
         return new Graph(specification, chunks, objects, stories);
     }
 

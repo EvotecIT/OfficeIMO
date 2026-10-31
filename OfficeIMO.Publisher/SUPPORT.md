@@ -417,6 +417,18 @@ appended slot. Ambiguous picture properties, filename ownership, allocation
 counters, image stores or reference-count underflow refuse output even with
 `Allow`.
 
+Native resave can remove the local filename reference from an ordinary embedded
+picture while retaining older filename resources. For a picture chunk of kind
+`0x20` with its embedded marker (`3`, type `8`), replacement can append a fresh
+owned filename resource and directory slot. It preserves orphaned resources
+without guessing which one to reuse. Existing references must still have the
+qualified type, resource shape and descriptor; malformed or ambiguous references
+refuse output. The `namedImageReplacement` qualification record covers PNG
+replacement, a subsequent PNG-to-JPEG replacement, and replacement after native
+normalization, with 24 independent native page comparisons and eight public
+reloads. Native resave can retire unused image slots; active payloads and bindings
+are qualified separately from retention of unused assets in managed save output.
+
 The `sourceEditing.imageReplacement` qualification record binds eight public
 saves over 30 native physical page states: PNG/JPEG, one/all shared placements,
 master ownership, repeated edits, combined frame/bounds edits, cropped pictures

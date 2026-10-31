@@ -116,6 +116,9 @@ Existing qualified pictures can save a replacement PNG or JPEG. Replacing one
 placement retains the original asset and leaves other placements sharing it
 unchanged, including master pictures. Native image slots and filename resources
 are allocated together; asset IDs are document-scoped and can change on reload.
+Qualified embedded pictures remain replaceable after Publisher removes their
+local filename reference during a native save. Saving creates a fresh owned
+filename resource and preserves the older resources and other placements.
 Existing qualified tables can save cell text and supported run formatting while
 retaining the grid, cell ownership and each cell's paragraph count. Cell text
 endpoints are remapped with the complete story; preceding ordinary stories can

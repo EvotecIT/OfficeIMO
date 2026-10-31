@@ -29,7 +29,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'ImagePages', 'ImagePagesEdited', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
+    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -75,10 +75,11 @@ if ($Operation -eq 'Validate') {
     . (Join-Path $PSScriptRoot 'Get-NativeValidationArtifactNames.ps1')
     $reservedArtifacts = Get-NativeValidationArtifactNames -Stage $Stage |
         ForEach-Object { Join-Path $output $_ }
-} elseif ($Case -in @('Image', 'ObjectPages', 'ObjectPagesEdited', 'ImagePages', 'ImagePagesEdited', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')) {
+} elseif ($Case -in @('Image', 'ObjectPages', 'ObjectPagesEdited', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')) {
     $reservedArtifacts += Join-Path $output ($stem + '.png')
-    if ($Case -in @('PictureReplacement', 'ImagePages', 'ImagePagesEdited')) {
+    if ($Case -in @('PictureReplacement', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement')) {
         $reservedArtifacts += Join-Path $output ($stem + '-replacement.png')
+        if ($Case -eq 'ImagePagesJpegReplacement') { $reservedArtifacts += Join-Path $output ($stem + '-replacement.jpg') }
     }
 }
 foreach ($path in @($reservedArtifacts) + @($ReceiptPath, $failurePath, $cleanupPath)) {
@@ -133,6 +134,7 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeObjectPagesControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeImagePagesControl.ps1')
 . (Join-Path $PSScriptRoot 'New-NativeReplacementImage.ps1')
+. (Join-Path $PSScriptRoot 'New-NativeReplacementJpeg.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeCharacterAttributeControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeParagraphFormatControl.ps1')
 . (Join-Path $PSScriptRoot 'Get-NativeParagraphTopologyProfiles.ps1')
@@ -766,10 +768,11 @@ try {
             $layout = Add-NativeComparisonLayout -Case $Case -Document $document -FirstPage $page
             $pageCount = $layout.pages
         }
-        { $_ -in @('ImagePages', 'ImagePagesEdited') } {
+        { $_ -in @('ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement') } {
             $picturePath = Join-Path $output ($stem + '.png')
             $replacementPath = Join-Path $output ($stem + '-replacement.png')
-            $pageCount = Add-NativeImagePagesControl -Document $document -FirstPage $page -ImagePath $picturePath -SecondImagePath $replacementPath -Edited:($Case -eq 'ImagePagesEdited')
+            $jpegPath = if ($Case -eq 'ImagePagesJpegReplacement') { Join-Path $output ($stem + '-replacement.jpg') } else { $null }
+            $pageCount = Add-NativeImagePagesControl -Document $document -FirstPage $page -ImagePath $picturePath -SecondImagePath $replacementPath -Edited:($Case -eq 'ImagePagesEdited') -ReplaceLast:($Case -eq 'ImagePagesReplacement') -ReplacementJpegPath $jpegPath
         }
         'PictureOwnership' {
             $picturePath = Join-Path $output ($stem + '.png')
@@ -865,16 +868,25 @@ try {
             nativeImageStoreSharing = 'Unassessed'
         }
     }
-    if ($Case -in @('PictureReplacement', 'ImagePages', 'ImagePagesEdited')) {
+    if ($Case -in @('ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement')) {
+        $contract.files.secondSourceImage = [ordered]@{
+            name = [IO.Path]::GetFileName($replacementPath)
+            sha256 = (Get-FileHash -LiteralPath $replacementPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        }
+    }
+    if ($Case -in @('PictureReplacement', 'ImagePagesReplacement', 'ImagePagesJpegReplacement')) {
+        $replacementAsset = if ($Case -eq 'PictureReplacement') { $replacementPath }
+            elseif ($Case -eq 'ImagePagesReplacement') { $picturePath }
+            else { $jpegPath }
         $contract.expected.pictureReplacement = [pscustomobject]@{
-            targetName = 'PhysicalPictureOriginal'
+            targetName = if ($Case -eq 'PictureReplacement') { 'PhysicalPictureOriginal' } else { 'LastPageImage' }
             method = 'PictureFormat.Replace'
             insertAs = 'Embedded'
             framePolicy = 'Restore authored bounds and zero crop after replacement.'
         }
         $contract.files.replacementImage = [ordered]@{
-            name = [IO.Path]::GetFileName($replacementPath)
-            sha256 = (Get-FileHash -LiteralPath $replacementPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            name = [IO.Path]::GetFileName($replacementAsset)
+            sha256 = (Get-FileHash -LiteralPath $replacementAsset -Algorithm SHA256).Hash.ToLowerInvariant()
         }
     }
     $sourceImage = Join-Path $output ($stem + '.png')

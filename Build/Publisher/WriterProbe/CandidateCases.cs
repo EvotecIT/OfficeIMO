@@ -5,8 +5,9 @@ internal static class CandidateCases {
     private static readonly CandidatePlacement DefaultPlacement = new(72, 72, 288, 108);
 
     internal static CandidatePublicationSpec Create(string kind, string? value, string? secondValue = null) {
-        if (kind == "image-pages") return CandidateImagePages.Create(ReadImage(value), ReadImage(secondValue));
-        if (secondValue != null) throw new ArgumentException("Only image-pages accepts a second image path.");
+        if (kind is "image-pages" or "named-image-pages")
+            return CandidateImagePages.Create(ReadImage(value), ReadImage(secondValue), includeNativeNames: kind == "named-image-pages");
+        if (secondValue != null) throw new ArgumentException("Only image page specimens accept a second image path.");
         if (kind == "text-pages") return CandidateTextPages.Create(value);
         if (kind == "object-pages") return CandidateObjectPages.Create(ReadImage(value));
         if (kind == "blank-pages") {

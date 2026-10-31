@@ -6,6 +6,40 @@ namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherNativeImageWritingTests {
     [Fact]
+    public void Native_resaved_picture_without_a_filename_reference_can_be_replaced_again() {
+        byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/NormalizedPictureNames/native-normalized-picture-names.pub"));
+        PublisherDocument document = PublisherDocument.Load(source);
+        PublisherPicture first = document.Pages[0].Pictures.Single(), last = document.Pages[2].Pictures.Single();
+        Assert.Equal(1, first.ImageId); Assert.Equal(3, last.ImageId);
+        Assert.True(last.CanEdit, last.EditLimitation);
+        byte[] original = document.Images.Single(image => image.Id == first.ImageId).GetBytes();
+        byte[] jpeg = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/ImagePagesJpegReplacement/native-imagepagesjpegreplacement-replacement.jpg"));
+        document.ReplacePictureImage(last.Id, jpeg);
+        byte[] output = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        PublisherDocument reopened = PublisherDocument.Load(output);
+        PublisherPicture unchanged = reopened.Pages[0].Pictures.Single(), replaced = reopened.Pages[2].Pictures.Single();
+        Assert.Equal((first.Id, first.ImageId, first.X, first.Y, first.Width, first.Height),
+            (unchanged.Id, unchanged.ImageId, unchanged.X, unchanged.Y, unchanged.Width, unchanged.Height));
+        Assert.Equal((last.Id, last.PageId, last.X, last.Y, last.Width, last.Height, last.Crop),
+            (replaced.Id, replaced.PageId, replaced.X, replaced.Y, replaced.Width, replaced.Height, replaced.Crop));
+        Assert.Equal(4, replaced.ImageId);
+        Assert.Equal(jpeg, reopened.Images.Single(image => image.Id == replaced.ImageId).GetBytes());
+        Assert.Equal(original, reopened.Images.Single(image => image.Id == 1).GetBytes());
+        Assert.Equal(original, reopened.Images.Single(image => image.Id == 3).GetBytes());
+        var before = Compound(source); var after = Compound(output);
+        // Content edits invalidate the separately qualified cached thumbnail.
+        foreach (string name in before.Streams.Keys.Where(name => name != "Contents" && !name.StartsWith("Escher/", StringComparison.Ordinal)
+            && name != OfficeOlePropertySetWriter.SummaryInformationStreamName))
+            Assert.Equal(before.Streams[name], after.Streams[name]);
+        // The newly owned filename resource must also support the next save.
+        reopened.ReplacePictureImage(replaced.Id, original);
+        PublisherDocument repeated = PublisherDocument.Load(reopened.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Equal(original, repeated.Images.Single(image => image.Id == repeated.Pages[2].Pictures.Single().ImageId).GetBytes());
+        Assert.Equal(jpeg, repeated.Images.Single(image => image.Id == 4).GetBytes());
+        Assert.Equal(first.ImageId, repeated.Pages[0].Pictures.Single().ImageId);
+    }
+
+    [Fact]
     public void Independent_native_picture_replacement_retains_the_duplicate_and_master_on_the_original_asset() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/PictureReplacement/native-picturereplacement.pub"));
         PublisherPicture replaced = document.Pages[0].Pictures.Single(picture => picture.Id == 298);

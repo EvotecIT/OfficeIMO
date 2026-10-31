@@ -31,6 +31,7 @@ dotnet $probe create blank-pages ./candidate-two-blank-pages.pub 2
 dotnet $probe create text-pages ./candidate-text-pages.pub 3
 dotnet $probe create object-pages ./candidate-object-pages.pub ./picture.png
 dotnet $probe create image-pages ./candidate-image-pages.pub ./first.png ./last.png
+dotnet $probe create named-image-pages ./candidate-named-images.pub ./first.png ./last.png
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create styled-text ./candidate-styled-text.pub
 dotnet $probe create shape ./candidate-shape.pub
@@ -51,7 +52,7 @@ to 1 MiB. Reports can contain complete recovered text; use synthetic fixtures.
 The `blank-pages` case requires a physical page count from 1 to 16. Other creation
 cases place their objects on a single physical page, except `text-pages`, which
 requires 2 to 16 pages and places independent stories on the first and last pages,
-and the three-page `object-pages` and `image-pages` specimens.
+and the three-page `object-pages`, `image-pages` and `named-image-pages` specimens.
 
 `inventory` records compound metadata and hashes, known Contents fields, Quill
 directories, OfficeArt envelopes and a separate OfficeIMO reader result.
@@ -292,6 +293,7 @@ The current drawing specification supports one picture per publication.
 | `text-pages` | Builds a source-free publication through `PublisherDocument.Create`, `AddPage` and `AddTextFrame`, then projects the first/final frames and stories into the native codecs. Intermediate pages are empty. Arial 12/18 body text, explicit zero column gap; count argument required. |
 | `object-pages` | Builds three pages with an empty applied master through the public authoring model. A red rectangle without outline is on the first page, the middle page is empty, and an uncropped picture is on the last page. The rectangle has no stored story. Image path required. |
 | `image-pages` | Builds three pages with an empty applied master through the public authoring model. Two distinct uncropped PNG assets are on the first and last pages; the middle page is empty. Two image paths required. |
+| `named-image-pages` | Uses the same public model as `image-pages`, with owned native filename resources and complete OfficeArt basename properties for subsequent image replacement. Two image paths required. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
 | `shape` | Solid red rectangle at `(72,72)`, size `288×108`, with a CR-only story. |
@@ -441,8 +443,23 @@ authored `ImagePages` and `ImagePagesEdited` controls before and after native
 resave: twelve page pairs at 144 dpi. Public reload preserves both complete PNG
 payloads and picture/page bindings. The edit changes only the second picture's
 anchor values; the first picture, image store and all other streams remain
-byte-identical. Image replacement on generated files, generic object ordering
-and repair-free opening remain unqualified.
+byte-identical. Generic object ordering and repair-free opening remain unqualified.
+
+The `namedImageReplacement` record adds complete filename metadata without
+changing the fourteen earlier creation profiles. The named specimen supports a
+last-picture PNG replacement, a later PNG-to-JPEG replacement after managed
+save/reload, and JPEG replacement after Publisher itself saves the PNG result.
+Each file matches its independent native final-state control before and after
+native resave: 24 whole-page pairs at 144 dpi. Public reloads retain active image
+payloads, ownership and bounds; the first picture remains unchanged.
+
+The last path covers Publisher removing the local filename reference while
+leaving old resource chunks in place. Native source saving appends a fresh owned
+resource for the qualified embedded-picture profile and preserves those older
+chunks. Native resave can retire unused image slots, which the reader keeps
+inert. The independent native controls can deduplicate image IDs; their final
+painted content is the comparison contract. Shared-asset authoring, crop edits,
+generic model serialization and repair-free acceptance remain unqualified.
 
 Successful native opening, usable text ranges, saving, reopening and PDF export
 are separate observations. Retain the candidate SHA-256, application version,

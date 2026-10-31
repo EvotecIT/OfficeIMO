@@ -58,6 +58,14 @@ picture moves and shrinks in the edited state; the first remains unchanged.
 They qualify native image-store indices and delayed offsets in the template-free
 probe, public reload and bounds editing. Both synthetic PNGs are retained with
 each native control.
+ImagePagesReplacement replaces the last picture with the first PNG while keeping
+its wide frame. ImagePagesJpegReplacement then replaces that picture with a
+distinct synthetic JPEG. Their contracts identify the actual target and final
+replacement asset, separately from the original second image. NormalizedPictureNames
+retains a generated PNG-replacement result after Publisher saves it: the selected
+picture has no local filename reference, older filename chunks remain, and an
+unused image slot is retired. Its public regression replaces the image, saves,
+reloads and replaces it again without changing the first picture or old assets.
 Text and TextLong use identical page geometry, frame geometry and Arial formatting; their
 only authored difference is the text. TextParagraphs has one Arial 12-point story
 with an empty paragraph between two text paragraphs. Its retained character

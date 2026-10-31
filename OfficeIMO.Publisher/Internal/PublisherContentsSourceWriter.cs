@@ -19,7 +19,7 @@ internal static class PublisherContentsSourceWriter {
         int trailer = data.Offset(data.U32(0x1A));
         IReadOnlyList<PublisherBlock>? sections = null, slots = null;
         PublisherBlock directory = default;
-        var additions = new List<(uint Id, byte[] Chunk, PublisherBlock Slot, uint Owner)>();
+        var additions = new List<(uint Id, byte[] Chunk, PublisherBlock? Slot, uint Owner)>();
         if (pictureNames.Count > 0) {
             sections = blocks.Chunk(trailer);
             var directories = sections.Where(field => field.Type == 0x90).ToArray();
@@ -33,20 +33,31 @@ internal static class PublisherContentsSourceWriter {
                 if (!contents.Shapes.TryGetValue(pair.Key, out PublisherSourceShape? shape)) return null;
                 PublisherBlock[] reference = shape.Fields.Where(field => field.Id == 0x3A).ToArray();
                 PublisherBlock[] marker = shape.Fields.Where(field => field.Id == 3).ToArray();
-                if (reference.Length != 1 || reference[0].Type != 0x70 || marker.Length > 1 || marker.Any(field => field.Type != 8)
-                    || !contents.Chunks.TryGetValue(reference[0].Value, out PublisherContentChunk? resource)
-                    || resource.Kind != 0x66 || resource.Id >= slots.Count) return null;
-                var fields = blocks.Chunk(resource.Offset, resource.End);
-                if (fields.Count != 1 || fields[0].Id != 3 || fields[0].Type != 0xC0) return null;
-                PublisherBlock slot = slots[(int)resource.Id];
-                if (slot.Type != 0x88 || slot.Id != 0) return null;
-                var descriptor = blocks.Children(slot);
-                if (descriptor.Any(field => field.Id is not (2 or 4 or 5 or 6 or 0x0B))
-                    || descriptor.Count(field => field.Id == 5 && field.Type == 0x68) != 1) return null;
+                if (reference.Length > 1 || marker.Length > 1 || marker.Any(field => field.Type != 8)) return null;
                 uint id = checked((uint)(slots.Count + additions.Count));
                 byte[] name = PublisherOplWriter.Nested(3, 0xC0, System.Text.Encoding.Unicode.GetBytes(pair.Value + "\0"));
-                byte[] chunk = PublisherOplWriter.Rewrite(data, resource.Offset, data.Offset(data.U32(resource.Offset)), fields,
-                    new Dictionary<byte, byte[]> { [3] = name }, context);
+                byte[] chunk;
+                PublisherBlock? slot = null;
+                if (reference.Length == 0) {
+                    // Native resave can drop the local filename reference from
+                    // an embedded picture while retaining old resource chunks.
+                    // Own a fresh resource; never guess which orphan to reuse.
+                    if (shape.Chunk.Kind != 0x20 || marker.Length != 1) return null;
+                    chunk = PublisherOplWriter.Chunk(name);
+                } else {
+                    if (reference[0].Type != 0x70
+                        || !contents.Chunks.TryGetValue(reference[0].Value, out PublisherContentChunk? resource)
+                        || resource.Kind != 0x66 || resource.Id >= slots.Count) return null;
+                    var fields = blocks.Chunk(resource.Offset, resource.End);
+                    if (fields.Count != 1 || fields[0].Id != 3 || fields[0].Type != 0xC0) return null;
+                    slot = slots[(int)resource.Id];
+                    if (slot.Value.Type != 0x88 || slot.Value.Id != 0) return null;
+                    var descriptor = blocks.Children(slot.Value);
+                    if (descriptor.Any(field => field.Id is not (2 or 4 or 5 or 6 or 0x0B))
+                        || descriptor.Count(field => field.Id == 5 && field.Type == 0x68) != 1) return null;
+                    chunk = PublisherOplWriter.Rewrite(data, resource.Offset, data.Offset(data.U32(resource.Offset)), fields,
+                        new Dictionary<byte, byte[]> { [3] = name }, context);
+                }
                 additions.Add((id, chunk, slot, pair.Key));
                 if (!shapeChanges.TryGetValue(pair.Key, out var changes)) shapeChanges.Add(pair.Key, changes = new());
                 changes.Add(0x3A, PublisherOplWriter.UInt32(0x3A, id, 0x70)); changes.Add(3, new byte[] { 3, 8 });
@@ -96,10 +107,12 @@ internal static class PublisherContentsSourceWriter {
             if (additions.Count > 0) {
                 int next = checked(trailer + delta);
                 foreach (var addition in additions) {
-                    directoryRows.Add(RewriteSlot(addition.Slot, new Dictionary<byte, byte[]> {
+                    var fields = new Dictionary<byte, byte[]> {
                         [4] = PublisherOplWriter.UInt32(4, checked((uint)next), 0xB8),
                         [5] = PublisherOplWriter.UInt32(5, addition.Owner, 0x68)
-                    }));
+                    };
+                    directoryRows.Add(addition.Slot.HasValue ? RewriteSlot(addition.Slot.Value, fields)
+                        : PublisherOplWriter.Nested(0, 0x88, PublisherOplWriter.UInt16(2, 0x66, 0x18), fields[4], fields[5]));
                     next = checked(next + addition.Chunk.Length);
                 }
                 int trailerLength = data.Offset(data.U32(trailer));
