@@ -11,6 +11,7 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
     private static void RenderTable(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTable table, double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options,
         double? slideWidth = null, double? slideHeight = null, bool hasAncestorPageClip = false) {
+        EnsureTableExportSize(table);
         if (table.Rows == 0 || table.Columns == 0) {
             AddWarning(options, slideNumber, "empty-table", "Skipped an empty PowerPoint table.", lossKind: OfficeConversionLossKind.Omission);
             return;
@@ -23,6 +24,7 @@ public static partial class PowerPointPdfConverterExtensions {
         double bodyFontSize = style.FontSize ?? (options.PdfOptions ?? new PdfCore.PdfOptions()).DefaultFontSize;
         var rowCells = Enumerable.Range(0, table.Rows).Select(_ => new List<PdfCore.PdfTableCell>()).ToArray();
         foreach (var anchor in table.EnumerateAnchorCells()) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             int rowIndex = anchor.Row;
             double fallbackFontSize = rowIndex < style.HeaderRowCount ? style.HeaderFontSize ?? bodyFontSize
                 : rowIndex >= table.Rows - style.FooterRowCount ? style.FooterFontSize ?? bodyFontSize : bodyFontSize;
@@ -78,6 +80,13 @@ public static partial class PowerPointPdfConverterExtensions {
                 width,
                 height);
         }
+    }
+
+    private static void EnsureTableExportSize(PptCore.PowerPointTable table) {
+        int rows = table.Rows;
+        int columns = table.Columns;
+        if (rows > 4096 || columns > 4096 || (long)rows * columns > 100000L)
+            throw new System.IO.InvalidDataException("PowerPoint table export exceeds the supported limit of 4096 rows, 4096 columns or 100000 cells.");
     }
 
     private static PdfCore.PdfTableCell CreatePdfTableCell(

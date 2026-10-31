@@ -5,6 +5,28 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlPagedPositionedRows_HandleCollidingCoordinateHashes() {
+        string rows = string.Concat(Enumerable.Range(0, 128).Select(index => {
+            long hashWord = 0x3ff00000L + index;
+            double top = BitConverter.Int64BitsToDouble((hashWord << 32) | hashWord);
+            return "<div style='position:absolute;left:0;top:" +
+                top.ToString("R", System.Globalization.CultureInfo.InvariantCulture) +
+                "px;width:10px;height:5px;background:red'></div>";
+        }));
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch, 40D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse("<div style='position:relative;width:20px;height:20px'>" + rows + "</div>"), options);
+
+        Assert.Single(rendered.Pages);
+    }
+
     [Theory]
     [InlineData("none", 1D)]
     [InlineData("none", 0.5D)]

@@ -99,6 +99,18 @@ public sealed class EpubNoteAuthoringContracts {
         Assert.Equal(input, original.Write().Bytes);
     }
 
+    [Fact]
+    public void DeepNoteMarkupIsRejectedBeforeItsNodesAreCopied() {
+        var book = Book(false, EpubNoteKind.Footnote);
+        byte[] before = book.Write().Bytes;
+        var options = Options(false, EpubNoteKind.Footnote);
+        options.BodyXhtml = string.Concat(Enumerable.Repeat("<div>", 300)) + "Text" +
+            string.Concat(Enumerable.Repeat("</div>", 300));
+
+        Assert.Throws<InvalidDataException>(() => book.AddNote(options));
+        Assert.Equal(before, book.Write().Bytes);
+    }
+
     private static XElement ById(XDocument document, string id) => document.Descendants().Single(element => (string?)element.Attribute("id") == id);
     private static EpubNoteOptions Options(bool sameDocument, EpubNoteKind kind) => new EpubNoteOptions {
         SourceManifestId = "source", ReferenceId = "ref", NotesManifestId = sameDocument ? "source" : "notes",

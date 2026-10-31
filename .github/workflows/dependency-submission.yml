@@ -1,0 +1,123 @@
+name: Controlled NuGet dependency graph
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/dependency-submission.yml'
+      - '**/*.csproj'
+      - '**/*.props'
+      - '**/*.targets'
+      - '**/*.sln'
+      - '**/*.slnx'
+      - '**/packages.lock.json'
+      - '**/global.json'
+      - '**/NuGet.Config'
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/dependency-submission.yml'
+      - '**/*.csproj'
+      - '**/*.props'
+      - '**/*.targets'
+      - '**/*.sln'
+      - '**/*.slnx'
+      - '**/packages.lock.json'
+      - '**/global.json'
+      - '**/NuGet.Config'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-submission-${{ github.event_name == 'pull_request' && github.run_attempt == 1 && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.run_attempt == 1 }}
+
+jobs:
+  restore:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: linux
+            runner: ubuntu-latest
+            projects: '["OfficeIMO.sln", "Website/Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj"]'
+            workloads: wasm-tools
+            workload-version: ''
+          - profile: windows
+            runner: windows-latest
+            projects: '["OfficeIMO.sln"]'
+            workloads: ''
+            workload-version: ''
+          - profile: apple
+            runner: macos-latest
+            projects: '["OfficeIMO.sln", "OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj"]'
+            workloads: 'wasm-tools ios'
+            workload-version: '10.0.112'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@c76018b8faa48e4d72c4bbd34147fb46f84c267d
+        id: graphs
+        with:
+          projects-json: ${{ matrix.projects }}
+          workloads: ${{ matrix.workloads }}
+          workload-version: ${{ matrix.workload-version }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nuget-graphs-${{ matrix.profile }}
+          path: ${{ steps.graphs.outputs.graphs-path }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 1
+
+  scan:
+    needs: restore
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [linux, windows, apple]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: nuget-graphs-${{ matrix.profile }}
+          path: ${{ runner.temp }}/native-graphs
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@c76018b8faa48e4d72c4bbd34147fb46f84c267d
+        id: snapshot
+        with:
+          mode: scan
+          graph-artifact: ${{ runner.temp }}/native-graphs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nuget-snapshot-${{ matrix.profile }}
+          path: ${{ steps.snapshot.outputs.snapshot-path }}
+          if-no-files-found: error
+          retention-days: 1
+
+  submit:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: scan
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [linux, windows, apple]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: nuget-snapshot-${{ matrix.profile }}
+          path: ${{ runner.temp }}/snapshot
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@c76018b8faa48e4d72c4bbd34147fb46f84c267d
+        with:
+          mode: submit
+          snapshot-file: ${{ runner.temp }}/snapshot/snapshot.json
+          correlator: officeimo-${{ matrix.profile }}
+          submit: 'true'

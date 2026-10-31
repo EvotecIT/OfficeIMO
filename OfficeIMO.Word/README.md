@@ -43,6 +43,7 @@ dotnet add package OfficeIMO.Security
 
 ## Quick start
 
+<!-- powerforge:code source="Build/DocumentationExamples/Word/Program.cs" region="QuickStart" -->
 ```csharp
 using OfficeIMO.Word;
 
@@ -61,6 +62,7 @@ table.Style = WordTableStyle.TableGrid;
 
 document.Save();
 ```
+<!-- /powerforge:code -->
 
 ## Printed reports
 

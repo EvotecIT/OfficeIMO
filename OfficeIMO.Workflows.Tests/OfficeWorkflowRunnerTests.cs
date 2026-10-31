@@ -22,6 +22,26 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task PdfConversionHonorsCallerReadLimits() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = Path.Combine(scope.Path, "converted.docx");
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = 32 } };
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "pdf-docx",
+            InputPath = input,
+            OutputPath = output,
+            InputPdfLoadOptions = options
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("32", StringComparison.Ordinal));
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
     public void CatalogProjectsCanonicalRoutesAndSupportedExecutionContracts() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(

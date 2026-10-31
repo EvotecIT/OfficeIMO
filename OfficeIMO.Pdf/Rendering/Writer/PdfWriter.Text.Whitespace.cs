@@ -15,11 +15,11 @@ internal static partial class PdfWriter {
         internal void AddSpace() { Count++; Advance += Style.LeadingAdvance; }
     }
 
-    private static List<RichSeg> ConsumePreservedSpaceFragments(List<PendingSpaceFragment> pending, double advance) {
+    private static List<RichSeg> ConsumePreservedSpaceFragments(PendingSpaceFragments pending, double advance) {
         var result = new List<RichSeg>();
         // A complete group has a signed net advance. A positive prefix can
         // exceed that net when a later source run has negative tracking.
-        bool consumeAll = Math.Abs(advance - pending.Sum(fragment => fragment.Advance)) <= 0.001D;
+        bool consumeAll = Math.Abs(advance - pending.TotalAdvance) <= 0.001D;
         double remaining = advance;
         while (pending.Count > 0) {
             PendingSpaceFragment fragment = pending[0];
@@ -46,8 +46,8 @@ internal static partial class PdfWriter {
                 contributesLineBoxDescent: source.ContributesLineBoxDescent, formField: source.FormField,
                 footnoteReference: source.TakeFootnoteReference(), leadingIsOrdinarySpace: source.LeadingIsOrdinarySpace).WithFootnoteReferenceOrigin(source).WithSourceTabRun(source.SourceTabRun));
             remaining -= consumed;
-            fragment.Advance -= consumed;
-            if (fragment.Advance <= 0.001D) pending.RemoveAt(0);
+            pending.ConsumeFirstAdvance(consumed);
+            if (fragment.Advance <= 0.001D) pending.RemoveFirst();
             else break;
         }
         return result;

@@ -87,7 +87,8 @@ internal static partial class PdfFormFiller {
         string? acroFormDefaultAppearance = TryReadText(objects, acroForm, "DA");
         for (int i = 0; i < fields.Items.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            FillField(objects, fields.Items[i], null, null, 0, acroFormQuadding, null, acroFormDefaultResources, acroFormDefaultAppearance, null, fieldValues, options, remaining, new HashSet<int>(), ref nextObjectNumber, cancellationToken);
+            FillField(objects, fields.Items[i], null, null, 0, acroFormQuadding, null, acroFormDefaultResources, acroFormDefaultAppearance, null, fieldValues, options, remaining, new HashSet<int>(), ref nextObjectNumber,
+                source.ReadOptions.Limits.MaxDecodedTextCharacters, cancellationToken);
         }
 
         if (remaining.Count > 0) {

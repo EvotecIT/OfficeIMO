@@ -92,6 +92,7 @@ public sealed class OfficeAiDocument {
         var evidence = new List<OfficeAiEvidence>();
         var pages = new SortedSet<int>();
         long characters = 0;
+        long metadataCharacters = 0;
         void AddPage(int page) {
             if (page < 1) throw new InvalidDataException("Source page must be a positive one-based number.");
             pages.Add(page);
@@ -103,10 +104,17 @@ public sealed class OfficeAiDocument {
             characters += text.Length;
             if (characters > limits.MaxDocumentCharacters || evidence.Count >= limits.MaxDocumentBlocks)
                 throw new InvalidDataException("Source observations exceed the configured document limits.");
+            OfficeAiSourceLocation sourceLocation = OfficeAiSourceLocation.FromReader(location, document.Source?.Path, rowIndex);
+            static int Length(string? value) => value?.Length ?? 0;
+            metadataCharacters += Length(kind) + Length(blockId) + Length(sourceAnchor)
+                + Length(sourceLocation.Path) + Length(sourceLocation.Sheet) + Length(sourceLocation.A1Range)
+                + Length(recognition?.Provider) + Length(recognition?.Model) + Length(recognition?.Language);
+            if (metadataCharacters > limits.MaxEvidenceMetadataCharacters)
+                throw new InvalidDataException("Source evidence metadata exceeds the configured character limit.");
             evidence.Add(new OfficeAiEvidence("e" + (evidence.Count + 1), kind, text, page, blockId) {
                 Recognition = recognition,
                 SourceAnchor = sourceAnchor,
-                SourceLocation = OfficeAiSourceLocation.FromReader(location, document.Source?.Path, rowIndex),
+                SourceLocation = sourceLocation,
                 Region = region is null ? null : new(region.X, region.Y, region.Width, region.Height)
             });
         }

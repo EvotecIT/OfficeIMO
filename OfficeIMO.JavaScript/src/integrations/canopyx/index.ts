@@ -13,6 +13,7 @@ import { canopyRules } from "./rules.js";
 import { canopyGrouped } from "./grouping.js";
 import { canopyAbout } from "./metadata.js";
 import { writeCanopyWorkbook } from "./workbook.js";
+import { withCanopyPdfLayout } from "./pdf-layout.js";
 import type { CanopyCapture, CanopyExport, CanopyFormat, CanopyWriteOptions } from "./types.js";
 export { createCanopyExport } from "./source.js";
 export { ExportCell } from "../../core/presentation.js";
@@ -79,7 +80,7 @@ export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat
     // CSS pixels become points before the existing fit/band policy. Explicit PDF point widths win.
     const fitted = request.columns.every(column => column.width !== undefined) ? request.columns.map(column => column.width!.preferred * 72 / 96) : undefined;
     const widths = pdf.columnWidths ?? fitted;
-    const settings = { ...(fitted === undefined ? {} : { orientation: "landscape" as const, wideTable: "fit" as const }), ...pdf, ...stream, limits: formatLimits };
+    const settings = { orientation: "landscape" as const, wideTable: "fit" as const, ...pdf, ...stream, limits: formatLimits };
     if (grouped) {
       if (pdf.headerRows !== undefined || pdf.footer !== undefined) throw new TypeError("Grouped Canopy PDF owns heading and summary rows.");
       const { headerRows: _headers, footer: _footer, ...groupedSettings } = settings;
@@ -92,7 +93,10 @@ export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat
         ...(capturedLabels?.continuationLabel === undefined ? {} : { continuationLabel: capturedLabels.continuationLabel }),
         ...(capturedLabels?.groupHeadingLevel === undefined ? {} : { groupHeadingLevel: capturedLabels.groupHeadingLevel }) });
     }
-    return writePdfTo(source.rows(), destination, { ...settings, columns: source.columns, ...(widths === undefined ? {} : { columnWidths: widths }) });
+    return withCanopyPdfLayout(prepared.source, request.columns, settings, async (rows, layout, captured) => {
+      const counted = async function* () { for await (const row of rows) { consumed++; yield row; } };
+      return writePdfTo(counted(), destination, { ...captured, ...layout, columns: source.columns });
+    });
   }
   return writeCsvTo(source.rows(), destination, { ...csv, ...stream, columns: source.columns, valueMode: request.values,
     limits: mergeAdapterLimits(csv.limits, limits) });

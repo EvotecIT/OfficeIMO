@@ -6,23 +6,24 @@ on:
     branches:
       - master
       - main
-    paths-ignore:
-      - 'README.md'
-      - 'CHANGELOG.MD'
-      - 'Docs/**'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
 
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: |
-    8.0.426
-    10.0.114
   BUILD_CONFIGURATION: 'Debug'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   changes:
+    needs: coverage
     name: Select affected powershell contracts
     runs-on: ubuntu-latest
     outputs:
@@ -32,6 +33,7 @@ jobs:
         with:
           persist-credentials: false
       - id: select
+        if: needs.coverage.outputs.build == 'true'
         uses: ./.github/actions/contract-selection
         with:
           suite: powershell
@@ -48,7 +50,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Restore dependencies
@@ -58,7 +61,7 @@ jobs:
         run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx ${{ github.event_name != 'pull_request' && '--collect:"XPlat Code Coverage" --settings PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/coverage.runsettings' || '' }}
+        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -67,18 +70,6 @@ jobs:
           name: test-results-windows
           path: '**/*.trx'
 
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v7
-        if: always() && github.event_name != 'pull_request'
-        with:
-          name: coverage-reports-windows
-          path: '**/coverage.cobertura.xml'
-      - name: Upload coverage to Codecov
-        if: github.event_name != 'pull_request'
-        uses: codecov/codecov-action@v7
-        with:
-          files: '**/coverage.cobertura.xml'
-          fail_ci_if_error: false
 
   test-ubuntu:
     needs: changes
@@ -93,7 +84,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Restore dependencies
@@ -103,7 +95,7 @@ jobs:
         run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx ${{ github.event_name != 'pull_request' && '--collect:"XPlat Code Coverage" --settings PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/coverage.runsettings' || '' }}
+        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -111,22 +103,10 @@ jobs:
         with:
           name: test-results-ubuntu
           path: '**/*.trx'
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v7
-        if: always() && github.event_name != 'pull_request'
-        with:
-          name: coverage-reports-ubuntu
-          path: '**/coverage.cobertura.xml'
-      - name: Upload coverage to Codecov
-        if: github.event_name != 'pull_request'
-        uses: codecov/codecov-action@v7
-        with:
-          files: '**/coverage.cobertura.xml'
-          fail_ci_if_error: false
 
   test-macos:
     needs: changes
-    if: needs.changes.outputs.selected == 'true'
+    if: github.event_name != 'pull_request' && needs.changes.outputs.selected == 'true'
     name: 'macOS'
     runs-on: macos-latest
     timeout-minutes: 20
@@ -137,7 +117,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Restore dependencies
@@ -147,7 +128,7 @@ jobs:
         run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx ${{ github.event_name != 'pull_request' && '--collect:"XPlat Code Coverage" --settings PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/coverage.runsettings' || '' }}
+        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -155,15 +136,22 @@ jobs:
         with:
           name: test-results-macos
           path: '**/*.trx'
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v7
-        if: always() && github.event_name != 'pull_request'
-        with:
-          name: coverage-reports-macos
-          path: '**/coverage.cobertura.xml'
-      - name: Upload coverage to Codecov
-        if: github.event_name != 'pull_request'
-        uses: codecov/codecov-action@v7
-        with:
-          files: '**/coverage.cobertura.xml'
-          fail_ci_if_error: false
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [coverage, changes, test-windows, test-ubuntu, test-macos]
+    steps:
+      - name: Require selection and selected jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += [k for k in ('coverage', 'changes') if results[k]['result'] != 'success']
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY

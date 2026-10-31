@@ -10,6 +10,27 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class InvoiceWorkbenchTests {
     [Fact]
+    public async Task ConstructorWithoutStorageRejectsOversizedFontBeforeInvoiceRunner() {
+        string fontPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-oversized-font-" + Guid.NewGuid().ToString("N") + ".ttf");
+        try {
+            using (var file = new FileStream(fontPath, FileMode.CreateNew, FileAccess.Write)) file.SetLength(16L * 1024 * 1024 + 1);
+            var runner = new RecordingRunner();
+            using var model = new InvoiceWorkbenchViewModel(_ => Task.FromResult<string?>(null), _ => Task.FromResult<string?>(null), runner) {
+                InputPath = Path.Combine(Path.GetTempPath(), "input.xml"), OutputFolder = Path.GetTempPath(), FontPath = fontPath
+            };
+            model.SelectedOperation = model.Operations.Single(o => o.Value == OfficeInvoiceWorkflowOperation.RenderPresentationPdf);
+
+            await model.RunCommand.ExecuteAsync(null);
+
+            Assert.Null(runner.Request);
+            Assert.False(model.HasOutput);
+            Assert.Contains("maximum size", model.Status, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (File.Exists(fontPath)) File.Delete(fontPath);
+        }
+    }
+
+    [Fact]
     public async Task SourceEditingAndPresentationUseRealSharedOwnersAndKeepSourceAndReferences() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {

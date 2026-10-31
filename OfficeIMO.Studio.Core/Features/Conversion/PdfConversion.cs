@@ -1,4 +1,5 @@
 using OfficeIMO.Workflows;
+using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Studio.Features.Conversion;
 
@@ -59,9 +60,9 @@ internal static class PdfConversion {
 
     /// <summary>
     /// Converts a PDF, such as the open revision of a document, to Word, Excel, PowerPoint or HTML at
-    /// <paramref name="outputPath"/>, replacing what is there. A password opens an encrypted PDF.
+    /// <paramref name="outputPath"/>, replacing what is there. The read options retain the open document's decoding limits.
     /// </summary>
-    internal static async Task<PdfConversionResult> ConvertPdfAsync(byte[] pdf, string? password, string target, string outputPath,
+    internal static async Task<PdfConversionResult> ConvertPdfAsync(byte[] pdf, PdfLoadOptions? readOptions, string target, string outputPath,
         CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(pdf);
         if (!PdfTargets.TryGetValue(target, out string? routeId) || OfficeWorkflowCatalog.FindExecutable(routeId) is null)
@@ -78,7 +79,7 @@ internal static class PdfConversion {
                 InputPath = inputPath,
                 OutputPath = outputPath,
                 ConversionRouteId = routeId,
-                PdfPassword = password,
+                InputPdfLoadOptions = readOptions,
                 ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
             }, "PDF", "The PDF couldn’t be converted", cancellationToken).ConfigureAwait(false);
         } finally {

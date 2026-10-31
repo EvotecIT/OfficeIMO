@@ -2,6 +2,8 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Model;
+using OfficeIMO.Excel.Xlsb.Projection;
 using OfficeIMO.Excel.Xlsb.Write;
 using System.IO.Compression;
 using Xunit;
@@ -9,6 +11,24 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ExcelXlsbFormulaGroupEditingTests {
+    [Fact]
+    public void Array_projection_counts_implicit_members_against_the_import_cell_limit() {
+        var workbook = new XlsbWorkbook(Array.Empty<byte>(), 1024, 1024);
+        var sheet = new XlsbSheet("Data", "rId1", 1, 0);
+        sheet.AddCell(new XlsbCell(1, 1, XlsbCellValueKind.Number, 1D, 0) { FormulaText = "1" });
+        byte[] group = new byte[28];
+        BitConverter.GetBytes(1).CopyTo(group, 4);  // Last row is 2 after one-based decoding.
+        BitConverter.GetBytes(1).CopyTo(group, 12); // Last column is 2.
+        BitConverter.GetBytes(3).CopyTo(group, 17);
+        group[21] = 0x1E; // Scalar formula token.
+        sheet.FormulaGroups = new[] { new XlsbFormulaGroup(426, group, 1, 1) };
+        workbook.AddWorksheet(sheet);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            XlsbWorkbookProjector.ToExcelDocument(workbook, maxCells: 1));
+        Assert.Contains("array formulas exceed", exception.Message);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

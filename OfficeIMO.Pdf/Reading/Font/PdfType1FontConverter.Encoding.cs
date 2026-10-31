@@ -47,6 +47,7 @@ internal static partial class PdfType1FontConverter {
     }
 
     private static bool TryReadEncodingToken(string text, ref int cursor, out string token) {
+        const int maximumEncodingTokenLength = 4096;
         token = string.Empty;
         while (cursor < text.Length) {
             char current = text[cursor];
@@ -77,6 +78,8 @@ internal static partial class PdfType1FontConverter {
                 while (cursor < text.Length && !char.IsWhiteSpace(text[cursor]) &&
                     text[cursor] is not ('{' or '}' or '[' or ']' or '(' or ')' or '<' or '>' or '%' or '/')) cursor++;
             }
+            if (cursor - start > maximumEncodingTokenLength)
+                throw new InvalidDataException("Type 1 encoding token exceeds the supported length.");
             token = text.Substring(start, cursor - start);
             return true;
         }

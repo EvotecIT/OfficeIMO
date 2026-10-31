@@ -5,8 +5,8 @@ internal static partial class PdfWriter {
         /// <summary>Measures the fragment used by table fitting and painting, including per-cell content and padding.</summary>
         private static double MeasurePreparedTableRowSegmentHeight(TableBlock table, PdfTableStyle style,
             PreparedFlowTableRows rows, int columns, double[] columnWidths, double columnGap,
-            int rowIndex, int startLine, int lineCount, bool suppressCellObjects) {
-            if (startLine == 0 && lineCount == rows.LineCounts[rowIndex]) return rows.Heights[rowIndex];
+            int rowIndex, int startLine, int lineCount, bool suppressCellObjects, bool refreshHeight = false) {
+            if (!refreshHeight && startLine == 0 && lineCount == rows.LineCounts[rowIndex]) return rows.Heights[rowIndex];
             double leading = rows.Leadings[rowIndex];
             double height = GetTableRowInitialTextHeight(table, rowIndex, columns, leading) + GetTableRowMaxPaddingTop(table, style, rowIndex, columns) +
                 GetTableRowMaxPaddingBottom(table, style, rowIndex, columns);

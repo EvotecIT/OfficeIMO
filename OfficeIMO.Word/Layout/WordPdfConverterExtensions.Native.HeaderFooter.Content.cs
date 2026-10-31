@@ -53,11 +53,12 @@ namespace OfficeIMO.Word.Pdf {
             ValidateNativeHeaderFooterTextBoxNesting(headerFooter);
             var parts = new NativeHeaderFooterText();
             List<WordElement> elements = CollapseNativeParagraphElements(headerFooter.Elements).ToList();
+            int rejectedJoinUntil = -1;
             for (int index = 0; index < elements.Count; index++) {
                 WordElement element = elements[index];
                 switch (element) {
                     case WordParagraph paragraph:
-                        if (TryAddNativeHeaderFooterJoinedParagraphText(parts, elements, ref index, listMarkers, nativeFontMap, options)) break;
+                        if (TryAddNativeHeaderFooterJoinedParagraphText(parts, elements, ref index, ref rejectedJoinUntil, listMarkers, nativeFontMap, options)) break;
                         AddNativeHeaderFooterParagraphText(parts, paragraph, listMarkers, nativeFontMap: nativeFontMap);
                         break;
                     case WordTable table:
@@ -101,8 +102,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             List<WordElement> elements = paragraphs.Take(lastContentIndex + 1).Cast<WordElement>().ToList();
+            int rejectedJoinUntil = -1;
             for (int index = 0; index <= lastContentIndex; index++) {
-                if (TryAddNativeHeaderFooterJoinedParagraphText(parts, elements, ref index, listMarkers, nativeFontMap, options, zone)) continue;
+                if (TryAddNativeHeaderFooterJoinedParagraphText(parts, elements, ref index, ref rejectedJoinUntil, listMarkers, nativeFontMap, options, zone)) continue;
                 AddNativeHeaderFooterParagraphText(parts, paragraphs[index], listMarkers, zone, nativeFontMap);
             }
         }

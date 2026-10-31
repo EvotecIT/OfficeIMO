@@ -33,6 +33,7 @@ dotnet add package OfficeIMO.Excel
 
 ## Quick start
 
+<!-- powerforge:code source="Build/DocumentationExamples/Excel/Program.cs" region="QuickStart" -->
 ```csharp
 using OfficeIMO.Excel;
 
@@ -48,6 +49,7 @@ sheet.AutoFitColumns();
 
 document.Save();
 ```
+<!-- /powerforge:code -->
 
 When a workbook comes from an untrusted source, pass the bounded load profile before parsing it:
 
@@ -259,7 +261,7 @@ Native XML Spreadsheet coordinates are limited to 65,536 rows and 256 columns.
 An invalid or overlapping merge is rejected before returning a workbook.
 Export rejects covered merged-cell data that the target format would discard.
 `ExcelSpreadsheetXmlOptions` bounds bytes, stored cells, worksheets, styles,
-XML elements and depth, and accepts cancellation. DTDs and external XML entity
+imported defined names, XML elements and depth, and accepts cancellation. DTDs and external XML entity
 resolution are disabled. The [fixture corpus](../OfficeIMO.TestAssets/Documents/SpreadsheetXmlCorpus/README.md)
 distinguishes native producer, native consumer and managed round-trip evidence.
 

@@ -12,6 +12,24 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void SaveAsPdf_ForegroundRunningBoxMeasuresManyOrdinaryBodyRuns() {
+        using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
+        W.Paragraph body = SetAnchoredControlBodyAutoSpacing(document);
+        var paragraph = new WordParagraph(document, body);
+        paragraph.LineSpacingPoints = 6;
+        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        foreach (int index in Enumerable.Range(0, 300))
+            body.Append(new W.Run(new W.Text("x")));
+        string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
+
+        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
+
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        Assert.Contains("S2", string.Join(" ", Enumerable.Range(1, pdf.NumberOfPages).Select(index => pdf.GetPage(index).Text)));
+        Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
+    }
+
+    [Fact]
     public void SaveAsPdf_ForegroundRunningBoxWithUpwardAutoBodyInkRetainsWarnedFlow() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         W.Paragraph body = SetAnchoredControlBodyAutoSpacing(document);

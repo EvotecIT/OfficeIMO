@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 from urllib.parse import unquote, urlsplit
 import xml.etree.ElementTree as ET
+from xml.parsers import expat
 import zipfile
 
 SMIL = "{http://www.w3.org/ns/SMIL}"
@@ -85,10 +86,40 @@ def read_xml(archive, name):
     # never resolved; rejecting DTDs also excludes internal entity expansion.
     if b"<!DOCTYPE" in data.replace(b"\x00", b"").upper() or b"<!ENTITY" in data.replace(b"\x00", b"").upper():
         raise UncheckedAudio("DTD/entity XML is not checked by the audio evidence lane")
+    check_xml_structure(data)
     root = ET.fromstring(data)
     if any("{http://www.w3.org/XML/1998/namespace}base" in node.attrib for node in root.iter()):
         raise UncheckedAudio("XML base addressing is not checked by the audio evidence lane")
     return root
+
+
+def check_xml_structure(data):
+    # Expat reports raw names here, before ElementTree repeats a long namespace
+    # URI in every expanded tag and attribute name.
+    parser = expat.ParserCreate()
+    elements = 0
+    depth = 0
+
+    def start(name, attributes):
+        nonlocal elements, depth
+        elements += 1
+        depth += 1
+        if elements > 10000 or depth > 64 or len(name) > 256 or len(attributes) > 64:
+            raise UncheckedAudio("XML structure exceeds the audio evidence limit")
+        for key, value in attributes.items():
+            if len(key) > 256 or key.startswith("xmlns") and len(value) > 1024:
+                raise UncheckedAudio("XML name or namespace exceeds the audio evidence limit")
+
+    def end(_name):
+        nonlocal depth
+        depth -= 1
+
+    parser.StartElementHandler = start
+    parser.EndElementHandler = end
+    try:
+        parser.Parse(data, True)
+    except expat.ExpatError as error:
+        raise ValueError("Invalid XML in audio evidence input") from error
 
 
 def collect_clips(archive):

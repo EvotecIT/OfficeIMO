@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
@@ -39,7 +40,8 @@ internal static class OfficeEncryptedPackageService
         return ExcelDocument.LoadEncrypted(path, password, new ExcelLoadOptions
         {
             AccessMode = readOnly ? DocumentAccessMode.ReadOnly : DocumentAccessMode.ReadWrite,
-            PersistenceMode = DocumentPersistenceMode.Explicit
+            PersistenceMode = DocumentPersistenceMode.Explicit,
+            PackageSecurity = OfficePackageSecurityOptions.SecureDefaults
         });
     }
 

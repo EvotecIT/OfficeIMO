@@ -8,10 +8,17 @@ namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointEffectiveRunStyleResolver {
         // Zero is an authored reset and must stop inheritance just like a nonzero value.
         internal static double? ResolveCharacterSpacingPoints(PowerPointTextRun run,
-            PowerPointParagraph paragraph, PowerPointTextBox textBox) {
-            var sources = new List<A.TextCharacterPropertiesType>(
-                ResolveDirectSources(run, paragraph, textBox.TextBody?.ListStyle, includeParagraphMark: false));
+            PowerPointParagraph paragraph, PowerPointTextBox textBox,
+            IDictionary<int, int?>? inheritedSpacingByLevel = null) {
+            int? spacing = ResolveValue(ResolveDirectSources(run, paragraph, textBox.TextBody?.ListStyle,
+                includeParagraphMark: false), static source => source.Spacing?.Value);
+            if (spacing.HasValue) return spacing.Value / 100D;
+
             int level = paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0;
+            if (inheritedSpacingByLevel != null && inheritedSpacingByLevel.TryGetValue(level, out spacing))
+                return spacing.HasValue ? spacing.Value / 100D : (double?)null;
+
+            var sources = new List<A.TextCharacterPropertiesType>();
             P.PlaceholderShape? placeholder = textBox.Element.GetFirstChild<P.NonVisualShapeProperties>()?
                 .ApplicationNonVisualDrawingProperties?.GetFirstChild<P.PlaceholderShape>();
             if (placeholder != null) {
@@ -29,7 +36,8 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlCompositeElement? presentationDefaults = textBox.SlidePart?.GetParentParts()
                 .OfType<DocumentFormat.OpenXml.Packaging.PresentationPart>().FirstOrDefault()?.Presentation?.DefaultTextStyle;
             sources.AddRange(FindDefaultRunProperties(presentationDefaults, level));
-            int? spacing = ResolveValue(sources, static source => source.Spacing?.Value);
+            spacing = ResolveValue(sources, static source => source.Spacing?.Value);
+            if (inheritedSpacingByLevel != null) inheritedSpacingByLevel[level] = spacing;
             return spacing.HasValue ? spacing.Value / 100D : (double?)null;
         }
 

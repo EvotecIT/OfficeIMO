@@ -166,6 +166,27 @@ public sealed class WordPerfectImportTests {
     }
 
     [Fact]
+    public void InheritedWordPerfectHeadersRespectProjectedContentLimit() {
+        byte[] header = TextPacket(Join(Text("Header"), new byte[] { 0x80 }, Text("A")));
+        byte[] start = Join(Function6(0xd6, 0, new byte[] { 3 }, 1), Text("A"),
+            Function6(0xd2, 0, Number(1440)), Text("B"));
+        byte[] nextSection = Join(Function6(0xd2, 0, Number(1600)), Text("C"));
+        var limits = new OfficeLegacyImportLimits { MaxTextCharacters = 24 };
+
+        using (LegacyWordImportResult accepted = Import(Document6(start, (8, header)), limits)) {
+            Assert.Equal(2, accepted.Content.Sections.Count);
+            Assert.Same(accepted.Content.Sections[0].HeadersAndFooters[0],
+                accepted.Content.Sections[1].HeadersAndFooters[0]);
+            Assert.Equal("Header A", accepted.Content.Sections[1].HeadersAndFooters[0].Paragraphs[0].Text);
+            Assert.Equal("Header A", accepted.Value.Sections[1].Header.Default!.Paragraphs[0].Text);
+        }
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            Import(Document6(Join(start, nextSection), (8, header)), limits));
+        Assert.Contains("running-story projection", error.Message);
+    }
+
+    [Fact]
     public void RecoversIndependentWpgVectorsAsAnInlinePngWithImmutableSourceData() {
         byte[] wpg = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "WordPerfect", "WPG1.wpg"));
         byte[] source = GraphicDocument(wpg);

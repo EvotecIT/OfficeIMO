@@ -284,7 +284,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // the preceding line after all of the inline's text moved away.
         if (inlineStrutMarker != null && targetRuns.Skip(firstInlineRun + 1)
             .Any(run => !string.IsNullOrWhiteSpace(run.Text) || run.AtomicBlock != null || run.LeaderPattern != null))
-            targetRuns.Remove(inlineStrutMarker);
+            targetRuns.RemoveAt(firstInlineRun);
         if (style.Display == "inline") CaptureInlineStrutStyles(targetRuns, firstInlineRun, style);
         AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
     }
