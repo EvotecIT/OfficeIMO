@@ -4,37 +4,20 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
     /// <summary>
-    /// Admits only a complete, single-section xref stream whose winning entries select exactly
-    /// the objects materialized by the reader. Repair scanning is not proof of object ownership.
-    /// Hybrid sections, incremental updates and object-stream inheritance remain refused.
+    /// Independently follows the active cross-reference chain and checks that every winning
+    /// entry, including deletion, agrees with the objects materialized by the reader.
     /// </summary>
     internal static bool CanNormalizeRedactionObjectGraph(byte[] pdf, PdfReadDocument document, CancellationToken cancellationToken) {
-        PdfDocumentSecurityInfo security = document.Security;
         if (document.RepairReport.HasIncompleteObjectCoverage) return false;
-        if (!HasCompressedRedactionStructures(document)) return true;
-        if (security.HasEncryption || security.StartXrefCount != 1) return false;
+        if (!RequiresRedactionNormalization(document)) return true;
+        if (document.Security.HasEncryption && HasCompressedRedactionStructures(document)) return false;
         var objects = document.Objects;
-        string text = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
-        if (!TryGetLatestStartXrefOffset(text, out int offset, cancellationToken)) return false;
-        PdfStream? xref = objects.Values.FirstOrDefault(item => item.SourceOffset == offset)?.Value as PdfStream;
-        if (xref?.Dictionary.Get<PdfName>("Type")?.Name != "XRef" ||
-            xref.Dictionary.Items.ContainsKey("Prev") || xref.Dictionary.Items.ContainsKey("XRefStm")) return false;
         var budget = new PdfDecodedStreamBudget(document.ReadOptions.Limits);
-        bool incomplete = false;
-        var entries = new Dictionary<int, XrefStreamEntry>();
-        foreach (XrefStreamEntry entry in ReadXrefStreamEntries(xref.Dictionary,
-            budget.Decode(xref, objects, document.ReadOptions.Limits.MaxDecodedStreamBytes, cancellationToken),
-            () => incomplete = true, cancellationToken)) {
-            if (entries.ContainsKey(entry.ObjectNumber)) return false;
-            entries.Add(entry.ObjectNumber, entry);
-        }
-        if (incomplete) return false;
+        if (!TryReadRedactionXrefChain(pdf, document, budget, out var entries, out bool hasXrefStreams, cancellationToken) ||
+            document.Security.HasEncryption && hasXrefStreams) return false;
         var offsets = objects.ToDictionary(static pair => pair.Key, static pair => pair.Value.SourceOffset);
         foreach (PdfIndirectObject item in objects.Values) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (item.Value is PdfDictionary dictionary && dictionary.Items.ContainsKey("Linearized")) return false;
-            if (item.Value is PdfStream stream && stream.Dictionary.Get<PdfName>("Type")?.Name == "ObjStm" &&
-                stream.Dictionary.Items.ContainsKey("Extends")) return false;
             if (!entries.TryGetValue(item.ObjectNumber, out XrefStreamEntry entry)) return false;
             if (entry.Type == 1) {
                 if (entry.Field1 != item.SourceOffset || entry.Field2 != item.Generation) return false;
@@ -53,13 +36,23 @@ internal static partial class PdfSyntax {
         document.Objects.Values.Any(static item => item.Value is PdfStream stream &&
             stream.Dictionary.Get<PdfName>("Type")?.Name is "ObjStm" or "XRef");
 
+    /// <summary>Includes history whose compressed containers have been freed from the live map.</summary>
+    internal static bool RequiresRedactionNormalization(PdfReadDocument document) {
+        if (HasCompressedRedactionStructures(document)) return true;
+        int index = 0;
+        // Unreadable structure is not proof that the source has no history.
+        return !TryReadNextTrailerDictionary(document.TrailerRaw, ref index, document.ReadOptions.Limits,
+            out PdfDictionary trailer, CancellationToken.None) || trailer.HasIncompleteSyntax ||
+            trailer.Items.ContainsKey("Prev") || trailer.Items.ContainsKey("XRefStm");
+    }
+
     /// <summary>Checks the active cross-reference section and typed objects, not raw marker spellings.</summary>
     internal static bool IsClassicRedactionOutput(byte[] pdf, PdfReadDocument document, CancellationToken cancellationToken) {
         if (HasCompressedRedactionStructures(document) || document.RepairReport.HasIncompleteObjectCoverage ||
             document.Objects.Values.Any(static item => item.Value is PdfDictionary dictionary && dictionary.Items.ContainsKey("Linearized"))) return false;
         string text = PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken);
         return TryGetLatestStartXrefOffset(text, out int offset, cancellationToken) &&
-            TryParseClassicXrefTable(text, offset, out _, out int? previous, out _, out int? hybrid, cancellationToken) &&
+            TryParseClassicXrefTable(text, offset, out _, out int? previous, out _, out int? hybrid, requireComplete: true, cancellationToken) &&
             !previous.HasValue && !hybrid.HasValue;
     }
 

@@ -315,7 +315,7 @@ internal static class PdfMutationPlanner {
 
         IReadOnlyList<PdfMutationStructure> structures = GetAffectedStructures(operation);
         IReadOnlyList<PdfMutationPermissionCheck> permissions = GetPermissionChecks(operation, mode);
-        IReadOnlyList<PdfMutationProof> proofs = GetRequiredProofs(operation, mode, security, preflight.HasCompressedRedactionStructures);
+        IReadOnlyList<PdfMutationProof> proofs = GetRequiredProofs(operation, mode, security, operation == PdfMutationOperation.Redact && preflight.HasCompressedRedactionStructures);
         IReadOnlyList<string> blockers = mode == PdfMutationExecutionMode.Blocked
             ? GetBlockerCodes(preflight, appendOnly, operation, fullRewriteImplemented, appendOnlyImplemented, security, certificationRequiresFirstSignature)
             : Array.Empty<string>();

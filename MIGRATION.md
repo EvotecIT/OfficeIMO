@@ -3523,7 +3523,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 </details>
 <!-- officeimo-api-map:end -->
 
-Search redaction now accepts proven single-section, unencrypted object-stream and cross-reference-stream PDFs and writes classic output, including empty searches. Compressed incremental, hybrid, linearized and `/Extends` files remain refused.
+Search redaction accepts unencrypted object-stream and cross-reference-stream PDFs, including hybrid, linearized, incremental and `/Extends` inputs, when the complete winning xref map agrees with the reader. It writes classic output, including empty searches; disagreeing graphs, retained historical matches and compressed encryption remain refused.
 
 
 ## Chart and workbook defaults

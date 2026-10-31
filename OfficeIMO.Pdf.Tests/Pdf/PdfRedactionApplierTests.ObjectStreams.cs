@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfRedactionApplierTests {
     public static IEnumerable<object[]> CompressedRedactionCases() {
         foreach (PdfRedactionTextSelection selection in new[] { PdfRedactionTextSelection.MatchedGlyphs, PdfRedactionTextSelection.LogicalBlocks })
-            foreach (string variant in new[] { "TextChoice", "EscapedTypes", "HarmlessNames", "EscapedTypesDuplicate", "CompactStreamDelimiter", "XrefOnly", "NoMatch", "NamesOnly", "DuplicateContainer", "ExcludedPage", "UnindexedSecret", "ByteRange", "Sig", "SigFlags", "DocMDP", "UR3", "XFA", "AA", "NamesJavaScript", "OpenAction", "Name", "Extends", "Incremental" })
+            foreach (string variant in new[] { "TextChoice", "EscapedTypes", "HarmlessNames", "EscapedTypesDuplicate", "CompactStreamDelimiter", "XrefOnly", "NoMatch", "NamesOnly", "DuplicateContainer", "ExcludedPage", "UnindexedSecret", "ByteRange", "Sig", "SigFlags", "DocMDP", "UR3", "XFA", "AA", "NamesJavaScript", "OpenAction", "Name", "Extends", "WinningRevision", "TruncatedClassicTable", "MalformedHistoryTrailer", "MissingCompressedPredecessor" })
                 yield return new object[] { selection, variant };
     }
 
@@ -19,12 +19,13 @@ public partial class PdfRedactionApplierTests {
     public void SearchNormalizesProvenCompressedObjectsAndRefusesUnprovenSources(PdfRedactionTextSelection selection, string variant) {
         byte[] input = BuildCompressedRedactionFixture(variant);
         PdfDocument source = PdfDocument.Load(input);
+        if (variant == "Extends") Assert.Equal("plain", source.Reader.FormFields().Single(static field => field.Name == "Text").Value);
         var options = new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret");
         if (variant == "ExcludedPage") options.PageNumbers.Add(1);
         PdfRedactionPlan plan = source.Redactions.Search(options);
-        bool accepted = variant is "TextChoice" or "EscapedTypes" or "HarmlessNames" or "CompactStreamDelimiter" or "XrefOnly" or "NoMatch" or "NamesOnly" or "ExcludedPage";
+        bool accepted = variant is "TextChoice" or "EscapedTypes" or "HarmlessNames" or "CompactStreamDelimiter" or "XrefOnly" or "NoMatch" or "NamesOnly" or "ExcludedPage" or "Extends" or "WinningRevision";
         if (!accepted) {
-            if (variant is "ByteRange" or "Sig" or "SigFlags" or "DocMDP" or "UR3" or "AA" or "NamesJavaScript" or "OpenAction" or "Extends") {
+            if (variant is "ByteRange" or "Sig" or "SigFlags" or "DocMDP" or "UR3" or "AA" or "NamesJavaScript" or "OpenAction") {
                 PdfMutationPlan gate = PdfMutationPlanner.Plan(input, PdfMutationOperation.Redact);
                 Assert.False(gate.CanExecute);
                 if (variant == "ByteRange") Assert.True(gate.Preflight.Probe.Security.HasByteRange);
@@ -70,10 +71,10 @@ public partial class PdfRedactionApplierTests {
     }
 
     private byte[] BuildCompressedRedactionFixture(string variant) {
-        string holder = variant == "Name" ? "Name" : variant == "ExcludedPage" ? "ExcludedPage" : variant is "NoMatch" or "NamesOnly" or "HarmlessNames" or "DuplicateContainer" or "EscapedTypesDuplicate" or "UnindexedSecret" ? "SyntaxNames" : "TU";
+        string holder = variant == "Name" ? "Name" : variant == "ExcludedPage" ? "ExcludedPage" : variant is "NoMatch" or "NamesOnly" or "HarmlessNames" or "DuplicateContainer" or "EscapedTypesDuplicate" or "UnindexedSecret" or "MalformedHistoryTrailer" ? "SyntaxNames" : "TU";
         string raw = Encoding.ASCII.GetString(BuildFormResidueSource(holder));
         // These names are harmless; keep the empty-search fixture free of the requested spelling.
-        if (variant is "NoMatch" or "HarmlessNames" or "DuplicateContainer" or "EscapedTypesDuplicate" or "UnindexedSecret") raw = raw.Replace("secret", "public");
+        if (variant is "NoMatch" or "HarmlessNames" or "DuplicateContainer" or "EscapedTypesDuplicate" or "UnindexedSecret" or "MalformedHistoryTrailer") raw = raw.Replace("secret", "public");
         string catalog = variant switch {
             "DocMDP" => "/Perms << /DocMDP 20 0 R >>",
             "UR3" => "/Perms << /UR3 20 0 R >>",
@@ -94,9 +95,13 @@ public partial class PdfRedactionApplierTests {
         if (variant == "ByteRange") objects.Add(20, "<< /ByteRange [0 2 4 2] >>");
         if (variant is "Sig" or "DocMDP" or "UR3") objects.Add(20, "<< /Type /Sig /Contents <0000> >>");
         if (variant == "UnindexedSecret") objects.Add(20, "<< /V (secret) >>");
-        if (variant == "Extends") objects.Add(99, "<< /Type /ObjStm /N 0 /First 0 /Length 0 >>\nstream\n\nendstream");
+        if (variant == "Extends") {
+            string previous = "10 0 << /FT /Tx /T (Text) /V (older extended value) >>";
+            string hex = string.Concat(Encoding.ASCII.GetBytes(previous).Select(static value => value.ToString("X2", CultureInfo.InvariantCulture))) + ">";
+            objects.Add(99, "<< /Type /ObjStm /N 1 /First 5 /Filter /ASCIIHexDecode /Length " + hex.Length + " >>\nstream\n" + hex + "\nendstream");
+        }
         int container = objects.Keys.Max() + 1, xref = container + 1;
-        int[] packed = variant == "XrefOnly" ? Array.Empty<int>() : objects.Keys.Where(number => !objects[number].Contains("\nstream\n", StringComparison.Ordinal)).ToArray();
+        int[] packed = variant is "XrefOnly" or "TruncatedClassicTable" or "MalformedHistoryTrailer" ? Array.Empty<int>() : objects.Keys.Where(number => !objects[number].Contains("\nstream\n", StringComparison.Ordinal)).ToArray();
         var header = new StringBuilder();
         var body = new StringBuilder();
         foreach (int number in packed) { header.Append(number).Append(' ').Append(body.Length).Append(' '); body.Append(objects[number]).Append('\n'); }
@@ -134,7 +139,37 @@ public partial class PdfRedactionApplierTests {
         output.Append(xref).Append(variant.StartsWith("EscapedTypes", StringComparison.Ordinal) ? " 0 obj\n<< /Type /XR#65f /Root 1 0 R /Size " : " 0 obj\n<< /Type /XRef /Root 1 0 R /Size ").Append(xref + 1)
             .Append(" /W [1 4 2] /Filter /ASCIIHexDecode /Length ").Append(rows.Length).Append(" >>\nstream\n").Append(rows)
             .Append("\nendstream\nendobj\nstartxref\n").Append(offsets[xref]).Append("\n%%EOF\n");
-        if (variant == "Incremental") output.Append("xref\n0 1\n0000000000 65535 f \ntrailer\n<< /Root 1 0 R /Size ")
+        if (variant == "WinningRevision") {
+            int valueOffset = output.Length;
+            output.Append(TextWidget(10, "/FT /Tx /T (Text) /V (new secret value)")).Append('\n');
+            int nextXref = output.Length;
+            string entries = "01" + valueOffset.ToString("X8", CultureInfo.InvariantCulture) + "0000" +
+                "01" + nextXref.ToString("X8", CultureInfo.InvariantCulture) + "0000>";
+            output.Append("200 0 obj\n<< /Type /XRef /Root 1 0 R /Size 201 /Prev ").Append(offsets[xref])
+                .Append(" /Index [10 1 200 1] /W [1 4 2] /Filter /ASCIIHexDecode /Length ").Append(entries.Length)
+                .Append(" >>\nstream\n").Append(entries).Append("\nendstream\nendobj\nstartxref\n").Append(nextXref).Append("\n%%EOF\n");
+        }
+        if (variant == "TruncatedClassicTable") {
+            int tableOffset = output.Length;
+            output.Append("xref\n0 110000\n");
+            for (int number = 0; number < 110000; number++) {
+                if (offsets.TryGetValue(number, out int objectOffset)) output.Append(objectOffset.ToString("D10", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+                else output.Append("0000000000 65535 f \n");
+            }
+            output.Append("trailer\n<< /Root 1 0 R /Size 110000 /Prev ").Append(offsets[xref]).Append(" >>\nstartxref\n")
+                .Append(tableOffset).Append("\n%%EOF\n");
+        }
+        if (variant == "MalformedHistoryTrailer") {
+            int tableOffset = output.Length;
+            output.Append("xref\n0 ").Append(xref + 1).Append('\n');
+            for (int number = 0; number <= xref; number++) {
+                if (number != xref && offsets.TryGetValue(number, out int objectOffset)) output.Append(objectOffset.ToString("D10", CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+                else output.Append("0000000000 65535 f \n");
+            }
+            output.Append("trailer junk << /Root 1 0 R /Size ").Append(xref + 1).Append(" /Prev ").Append(offsets[xref])
+                .Append(" >>\nstartxref\n").Append(tableOffset).Append("\n%%EOF\n");
+        }
+        if (variant == "MissingCompressedPredecessor") output.Append("xref\n0 1\n0000000000 65535 f \ntrailer\n<< /Root 1 0 R /Size ")
             .Append(xref + 1).Append(" /Prev ").Append(offsets[xref]).Append(" >>\nstartxref\n")
             .Append(output.ToString().LastIndexOf("xref\n0", StringComparison.Ordinal)).Append("\n%%EOF\n");
         return Encoding.ASCII.GetBytes(output.ToString());

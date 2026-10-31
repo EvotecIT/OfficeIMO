@@ -116,12 +116,18 @@ internal static partial class PdfRedactionApplier {
                 bool cmap = ContainsOrdinal(content, "begincmap");
                 if (contentStream || stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Form" || stream.Dictionary.Items.ContainsKey("PatternType") || cmap) {
                     bool found = false;
-                    PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations,
-                        operation => {
-                            // A font's repertoire is not retained text. Only actual string data outside its code mappings counts.
-                            if (cmap && operation.Name is "endbfchar" or "endbfrange" or "endcodespacerange" or "endcidchar" or "endcidrange") return;
-                            found |= operation.Operands.Any(OperandHolds);
-                        }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+                    try {
+                        PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations,
+                            operation => {
+                                // A font's repertoire is not retained text. Only actual string data outside its code mappings counts.
+                                if (cmap && operation.Name is "endbfchar" or "endbfrange" or "endcodespacerange" or "endcidchar" or "endcidrange") return;
+                                found |= operation.Operands.Any(OperandHolds);
+                            }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+                    } catch (FormatException) {
+                        // A sniffed stream can contain arbitrary bytes rather than PDF operands.
+                        // Inspect the entire payload, including valid strings after the bad token.
+                        return found || SearchTextHolds(content, criteria) || PdfRedactionVerification.ContainsSearchedPdfString(data, criteria, cancellationToken);
+                    }
                     return found;
                 }
                 // Binary image/font payloads are not text-bearing streams. Their string dictionaries were checked above.

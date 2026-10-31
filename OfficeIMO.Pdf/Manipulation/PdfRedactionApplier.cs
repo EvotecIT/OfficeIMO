@@ -50,7 +50,7 @@ internal static partial class PdfRedactionApplier {
             IReadOnlyList<PdfRedactionVerificationIssue> residue = FindSearchResidue(pdf, plan, readOptions, effectiveOptions.CancellationToken);
             if (residue.Count > 0) throw new InvalidOperationException("The PDF still holds searched text outside live search matches.");
             PdfReadDocument unchanged = PdfReadDocument.Open(pdf, readOptions, effectiveOptions.CancellationToken);
-            if (!PdfSyntax.HasCompressedRedactionStructures(unchanged)) return (byte[])pdf.Clone();
+            if (!PdfSyntax.RequiresRedactionNormalization(unchanged) || unchanged.Security.HasEncryption) return (byte[])pdf.Clone();
             var (normalized, trailer) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, effectiveOptions.CancellationToken);
             int catalog = FindCatalogObjectNumber(normalized, trailer);
             PdfObjectGraphPruner.PruneUnreachableObjects(normalized, catalog, effectiveOptions.CancellationToken);
@@ -329,7 +329,7 @@ internal static partial class PdfRedactionApplier {
                 .Select(static match => match.ObjectNumber).OfType<int>(), areaArray, limits, sourceStreamIdentities) || cleanupChanged;
         }
         if (!mutation.HasChanges && !cleanupChanged &&
-            !(mutationOperation == PdfMutationOperation.Redact && PdfSyntax.HasCompressedRedactionStructures(document))) {
+            !(mutationOperation == PdfMutationOperation.Redact && !document.Security.HasEncryption && PdfSyntax.RequiresRedactionNormalization(document))) {
             generatedGrowth = default;
             appliedImageMatches = mutation.AppliedImageMatches;
             return pdf.ToArray();
@@ -340,7 +340,7 @@ internal static partial class PdfRedactionApplier {
         appliedImageMatches = mutation.AppliedImageMatches;
         PdfMetadata metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 || searchedMetadata.Info ? new PdfMetadata() : document.UncheckedMetadata;
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf, textSearch, effectiveOptions.CancellationToken);
-        if (mutationOperation == PdfMutationOperation.Redact && PdfSyntax.HasCompressedRedactionStructures(document))
+        if (mutationOperation == PdfMutationOperation.Redact && !document.Security.HasEncryption && PdfSyntax.RequiresRedactionNormalization(document))
             RequireClassicRedactionOutput(rewritten, readOptions, effectiveOptions.CancellationToken);
         return sourceEncryption?.Protect(rewritten,
             generatedReadOptions: PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, rewritten, generatedGrowth),

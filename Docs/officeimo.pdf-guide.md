@@ -2328,17 +2328,18 @@ values; `FormField` matches retain the field name. Signed files are not rewritte
 an unsigned derivative workflow and re-sign the result. Unpainted forms holding the searched text
 are removed too.
 
-Unsigned, unencrypted PDFs with one complete cross-reference stream can be redacted
-through a classic full rewrite when the selected objects agree with every in-use xref
-entry. This includes object streams and xref-stream-only files. The rewrite drops the
-compressed containers, and an empty search still normalizes an admitted compressed
-source. Every retained container member is inspected, including unindexed members.
-Compressed files with incremental revisions, hybrid `/XRefStm` sections, linearization,
-or object-stream `/Extends` remain refused; their historical or ambiguous object
-selection is not attested by the saved-output sweep. Encryption with compressed
-structures remains refused. Signature, usage-rights, dynamic-XFA and active-content
-refusals also apply when their dictionaries are compressed. Page limits still permit
-searched text on excluded pages.
+Unsigned, unencrypted PDFs with object streams or cross-reference streams normalize to
+classic output when the winning entries across the complete xref chain agree with the
+reader's live objects. This includes hybrid, linearized and incremental PDFs. Tables,
+their `/XRefStm` supplements and `/Prev` sections are checked in lookup order; free
+entries cannot resurrect older objects. `/Extends` is a collection hint and does not
+choose a member's value. The rewrite drops containers, hint data and old revisions,
+and an empty search still normalizes an admitted source. Every retained container
+member is inspected, including unindexed members. A disagreement, incomplete graph,
+or retained historical match refuses the result; compressed encryption stays refused.
+Signature, usage-rights, dynamic-XFA and active-content refusals also apply to compressed
+dictionaries. Page limits still permit searched text on excluded pages. Malformed hex
+candidates in arbitrary stream data do not hide later valid string tokens.
 
 Whole-block search removes the block's own glyphs and marks its full rectangle, so a
 neighbouring line stays. Text with no glyph mapping can only go as a rectangle, which
