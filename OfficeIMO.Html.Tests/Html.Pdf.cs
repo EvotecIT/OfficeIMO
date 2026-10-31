@@ -17,6 +17,10 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlPdfTests {
+    private readonly Xunit.Abstractions.ITestOutputHelper _output;
+
+    public HtmlPdfTests(Xunit.Abstractions.ITestOutputHelper output) => _output = output;
+
     [Fact]
     public void HtmlToPdf_MapsCssBleedAndPrinterMarksToProductionPageBoxes() {
         const string html = """
@@ -1444,6 +1448,18 @@ public sealed class HtmlPdfTests {
         PdfCore.PdfLogicalPage page = PdfCore.PdfDocumentReadResult.Load(pdf).Pages[0];
         PdfCore.PdfLogicalTable table = Assert.Single(page.Tables);
         double tableLeft = table.Columns[0].From, tableRight = table.Columns[table.Columns.Count - 1].To;
+        if (table.Rows.Count != 3) {
+            _output.WriteLine("OutsideLeft={0}; outsideX={1:R}; outsideY={2:R}; baseline rows={3}; annotated rows={4}",
+                outsideLeft, outsideX, outsideY, baselineTable.Rows.Count, table.Rows.Count);
+            foreach (var column in table.Columns)
+                _output.WriteLine("Column: {0:R}..{1:R}", column.From, column.To);
+            foreach (var row in table.Rows) _output.WriteLine("Row: {0}", string.Join(" | ", row));
+            using var diagnostic = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf));
+            foreach (var span in diagnostic.Pages[0].GetTextSpans().Take(64))
+                _output.WriteLine("Span [{0}] X={1:R} Y={2:R} advance={3:R} font={4}/{5} size={6:R} weight={7} bold={8}",
+                    span.Text, span.X, span.Y, span.Advance, span.FontResource, span.BaseFont,
+                    span.FontSize, span.FontWeight, span.IsBold);
+        }
         Assert.Equal(3, table.Rows.Count);
         Assert.Equal(new[] { "HTML", "OfficeIMO.Html", "Ready" }, table.Rows[1]);
         Assert.Contains(page.TextBlocks, block =>

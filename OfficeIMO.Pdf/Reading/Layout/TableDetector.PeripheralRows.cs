@@ -3,7 +3,8 @@ namespace OfficeIMO.Pdf;
 internal static partial class TableDetector {
     /// <summary>
     /// Recovers a compact header/body region when an unrelated side annotation changes
-    /// the middle row's split count. Only fully contained source runs belong to the table.
+    /// the middle row's split count. A complete last-cell span group may extend
+    /// past the other rows' paint when its start matches both last-column anchors.
     /// </summary>
     private static void RecoverTablesWithPeripheralRowText(List<PdfStructuredTable> tables,
         IReadOnlyList<TextLayoutEngine.TextLine> pageLines, Action<long>? consumeWork, Action? cancellationCheck) {
@@ -33,11 +34,27 @@ internal static partial class TableDetector {
             if (gap <= 0D || nextGap <= 0D || Math.Max(gap, nextGap) > Math.Min(gap, nextGap) * 1.35D ||
                 Math.Max(gap, nextGap) > 48D) continue;
             double left = Math.Min(upper.XStart, lower.XStart), right = Math.Max(upper.XEnd, lower.XEnd);
+            double firstLastStart = first.Cells[first.Cells.Count - 1].From;
+            double thirdLastStart = third.Cells[third.Cells.Count - 1].From;
+            var lastCellRuns = new HashSet<PdfTextSpan>();
+            if (middle.XEnd > right + .25D) {
+                consumeWork?.Invoke(middle.Spans.Count);
+                PositionedRow? annotated = TryCreatePositionedRow(middle, useCompactGapThreshold: true);
+                if (annotated == null) continue;
+                foreach (PositionedCell cell in annotated.Cells) {
+                    cancellationCheck?.Invoke();
+                    consumeWork?.Invoke(1);
+                    if (Math.Abs(cell.From - firstLastStart) > .25D ||
+                        Math.Abs(cell.From - thirdLastStart) > .25D) continue;
+                    consumeWork?.Invoke(cell.SourceRuns.Count);
+                    foreach (PdfTextSpan span in cell.SourceRuns) lastCellRuns.Add(span);
+                }
+            }
             var contained = new List<PdfTextSpan>();
             bool crossing = false;
             foreach (PdfTextSpan span in middle.Spans) {
                 double end = span.X + Math.Max(0D, span.Advance);
-                if (span.X >= left - .25D && end <= right + .25D) contained.Add(span);
+                if (span.X >= left - .25D && (end <= right + .25D || lastCellRuns.Contains(span))) contained.Add(span);
                 else if (end > left && span.X < right) crossing = true;
             }
             if (crossing || contained.Count == 0 || contained.Count == middle.Spans.Count) continue;

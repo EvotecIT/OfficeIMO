@@ -50,6 +50,35 @@ public class PdfPeripheralTableRecoveryTests {
         Assert.Equal(new[] { "2.", "Bravo" }, table.Rows[2]);
     }
 
+    [Theory]
+    [InlineData(0D, 25D, false)]
+    [InlineData(0D, 35D, false)]
+    [InlineData(360D, 25D, false)]
+    [InlineData(360D, 35D, false)]
+    [InlineData(0D, 35D, true)]
+    [InlineData(360D, 35D, true)]
+    public void WiderAlignedLastCellKeepsSideAnnotationsOutsideTheTable(double annotationX, double lastCellWidth, bool splitLastCell) {
+        var middle = new List<(string Text, double X, double Advance, string Font)> {
+            ("HTML", 42D, 28D, "Helvetica"), ("OfficeIMO.Html", 112D, 65D, "Helvetica"),
+            ("Ready", 282D, lastCellWidth, "Helvetica"), ("Ready", annotationX, 25D, "Helvetica")
+        };
+        if (splitLastCell) middle.Add(("+tail", 282D + lastCellWidth, 20D, "Helvetica"));
+        var bands = new List<List<TextLayoutEngine.TextLine>> {
+            new() { Line(220D, ("Area", 42D, 20D, "Helvetica-Bold"), ("Owner", 112D, 30D, "Helvetica-Bold"),
+                ("Status", 282D, 30D, "Helvetica-Bold")) },
+            new() { Line(200D, middle.ToArray()) },
+            new() { Line(180D, ("PDF", 42D, 20D, "Helvetica"), ("OfficeIMO.Html.Pdf", 112D, 80D, "Helvetica"),
+                ("Stable", 282D, 26D, "Helvetica")) }
+        };
+        PdfStructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
+        Assert.Equal(3, table.Rows.Count);
+        Assert.Equal(new[] { "Area", "Owner", "Status" }, table.Rows[0]);
+        Assert.Equal(new[] { "HTML", "OfficeIMO.Html", splitLastCell ? "Ready+tail" : "Ready" }, table.Rows[1]);
+        Assert.Equal(new[] { "PDF", "OfficeIMO.Html.Pdf", "Stable" }, table.Rows[2]);
+        PdfTextSpan annotation = Assert.Single(bands[1][0].Spans, span => span.X == annotationX);
+        Assert.DoesNotContain(annotation, table.SourceRuns);
+    }
+
     private static TextLayoutEngine.TextLine Line(double y, params (string Text, double X, double Advance, string Font)[] content) {
         List<PdfTextSpan> spans = content.OrderBy(item => item.X)
             .Select(item => new PdfTextSpan(item.Text, item.Font, 10D, item.X, y, item.Advance, baseFont: item.Font)).ToList();
