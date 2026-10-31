@@ -61,6 +61,27 @@ enum DocumentConversion {
     }
 }
 
+extension DocumentConversion {
+    /// One new PDF from several files, in the order given.
+    static func combine(_ inputs: [URL]) async throws -> URL {
+        let folder = StudioTemporaryFiles.root.appending(path: "Converted/\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let scoped = inputs.filter { $0.startAccessingSecurityScopedResource() }
+        defer { scoped.forEach { $0.stopAccessingSecurityScopedResource() } }
+        do {
+            return try await DocumentActions.combine(inputs, names: inputs.map(\.lastPathComponent),
+                                                     into: folder.appending(path: String(localized: "Combined") + ".pdf"))
+        } catch {
+            try? FileManager.default.removeItem(at: folder)
+            // The engine's text names its own internals; the one case people meet is a form.
+            if let error = error as? EngineError, error.status == .unsupported, error.message.contains("Forms") {
+                throw PageSourceProblem(message: String(localized: "PDFs with form fields can’t be combined yet. Open the PDF, choose Tools > Protect > Flatten, then try again."))
+            }
+            throw error
+        }
+    }
+}
+
 /// Files that become pages, when inserting pages or combining files: a PDF as it is, an image as a page with its
 /// text recognized on this device, and a Word, Excel, PowerPoint or other document converted by the engine.
 enum PageSources {

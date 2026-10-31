@@ -19,9 +19,66 @@ enum ConversionSources {
                 let response = panel.runModal()
                 withExtendedLifetime(filter) {}
                 guard response == .OK, let input = panel.url else { return }
-                let converted = try await DocumentConversion.convert(input)
-                defer { StudioTemporaryFiles.removeGeneratedPDF(converted.url) }
-                let document = try StudioDocument(contentsOf: converted.url)
+                convert(input, newDocument)
+            } catch {
+                NSAlert(error: error).runModal()
+            }
+        }
+    }
+
+    static func convert(_ input: URL, _ newDocument: NewDocumentAction, then finish: @escaping @MainActor () -> Void = {}) {
+        open(newDocument, then: finish) { try await DocumentConversion.convert(input).url }
+    }
+
+    /// File > Combine Files on the Mac: one new PDF from several files, opened as an untitled document.
+    static func newDocumentFromFiles(_ newDocument: NewDocumentAction) {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = PageSources.contentTypes
+        panel.allowsMultipleSelection = true
+        panel.message = String(localized: "Choose the files to combine into one PDF.")
+        panel.prompt = String(localized: "Combine")
+        guard panel.runModal() == .OK else { return }
+        let files = CombineOrderView.sorted(panel.urls)
+        Task {
+            guard let ordered = await chooseOrder(files) else { return }
+            open(newDocument) { try await DocumentConversion.combine(ordered) }
+        }
+    }
+
+    /// The order sheet over the window the command came from, or a window of its own when none is open.
+    private static func chooseOrder(_ files: [URL]) async -> [URL]? {
+        let parent = NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first(where: \.isVisible)
+        return await withCheckedContinuation { continuation in
+            var shown: NSWindow?
+            let host = NSHostingController(rootView: CombineOrderView(files: files) { result in
+                if let shown {
+                    if let parent { parent.endSheet(shown) } else { shown.close() }
+                }
+                shown = nil
+                continuation.resume(returning: result)
+            })
+            let window = NSWindow(contentViewController: host)
+            window.title = String(localized: "Combine Files")
+            window.styleMask = [.titled]
+            window.isReleasedWhenClosed = false
+            shown = window
+            if let parent {
+                parent.beginSheet(window)
+            } else {
+                window.center()
+                window.makeKeyAndOrderFront(nil)
+            }
+        }
+    }
+
+    private static func open(_ newDocument: NewDocumentAction, then finish: @escaping @MainActor () -> Void = {},
+                             _ prepare: @escaping @MainActor () async throws -> URL) {
+        Task {
+            defer { finish() }
+            do {
+                let output = try await prepare()
+                defer { StudioTemporaryFiles.removeGeneratedPDF(output) }
+                let document = try StudioDocument(contentsOf: output)
                 newDocument { document }
             } catch {
                 NSAlert(error: error).runModal()

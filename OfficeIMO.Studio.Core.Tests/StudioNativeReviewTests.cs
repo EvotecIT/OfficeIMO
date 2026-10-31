@@ -227,6 +227,20 @@ public sealed class StudioNativeReviewTests : IDisposable {
     }
 
     [Fact]
+    public async Task Whole_block_redaction_removes_the_text_around_a_match_only_when_asked() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("blocks.pdf", "Account 4111 1111 belongs to Alex"), null, default);
+        var find = new StudioNativeRedactionFind("4111 1111", WholeBlocks: true);
+
+        Assert.Single((await document.RedactAsync(new StudioNativeRedactionRequest(Find: find), default)).Marks!);
+        StudioNativeRedactionVerification verification = (await document.RedactAsync(new StudioNativeRedactionRequest(
+            Apply: new StudioNativeRedactionApply(Find: find, Include: [0], RemovedText: "4111 1111",
+                Revision: (await document.GetInfoAsync(default)).Revision)), default)).Verification!;
+
+        Assert.True(verification.Verified);
+        Assert.DoesNotContain("Alex", await PageTextAsync(document, 1));
+    }
+
+    [Fact]
     public async Task Redaction_finds_text_removes_it_verifiably_and_undoes_as_one_change() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("redact.pdf", "Account 4111 1111 belongs to Alex", "Nothing here"), null, default);
 
