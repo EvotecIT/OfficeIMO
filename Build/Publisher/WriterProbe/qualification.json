@@ -21268,5 +21268,224 @@
       "Public generic native creation and repair-free opening remain unqualified.",
       "Native/managed general text layout and table rendering remain separate from this fixed native reference."
     ]
+  },
+  "frameLayoutCreation": {
+    "schema": "officeimo.publisher.native-frame-layout-creation.v1",
+    "sourceCommit": "f492fba6e48077bb3eff9257512cb9271d5901f3",
+    "sourceFileHashBasis": "SHA-256 of canonical Git blob bytes at sourceCommit.",
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateFrameLayout.cs",
+        "sha256": "8912fe9a13fc613f277f30e97f6d23d86221b039cd835f4f94318febb65d9d83"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidatePublicationSpec.cs",
+        "sha256": "bddec816c19b65b50097be1c23f8197c9078f41ef2bbdba4baa45101451b7ea6"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateCases.cs",
+        "sha256": "7da9060b11b92c47a07416c28b54af447f18a3ff2be04510534790b03d28bdba"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateOfficeArt.cs",
+        "sha256": "ec3b54ccbcf655bc3369ea7781450c3fbae5c7c88e1d34fbb8bb1ced6d850669"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/NativePublicationGraph.cs",
+        "sha256": "327c7f40fe9748ea7cacd236823e434b994b505ae1dc78559f63e9f11005b9bd"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateWriter.cs",
+        "sha256": "c77e566fffcb4b1f1516cf4d77bd4ec72aab57b4b5ee84fccd059e62c6c0bfa6"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/NativeSchemaPrefix.cs",
+        "sha256": "fcbc68019af053b3c5cc0b238b4e08b5ed299f11d6decebc3823dca812b2da8e"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/QuillCandidate.cs",
+        "sha256": "a223c7d9148bb93a4b33b0859874909d4358af639ecb08055aa76f23f5a03cbe"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/QuillTextFormatting.cs",
+        "sha256": "08474fbe21a2fe7488fdc14b1fb43eed6c1fb54e14af013e81eea377c4c647d4"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/QuillParagraphFormatting.cs",
+        "sha256": "ab4d5b32e818a341c1731def7ca2af266a841eca11805c80338625b475909837"
+      },
+      {
+        "path": "Build/Publisher/Add-NativeFrameCreationControl.ps1",
+        "sha256": "d4ffdd418d6bb8310b4a961ccb84b340144725d6a41d8e50f084996c16bcfb33"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "411ea881b5155250e9ddd8cf137829f83c2e57f714371018033ba4e1476e363f"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "775018d16bc639e5d7c4d5dfa61b7ac574762d8fa20ad9a748b99e09c26c80f1"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "5814c424c8fd1a0e37ad0a9c882f1fa4747552a5485af4be0fc9567dc260f78a"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.FrameLayout.cs",
+        "sha256": "fea11b89205fc173ce0f405179b0776accdf2007aebe63bddd027c48020c3201"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherContentsSourceWriter.cs",
+        "sha256": "b6eec7210885c28314092ecd684d0a773197d1d9ec69ec124e016f70804ce053"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherNativeFrameLayoutTests.cs",
+        "sha256": "25ec3fa7423c975d6b9e68159685fc832f1ab726e5865356fee7f9a7b77c007b"
+      }
+    ],
+    "profile": "Six independent frames on two pages; one/two/three columns, full gaps0/12/18/12.1pt, asymmetric/fractional insets and Top/Center/Bottom. Edited: two columns,14pt full gap,9/3/15/6pt insets,Bottom.",
+    "cases": [
+      {
+        "name": "created",
+        "sha256": "f76e797c724b2d8ad2619344d01b0a8fbbbbed0d15be5dda4586779c823a855f",
+        "nativeOperations": 7,
+        "independentPixelPairs": [
+          false,
+          true,
+          false,
+          true
+        ]
+      },
+      {
+        "name": "created-edited",
+        "sha256": "9c80dcb7dab03bdc088c4e327c017eef277b16cf75b7d0a31bc67f65f7470dba",
+        "nativeOperations": 7,
+        "independentPixelPairs": [
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      {
+        "name": "edited-created",
+        "sha256": "9c80dcb7dab03bdc088c4e327c017eef277b16cf75b7d0a31bc67f65f7470dba",
+        "nativeOperations": 7,
+        "independentPixelPairs": [
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      {
+        "name": "edited-normalized",
+        "sha256": "f708ac6997f444d32a919f4daac8a81b3be309da028bfe896d0044a985e8598f",
+        "nativeOperations": 7,
+        "independentPixelPairs": [
+          true,
+          true,
+          true,
+          true
+        ]
+      },
+      {
+        "name": "edited-control",
+        "sha256": "1c2ddc5c83db877599ad588b69dfb83e7ffe9f99ca9c3abf2d34b95444f8360b",
+        "nativeOperations": 7,
+        "independentPixelPairs": [
+          true,
+          true,
+          true,
+          true
+        ]
+      }
+    ],
+    "nativeFullFiles": 5,
+    "nativeOperations": 35,
+    "publicReloads": 10,
+    "managedPdfSvgPages": 20,
+    "nativeFrameGetterStates": 60,
+    "independentNativePagePixelPairs": 20,
+    "matchedIndependentNativePagePixelPairs": 18,
+    "pixelComparisonDpi": 144,
+    "previousCreationProfilesByteIdentical": 23,
+    "nativeStructure": {
+      "columns": "OfficeArt0x8C",
+      "fullGap": "OfficeArt0x8D in EMU; native automation exposes half the full gap.",
+      "insets": "OfficeArt0x81-0x84 in EMU.",
+      "alignment": "Contents0x35 scalar; absent Top default retained.",
+      "source": "Current public SetTextFrameLayout snapshots; no seed publication."
+    },
+    "sourceEditing": {
+      "profiles": [
+        "Generated compact",
+        "Native-normalized",
+        "Independent native reference"
+      ],
+      "operations": [
+        "Whole-frame column/gap/inset/alignment replacement",
+        "Repeated save/reset through public API"
+      ],
+      "preservation": [
+        "Complete stories",
+        "Frame/story/page identities, ownership and links",
+        "Unrelated logical streams"
+      ]
+    },
+    "fixtures": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/FrameCreation/provenance.json",
+        "sha256": "dee4c00ff520ac50936d0dc0b0c92f77963871471cdfbf5a2986673ea27070fa"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/FrameCreationEdited/provenance.json",
+        "sha256": "c6c70d0f1be48a595ef5770ee6051c600483dae5a469bd8f52bac6eebfd95049"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/GeneratedFrameLayout/provenance.json",
+        "sha256": "748c5ad8e1be53d6c5c27f0611d8316ac2f2cdffba6b97b64ffda173117db4d2"
+      }
+    ],
+    "tests": {
+      "publisherPerFramework": 918,
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net472"
+      ],
+      "reader": 95,
+      "focused": 23,
+      "extendedRegression": "Native_layout_saves_grow_missing_fields_and_preserve_complete_stories_and_object_ownership",
+      "newFixtureCases": 4
+    },
+    "sourcePowerShell": {
+      "runtime": "7.6.9",
+      "pdfs": 5,
+      "pages": 10,
+      "actualOwnerAssemblyBound": true,
+      "managedDefaultPixelPairs": 10
+    },
+    "validation": {
+      "unsigned": true,
+      "publisherPdfAndReaderPublisherNetstandard20Builds": true,
+      "sourcePowerShellBuild": true,
+      "probeNoIncrementalBuild": true,
+      "nativeProducer": "Microsoft Publisher16.0.20527.20088",
+      "automationSecurity": 3,
+      "ps7AndPs51SyntaxFiles": 4
+    },
+    "reproduction": [
+      "Create frame-layout/frame-layout-edited with WriterProbe from public frame snapshots.",
+      "Produce FrameCreation/FrameCreationEdited through isolated native tooling with explicit Arial12/18pt line spacing.",
+      "Apply public SetTextFrameLayout and ToPubBytesResult with explicit Allow on generated, normalized and independent sources.",
+      "Run native Validate/Full on five files; compare getters, complete stories and all20initial/resaved pages to independent controls.",
+      "Run repeated native save/reset regression, supported runtime and PowerShell consumers, and23previous creation hashes."
+    ],
+    "limits": [
+      "Baseline page one differs in native hyphenation and resulting column breaks in both initial and resaved comparisons; all edited files match their edited independent control.",
+      "Column balancing, broader layout modes and general native appearance parity remain unqualified.",
+      "Repair-free native opening and generic public native creation remain unqualified."
+    ]
   }
 }
