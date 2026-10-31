@@ -176,11 +176,23 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         WhitespaceCut? horizontal,
         WhitespaceCut? vertical) {
         if (!vertical.HasValue) return horizontal;
+        // Text wholly above the other side is one flow with an indent, such as a list and the lines after it.
+        if (IsStackedAcrossCut(boxes, vertical.Value)) return horizontal;
         if (!horizontal.HasValue) return vertical;
         return HasVerticalOverlapAcrossCut(context, boxes, vertical.Value) ||
                HasRepeatedRowAlignmentAcrossCut(context, boxes, vertical.Value)
             ? vertical
             : horizontal;
+    }
+
+    private static bool IsStackedAcrossCut(IReadOnlyList<RegionBox> boxes, WhitespaceCut verticalCut) {
+        RegionBox[] first = boxes.Where(box => (box.Left + box.Right) / 2D < verticalCut.Midpoint).ToArray();
+        RegionBox[] second = boxes.Where(box => (box.Left + box.Right) / 2D >= verticalCut.Midpoint).ToArray();
+        if (first.Length == 0 || second.Length == 0) return false;
+        // Centres, as tight line boxes can touch or overlap between neighbouring lines.
+        return first.Max(Center) < second.Min(Center) || second.Max(Center) < first.Min(Center);
+
+        static double Center(RegionBox box) => (box.Bottom + box.Top) / 2D;
     }
 
     private static bool HasRepeatedRowAlignmentAcrossCut(
