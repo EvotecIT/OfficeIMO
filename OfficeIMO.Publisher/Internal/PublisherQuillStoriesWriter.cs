@@ -17,8 +17,16 @@ internal static class PublisherQuillStoriesWriter {
         PublisherBinaryData data = layout.Data; PublisherQuillChunk text = layout.Text, ids = layout.StoryIds, lengths = layout.StoryLengths;
         int count = bindings.Count;
         if (count == 0 || before.Count != count || after.Count != count || ids.Length != 8 + count * 4
-            || data.U32(ids.Offset + 4) != count || lengths.Length != 22 + count * 8
-            || data.U32(lengths.Offset) != count || data.U32(lengths.Offset + 4) != 8 || data.U32(lengths.Offset + 8) != 255) return null;
+            || data.U32(ids.Offset + 4) != count || lengths.Length < 12
+            || data.U32(lengths.Offset) != count || data.U32(lengths.Offset + 4) != 8) return null;
+        if (layout.IsMinimalProfile) {
+            if (lengths.Length != 16 + count * 8 || data.U32(lengths.Offset + 8) != 0
+                || data.U32(lengths.Offset + 12 + count * 4) != 0) return null;
+            for (int index = 0; index < count; index++) {
+                context.Record();
+                if (data.U32(lengths.Offset + 16 + count * 4 + index * 4) != 4) return null;
+            }
+        } else if (lengths.Length != 22 + count * 8 || data.U32(lengths.Offset + 8) != 255) return null;
         if (!PublisherQuillTableTextWriter.TryPlan(layout, before, after, beforeTables, afterTables, token, out var tableChunks)) return null;
         // Empty styled runs must be compared with the actual inherited CR,
         // which can differ from the preceding visible body's style.

@@ -34,6 +34,7 @@ dotnet $probe create image-pages ./candidate-image-pages.pub ./first.png ./last.
 dotnet $probe create named-image-pages ./candidate-named-images.pub ./first.png ./last.png
 dotnet $probe create cropped-image-pages ./candidate-cropped-images.pub ./first.png ./last.png
 dotnet $probe create shared-image-pages ./candidate-shared-images.pub ./first.png ./last.png
+dotnet $probe create mixed-object-pages ./candidate-mixed-objects.pub ./image.png
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create styled-text ./candidate-styled-text.pub
 dotnet $probe create shape ./candidate-shape.pub
@@ -297,6 +298,7 @@ Page, picture and image-asset counts depend on the selected case.
 | `image-pages` | Builds three pages with an empty applied master through the public authoring model. Two distinct uncropped PNG assets are on the first and last pages; the middle page is empty. Two image paths required. |
 | `named-image-pages` | Uses the same public model as `image-pages`, with owned native filename resources and complete OfficeArt basename properties for subsequent image replacement. Two image paths required. |
 | `shared-image-pages` | Uses public existing-image authoring for first/last-page placements of one asset, plus a distinct last-page asset. Native FBSE counts and delayed payloads follow model identity. Two PNG paths required. |
+| `mixed-object-pages` | Authors overlapping rectangle/picture/text/rectangle on the first page and text/picture/rectangle/picture on the last, with an empty middle page. Three pictures share one asset; two text frames own independent stories. One PNG path required. |
 | `cropped-image-pages` | Uses the named-image model and public `SetPictureCrop` on the first picture, with distinct left/top/right/bottom fractions `0.25/0.125/0.0625/0.1875`. The shared OfficeArt encoder owns the native values. Two PNG paths required for this qualified specimen. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
@@ -443,6 +445,16 @@ and consecutive delayed BLIP offsets through the shared image codec. It does not
 deduplicate equal image bytes. The separate `sharedImageAuthoring` record qualifies
 explicit model asset reuse, derived reference counts, and selected replacement
 before and after native resave against independent `SharedImagePages` controls.
+
+The `mixedObjectOrderCreation` record uses overlapping text, rectangles and shared
+pictures in different orders on the first and last pages. Its independent
+`MixedObjectPages` controls explicitly disable wrapping, matching public creation
+without text-wrap exclusions. Combined story, vector-paint/bounds and picture
+bounds edits retain object order on generated, native-resaved and native-authored
+sources. The compact Quill source profile supports these text edits without
+requiring native resave first; unavailable font/color resource growth refuses
+output. Native repair-free opening and generic model serialization remain
+unqualified.
 
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native

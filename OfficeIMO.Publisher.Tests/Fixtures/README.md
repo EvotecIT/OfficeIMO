@@ -84,6 +84,14 @@ resave removes both local filename references and embedded markers; the public
 save regression retains siblings and source assets. Provenance distinguishes
 independent controls from the native-resaved generated fixture.
 
+MixedObjectPages has eight overlapping objects on separated physical pages:
+rectangle/picture/text/rectangle first, text/picture/rectangle/picture last, and
+an empty middle page. Wrapping is disabled explicitly so later objects do not
+change the text's flow. MixedObjectPagesEdited retains that order while changing
+the first story, last band and top picture. GeneratedMixedObjectPages is the
+separately identified internal writer output used to protect compact Quill text
+editing before native resave; it is not an independent native producer fixture.
+
 Text and TextLong use identical page geometry, frame geometry and Arial formatting; their
 only authored difference is the text. TextParagraphs has one Arial 12-point story
 with an empty paragraph between two text paragraphs. Its retained character

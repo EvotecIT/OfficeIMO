@@ -11,6 +11,7 @@ internal sealed class PublisherQuillSourceLayout {
         Text = Find("TEXT"); StoryIds = Find("SYID"); StoryLengths = Find("STRS");
         CharacterPages = chunks.Where(chunk => chunk.Tag == "FDPC").ToArray();
         ParagraphPages = chunks.Where(chunk => chunk.Tag == "FDPP").ToArray();
+        IsMinimalProfile = chunks.Count(chunk => chunk.Tag == "STSH") == 2;
     }
     internal PublisherBinaryData Data { get; }
     internal IReadOnlyList<PublisherQuillChunk> Chunks { get; }
@@ -21,6 +22,8 @@ internal sealed class PublisherQuillSourceLayout {
     internal PublisherQuillChunk StoryLengths { get; }
     internal PublisherQuillChunk[] CharacterPages { get; }
     internal PublisherQuillChunk[] ParagraphPages { get; }
+    /// <summary>Known compact story profile without optional native auxiliary libraries.</summary>
+    internal bool IsMinimalProfile { get; }
     internal PublisherQuillChunk Find(string tag) => Chunks.Single(chunk => chunk.Tag == tag);
 
     internal static PublisherQuillSourceLayout? TryRead(byte[] source, PublisherParseContext context) {
@@ -31,8 +34,11 @@ internal sealed class PublisherQuillSourceLayout {
         string[] expected = new[] { "TEXT", "STSH", "STSH", "STSH" }.Concat(Enumerable.Repeat("FDPP", pp))
             .Concat(Enumerable.Repeat("FDPC", pc)).Concat(new[] { "SYID", "SGP ", "INK ", "BTEP", "BTEC", "FONT" })
             .Concat(Enumerable.Repeat("TCD ", chunks.Count(chunk => chunk.Tag == "TCD "))).Concat(new[] { "STRS", "MCLD", "PL  " }).ToArray();
-        if (!chunks.Select(chunk => chunk.Tag).SequenceEqual(expected)
-            || !chunks.Where(chunk => chunk.Tag == "STSH").Select(chunk => chunk.Id).SequenceEqual(new[] { 0, 1, 2 })
+        string[] minimal = new[] { "TEXT", "SYID", "STRS", "STSH", "STSH", "INK ", "FONT" }
+            .Concat(Enumerable.Repeat("FDPC", pc)).Concat(Enumerable.Repeat("FDPP", pp)).Concat(new[] { "BTEC", "BTEP" }).ToArray();
+        bool compact = chunks.Select(chunk => chunk.Tag).SequenceEqual(minimal);
+        if ((!compact && !chunks.Select(chunk => chunk.Tag).SequenceEqual(expected))
+            || !chunks.Where(chunk => chunk.Tag == "STSH").Select(chunk => chunk.Id).SequenceEqual(compact ? new[] { 0, 1 } : new[] { 0, 1, 2 })
             || chunks.Where(chunk => chunk.Tag is not ("STSH" or "FDPC" or "FDPP" or "TCD ")).Any(chunk => chunk.Id != 0)
             || chunks.Where(chunk => chunk.Tag == "TCD ").Select(chunk => chunk.Id).Distinct().Count() != chunks.Count(chunk => chunk.Tag == "TCD ")
             || data.U16(8) != 4 || data.U16(10) != 7 || data.U16(12) != chunks.Count

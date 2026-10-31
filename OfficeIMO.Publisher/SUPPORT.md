@@ -416,6 +416,25 @@ existing orphan resources. Invalid or duplicate markers and ambiguous bindings
 remain rejected. Public template-free native creation and repair-free opening
 remain unqualified.
 
+The `mixedObjectOrderCreation` record qualifies eight overlapping objects on the
+first and last of three physical pages, with an empty middle page. Rectangle,
+picture and text placements retain their cross-kind append order; three pictures
+share one PNG and the two text frames own independent stories. Generated and
+source-edited files match independent native controls before and after resave.
+Controls explicitly disable text wrapping to match the public creation contract;
+native default wrapping can reflow text around objects added later.
+
+Text editing also admits the compact Quill profile used by the internal writer:
+two style libraries, ordered character/paragraph formatting-page groups,
+validated directory chains, zero story flags and empty per-story definitions.
+Existing descriptor, page, range and relocation checks remain active. Unavailable
+font/color resource growth refuses output; it does not drop requested formatting.
+Formatting and paragraph growth retain repeated editing after page and directory
+allocation, including two-directory files; complete overflow text remains stored.
+The full native auxiliary-library profile retains its separate admission checks.
+Generic native creation, grouped/transformed ordering, master content, broader
+resource profiles and repair-free opening remain unqualified.
+
 Crop source saving can set or clear all four edge fractions, including local
 zero overrides, and combine them with image replacement and bounds changes.
 `PUB_NATIVE_PICTURE_CROP_UNQUALIFIED` keeps native acceptance conservative for

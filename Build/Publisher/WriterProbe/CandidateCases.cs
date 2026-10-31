@@ -5,6 +5,10 @@ internal static class CandidateCases {
     private static readonly CandidatePlacement DefaultPlacement = new(72, 72, 288, 108);
 
     internal static CandidatePublicationSpec Create(string kind, string? value, string? secondValue = null) {
+        if (kind == "mixed-object-pages") {
+            if (secondValue != null) throw new ArgumentException("The mixed object specimen accepts one image path.");
+            return CandidateMixedPages.Create(ReadImage(value));
+        }
         if (kind == "shared-image-pages") return CandidateImagePages.Create(ReadImage(value), ReadImage(secondValue),
             includeNativeNames: true, shareFirstImage: true);
         if (kind == "cropped-image-pages") return CandidateImagePages.Create(ReadImage(value), ReadImage(secondValue),

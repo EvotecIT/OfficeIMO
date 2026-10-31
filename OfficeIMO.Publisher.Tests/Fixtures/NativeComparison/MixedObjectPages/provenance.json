@@ -1,0 +1,38 @@
+{
+  "schema": "officeimo.publisher.native-mixed-order-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case MixedObjectPages",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-mixedobjectpages.pub",
+      "sha256": "8fa58a3509f0827b4b6f80eed918e172f814121ca76bb474337b8703a9ae897e"
+    },
+    {
+      "name": "native-mixedobjectpages.pdf",
+      "sha256": "e4b01c72071447a93b83c819dd2ef336c6ea43f1a870e1b78fb108053fa38e0a"
+    },
+    {
+      "name": "native-mixedobjectpages.json",
+      "sha256": "f6fbd3252afd3e029d46fda5f66654a1f077dc38e46bcf88e1b053b33da7a505"
+    },
+    {
+      "name": "native-mixedobjectpages.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    }
+  ],
+  "observed": "Three pages: first rectangle/picture/text/rectangle, empty middle, last text/picture/rectangle/picture. Shapes overlap so their order changes native paint. Three placements share one PNG. Wrapping is explicitly disabled on all eight shapes to match public authoring.",
+  "limits": "Independent native authoring reference; managed/native text metrics, generic model serialization and repair-free opening are separate criteria."
+}

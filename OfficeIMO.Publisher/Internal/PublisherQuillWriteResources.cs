@@ -93,6 +93,7 @@ internal sealed class PublisherQuillWriteResources {
     }
 
     private bool ReadColors() {
+        if (!_layout.Chunks.Any(chunk => chunk.Tag == "PL  ")) return false;
         PublisherQuillChunk chunk = _layout.Find("PL  "); PublisherBinaryData data = _layout.Data;
         if (chunk.Length < 12 || data.U32(chunk.Offset + 4) != 40 || data.U32(chunk.Offset + 8) != 0) return false;
         uint count = data.U32(chunk.Offset); int position = chunk.Offset + 12;
