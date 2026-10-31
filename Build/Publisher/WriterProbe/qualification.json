@@ -16778,6 +16778,339 @@
         "Native repair-free opening, general opaque preservation, mixed-script selection and managed/native full layout parity remain unassessed. Explicit nonempty CR styling is not covered.",
         "Source-built PS7 conversion and PS5.1 syntax do not qualify packaged installation or native lifecycle cmdlets."
       ]
+    },
+    "nonuniformEmptyRefill": {
+      "scope": "Single-empty-run source refill with unchanged complete formatting during nonuniform count changes in ordinary stories and fixed table cells.",
+      "codecCommit": "56e74146166c786bb01b698d27d4fdbc0259b5db",
+      "sources": [
+        {
+          "path": "Build/Publisher/Add-NativeParagraphTopologyControl.ps1",
+          "sha256": "f2c82764c7830ecb69951d2c2258d1a118f01255024870d4538c4f02d4e47db6"
+        },
+        {
+          "path": "Build/Publisher/Add-NativeTableParagraphTopologyControl.ps1",
+          "sha256": "fdaa11705ca7d2f8bdb8361dc4c5b152565238c8904621eb5fba3cfcda779d29"
+        },
+        {
+          "path": "Build/Publisher/Get-NativeEmptyRefillProfiles.ps1",
+          "sha256": "db41589e8e0726125b2dd1f97446ddaf1693c689bf1c4b653837eb764982142b"
+        },
+        {
+          "path": "Build/Publisher/Get-NativeParagraphTopologyProfiles.ps1",
+          "sha256": "93cfc70fd11c486040dffd4d9447397291d5a2045149ecaab0dfa1e3f406ffcd"
+        },
+        {
+          "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+          "sha256": "8e3a7caa1c29e09b7cf23efe449d827adb070491c118f8104c3fa2500132d26f"
+        },
+        {
+          "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+          "sha256": "621011d96255977b411b74995193204671b481c82e6758c71b74be27169d7aa9"
+        },
+        {
+          "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+          "sha256": "9a23ccb469f8d0552ba8b721620f53e492d514418d41da4012e503c68e61dd43"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherEmptyRefillWritingTests.cs",
+          "sha256": "580f683ae7870b6d243a371b7ab51a562410d60ae6aa11bc8b38d1c951df414a"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+          "sha256": "687c8a663ef5cc1a97c7ebe4eb8a48a45e946ff023a3ae8213d83439efed426c"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Retention.cs",
+          "sha256": "fc968da5ab986266b32a09ee8aeee2bc8961d914a8969c262c51c2ec6fff9b3c"
+        },
+        {
+          "path": "OfficeIMO.Publisher/PublisherDocument.Editing.cs",
+          "sha256": "ef27fb850cda4a18b156923113ea98992d993f20ba3e41087e73d1b98e3f172d"
+        },
+        {
+          "path": "OfficeIMO.Publisher/PublisherDocument.Tables.cs",
+          "sha256": "77a703b1fea289b1d145b0646ef94774fa515dd169c13c0ad723635e00629895"
+        }
+      ],
+      "controls": [
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableEmptyRefill/provenance.json",
+          "sha256": "ee07fbeadfa1cdc69fe4cfb354d59a46f4f8fe47959e7681480784c29e83eae0"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextEmptyRefill/provenance.json",
+          "sha256": "ebbd0927ed2bfc33dca13f94574ad56b8250e3a92723055f8cbb8f720109fc72"
+        }
+      ],
+      "nativeApplication": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "powershell": "7.6.9",
+        "culture": "pl-PL",
+        "textFont": {
+          "family": "Arial",
+          "file": "arial.ttf",
+          "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+        },
+        "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+        "automationSecurity": 3
+      },
+      "contract": [
+        "A source paragraph with exactly one empty public run maps its complete native CR definition and source span to the replacement body. Its source CR typing remains retained at the terminator.",
+        "Exact snapshots and complete values retain priority. Format-matched replacements require agreement among every matching native paragraph and mapped character definition; interior destinations additionally retain qualified CR agreement. Conflicting opaque language metadata refuses output.",
+        "Paragraph definitions, source resources, unrelated stories and compound storage remain retained. Table matching and endpoints remain cell-local; neighbors and track geometry stay retained.",
+        "No native field semantics are inferred or synthesized for refill. Initial body bytes retain the complete source CR, including fields not exposed in the public model. Native resave may normalize records while retaining effective public formatting and language.",
+        "Same-count planning and previously qualified source-save profiles retain their contracts; no public API or production runtime dependency is added."
+      ],
+      "cases": [
+        {
+          "kind": "ordinary",
+          "mode": 1,
+          "sourceSha256": "48ac1f412b29175c931678ae495a8d73749d2a478eb19ac9ad82ac75c4229776",
+          "candidateSha256": "9ad2530ff136d219c6e4678cc34ecc6b02fdad7483a1027e7e654d699f197587",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 1,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "ordinary",
+          "mode": 2,
+          "sourceSha256": "48ac1f412b29175c931678ae495a8d73749d2a478eb19ac9ad82ac75c4229776",
+          "candidateSha256": "b7c5b1b198ccd710107bd2726d1c0cc27dd7fc743dedfaa2a80f6fc7cf478303",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 2,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "ordinary",
+          "mode": 3,
+          "sourceSha256": "48ac1f412b29175c931678ae495a8d73749d2a478eb19ac9ad82ac75c4229776",
+          "candidateSha256": "c7bf27037cc52749836879404bdac5a5cfbe405ff5d674e46e79b4e4eace6098",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 1,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "ordinary",
+          "mode": 4,
+          "sourceSha256": "48ac1f412b29175c931678ae495a8d73749d2a478eb19ac9ad82ac75c4229776",
+          "candidateSha256": "b8b0796f539220972dc1b00f20e2969e9efb89f247898309a615a54e77b3a259",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 1,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "ordinary",
+          "mode": 5,
+          "sourceSha256": "48ac1f412b29175c931678ae495a8d73749d2a478eb19ac9ad82ac75c4229776",
+          "candidateSha256": "0299b7d81da332a1e4314198e9f0413cece0a5785c643374c091c3d32b74ed72",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 2,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "ordinary",
+          "mode": 6,
+          "sourceSha256": "48ac1f412b29175c931678ae495a8d73749d2a478eb19ac9ad82ac75c4229776",
+          "candidateSha256": "0d659e09a7f029a9b88ca9df1e32e7109bd5e718e7b6679282ed59d06e71d62d",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 2,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "ordinary",
+          "mode": 9,
+          "sourceSha256": "48ac1f412b29175c931678ae495a8d73749d2a478eb19ac9ad82ac75c4229776",
+          "candidateSha256": "e2561d2dddc7a47535cb9b6395ee35ee8a6c6bf77622e9f6fc9571137bd4025f",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 1,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "cell",
+          "mode": 1,
+          "sourceSha256": "7e636f9c1e9d8011e13c2f173ab1df575bebdbdc62f135616fd1228ddf78911e",
+          "candidateSha256": "a46151a7be99ae0bac810be2d38e74d8d4c17766c064bcb9bcaa73836e229d75",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 2,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "cell",
+          "mode": 2,
+          "sourceSha256": "7e636f9c1e9d8011e13c2f173ab1df575bebdbdc62f135616fd1228ddf78911e",
+          "candidateSha256": "dbe5724cae7ac2400caecf908e9afa7d8d54e551c653e417e4ae4d6670ec3934",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 4,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "cell",
+          "mode": 3,
+          "sourceSha256": "7e636f9c1e9d8011e13c2f173ab1df575bebdbdc62f135616fd1228ddf78911e",
+          "candidateSha256": "0a5158090db4e5d3c124737f1ebfd9e15737e65b0e150964ddd54604ab121f2f",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 2,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "cell",
+          "mode": 4,
+          "sourceSha256": "7e636f9c1e9d8011e13c2f173ab1df575bebdbdc62f135616fd1228ddf78911e",
+          "candidateSha256": "4956f3df585f487f793265e449b84ca33671f53eade11ef1a565876d7d7fb527",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 2,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "cell",
+          "mode": 5,
+          "sourceSha256": "7e636f9c1e9d8011e13c2f173ab1df575bebdbdc62f135616fd1228ddf78911e",
+          "candidateSha256": "326e7e8b890642a1ddf9bf3fac58376ee9ebc6a9bb557f2abaa0389b61c276ab",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 4,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "cell",
+          "mode": 6,
+          "sourceSha256": "7e636f9c1e9d8011e13c2f173ab1df575bebdbdc62f135616fd1228ddf78911e",
+          "candidateSha256": "2abb9b9a8dc704cfe3192f0aa1d4b278db4913ed67950fff06fdcc1a31d812bb",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 4,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        },
+        {
+          "kind": "cell",
+          "mode": 9,
+          "sourceSha256": "7e636f9c1e9d8011e13c2f173ab1df575bebdbdc62f135616fd1228ddf78911e",
+          "candidateSha256": "6d9b9632036499bad83fa4ac94e9712573682b4abe94f783dc5a5af9a666bea1",
+          "nativeOperations": 7,
+          "completeSourceTypingLifted": true,
+          "completeParagraphDefinitionsRetained": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveStylesAndLanguage": true,
+          "filledParagraphs": 2,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 10
+        }
+      ],
+      "validation": {
+        "publisherTests": {
+          "net10.0": 839,
+          "net8.0": 839,
+          "net472": 839
+        },
+        "focusedCases": 18,
+        "readerTests": 95,
+        "nativePublicReloads": 28,
+        "completeStyledPublicReloads": 28,
+        "nativeEditedFiles": 14,
+        "selectedNativeStagePairs": 28,
+        "neighborNativeStagePairs": 280,
+        "earlierByteIdenticalSaves": 234,
+        "stableCandidateByteIdenticalSaves": 14,
+        "sourceBuiltPowerShell": {
+          "runtime": "7.6.9",
+          "route": "publisher-pdf",
+          "cases": 14,
+          "pages": 154,
+          "actualPublisherOwnerBound": true,
+          "completeTextRetained": true,
+          "styledRunsMatched": 45,
+          "namedFamilies": [
+            "Arial",
+            "Calibri"
+          ],
+          "styleEvidence": "Existing PdfOptions named-family registration; authored frame and first/final cell regions isolate actual run text, family, nearest whole-point size, RGB and emphasis."
+        },
+        "nativeControlSyntax": [
+          "PowerShell7",
+          "WindowsPowerShell5.1"
+        ],
+        "compatibilityBuilds": [
+          "Publisher.Pdf netstandard2.0",
+          "Reader.Publisher netstandard2.0",
+          "WriterProbe",
+          "PSWriteOffice net8.0"
+        ]
+      },
+      "regressionTests": [
+        "Empty_native_typing_can_fill_paragraphs_during_nonuniform_count_changes",
+        "Empty_refill_refuses_same_visible_typing_with_conflicting_native_language"
+      ],
+      "limits": [
+        "Refilling multiple source runs, changing filled-run formatting, run splitting/merging and zero-paragraph native story states remain outside this profile.",
+        "Controls cover fitting ordinary inherited typing and first/final table cells. General reflow, broader producer/style profiles, native repair-free opening and managed/native full layout parity remain unassessed.",
+        "The separate Unicode control records native Greek language auto-assignment around Omega; it does not qualify mixed-script retained-language mapping.",
+        "Source-built PS7 conversion and PS5.1 syntax do not qualify packaged installation or native lifecycle cmdlets."
+      ]
     }
   },
   "characterReading": {
