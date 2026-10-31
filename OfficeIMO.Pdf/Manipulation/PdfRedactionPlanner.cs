@@ -130,6 +130,8 @@ internal static partial class PdfRedactionPlanner {
                     AddHiddenTextMatches(area, hiddenSpans, matches);
                 }
             }
+            // A hidden-only selection paints nothing, so it has no claim on what shares its rectangle.
+            if (area.IsHiddenOnly) continue;
             if (includeHiddenOptionalContentText && area.PageNumber <= readDocument.Pages.Count) {
                 if (!hiddenImagePlacementsByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfImagePlacement>? hiddenImagePlacements)) {
                     hiddenImagePlacements = readDocument.Pages[area.PageNumber - 1]
@@ -231,6 +233,8 @@ internal static partial class PdfRedactionPlanner {
     private static bool AddSelectedGlyphMatches(PdfRedactionArea area, PdfRedactionGlyphSelection selection, IReadOnlyList<PdfTextSpan> spans,
         List<PdfRedactionMatch> matches, CancellationToken cancellationToken) {
         var resolved = new HashSet<int>();
+        var blockText = new System.Text.StringBuilder();
+        PdfTextSpanBounds? blockBounds = null;
         foreach (PdfTextSpan span in spans) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!area.TargetsSpan(PdfTextSpanGeometry.GetRedactionBounds(span)) || !span.TryGetGlyphs(out IReadOnlyList<PdfTextGlyph> glyphs)) continue;
@@ -245,8 +249,20 @@ internal static partial class PdfRedactionPlanner {
                 left = Math.Min(left, bounds.Left); bottom = Math.Min(bottom, bounds.Bottom);
                 right = Math.Max(right, bounds.Right); top = Math.Max(top, bounds.Top);
             }
-            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.TextBlock, area, area.PageNumber, left, bottom, right - left, top - bottom,
-                string.Concat(selected.Select(static glyph => glyph.Text)), null, null));
+            string text = string.Concat(selected.Select(static glyph => glyph.Text));
+            if (selection.IsCompleteBlock) {
+                blockText.Append(text);
+                blockBounds = blockBounds is PdfTextSpanBounds current
+                    ? new PdfTextSpanBounds(Math.Min(current.Left, left), Math.Min(current.Bottom, bottom), Math.Max(current.Right, right), Math.Max(current.Top, top))
+                    : new PdfTextSpanBounds(left, bottom, right, top);
+                continue;
+            }
+            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.TextBlock, area, area.PageNumber, left, bottom, right - left, top - bottom, text, null, null));
+        }
+        // A block is one reviewed item, whatever text runs it was written in.
+        if (blockBounds is PdfTextSpanBounds block) {
+            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.TextBlock, area, area.PageNumber, block.Left, block.Bottom,
+                block.Right - block.Left, block.Top - block.Bottom, blockText.ToString(), null, null));
         }
         return resolved.Count == selection.Count;
     }

@@ -2296,11 +2296,16 @@ cannot be saved as a `/Redact` annotation, because an annotation records only a
 rectangle.
 
 Both selection modes also cover copies the page text doesn't show. Occurrences in
-hidden layers are selected (whole-block search takes the hidden line that holds the
-match), tagged `Alt`, `ActualText`, `E` and `TU` entries holding the searched text are
-removed, and the output is refused if either those entries or a Form XObject that no
-page paints still hold it. Whole-block areas are rectangles, so they also remove text
-from a neighbouring line that the rectangle reaches.
+hidden layers are removed without a mark and without touching what overlaps them
+(whole-block search takes the hidden line that holds the match). Tagged `Alt`,
+`ActualText`, `E` and `TU` entries holding the searched text are removed, in property
+lists and inline marked content alike, and the output is refused if those entries or
+a Form XObject that no page paints still hold it.
+
+Whole-block search removes the block's own glyphs and marks its full rectangle, so a
+neighbouring line stays. Text with no glyph mapping can only go as a rectangle, which
+is allowed when nothing else is in reach and refused otherwise. Text overlapping a
+block that isn't part of it is refused.
 
 Rewriting a repeated image or form paints a scrubbed copy, so the original entry is
 dropped from any resources that no longer paint it. A placement outside the reviewed

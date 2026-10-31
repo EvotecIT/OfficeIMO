@@ -14,9 +14,19 @@ internal sealed class PdfRedactionGlyphSelection {
     private const double OriginTolerance = 0.005D;
     private readonly PdfRedactionSelectedGlyph[] _glyphs;
 
-    internal PdfRedactionGlyphSelection(IEnumerable<PdfRedactionSelectedGlyph> glyphs) => _glyphs = glyphs.ToArray();
+    internal PdfRedactionGlyphSelection(IEnumerable<PdfRedactionSelectedGlyph> glyphs, bool isHiddenOnly = false, bool isCompleteBlock = false) {
+        _glyphs = glyphs.ToArray();
+        IsHiddenOnly = isHiddenOnly;
+        IsCompleteBlock = isCompleteBlock;
+    }
+
+    /// <summary>True when the selection is a whole logical block rather than a matched range.</summary>
+    internal bool IsCompleteBlock { get; }
 
     internal int Count => _glyphs.Length;
+
+    /// <summary>True when every selected glyph is in a hidden layer, so nothing visible needs a mark or underlay removal.</summary>
+    internal bool IsHiddenOnly { get; }
 
     internal bool Contains(double x, double y, IReadOnlyList<byte> encodedBytes) {
         for (int index = 0; index < _glyphs.Length; index++) {

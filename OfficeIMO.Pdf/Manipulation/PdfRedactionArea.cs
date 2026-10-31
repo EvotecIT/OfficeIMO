@@ -105,6 +105,8 @@ public sealed class PdfRedactionArea {
 
     internal bool RequiresGlyphRewrite => GlyphSelection is not null;
 
+    internal bool IsHiddenOnly => GlyphSelection?.IsHiddenOnly == true;
+
     // What the search looked for, kept so copies outside the page content can be cleared and checked.
     internal PdfRedactionSearchCriteria? SearchCriteria { get; }
 

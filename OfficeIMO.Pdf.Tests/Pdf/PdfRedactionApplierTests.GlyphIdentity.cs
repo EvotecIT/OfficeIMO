@@ -319,6 +319,91 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Theory]
+        [InlineData("(hidden secret words)")]
+        [InlineData("<FEFF00730065006300720065007400>")]
+        public void WholeBlockSearchClearsMarkedContentActualText(string value) {
+            byte[] bytes = BuildTextContentRedactionSource("/Span << /ActualText " + value + " >> BDC BT /F1 12 Tf 72 720 Td (X) Tj ET EMC " +
+                "BT /F1 12 Tf 72 500 Td (Kept text) Tj ET");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("secret"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+
+            byte[] output = source.Redactions.Apply(plan).ToBytes();
+
+            string raw = DecodeAllStreams(output);
+            Assert.DoesNotContain("ActualText", raw, StringComparison.Ordinal);
+            Assert.Contains("Kept text", raw, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WholeBlockSearchKeepsTheNeighbouringLine() {
+            byte[] bytes = BuildTextContentRedactionSource(SingleSpaced);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("invoice"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string text = string.Concat(ReadAllGlyphs(result.Pdf).Select(static glyph => glyph.Text));
+            Assert.DoesNotContain("Quarterly", text, StringComparison.Ordinal);
+            Assert.Contains("The Revenue line above", text, StringComparison.Ordinal);
+            Assert.Contains("Gypsy typography below", text, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WholeBlockAreaStaysABlockThroughARebuiltPlan() {
+            byte[] bytes = BuildTextContentRedactionSource(SingleSpaced);
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionArea mark = Assert.Single(source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("invoice")).Areas);
+            string text = string.Concat(ReadAllGlyphs(source.Redactions.Apply(new[] { mark.WithLabel("Reviewed") }).ToBytes()).Select(static glyph => glyph.Text));
+            Assert.Contains("Gypsy typography below", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("grew", text, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WholeBlockSearchRefusesTextOverlappingTheBlockThatIsNotPartOfIt() {
+            byte[] bytes = BuildLayeredSource("BT /F1 12 Tf 72 720 Td (Alpha secret Omega) Tj ET /OC /Layer BDC BT /F1 12 Tf 72 720 Td (private) Tj ET EMC");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("secret"));
+            Assert.False(plan.IsReviewable);
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-unselected-text-intersection");
+            Assert.Contains(plan.Findings, finding => finding.Message.Contains("would remove an unselected glyph"));
+            Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
+        }
+
+        [Theory]
+        [InlineData(PdfRedactionTextSelection.LogicalBlocks)]
+        [InlineData(PdfRedactionTextSelection.MatchedGlyphs)]
+        public void HiddenMatchesKeepOverlappingVisibleContentAndPaintNoMark(PdfRedactionTextSelection selection) {
+            byte[] bytes = BuildLayeredSource("q 0.8 g 60 290 300 30 re f Q BT /F1 12 Tf 72 300 Td (Visible words stay here) Tj ET " +
+                "/OC /Layer BDC BT /F1 12 Tf 72 300 Td (Hidden secret note) Tj ET EMC");
+            PdfDocument source = PdfDocument.Load(bytes);
+            var options = new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret");
+            PdfRedactionPlan plan = source.Redactions.Search(options);
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string text = string.Concat(ReadAllGlyphs(result.Pdf).Select(static glyph => glyph.Text));
+            Assert.Contains("Visible words stay here", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+            string raw = DecodeAllStreams(result.Pdf);
+            Assert.Contains("60 290 300 30 re f", raw, StringComparison.Ordinal);
+            Assert.Single(PdfReadDocument.Open(result.Pdf).Pages[0].GetIdentityVisualPrimitives());
+        }
+
+        [Fact]
+        public void HiddenMatchSharingBytesAndPositionWithVisibleTextIsRefused() {
+            byte[] bytes = BuildLayeredSource("BT /F1 12 Tf 72 300 Td (sacred) Tj ET /OC /Layer BDC BT /F1 12 Tf 72 300 Td (secret) Tj ET EMC");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.False(plan.IsReviewable);
+            Assert.Contains(plan.Findings, finding => finding.Code == "redaction-search-unselected-text-intersection");
+        }
+
+        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public void WholeBlockSearchRemovesHiddenLayerMatches(bool regex) {

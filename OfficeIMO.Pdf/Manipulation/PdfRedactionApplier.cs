@@ -75,7 +75,9 @@ internal static partial class PdfRedactionApplier {
         if (plan.Areas.Any(static area => area.RequiresGlyphRewrite)) {
             // Even the non-evidence Apply route must preserve unselected text for precise plans.
             PdfRedactionVerification.VerifyAppliedPlan(output, plan, new PdfRedactionVerificationOptions {
-                RequireCompleteStreamInspection = true, FailOnUndecodablePdfStreams = true,
+                // Whole blocks keep their long-standing tolerance for streams unrelated to the removal.
+                RequireCompleteStreamInspection = plan.Areas.Any(static area => area.RequiresGlyphRewrite && area.GlyphSelection!.IsCompleteBlock != true),
+                FailOnUndecodablePdfStreams = plan.Areas.Any(static area => area.RequiresGlyphRewrite && area.GlyphSelection!.IsCompleteBlock != true),
                 CancellationToken = effectiveOptions.CancellationToken
             }, PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth), appliedImageMatches).ThrowIfFailed();
         }
@@ -288,7 +290,7 @@ internal static partial class PdfRedactionApplier {
         RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions, limits, sourceStreamIdentities, mutationScope, paintMarks, imageTargets);
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
-        cleanupChanged = RemoveAlternateTextHoldingMatches(objects, areaArray) || cleanupChanged;
+        cleanupChanged = RemoveAlternateTextHoldingMatches(objects, areaArray, limits) || cleanupChanged;
         if (mutationScope == RedactionMutationScope.All) {
             cleanupChanged = RemoveUnpaintedRedactedImages(objects, plan.Matches
                 .Where(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement && match.RequiresRemoval)
@@ -853,10 +855,11 @@ internal static partial class PdfRedactionApplier {
 
     private static PdfRedactionArea[] SelectPaintAreas(PdfRedactionArea[] areas, PdfRedactionMatch[] matches, PdfRedactionApplyOptions options) {
         if (options.PaintUnmatchedAreas) {
-            return areas;
+            return areas.Where(static area => !area.IsHiddenOnly).ToArray();
         }
 
         return areas
+            .Where(static area => !area.IsHiddenOnly)
             .Where(area => matches.Any(match => ReferenceEquals(match.Area, area) || SameArea(match.Area, area)))
             .ToArray();
     }

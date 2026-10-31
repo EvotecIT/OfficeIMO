@@ -534,7 +534,7 @@ internal static class PdfContentStreamTextRewriter {
         return builder.ToString();
     }
 
-    private static int FindOperationStart(string content, int previousOperatorEnd, int operatorOffset) {
+    internal static int FindOperationStart(string content, int previousOperatorEnd, int operatorOffset) {
         int index = Math.Max(0, previousOperatorEnd);
         while (index < operatorOffset) {
             if (char.IsWhiteSpace(content[index])) {

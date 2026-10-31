@@ -10,12 +10,63 @@ internal static partial class PdfRedactionApplier {
 
     // Tagged alternate text repeats wording outside the page content. Search marks remove the entries
     // holding what was searched, whatever the cleanup scope, and leave every other description in place.
-    private static bool RemoveAlternateTextHoldingMatches(Dictionary<int, PdfIndirectObject> objects, PdfRedactionArea[] areas) {
+    private static bool RemoveAlternateTextHoldingMatches(Dictionary<int, PdfIndirectObject> objects, PdfRedactionArea[] areas, PdfReadLimits limits) {
         PdfRedactionSearchCriteria[] criteria = GetSearchCriteria(areas);
         if (criteria.Length == 0) return false;
         bool changed = false;
         foreach (PdfIndirectObject item in objects.Values) changed = RemoveMatchingAlternateText(objects, item.Value, criteria) || changed;
+        HashSet<int> pageContentStreams = GetPageContentStreamNumbers(objects);
+        foreach (PdfIndirectObject item in objects.Values.ToArray()) {
+            if (!IsContentOwner(pageContentStreams, item, out PdfStream? stream) || stream.DecodingFailed ||
+                !StreamDecoder.TryDecode(stream, int.MaxValue, out byte[] decoded, objects)) continue;
+            string content = PdfEncoding.Latin1GetString(decoded);
+            string rewritten = RewriteMarkedContentHoldingMatches(content, criteria, limits, out _);
+            if (string.Equals(content, rewritten, StringComparison.Ordinal)) continue;
+            objects[item.ObjectNumber] = new PdfIndirectObject(item.ObjectNumber, item.Generation,
+                new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(rewritten)));
+            changed = true;
+        }
         return changed;
+    }
+
+    private static HashSet<int> GetPageContentStreamNumbers(Dictionary<int, PdfIndirectObject> objects) {
+        var numbers = new HashSet<int>();
+        foreach (PdfIndirectObject candidate in objects.Values) {
+            if (candidate.Value is not PdfDictionary page || !string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) ||
+                !page.Items.TryGetValue("Contents", out PdfObject? contents)) continue;
+            foreach (PdfReference reference in EnumerateContentStreamReferences(objects, contents)) numbers.Add(reference.ObjectNumber);
+        }
+        return numbers;
+    }
+
+    private static bool IsContentOwner(HashSet<int> pageContentStreams, PdfIndirectObject item, out PdfStream stream) {
+        stream = (item.Value as PdfStream)!;
+        return stream is not null && (pageContentStreams.Contains(item.ObjectNumber) ||
+            string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal));
+    }
+
+    // Marked content can carry text inline, beside the glyphs rather than in them. Only the property list goes;
+    // the section stays open so its matching EMC still balances.
+    private static string RewriteMarkedContentHoldingMatches(string content, PdfRedactionSearchCriteria[] criteria, PdfReadLimits limits, out bool found) {
+        var edits = new List<(int Start, int End)>();
+        int previousEnd = 0;
+        PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations, operation => {
+            int start = PdfContentStreamTextRewriter.FindOperationStart(content, previousEnd, operation.OperatorOffset);
+            previousEnd = Math.Min(content.Length, operation.OperatorOffset + operation.Name.Length);
+            if (operation.Name != "BDC" || operation.Operands.Count == 0 ||
+                operation.Operands[operation.Operands.Count - 1] is not PdfContentDictionary dictionary) return;
+            if (AlternateTextKeys.Any(key => dictionary.Items.TryGetValue(key, out object? value) && value is byte[] bytes &&
+                criteria.Any(criterion => criterion.Matches(PdfTextString.Decode(bytes))))) edits.Add((start, previousEnd));
+        }, maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+        found = edits.Count > 0;
+        if (!found) return content;
+        var builder = new StringBuilder(content.Length);
+        int cursor = 0;
+        foreach ((int start, int end) in edits) {
+            builder.Append(content, cursor, start - cursor).Append("/Span BMC");
+            cursor = end;
+        }
+        return builder.Append(content, cursor, content.Length - cursor).ToString();
     }
 
     private static bool RemoveMatchingAlternateText(Dictionary<int, PdfIndirectObject> objects, PdfObject value, PdfRedactionSearchCriteria[] criteria) {
@@ -127,6 +178,15 @@ internal static partial class PdfRedactionApplier {
             if (!HoldsSearchedAlternateText(objects, item.Value, criteria)) continue;
             issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "AlternateText",
                 "Alternate text in object " + item.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " still holds searched text."));
+        }
+
+        HashSet<int> pageContentStreams = GetPageContentStreamNumbers(objects);
+        foreach (PdfIndirectObject item in objects.Values.ToArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (criteria.Length == 0 || !IsContentOwner(pageContentStreams, item, out PdfStream? stream) || !TryDecodeContent(stream, objects, limits, out string markedContent)) continue;
+            RewriteMarkedContentHoldingMatches(markedContent, criteria, limits, out bool found);
+            if (found) issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "AlternateText",
+                "Marked content in object " + item.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " still holds searched text."));
         }
 
         var painted = new HashSet<PdfStream>();
