@@ -83,6 +83,36 @@ async function retain(name, blob) {
   if (process.env.OFFICEIMO_CANOPY_FIXTURES) await writeFile(process.env.OFFICEIMO_CANOPY_FIXTURES + "/" + name, new Uint8Array(await blob.arrayBuffer()));
 }
 
+test("pivot PDF General numeric cells share the document decimal separator", async () => {
+  const snapshot = structuredClone(fixture.percent);
+  snapshot.rows[0].cells.v0_0 = { value: 1.5, text: "1.5", mode: "value", numberFormat: "0.00" };
+  snapshot.rows[0].cells.v0_1 = { value: .186, text: "18,6%", mode: "percentGrandTotal", numberFormat: "0.00%" };
+  const pdf = await inspectPdf(await exportCanopy(capture(snapshot), "pdf", { columnOptions: { v0_0: { format: "" } } }));
+  const lines = pdf.pages.flatMap(page => page.lines);
+  assert.ok(lines.includes("1,5")); assert.ok(!lines.includes("1.5"));
+  assert.ok(lines.includes("18,60%"));
+});
+
+test("pivot PDF preserves digit-bearing quoted affixes with the document decimal separator", async () => {
+  for (const [format, text, expected] of [[ '0.00" m2"', "1234.50 m2", "1234,50 m2" ],
+    [ '"CO2 "0.00', "CO2 1234.50", "CO2 1234,50" ]]) {
+    const snapshot = structuredClone(fixture.percent);
+    snapshot.rows[0].cells.v0_0 = { value: 1234.5, text, mode: "value", numberFormat: format };
+    snapshot.rows[0].cells.v0_1 = { value: .186, text: "18,6%", mode: "percentGrandTotal", numberFormat: "0.00%" };
+    const pdf = await inspectPdf(await exportCanopy(capture(snapshot), "pdf"));
+    assert.ok(pdf.pages.flatMap(page => page.lines).includes(expected), expected);
+  }
+});
+
+test("pivot PDF preserves an explicit blank numeric label while XLSX retains the raw number", async () => {
+  const snapshot = structuredClone(fixture.percent);
+  snapshot.rows[0].cells.v0_0 = { value: 42873, text: "", mode: "value" };
+  const pdf = await inspectPdf(await exportCanopy(capture(snapshot), "pdf"));
+  assert.ok(!pdf.text.includes("42873"));
+  const zip = await readZip(await exportCanopy(capture(snapshot), "xlsx"));
+  assert.match(zip.get("xl/worksheets/sheet1.xml").content, /<v>42873<\/v>/);
+});
+
 test("frozen pivot XLSX preserves prefix outlines, hidden columns, raw totals and physical row count without regrouping", async () => {
   const input = capture(), progress = [];
   const blob = await exportCanopy(input, "xlsx", { about: true, onProgress: p => progress.push(p) });

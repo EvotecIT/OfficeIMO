@@ -133,3 +133,17 @@ test("flat PDF percentage labels choose the document culture without scaling the
   const pdf = await inspectPdf(await exportCanopy(input, "pdf")), lines = pdf.pages.flatMap(page => page.lines);
   assert.ok(lines.includes("1234,50")); assert.ok(lines.includes("18,6%"));
 });
+
+test("flat PDF preserves quoted and backslash numeric affixes using the document separator", async () => {
+  const affixes = [[ 'a"b', "" ], [ "", 'a"b' ], [ "a\\b", "" ], [ "", "a\\b" ], [ 'a"\\b', '\\z"' ]];
+  const input = { request: { columns: [
+    ...affixes.map(([prefix, suffix], i) => ({ id: "v" + i, title: "Value " + i, kind: "number",
+      format: { minimumFractionDigits: 2, maximumFractionDigits: 2, prefix, suffix } })),
+    { id: "share", title: "Share", kind: "number", format: { minimumFractionDigits: 1, maximumFractionDigits: 1, suffix: "%" } }
+  ], recordCount: 1, values: "raw", presentation: "text", timeZone: "utc", revision: "escaped-affixes" },
+    async *rows() { yield { id: "a", cells: { ...Object.fromEntries(affixes.map(([prefix, suffix], i) =>
+      ["v" + i, { value: 12.5, text: prefix + "12.50" + suffix }])), share: { value: 18.6, text: "18,6%" } } }; } };
+  const pdf = await inspectPdf(await exportCanopy(input, "pdf")), lines = pdf.pages.flatMap(page => page.lines);
+  for (const [prefix, suffix] of affixes) assert.ok(lines.includes(prefix + "12,50" + suffix), prefix + "12,50" + suffix);
+  assert.ok(lines.includes("18,6%"));
+});
