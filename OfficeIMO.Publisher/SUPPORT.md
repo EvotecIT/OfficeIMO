@@ -287,6 +287,30 @@ rendering parity remains unqualified. Repair-free opening and broader producer
 coverage also remain unassessed; changed native image output reports
 `PUB_NATIVE_IMAGE_REPLACEMENT_UNQUALIFIED`.
 
+Imported table tracks use differences between saved cumulative endpoints, with
+separate origins for columns and rows. Nominal sizes can remain unchanged when
+text expands a row, so they do not establish laid-out cell positions. Incomplete
+endpoints on an axis retain nominal sizes with
+`PUB_TABLE_TRACK_POSITIONS_UNASSESSED`; nonincreasing or excessive endpoints
+reject input. Native source bytes, including nominal track metadata, remain
+retained. This is stored geometry recovery, without native reflow.
+
+The `sourceEditing.tableTrackGeometry` qualification record binds independent
+short/wrapped label controls, native row-height/column-width observations and
+public cell geometry. The wrapped control stores a 777247-EMU first-row endpoint
+(61.2005511811 points) while its nominal size remains 36 points. Corrected managed
+rendering moves the lower row by about 25.201 points, retaining its text; the short
+control's rendering remains unchanged. Cell padding, fills and text metrics
+remain separately unqualified.
+
+The independent wrapped control also reproduces the open/resave height change
+seen in the managed output: 97.4986649 points on initial open and 97.2005539 after
+resave. Corresponding native and managed outputs have identical PDF pixels and
+spans at each stage, including growth and shrinkage edits from the new sources.
+Twelve exact stage comparisons distinguish that native behavior from writer
+effects and confirm that the added geometry getters do not alter those outputs.
+These observations do not establish general reflow or fixed rendered heights.
+
 Native table-cell text saving retains existing tables, tracks, merged ownership,
 cell order, stored bounds and paint. Each cell retains its final terminator
 convention. Paragraph counts can change when projected and raw source definitions

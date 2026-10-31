@@ -417,3 +417,13 @@ establish those profiles; a retained wrapped-text cohort separately records
 Publisher's row expansion and changed resave rendering. The native empty-string
 mutation control saves a retained CR, not a zero-paragraph story. Native repair,
 general overflow layout and broader producer profiles remain unassessed.
+
+The `sourceEditing.tableTrackGeometry` record covers saved table endpoints and
+native row-growth controls. The reader recovers laid-out tracks from cumulative
+coordinates, retaining reported nominal fallback for incomplete axes. Independent
+short/wrapped label fixtures include native row-height and column-width getters.
+They also reproduce the wrapped specimen's native open/resave drift: twelve
+stage-matched PDF pixel/span comparisons qualify corresponding native and managed
+outputs without requiring Publisher's two stages to render identically. Source
+growth/shrink edits retain original stored tracks and native metadata; current
+native reflow and managed cell styling/text metrics remain distinct limits.

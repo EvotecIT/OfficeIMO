@@ -95,6 +95,14 @@ cell while the top row remains bold and the bottom row regular. Its PUB, PDF,
 native contract and provenance support separate cell paragraph-count save-back
 qualification; they do not qualify fixed native heights for arbitrary overflow.
 
+TableLabelShortParagraphs and TableLabelWrapped retain the original label's
+page, table tracks and artwork while assigning short or wrapped two-paragraph
+text to its first cell. Their contracts record the documented native row heights
+and column widths in points. The wrapped control distinguishes saved cumulative
+track endpoints from unchanged nominal sizes and independently reproduces native
+open/resave row-height drift. Corresponding-stage output, stored geometry and
+current native reflow are qualified separately.
+
 Newsletter adds a two-page linked story
 and a picture. TableLabel adds a custom page size, styled 2-by-2 table, picture
 and Polish/Greek characters. Brochure adds two 792-by-612-point landscape sides,

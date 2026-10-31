@@ -13408,6 +13408,406 @@
         "Repair-free opening, general opaque preservation, additional producer profiles and exact managed/native rendering remain unqualified.",
         "Source-built PS7 conversion and PS5.1 syntax do not establish packaged installation or native lifecycle cmdlets."
       ]
+    },
+    "tableTrackGeometry": {
+      "scope": "Persisted native table track and cell geometry, with independent row-growth controls and stage-matched source-save comparison; no dynamic native reflow.",
+      "codecCommit": "692864d2416b5048edc4eeb88265b3b5a3336dc4",
+      "sources": [
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherContentsReader.Tables.cs",
+          "sha256": "5b974df5c720cf45cc0c5ac990507f8104cb79253ea94fa961d52c63995e93a9",
+          "gitBlobSha256": "7afc1a7f8f58f60de14ec163ee1b85a7799ba3bb321b68b157136265e3a7b6fa"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/PublisherTable.cs",
+          "sha256": "f0c3b187df987dfa0c1d696ffdf2059ed67d370b05aa11dd30c829fec999bc95",
+          "gitBlobSha256": "b484b33835b0a9aca841a1c7b70b63033bdaf7bcdd2f4c6f6358e3d81df1ea0a"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherTableTrackReadingTests.cs",
+          "sha256": "0908ae31071c27d692a96ef7ccb30a28603d32659f36be45f5dd56b24dd0a54b",
+          "gitBlobSha256": "0908ae31071c27d692a96ef7ccb30a28603d32659f36be45f5dd56b24dd0a54b"
+        },
+        {
+          "path": "../../../Build/Publisher/Add-NativeTableControl.ps1",
+          "sha256": "8bc9b338e64e7de8d94fa151f31bd6b8105bd1d46d116713635be8c3b5b76627",
+          "gitBlobSha256": "8bc9b338e64e7de8d94fa151f31bd6b8105bd1d46d116713635be8c3b5b76627"
+        },
+        {
+          "path": "../../../Build/Publisher/Get-NativeTableGeometry.ps1",
+          "sha256": "69df69486ac729e7d0018f0ef3a9aee973e2f6544184dc3e56f12027fec5c43a",
+          "gitBlobSha256": "69df69486ac729e7d0018f0ef3a9aee973e2f6544184dc3e56f12027fec5c43a"
+        },
+        {
+          "path": "../../../Build/Publisher/Invoke-NativePublisherOperation.ps1",
+          "sha256": "0daa1a460d941987fd37a0ead2bfdc3cf35b2259b7d4729bf116928575ba0fff",
+          "gitBlobSha256": "395663cf8ed5d5075a0e2ae8a840da94b214d1cbb6afd822a211073cb65dcbf7"
+        },
+        {
+          "path": "../../../Build/Publisher/Invoke-NativeComparisonCase.ps1",
+          "sha256": "074f41d7241672630520a22c0fcc4061a067b96d6cd8690f6fc1e3abde597784",
+          "gitBlobSha256": "8b694f736b34199fecf342c48428817ac9e9d29e69635909baa049419ff7c9d9"
+        },
+        {
+          "path": "../../../Build/Publisher/New-NativeComparisonCorpus.ps1",
+          "sha256": "3b0819979f1ec60fb6c8e92846fb9f4ce921acef57dc8c190da2a87833c1fa8b",
+          "gitBlobSha256": "31f6cb887ab443400451daae6721b007feb6734692509d65d67617fb4156ea4c"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableLabelWrapped/native-tablelabelwrapped.json",
+          "sha256": "ca736ecbb8b0633650433ed9fd9e200656036cc51a5543089869779b812043e0",
+          "gitBlobSha256": "3e90850c572d2fd9209f00a1a4bb91a78c5ef9802b6d2dcd500444048ffcdacb"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableLabelWrapped/native-tablelabelwrapped.pdf",
+          "sha256": "6f065eb1c937bef572e946454d89cfa80dbb24ea572b1deb6559bb1242ddd7b0",
+          "gitBlobSha256": "6f065eb1c937bef572e946454d89cfa80dbb24ea572b1deb6559bb1242ddd7b0"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableLabelWrapped/native-tablelabelwrapped.pub",
+          "sha256": "37bba9e47e1af3a758a233cad7d7b269b81028b963dbfdf6d423b891eca75479",
+          "gitBlobSha256": "37bba9e47e1af3a758a233cad7d7b269b81028b963dbfdf6d423b891eca75479"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableLabelWrapped/provenance.json",
+          "sha256": "a4cfa0946829aa5bc1957c202e06c6aaba9c0557c03434306e604bcaab46f506",
+          "gitBlobSha256": "633cfaff8764eb064ffc8f53544813910a53b8afe2a373f64e6e2827d44c4ff9"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableLabelShortParagraphs/native-tablelabelshortparagraphs.json",
+          "sha256": "5efe73aa70f9ccc543b4cbe327401c4834c56c8d2657789e5971f4913aa8e89c",
+          "gitBlobSha256": "0ec99a781b423dc9ebb85246c6f36f25c7bd28656947bed5e3a521dc942ed1b6"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableLabelShortParagraphs/native-tablelabelshortparagraphs.pdf",
+          "sha256": "31422a47fa31a7f703705d91a42c73c5d267eea2ca8e3b77fd809a84df568a56",
+          "gitBlobSha256": "31422a47fa31a7f703705d91a42c73c5d267eea2ca8e3b77fd809a84df568a56"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableLabelShortParagraphs/native-tablelabelshortparagraphs.pub",
+          "sha256": "34e887e65e4c28bc6fe4f3b93baff2c4e14d4c28ec9037882118a5288adeb926",
+          "gitBlobSha256": "34e887e65e4c28bc6fe4f3b93baff2c4e14d4c28ec9037882118a5288adeb926"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableLabelShortParagraphs/provenance.json",
+          "sha256": "3ddca34aed74729c28837a2ea49b99efae864dc6dbf62202f2b8216f02095b72",
+          "gitBlobSha256": "04ea6e21a9fc4991ea51b461d524175865195d6a8f0c02be6652bd2e9a67e95c"
+        }
+      ],
+      "nativeApplication": {
+        "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+        "file": "MSPUB.EXE",
+        "version": "16.0.20527.20088"
+      },
+      "nativeFontFiles": [
+        {
+          "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+          "file": "arial.ttf",
+          "version": null
+        },
+        {
+          "sha256": "e8f4e3baf6cc35fed6fcce3a540e8b39e8f6cda1d22a28f2ec8f526fef7a43f5",
+          "file": "arialbd.ttf",
+          "version": null
+        },
+        {
+          "sha256": "57e93ff143572bcc092c1f56202d43ddc07bb119aa104c6d7af163470fb551f6",
+          "file": "calibri.ttf",
+          "version": null
+        },
+        {
+          "sha256": "931c5de5c70401d9324d5014c123802b4fb753000360ceb2f56c589403cd58c5",
+          "file": "times.ttf",
+          "version": null
+        },
+        {
+          "sha256": "e7f7a88b65188328aea58670f955022e23c712f55679524729da1e4e03c49d88",
+          "file": "timesi.ttf",
+          "version": null
+        },
+        {
+          "sha256": "3a29d114cb5229e8dbda5bef6c69be4a210a13b7277de4d66e9fc86963226f6c",
+          "file": "timesbi.ttf",
+          "version": null
+        }
+      ],
+      "nativeApiSources": {
+        "rowHeight": "https://learn.microsoft.com/en-us/office/vba/api/publisher.row.height",
+        "columnWidth": "https://learn.microsoft.com/en-us/office/vba/api/publisher.column.width"
+      },
+      "controls": [
+        {
+          "case": "TableLabelWrapped",
+          "provenance": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableLabelWrapped/provenance.json"
+        },
+        {
+          "case": "TableLabelShortParagraphs",
+          "provenance": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableLabelShortParagraphs/provenance.json"
+        }
+      ],
+      "contract": [
+        "Contents field0x6D uses entry field0x01 for cumulative saved endpoints; field0x02 retains nominal sizes when text expands a row. Each axis begins at zero.",
+        "Read complete axis endpoints as differences, retaining original native records and nominal-size metadata. Missing endpoints retain nominal sizes with PUB_TABLE_TRACK_POSITIONS_UNASSESSED; nonincreasing or excessive endpoints reject input.",
+        "Public ColumnWidths/RowHeights and cell coordinates use that stored geometry; no native runtime, new API or automatic reflow.",
+        "Native table point observations use documented Row.Height/Column.Width getters. Their binary32 values match the integer-EMU coordinates converted to points and binary32. Cell.Height/Width are cell spans and are not used as point dimensions."
+      ],
+      "sourceGeometry": [
+        {
+          "name": "wrapped",
+          "sourceSha256": "37bba9e47e1af3a758a233cad7d7b269b81028b963dbfdf6d423b891eca75479",
+          "savedGeometry": {
+            "id": 294,
+            "columns": [
+              90.0,
+              90.0
+            ],
+            "rows": [
+              61.20055118110236,
+              36.0
+            ],
+            "endsEmu": [
+              1143000,
+              2286000,
+              777247,
+              1234447
+            ],
+            "nominalEmu": [
+              1143000,
+              1143000,
+              457200,
+              457200
+            ]
+          },
+          "documentedNativeGetters": {
+            "rowHeightsPoints": [
+              61.2005500793457,
+              36.0
+            ],
+            "columnWidthsPoints": [
+              90.0,
+              90.0
+            ]
+          },
+          "publicGeometryMatches": true
+        },
+        {
+          "name": "short",
+          "sourceSha256": "34e887e65e4c28bc6fe4f3b93baff2c4e14d4c28ec9037882118a5288adeb926",
+          "savedGeometry": {
+            "id": 294,
+            "columns": [
+              90.0,
+              90.0
+            ],
+            "rows": [
+              36.0,
+              36.0
+            ],
+            "endsEmu": [
+              1143000,
+              2286000,
+              457200,
+              914400
+            ],
+            "nominalEmu": [
+              1143000,
+              1143000,
+              457200,
+              457200
+            ]
+          },
+          "documentedNativeGetters": {
+            "rowHeightsPoints": [
+              36.0,
+              36.0
+            ],
+            "columnWidthsPoints": [
+              90.0,
+              90.0
+            ]
+          },
+          "publicGeometryMatches": true
+        }
+      ],
+      "stageMatchedComparisons": [
+        {
+          "name": "wrapped-getters",
+          "phase": "initial",
+          "pixelAndSpanIdentical": true
+        },
+        {
+          "name": "wrapped-getters",
+          "phase": "resaved",
+          "pixelAndSpanIdentical": true
+        },
+        {
+          "name": "baseline-getters",
+          "phase": "initial",
+          "pixelAndSpanIdentical": true
+        },
+        {
+          "name": "baseline-getters",
+          "phase": "resaved",
+          "pixelAndSpanIdentical": true
+        },
+        {
+          "name": "short-getters",
+          "phase": "initial",
+          "pixelAndSpanIdentical": true
+        },
+        {
+          "name": "short-getters",
+          "phase": "resaved",
+          "pixelAndSpanIdentical": true
+        },
+        {
+          "name": "grow",
+          "phase": "initial",
+          "pixelAndSpanIdentical": true
+        },
+        {
+          "name": "grow",
+          "phase": "resaved",
+          "pixelAndSpanIdentical": true
+        },
+        {
+          "name": "shrink",
+          "phase": "initial",
+          "pixelAndSpanIdentical": true
+        },
+        {
+          "name": "shrink",
+          "phase": "resaved",
+          "pixelAndSpanIdentical": true
+        },
+        {
+          "name": "prior-wrapped",
+          "phase": "initial",
+          "pixelAndSpanIdentical": true
+        },
+        {
+          "name": "prior-wrapped",
+          "phase": "resaved",
+          "pixelAndSpanIdentical": true
+        }
+      ],
+      "nativeDrift": {
+        "initialHeightPoints": 97.49866485595703,
+        "resavedHeightPoints": 97.20055389404297,
+        "independentNativeReproduction": true,
+        "managedAndNativeSameStagePixelsAndSpans": true,
+        "gettersDoNotPerturbComparedOutputs": true
+      },
+      "sourceEditing": {
+        "cases": [
+          "grow",
+          "shrink"
+        ],
+        "preserved": [
+          "Original Contents and Escher streams, cached endpoints and nominal sizes.",
+          "Complete source/public-reloaded text and cell ownership; unchanged source inputs."
+        ],
+        "nativeFullOperations": 7,
+        "comparison": "Each initial/resaved PDF matches its independently authored native wrapped/short reference at the same stage. Current native reflow can update cached geometry after opening."
+      },
+      "managedRendering": {
+        "beforePublisherSha256": "8cfb8256dcbbfd9d6b4d796b76c89133ec1f0dc05ece3d86d4d885772144075f",
+        "afterPublisherSha256": "363ca0f88b6178f825e2a848a7426e59469f214ab33b0b99db3b8de802133104",
+        "observations": [
+          {
+            "name": "wrapped",
+            "beforeAlpha": [
+              17.9999942779541,
+              102.35000610351562,
+              43.5761604309082,
+              113.52000427246094
+            ],
+            "afterAlpha": [
+              17.9999942779541,
+              127.55099487304688,
+              43.5761604309082,
+              138.7209930419922
+            ],
+            "deltaY": 25.20098876953125,
+            "pixelEqual": false,
+            "textEqual": true
+          },
+          {
+            "name": "short",
+            "beforeAlpha": [
+              17.9999942779541,
+              102.35000610351562,
+              43.5761604309082,
+              113.52000427246094
+            ],
+            "afterAlpha": [
+              17.9999942779541,
+              102.35000610351562,
+              43.5761604309082,
+              113.52000427246094
+            ],
+            "deltaY": 0.0,
+            "pixelEqual": true,
+            "textEqual": true
+          }
+        ],
+        "scope": "Lower-row position recovery; text retained and short-control pixels/spans unchanged. PDF coordinate serialization and font metrics are separate from exact stored EMU geometry."
+      },
+      "validation": {
+        "publisherTests": {
+          "net10.0": 661,
+          "net8.0": 661,
+          "net472": 661
+        },
+        "readerTests": 95,
+        "standard2Builds": [
+          "OfficeIMO.Publisher.Pdf",
+          "OfficeIMO.Reader.Publisher"
+        ],
+        "writerProbeBuild": true,
+        "sourceBuiltPowerShell": {
+          "runtime": "7.6.9",
+          "route": "publisher-pdf",
+          "cases": 2,
+          "actualPublisherAssemblyBound": true,
+          "unicodeFallbacks": true
+        },
+        "nativeControlSyntax": [
+          "PowerShell7",
+          "WindowsPowerShell5.1"
+        ]
+      },
+      "previousSaveEquivalence": {
+        "cases": 114,
+        "byteIdentical": true,
+        "groups": {
+          "character": 24,
+          "linkedStories": 7,
+          "paragraphTopology": 11,
+          "paragraphFormatting": 21,
+          "frameLayout": 11,
+          "imageReplacement": 8,
+          "tableText": 6,
+          "emptyTyping": 15,
+          "cellParagraphs": 11
+        }
+      },
+      "regressionTests": [
+        "Native_table_cells_use_saved_layout_endpoints_instead_of_nominal_row_sizes",
+        "Missing_saved_track_coordinates_retain_nominal_geometry_with_an_explicit_report",
+        "Nonincreasing_saved_track_coordinates_are_rejected_before_cell_projection"
+      ],
+      "reproduction": {
+        "control": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableLabelWrapped,TableLabelShortParagraphs",
+        "native": "pwsh -NoProfile -File Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -InputPath <candidate.pub> -OutputDirectory <empty-directory>"
+      },
+      "limits": [
+        "Native open/resave layout can differ even for independently authored files; corresponding-stage equivalence does not establish fixed rendered heights.",
+        "Cached geometry is not current Publisher layout calculation. Table geometry writing, automatic row sizing, individual cell padding/fills and native text metrics/line breaks remain unqualified.",
+        "Native TableLabel PDF is a six-label A4 print layout, distinct from its logical 288 by 216 point page.",
+        "Repair-free opening, general opaque preservation, broader producer profiles and managed/native rendering parity remain unassessed.",
+        "Source-built PS7 conversion and PS5.1 syntax are not packaged installation or native lifecycle cmdlet qualification."
+      ]
     }
   },
   "characterReading": {

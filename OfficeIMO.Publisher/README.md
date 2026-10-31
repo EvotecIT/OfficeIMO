@@ -525,6 +525,11 @@ styled cell paragraphs and text. Grid indices are zero-based; a merged cell
 appears once. Cell coordinates are local to the table and use points. Table
 `PageTransform` maps those coordinates into the page, including rotation and
 enclosing groups. The frame size and the grid track dimensions remain distinct.
+Imported tracks use saved layout endpoints within each axis. Nominal sizes can
+remain smaller when text has expanded a row. An axis with incomplete endpoints
+retains nominal sizes and reports `PUB_TABLE_TRACK_POSITIONS_UNASSESSED`;
+nonincreasing or excessive endpoints reject the input. These values describe
+stored geometry and do not run Publisher's current text fitting or reflow.
 Tables inherited from a master are listed on that master in `MasterPages`.
 Hidden tables and tables with unavailable geometry retain their grid and mapped
 cell text. `HasPlacement = false` identifies a table whose frame cannot be used
