@@ -4,6 +4,7 @@ using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Epub;
 using PSWriteOffice.Services;
+using PSWriteOffice.Foundation;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 namespace PSWriteOffice.Cmdlets.Epub;
@@ -14,12 +15,9 @@ namespace PSWriteOffice.Cmdlets.Epub;
 ///   <code>$book | Add-OfficeEpubChapter -Title Opening -Text "Welcome to this handbook."</code>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeEpubChapter", DefaultParameterSetName = "Text")]
+[Alias("EpubChapter")]
 [OutputType(typeof(EpubManifestItem))]
-public sealed class AddOfficeEpubChapterCommand : PSCmdlet {
-    /// <summary>Live editable publication.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
-    public EpubPublication Publication { get; set; } = null!;
-
+public sealed class AddOfficeEpubChapterCommand : OfficeDocumentCmdlet<EpubPublication> {
     /// <summary>Chapter title.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public string Title { get; set; } = string.Empty;
@@ -51,15 +49,16 @@ public sealed class AddOfficeEpubChapterCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        string id = Id ?? "chapter-" + (Publication.Spine.Count + 1);
+        EpubPublication publication = GetDocument();
+        string id = Id ?? "chapter-" + (publication.Spine.Count + 1);
         if (Id == null) {
-            int suffix = Publication.Spine.Count + 1;
-            while (Publication.Manifest.Any(item => item.Id == id)) id = "chapter-" + (++suffix);
+            int suffix = publication.Spine.Count + 1;
+            while (publication.Manifest.Any(item => item.Id == id)) id = "chapter-" + (++suffix);
         }
         string body = ParameterSetName == "Xhtml" ? Xhtml!
             : ParameterSetName == "Markdown" ? MarkdownDocument.Parse(Markdown!).ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Fragment })
             : "<p>" + System.Security.SecurityElement.Escape(Text ?? string.Empty)?.Replace("\r\n", "\n").Replace("\n", "</p><p>") + "</p>";
-        var chapter = Publication.AddChapter(id, ContainerPath ?? "EPUB/text/" + id + ".xhtml", Title, body);
+        var chapter = publication.AddChapter(id, ContainerPath ?? "EPUB/text/" + id + ".xhtml", Title, body);
         if (PassThru.IsPresent) WriteObject(chapter);
     }
 }

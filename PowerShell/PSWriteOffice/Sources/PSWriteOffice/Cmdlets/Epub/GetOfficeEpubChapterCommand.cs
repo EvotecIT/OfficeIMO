@@ -4,6 +4,7 @@ using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Epub;
 using PSWriteOffice.Services;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Epub;
 
@@ -14,13 +15,10 @@ namespace PSWriteOffice.Cmdlets.Epub;
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeEpubChapter")]
 [OutputType(typeof(EpubChapter))]
-public sealed class GetOfficeEpubChapterCommand : PSCmdlet {
-    /// <summary>Live editable publication.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
-    public EpubPublication Publication { get; set; } = null!;
-
+public sealed class GetOfficeEpubChapterCommand : OfficeDocumentCmdlet<EpubPublication> {
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        WriteObject(Publication.Read().Chapters, enumerateCollection: true);
+        EpubPublication publication = GetDocument();
+        WriteObject(publication.Read().Chapters, enumerateCollection: true);
     }
 }

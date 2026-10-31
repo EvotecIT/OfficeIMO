@@ -97,9 +97,9 @@ public sealed class WorkflowContractCmdletTests {
                     $book = New-OfficeEpub -Title Literal
                     $book | Add-OfficeEpubChapter -Title Opening -Text Safe
                     $book | Save-OfficeEpub -Path 'AuditFiles:/book[1].epub'
-                    Get-Item -LiteralPath 'AuditFiles:/book[1].epub' | Get-OfficeEpub | Get-OfficeEpubChapter
+                    Get-Item -LiteralPath 'AuditFiles:/book[1].epub' | Open-OfficeEpub | Get-OfficeEpubChapter
                     $rejected = $false
-                    try { Get-OfficeEpub -Path 'Env:/PATH' -ErrorAction Stop } catch { $rejected = $_.Exception.Message -like '*filesystem*' }
+                    try { Open-OfficeEpub -Path 'Env:/PATH' -ErrorAction Stop } catch { $rejected = $_.Exception.Message -like '*filesystem*' }
                     if (-not $rejected) { throw 'Non-filesystem provider was accepted' }
                     foreach ($command in 'Get-OfficeCsv', 'Import-OfficeCsv', 'Read-OfficeDocument') {
                         $rejected = $false

@@ -63,14 +63,15 @@ public sealed class NativeFamilyCmdletTests {
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
             shell.AddScript("""
-                $book = New-OfficeEpub -Title Operations -Language en -Author Example
+                $book = New-OfficeEpub -Path $outputPath -Title Operations -Language en -Author Example
+                if (Test-Path -LiteralPath $outputPath) { throw 'Live creation wrote an EPUB' }
                 $book | Add-OfficeEpubChapter -Title Opening -Text 'Safety & care'
                 $book | Add-OfficeEpubChapter -Title Procedures -Markdown '# Procedure A'
                 $book | Set-OfficeEpubMetadata -Title 'Operations handbook'
-                $book | Save-OfficeEpub -Path $outputPath -WhatIf
+                $book | Save-OfficeEpub -WhatIf
                 if (Test-Path -LiteralPath $outputPath) { throw 'WhatIf wrote an EPUB' }
-                $book | Save-OfficeEpub -Path $outputPath -ReportVariable evidence
-                Get-Item -LiteralPath $outputPath | Get-OfficeEpub | Get-OfficeEpubChapter
+                $evidence = $book | Save-OfficeEpub -PassThru
+                Get-Item -LiteralPath $outputPath | Open-OfficeEpub | Get-OfficeEpubChapter
                 """);
             var chapters = shell.Invoke();
             AssertNoErrors(shell);
@@ -80,7 +81,7 @@ public sealed class NativeFamilyCmdletTests {
             Assert.Equal("Operations handbook", saved.Title);
             Assert.Equal("Example", saved.Creator);
             Assert.Equal(2, saved.Spine.Count);
-            Assert.False(Assert.IsType<EpubWriteReport>(runspace.SessionStateProxy.GetVariable("evidence")).HasLoss);
+            Assert.False(Assert.IsType<EpubWriteReport>(PSObject.AsPSObject(runspace.SessionStateProxy.GetVariable("evidence")).BaseObject).HasLoss);
         });
     }
 
