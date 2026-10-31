@@ -22562,5 +22562,612 @@
       "Native/managed text origins retain the measured font-baseline differences; no native/managed pixel parity is claimed.",
       "PUB00 repair-free opening and generic public native creation remain unqualified."
     ]
+  },
+  "masterAssignmentEditing": {
+    "scope": "Qualified modern-generation existing physical-page direct master assignment, suppression and restoration, including combined Contents edits. No new topology, generic public native creation or repair-free acceptance.",
+    "sourceCommit": "6012fff289b5c291d4c1c53df386f3375cc0f6e8",
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeComparisonLayout.ps1",
+        "sha256": "33259c666f397917b270a8a940441d402c2fec81ecf0b1847e12167a9d2dff80"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "ee45e441b515a2bb326c706a11644291df53f08708a58f1c18401df63bab8701"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "21d67411f65f39b703be88c1cf912e0f584089f3de9fc0033cfc3325462a0ccd"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "bf0e1260aa16b03ae35f177d32bcede8e3d68eb648fe5647b1558ac85daf0a72"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/README.md",
+        "sha256": "0f4292d4f6931895ebf99c2d98b73ee6f00678499c91bb0a8c9815729e2099ca"
+      },
+      {
+        "path": "Docs/ROADMAP.md",
+        "sha256": "e30e778254129140eea00da8311fcc767960eb3b2f68e1c658453e5425812ea7"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersIgnored/native-multiplemastersignored.json",
+        "sha256": "1b2f0da1a0e79c72eeed61065c53e3d05eeff905cb97ebee293ae3e246cbba42"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersIgnored/native-multiplemastersignored.pdf",
+        "sha256": "9fc933817620a427229fdc722d7b4599bba59b9ff866bf75174d23a61cb0d3fd"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersIgnored/native-multiplemastersignored.pub",
+        "sha256": "b6afb0d469d8fd2a9139204eac1f1d6863736db1c4fda93455db03085585018c"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersIgnored/provenance.json",
+        "sha256": "734feb7d23ff193f7ed2a4ef0f6b89f3e4a5430ba3e8898ed9b82069c9fb649c"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersReassigned/native-multiplemastersreassigned.json",
+        "sha256": "633fee498683f049bd179cedfee75ce1929d4a877b0420ab534a7f5361757eaa"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersReassigned/native-multiplemastersreassigned.pdf",
+        "sha256": "ab5c1d0f549355ce6ba9dc139d28db34af1261013404a47c078271a362cbe878"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersReassigned/native-multiplemastersreassigned.pub",
+        "sha256": "437fd43bb99a4989def5ca293f910f1f25a1292b21a0b87f786682d2be618280"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersReassigned/provenance.json",
+        "sha256": "3e1a3f417a557d9912d91ebab5921b554352b11b9c974abb4cefdff80e5edb38"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterIgnored/native-twopagemasterignored.json",
+        "sha256": "b2d09f8058b9ec08258e204bb640cf5bf97f404ecbb2e87518fbbeb3097ccd20"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterIgnored/native-twopagemasterignored.pdf",
+        "sha256": "79d958d2d5a4c8925c4473eb89658355ba98b169c47d9df230be2dd6427d131b"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterIgnored/native-twopagemasterignored.pub",
+        "sha256": "86118b7605399703942f14eafe7217dd96242f05696702d12b35536ee0cd07d7"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterIgnored/provenance.json",
+        "sha256": "5bc74e9716ec185b940d72cf521b9a1379cb5d595b53326b96001b45296f5805"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterReassigned/native-twopagemasterreassigned.json",
+        "sha256": "425235d2e1d33e7d77c77404a988966dc59605d67f31da43b166f3773de2f045"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterReassigned/native-twopagemasterreassigned.pdf",
+        "sha256": "e159b32f4c4b3845ef601dff898298fa563979be15a4727a2f4bf2f3fd6dd2e8"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterReassigned/native-twopagemasterreassigned.pub",
+        "sha256": "fcda3607669cf37cf8a6ff3ed6d7cedd773525d12678be054e1251cfb5e01b97"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterReassigned/provenance.json",
+        "sha256": "ce1a228328f673d58070272bc2ae9fa7b7b0ac7807308e931598ccc508c43cab"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherMasterAssignmentTests.cs",
+        "sha256": "98eb7b4d4bbe4a884083565054017d96782bceec16f8bcfbd876e9cded7c5261"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherNativeWritingTests.cs",
+        "sha256": "9fe5ea4b69303c81dd9544c337b70ad79a87fe417ea43256153b1b0334859cb4"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherContentsReader.cs",
+        "sha256": "6e39b62ca281f7cba362b2e5348379be042c8e4223282b08156da4933d912495"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherContentsSourceWriter.cs",
+        "sha256": "1023d296191dd249919e85b5bebed253fb4a64b1f748cb7badcf167556fb0466"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherModelImporter.cs",
+        "sha256": "b79aa591aa355d5f80df1ce6b8d2bcfdc7ad909f8cbfd813944ac79ed073a7d6"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+        "sha256": "b9c744b0969f5b5a481c36595bb5ceed62e7c0f64749021e7bad7534c5f59fe6"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.FrameLayout.cs",
+        "sha256": "7c4fde4847344c92e8dd50722143ba53ddb5a6cca200d08e13f9b6a1db7d9525"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.MasterAssignments.cs",
+        "sha256": "f77066b161f634462d455cebc548860a624609974ced0626008110254a98b734"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+        "sha256": "d3ea0840f5a3b49f860c2653a91796a469ab731849b28707b81b467d6c540713"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPublicationState.Pages.cs",
+        "sha256": "2d139c1e9dee824f6a9e99c538dcc34b5d396e365f6c03a6ff618240196cc956"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherPublicationState.cs",
+        "sha256": "e2e6b4f0589b70d6711c8ed56fb7754e8000ccb1f5c52b6a27d3677d5e6f3c5b"
+      },
+      {
+        "path": "OfficeIMO.Publisher/PublisherDocument.Authoring.cs",
+        "sha256": "91da2c2fa51846cdbeeab7704a80ac3535822181486bdd73b5ce3abce62b95e8"
+      },
+      {
+        "path": "OfficeIMO.Publisher/PublisherPage.cs",
+        "sha256": "9356aa42c2e3afc5aa714b31fa3c09d0998c44bc5a8982c869d8dd1f499b5789"
+      },
+      {
+        "path": "OfficeIMO.Publisher/README.md",
+        "sha256": "e7f9692c4e87205e3b619313381b4545b63e577761e3dd2d4209e21535fcdb3f"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "sha256": "5784c5710dd53b54fd66f259b109a7a38c8abfcdc352bff0f6d562d103bd8224"
+      }
+    ],
+    "publicContract": {
+      "api": "SetPageMaster(pageId, nullableMasterId)",
+      "assignment": "An existing qualified physical page selects an existing direct master definition. Single/Left/Right metadata and explicit selection survive native saving; no automatic parity selection.",
+      "suppression": "Null suppresses applied master paint, preserving the latent native selected-master reference and definition/story ownership. A later nonnull assignment restores application.",
+      "unassessed": "Unknown display-master encodings or reference layouts report PUB_MASTER_ASSIGNMENT_UNASSESSED and refuse relationship edits. Duplicate references retain the strict read rejection.",
+      "lossPolicy": "The existing default strict loss policy and operation-level diagnostics apply; source-edit qualification does not widen new-topology or inherited/background/registration guards."
+    },
+    "nativeCodec": {
+      "reference": "Physical-page OPL field0x0D/type0x68 holds the retained selected master.",
+      "display": "Observed suppression field0x07/type0x08 has no payload; enabled independent controls omit the field. Other encodings remain unassessed.",
+      "preservation": "All unrelated Contents tokens and compound streams are preserved; supported alignment and picture-resource changes compose through their canonical owners.",
+      "relocation": "Every changed chunk contributes its cumulative directory shift, including edits whose total stream-size change cancels to zero."
+    },
+    "nativeProducer": {
+      "name": "Microsoft Publisher",
+      "executableVersion": "16.0.20527.20088",
+      "automationSecurity": 3
+    },
+    "fixtures": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersIgnored/native-multiplemastersignored.json",
+        "sha256": "1b2f0da1a0e79c72eeed61065c53e3d05eeff905cb97ebee293ae3e246cbba42"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersIgnored/native-multiplemastersignored.pdf",
+        "sha256": "9fc933817620a427229fdc722d7b4599bba59b9ff866bf75174d23a61cb0d3fd"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersIgnored/native-multiplemastersignored.pub",
+        "sha256": "b6afb0d469d8fd2a9139204eac1f1d6863736db1c4fda93455db03085585018c"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersReassigned/native-multiplemastersreassigned.json",
+        "sha256": "633fee498683f049bd179cedfee75ce1929d4a877b0420ab534a7f5361757eaa"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersReassigned/native-multiplemastersreassigned.pdf",
+        "sha256": "ab5c1d0f549355ce6ba9dc139d28db34af1261013404a47c078271a362cbe878"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MultipleMastersReassigned/native-multiplemastersreassigned.pub",
+        "sha256": "437fd43bb99a4989def5ca293f910f1f25a1292b21a0b87f786682d2be618280"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterIgnored/native-twopagemasterignored.json",
+        "sha256": "b2d09f8058b9ec08258e204bb640cf5bf97f404ecbb2e87518fbbeb3097ccd20"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterIgnored/native-twopagemasterignored.pdf",
+        "sha256": "79d958d2d5a4c8925c4473eb89658355ba98b169c47d9df230be2dd6427d131b"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterIgnored/native-twopagemasterignored.pub",
+        "sha256": "86118b7605399703942f14eafe7217dd96242f05696702d12b35536ee0cd07d7"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterReassigned/native-twopagemasterreassigned.json",
+        "sha256": "425235d2e1d33e7d77c77404a988966dc59605d67f31da43b166f3773de2f045"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterReassigned/native-twopagemasterreassigned.pdf",
+        "sha256": "e159b32f4c4b3845ef601dff898298fa563979be15a4727a2f4bf2f3fd6dd2e8"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TwoPageMasterReassigned/native-twopagemasterreassigned.pub",
+        "sha256": "fcda3607669cf37cf8a6ff3ed6d7cedd773525d12678be054e1251cfb5e01b97"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "multiple-control-reassign",
+        "sha256": "431842d084207acc6823a6c7fc67711be8d7ae776179998adf353297574415c0",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "multiple-generated-reassign",
+        "sha256": "325041a5c0e452329dc93eccf42c29b50bae6fb856b8bbf1d9f326a511616788",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "multiple-normalized-reassign",
+        "sha256": "1b88978143d72d1e181763f9ae33beb63548a018c2bcfd2eaff78e9c14f7a6a2",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "multiple-ignored-reassign",
+        "sha256": "ccfc1f6ee6abbedee4110dc2150268d9f8f37c35a2ce0afba690fb6fb9380a48",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "multiple-control-clear",
+        "sha256": "2556d5cc86e7d163fc3d37f5e56fc46caacd58d35a1df50e7e48fd0b2f36ef6e",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "multiple-generated-clear",
+        "sha256": "7a521469b0fbc23175fec138dde1af726f3c0a34a5ab36053dc871daa28f7328",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "multiple-normalized-clear",
+        "sha256": "130ec006c4804e75edf2bf61fb60b2d538b7bc1ff3c5d0ed5928fd791942f8cb",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "paired-control-reassign",
+        "sha256": "00dccc36fd24171cdfee85f15efd40afac8f311f23787a1ba5d40dc6024c4928",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "paired-generated-reassign",
+        "sha256": "39aa3f172cbf1dfd9d8a9876bf1a5283598b6e1550433875b43230525eb1841f",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "paired-normalized-reassign",
+        "sha256": "4aeb2b1d44bb6e29eb9075bf984453b46228d3aa86af591b4484530417488896",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "paired-ignored-reassign",
+        "sha256": "2254e5d59ed3d705e1b7250ab7988b3b4e583d8cd22964f8e5cde76228e894b7",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "paired-control-clear",
+        "sha256": "17531e0e42cfc9d95f95685f1eb0131080534b0cff3439b89941f72a69b7e371",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "paired-generated-clear",
+        "sha256": "7b3caf5f29a610701070a55288a8f19ef68fd48f13ca79869109ef8fa455952e",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "paired-normalized-clear",
+        "sha256": "a87901b969fdf5e9f3779b3c1358d918a01593d4268c111d506e7e89ffc51225",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "compound",
+        "sha256": "3f3d76d054dc69df2d6a541dc3966c7f1f620089f5218fc72b53b34c644ad78e",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "multiple-mixed",
+        "sha256": "de909d5c6c32ab2e6bea1eea5fa348808ab3308e8713882214550d991126bb92",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "multiple-zero-align",
+        "sha256": "e2648080c35e11ce7ca33055b74c13b69bb190d4a0baea297347217c318488e2",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "paired-mixed",
+        "sha256": "c7bdb152f10f0ab55c918a0145493a61d67e05ff745b36310384bd89a2353ee7",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      },
+      {
+        "name": "paired-zero-align",
+        "sha256": "bc92cd8b7a6ef85021546376cdc1f341e42a6251ad932e4ccec76359b39b6aa6",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true
+      }
+    ],
+    "nativeEvidence": {
+      "fullFiles": 19,
+      "qualifiedOperations": 133,
+      "completeInventories": 38,
+      "physicalPagesEachFile": 3,
+      "independentPagePairsAt144Dpi": 84,
+      "independentReferences": [
+        "MultipleMastersReassigned",
+        "MultipleMastersIgnored",
+        "TwoPageMasterReassigned",
+        "TwoPageMasterIgnored"
+      ],
+      "nativeResaveStabilityPagePairsAt144Dpi": 15,
+      "stabilityOnlyInputs": [
+        "compound",
+        "multiple-mixed",
+        "multiple-zero-align",
+        "paired-mixed",
+        "paired-zero-align"
+      ],
+      "selectedMastersSuppressionSidesAndAlignmentVerified": true,
+      "repairFreeAssessed": false,
+      "proofs": [
+        {
+          "name": "native-proof.json",
+          "sha256": "a88e88bc66689eacc4fd944ddd24d692a1860772b698b0d6fba7f4b83e6d967a"
+        },
+        {
+          "name": "compound-native-proof.json",
+          "sha256": "86c20e048eafcf13058a565193b5927b5ff7f6d0d5ca1d5698ca2ac613f5424c"
+        },
+        {
+          "name": "zero-growth-native-proof.json",
+          "sha256": "1c825d8b88523b1aa3a4cc3a413e2d6a9d05dfefec6c1239f69c09856787ff0f"
+        }
+      ]
+    },
+    "managedEvidence": {
+      "publicEditedFiles": 19,
+      "preparedAndReopenedPdfPages": 114,
+      "svgPagesValidated": 114,
+      "saveStabilityPairsAt144Dpi": 57,
+      "originComparisonInputs": 15,
+      "nativeTextOriginComparisons": 150,
+      "maximumNativeXDifferencePoints": 0.07000732421875,
+      "maximumAssignmentNativeYDifferencePoints": 1.3800048828125,
+      "maximumCompoundBottomAlignedNativeYDifferencePoints": 7.05999755859375,
+      "nativeManagedPixelParityClaimed": false,
+      "powershell": {
+        "runtime": "7.6.9",
+        "files": 19,
+        "pages": 57,
+        "ownerAssemblyBound": true,
+        "publisherSha256": "11db0931cbef0744d66c97ed180bd3e593c7bc3340f0e2b6d4aa057d4b9c2964",
+        "equalDirectManagedPairsAt144Dpi": 57
+      }
+    },
+    "priorCreationProfiles": {
+      "byteIdentical": 30,
+      "totalQualifiedClosedProfiles": 30,
+      "proofSha256": "645ce954081b42153fd4d8d741b72675c8c9192f73dadec6144d42426a7aee54"
+    },
+    "validation": {
+      "tests": [
+        {
+          "name": "assignment-zero-growth-after",
+          "passed": 22,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "assignment-relocation-publisher-net10.0",
+          "passed": 961,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "assignment-relocation-publisher-net8.0",
+          "passed": 961,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "assignment-relocation-publisher-net472",
+          "passed": 961,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "assignment-relocation-reader",
+          "passed": 95,
+          "failed": 0,
+          "skipped": 0
+        }
+      ],
+      "standardBuilds": [
+        "OfficeIMO.Publisher.Pdf/netstandard2.0",
+        "OfficeIMO.Reader.Publisher/netstandard2.0"
+      ],
+      "powerShellSourceBuild": "PSWriteOffice/net8.0",
+      "nativeScriptsParsedOn": [
+        "PowerShell7.6.9",
+        "WindowsPowerShell5.1.26100.9711"
+      ],
+      "regression": "Four pre-fix cancellation cases fail at native Contents bounds/header parsing; all four pass after per-chunk relocation replaces the total-delta gate.",
+      "finalChecksSha256": "04c19cb41c701f7c0e53495d3393520a294e4dbde870a11fb7118326fb1fd7a6"
+    },
+    "corpusIntegrity": {
+      "provenancePayloads": 195,
+      "workingAndGitBlobHashesMatch": true,
+      "proofSha256": "6941aa4e38a7377d3418bad23bc801cfcf95907165166fbb9777b723ee3298dc"
+    },
+    "limits": [
+      "Qualified modern independent/generated/native-normalized sources only; unknown master encodings remain opaque and uneditable.",
+      "New page/master topology, inheritance and generic public native creation remain outside this save contract.",
+      "The measured text-origin differences remain; no native/managed pixel parity or repair-free opening is claimed."
+    ]
   }
 }
