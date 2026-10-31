@@ -166,7 +166,12 @@ internal static partial class PdfSyntax {
     }
 
     private static bool TryParseClassicXrefTable(string text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset,
-        System.Threading.CancellationToken cancellationToken = default) {
+        System.Threading.CancellationToken cancellationToken = default) =>
+        TryParseClassicXrefTable(text, offset, out entries, out previousOffset, out trailerRaw, out xrefStreamOffset, requireComplete: false, cancellationToken);
+
+    /// <summary>Recovery keeps bounded partial entries; redaction proof requires complete sections and trailers.</summary>
+    private static bool TryParseClassicXrefTable(string text, int offset, out (int ObjectNumber, int Offset, int Generation, bool InUse)[] entries, out int? previousOffset, out string trailerRaw, out int? xrefStreamOffset,
+        bool requireComplete, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         entries = Array.Empty<(int ObjectNumber, int Offset, int Generation, bool InUse)>();
         previousOffset = null;
@@ -187,28 +192,35 @@ internal static partial class PdfSyntax {
 
         int position = offset + 4;
         int sectionEnd = (int)Math.Min((long)trailerIndex, (long)position + 2_000_000L);
+        if (requireComplete && sectionEnd != trailerIndex) return false;
         // The structural section estimate is deliberately capped. Growth uses pooled
         // arrays, and only the observed entries become a retained managed array.
         using var entryBuilder = new PdfPooledValueBuilder<(int ObjectNumber, int Offset, int Generation, bool InUse)>(
             PdfCollectionSizing.BoundedInitialCapacity((sectionEnd - position) / 20, 256));
+        bool hasEmptySubsection = false;
         while (TryReadXrefLine(text, ref position, sectionEnd, out int lineStart, out int lineEnd, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(text.Substring(lineStart, lineEnd - lineStart))) continue;
             int tokenPosition = lineStart;
             if (!TryReadXrefToken(text, ref tokenPosition, lineEnd, out int firstStart, out int firstLength, cancellationToken) ||
                 !TryReadXrefToken(text, ref tokenPosition, lineEnd, out int countStart, out int countLength, cancellationToken) ||
                 !TryParseXrefInteger(text, firstStart, firstLength, out int firstObjectNumber) ||
                 !TryParseXrefInteger(text, countStart, countLength, out int count) ||
                 firstObjectNumber < 0 ||
-                count <= 0 ||
-                count > 1_000_000) {
+                count < 0 ||
+                count > 1_000_000 ||
+                requireComplete && (long)firstObjectNumber + count > int.MaxValue) {
+                if (requireComplete) return false;
                 continue;
             }
 
+            if (requireComplete && TryReadXrefToken(text, ref tokenPosition, lineEnd, out _, out _, cancellationToken)) return false;
+            hasEmptySubsection |= count == 0;
             for (int i = 0; i < count; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!TryReadXrefLine(text, ref position, sectionEnd, out lineStart, out lineEnd, cancellationToken)) {
                     entries = entryBuilder.ToArray();
-                    return entries.Length > 0;
+                    return !requireComplete && entries.Length > 0;
                 }
 
                 tokenPosition = lineStart;
@@ -217,19 +229,23 @@ internal static partial class PdfSyntax {
                     !TryReadXrefToken(text, ref tokenPosition, lineEnd, out int statusStart, out int statusLength, cancellationToken) ||
                     !TryParseXrefInteger(text, offsetStart, offsetLength, out int objectOffset) ||
                     !TryParseXrefInteger(text, generationStart, generationLength, out int generation)) {
+                    if (requireComplete) return false;
                     continue;
                 }
+                if (requireComplete && (objectOffset < 0 || generation < 0 || generation > 65535 ||
+                    TryReadXrefToken(text, ref tokenPosition, lineEnd, out _, out _, cancellationToken))) return false;
 
                 if (statusLength == 1 && text[statusStart] == 'n') {
                     entryBuilder.Add((firstObjectNumber + i, objectOffset, generation, true));
                 } else if (statusLength == 1 && text[statusStart] == 'f') {
                     entryBuilder.Add((firstObjectNumber + i, objectOffset, generation, false));
-                }
+                } else if (requireComplete) return false;
             }
         }
 
         entries = entryBuilder.ToArray();
-        if (entries.Length == 0) {
+        // An empty section can still own a hybrid supplement and a predecessor.
+        if (entries.Length == 0 && !hasEmptySubsection) {
             return false;
         }
 
@@ -242,6 +258,8 @@ internal static partial class PdfSyntax {
             dictStart = text.IndexOf("<<", (int)search, count, StringComparison.Ordinal);
             if (dictStart >= 0) break;
         }
+        if (requireComplete && (dictStart < 0 || dictStart != SkipWhitespaceAndComments(text, trailerIndex + 7, text.Length, cancellationToken))) return false;
+        bool completeTrailer = false;
         if (dictStart >= 0) {
             int dictionaryLimit = (int)Math.Min((long)text.Length, (long)dictStart + 1_000_002L);
             int dictEnd = FindDictEnd(text, dictStart, dictionaryLimit, cancellationToken);
@@ -250,6 +268,10 @@ internal static partial class PdfSyntax {
                 string dictText = SafeSliceCancellable(text, dictStart + 2, dictEnd - (dictStart + 2), 1_000_000, cancellationToken);
                 try {
                     PdfDictionary trailer = ParseDictionary(dictText, cancellationToken: cancellationToken);
+                    if (requireComplete && trailer.HasIncompleteSyntax) return false;
+                    if (requireComplete && (trailer.Items.TryGetValue("Prev", out PdfObject? prev) && !TryReadXrefInteger(prev, out _) ||
+                        trailer.Items.TryGetValue("XRefStm", out PdfObject? hybrid) && !TryReadXrefInteger(hybrid, out _))) return false;
+                    completeTrailer = true;
                     if (trailer.Get<PdfNumber>("Prev") is PdfNumber previous &&
                         previous.Value >= 0 &&
                         previous.Value <= int.MaxValue) {
@@ -268,7 +290,7 @@ internal static partial class PdfSyntax {
             }
         }
 
-        return true;
+        return !requireComplete || completeTrailer;
     }
 
     private static bool TryReadXrefLine(string text, ref int position, int end, out int start, out int lineEnd,

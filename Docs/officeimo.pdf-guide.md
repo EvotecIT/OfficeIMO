@@ -2278,6 +2278,8 @@ Console.WriteLine(redacted.Evidence.Summary);
 
 `Evidence.Items` records a verified-absent, residual, or inconclusive outcome for every reviewed match. The report also exposes source/output hashes, residual matches, verification details, and affected page numbers. A UI can pass those page numbers to the existing page renderer for before/after previews without making rendering part of the redaction contract.
 
+Redaction search, matching, and verification include artifact text, including painted headers and footers, regardless of `PdfLoadOptions.IncludeArtifactText`. Ordinary reading still omits artifacts by default. Page limits also apply to artifact text. Unsupported glyph mappings produce a blocked plan rather than verified removal.
+
 Use `PdfRedactionSearchOptions.PageNumbers` to restrict candidate discovery to selected one-based pages. An empty set searches all pages. By default, search marks complete matching logical text blocks, so present the resulting areas for review rather than assuming that only the matched substring will be removed.
 
 Set `TextSelection` to `MatchedGlyphs` to select only the encoded glyphs belonging
@@ -2343,6 +2345,21 @@ earlier revision still holds searched text. Search labels and evidence omit matc
 values; `FormField` matches retain the field name. Signed files are not rewritten: use
 an unsigned derivative workflow and re-sign the result. Unpainted forms holding the searched text
 are removed too.
+
+Unsigned, unencrypted PDFs with object streams or cross-reference streams normalize to
+classic output when the winning entries across the complete xref chain agree with the
+reader's live objects. This includes hybrid, linearized and incremental PDFs. Tables,
+their `/XRefStm` supplements and `/Prev` sections are checked in lookup order, including
+empty newest sections used by Word. Newer compressed entries win over older free rows.
+`/Extends` is a collection hint and does not choose a member's value. The rewrite drops
+containers, hint data and old revisions, and an empty search still normalizes an admitted source. References to free or missing
+objects are written as null. A live reference to a compression container, or a reference
+whose generation disagrees with a live target, refuses the rewrite. Every retained container
+member is inspected, including unindexed members. A disagreement, incomplete graph,
+or retained historical match refuses the result; compressed encryption stays refused.
+Signature, usage-rights, dynamic-XFA and active-content refusals also apply to compressed
+dictionaries. Page limits still permit searched text on excluded pages. Malformed hex
+candidates in arbitrary stream data do not hide later valid string tokens.
 
 Whole-block search removes the block's own glyphs and marks its full rectangle, so a
 neighbouring line stays. Text with no glyph mapping can only go as a rectangle, which

@@ -388,7 +388,11 @@ internal static class PdfInspector {
 
         cancellationToken.ThrowIfCancellationRequested();
         bool canRewrite = canRead && rewriteBlockers.Count == 0;
-        return new PdfDocumentPreflight(probe, info, canRead, canRewrite, diagnostics.AsReadOnly(), readBlockers.AsReadOnly(), rewriteBlockers.AsReadOnly(), effectiveOptions.PermissionPolicy, readDocumentException);
+        return new PdfDocumentPreflight(probe, info, canRead, canRewrite, diagnostics.AsReadOnly(), readBlockers.AsReadOnly(), rewriteBlockers.AsReadOnly(), effectiveOptions.PermissionPolicy, readDocumentException) {
+            HasCompressedRedactionStructures = readDocument is not null && PdfSyntax.HasCompressedRedactionStructures(readDocument),
+            RedactionObjectGraphProof = new Lazy<bool>(() => readDocument is not null &&
+                PdfSyntax.CanNormalizeRedactionObjectGraph(pdf, readDocument, cancellationToken))
+        };
 
         void AddReadBlocker(PdfReadBlockerKind kind, string message) {
             AddDiagnostic(message);
