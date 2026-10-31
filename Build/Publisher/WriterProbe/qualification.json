@@ -19296,5 +19296,212 @@
       "Repair-free opening, general opaque preservation and public native creation remain unqualified."
     ],
     "reproduction": "Build the opt-in probe, then create object-pages <unused candidate.pub> <repository image path>. Native Full validates isolated copies. Load the generated PUB through the public APIs, move/recolor the rectangle and move/resize the picture, save with explicit Allow, and validate that output with Native Full. Compare each initial/resaved page at144dpi with the independently authored ObjectPages/ObjectPagesEdited references, plus public reloads, image hashes and exact unaffected source bytes."
+  },
+  "imagePageCreation": {
+    "schema": "officeimo.publisher.image-page-creation.v1",
+    "sourceCommit": "58c62671cd9cf9d62f23063eea1e92a99d386888",
+    "scope": "Internal template-free three-page profile, distinct PNG on first/last pages, empty middle, empty applied master. Public model authors both picture assets.",
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeImagePagesControl.ps1",
+        "sha256": "345374c850057265812f6aa608221717ea1fd423b140c76aba85dd838860c1e2"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "ae2b3e09bf0ba98beb41a248c05bd29efe2dbcc9a0f0d98912ad9e4fc317291f"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "b665eb5dda3b89b57105ea7d10f831c28b6695d4bce1979d807e982d612a0365"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "4a49935b8dbdc2d629bacf2f3c8a071b8465c3183d996b5bd3841d0277538098"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateCases.cs",
+        "sha256": "a7e4112c3198e63ee200599346c0215b31657eb9491439ae5ad75a89baaa8121"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateImagePages.cs",
+        "sha256": "130c7a578c87c2bf51177b8ca27aa213ab75fed18a48544107b28f06c766f05a"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateOfficeArt.cs",
+        "sha256": "e1b9dec71087bd92b67d3c903324525f22561c66e9c2643b665d56d4b1300138"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateWriter.cs",
+        "sha256": "06378ad5e647989ee13213480108cfacc74a6f25a33ccc60f7f17477ca3712b5"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/Program.cs",
+        "sha256": "0628ae3372c1b816f73c225bdfdda2ea359407a29c01292f5f873e882acc28c3"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/README.md",
+        "sha256": "6648dd3c83e0222df71a546c0e3315b27e9b2df8b12a04672fcecaaaa91a9319"
+      },
+      {
+        "path": "Docs/ROADMAP.md",
+        "sha256": "5f98d0ae43ff1c03396e8c44e6a0c91c1dff687bab1d2d53f13e383fd29a26b7"
+      },
+      {
+        "path": "OfficeIMO.Core/Binary/OfficeArtBlipStoreEntryWriter.cs",
+        "sha256": "a66659acc434b6561d87fb152bc986de62c42742312085c40f09906d82ec013d"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePages/native-imagepages-replacement.png",
+        "sha256": "98e64eb0771135ce8a3672978263e86118439752c2625a7cdb64f3347d1e58d8"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePages/native-imagepages.json",
+        "sha256": "76034dc8b1d665a7aebfa26166742b6b1c5ce3e76407f375af8695dc8a5a0f05"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePages/native-imagepages.pdf",
+        "sha256": "0f101466a3509210b3b133af2fc5e32005bcdcbf4485d0e8c685f5bacf37ae37"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePages/native-imagepages.png",
+        "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePages/native-imagepages.pub",
+        "sha256": "1917fd588a513788c954485c9fa988407a6480af6b1f7190eb6dbaab4714714a"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePages/provenance.json",
+        "sha256": "608658b9c17df6b1ef555e60b7d15b753078863f00a76350c039f99e3780b8f1"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesEdited/native-imagepagesedited-replacement.png",
+        "sha256": "98e64eb0771135ce8a3672978263e86118439752c2625a7cdb64f3347d1e58d8"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesEdited/native-imagepagesedited.json",
+        "sha256": "89fa8f7ec3619ca40afe5629d266788fd91c7524fc4a180c37c258655dc13f0f"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesEdited/native-imagepagesedited.pdf",
+        "sha256": "30ba7f23b1a9a4ad7b0209b8be3578e52a85a0f9506ddaa4a8deb172821e77c6"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesEdited/native-imagepagesedited.png",
+        "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesEdited/native-imagepagesedited.pub",
+        "sha256": "0f1b90897c80b606292c0ed94470e4b175a07e0beb7e2ae50e8317fd8007cd37"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesEdited/provenance.json",
+        "sha256": "fce7a7f40dca9c55f5801979c1e58c2c63704b4c95c40acc99134cccd87f7f3c"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/README.md",
+        "sha256": "857ac1e6f717ea70448e23617bc983814f897c5724c934928f6acf785eacd49c"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Images.cs",
+        "sha256": "6179c85a0390efc9bbf1c0e4a1369464c0c441fdbdb5f2923004a1e39e296cb8"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "sha256": "f19e28a020eaba106daaa35e3f38b806d8f63bf16e9b3599fbbc970c71931a80"
+      }
+    ],
+    "cases": [
+      {
+        "name": "candidate",
+        "sha256": "7a8a5fdc98040fc4255499f41fa01c001a52d9a9eaa2ad2641f011f99eb0c946",
+        "nativeOperations": 7,
+        "independentPixelPairs": 6,
+        "publicReloads": 2,
+        "exactDistinctAssets": 2
+      },
+      {
+        "name": "edited",
+        "sha256": "8bd55c57424027dfbf0fd18cac10a0f21bd9c952df4703c4f640acfa138eced3",
+        "nativeOperations": 7,
+        "independentPixelPairs": 6,
+        "publicReloads": 2,
+        "exactDistinctAssets": 2
+      }
+    ],
+    "imageBindings": [
+      {
+        "index": 1,
+        "offset": 0,
+        "blipBytes": 240,
+        "referenceCount": 1,
+        "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+      },
+      {
+        "index": 2,
+        "offset": 240,
+        "blipBytes": 337,
+        "referenceCount": 1,
+        "sha256": "98e64eb0771135ce8a3672978263e86118439752c2625a7cdb64f3347d1e58d8"
+      }
+    ],
+    "nativeFullFiles": 2,
+    "nativeOperations": 14,
+    "independentNativePagePixelPairs": 12,
+    "pixelComparisonDpi": 144,
+    "publicReloads": 4,
+    "managedPdfSvgPages": 12,
+    "previousCandidateByteIdentical": 13,
+    "sourceEdit": {
+      "api": "SetPictureBounds",
+      "pictureId": 266,
+      "bounds": [
+        252,
+        180,
+        144,
+        72
+      ],
+      "unchangedPictureId": 265,
+      "unchangedCompoundMetadata": true,
+      "allOtherStreamsByteIdentical": true,
+      "allowedAnchorScalarCount": 4,
+      "changedArtworkBytes": 12,
+      "allOtherArtworkBytesIdentical": true
+    },
+    "independentControls": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePages",
+        "provenanceSha256": "608658b9c17df6b1ef555e60b7d15b753078863f00a76350c039f99e3780b8f1"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesEdited",
+        "provenanceSha256": "fce7a7f40dca9c55f5801979c1e58c2c63704b4c95c40acc99134cccd87f7f3c"
+      }
+    ],
+    "sourcePowerShell": {
+      "route": "publisher-pdf",
+      "pdfs": 2,
+      "pages": 6,
+      "exactImagePixelsAndPlacement": true,
+      "actualOwnerAssemblyBound": true
+    },
+    "validation": {
+      "probeBuild": "Unsigned Release, no-incremental; zero warnings/errors. Final candidate bytes match the native-qualified candidate.",
+      "powerShellSyntax": [
+        "7.6.9",
+        "5.1"
+      ],
+      "productionCodeChanged": false,
+      "newUnitTests": false,
+      "review": "Primary non-independent self-review; bounded opt-in change has independent native and exact raw-byte evidence."
+    },
+    "reproduction": "Build the opt-in probe. Create image-pages <unused candidate.pub> <first synthetic PNG> <distinct wide PNG>. Validate Full, then load through the public API, SetPictureBounds on the last picture, save with explicit Allow, and Validate Full. Compare initial/resaved pages with native ImagePages/ImagePagesEdited controls and reload exact assets/bindings.",
+    "limits": [
+      "Closed two distinct PNG profile with one asset per picture, no deduplication or shared-asset identity qualification.",
+      "Managed interpolation differs from native sampling, as already recorded; no managed/native image pixel-parity claim.",
+      "Repair-free opening and generic model serialization remain unqualified.",
+      "One model-created asset per picture. FBSE reference count1 is deliberate; shared-asset reference counts and byte deduplication are not qualified.",
+      "Generated-file picture replacement, crops, arbitrary mixed object order and public template-free native saving remain open."
+    ]
   }
 }
