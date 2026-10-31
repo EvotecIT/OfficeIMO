@@ -91,6 +91,15 @@ internal static partial class PdfRedactionApplier {
         dictionary.Items.TryGetValue(key, out PdfObject? entry) && PdfObjectLookup.Resolve(objects, entry) is PdfStringObj text &&
         criteria.Any(criterion => criterion.Matches(text.Value));
 
+    internal static IReadOnlyList<string> FingerprintImageData(Dictionary<int, PdfIndirectObject> objects, PdfStream image) {
+        var fingerprints = new List<string> { PdfRedactionPlan.ComputeSourceSha256(image.Data) };
+        foreach (string key in new[] { "SMask", "Mask" }) {
+            if (image.Dictionary.Items.TryGetValue(key, out PdfObject? value) && PdfObjectLookup.Resolve(objects, value) is PdfStream mask)
+                fingerprints.Add(PdfRedactionPlan.ComputeSourceSha256(mask.Data));
+        }
+        return fingerprints;
+    }
+
     private static PdfDictionary? AsDictionary(PdfObject value) =>
         value is PdfDictionary direct ? direct : value is PdfStream stream ? stream.Dictionary : null;
 
@@ -165,10 +174,12 @@ internal static partial class PdfRedactionApplier {
     internal static IReadOnlyList<PdfRedactionVerificationIssue> FindRedactedContentOutsidePages(
         byte[] pdf, PdfRedactionPlan plan, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken) {
         PdfRedactionSearchCriteria[] criteria = GetSearchCriteria(plan.Areas);
-        var redactedImages = new HashSet<string>(plan.Matches
-            .Where(static match => match.RequiresRemoval)
-            .Select(static match => match.ImageDataSha256).OfType<string>(), StringComparer.Ordinal);
-        if (criteria.Length == 0 && redactedImages.Count == 0) return Array.Empty<PdfRedactionVerificationIssue>();
+        PdfRedactionMatch[] reviewedImages = plan.Matches
+            .Where(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement && match.RequiresRemoval).ToArray();
+        var redactedImages = new HashSet<string>(reviewedImages.SelectMany(static match => match.ImageDataSha256), StringComparer.Ordinal);
+        bool reviewedInlineImage = reviewedImages.Any(static match => match.ObjectNumber is null);
+        if (criteria.Length == 0 && redactedImages.Count == 0 && !reviewedInlineImage) return Array.Empty<PdfRedactionVerificationIssue>();
+        var reviewedPages = new HashSet<int>(plan.Areas.Select(static area => area.PageNumber));
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         PdfReadLimits limits = readOptions?.Limits ?? new PdfReadLimits();
@@ -195,8 +206,12 @@ internal static partial class PdfRedactionApplier {
         var listedImages = new HashSet<string>(StringComparer.Ordinal);
         var paintedImages = new HashSet<string>(StringComparer.Ordinal);
         PdfDictionary? pageForDecoding = null;
-        foreach (PdfReadPage page in document.Pages) {
+        bool holdersInScope = false;
+        for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
+            PdfReadPage page = document.Pages[pageIndex];
             cancellationToken.ThrowIfCancellationRequested();
+            // Patterns and appearances paint on their own pages, which a page-limited plan left alone.
+            holdersInScope = reviewedPages.Contains(pageIndex + 1);
             if (!objects.TryGetValue(page.ObjectNumber, out PdfIndirectObject? pageObject) || pageObject.Value is not PdfDictionary pageDictionary ||
                 GetInheritedDictionary(objects, pageDictionary, "Resources") is not PdfDictionary resources) continue;
             var content = new StringBuilder();
@@ -207,6 +222,7 @@ internal static partial class PdfRedactionApplier {
                 }
             }
             CollectForms(content.ToString(), resources, paintedOwner: true);
+            if (holdersInScope) CollectAnnotationAppearances(pageDictionary, resources);
             if (pageForDecoding is null) pageForDecoding = pageDictionary;
         }
 
@@ -217,6 +233,10 @@ internal static partial class PdfRedactionApplier {
             issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "OrphanedFormXObject",
                 "A Form XObject that no page paints still holds searched text."));
         }
+        if (reviewedInlineImage && listed.Keys.Any(form => !painted.Contains(form) && TryDecodeContent(form, objects, limits, out string formContent) && HasInlineImage(formContent, limits))) {
+            issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "OrphanedImageData",
+                "An inline image is still in the file, held by a form that no page paints, and an inline image was reviewed for redaction."));
+        }
         // Identical data still painted elsewhere is a placement the plan left alone, not a leftover.
         foreach (string image in listedImages) {
             if (paintedImages.Contains(image)) continue;
@@ -226,7 +246,7 @@ internal static partial class PdfRedactionApplier {
         return issues;
 
         void CollectForms(string content, PdfDictionary resources, bool paintedOwner) {
-            if (ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out PdfObject? xObjectsValue) ? xObjectsValue : null) is not PdfDictionary xObjects) return;
+            PdfDictionary xObjects = ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out PdfObject? xObjectsValue) ? xObjectsValue : null) ?? new PdfDictionary();
             var invoked = new HashSet<string>(StringComparer.Ordinal);
             PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations, operation => {
                 if (operation.Name == "Do" && operation.Operands.Count > 0 && operation.Operands[operation.Operands.Count - 1] is string name) invoked.Add(name);
@@ -236,8 +256,9 @@ internal static partial class PdfRedactionApplier {
                 string? subtype = form.Dictionary.Get<PdfName>("Subtype")?.Name;
                 bool paints = paintedOwner && invoked.Contains(entry.Key);
                 if (string.Equals(subtype, "Image", StringComparison.Ordinal) && redactedImages.Count > 0) {
-                    string fingerprint = PdfRedactionPlan.ComputeSourceSha256(form.Data);
-                    if (redactedImages.Contains(fingerprint)) (paints ? paintedImages : listedImages).Add(fingerprint);
+                    foreach (string fingerprint in FingerprintImageData(objects, form)) {
+                        if (redactedImages.Contains(fingerprint)) (paints ? paintedImages : listedImages).Add(fingerprint);
+                    }
                 }
                 if (!string.Equals(subtype, "Form", StringComparison.Ordinal)) continue;
                 bool firstVisit = visited.Add(form);
@@ -246,6 +267,35 @@ internal static partial class PdfRedactionApplier {
                 listed[form] = formResources;
                 // Unreadable content proves nothing is painted, so its resources still count as held.
                 if (firstVisit || newlyPainted) CollectForms(TryDecodeContent(form, objects, limits, out string formContent) ? formContent : string.Empty, formResources, paints);
+            }
+            if (!holdersInScope) return;
+            if (ResolveDictionary(objects, resources.Items.TryGetValue("Pattern", out PdfObject? patternsValue) ? patternsValue : null) is PdfDictionary patterns) {
+                foreach (PdfObject pattern in patterns.Items.Values) {
+                    if (PdfObjectLookup.Resolve(objects, pattern) is PdfStream tiling) CollectHolder(tiling, resources);
+                }
+            }
+            if (ResolveDictionary(objects, resources.Items.TryGetValue("ExtGState", out PdfObject? statesValue) ? statesValue : null) is PdfDictionary states) {
+                foreach (PdfObject state in states.Items.Values) {
+                    if (ResolveDictionary(objects, state) is PdfDictionary graphicsState &&
+                        ResolveDictionary(objects, graphicsState.Items.TryGetValue("SMask", out PdfObject? softMaskValue) ? softMaskValue : null) is PdfDictionary softMask &&
+                        PdfObjectLookup.Resolve(objects, softMask.Items.TryGetValue("G", out PdfObject? group) ? group : null) is PdfStream groupForm) CollectHolder(groupForm, resources);
+                }
+            }
+        }
+
+        // These paint outside the reviewed placements, so what they hold isn't covered by the rewrite.
+        void CollectHolder(PdfStream holder, PdfDictionary inherited) {
+            if (!visited.Add(holder)) return;
+            PdfDictionary holderResources = ResolveDictionary(objects, holder.Dictionary.Items.TryGetValue("Resources", out PdfObject? own) ? own : null) ?? inherited;
+            listed[holder] = holderResources;
+            CollectForms(TryDecodeContent(holder, objects, limits, out string holderContent) ? holderContent : string.Empty, holderResources, paintedOwner: false);
+        }
+
+        void CollectAnnotationAppearances(PdfDictionary pageDictionary, PdfDictionary resources) {
+            if (PdfObjectLookup.Resolve(objects, pageDictionary.Items.TryGetValue("Annots", out PdfObject? annotsValue) ? annotsValue : null) is not PdfArray annotations) return;
+            foreach (PdfObject item in annotations.Items) {
+                if (ResolveDictionary(objects, item) is not PdfDictionary annotation) continue;
+                foreach (PdfStream appearance in GetAppearanceStreams(objects, annotation)) CollectHolder(appearance, resources);
             }
         }
 
@@ -264,6 +314,26 @@ internal static partial class PdfRedactionApplier {
                 return true;
             }
         }
+    }
+
+    internal static IEnumerable<PdfStream> GetAppearanceStreams(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
+        if (ResolveDictionary(objects, annotation.Items.TryGetValue("AP", out PdfObject? value) ? value : null) is not PdfDictionary appearances) yield break;
+        foreach (PdfObject appearance in appearances.Items.Values) {
+            PdfObject? resolved = PdfObjectLookup.Resolve(objects, appearance);
+            if (resolved is PdfStream stream) yield return stream;
+            else if (resolved is PdfDictionary states) {
+                foreach (PdfObject state in states.Items.Values) {
+                    if (PdfObjectLookup.Resolve(objects, state) is PdfStream stateStream) yield return stateStream;
+                }
+            }
+        }
+    }
+
+    private static bool HasInlineImage(string content, PdfReadLimits limits) {
+        bool found = false;
+        PdfContentStreamInterpreter.Interpret(content, limits.MaxContentOperations, operation => found |= operation.Name is "BI" or "ID" or "EI",
+            maxNestingDepth: limits.MaxContentNestingDepth, maxOperands: limits.MaxContentOperands);
+        return found;
     }
 
     private static bool TryDecodeContent(PdfStream stream, Dictionary<int, PdfIndirectObject> objects, PdfReadLimits limits, out string content) {

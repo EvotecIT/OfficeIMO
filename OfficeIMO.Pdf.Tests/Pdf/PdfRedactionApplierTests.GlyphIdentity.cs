@@ -615,6 +615,105 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(1, CountUntouchedImagePixels(one.Pdf));
         }
 
+        private static string GrayImage(int number, string extra = "", byte value = 0x5A) {
+            const int size = 40;
+            string pixels = new string((char)value, size * size);
+            return number + " 0 obj\n<< /Type /XObject /Subtype /Image /Width " + size + " /Height " + size + " /ColorSpace /DeviceGray /BitsPerComponent 8 " + extra +
+                " /Length " + pixels.Length + " >>\nstream\n" + pixels + "\nendstream\nendobj";
+        }
+
+        private byte[] BuildImagePage(string pageResources, string pageContent, params string[] extra) => BuildPdf(new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << " + pageResources + " >> >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes(pageContent))
+        }.Concat(extra).ToArray(), rootObjectNumber: 1);
+
+        [Theory]
+        [InlineData("/SMask 7 0 R")]
+        [InlineData("/Mask 7 0 R")]
+        public void MaskDataOfARedactedImageDoesNotSurviveUntouched(string link) {
+            byte[] bytes = BuildImagePage("/XObject << /Im1 6 0 R >>", "q 100 0 0 100 100 600 cm /Im1 Do Q",
+                GrayImage(6, link), GrayImage(7, link.StartsWith("/Mask", StringComparison.Ordinal) ? "/ImageMask true" : string.Empty, 0x77));
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 120, 620, 40, 40) });
+            try {
+                PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+                Dictionary<int, PdfIndirectObject> objects = PdfReadDocument.Open(result.Pdf).Objects;
+                Assert.DoesNotContain(objects.Values.Select(static item => item.Value).OfType<PdfStream>(), stream =>
+                    OfficeIMO.Pdf.Filters.StreamDecoder.DecodeRequired(stream, objects, int.MaxValue) is { Length: > 100 } data && data.All(static value => value == 0x77));
+            } catch (InvalidOperationException) {
+                // Refusing is also safe.
+            }
+        }
+
+        [Fact]
+        public void InlineImageUnderAMarkIsRefusedNotKept() {
+            string pixels = new string('Z', 400);
+            byte[] bytes = BuildImagePage("", "q 100 0 0 100 100 600 cm BI /W 20 /H 20 /CS /G /BPC 8 ID " + pixels + " EI Q");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 120, 620, 40, 40) });
+            Assert.Contains(plan.Matches, match => match.Kind == PdfRedactionMatchKind.ImagePlacement);
+            Exception? refused = Record.Exception(() => source.Redactions.ApplyWithEvidence(plan));
+            if (refused is null) Assert.DoesNotContain(pixels, DecodeAllStreams(source.Redactions.ApplyWithEvidence(plan).Pdf), StringComparison.Ordinal);
+            else Assert.IsType<InvalidOperationException>(refused);
+        }
+
+        [Fact]
+        public void VerifierSeesAnUnpaintedFormHoldingAnInlineImageWhenOneWasReviewed() {
+            string pixels = new string('Z', 400);
+            string inline = "BI /W 20 /H 20 /CS /G /BPC 8 ID " + pixels + " EI";
+            string form = "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length " + inline.Length + " >>\nstream\n" + inline + "\nendstream\nendobj";
+            PdfDocument source = PdfDocument.Load(BuildImagePage("", "q 100 0 0 100 100 600 cm " + inline + " Q"));
+            PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 120, 620, 40, 40) });
+            PdfDocument output = PdfDocument.Load(BuildImagePage("/XObject << /Fm1 6 0 R >>", "q Q", form));
+            PdfRedactionVerificationReport report = output.Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
+            Assert.Contains(report.Issues, issue => issue.Marker == "OrphanedImageData");
+        }
+
+        [Fact]
+        public void VerifierSeesAMaskOfAReviewedImageHeldByAnUnpaintedResource() {
+            PdfDocument source = PdfDocument.Load(BuildImagePage("/XObject << /Im1 6 0 R >>", "q 100 0 0 100 100 600 cm /Im1 Do Q", GrayImage(6, "/SMask 7 0 R"), GrayImage(7, value: 0x77)));
+            PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 120, 620, 40, 40) });
+            PdfDocument output = PdfDocument.Load(BuildImagePage("/XObject << /Other 6 0 R >>", "q Q", GrayImage(6, "/SMask 7 0 R", 0x10), GrayImage(7, value: 0x77)));
+            PdfRedactionVerificationReport report = output.Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
+            Assert.Contains(report.Issues, issue => issue.Marker == "OrphanedImageData");
+        }
+
+        [Theory]
+        [InlineData("pattern")]
+        [InlineData("softmask")]
+        public void VerifierSeesReviewedImageHeldByPatternsAndSoftMaskGroups(string holder) {
+            const string form = "q 100 0 0 100 0 0 cm /Im1 Do Q";
+            string extraResources = holder == "pattern" ? "/Pattern << /P1 8 0 R >>" : "/ExtGState << /G1 << /SMask << /S /Luminosity /G 8 0 R >> >> >>";
+            string holderObject = holder == "pattern"
+                ? "8 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 100 100] /XStep 100 /YStep 100 /Resources << /XObject << /Im1 6 0 R >> >> /Length " + form.Length + " >>\nstream\n" + form + "\nendstream\nendobj"
+                : "8 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency >> /Resources << /XObject << /Im1 6 0 R >> >> /Length " + form.Length + " >>\nstream\n" + form + "\nendstream\nendobj";
+            byte[] painted = BuildImagePage("/XObject << /Im1 6 0 R >> " + extraResources, "q 100 0 0 100 100 600 cm /Im1 Do Q", GrayImage(6), holderObject);
+            PdfDocument source = PdfDocument.Load(painted);
+            PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 100, 600, 100, 100) });
+            byte[] output = BuildImagePage(extraResources, "q Q", GrayImage(6), holderObject);
+
+            PdfRedactionVerificationReport report = PdfDocument.Load(output).Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
+
+            Assert.Contains(report.Issues, issue => issue.Marker == "OrphanedImageData");
+        }
+
+        [Fact]
+        public void VerifierSeesReviewedImageHeldByAnAnnotationAppearance() {
+            const string form = "q 100 0 0 100 0 0 cm /Im1 Do Q";
+            string appearance = "8 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /XObject << /Im1 6 0 R >> >> /Length " + form.Length + " >>\nstream\n" + form + "\nendstream\nendobj";
+            string stamp = "9 0 obj\n<< /Type /Annot /Subtype /Stamp /Rect [300 100 400 200] /AP << /N 8 0 R >> >>\nendobj";
+            byte[] painted = BuildImagePage("/XObject << /Im1 6 0 R >>", "q 100 0 0 100 100 600 cm /Im1 Do Q", GrayImage(6), appearance, stamp);
+            PdfDocument source = PdfDocument.Load(painted);
+            PdfRedactionPlan plan = source.Redactions.Plan(new[] { new PdfRedactionArea(1, 100, 600, 100, 100) });
+            byte[] output = PdfEncoding.Latin1GetBytes(PdfEncoding.Latin1GetString(BuildImagePage("", "q Q", GrayImage(6), appearance, stamp))
+                .Replace("/Contents 5 0 R", "/Contents 5 0 R /Annots [9 0 R]"));
+            PdfRedactionVerificationReport report = PdfDocument.Load(output).Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
+            Assert.Contains(report.Issues, issue => issue.Marker == "OrphanedImageData");
+        }
+
         private byte[] BuildTaggedSource() => BuildPdf(new[] {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",

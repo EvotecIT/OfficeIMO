@@ -77,8 +77,9 @@ public sealed class PdfRedactionMatch {
 
     internal PdfImagePlacement? ImagePlacement { get; }
 
-    // Survives object renumbering, so verification can recognise this image's source data in the output.
-    internal string? ImageDataSha256 { get; set; }
+    // Survive object renumbering, so verification can recognise this image's source data, and any
+    // /SMask or /Mask stream it carries, in the output.
+    internal IReadOnlyList<string> ImageDataSha256 { get; set; } = Array.Empty<string>();
 
     internal bool RequiresRemoval => Area.ContentScope == PdfRedactionContentScope.TextAndUnderlay ||
         Kind is PdfRedactionMatchKind.TextBlock or PdfRedactionMatchKind.Annotation;

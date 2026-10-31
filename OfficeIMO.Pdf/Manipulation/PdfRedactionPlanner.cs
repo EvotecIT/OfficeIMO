@@ -158,15 +158,15 @@ internal static partial class PdfRedactionPlanner {
             }
         }
 
-        var imageFingerprints = new Dictionary<int, string?>();
+        var imageFingerprints = new Dictionary<int, IReadOnlyList<string>>();
         foreach (PdfRedactionMatch match in matches) {
             if (match.Kind != PdfRedactionMatchKind.ImagePlacement || match.ObjectNumber is not int imageObject) continue;
-            if (!imageFingerprints.TryGetValue(imageObject, out string? fingerprint)) {
-                fingerprint = readDocument.Objects.TryGetValue(imageObject, out PdfIndirectObject? indirect) && indirect.Value is PdfStream image
-                    ? PdfRedactionPlan.ComputeSourceSha256(image.Data) : null;
-                imageFingerprints.Add(imageObject, fingerprint);
+            if (!imageFingerprints.TryGetValue(imageObject, out IReadOnlyList<string>? fingerprints)) {
+                fingerprints = readDocument.Objects.TryGetValue(imageObject, out PdfIndirectObject? indirect) && indirect.Value is PdfStream image
+                    ? PdfRedactionApplier.FingerprintImageData(readDocument.Objects, image) : Array.Empty<string>();
+                imageFingerprints.Add(imageObject, fingerprints);
             }
-            match.ImageDataSha256 = fingerprint;
+            match.ImageDataSha256 = fingerprints;
         }
 
         findings.Add(new PdfDiagnosticFinding(

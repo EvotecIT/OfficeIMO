@@ -2309,8 +2309,10 @@ block that isn't part of it is refused.
 
 Rewriting a repeated image or form paints a scrubbed copy, so the original entry is
 dropped from any resources that no longer paint it. A placement outside the reviewed
-areas keeps the original. If unpainted content still holds a reviewed image, `Apply(plan)`
-refuses the output and `VerifyAppliedPlan` reports it.
+areas keeps the original. If a reviewed image, its `/SMask` or `/Mask` data, or an inline
+image survives in unpainted content, or the same data is held by a pattern, soft-mask
+group or annotation appearance on a reviewed page, `Apply` refuses the output and
+`VerifyAppliedPlan` reports it.
 
 `TextAndUnderlay` still removes image pixels and intersecting vector paths across the
 whole mark, so scanned ink under a match is erased, including descenders, while
