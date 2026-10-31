@@ -459,6 +459,19 @@ reference. Generated files differ from that reference in hyphenation and frame
 breaks; native language/CR defaults, general layout parity, repair-free opening
 and public template-free native creation remain unqualified.
 
+The `tableCreation` record covers source-free creation of a borderless, unmerged
+2×2 table with unequal column/row tracks, bold headers, an empty cell and an
+independent label. One complete table story owns the cell text; native cell
+endpoints, grid definitions and table story roles are generated separately.
+The edited specimen adds a paragraph in the first cell and refills the last.
+Public cell edits save on generated, native-normalized and independent native
+sources. Repeated growth/clearing retains neighboring cells, tracks, complete
+stories and opaque layout data. Five files complete 35 native operations and
+match independent controls across ten initial/resaved page pairs at 144 dpi;
+native row/column getters confirm the intended tracks. Larger, merged and styled
+table authoring, generic public native creation and repair-free opening remain
+unqualified.
+
 Crop source saving can set or clear all four edge fractions, including local
 zero overrides, and combine them with image replacement and bounds changes.
 `PUB_NATIVE_PICTURE_CROP_UNQUALIFIED` keeps native acceptance conservative for

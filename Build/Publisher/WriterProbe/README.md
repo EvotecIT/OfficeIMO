@@ -38,6 +38,8 @@ dotnet $probe create mixed-object-pages ./candidate-mixed-objects.pub ./image.pn
 dotnet $probe create master-content ./candidate-master-content.pub ./image.png
 dotnet $probe create linked-story ./candidate-linked-story.pub
 dotnet $probe create linked-story-overflow ./candidate-linked-overflow.pub
+dotnet $probe create table ./candidate-table.pub
+dotnet $probe create table-edited ./candidate-table-edited.pub
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create styled-text ./candidate-styled-text.pub
 dotnet $probe create shape ./candidate-shape.pub
@@ -304,6 +306,7 @@ Page, picture and image-asset counts depend on the selected case.
 | `mixed-object-pages` | Authors overlapping rectangle/picture/text/rectangle on the first page and text/picture/rectangle/picture on the last, with an empty middle page. Three pictures share one asset; two text frames own independent stories. One PNG path required. |
 | `master-content` | One master owns a rectangle, picture and text frame and is applied to three physical pages. Page-owned foreground overlaps the master; one page picture reuses the master asset. One PNG path required. |
 | `linked-story`, `linked-story-overflow` | One story flows through three frames on pages 1, 3 and 2, alongside an independent label. Fixed Arial text and 18-point line spacing; the longer specimen retains terminal overflow. |
+| `table`, `table-edited` | Borderless 2×2 table with unequal tracks, bold headers, an empty final cell and independent label. The edited specimen adds a first-cell paragraph and refills the last cell. |
 | `cropped-image-pages` | Uses the named-image model and public `SetPictureCrop` on the first picture, with distinct left/top/right/bottom fractions `0.25/0.125/0.0625/0.1875`. The shared OfficeArt encoder owns the native values. Two PNG paths required for this qualified specimen. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
@@ -483,6 +486,21 @@ and stable resave pixels are qualified separately from independent appearance:
 the generated files do not reproduce the control's hyphenation and frame breaks.
 Language/CR defaults, repair-free opening and generic public native creation
 remain unqualified.
+
+The `tableCreation` record qualifies one borderless, unmerged table and its
+independent label. Public `AddTable` and cell-editing snapshots supply the grid,
+complete story and cell paragraphs. Generated `TCD` endpoints partition that
+story; table story metadata stays outside the ordinary frame catalog. The table
+frame, cell records and layout slots contain no copied native cache. The shared
+formatting-page encoder handles repeated styles when the earlier unshared page
+would overflow; all 21 earlier creation outputs remain byte-identical.
+
+Both creation variants and public source edits on generated, native-normalized
+and independently authored files match native controls across ten stage/page
+comparisons. The compact source profile admits validated table descriptors;
+the existing table writer remaps cell boundaries while preserving opaque layout
+data. Larger grids, merged cells, table fills/borders, dynamic row sizing,
+generic public native creation and repair-free opening remain unqualified.
 
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native

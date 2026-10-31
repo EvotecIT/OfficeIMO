@@ -21081,5 +21081,192 @@
       "Full ordinary-story text and overflow survive native save/reopen; three frame chain and independent story verified.",
       "Repair-free opening and generic public native creation remain unqualified."
     ]
+  },
+  "tableCreation": {
+    "schema": "officeimo.publisher.native-table-creation.v1",
+    "sourceCommit": "9fd6230efdecada1f2a2520a45a6962f23125beb",
+    "sourceFileHashBasis": "SHA-256 of canonical Git blob bytes at sourceCommit.",
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeTableCreationControl.ps1",
+        "sha256": "a1b8ae5e1772ace88e6b8cbea3bdefb3e0960a5d9426570beacac0386f0ad8b6"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "3e6ae050ac417da3d0477e7d09e552944e1173c3674f434ebc02b23778d0c13c"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "5b6b69e2ce9309fa43567f74a4d0bbb2a55845c8938e80e8ca881a1360efb47c"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "a6a80894aec63c30f211c1ee3e2b3c2b91bcb554565c5da0d70c884bdee54942"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateCases.cs",
+        "sha256": "418cfef33051d6d56ef0073ff5679ac3a86d0b40def6955e3f9052045e5fa96a"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateOfficeArt.cs",
+        "sha256": "3fb44eab46a8c8eb2b647673e8c384c64c32739a51658da86c6ad23d49612e80"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidatePublicationSpec.cs",
+        "sha256": "9f30ccff05450d13ffa1d233eada192bb8137c0d65ccdb204bfa367cb13a8519"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateTableCreation.cs",
+        "sha256": "0712772bb06417b063a7f94bafbafa2f952bea080d54386955093a69a2cf02e0"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateTableRecords.cs",
+        "sha256": "b8abd472fdf811011300668a19526dd7b3ab84421f8ddf94f5d1e915d0b6f92b"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/NativePublicationGraph.cs",
+        "sha256": "127b37ff78e7e85afb5313569e450b4aa6c73d3d316473e954b75ecb383a6edd"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/NativeSchemaPrefix.cs",
+        "sha256": "fcbc68019af053b3c5cc0b238b4e08b5ed299f11d6decebc3823dca812b2da8e"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/Program.cs",
+        "sha256": "64c5c1bde8a5e5f933ed3dc12db5641c9728caaf5e82b4d44d1fe49438f71df1"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/QuillCandidate.cs",
+        "sha256": "a223c7d9148bb93a4b33b0859874909d4358af639ecb08055aa76f23f5a03cbe"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/QuillLayoutCatalog.cs",
+        "sha256": "dcf7ed68191881c84c2e27f40b29efaf7006a183701fa30b0c6048b2d366f236"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/QuillTextFormatting.cs",
+        "sha256": "08474fbe21a2fe7488fdc14b1fb43eed6c1fb54e14af013e81eea377c4c647d4"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherTableCreationTests.cs",
+        "sha256": "a5f95c7dc5433ae3e18502ea30895f4b38911886200d9655081199ad1f1b5754"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillSourceLayout.cs",
+        "sha256": "218404b1f846d4d89b03a92c062cb0b9eceb8ae04140827ba37e7e8b04db3eeb"
+      }
+    ],
+    "profile": "One borderless unmerged2x2table, unequal120/180ptcolumns and42/54ptrows, zero padding, Arial12/boldheaders/18ptlineheight, empty finalcell and independent label.",
+    "cases": [
+      {
+        "name": "created",
+        "sha256": "6d955f8c0a0ddea91d28a4e54645dee6745db093ae4f282412018ec14f259da7"
+      },
+      {
+        "name": "created-edited",
+        "sha256": "5ecc3ab03d4b0e7fb75bbe6022bedefcca0ecded5827efc2cd2cf9d418bd8603"
+      },
+      {
+        "name": "edited-created",
+        "sha256": "cf66b5e0a716dfe8c49da0db9abf0bf7834db861dde64c1095f1a3a370f6270b"
+      },
+      {
+        "name": "edited-normalized",
+        "sha256": "1771d8a910d28c70aef8139a14bfc9e10f5b1ab35367b4c4e12b25c609ddb69d"
+      },
+      {
+        "name": "edited-control",
+        "sha256": "6f4b16cd525720b36cdc80ad1bccad91dc506f9690c0c6cbbd87bd560f64f385"
+      }
+    ],
+    "nativeFullFiles": 5,
+    "nativeOperations": 35,
+    "independentNativePagePixelPairs": 10,
+    "pixelComparisonDpi": 144,
+    "publicReloads": 10,
+    "managedPdfSvgPages": 10,
+    "previousCreationProfilesByteIdentical": 21,
+    "nativeStructure": {
+      "tableFrameKind": "0x10",
+      "cellCatalogKind": "0x63",
+      "drawingShapeType": 201,
+      "tableStoryRole": "Tdet0; excluded from ordinary frame catalog.",
+      "textPartition": "One TCD/PLC descriptor for the table story ordinal; nonfinal inclusive and final exclusive endpoints.",
+      "layout": "Generated slots for four cells.",
+      "formatting": "Existing paragraph codec and shared formatting-page encoder; unshared encodings retained when they fit."
+    },
+    "sourceEditing": {
+      "profiles": [
+        "Generated compact TCD/MCLD",
+        "Native-normalized",
+        "Independent native reference"
+      ],
+      "operations": [
+        "Firstcell paragraph growth",
+        "Finalemptycell refill",
+        "Repeated growth/clear saves"
+      ],
+      "preservation": [
+        "Table/page/story identity",
+        "Unequal grid tracks",
+        "Neighboring cells and independent story",
+        "Opaque MCLD",
+        "Unrelated logical storage and compound metadata"
+      ]
+    },
+    "fixtures": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCreation/provenance.json",
+        "sha256": "1e322088b148779489b4a23d8fb5e22176dfecb8caeba9c4ccd6fd2ac88c3169"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCreationEdited/provenance.json",
+        "sha256": "a0e6629f0de4d87c698d3067b9d836f0c84af492f588a72f7a9110ab6264effe"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/GeneratedTable/provenance.json",
+        "sha256": "614d6345e1cb9a8f976daccb043f6b3cc7bba6ba5c199c23b87c314f1c3e9e71"
+      }
+    ],
+    "tests": {
+      "publisherPerFramework": 914,
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net472"
+      ],
+      "reader": 95,
+      "focused": 19,
+      "newRegression": "Native_created_table_keeps_cell_boundaries_tracks_and_opaque_layout_across_growth_and_clear_saves",
+      "newFixtureCases": 4
+    },
+    "sourcePowerShell": {
+      "runtime": "7.6.9",
+      "pdfs": 5,
+      "pages": 5,
+      "actualOwnerAssemblyBound": true,
+      "managedDefaultPixelPairs": 5
+    },
+    "validation": {
+      "unsigned": true,
+      "publisherPdfAndReaderPublisherNetstandard20Builds": true,
+      "sourcePowerShellBuild": true,
+      "probeNoIncrementalBuild": true,
+      "nativeProducer": "Microsoft Publisher16.0.20527.20088",
+      "automationSecurity": 3,
+      "ps7AndPs51SyntaxFiles": 4
+    },
+    "reproduction": [
+      "Create table/table-edited through WriterProbe from public table snapshots, without a seed publication.",
+      "Produce TableCreation/TableCreationEdited through isolated native comparison tooling with no autoformat, zero cell padding and explicit fonts/lineheight.",
+      "Use public cell editing and ToPubBytesResult with explicit Allow on generated, native-normalized and independent sources.",
+      "Run native Validate/Full on all5files; compare native getters and all10initial/resaved pages with independent controls.",
+      "Reload cell partitions, complete stories, styles and grid; run repeated growth/clear regression, supported runtime/consumer checks and21previous creation hashes."
+    ],
+    "limits": [
+      "Closed one-page borderless unmerged2x2table; larger/merged/styled tables and dynamic row sizing remain unqualified.",
+      "Public generic native creation and repair-free opening remain unqualified.",
+      "Native/managed general text layout and table rendering remain separate from this fixed native reference."
+    ]
   }
 }

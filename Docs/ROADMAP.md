@@ -898,6 +898,7 @@ Use the [native codec structure and qualification record](../Build/Publisher/Wri
 - [ ] Promote the [qualified modern native authoring specimens](../Build/Publisher/WriterProbe/README.md#native-codec-structure) to useful newsletters, brochures, flyers and labels through ordinary public APIs: page sizes, multiple and paired master authoring, styled and linked text, columns, tables, shapes and embedded images. Save and reopen native files without a seed publication, COM, LibreOffice or another runtime document engine.
 - [ ] Exercise the same authored model through native save, SVG and PDF. Qualify each example in Microsoft Publisher, including opening before repair/resave, native editing and subsequent saves. Expand supported effects only with corresponding native records, model behavior and independent evidence.
 - [ ] Extend image authoring beyond the qualified named/cropped-image specimens: broader shared-asset and crop/effect profiles, including ordering with groups, transformed objects and broader master-content profiles. Preserve unaffected bindings and qualify each operation independently.
+- [ ] Extend the [qualified borderless table authoring profile](../OfficeIMO.Publisher/SUPPORT.md) with larger grids, merged cells, cell fills/borders, dynamic row sizing and broader table layout/overflow controls through the canonical table/story model and native codecs.
 
 #### PUB05 — Earlier generations and preservation boundaries
 
