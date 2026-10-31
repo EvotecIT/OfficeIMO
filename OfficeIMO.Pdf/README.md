@@ -1924,7 +1924,10 @@ the intended profile and review its reading and navigation behavior.
 
 `Pages.Insert`, `Pages.Append`, and `Pages.Prepend` keep ordinary AcroForm fields
 live, including when the same source is imported repeatedly. Existing names stay
-unchanged; incoming collisions receive deterministic source and sequence suffixes.
+unchanged; incoming collisions receive deterministic suffixes such as
+`Shared_source2` and `Shared_source2_2`. Hierarchical fields keep their real parent
+dictionaries; a colliding namespace is renamed once, so siblings remain together
+(for example, `Parent_source2.First` and `Parent_source2.Second`).
 Extraction and page organization retain surviving widgets and prune removed pages
 from field trees and calculation order. Form appearances, default resources and
 `NeedAppearances` are retained.

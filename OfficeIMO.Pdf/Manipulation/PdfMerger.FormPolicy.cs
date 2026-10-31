@@ -159,8 +159,6 @@ internal static partial class PdfMerger {
             var clone = new PdfDictionary();
             foreach (KeyValuePair<string, PdfObject> entry in fieldDictionary.Items) clone.Items[entry.Key] = entry.Value;
             MaterializeInheritedFormAttributes(objects, clone);
-            clone.Items.Remove("Parent");
-            if (!string.IsNullOrEmpty(field.Name)) clone.Items["T"] = new PdfStringObj(field.Name!, true);
             if (field.Widgets.Count > 0 && clone.Get<PdfName>("Subtype")?.Name != "Widget") {
                 var selectedKids = new PdfArray();
                 foreach (PdfFormWidget widget in selectedWidgets) {
@@ -178,7 +176,7 @@ internal static partial class PdfMerger {
         }
 
         fieldCount = roots.Count;
-        return roots.Distinct().ToArray();
+        return RetainFormHierarchy(objects, roots).Items.OfType<PdfReference>().Select(reference => reference.ObjectNumber).ToArray();
     }
 
     private static void CollectAcroFormResources(
@@ -226,40 +224,56 @@ internal static partial class PdfMerger {
         PdfMergeStructureMode mode, PdfMergeCollisionMode collisionMode, List<string> renamed,
         List<string> names, ref int localDropped, CancellationToken cancellationToken) {
         List<MergedFormRoot> roots = FindFormRoots(objects, sources);
-        foreach (MergedFormRoot root in roots) MaterializeInheritedFormAttributes(objects, root.FieldDictionary);
+        bool IncludeSource(int index) => mode == PdfMergeStructureMode.Combine ||
+            ((mode == PdfMergeStructureMode.KeepPrimary || mode == PdfMergeStructureMode.RejectIncoming) && index == primarySourceIndex);
+        MergedFormRoot[] retainedRoots = roots.Where(root => IncludeSource(root.SourceIndex)).ToArray();
+        foreach (MergedFormRoot root in retainedRoots) MaterializeInheritedFormAttributes(objects, root.FieldDictionary);
+        var namespaces = retainedRoots.GroupBy(root => (root.SourceIndex, Namespace: FindFormNamespace(objects, root.RootObjectNumber)))
+            .OrderBy(group => group.Key.SourceIndex == primarySourceIndex ? 0 : 1).ThenBy(group => group.Key.SourceIndex).ToArray();
         var reservedNames = new HashSet<string>(roots.Select(root => root.FieldName), StringComparer.Ordinal);
+        foreach (var group in namespaces) reservedNames.Add(group.Key.Namespace.Name);
         var selected = new List<MergedFormRoot>();
+        var occupiedNamespaces = new HashSet<string>(StringComparer.Ordinal);
         var fieldNames = new HashSet<string>(StringComparer.Ordinal);
-        var droppedWidgetObjectNumbers = new HashSet<int>();
+        var droppedWidgetObjectNumbers = new HashSet<int>(roots.Where(root => !IncludeSource(root.SourceIndex))
+            .SelectMany(root => root.WidgetObjectNumbers));
 
-        foreach (MergedFormRoot root in roots.OrderBy(root => root.SourceIndex == primarySourceIndex ? 0 : 1).ThenBy(root => root.SourceIndex)) {
+        foreach (var group in namespaces) {
             cancellationToken.ThrowIfCancellationRequested();
-            bool include = mode == PdfMergeStructureMode.Combine ||
-                ((mode == PdfMergeStructureMode.KeepPrimary || mode == PdfMergeStructureMode.RejectIncoming) && root.SourceIndex == primarySourceIndex);
-            if (!include) { foreach (int widget in root.WidgetObjectNumbers) droppedWidgetObjectNumbers.Add(widget); continue; }
-            string fieldName = root.FieldName;
-            if (!fieldNames.Add(fieldName)) {
-                if (collisionMode == PdfMergeCollisionMode.Reject) throw new InvalidOperationException("PDF AcroForm field name collision: " + fieldName);
+            int sourceIndex = group.Key.SourceIndex;
+            bool include = true;
+            string originalNamespace = group.Key.Namespace.Name;
+            string fieldNamespace = originalNamespace;
+            if (include && !occupiedNamespaces.Add(fieldNamespace)) {
+                if (collisionMode == PdfMergeCollisionMode.Reject) throw new InvalidOperationException("PDF AcroForm field name collision: " + fieldNamespace);
                 if (collisionMode == PdfMergeCollisionMode.KeepFirst) {
-                    foreach (int widget in root.WidgetObjectNumbers) droppedWidgetObjectNumbers.Add(widget);
-                    localDropped++;
-                    continue;
+                    include = false;
+                    localDropped += group.Count();
+                } else {
+                    if (roots.Any(candidate => candidate.SourceIndex == sourceIndex &&
+                        (candidate.FieldDictionary.Items.ContainsKey("AA") || candidate.FieldDictionary.Items.ContainsKey("A") ||
+                        candidate.WidgetObjectNumbers.Any(widget => objects[widget].Value is PdfDictionary dictionary &&
+                            (dictionary.Items.ContainsKey("AA") || dictionary.Items.ContainsKey("A"))))))
+                        throw new NotSupportedException("Renaming colliding AcroForm fields with actions requires retargeting field-name references; this combination is not supported.");
+                    fieldNamespace = GetUniqueFormFieldName(fieldNamespace, sourceIndex, reservedNames);
+                    reservedNames.Add(fieldNamespace);
+                    occupiedNamespaces.Add(fieldNamespace);
+                    var namespaceDictionary = (PdfDictionary)objects[group.Key.Namespace.ObjectNumber].Value;
+                    namespaceDictionary.Items["T"] = new PdfStringObj(fieldNamespace, true);
                 }
-                if (roots.Any(candidate => candidate.SourceIndex == root.SourceIndex &&
-                    (candidate.FieldDictionary.Items.ContainsKey("AA") || candidate.FieldDictionary.Items.ContainsKey("A") ||
-                    candidate.WidgetObjectNumbers.Any(widget => objects[widget].Value is PdfDictionary dictionary &&
-                        (dictionary.Items.ContainsKey("AA") || dictionary.Items.ContainsKey("A"))))))
-                    throw new NotSupportedException("Renaming colliding AcroForm fields with actions requires retargeting field-name references; this combination is not supported.");
-                string renamedField = GetUniqueFormFieldName(fieldName, root.SourceIndex, reservedNames);
-                renamed.Add("source " + root.SourceIndex + ": " + fieldName + " -> " + renamedField);
-                fieldName = renamedField;
-                reservedNames.Add(fieldName);
-                fieldNames.Add(fieldName);
             }
-            root.FieldName = fieldName;
-            PrepareFormRoot(objects, root);
-            selected.Add(root);
-            names.Add(fieldName);
+            foreach (MergedFormRoot root in group) {
+                if (!include) { foreach (int widget in root.WidgetObjectNumbers) droppedWidgetObjectNumbers.Add(widget); continue; }
+                if (fieldNamespace != originalNamespace) {
+                    string renamedField = root.FieldName.Insert(originalNamespace.Length, fieldNamespace.Substring(originalNamespace.Length));
+                    renamed.Add("source " + sourceIndex + ": " + root.FieldName + " -> " + renamedField);
+                    root.FieldName = renamedField;
+                }
+                if (!fieldNames.Add(root.FieldName)) throw new InvalidOperationException("PDF AcroForm field name collision: " + root.FieldName);
+                PrepareFormRoot(objects, root);
+                selected.Add(root);
+                names.Add(root.FieldName);
+            }
         }
 
         RemoveDroppedWidgets(objects, document, droppedWidgetObjectNumbers);
@@ -372,8 +386,8 @@ internal static partial class PdfMerger {
     private static string GetUniqueFormFieldName(string fieldName, int sourceIndex, HashSet<string> names) {
         int sequence = 1;
         while (true) {
-            string candidate = fieldName + ".source" + (sourceIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) +
-                (sequence == 1 ? string.Empty : "." + sequence.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            string candidate = fieldName + "_source" + (sourceIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                (sequence == 1 ? string.Empty : "_" + sequence.ToString(System.Globalization.CultureInfo.InvariantCulture));
             if (!names.Contains(candidate)) return candidate;
             sequence++;
         }
@@ -390,8 +404,6 @@ internal static partial class PdfMerger {
         if (!root.FieldDictionary.Items.ContainsKey("DR") && root.SourceDefaultResources != null) {
             root.FieldDictionary.Items["DR"] = root.SourceDefaultResources;
         }
-        root.FieldDictionary.Items.Remove("Parent");
-        root.FieldDictionary.Items["T"] = new PdfStringObj(root.FieldName, true);
     }
 
     private static PdfObject? CloneMappedAcroFormDefaultResources(FormCompositionSource source, IReadOnlyDictionary<int, int> numberMap, Dictionary<int, PdfIndirectObject> objects) {

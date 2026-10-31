@@ -47,6 +47,6 @@ public sealed class PdfMergePolicy {
     public PdfMergeCollisionMode NamedDestinationCollisions { get; set; } = PdfMergeCollisionMode.RenameIncoming;
     /// <summary>Collision behavior for attachment file names.</summary>
     public PdfMergeCollisionMode AttachmentCollisions { get; set; } = PdfMergeCollisionMode.RenameIncoming;
-    /// <summary>Collision behavior for fully qualified AcroForm field names.</summary>
+    /// <summary>Collision behavior for AcroForm field namespaces. A colliding parent and its descendants are handled together.</summary>
     public PdfMergeCollisionMode FormFieldCollisions { get; set; } = PdfMergeCollisionMode.RenameIncoming;
 }

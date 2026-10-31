@@ -55,9 +55,8 @@ internal static partial class PdfMerger {
 
     private static PdfDictionary BuildMergedAcroForm(Dictionary<int, PdfIndirectObject> objects,
         IReadOnlyList<MergedFormRoot> roots, IReadOnlyList<FormCompositionSource> sources, int primarySourceIndex, CancellationToken token) {
-        var fields = new PdfArray();
-        foreach (MergedFormRoot root in roots) { token.ThrowIfCancellationRequested(); fields.Items.Add(new PdfReference(root.RootObjectNumber, objects[root.RootObjectNumber].Generation)); }
-        var form = new PdfDictionary(); form.Items["Fields"] = fields;
+        token.ThrowIfCancellationRequested();
+        var form = new PdfDictionary();
         var resources = new PdfDictionary();
         var calculations = new PdfArray();
         bool needAppearances = false;
@@ -105,6 +104,7 @@ internal static partial class PdfMerger {
                         calculations.Items.Add(new PdfReference(mapped, objects[mapped].Generation));
             }
         }
+        form.Items["Fields"] = RetainFormHierarchy(objects, roots.Select(root => root.RootObjectNumber));
         form.Items["NeedAppearances"] = new PdfBoolean(needAppearances);
         if (resources.Items.Count > 0) form.Items["DR"] = resources;
         if (calculations.Items.Count > 0) form.Items["CO"] = calculations;
