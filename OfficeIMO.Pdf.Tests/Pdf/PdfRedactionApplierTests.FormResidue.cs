@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfRedactionApplierTests {
     public static IEnumerable<object[]> FormResidueCases() {
         foreach (PdfRedactionTextSelection selection in new[] { PdfRedactionTextSelection.MatchedGlyphs, PdfRedactionTextSelection.LogicalBlocks })
-            foreach (string holder in new[] { "TU", "TM", "Contents", "Name", "CatalogXmp", "PageXmp", "Info", "UnknownString", "UnknownStream", "UnknownStringLive", "UnknownStreamLive", "AA", "JsStream", "NamesJavaScript", "Historical", "SyntaxNames" })
+            foreach (string holder in new[] { "TU", "TM", "Contents", "Name", "CatalogXmp", "PageXmp", "Info", "UnknownString", "UnknownStream", "UnknownStringLive", "UnknownStreamLive", "AA", "JsStream", "NamesJavaScript", "Historical", "SyntaxNames", "ExcludedPage" })
                 yield return new object[] { selection, holder };
     }
 
@@ -19,7 +19,9 @@ public partial class PdfRedactionApplierTests {
     public void SearchClearsSavedFormResidueOrRefusesProof(PdfRedactionTextSelection selection, string holder) {
         byte[] bytes = BuildFormResidueSource(holder);
         PdfDocument source = PdfDocument.Load(bytes);
-        PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret"));
+        var options = new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret");
+        if (holder == "ExcludedPage") options.PageNumbers.Add(1);
+        PdfRedactionPlan plan = source.Redactions.Search(options);
         bool blockedPlan = holder is "Name" or "Historical" or "UnknownString" or "UnknownStream";
         bool refusedOutput = holder is "UnknownStringLive" or "UnknownStreamLive" or "AA" or "JsStream" or "NamesJavaScript";
         if (blockedPlan || refusedOutput) {
@@ -49,8 +51,17 @@ public partial class PdfRedactionApplierTests {
         PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan, new PdfRedactionApplyOptions { CleanupScope = PdfRedactionCleanupScope.None });
         Assert.True(result.Evidence.IsVerified);
         using var independent = UglyToad.PdfPig.PdfDocument.Open(result.Pdf);
-        Assert.Single(independent.GetPages());
+        Assert.Equal(holder == "ExcludedPage" ? 2 : 1, independent.NumberOfPages);
         Assert.Equal(new[] { "Choice", "Text" }, result.ToDocument().Reader.FormFields().Select(static field => field.Name).OrderBy(static name => name).ToArray());
+        if (holder == "ExcludedPage") {
+            Assert.Empty(plan.Areas);
+            Assert.Contains("secret", independent.GetPage(2).Text, StringComparison.Ordinal);
+            PdfRedactionSharingResult shared = source.Redactions.ApplyForSharing(plan,
+                new PdfSanitizationOptions { ContentKindsToRemove = PdfSanitizationContentKind.UserMetadata });
+            Assert.True(shared.Summary.IsVerified);
+            Assert.DoesNotContain("secret", shared.Verification.ExtractedText, StringComparison.Ordinal);
+            return;
+        }
         if (holder == "SyntaxNames") return; // PDF names and keys legitimately retain this spelling.
         string decoded = DecodeSavedResidueBytes(result.Pdf);
         Assert.DoesNotContain("secret", decoded, StringComparison.OrdinalIgnoreCase);
@@ -87,6 +98,11 @@ public partial class PdfRedactionApplierTests {
         if (holder == "Info") objects.Add("14 0 obj\n<< /Producer (secret) /Custom (secret) >>\nendobj");
         else if (holder.StartsWith("UnknownString", StringComparison.Ordinal)) objects.Add("14 0 obj\n[(public) <FEFF007300650063007200650074>]\nendobj");
         else if (holder is "CatalogXmp" or "PageXmp" or "UnknownStream" or "UnknownStreamLive" or "JsStream" or "NamesJavaScript") objects.Add(BuildStreamObject(14, streamData));
+        if (holder == "ExcludedPage") {
+            objects[1] = objects[1].Replace("/Count 1 /Kids [3 0 R]", "/Count 2 /Kids [3 0 R 6 0 R]");
+            objects.Add("6 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 7 0 R /Resources << /Font << /F1 4 0 R >> >> >>\nendobj");
+            objects.Add(BuildStreamObject(7, Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (secret on excluded page) Tj ET")));
+        }
         byte[] result = BuildPdf(objects.ToArray(), rootObjectNumber: 1);
         if (holder == "Info") {
             string raw = Encoding.ASCII.GetString(result).Replace("/Root 1 0 R", "/Root 1 0 R /Info 14 0 R");

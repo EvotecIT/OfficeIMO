@@ -47,7 +47,7 @@ public sealed partial class PdfDocumentRedactions {
         var contentPlan = new PdfRedactionPlan(plan.Preflight, plan.Areas, plan.Matches, plan.Findings,
             plan.RequestedSearchCriteria, plan.SourceSha256, reviewedTextObjectScopes: plan.ReviewedTextObjectScopes,
             searchMatchCase: plan.SearchMatchCase, searchRegexOptions: plan.SearchRegexOptions,
-            searchRegexTimeout: plan.SearchRegexTimeout);
+            searchRegexTimeout: plan.SearchRegexTimeout, searchPageNumbers: plan.SearchPageNumbers);
         PdfRedactionMatch[] provenImageRewrites = redaction.Evidence.Items
             .Where(item => item.Status == PdfRedactionEvidenceStatus.VerifiedAbsent && item.ReviewedMatch.Kind == PdfRedactionMatchKind.ImagePlacement)
             .Select(item => item.ReviewedMatch).ToArray();
