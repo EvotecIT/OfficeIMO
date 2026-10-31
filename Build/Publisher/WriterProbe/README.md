@@ -430,7 +430,7 @@ neighboring stories and unrelated storage. Detached values require unambiguous
 native templates. The public regression tests cover both explicit identity and
 the refusal of ambiguous copies. The existing 116 save specimens remain
 byte-identical. These controls qualify ordinary stories. The separate table-cell
-controls are described below; empty nonuniform paragraphs, text/formatting changes
+controls are described below; text/formatting changes
 during nonuniform count changes and repair-free opening remain unqualified.
 
 The `sourceEditing.cellParagraphRetention` record qualifies the same shared codec
@@ -443,6 +443,16 @@ Twenty public reloads retain complete text and cell ownership after native savin
 The shared authoring helper also reproduces all seven ordinary-control pages
 without pixel/span changes. No writer logic or public API was added for these
 fitting table profiles; general row reflow remains unqualified.
+
+The `sourceEditing.emptyParagraphRetention` record covers empty paragraphs in
+ordinary stories and first/final table cells. Retained empty paragraphs keep
+their complete source CR in interior and final positions. Exact source snapshots
+resolve opaque native language differences; ambiguous copied values are refused,
+including when other paragraphs contain newly authored text in uniform sources.
+Native final-state controls qualify deletion, reordering, duplication and mixed
+retained/authored operations. Western font size, bold and italic use their own
+fields; right-to-left fields do not overwrite them. Mixed-script rendering and
+repair-free opening remain unqualified.
 
 The `sourceEditing.tableTrackGeometry` record covers saved table endpoints and
 native row-growth controls. The reader recovers laid-out tracks from cumulative

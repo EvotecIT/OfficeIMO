@@ -29,7 +29,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -134,6 +134,7 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeCharacterAttributeControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeParagraphFormatControl.ps1')
 . (Join-Path $PSScriptRoot 'Get-NativeParagraphTopologyProfiles.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativeEmptyParagraphTypingStyles.ps1')
 . (Join-Path $PSScriptRoot 'Set-NativeParagraphTopologyFormatting.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeParagraphTopologyControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeTableParagraphTopologyControl.ps1')
@@ -607,8 +608,20 @@ try {
         'TextNonuniformParagraphs' {
             $pageCount = Add-NativeParagraphTopologyControl -Publication $document -FirstPage $page
         }
+        'TextNonuniformEmptyParagraphs' {
+            $pageCount = Add-NativeParagraphTopologyControl -Publication $document -FirstPage $page -EmptyParagraphs
+        }
+        'TextUniformEmptyParagraphs' {
+            $pageCount = Add-NativeParagraphTopologyControl -Publication $document -FirstPage $page -EmptyParagraphs -UniformEmpty
+        }
         'TableNonuniformParagraphs' {
             $pageCount = Add-NativeTableParagraphTopologyControl -Publication $document -FirstPage $page
+        }
+        'TableNonuniformEmptyParagraphs' {
+            $pageCount = Add-NativeTableParagraphTopologyControl -Publication $document -FirstPage $page -EmptyParagraphs
+        }
+        'TableUniformEmptyParagraphs' {
+            $pageCount = Add-NativeTableParagraphTopologyControl -Publication $document -FirstPage $page -EmptyParagraphs -UniformEmpty
         }
         'TextParagraphAttributes' {
             $pageCount = Add-NativeParagraphFormatControl -Publication $document -FirstPage $page

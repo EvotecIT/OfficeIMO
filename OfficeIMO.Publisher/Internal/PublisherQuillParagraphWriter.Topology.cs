@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Publisher.Internal;
 
 internal static partial class PublisherQuillParagraphWriter {
@@ -12,6 +14,8 @@ internal static partial class PublisherQuillParagraphWriter {
         PublisherQuillStyleUse? body = At(binding.NativeStart), final = At(binding.NativeStart + binding.NativeLength - 1);
         if (body == null || final == null) return false;
         byte[] bodyBytes = Copy(body.Value.DirectDefinition), paragraphBytes = Copy(paragraphs[0].DirectDefinition);
+        var emptyReferences = new Dictionary<OfficeRichTextParagraph, byte[]>();
+        var emptyValues = new Dictionary<OfficeRichTextParagraph, byte[]?>(PublisherTextComparison.Paragraphs);
         int originalPosition = binding.NativeStart;
         for (int i = 0; i < before.Paragraphs.Count; i++) {
             token.ThrowIfCancellationRequested();
@@ -19,6 +23,15 @@ internal static partial class PublisherQuillParagraphWriter {
             if (before.Paragraphs[i].Runs.Count != 1 || paragraphs[i].NativeStart != originalPosition
                 || paragraphs[i].NativeLength != length + 1 || !Copy(paragraphs[i].DirectDefinition).SequenceEqual(paragraphBytes)) return false;
             int visibleEnd = checked(originalPosition + length);
+            if (length == 0) {
+                PublisherQuillStyleUse? source = At(visibleEnd);
+                if (source == null) return false;
+                byte[] bytes = Copy(source.Value.DirectDefinition);
+                OfficeRichTextParagraph paragraph = before.Paragraphs[i];
+                emptyReferences.Add(paragraph, bytes);
+                if (!emptyValues.TryGetValue(paragraph, out byte[]? prior)) emptyValues.Add(paragraph, bytes);
+                else if (prior != null && !prior.SequenceEqual(bytes)) emptyValues[paragraph] = null;
+            }
             foreach (PublisherQuillStyleUse use in characters.Where(use => use.NativeStart < visibleEnd
                 && (long)use.NativeStart + use.NativeLength > originalPosition))
                 if (!Copy(use.DirectDefinition).SequenceEqual(bodyBytes)) return false;
@@ -33,7 +46,10 @@ internal static partial class PublisherQuillParagraphWriter {
         for (int i = 0; i < after.Paragraphs.Count; i++) {
             token.ThrowIfCancellationRequested(); var runs = after.Paragraphs[i].Runs;
             bool last = i + 1 == after.Paragraphs.Count;
-            if (typingStyles == null && last && runs.Count == 1 && runs[0].Text.Length == 0
+            byte[]? retainedEmpty = null;
+            if (runs.Count == 1 && runs[0].Text.Length == 0 && !emptyReferences.TryGetValue(after.Paragraphs[i], out retainedEmpty)
+                && emptyValues.TryGetValue(after.Paragraphs[i], out retainedEmpty) && retainedEmpty == null) return false;
+            if (retainedEmpty == null && typingStyles == null && last && runs.Count == 1 && runs[0].Text.Length == 0
                 && !Copy(final.Value.DirectDefinition).SequenceEqual(bodyBytes)) return false;
             foreach (var run in runs) {
                 if (run.Text.Length == 0) continue;
@@ -43,7 +59,10 @@ internal static partial class PublisherQuillParagraphWriter {
             }
             PublisherQuillSourceSpan ending = last ? final.Value.DirectDefinition : body.Value.DirectDefinition;
             byte[]? terminator;
-            if (runs.Count == 0) terminator = Copy(ending);
+            // A retained empty CR must survive even when other paragraphs are
+            // newly authored; uniform formatting does not establish its identity.
+            if (retainedEmpty != null) terminator = retainedEmpty;
+            else if (runs.Count == 0) terminator = Copy(ending);
             else {
                 var originalTyping = originalRun;
                 if (last && runs.Count == 1 && runs[0].Text.Length == 0 && typingStyles != null) {

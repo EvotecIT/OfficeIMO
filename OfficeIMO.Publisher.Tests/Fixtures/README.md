@@ -53,6 +53,14 @@ and final cells of a two-by-two table, with two unchanged neighboring cells.
 Each 468-by-432-point table fits on one page. The control distinguishes native
 per-cell formatting and language metadata from the complete table story and
 its TCD partition endpoints; it does not measure general row reflow.
+TextNonuniformEmptyParagraphs and TableNonuniformEmptyParagraphs add interior
+and final empty paragraphs, independent final-state retention controls and
+equal projected empties with distinct native language metadata. The ordinary
+control also has five visible Western font witnesses with distinct right-to-left
+size and emphasis fields. TextUniformEmptyParagraphs and
+TableUniformEmptyParagraphs distinguish exact empty-paragraph identity from
+uniform formatting, including retained empties mixed with newly authored text.
+Their native contracts record the requested styles and observed native values.
 TextStories has three separate stories, with an empty
 paragraph inside its middle story. TextFormattingPages retains 96 paragraphs,
 including overflow beyond its sole text frame, across two native paragraph-formatting

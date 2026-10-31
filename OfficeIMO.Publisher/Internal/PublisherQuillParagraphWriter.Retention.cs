@@ -16,7 +16,7 @@ internal static partial class PublisherQuillParagraphWriter {
             token.ThrowIfCancellationRequested();
             OfficeRichTextParagraph paragraph = before.Paragraphs[i];
             int length = paragraph.Runs.Sum(run => run.Text.Length), end = checked(position + length);
-            if (length == 0 || paragraph.Label != null || paragraphs[i].NativeStart != position || paragraphs[i].NativeLength != length + 1) return false;
+            if (paragraph.Label != null || paragraphs[i].NativeStart != position || paragraphs[i].NativeLength != length + 1) return false;
             var body = new List<PublisherQuillFormattingRange>();
             int cursor = position;
             while (cursor < end) {
@@ -35,7 +35,7 @@ internal static partial class PublisherQuillParagraphWriter {
         RetainedParagraph lastSource = templates[templates.Count - 1];
         // A former final CR carries the story's typing style. Moving that paragraph
         // inside needs an observed body-equivalent interior CR, not the final CR.
-        byte[]? movedTerminator = lastSource.Body.Count == 0 ? null : templates.Take(templates.Count - 1)
+        byte[]? movedTerminator = lastSource.Length == 0 ? lastSource.Terminator : templates.Take(templates.Count - 1)
             .Select(item => item.Terminator).FirstOrDefault(style => style.SequenceEqual(lastSource.Body[lastSource.Body.Count - 1].Style));
         var references = new Dictionary<OfficeRichTextParagraph, RetainedParagraph>();
         var values = new Dictionary<OfficeRichTextParagraph, RetentionCandidates>(PublisherTextComparison.Paragraphs);
@@ -56,7 +56,9 @@ internal static partial class PublisherQuillParagraphWriter {
                 if (!values.TryGetValue(paragraph, out RetentionCandidates? candidates) || !candidates.IsUnambiguous(last)) return false;
                 template = candidates.First;
             }
-            byte[]? terminator = last ? final : template.InteriorTerminator;
+            // The CR is an empty paragraph's only character definition. It must
+            // travel with that paragraph, including its typing and opaque fields.
+            byte[]? terminator = template.Length == 0 ? template.Terminator : last ? final : template.InteriorTerminator;
             if (terminator == null) return false;
             foreach (var range in template.Body) AppendRange(pc, checked(position + range.AbsoluteEnd), range.Style);
             position = checked(position + (template.Length + 1) * 2);
@@ -93,6 +95,7 @@ internal static partial class PublisherQuillParagraphWriter {
         private bool _sameBody = true, _sameInterior = true;
         internal void Add(RetainedParagraph other) {
             _sameBody &= First.Definition.SequenceEqual(other.Definition) && First.Body.Count == other.Body.Count
+                && (First.Length != 0 || First.Terminator.SequenceEqual(other.Terminator))
                 && First.Body.Zip(other.Body, (a, b) => a.AbsoluteEnd == b.AbsoluteEnd && a.Style.SequenceEqual(b.Style)).All(equal => equal);
             _sameInterior &= First.InteriorTerminator != null && other.InteriorTerminator != null
                 && First.InteriorTerminator.SequenceEqual(other.InteriorTerminator);

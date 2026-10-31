@@ -74,11 +74,12 @@ existing solid scalar paint slots, qualified frame columns/full intercolumn gap,
 insets and vertical alignment, and ordinary text stories with bounded
 size, bold, italic, underline pattern, single strikethrough, baseline, font family
 and opaque RGB color changes. Paragraph counts can change when the source paragraphs have
-uniform projected formatting and matching native definitions. Nonempty native
+uniform projected formatting and matching native definitions. Empty and nonempty native
 paragraphs with different formatting can also be retained, deleted, reordered or
 duplicated without changing their content or formatting. Pass the original
 paragraph snapshots to identify the exact native source; copied values require
-unambiguous native definitions. A changed story
+unambiguous native definitions. Retained empty paragraphs keep their own complete
+native CR typing in interior and final positions. A changed story
 can use one existing frame or a complete resolved chain of ordinary, visible,
 untransformed document-page frames. Native links, ownership and frame identities
 remain fixed. Known chained Quill layouts are supported; formatting and directory
@@ -427,11 +428,12 @@ formatting and leaves typing unspecified. Native saving retains that cell's CR
 typing; supply an empty styled run when a particular typing style is required.
 Native source saving supports qualified fixed cell partitions and supported
 text formatting. Paragraph counts can change when source definitions are uniform
-within the edited cell; neighboring cells may have different styles. Nonempty,
+within the edited cell; neighboring cells may have different styles. Empty and nonempty,
 unlabelled native paragraphs can also be retained, deleted, reordered or duplicated
 within a cell without changing their text or formatting. Original paragraph
 snapshots select their exact native definitions; copied values require
-unambiguous definitions within that cell. Unknown
+unambiguous definitions within that cell. Retained empty paragraphs keep their
+own complete native CR definition in interior and final positions. Unknown
 native partition records, arbitrary count-changing rewrites of nonuniform cell
 definitions and unsupported typing encodings refuse output. Publisher can expand rows when text
 wraps or exceeds a cell, so retained stored bounds do not guarantee fixed native

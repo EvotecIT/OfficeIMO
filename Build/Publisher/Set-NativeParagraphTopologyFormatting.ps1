@@ -6,6 +6,11 @@ function Set-NativeParagraphTopologyFormatting {
         $objects.Add($range)
         $format = $range.ParagraphFormat
         $objects.Add($format)
+        if ($Profile.ContainsKey('EmptyTypingStyles')) {
+            $key = if ($Profile.ContainsKey('WitnessStyleKey')) { $Profile.WitnessStyleKey }
+                elseif ($Profile.ContainsKey('WitnessStyleSize')) { 'size' + $Profile.WitnessStyleSize } else { [string]$Profile.Order[$paragraph] }
+            if ($Profile.EmptyTypingStyles.ContainsKey($key)) { $format.TextStyle = $Profile.EmptyTypingStyles[$key] }
+        }
         switch ($Profile.Order[$paragraph]) {
             0 { $format.Alignment = 0; $format.SpaceAfter = 3 }
             1 { $format.Alignment = 1; $format.SpaceBefore = 2; $format.SpaceAfter = 6 }
@@ -22,6 +27,7 @@ function Set-NativeParagraphTopologyFormatting {
             leftIndent = [double]$format.LeftIndent
             firstLineIndent = [double]$format.FirstLineIndent
             languageId = [int]$range.LanguageID
+            textStyle = [string]$format.TextStyle
         }
     }
 }

@@ -191,22 +191,24 @@ this write profile. Existing unknown tab metadata is retained when only paragrap
 alignment changes. Native field widths and formatting-page capacity remain
 enforced.
 
-Nonempty, unlabelled native paragraphs can also be retained, deleted, reordered or
+Unlabelled native paragraphs can also be retained, deleted, reordered or
 duplicated when source definitions differ. Their complete paragraph and visible
 character definitions remain byte-identical. Supply original paragraph snapshots
 to select their exact native definitions. Detached equal values are accepted only
 when all matching source definitions agree for the destination role; equal visible
 formatting alone does not resolve opaque language or other metadata. This path
 does not rewrite the retained text or formatting and requires one exact native
-paragraph range per source paragraph. Nonuniform empty paragraphs remain outside
-the retention profile.
+paragraph range per source paragraph. A retained empty paragraph keeps its own
+complete CR definition in either an interior or final position, including when
+other paragraphs are newly authored within the uniform source-save profile.
+Equal copied empty paragraphs with different native CR definitions are refused.
 
-The final destination keeps the original story's final CR typing definition.
-Moving the original final paragraph into the interior requires an observed
+For nonempty retained paragraphs, the final destination keeps the original
+story's final CR typing definition. Moving the original final paragraph into the interior requires an observed
 intermediate CR definition that matches its last visible body definition.
 Arbitrary count-changing rewrites from nonuniform definitions remain refused.
-An empty final paragraph is refused when it would replace
-a different native typing definition. A zero-paragraph story remains unsupported
+A newly authored empty final paragraph is refused when its requested typing
+cannot be represented safely. A zero-paragraph story remains unsupported
 for native saving; in-memory clearing and rendering remain available.
 
 The `sourceEditing.paragraphRetention` qualification record covers eight public
@@ -217,6 +219,16 @@ visible paragraphs with different native language definitions. Raw checks verify
 complete paragraph/body definitions, CR roles, neighboring stories and retained
 storage. These controls qualify ordinary-story retention; the separate table-cell
 controls are described below. Repair-free opening remains unassessed.
+
+The `sourceEditing.emptyParagraphRetention` record extends retention to empty
+paragraphs in ordinary stories and first/final table cells. It covers deletion,
+reordering, duplication, exact source selection, unambiguous copied values and
+retained empties mixed with newly authored text in uniform sources. Complete CR
+and paragraph definitions survive native save/reopen. Independent native controls
+also distinguish Western font size/emphasis from right-to-left font fields:
+complete style definitions default to Western 12-point regular when those
+Western fields are omitted; direct overrides inherit the selected style.
+This does not qualify mixed-script selection or rendering.
 
 When ranges no longer fit the original allocation, the codec can append aligned
 formatting pages and directory pages, relocate enlarged BTE indexes and resources,
@@ -367,8 +379,8 @@ match independent native final states in pixels and text spans. Two additional
 outputs select between equal visible paragraphs with different native language
 definitions. Raw checks preserve complete paragraph/body definitions, per-cell
 CR roles, TCD ownership, tracks, neighboring stories and unrelated storage.
-These fitting controls do not qualify general row reflow, nonuniform empty
-paragraphs, count-changing text/formatting rewrites or repair-free opening.
+These fitting controls do not qualify general row reflow, count-changing
+text/formatting rewrites from nonuniform sources or repair-free opening.
 
 The `sourceEditing.tableText` qualification record covers six public saves over
 twelve native document-page states: first/final/all cell replacements, bold/italic

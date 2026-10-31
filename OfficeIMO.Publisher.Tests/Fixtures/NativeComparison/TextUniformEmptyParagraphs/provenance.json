@@ -1,0 +1,42 @@
+{
+  "schema": "officeimo.publisher.native-empty-paragraph-retention-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TextUniformEmptyParagraphs",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-textuniformemptyparagraphs.json",
+      "sha256": "50d876b33b35348a5c7a20992b36837203e2facff6926a50773345bffe2f6355"
+    },
+    {
+      "name": "native-textuniformemptyparagraphs.pdf",
+      "sha256": "4c856e892d7b8c88967e83d613dc366b580ad867858ce583b7d18c42f37e11d2"
+    },
+    {
+      "name": "native-textuniformemptyparagraphs.pub",
+      "sha256": "2ee5731ff64e6fcbc7cb5b6066c96068f62fa1a4af272e528199c8c51a56f4d9"
+    }
+  ],
+  "license": "MIT",
+  "documentPages": 5,
+  "profiles": [
+    "UniformEmptyLanguage",
+    "UniformRetainedEnglish",
+    "UniformRetainedFrench",
+    "UniformMixedEnglishFinal",
+    "UniformMixedFrenchInterior"
+  ],
+  "scope": "Independent native empty-paragraph final states with exact typing and language metadata; uniform controls include retained empties mixed with authored text. Ordinary nonuniform controls also distinguish Western font fields from right-to-left fields. General reflow and mixed-script rendering are not qualified."
+}

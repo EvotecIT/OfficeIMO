@@ -78,17 +78,24 @@ internal sealed partial class PublisherQuillStyleReader {
         int last = -1;
         foreach (int end in ends) { if (end <= last) throw new InvalidDataException("Publisher formatting endpoints are not strictly ordered."); last = end; }
     }
-    private PublisherCharacterStyle ReadCharacter(int offset, int end) {
-        var result = new PublisherCharacterStyle();
+    private PublisherCharacterStyle ReadCharacter(int offset, int end, bool styleDefinition = false) {
+        // STSH definitions are snapshots: an omitted western size is 12 points.
+        // The other-script size token must not replace that or an explicit 0x0C.
+        var result = new PublisherCharacterStyle {
+            Size = styleDefinition ? 12D : null,
+            Bold = styleDefinition ? false : null,
+            Italic = styleDefinition ? false : null
+        };
         foreach (PublisherBlock field in _blocks.Chunk(offset, end)) {
             switch (field.Id) {
-                case 0x02: case 0x37: result.Bold = field.Type != 0x02; break;
-                case 0x03: case 0x38: result.Italic = field.Type != 0x02; break;
+                case 0x02: result.Bold = field.Type != 0x02; break;
+                case 0x03: result.Italic = field.Type != 0x02; break;
                 case 0x10: result.Strikethrough = field.Type != 0x02; break;
                 case 0x1E: result.UnderlineStyle = ReadUnderline(field.Value); break;
                 case 0x0C: case 0x39:
                     if (field.Value == 0 || field.Value > 12700 * 1000) throw new InvalidDataException("Invalid Publisher font size.");
-                    result.Size = field.Value / 12700D; break;
+                    if (field.Id == 0x0C) result.Size = field.Value / 12700D;
+                    break;
                 case 0x2E: result.Color = field.Value; break;
                 case 0x44: result.Color = PublisherContentsReader.Field(_blocks.Children(field), 0)?.Value; break;
                 case 0x24:

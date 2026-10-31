@@ -1,0 +1,673 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TableUniformEmptyParagraphs",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 5,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "\r",
+      "Neighbor one",
+      "Neighbor two",
+      "\r",
+      "",
+      "Neighbor one",
+      "Neighbor two",
+      "",
+      "",
+      "Neighbor one",
+      "Neighbor two",
+      "",
+      "First authored paragraph\rSecond authored paragraph\r",
+      "Neighbor one",
+      "Neighbor two",
+      "First authored paragraph\rSecond authored paragraph\r",
+      "\rFirst authored paragraph\rSecond authored paragraph",
+      "Neighbor one",
+      "Neighbor two",
+      "\rFirst authored paragraph\rSecond authored paragraph"
+    ],
+    "shapes": [
+      {
+        "name": "UniformEmptyLanguage",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "\r",
+          "Neighbor one",
+          "Neighbor two",
+          "\r"
+        ],
+        "left": 72,
+        "top": 72,
+        "width": 468,
+        "height": 432,
+        "paragraphTopology": [
+          {
+            "cell": 0,
+            "order": [
+              1,
+              1
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 1,
+                "text": "\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1036,
+                "textStyle": "Normal"
+              }
+            ]
+          },
+          {
+            "cell": 3,
+            "order": [
+              1,
+              1
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 1,
+                "text": "\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1036,
+                "textStyle": "Normal"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "UniformRetainedEnglish",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "",
+          "Neighbor one",
+          "Neighbor two",
+          ""
+        ],
+        "left": 72,
+        "top": 72,
+        "width": 468,
+        "height": 432,
+        "paragraphTopology": [
+          {
+            "cell": 0,
+            "order": [
+              1
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 1,
+                "text": "\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              }
+            ]
+          },
+          {
+            "cell": 3,
+            "order": [
+              1
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 1,
+                "text": "\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "UniformRetainedFrench",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "",
+          "Neighbor one",
+          "Neighbor two",
+          ""
+        ],
+        "left": 72,
+        "top": 72,
+        "width": 468,
+        "height": 432,
+        "paragraphTopology": [
+          {
+            "cell": 0,
+            "order": [
+              1
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 1,
+                "text": "\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1036,
+                "textStyle": "Normal"
+              }
+            ]
+          },
+          {
+            "cell": 3,
+            "order": [
+              1
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 1,
+                "text": "\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1036,
+                "textStyle": "Normal"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "UniformMixedEnglishFinal",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "First authored paragraph\rSecond authored paragraph\r",
+          "Neighbor one",
+          "Neighbor two",
+          "First authored paragraph\rSecond authored paragraph\r"
+        ],
+        "left": 72,
+        "top": 72,
+        "width": 468,
+        "height": 432,
+        "paragraphTopology": [
+          {
+            "cell": 0,
+            "order": [
+              1,
+              1,
+              1
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 1,
+                "text": "First authored paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "Second authored paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              }
+            ]
+          },
+          {
+            "cell": 3,
+            "order": [
+              1,
+              1,
+              1
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 1,
+                "text": "First authored paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "Second authored paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "UniformMixedFrenchInterior",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "\rFirst authored paragraph\rSecond authored paragraph",
+          "Neighbor one",
+          "Neighbor two",
+          "\rFirst authored paragraph\rSecond authored paragraph"
+        ],
+        "left": 72,
+        "top": 72,
+        "width": 468,
+        "height": 432,
+        "paragraphTopology": [
+          {
+            "cell": 0,
+            "order": [
+              1,
+              1,
+              1
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 1,
+                "text": "\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1036,
+                "textStyle": "Normal"
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "First authored paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "Second authored paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              }
+            ]
+          },
+          {
+            "cell": 3,
+            "order": [
+              1,
+              1,
+              1
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 1,
+                "text": "\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1036,
+                "textStyle": "Normal"
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "First authored paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "Second authored paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033,
+                "textStyle": "Normal"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "UniformEmptyLanguage",
+          "type": 18,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 432.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              216.0,
+              216.0
+            ],
+            "columnWidthsPoints": [
+              234.0,
+              234.0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554728,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "UniformRetainedEnglish",
+          "type": 18,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 432.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              216.0,
+              216.0
+            ],
+            "columnWidthsPoints": [
+              234.0,
+              234.0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "pageId": 33554734,
+      "pageIndex": 3,
+      "pageNumber": "3",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "UniformRetainedFrench",
+          "type": 18,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 432.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              216.0,
+              216.0
+            ],
+            "columnWidthsPoints": [
+              234.0,
+              234.0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "pageId": 33554740,
+      "pageIndex": 4,
+      "pageNumber": "4",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "UniformMixedEnglishFinal",
+          "type": 18,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 432.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              216.0,
+              216.0
+            ],
+            "columnWidthsPoints": [
+              234.0,
+              234.0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "pageId": 33554746,
+      "pageIndex": 5,
+      "pageNumber": "5",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "UniformMixedFrenchInterior",
+          "type": 18,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 432.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              216.0,
+              216.0
+            ],
+            "columnWidthsPoints": [
+              234.0,
+              234.0
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-tableuniformemptyparagraphs.pub",
+      "sha256": "47c509b68a11bec470f7bbebccfcad42f39a68468919b9baeaa522c8c74ecb78"
+    },
+    "reference": {
+      "name": "native-tableuniformemptyparagraphs.pdf",
+      "sha256": "05a0517453b8de885cfda32830648dc8cad064a390d4cd614c9e27f807f33b46"
+    }
+  }
+}

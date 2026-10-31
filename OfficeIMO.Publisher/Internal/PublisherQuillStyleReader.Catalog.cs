@@ -35,7 +35,7 @@ internal sealed partial class PublisherQuillStyleReader {
                 PublisherQuillSourceSpan character = source.Entries[index], paragraph = source.Entries[index + 1];
                 PublisherQuillSourceSpan characterDefinition = Definition(character), paragraphDefinition = Definition(paragraph);
                 definitions.Add(new PublisherQuillStyleDefinition(index / 2,
-                    ReadCharacter(characterDefinition.Offset, characterDefinition.Offset + characterDefinition.Length),
+                    ReadCharacter(characterDefinition.Offset, characterDefinition.Offset + characterDefinition.Length, styleDefinition: true),
                     ReadParagraph(paragraphDefinition.Offset, paragraphDefinition.Offset + paragraphDefinition.Length),
                     character, paragraph, characterDefinition, paragraphDefinition));
             }
