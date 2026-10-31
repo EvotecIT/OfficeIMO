@@ -1353,13 +1353,16 @@ startxref
 
     It 'creates PDFs with document-level font options' {
         $path = Join-Path $TestDrive 'font-options.pdf'
-        New-OfficePdf -Path $path -DefaultFont Courier -DefaultFontSize 13 {
+        New-OfficePdf -Path $path -Font Courier -Size 13pt {
             PdfHeading 'Font Options'
             PdfParagraph 'Generated with document-level font settings.'
         } | Out-Null
 
         (Get-OfficePdfPreflight -Path $path).CanRead | Should -BeTrue
         Get-OfficePdfText -Path $path | Should -Match 'Font Options'
+        $body = @(Get-OfficePdfText -Path $path -AsTextBlock | Where-Object Text -Match 'Generated with document-level')
+        $body.Count | Should -BeGreaterThan 0
+        $body | ForEach-Object { $_.FontSize | Should -Be 13 }
     }
 
     It 'builds visually polished PDF documents' {

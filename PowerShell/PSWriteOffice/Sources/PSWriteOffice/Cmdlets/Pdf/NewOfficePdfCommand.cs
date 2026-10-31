@@ -137,7 +137,7 @@ public sealed class NewOfficePdfCommand : OfficeLifecycleCmdlet<PdfDocument> {
 
     /// <summary>Operations allowed to readers; defaults to all Standard security permissions.</summary>
     [Parameter]
-    public PdfStandardPermissions? Permission { get; set; }
+    public PdfStandardPermissions Permission { get; set; } = PdfStandardPermissions.All;
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
@@ -213,10 +213,11 @@ public sealed class NewOfficePdfCommand : OfficeLifecycleCmdlet<PdfDocument> {
     private PdfStandardEncryptionOptions? CreateEncryption() {
         string? password = Password == null ? null : new NetworkCredential(string.Empty, Password).Password;
         string? owner = OwnerPassword == null ? null : new NetworkCredential(string.Empty, OwnerPassword).Password;
-        PdfStandardPermissions permissions = Permission ?? PdfStandardPermissions.All;
+        PdfStandardPermissions permissions = Permission;
         if ((permissions & ~PdfStandardPermissions.All) != 0) throw new PSArgumentException("Permission contains unsupported PDF flags.");
         if (password == null && owner == null) {
-            if (Permission.HasValue) throw new PSArgumentException("Permission requires Password or OwnerPassword.");
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(Permission)))
+                throw new PSArgumentException("Permission requires Password or OwnerPassword.");
             return null;
         }
         return password == null

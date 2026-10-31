@@ -87,9 +87,8 @@ public sealed class PdfCreationLifecycleWorkflowTests {
             using var runspace = Open();
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
-            shell.AddCommand("New-OfficePdf").AddParameter("Path", path).AddParameter("OwnerPassword", owner)
-                .AddParameter("Permission", PdfStandardPermissions.Print | PdfStandardPermissions.Accessibility).AddParameter("AllowLoss")
-                .AddParameter("Content", ScriptBlock.Create("PdfParagraph 'Owner-only extraction'"));
+            shell.AddScript("param($path, $owner) New-OfficePdf -Path $path -OwnerPassword $owner -Permission Print,Accessibility -AllowLoss { PdfParagraph 'Owner-only extraction' }")
+                .AddArgument(path).AddArgument(owner);
             Assert.Empty(shell.Invoke());
             Assert.False(shell.HadErrors, Errors(shell));
             using (PdfDocument reader = PdfDocument.Load(path)) Assert.Throws<PdfPermissionDeniedException>(() => reader.Read());
