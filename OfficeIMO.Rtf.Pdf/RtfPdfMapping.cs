@@ -51,6 +51,7 @@ internal static class RtfPdfMapping {
 
     internal static PdfCore.PdfParagraphStyle ToPdfParagraphStyle(RtfDocument document, RtfParagraph paragraph,
         IReadOnlyList<PdfCore.PdfTextRun> runs, PdfCore.PdfCreateOptions options) {
+        bool markerAfterTab = paragraph.ListText?.ToPlainText().StartsWith("\t", StringComparison.Ordinal) == true;
         paragraph = document.GetParagraphFormatting(paragraph);
 
         int? leftIndent = paragraph.LeftIndentTwips;
@@ -71,7 +72,20 @@ internal static class RtfPdfMapping {
         double leftIndentPoints = ToNonNegativePoints(leftIndent);
         pdfStyle.LeftIndent = global::OfficeIMO.OfficeLength.Points(leftIndentPoints);
         pdfStyle.RightIndent = global::OfficeIMO.OfficeLength.Points(ToNonNegativePoints(rightIndent));
-        pdfStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(ToSafeFirstLineIndent(firstLineIndent, leftIndentPoints));
+        double firstLinePoints = ToSafeFirstLineIndent(firstLineIndent, leftIndentPoints);
+        double? markerTabWidth = null;
+        if (markerAfterTab) {
+            // Cocoa starts its list text with a tab to the marker's stop, inside the hanging indent.
+            double lineStart = leftIndentPoints + firstLinePoints;
+            foreach (RtfTabStop tabStop in tabStops.OrderBy(static stop => stop.PositionTwips)) {
+                double position = TwipsToPoints(tabStop.PositionTwips);
+                if (position <= lineStart) continue;
+                if (position < leftIndentPoints) firstLinePoints = position - leftIndentPoints;
+                break;
+            }
+            markerTabWidth = -firstLinePoints;
+        }
+        pdfStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(firstLinePoints);
 
         if (spaceBefore.HasValue && spaceBefore.Value >= 0) {
             pdfStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(TwipsToPoints(spaceBefore.Value));
@@ -108,8 +122,14 @@ internal static class RtfPdfMapping {
             pdfStyle.DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(TwipsToPoints(defaultTabWidth.Value));
         }
 
+        // The text after the marker still starts at the left indent, which is the next default stop from the marker.
+        if (markerTabWidth > 0D) pdfStyle.DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(markerTabWidth.Value);
+
         foreach (RtfTabStop tabStop in tabStops) {
-            pdfStyle.AddTabStop(global::OfficeIMO.OfficeLength.Points(TwipsToPoints(tabStop.PositionTwips)), ToPdfTabAlignment(tabStop.Alignment), ToPdfTabLeader(tabStop.Leader));
+            // RTF measures tab stops from the margin and the PDF paragraph from its text frame, after the left indent.
+            double position = TwipsToPoints(tabStop.PositionTwips) - leftIndentPoints;
+            if (position <= 0D) continue;
+            pdfStyle.AddTabStop(global::OfficeIMO.OfficeLength.Points(position), ToPdfTabAlignment(tabStop.Alignment), ToPdfTabLeader(tabStop.Leader));
         }
 
         pdfStyle.KeepTogether = keepTogether;
@@ -130,7 +150,7 @@ internal static class RtfPdfMapping {
 
         PdfCore.PdfPageBorder border = new PdfCore.PdfPageBorder {
             DashStyle = ToPdfDashStyle(source.Style),
-            Width = global::OfficeIMO.OfficeLength.Points(source.Width.HasValue && source.Width.Value > 0 ? source.Width.Value / 8D : 1D),
+            Width = global::OfficeIMO.OfficeLength.Points(source.Width.HasValue && source.Width.Value > 0 ? TwipsToPoints(source.Width.Value) : 1D),
             Inset = global::OfficeIMO.OfficeLength.Points(source.Space.HasValue && source.Space.Value >= 0 ? source.Space.Value : 36D)
         };
 
@@ -150,8 +170,15 @@ internal static class RtfPdfMapping {
             BorderColor = null,
             BorderWidth = global::OfficeIMO.OfficeLength.Points(0D),
             CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D),
-            CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D)
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D),
+            // RTF states its own fills and emphasis, so the PDF table defaults add none.
+            HeaderFill = null,
+            FooterFill = null,
+            HeaderBold = false,
+            FooterBold = false,
+            RowStripeFill = null
         };
+        style.DropPaddingInNarrowColumns = true;
         int headerRowCount = GetRenderableHeaderRowCount(table);
         style.HeaderRowCount = headerRowCount;
         style.RepeatHeaderRowCount = headerRowCount;
@@ -321,7 +348,7 @@ internal static class RtfPdfMapping {
     private static PdfCore.PdfCellBorderSide CreatePdfCellBorderSide(RtfDocument document, RtfTableCellBorderStyle style, int? width, int? colorIndex) {
         return new PdfCore.PdfCellBorderSide {
             Color = ToPdfColor(document, colorIndex) ?? DefaultBorderColor,
-            Width = global::OfficeIMO.OfficeLength.Points(width.HasValue && width.Value > 0 ? width.Value / 8D : 0.5D),
+            Width = global::OfficeIMO.OfficeLength.Points(width.HasValue && width.Value > 0 ? TwipsToPoints(width.Value) : 0.5D),
             DashStyle = ToPdfDashStyle(style),
             LineStyle = style == RtfTableCellBorderStyle.Double ? PdfCore.PdfCellBorderLineStyle.TwoLine : PdfCore.PdfCellBorderLineStyle.Standard
         };

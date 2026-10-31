@@ -64,6 +64,8 @@ public partial class PdfTableStyle {
     public bool ConsumesVerticalFlow { get; set; } = true;
     /// <summary>Document adapters can retain glyph positions while containing their painting in the cell.</summary>
     internal bool ClipTextToCellBounds { get; set; }
+    /// <summary>Drops the horizontal padding of a column narrower than it, as Word does for thin spacer columns, instead of rejecting the table.</summary>
+    internal bool DropPaddingInNarrowColumns { get; set; }
     internal bool PreservePartialCellLines { get; set; }
     /// <summary>
     /// Document adapters can measure cell margins from the inner edge of the border
@@ -693,6 +695,7 @@ public partial class PdfTableStyle {
             ConsumesVerticalFlow = ConsumesVerticalFlow,
             ClipTextToCellBounds = ClipTextToCellBounds,
             PreservePartialCellLines = PreservePartialCellLines,
+            DropPaddingInNarrowColumns = DropPaddingInNarrowColumns,
             Position = Position,
             BorderWidth = BorderWidth,
             CornerRadius = CornerRadius,

@@ -298,7 +298,7 @@ internal static partial class TextLayoutEngine {
             var span = ordered[i];
             double previousEnd = coordinates.Along(previous) + Math.Max(0, previous.LogicalLayoutAdvance);
             double gap = coordinates.Along(span) - previousEnd;
-            if (gap >= minimumRunGap) {
+            if (gap >= minimumRunGap && !IsListMarkerHangingBeforeText(runs, current, gap)) {
                 runs.Add(current);
                 current = new List<PdfTextSpan>();
             }
@@ -311,6 +311,11 @@ internal static partial class TextLayoutEngine {
         }
 
         return runs;
+    }
+
+    // A bullet set at a hanging indent starts its line, so the wide gap after it is the indent and not a gutter.
+    private static bool IsListMarkerHangingBeforeText(List<List<PdfTextSpan>> runs, List<PdfTextSpan> current, double gap) {
+        return runs.Count == 0 && ContentStructureExtractor.IsHangingListMarker(string.Concat(current.Select(static span => span.Text)), gap);
     }
 
     internal static TextLine BuildLine(List<PdfTextSpan> spans, Options? options,

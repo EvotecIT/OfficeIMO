@@ -695,6 +695,16 @@ internal static partial class PdfWriter {
                 double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
                 double padLeft = GetTableCellPaddingLeft(style, rowIndex, cell.Column);
                 double padRight = GetTableCellPaddingRight(style, rowIndex, cell.Column);
+                if (cellWidth - padLeft - padRight <= 0.001 && style.DropPaddingInNarrowColumns) {
+                    var paddings = style.CellPaddings ?? new Dictionary<(int Row, int Column), PdfCellPadding>();
+                    if (!paddings.TryGetValue((rowIndex, cell.Column), out PdfCellPadding? padding)) padding = new PdfCellPadding();
+                    padding.Left = global::OfficeIMO.OfficeLength.Zero;
+                    padding.Right = global::OfficeIMO.OfficeLength.Zero;
+                    paddings[(rowIndex, cell.Column)] = padding;
+                    style.CellPaddings = paddings;
+                    padLeft = GetTableCellPaddingLeft(style, rowIndex, cell.Column);
+                    padRight = GetTableCellPaddingRight(style, rowIndex, cell.Column);
+                }
                 if (cellWidth - padLeft - padRight <= 0.001) {
                     throw new ArgumentException("Table horizontal cell padding must leave a positive text width.");
                 }

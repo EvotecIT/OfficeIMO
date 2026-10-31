@@ -133,7 +133,9 @@ namespace OfficeIMO.Word.Pdf {
                 ? options.PdfOptions.DefaultTableStyle
                 : null;
             if (configuredStyle != null) {
-                return configuredStyle.Clone();
+                PdfCore.PdfTableStyle configured = configuredStyle.Clone();
+                configured.DropPaddingInNarrowColumns = true;
+                return configured;
             }
 
             return new PdfCore.PdfTableStyle {
@@ -143,7 +145,8 @@ namespace OfficeIMO.Word.Pdf {
                 FooterFill = null,
                 HeaderBold = false,
                 FooterBold = false,
-                RowStripeFill = null
+                RowStripeFill = null,
+                DropPaddingInNarrowColumns = true
             };
         }
 

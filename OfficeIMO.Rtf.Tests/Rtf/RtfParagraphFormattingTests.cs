@@ -134,14 +134,14 @@ public class RtfParagraphFormattingTests {
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("#E6F2FF", rtfDocument.GetColor(rtfParagraph.BackgroundColorIndex!.Value)!.ToString());
         Assert.Equal(RtfParagraphBorderStyle.Single, rtfParagraph.TopBorder.Style);
-        Assert.Equal(12, rtfParagraph.TopBorder.Width);
+        Assert.Equal(30, rtfParagraph.TopBorder.Width);
         Assert.Equal("#4472C4", rtfDocument.GetColor(rtfParagraph.TopBorder.ColorIndex!.Value)!.ToString());
         Assert.Equal(RtfParagraphBorderStyle.Double, rtfParagraph.LeftBorder.Style);
-        Assert.Equal(8, rtfParagraph.LeftBorder.Width);
+        Assert.Equal(20, rtfParagraph.LeftBorder.Width);
         Assert.Equal("#00AA55", rtfDocument.GetColor(rtfParagraph.LeftBorder.ColorIndex!.Value)!.ToString());
         Assert.Contains($@"\cbpat{rtfParagraph.BackgroundColorIndex}", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\brdrt\brdrs\brdrw12\brdrcf{rtfParagraph.TopBorder.ColorIndex}", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\brdrl\brdrdb\brdrw8\brdrcf{rtfParagraph.LeftBorder.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\brdrt\brdrs\brdrw30\brdrcf{rtfParagraph.TopBorder.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\brdrl\brdrdb\brdrw20\brdrcf{rtfParagraph.LeftBorder.ColorIndex}", rtf, StringComparison.Ordinal);
 
         WordParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs);
         Assert.Equal("E6F2FF", roundTripParagraph.ShadingFillColorHex);
@@ -161,8 +161,8 @@ public class RtfParagraphFormattingTests {
         int leftColor = document.AddColor(0x00, 0xAA, 0x55);
         RtfParagraph paragraph = document.AddParagraph("Boxed");
         paragraph.SetBackgroundColor(fill)
-            .SetBorder(RtfParagraphBorderSide.Top, RtfParagraphBorderStyle.Single, width: 12, colorIndex: topColor)
-            .SetBorder(RtfParagraphBorderSide.Left, RtfParagraphBorderStyle.Double, width: 8, colorIndex: leftColor);
+            .SetBorder(RtfParagraphBorderSide.Top, RtfParagraphBorderStyle.Single, width: 30, colorIndex: topColor)
+            .SetBorder(RtfParagraphBorderSide.Left, RtfParagraphBorderStyle.Double, width: 20, colorIndex: leftColor);
 
         using WordDocument word = document.ToWordDocument();
 

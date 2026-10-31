@@ -109,7 +109,7 @@ public class RtfWordTableImportDefaultsTests {
     public void Rtf_To_Word_Import_Preserves_Explicit_Cell_Padding_And_Borders(int gapTwips) {
         string rtf = @"{\rtf1\ansi{\colortbl;\red68\green114\blue196;}\trowd\trgaph" +
             gapTwips.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-            @"\trleft0\clpadt120\clpadft3\clpadl180\clpadfl3\clpadb240\clpadfb3\clpadr300\clpadfr3\clbrdrt\brdrs\brdrw12\brdrcf1\cellx2400\cellx4800\clpadl0\clpadfl3\clpadr0\clpadfr3\cellx7200\pard\intbl Explicit\cell\pard\intbl Plain\cell\pard\intbl Zero\cell\row}";
+            @"\trleft0\clpadt120\clpadft3\clpadl180\clpadfl3\clpadb240\clpadfb3\clpadr300\clpadfr3\clbrdrt\brdrs\brdrw30\brdrcf1\cellx2400\cellx4800\clpadl0\clpadfl3\clpadr0\clpadfr3\cellx7200\pard\intbl Explicit\cell\pard\intbl Plain\cell\pard\intbl Zero\cell\row}";
         using WordDocument mapped = RtfDocument.Read(rtf).Document.ToWordDocument();
         XElement table = Assert.Single(ReadPart(mapped.ToBytes(), "word/document.xml").Descendants(W + "tbl"));
         XElement[] cells = table.Descendants(W + "tc").ToArray();

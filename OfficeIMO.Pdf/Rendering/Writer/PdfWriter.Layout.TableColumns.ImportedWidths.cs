@@ -13,6 +13,8 @@ internal static partial class PdfWriter {
         int paragraphIndex = 0;
         for (int lineIndex = 0; lineIndex < layout.Lines.Count; lineIndex++) {
             var line = layout.Lines[lineIndex];
+            // An empty paragraph paints nothing, so a spacer column keeps its source width despite the paragraph's indent.
+            if (MeasureRichLineWidth(line, options) <= 0D) continue;
             double indents = layout.LineWidths != null
                 ? Math.Max(0D, TableCellNoWrapWidth - layout.LineWidths[lineIndex]) : 0D;
             double firstLineIndents = indents;

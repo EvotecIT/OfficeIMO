@@ -265,6 +265,7 @@ public sealed class PdfUnderstandingTableCandidate {
             Kind = DetectionKind,
             YTop = YTop,
             YBottom = YBottom,
+            HasRuledBounds = Evidence.Any(static item => item.Code == "table-closed-ruling-grid"),
             VisualBounds = _visualBounds
         };
         if (_visualBounds is not null) {

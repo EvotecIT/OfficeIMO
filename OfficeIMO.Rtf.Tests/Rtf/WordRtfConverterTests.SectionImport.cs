@@ -22,8 +22,8 @@ public partial class WordRtfConverterTests {
         int red = rtfDocument.AddColor(255, 0, 0);
         int blue = rtfDocument.AddColor(0, 0, 255);
         rtfDocument.PageSetup.PageBorders.SetDisplayOptions(RtfPageBorderScope.AllExceptFirstPageInSection, displayBehindText: false, RtfPageBorderOffset.PageEdge);
-        rtfDocument.PageSetup.PageBorders.Top.Set(RtfPageBorderStyle.Single, width: 12, space: 24, colorIndex: red);
-        rtfDocument.PageSetup.PageBorders.Bottom.Set(RtfPageBorderStyle.Double, width: 18, space: 30, colorIndex: blue);
+        rtfDocument.PageSetup.PageBorders.Top.Set(RtfPageBorderStyle.Single, width: 30, space: 24, colorIndex: red);
+        rtfDocument.PageSetup.PageBorders.Bottom.Set(RtfPageBorderStyle.Double, width: 45, space: 30, colorIndex: blue);
         rtfDocument.NoteSettings
             .SetFootnoteNumbering(start: 5, restart: RtfNoteNumberRestart.EachSection, format: RtfNoteNumberFormat.LowerRoman)
             .SetFootnotePlacement(RtfFootnotePlacement.BeneathText)
@@ -170,10 +170,10 @@ public partial class WordRtfConverterTests {
         Assert.True(rtfDocument.Sections[0].PageSetup.PageBorders.DisplayBehindText);
         Assert.Equal(RtfPageBorderOffset.PageEdge, rtfDocument.Sections[0].PageSetup.PageBorders.OffsetFrom);
         Assert.Equal(RtfPageBorderStyle.Dotted, rtfDocument.Sections[0].PageSetup.PageBorders.Left.Style);
-        Assert.Equal(8, rtfDocument.Sections[0].PageSetup.PageBorders.Left.Width);
+        Assert.Equal(20, rtfDocument.Sections[0].PageSetup.PageBorders.Left.Width);
         Assert.Equal(12, rtfDocument.Sections[0].PageSetup.PageBorders.Left.Space);
         Assert.Equal(RtfPageBorderStyle.Dashed, rtfDocument.Sections[0].PageSetup.PageBorders.Right.Style);
-        Assert.Equal(10, rtfDocument.Sections[0].PageSetup.PageBorders.Right.Width);
+        Assert.Equal(25, rtfDocument.Sections[0].PageSetup.PageBorders.Right.Width);
         Assert.Equal(14, rtfDocument.Sections[0].PageSetup.PageBorders.Right.Space);
         Assert.Equal(3, rtfDocument.Sections[0].NoteSettings.FootnoteStartNumber);
         Assert.Equal(RtfNoteNumberRestart.EachPage, rtfDocument.Sections[0].NoteSettings.FootnoteRestart);
@@ -203,8 +203,8 @@ public partial class WordRtfConverterTests {
         Assert.Contains(@"\pgnstarts3", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pgnucrm", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pgbrdropt41", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\pgbrdrl\brdrdot\brdrw8\brsp12", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\pgbrdrr\brdrdash\brdrw10\brsp14", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\pgbrdrl\brdrdot\brdrw20\brsp12", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\pgbrdrr\brdrdash\brdrw25\brsp14", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ftnstart3", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ftnrstpg", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ftnnauc", rtf, StringComparison.Ordinal);
@@ -249,8 +249,8 @@ public partial class WordRtfConverterTests {
             .SetLandscape()
             .SetDifferentFirstPageHeaderFooter();
         first.PageSetup.PageBorders.SetDisplayOptions(RtfPageBorderScope.FirstPageInSection, displayBehindText: true, RtfPageBorderOffset.PageEdge);
-        first.PageSetup.PageBorders.Left.Set(RtfPageBorderStyle.Dotted, width: 8, space: 12);
-        first.PageSetup.PageBorders.Right.Set(RtfPageBorderStyle.Dashed, width: 10, space: 14);
+        first.PageSetup.PageBorders.Left.Set(RtfPageBorderStyle.Dotted, width: 20, space: 12);
+        first.PageSetup.PageBorders.Right.Set(RtfPageBorderStyle.Dashed, width: 25, space: 14);
         first.NoteSettings
             .SetFootnoteNumbering(start: 3, restart: RtfNoteNumberRestart.EachPage, format: RtfNoteNumberFormat.UpperLetter)
             .SetFootnotePlacement(RtfFootnotePlacement.PageBottom)

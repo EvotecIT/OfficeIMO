@@ -63,6 +63,16 @@ internal readonly struct OfficeOpenTypeLineMetrics {
                 }
             }
         }
+        // Apple's Times puts its glyph box in the Windows metrics, 1.7 em against a 1.0 em horizontal header. That is
+        // no line height, so such a font takes the usual single-line advance with the same ascent to descent split.
+        int header = reader.Ascender - reader.Descender + reader.LineGap;
+        if (header > 0 && header <= reader.UnitsPerEm && advance > header * 3 / 2) {
+            int usual = (int)Math.Round(reader.UnitsPerEm * 1.15D);
+            int glyphBox = Math.Max(1, ascent + descent);
+            ascent = (int)Math.Round(ascent * (double)usual / glyphBox);
+            descent = usual - ascent;
+            advance = usual;
+        }
         return advance > 0
             ? new OfficeOpenTypeLineMetrics(advance / (double)reader.UnitsPerEm, ascent / (double)reader.UnitsPerEm,
                 descent / (double)reader.UnitsPerEm, OfficeOpenTypeDeviceMetrics.TryRead(reader),

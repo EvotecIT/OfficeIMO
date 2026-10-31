@@ -82,6 +82,8 @@ public sealed class PdfStructuredTable {
     public double YBottom { get; set; }
     /// <summary>Reason/heuristic for detection (e.g., band-splits, leaders).</summary>
     public string Kind { get; set; } = "band-splits";
+    /// <summary>YTop and YBottom are the outer rules of a closed grid rather than the first and last row baselines.</summary>
+    internal bool HasRuledBounds { get; set; }
     /// <summary>Detected columns with X ranges.</summary>
     public List<PdfStructuredTableColumn> Columns { get; } = new();
     /// <summary>Extracted row values aligned to Columns.</summary>
@@ -251,6 +253,10 @@ internal static class ContentStructureExtractor {
 
     internal static bool IsListItemText(string text) =>
         TryParseListItemText(text, out _, out _, out _);
+
+    /// <summary>A lone bullet followed by a gap no wider than a hanging indent, so what follows is its item and not a column.</summary>
+    internal static bool IsHangingListMarker(string text, double gap) =>
+        gap <= 72D && text.Trim() is "\u2022" or "\u2023" or "\u2043" or "\u2219" or "\u25AA" or "\u25AB" or "\u25CF" or "\u25CB" or "\u25E6";
 
     internal static bool IsSentenceTerminal(char value) => value is
         '.' or '!' or '?' or ':' or

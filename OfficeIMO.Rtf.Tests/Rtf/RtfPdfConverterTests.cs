@@ -535,13 +535,13 @@ public class RtfPdfConverterTests {
         Assert.True(styledBorder.Left);
         Assert.True(styledBorder.DiagonalDown);
         Assert.True(styledBorder.DiagonalUp);
-        Assert.Equal(1.5, styledBorder.TopBorder!.Width.ToPoints());
+        Assert.Equal(0.6, styledBorder.TopBorder!.Width.ToPoints(), 6);
         Assert.Equal(PdfCore.PdfCellBorderLineStyle.TwoLine, styledBorder.LeftBorder!.LineStyle);
         Assert.Equal(OfficeIMO.Drawing.OfficeStrokeDashStyle.Dot, styledBorder.DiagonalDownBorder!.DashStyle);
         Assert.Equal(OfficeIMO.Drawing.OfficeStrokeDashStyle.Dash, styledBorder.DiagonalUpBorder!.DashStyle);
         PdfCore.PdfCellBorder rowBorder = style.CellBorders[(0, 1)];
         Assert.True(rowBorder.Top);
-        Assert.Equal(1, rowBorder.TopBorder!.Width.ToPoints());
+        Assert.Equal(0.4, rowBorder.TopBorder!.Width.ToPoints(), 6);
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(68, 114, 196), rowBorder.TopBorder.Color);
 
         string text = PdfCore.PdfReadDocument.Open(pdfDocument.ToBytes()).ExtractText();
@@ -636,7 +636,7 @@ public class RtfPdfConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.PageSetup.SetPaperSize(4800, 6400);
         int red = document.AddColor(255, 0, 0);
-        document.PageSetup.PageBorders.Top.Set(RtfPageBorderStyle.Single, width: 16, space: 24, colorIndex: red);
+        document.PageSetup.PageBorders.Top.Set(RtfPageBorderStyle.Single, width: 40, space: 24, colorIndex: red);
         document.AddParagraph("Bordered document");
 
         byte[] pdf = (document.ToPdf(new RtfToPdfOptions {
@@ -655,14 +655,14 @@ public class RtfPdfConverterTests {
         document.PageSetup.SetPaperSize(4800, 6400);
         int red = document.AddColor(255, 0, 0);
         int blue = document.AddColor(0, 0, 255);
-        document.PageSetup.PageBorders.Top.Set(RtfPageBorderStyle.Single, width: 16, space: 24, colorIndex: red);
+        document.PageSetup.PageBorders.Top.Set(RtfPageBorderStyle.Single, width: 40, space: 24, colorIndex: red);
 
         RtfSection first = document.AddSection();
         first.AddParagraph("First border section");
 
         RtfSection second = document.AddSection(RtfSectionBreakKind.NextPage);
         second.PageSetup.SetPaperSize(4800, 6400);
-        second.PageSetup.PageBorders.Left.Set(RtfPageBorderStyle.Dotted, width: 8, space: 12, colorIndex: blue);
+        second.PageSetup.PageBorders.Left.Set(RtfPageBorderStyle.Dotted, width: 20, space: 12, colorIndex: blue);
         second.AddParagraph("Second border section");
 
         byte[] pdf = (document.ToPdf(new RtfToPdfOptions {

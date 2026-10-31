@@ -143,10 +143,15 @@ public static partial class WordRtfConverterExtensions {
         CopyCellBorder(source.Borders.TopRightToBottomLeftStyle.ToOpenXml(), WordBorderLengths.ToSize(source.Borders.TopRightToBottomLeftSize), source.Borders.TopRightToBottomLeftColorHex, destination.TopRightToBottomLeftBorder, document);
     }
 
+    // RTF states border widths in twips and Word in eighths of a point.
+    private static int ToRtfBorderWidth(uint wordSize) => checked((int)Math.Round(wordSize * 2.5D, MidpointRounding.AwayFromZero));
+
+    private static uint ToWordBorderSize(int rtfWidth) => checked((uint)Math.Round(rtfWidth / 2.5D, MidpointRounding.AwayFromZero));
+
     private static void CopyCellBorder(BorderValues? style, uint? width, string? colorHex, RtfTableCellBorder destination, RtfDocument document) {
         destination.Style = ToRtfBorderStyle(style);
         if (width.HasValue) {
-            destination.Width = checked((int)width.Value);
+            destination.Width = ToRtfBorderWidth(width.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(colorHex) &&
@@ -439,7 +444,7 @@ public static partial class WordRtfConverterExtensions {
 
         setStyle(ToWordBorderStyle(source.Style));
         if (source.Width.HasValue && source.Width.Value >= 0) {
-            setWidth((uint)source.Width.Value);
+            setWidth(ToWordBorderSize(source.Width.Value));
         }
 
         if (source.ColorIndex.HasValue) {

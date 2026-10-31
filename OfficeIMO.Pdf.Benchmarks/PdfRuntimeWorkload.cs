@@ -125,7 +125,7 @@ public sealed partial class PdfRuntimeWorkload {
     private void Generate(PdfObjectSerializationMode mode) {
         PdfDocument document = PdfRuntimeCorpus.Create(Pages, mode, _textOnly);
         using var stream = new MemoryStream();
-        PdfSaveResult result = document.Save(stream);
+        PdfSaveResult result = document.SaveWithEvidence(stream);
         _serialization = result.Serialization ?? throw new InvalidDataException("Generation returned no serialization report.");
         _output = stream.ToArray();
     }

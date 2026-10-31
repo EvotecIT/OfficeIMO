@@ -66,11 +66,11 @@ public partial class WordRtfConverterTests {
         Assert.False(rtfDocument.PageSetup.PageBorders.DisplayBehindText);
         Assert.Equal(RtfPageBorderOffset.PageEdge, rtfDocument.PageSetup.PageBorders.OffsetFrom);
         Assert.Equal(RtfPageBorderStyle.Single, rtfDocument.PageSetup.PageBorders.Top.Style);
-        Assert.Equal(12, rtfDocument.PageSetup.PageBorders.Top.Width);
+        Assert.Equal(30, rtfDocument.PageSetup.PageBorders.Top.Width);
         Assert.Equal(24, rtfDocument.PageSetup.PageBorders.Top.Space);
         Assert.Equal("#FF0000", rtfDocument.GetColor(rtfDocument.PageSetup.PageBorders.Top.ColorIndex!.Value)!.ToString());
         Assert.Equal(RtfPageBorderStyle.Double, rtfDocument.PageSetup.PageBorders.Bottom.Style);
-        Assert.Equal(18, rtfDocument.PageSetup.PageBorders.Bottom.Width);
+        Assert.Equal(45, rtfDocument.PageSetup.PageBorders.Bottom.Width);
         Assert.Equal(30, rtfDocument.PageSetup.PageBorders.Bottom.Space);
         Assert.Equal("#0000FF", rtfDocument.GetColor(rtfDocument.PageSetup.PageBorders.Bottom.ColorIndex!.Value)!.ToString());
         Assert.True(rtfDocument.PageSetup.Landscape);
@@ -95,8 +95,8 @@ public partial class WordRtfConverterTests {
         Assert.Contains(@"\pgnrestart", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pgnlcrm", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pgbrdropt34", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\pgbrdrt\brdrs\brdrw12\brsp24\brdrcf{rtfDocument.PageSetup.PageBorders.Top.ColorIndex}", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\pgbrdrb\brdrdb\brdrw18\brsp30\brdrcf{rtfDocument.PageSetup.PageBorders.Bottom.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\pgbrdrt\brdrs\brdrw30\brsp24\brdrcf{rtfDocument.PageSetup.PageBorders.Top.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\pgbrdrb\brdrdb\brdrw45\brsp30\brdrcf{rtfDocument.PageSetup.PageBorders.Bottom.ColorIndex}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\header", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\headerf", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\headerl", rtf, StringComparison.Ordinal);

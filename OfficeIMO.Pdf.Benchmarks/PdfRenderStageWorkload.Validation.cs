@@ -17,7 +17,7 @@ public sealed partial class PdfRenderStageWorkload {
         if (SourceSha256 != Hash(_source)) throw new InvalidDataException("Immutable source bytes changed.");
         ResetValidationMetrics();
 
-        PdfReadDocument reader = _reader ?? PdfReadDocument.Open(_source);
+        PdfDocument reader = _reader ?? PdfDocument.Load(_source);
         ValidateSource(reader);
         OfficeDrawing[] drawings = _drawings ?? Project(reader);
         var sceneEvidence = new List<object>(PreviewPages);

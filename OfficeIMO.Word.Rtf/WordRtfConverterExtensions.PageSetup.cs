@@ -189,7 +189,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         destination.Style = ToRtfPageBorderStyle(source.Val?.Value);
-        destination.Width = ToInt32(source.Size);
+        destination.Width = source.Size?.Value is uint size ? ToRtfBorderWidth(size) : null;
         destination.Space = ToInt32(source.Space);
         destination.Shadow = source.Shadow?.Value ?? false;
         destination.Frame = source.Frame?.Value ?? false;
@@ -233,7 +233,7 @@ public static partial class WordRtfConverterExtensions {
 
         border.Val = ToWordPageBorderStyle(source.Style);
         if (source.Width.HasValue && source.Width.Value >= 0) {
-            border.Size = (UInt32Value)(uint)source.Width.Value;
+            border.Size = (UInt32Value)ToWordBorderSize(source.Width.Value);
         }
 
         if (source.Space.HasValue && source.Space.Value >= 0) {
