@@ -181,7 +181,7 @@ public class PdfMergerPolicyTests {
         byte[] xfa = BuildTwoPageXfaPdf("unsupported-insertion-packet");
         byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfDocument.Load(xfa).Pages.Insert(insertBeforePageNumber, incoming));
 
         Assert.Contains("XFA", exception.Message, StringComparison.Ordinal);

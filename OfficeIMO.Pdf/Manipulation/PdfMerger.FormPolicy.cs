@@ -99,6 +99,8 @@ internal static partial class PdfMerger {
             return Array.Empty<int>();
         }
 
+        if (fields.Items.Any(item => item is not PdfReference))
+            throw new NotSupportedException("Form composition requires indirect AcroForm field roots.");
         collector.CollectObjectGraph(acroFormObject);
         return fields.Items
             .OfType<PdfReference>()
@@ -209,39 +211,8 @@ internal static partial class PdfMerger {
         var names = new List<string>();
         int localDropped = dropped;
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(merged, readOptions, null, (objects, security) => {
-            PdfDictionary catalog = RequireCatalog(objects, security);
-            List<MergedFormRoot> roots = FindFormRoots(objects, sources);
-            var selected = new List<MergedFormRoot>();
-            var fieldNames = new HashSet<string>(StringComparer.Ordinal);
-            var droppedWidgetObjectNumbers = new HashSet<int>();
-
-            foreach (MergedFormRoot root in roots) {
-                cancellationToken.ThrowIfCancellationRequested();
-                bool include = mode == PdfMergeStructureMode.Combine ||
-                    ((mode == PdfMergeStructureMode.KeepPrimary || mode == PdfMergeStructureMode.RejectIncoming) && root.SourceIndex == primarySourceIndex);
-                if (!include) { foreach (int widget in root.WidgetObjectNumbers) droppedWidgetObjectNumbers.Add(widget); continue; }
-                string fieldName = root.FieldName;
-                if (!fieldNames.Add(fieldName)) {
-                    if (collisionMode == PdfMergeCollisionMode.Reject) throw new InvalidOperationException("PDF AcroForm field name collision: " + fieldName);
-                    if (collisionMode == PdfMergeCollisionMode.KeepFirst) {
-                        foreach (int widget in root.WidgetObjectNumbers) droppedWidgetObjectNumbers.Add(widget);
-                        localDropped++;
-                        continue;
-                    }
-                    string renamedField = GetUniqueFormFieldName(fieldName, root.SourceIndex, fieldNames);
-                    renamed.Add("source " + root.SourceIndex + ": " + fieldName + " -> " + renamedField);
-                    fieldName = renamedField;
-                    fieldNames.Add(fieldName);
-                }
-                root.FieldName = fieldName;
-                PrepareFormRoot(objects, root);
-                selected.Add(root);
-                names.Add(fieldName);
-            }
-
-            RemoveDroppedWidgets(objects, document, droppedWidgetObjectNumbers);
-            catalog.Items.Remove("AcroForm");
-            if (selected.Count > 0) catalog.Items["AcroForm"] = BuildMergedAcroForm(selected, sources[primarySourceIndex].Document);
+            var formSources = sources.Select(source => new FormCompositionSource(source.Document, source.Objects, source.FormFieldRootObjectNumbers, source.OutputNumberMap!)).ToArray();
+            ComposeFormGraph(objects, RequireCatalog(objects, security), document, formSources, primarySourceIndex, mode, collisionMode, renamed, names, ref localDropped, cancellationToken);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         }, cancellationToken: cancellationToken);
         dropped = localDropped;
@@ -249,16 +220,63 @@ internal static partial class PdfMerger {
         return output;
     }
 
+    /// <summary>Combines mapped field graphs for both document merging and catalog-preserving page import.</summary>
+    private static void ComposeFormGraph(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog,
+        PdfReadDocument document, IReadOnlyList<FormCompositionSource> sources, int primarySourceIndex,
+        PdfMergeStructureMode mode, PdfMergeCollisionMode collisionMode, List<string> renamed,
+        List<string> names, ref int localDropped, CancellationToken cancellationToken) {
+        List<MergedFormRoot> roots = FindFormRoots(objects, sources);
+        foreach (MergedFormRoot root in roots) MaterializeInheritedFormAttributes(objects, root.FieldDictionary);
+        var reservedNames = new HashSet<string>(roots.Select(root => root.FieldName), StringComparer.Ordinal);
+        var selected = new List<MergedFormRoot>();
+        var fieldNames = new HashSet<string>(StringComparer.Ordinal);
+        var droppedWidgetObjectNumbers = new HashSet<int>();
+
+        foreach (MergedFormRoot root in roots.OrderBy(root => root.SourceIndex == primarySourceIndex ? 0 : 1).ThenBy(root => root.SourceIndex)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            bool include = mode == PdfMergeStructureMode.Combine ||
+                ((mode == PdfMergeStructureMode.KeepPrimary || mode == PdfMergeStructureMode.RejectIncoming) && root.SourceIndex == primarySourceIndex);
+            if (!include) { foreach (int widget in root.WidgetObjectNumbers) droppedWidgetObjectNumbers.Add(widget); continue; }
+            string fieldName = root.FieldName;
+            if (!fieldNames.Add(fieldName)) {
+                if (collisionMode == PdfMergeCollisionMode.Reject) throw new InvalidOperationException("PDF AcroForm field name collision: " + fieldName);
+                if (collisionMode == PdfMergeCollisionMode.KeepFirst) {
+                    foreach (int widget in root.WidgetObjectNumbers) droppedWidgetObjectNumbers.Add(widget);
+                    localDropped++;
+                    continue;
+                }
+                if (roots.Any(candidate => candidate.SourceIndex == root.SourceIndex &&
+                    (candidate.FieldDictionary.Items.ContainsKey("AA") || candidate.FieldDictionary.Items.ContainsKey("A") ||
+                    candidate.WidgetObjectNumbers.Any(widget => objects[widget].Value is PdfDictionary dictionary &&
+                        (dictionary.Items.ContainsKey("AA") || dictionary.Items.ContainsKey("A"))))))
+                    throw new NotSupportedException("Renaming colliding AcroForm fields with actions requires retargeting field-name references; this combination is not supported.");
+                string renamedField = GetUniqueFormFieldName(fieldName, root.SourceIndex, reservedNames);
+                renamed.Add("source " + root.SourceIndex + ": " + fieldName + " -> " + renamedField);
+                fieldName = renamedField;
+                reservedNames.Add(fieldName);
+                fieldNames.Add(fieldName);
+            }
+            root.FieldName = fieldName;
+            PrepareFormRoot(objects, root);
+            selected.Add(root);
+            names.Add(fieldName);
+        }
+
+        RemoveDroppedWidgets(objects, document, droppedWidgetObjectNumbers);
+        catalog.Items.Remove("AcroForm");
+        if (selected.Count > 0) catalog.Items["AcroForm"] = BuildMergedAcroForm(objects, selected, sources, primarySourceIndex, cancellationToken);
+    }
+
     private static List<MergedFormRoot> FindFormRoots(
         Dictionary<int, PdfIndirectObject> objects,
-        IReadOnlyList<ImportedSource> sources) {
+        IReadOnlyList<FormCompositionSource> sources) {
         var byRoot = new Dictionary<int, MergedFormRoot>();
         var visited = new HashSet<int>();
         for (int sourceIndex = 0; sourceIndex < sources.Count; sourceIndex++) {
-            ImportedSource source = sources[sourceIndex];
-            IReadOnlyDictionary<int, int> numberMap = source.OutputNumberMap ??
+            FormCompositionSource source = sources[sourceIndex];
+            IReadOnlyDictionary<int, int> numberMap = source.NumberMap ??
                 throw new InvalidOperationException("PDF merge form mapping was not initialized.");
-            PdfObject? defaultResources = CloneMappedAcroFormDefaultResources(source, numberMap);
+            PdfObject? defaultResources = CloneMappedAcroFormDefaultResources(source, numberMap, objects);
             for (int rootIndex = 0; rootIndex < source.FormFieldRootObjectNumbers.Length; rootIndex++) {
                 if (numberMap.TryGetValue(source.FormFieldRootObjectNumbers[rootIndex], out int mappedRoot)) {
                     CollectFormTerminals(
@@ -376,7 +394,7 @@ internal static partial class PdfMerger {
         root.FieldDictionary.Items["T"] = new PdfStringObj(root.FieldName, true);
     }
 
-    private static PdfObject? CloneMappedAcroFormDefaultResources(ImportedSource source, IReadOnlyDictionary<int, int> numberMap) {
+    private static PdfObject? CloneMappedAcroFormDefaultResources(FormCompositionSource source, IReadOnlyDictionary<int, int> numberMap, Dictionary<int, PdfIndirectObject> objects) {
         if (!source.Document.Security.RootObjectNumber.HasValue ||
             !source.Objects.TryGetValue(source.Document.Security.RootObjectNumber.Value, out PdfIndirectObject? catalogObject) ||
             catalogObject.Value is not PdfDictionary catalog ||
@@ -386,28 +404,28 @@ internal static partial class PdfMerger {
             return null;
         }
 
-        return CloneMappedFormObject(defaultResources, numberMap);
+        return CloneMappedFormObject(defaultResources, numberMap, objects);
     }
 
-    private static PdfObject CloneMappedFormObject(PdfObject value, IReadOnlyDictionary<int, int> numberMap) {
+    private static PdfObject CloneMappedFormObject(PdfObject value, IReadOnlyDictionary<int, int> numberMap, Dictionary<int, PdfIndirectObject> objects) {
         if (value is PdfReference reference) {
             if (!numberMap.TryGetValue(reference.ObjectNumber, out int mapped)) {
                 throw new InvalidOperationException("PDF merge form resource mapping was incomplete.");
             }
-            return new PdfReference(mapped, 0);
+            return new PdfReference(mapped, objects[mapped].Generation);
         }
         if (value is PdfArray array) {
             var clone = new PdfArray();
-            foreach (PdfObject item in array.Items) clone.Items.Add(CloneMappedFormObject(item, numberMap));
+            foreach (PdfObject item in array.Items) clone.Items.Add(CloneMappedFormObject(item, numberMap, objects));
             return clone;
         }
         if (value is PdfDictionary dictionary) {
             var clone = new PdfDictionary();
-            foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) clone.Items[item.Key] = CloneMappedFormObject(item.Value, numberMap);
+            foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) clone.Items[item.Key] = CloneMappedFormObject(item.Value, numberMap, objects);
             return clone;
         }
         if (value is PdfStream stream) {
-            return new PdfStream((PdfDictionary)CloneMappedFormObject(stream.Dictionary, numberMap), (byte[])stream.Data.Clone(), stream.DecodingFailed, stream.DecodingError);
+            return new PdfStream((PdfDictionary)CloneMappedFormObject(stream.Dictionary, numberMap, objects), (byte[])stream.Data.Clone(), stream.DecodingFailed, stream.DecodingError);
         }
         if (value is PdfStringObj text) return new PdfStringObj(text.RawBytes, text.UseTextStringEncoding);
         if (value is PdfName name) return new PdfName(name.Name);
@@ -445,15 +463,6 @@ internal static partial class PdfMerger {
             }
             if (kept.Items.Count == 0) pageDictionary.Items.Remove("Annots"); else pageDictionary.Items["Annots"] = kept;
         }
-    }
-
-    private static PdfDictionary BuildMergedAcroForm(IReadOnlyList<MergedFormRoot> roots, PdfReadDocument primary) {
-        var fields = new PdfArray();
-        foreach (MergedFormRoot root in roots) fields.Items.Add(new PdfReference(root.RootObjectNumber, 0));
-        var acroForm = new PdfDictionary(); acroForm.Items["Fields"] = fields; acroForm.Items["NeedAppearances"] = new PdfBoolean(false);
-        if (!string.IsNullOrEmpty(primary.AcroFormDefaultAppearance)) acroForm.Items["DA"] = new PdfStringObj(primary.AcroFormDefaultAppearance!, true);
-        if (primary.AcroFormQuadding.HasValue) acroForm.Items["Q"] = new PdfNumber(primary.AcroFormQuadding.Value);
-        return acroForm;
     }
 
     private static void ValidateFormReadback(byte[] output, IReadOnlyList<string> expectedNames, PdfLoadOptions readOptions, CancellationToken cancellationToken) {

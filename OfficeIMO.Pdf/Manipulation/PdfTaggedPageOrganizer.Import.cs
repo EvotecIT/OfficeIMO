@@ -29,8 +29,6 @@ internal static partial class PdfTaggedPageOrganizer {
         PdfLoadOptions selectedOptions = PdfLoadOptions.ForGeneratedOutput(sourceOptions, sourcePdf, selected);
         var incoming = PdfReadDocument.Open(selected, selectedOptions, token);
         var incomingCatalog = (PdfDictionary)incoming.Objects[incoming.Security.RootObjectNumber!.Value].Value;
-        if (incoming.AcroFormXfa != null || incoming.FormFields.Count > 0)
-            throw new NotSupportedException("Importing tagged page graphs with incoming form fields requires a form-name and resource collision policy.");
         if (incomingCatalog.Items.ContainsKey("OCProperties"))
             throw new NotSupportedException("Importing tagged page graphs with optional-content groups requires a layer collision policy.");
         if (incomingCatalog.Items.TryGetValue("Names", out var namesValue) && PdfObjectLookup.Resolve(incoming.Objects, namesValue) is PdfDictionary names &&
@@ -62,6 +60,7 @@ internal static partial class PdfTaggedPageOrganizer {
             }
             foreach (var pair in incoming.Objects) objects.Add(map[pair.Key], new PdfIndirectObject(map[pair.Key], 0, Clone(pair.Value.Value, 0)));
             var importedCatalog = (PdfDictionary)objects[map[incoming.Security.RootObjectNumber.Value]].Value;
+            PdfMerger.CombineImportedForms(objects, catalog, target, incoming, map, token);
             var originalPages = target.Pages.Select(page => page.ObjectNumber).ToArray();
             var importedPages = incoming.Pages.Select(page => map[page.ObjectNumber]).ToArray();
             foreach (int page in originalPages.Concat(importedPages)) MaterializePageInheritance(objects, (PdfDictionary)objects[page].Value, token);

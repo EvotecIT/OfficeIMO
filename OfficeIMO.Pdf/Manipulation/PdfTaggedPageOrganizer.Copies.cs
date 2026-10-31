@@ -150,6 +150,20 @@ internal static partial class PdfTaggedPageOrganizer {
             while (!names.Add(copiedName)) copiedName += "_";
             dictionary.Items["T"] = new PdfStringObj(copiedName, true);
             fields.Items.Add(reference);
+            if (form.Items.TryGetValue("CO", out var order) && PdfObjectLookup.Resolve(objects, order) is PdfArray calculations) {
+                var retained = new HashSet<int>();
+                Collect(reference);
+                foreach (var item in calculations.Items.ToArray())
+                    if (item is PdfReference calculation && copies.TryGetValue(calculation.ObjectNumber, out int mapped) && retained.Contains(mapped))
+                        calculations.Items.Add(new PdfReference(mapped, objects[mapped].Generation));
+                void Collect(PdfObject item) {
+                    token.ThrowIfCancellationRequested();
+                    if (item is not PdfReference field || !retained.Add(field.ObjectNumber) ||
+                        PdfObjectLookup.Resolve(objects, field) is not PdfDictionary definition) return;
+                    if (definition.Items.TryGetValue("Kids", out var kids) && PdfObjectLookup.Resolve(objects, kids) is PdfArray children)
+                        foreach (var child in children.Items) Collect(child);
+                }
+            }
         }
         bool Retain(PdfObject item, HashSet<int> visited) {
             token.ThrowIfCancellationRequested();
