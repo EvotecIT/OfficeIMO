@@ -12,7 +12,8 @@ internal enum CandidateObjectKind { TextBox, Rectangle, Picture }
 internal sealed record CandidatePlacement(double Left, double Top, double Width, double Height);
 
 internal sealed record CandidateObjectSpec(CandidateObjectKind Kind, CandidatePlacement Placement,
-    CandidateStorySpec? Story = null, byte[]? Image = null, int PageIndex = 0, double? ColumnSpacing = null) {
+    CandidateStorySpec? Story = null, byte[]? Image = null, int PageIndex = 0, double? ColumnSpacing = null,
+    OfficeShape? Paint = null) {
     internal uint NativeKind => Kind == CandidateObjectKind.Picture ? 0x20U : 1U;
 }
 

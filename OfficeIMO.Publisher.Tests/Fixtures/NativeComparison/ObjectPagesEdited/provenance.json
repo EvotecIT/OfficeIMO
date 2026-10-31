@@ -1,0 +1,65 @@
+{
+  "schema": "officeimo.publisher.native-object-pages-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case ObjectPagesEdited",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-objectpagesedited.json",
+      "sha256": "81bb8612f9500afe2f86c3162fca3e5c872b54aa78bd3e03d45023d1e77f6f80"
+    },
+    {
+      "name": "native-objectpagesedited.pdf",
+      "sha256": "5450325a2fa1480cc8f1cfe0718116ad863a82e66dc0bb66bac511f444d42098"
+    },
+    {
+      "name": "native-objectpagesedited.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    },
+    {
+      "name": "native-objectpagesedited.pub",
+      "sha256": "97efb619cc72db5142450aaf2a764e2ebbd2484aa2c975bbd2f053073f04b8ba"
+    }
+  ],
+  "expected": {
+    "pages": 3,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [],
+    "shapes": [
+      {
+        "name": "FirstPageRectangle",
+        "kind": "Rectangle",
+        "left": 90,
+        "top": 180,
+        "width": 180,
+        "height": 84
+      },
+      {
+        "name": "LastPageImage",
+        "kind": "Image",
+        "left": 300,
+        "top": 240,
+        "width": 120,
+        "height": 72
+      }
+    ]
+  },
+  "limits": [
+    "Native producer stores an intrinsic empty rectangle story; the generated writer specimen intentionally has no stored story and remains story-free through native resave.",
+    "Native PDF interpolation is false; the managed PDF default interpolation is true.",
+    "Repair-free opening remains unassessed."
+  ]
+}

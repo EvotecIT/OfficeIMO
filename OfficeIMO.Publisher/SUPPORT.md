@@ -901,6 +901,11 @@ inspected GIF frames and repeated references; cumulative encoded-byte checks
 reject repeated large-payload decoding, and codec cancellation aborts the read. These are managed
 record and artifact checks; the supported producer fixtures contain no enabled
 visible picture controls, so native Publisher pixel equivalence remains open.
+The uncropped `ObjectPages` controls separately retain exact PNG bytes and frame
+geometry through native resave. Managed PDF image resources enable interpolation,
+while these native references disable it; enlarged image edges therefore use
+different smoothing. Image-byte fidelity and native file appearance do not imply
+managed/native image-rendering parity.
 The brochure and newsletter also verify referenced style defaults, direct
 formatting precedence, native bullet labels and tab-array positions. Those
 checks compare decoded values with the native records, not Publisher-rendered

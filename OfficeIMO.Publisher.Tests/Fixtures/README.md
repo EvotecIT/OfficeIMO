@@ -46,6 +46,12 @@ inherited gap property and an independently captured native inventory. Publisher
 reports 3.6 points through its half-gap automation property, corresponding to the
 7.2-point full gap exposed by OfficeIMO; the regression then saves explicit zero
 when adding columns without changing the last frame's gap or stories.
+ObjectPages and ObjectPagesEdited independently author matching three-page
+rectangle/picture states: original red rectangle and square picture, then a moved
+and resized blue rectangle and a moved, stretched picture. The middle page stays
+empty. They qualify creation and subsequent source editing of the story-free
+writer specimen; the native producer's own rectangle retains an intrinsic empty
+story. Source PNGs are retained with their native PUB/PDF/contract files.
 Text and TextLong use identical page geometry, frame geometry and Arial formatting; their
 only authored difference is the text. TextParagraphs has one Arial 12-point story
 with an empty paragraph between two text paragraphs. Its retained character

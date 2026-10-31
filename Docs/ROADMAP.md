@@ -886,7 +886,7 @@ Use the [native codec structure and qualification record](../Build/Publisher/Wri
 
 - [ ] Qualify native frame breaks, column balancing and tight/through picture wrapping; complete style-library metadata, numbering sequences, additional tab alignments/leaders, drop caps, native underline weights/long-dash/compound patterns and cached dynamic-field display against independently produced publications.
 - [ ] Extend unsupported native preset geometries, advanced path commands and separate paint groups, device-pixel guide operands and limousine scaling, remaining non-solid fills, individual table styling, picture recoloring and extended color controls, and background/master inheritance with precise per-feature loss reporting. Resolve WMF/EMF projection through the existing shared image owner and an explicitly qualified dependency boundary.
-- [ ] Compare OfficeIMO PDF/SVG output with native Publisher references across the corpus. Record content recovery, object geometry, text flow and visible appearance separately, including later producers, transformed groups, image crops, tables and multilingual fonts. Keep exact native-layout claims limited to the evidence that qualifies them.
+- [ ] Compare OfficeIMO PDF/SVG output with native Publisher references across the corpus. Record content recovery, object geometry, text flow and visible appearance separately, including later producers, transformed groups, image resampling/interpolation, crops, tables and multilingual fonts. Qualify native image sampling separately from embedded-image byte fidelity. Keep exact native-layout claims limited to the evidence that qualifies them.
 
 #### PUB03 — Native editing and safe save-back
 

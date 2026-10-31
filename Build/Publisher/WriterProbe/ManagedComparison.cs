@@ -52,6 +52,8 @@ internal static class ManagedComparison {
     private static object Page(PublisherPage page) => new {
         page.Id, page.Name, page.MasterPageId, page.Width, page.Height,
         page.TextFrames, page.Tables,
+        pictures = page.Pictures.Select(picture => new { view = picture, paint = picture.CanEdit ? picture.CreatePaint() : null }).ToArray(),
+        shapes = page.Shapes.Select(shape => new { view = shape, paint = shape.CanEdit ? shape.CreateShape() : null }).ToArray(),
         drawingElements = page.CreateDrawing().Elements.Count
     };
 }

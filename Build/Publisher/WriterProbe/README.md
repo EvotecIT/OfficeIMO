@@ -29,6 +29,7 @@ dotnet $probe diff ./native-text.pub ./native-textlong.pub ./text-change.diff.js
 dotnet $probe create blank ./candidate-blank.pub
 dotnet $probe create blank-pages ./candidate-two-blank-pages.pub 2
 dotnet $probe create text-pages ./candidate-text-pages.pub 3
+dotnet $probe create object-pages ./candidate-object-pages.pub ./picture.png
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create styled-text ./candidate-styled-text.pub
 dotnet $probe create shape ./candidate-shape.pub
@@ -287,6 +288,7 @@ The current drawing specification supports one picture per publication.
 | `blank` | Empty page. |
 | `blank-pages` | Requested count of empty physical pages, with one shared empty master; count argument required. |
 | `text-pages` | Builds a source-free publication through `PublisherDocument.Create`, `AddPage` and `AddTextFrame`, then projects the first/final frames and stories into the native codecs. Intermediate pages are empty. Arial 12/18 body text, explicit zero column gap; count argument required. |
+| `object-pages` | Builds three pages with an empty applied master through the public authoring model. A red rectangle without outline is on the first page, the middle page is empty, and an uncropped picture is on the last page. The rectangle has no stored story. Image path required. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
 | `shape` | Solid red rectangle at `(72,72)`, size `288×108`, with a CR-only story. |
@@ -401,6 +403,29 @@ native field, ownership, text and initial/resaved render-stability evidence; its
 paragraph defaults do not establish layout parity with a fresh native template.
 General wrapping, native repair-free opening and public native creation remain
 unqualified.
+
+The `objectPageCreation` record qualifies a story-free rectangle and embedded
+picture on separate physical pages. The source-free model explicitly creates
+and applies the empty master used by this native profile. Native resave retains
+zero stored stories, although Publisher's rectangle text-range getter returns a
+virtual CR. The independently authored `ObjectPages` reference contains an empty
+shape story; its visible result matches this story-free encoding.
+
+The same generated file is loaded and edited through `SetShapeBounds`,
+`SetShapePaint` and `SetPictureBounds`, then saved through the existing public
+native source-save path. All twelve original/edited initial/resaved page renders
+match their independent native references at 144 dpi. The PNG bytes, page/object
+ownership, fill and outline state survive native resave, and unrelated source
+streams remain unchanged by the managed edit. Current managed reports include
+typed shape and picture views with their paint descriptors.
+
+Managed PDF output preserves the image and placement but enables interpolation;
+the native references disable it. Enlarged image edges therefore differ. This
+is separate from the native file's qualified pixel appearance, and does not
+establish general managed/native rendering parity. The closed profile does not
+qualify arbitrary model serialization, interleaved object order, additional
+paint states, multiple images or master content. Repair-free opening remains
+unassessed.
 
 Successful native opening, usable text ranges, saving, reopening and PDF export
 are separate observations. Retain the candidate SHA-256, application version,

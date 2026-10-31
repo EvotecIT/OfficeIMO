@@ -6,6 +6,7 @@ internal static class CandidateCases {
 
     internal static CandidatePublicationSpec Create(string kind, string? value) {
         if (kind == "text-pages") return CandidateTextPages.Create(value);
+        if (kind == "object-pages") return CandidateObjectPages.Create(ReadImage(value));
         if (kind == "blank-pages") {
             if (!int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int count)
                 || count < 1 || count > 16) throw new ArgumentException("The blank-pages case requires a page count from 1 to 16.");
