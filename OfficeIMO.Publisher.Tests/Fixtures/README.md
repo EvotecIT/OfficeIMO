@@ -41,7 +41,14 @@ TextLong use identical page geometry, frame geometry and Arial formatting; their
 only authored difference is the text. TextParagraphs has one Arial 12-point story
 with an empty paragraph between two text paragraphs. Its retained character
 formatting covers that empty paragraph's CR; the final story CR has a separate
-native character range. TextStories has three separate stories, with an empty
+native character range. TextNonuniformParagraphs has seven independent final-state
+pages: a four-paragraph baseline, deletion of the first/middle/final paragraph,
+reordering, duplication and equal visible paragraphs with distinct native language
+definitions. Alignment, paragraph spacing and indentation distinguish the source
+paragraphs. Each frame uses Arial 12-point body text; the final CR has its own
+inherited typing style. Its contract records requested and observed paragraph
+formatting and language values.
+TextStories has three separate stories, with an empty
 paragraph inside its middle story. TextFormattingPages retains 96 paragraphs,
 including overflow beyond its sole text frame, across two native paragraph-formatting
 pages. ZeroAnchors places each client-anchor coordinate at native zero: native

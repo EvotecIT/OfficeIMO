@@ -13808,6 +13808,270 @@
         "Repair-free opening, general opaque preservation, broader producer profiles and managed/native rendering parity remain unassessed.",
         "Source-built PS7 conversion and PS5.1 syntax are not packaged installation or native lifecycle cmdlet qualification."
       ]
+    },
+    "paragraphRetention": {
+      "scope": "Retained nonempty unlabelled native paragraphs from nonuniform ordinary-story definitions; no count-changing text/formatting rewrites or empty-paragraph retention qualification.",
+      "codecCommit": "7404cc69dd13411069d70d21c13cdc7af5d1b7e9",
+      "sources": [
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherTextComparison.cs",
+          "sha256": "a2ac526d5ce4f994067e55b1337b7619fae5e8d58d6aa40a8fb3096cd69fcc7e"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherStoryEditor.cs",
+          "sha256": "60a348572bd3157523fe179adb2b92f3f41d462d26de285d196b7867637ae178"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+          "sha256": "9cef303d087aa0db65e730a973adbc28ecc2f8be311293ecc0e5e5f45d3f6504"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.cs",
+          "sha256": "2ab3779304665b133a5606123ce4b5444fcd0c73e9d600784e80a9e656c628b7"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Retention.cs",
+          "sha256": "7af1ee2d5251b489f2dfc25858c8e721adeb3126efcbcf1f050760c2f6aac025"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherParagraphRetentionWritingTests.cs",
+          "sha256": "6894b808504d191780d37b84840d02475361f53b9fc795225212b0ffe1f5b5bb"
+        },
+        {
+          "path": "Build/Publisher/Add-NativeParagraphTopologyControl.ps1",
+          "sha256": "1b7a4f458372e632b99665dce76e204a88cbe5dfefb5288df37fc0dc74070933"
+        },
+        {
+          "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+          "sha256": "61dee2988ec83099c15386de9a19c514b0566294667ec867f07e54aa2025bede"
+        },
+        {
+          "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+          "sha256": "a2bc935147fad7c13901797f4fb9c952d037a8ef004a4b9cd61c9d60e4e44713"
+        },
+        {
+          "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+          "sha256": "6df35f782ba5a0d8445cd4d539f00559f3700beb8ab4edd585eb88d7936c01b5"
+        }
+      ],
+      "control": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextNonuniformParagraphs/provenance.json",
+      "sourceSha256": "bd170b4e8ffd6357599db5154f90b5493c1af18e7e57d25e20561217a8826718",
+      "nativeApplication": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "automationSecurity": 3
+      },
+      "nativeApiSources": {
+        "paragraphs": "https://learn.microsoft.com/en-us/office/vba/api/publisher.textrange.paragraphs",
+        "language": "https://learn.microsoft.com/en-us/office/vba/api/publisher.textrange.languageid"
+      },
+      "contract": [
+        "Original immutable paragraph snapshots identify the native source within the story or cell. Normalization/validation precedes identity reuse.",
+        "Detached equal values require identical complete paragraph/body native definitions and compatible CR roles across all matching source candidates; projected equality alone does not establish opaque equivalence.",
+        "Retained definitions remain byte-identical. Final destination uses the original final CR. Moving a former final paragraph inside requires an observed intermediate CR matching its last visible body definition.",
+        "The uniform-source topology writer remains first. Unsupported empty or labelled nonuniform paragraphs, ambiguous copied values, new text/formatting and unsafe source mappings remain refused."
+      ],
+      "cases": [
+        {
+          "mode": "drop-first",
+          "candidateSha256": "5076ebb0dec45df7836efac41163af2cae9cdaaca885780abb6f851c5ec40b4d",
+          "nativeDefinitionsExact": true,
+          "terminatorRolesExact": true,
+          "sourceStoragePreserved": true,
+          "nativeOperations": 7,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "pixelAndSpanIdentical": true,
+              "independentControlPage": 1
+            },
+            {
+              "phase": "resaved",
+              "pixelAndSpanIdentical": true,
+              "independentControlPage": 1
+            }
+          ]
+        },
+        {
+          "mode": "drop-middle",
+          "candidateSha256": "36ab4ca2f48006dd56aea666eaa146a5a8cd46030518c80f8e1c4f457aee4cfd",
+          "nativeDefinitionsExact": true,
+          "terminatorRolesExact": true,
+          "sourceStoragePreserved": true,
+          "nativeOperations": 7,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "pixelAndSpanIdentical": true,
+              "independentControlPage": 2
+            },
+            {
+              "phase": "resaved",
+              "pixelAndSpanIdentical": true,
+              "independentControlPage": 2
+            }
+          ]
+        },
+        {
+          "mode": "drop-final",
+          "candidateSha256": "3d40a1f7433375fc2659074feafa886adad1f224fa3a8492b9019b1c175ad611",
+          "nativeDefinitionsExact": true,
+          "terminatorRolesExact": true,
+          "sourceStoragePreserved": true,
+          "nativeOperations": 7,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "pixelAndSpanIdentical": true,
+              "independentControlPage": 3
+            },
+            {
+              "phase": "resaved",
+              "pixelAndSpanIdentical": true,
+              "independentControlPage": 3
+            }
+          ]
+        },
+        {
+          "mode": "reorder",
+          "candidateSha256": "53a84305ab2b58039ee5b140e999d18e4d8c5a4d011c53618fabf4605c4fb1c9",
+          "nativeDefinitionsExact": true,
+          "terminatorRolesExact": true,
+          "sourceStoragePreserved": true,
+          "nativeOperations": 7,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "pixelAndSpanIdentical": true,
+              "independentControlPage": 4
+            },
+            {
+              "phase": "resaved",
+              "pixelAndSpanIdentical": true,
+              "independentControlPage": 4
+            }
+          ]
+        },
+        {
+          "mode": "duplicate",
+          "candidateSha256": "25c5f965e4a2ab73e6851a5adc79038f365d4d3a101b17308bf976336ff61233",
+          "nativeDefinitionsExact": true,
+          "terminatorRolesExact": true,
+          "sourceStoragePreserved": true,
+          "nativeOperations": 7,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "pixelAndSpanIdentical": true,
+              "independentControlPage": 5
+            },
+            {
+              "phase": "resaved",
+              "pixelAndSpanIdentical": true,
+              "independentControlPage": 5
+            }
+          ]
+        },
+        {
+          "mode": "detached",
+          "candidateSha256": "53a84305ab2b58039ee5b140e999d18e4d8c5a4d011c53618fabf4605c4fb1c9",
+          "nativeDefinitionsExact": true,
+          "terminatorRolesExact": true,
+          "sourceStoragePreserved": true,
+          "nativeOperations": 7,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "pixelAndSpanIdentical": true,
+              "independentControlPage": 4
+            },
+            {
+              "phase": "resaved",
+              "pixelAndSpanIdentical": true,
+              "independentControlPage": 4
+            }
+          ]
+        },
+        {
+          "mode": "language-0",
+          "candidateSha256": "415d4d71a09f9d673f25a3c1a4dc56bbc5da492923738f059d0105807de2662e",
+          "nativeDefinitionsExact": true,
+          "terminatorRolesExact": true,
+          "sourceStoragePreserved": true,
+          "nativeOperations": 7,
+          "nativePaint": []
+        },
+        {
+          "mode": "language-1",
+          "candidateSha256": "98239963db3c675c22ba4d4e58af1369e3742b408d33424c658c80d02a387c7e",
+          "nativeDefinitionsExact": true,
+          "terminatorRolesExact": true,
+          "sourceStoragePreserved": true,
+          "nativeOperations": 7,
+          "nativePaint": []
+        }
+      ],
+      "validation": {
+        "publisherTests": {
+          "net10.0": 670,
+          "net8.0": 670,
+          "net472": 670
+        },
+        "focusedCases": 9,
+        "preFixSaveFailures": 8,
+        "safeAmbiguousRefusal": true,
+        "readerTests": 95,
+        "standard2Builds": [
+          "OfficeIMO.Publisher.Pdf",
+          "OfficeIMO.Reader.Publisher"
+        ],
+        "writerProbeBuild": true,
+        "publicNativeReloads": 16,
+        "sourceBuiltPowerShell": {
+          "runtime": "7.6.9",
+          "route": "publisher-pdf",
+          "cases": 8,
+          "pages": 56,
+          "actualPublisherAssemblyBound": true,
+          "unicodeFallbacks": true,
+          "textRetained": true
+        },
+        "nativeControlSyntax": [
+          "PowerShell7",
+          "WindowsPowerShell5.1"
+        ]
+      },
+      "previousSaveEquivalence": {
+        "cases": 116,
+        "byteIdentical": true,
+        "groups": {
+          "character": 24,
+          "linkedStories": 7,
+          "paragraphTopology": 11,
+          "paragraphFormatting": 21,
+          "frameLayout": 11,
+          "imageReplacement": 8,
+          "tableText": 6,
+          "emptyTyping": 15,
+          "cellParagraphs": 11,
+          "tableTrackGeometry": 2
+        }
+      },
+      "regressionTests": [
+        "Retained_nonuniform_paragraphs_keep_their_native_definitions_and_unrelated_stories",
+        "Native_paragraph_identity_disambiguates_equal_visible_values_with_different_language_definitions"
+      ],
+      "reproduction": {
+        "control": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TextNonuniformParagraphs",
+        "native": "pwsh -NoProfile -File Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -InputPath <candidate.pub> -OutputDirectory <empty-directory>"
+      },
+      "limits": [
+        "Independent native retention controls cover ordinary stories. Table-cell retention requires separate native controls.",
+        "Empty nonuniform paragraphs, paragraph labels, new text/formatting during nonuniform count changes and general source profiles remain unqualified.",
+        "Native repair-free opening, general opaque preservation and managed/native rendering parity remain unassessed.",
+        "Source-built PS7 conversion and PS5.1 syntax are not packaged installation or native lifecycle cmdlet qualification."
+      ]
     }
   },
   "characterReading": {

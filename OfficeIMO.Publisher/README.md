@@ -74,12 +74,25 @@ existing solid scalar paint slots, qualified frame columns/full intercolumn gap,
 insets and vertical alignment, and ordinary text stories with bounded
 size, bold, italic, underline pattern, single strikethrough, baseline, font family
 and opaque RGB color changes. Paragraph counts can change when the source paragraphs have
-uniform projected formatting and matching native definitions. A changed story
+uniform projected formatting and matching native definitions. Nonempty native
+paragraphs with different formatting can also be retained, deleted, reordered or
+duplicated without changing their content or formatting. Pass the original
+paragraph snapshots to identify the exact native source; copied values require
+unambiguous native definitions. A changed story
 can use one existing frame or a complete resolved chain of ordinary, visible,
 untransformed document-page frames. Native links, ownership and frame identities
 remain fixed. Known chained Quill layouts are supported; formatting and directory
 pages can be allocated or retired, and font/color resources can grow while existing
 entries retain their identities and bytes.
+
+For example, removing the first paragraph while retaining the others keeps their
+native formatting definitions:
+
+```csharp
+var story = publication.TextStories.First(item => item.Paragraphs.Count >= 2);
+publication.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Skip(1).ToArray());
+```
+
 Frame-layout saves retain links and page/master ownership. They can add missing
 default fields and relocate native records; changed distances must be exact
 nonnegative EMU values. This API's gap is the full distance between columns.
@@ -415,11 +428,13 @@ typing; supply an empty styled run when a particular typing style is required.
 Native source saving supports qualified fixed cell partitions and supported
 text formatting. Paragraph counts can change when source definitions are uniform
 within the edited cell; neighboring cells may have different styles. Unknown
-native partition records, count changes from nonuniform cell definitions and
-unsupported typing encodings refuse output. Publisher can expand rows when text
+native partition records, arbitrary count-changing rewrites of nonuniform cell
+definitions and unsupported typing encodings refuse output. Publisher can expand rows when text
 wraps or exceeds a cell, so retained stored bounds do not guarantee fixed native
 rendered heights.
 These native limits are separate from in-memory cell editing.
+Independent qualification of nonuniform paragraph retention currently covers
+ordinary stories; equivalent table-cell retention remains unqualified.
 
 `SetTableBounds` uses positive finite frame dimensions and proportionally scales
 column and row tracks. Imported differences between track sums and frame size

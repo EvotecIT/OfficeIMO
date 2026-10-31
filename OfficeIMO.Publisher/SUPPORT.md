@@ -191,10 +191,32 @@ this write profile. Existing unknown tab metadata is retained when only paragrap
 alignment changes. Native field widths and formatting-page capacity remain
 enforced.
 
-Nonuniform source definitions refuse count changes, even when their projected
-formatting looks equal. An empty final paragraph is refused when it would replace
+Nonempty, unlabelled native paragraphs can also be retained, deleted, reordered or
+duplicated when source definitions differ. Their complete paragraph and visible
+character definitions remain byte-identical. Supply original paragraph snapshots
+to select their exact native definitions. Detached equal values are accepted only
+when all matching source definitions agree for the destination role; equal visible
+formatting alone does not resolve opaque language or other metadata. This path
+does not rewrite the retained text or formatting and requires one exact native
+paragraph range per source paragraph. Nonuniform empty paragraphs remain outside
+the retention profile.
+
+The final destination keeps the original story's final CR typing definition.
+Moving the original final paragraph into the interior requires an observed
+intermediate CR definition that matches its last visible body definition.
+Arbitrary count-changing rewrites from nonuniform definitions remain refused.
+An empty final paragraph is refused when it would replace
 a different native typing definition. A zero-paragraph story remains unsupported
 for native saving; in-memory clearing and rendering remain available.
+
+The `sourceEditing.paragraphRetention` qualification record covers eight public
+saves from the seven-page `TextNonuniformParagraphs` native control. Six outputs
+have twelve initial/resaved PDF comparisons with independently authored final
+states, identical in pixels and text spans. Two outputs select between equal
+visible paragraphs with different native language definitions. Raw checks verify
+complete paragraph/body definitions, CR roles, neighboring stories and retained
+storage. These controls qualify ordinary-story retention; table-cell retention
+requires separate native controls. Repair-free opening remains unassessed.
 
 When ranges no longer fit the original allocation, the codec can append aligned
 formatting pages and directory pages, relocate enlarged BTE indexes and resources,
@@ -326,8 +348,8 @@ locations are rewritten together. Ordinary stories in table-bearing documents
 can also change length without changing relative cell ownership.
 
 Unknown partition headers/descriptors, unresolved or conflicting ownership,
-table stories also used by ordinary frames and count changes from nonuniform
-definitions within the edited cell
+table stories also used by ordinary frames and arbitrary count-changing rewrites
+from nonuniform definitions within the edited cell
 refuse edited output. Table creation,
 bounds/grid changes, cell merges and table styling have no native save profile.
 These limits apply with `Allow`; unchanged content still returns an exact copy.

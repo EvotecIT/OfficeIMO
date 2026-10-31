@@ -197,8 +197,10 @@ Visible frame slices are checked in order; an empty trailing frame can report
 a lone paragraph CR after the complete story fits the preceding frame. This
 does not qualify other chain profiles, repair-free opening or renderer parity.
 
-Unsupported formatting changes, run merges, nonuniform-source paragraph-count changes, tables, image replacement,
-page/master relationships, new objects and source-free publications have no writer in this path. Every
+Unsupported formatting changes, run merges, arbitrary count-changing rewrites
+from nonuniform sources, page/master relationships, new objects and source-free
+publications have no writer in this path. The separately qualified image and
+table profiles are described below. Every
 current semantic family is compared with the import baseline before output;
 source-byte retention does not permit dropping unsupported edits. Each new
 candidate still requires native qualification; the recorded samples below
@@ -417,6 +419,19 @@ establish those profiles; a retained wrapped-text cohort separately records
 Publisher's row expansion and changed resave rendering. The native empty-string
 mutation control saves a retained CR, not a zero-paragraph story. Native repair,
 general overflow layout and broader producer profiles remain unassessed.
+
+The `sourceEditing.paragraphRetention` record covers nonempty paragraph retention
+from nonuniform native definitions. Eight public outputs retain, delete, reorder
+or duplicate complete source paragraphs, including explicit selection between equal
+projected values with different native language metadata. Twelve initial/resaved
+PDF pairs match independently authored final-state pages in pixels and text spans.
+Raw checks preserve complete PC/PP definitions, final/intermediate CR roles,
+neighboring stories and unrelated storage. Detached values require unambiguous
+native templates. The public regression tests cover both explicit identity and
+the refusal of ambiguous copies. The existing 116 save specimens remain
+byte-identical. These controls qualify ordinary stories; empty nonuniform
+paragraphs, table-cell retention, text/formatting changes during nonuniform count
+changes and repair-free opening require separate qualification.
 
 The `sourceEditing.tableTrackGeometry` record covers saved table endpoints and
 native row-growth controls. The reader recovers laid-out tracks from cumulative
