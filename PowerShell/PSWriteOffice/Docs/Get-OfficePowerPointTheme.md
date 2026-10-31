@@ -11,7 +11,7 @@ Reads the selected slide master's theme, colors and fonts.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficePowerPointTheme [[-Document] <PowerPointPresentation>] [-Master <int>] [<CommonParameters>]
+Get-OfficePowerPointTheme [[-Document] <PowerPointDocument>] [-Master <int>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -42,7 +42,7 @@ New-OfficePowerPoint -Path ./Review.pptx -Theme Modern {
 Gets or sets the live document; omission uses its enclosing content block.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -75,7 +75,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

@@ -36,14 +36,14 @@ Sets a hyperlink on a worksheet cell.
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Set-OfficeExcelHyperlink -Address 'ExcelA1' -Url 'https://example.org' -Display 'Example' }
+PS> ExcelSheet 'Data' { Set-OfficeExcelHyperlink -Address 'A1' -Url 'https://example.org' -Display 'Example' }
 ```
 
 Creates a styled hyperlink in ExcelA1.
 
 ### EXAMPLE 2
 ```powershell
-PS> ExcelSheet 'Data' { Set-OfficeExcelHyperlink -Row 2 -Column 1 -TargetSheet 'Summary' -TargetAddress 'ExcelA1' -Display 'Go to Summary' }
+PS> ExcelSheet 'Data' { Set-OfficeExcelHyperlink -Row 2 -Column 1 -TargetSheet 'Summary' -TargetAddress 'A1' -Display 'Go to Summary' }
 ```
 
 Links A2 to Summary!ExcelA1.
@@ -51,7 +51,7 @@ Links A2 to Summary!ExcelA1.
 ## PARAMETERS
 
 ### -Address
-A1-style cell address (e.g., ExcelA1, C5).
+A1-style cell address (e.g., A1, C5).
 
 ```yaml
 Type: String
@@ -115,7 +115,7 @@ Accept wildcard characters: False
 ```
 
 ### -Location
-Internal location to link to (e.g., "'Summary'!ExcelA1").
+Internal location to link to (e.g., "'Summary'!A1").
 
 ```yaml
 Type: String

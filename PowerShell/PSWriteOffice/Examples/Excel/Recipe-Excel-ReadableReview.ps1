@@ -40,7 +40,7 @@ $services = @(
     }
 )
 
-$workbook = New-OfficeExcel -Path $workbookPath -NoSave
+$workbook = New-OfficeExcel -Path $workbookPath
 try {
     $sheet = $workbook | Add-OfficeExcelSheet -Name 'Review' -PassThru
     $sheet | Set-OfficeExcelRow -Row 1 -Values 'Service review' -Bold $true -Height 26

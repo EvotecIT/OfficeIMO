@@ -41,7 +41,7 @@ Replaces matching comment text and optionally changes the author.
 ## PARAMETERS
 
 ### -Address
-ExcelA1 cell address to match.
+A1 cell address to match.
 
 ```yaml
 Type: String
@@ -169,7 +169,7 @@ Accept wildcard characters: False
 ```
 
 ### -Range
-ExcelA1 cell or range to match.
+A1 cell or range to match.
 
 ```yaml
 Type: String

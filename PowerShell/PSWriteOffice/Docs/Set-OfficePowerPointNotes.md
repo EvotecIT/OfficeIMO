@@ -11,7 +11,7 @@ Sets speaker notes on a native slide or in the current slide content block.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficePowerPointNotes [-Text] <string> [-Slide <PowerPointSlideSelector>] [-Document <PowerPointPresentation>] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointNotes [-Text] <string> [-Slide <PowerPointSlideSelector>] [-Document <PowerPointDocument>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -44,7 +44,7 @@ Save-OfficePowerPoint -Document $deck
 Gets or sets the document for numeric selection; omission uses the enclosing document block.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

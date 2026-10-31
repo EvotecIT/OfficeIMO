@@ -11,17 +11,17 @@ Changes a selected slide's title, template layout, background or transition.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Set-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector> [-Document <PowerPointPresentation>] [-Title <string>] [-TemplateLayout <PowerPointLayoutSelector>] [-Master <int>] [-Background <OfficeColor>] [-Transition <PowerPointSlideTransition>] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector> [-Document <PowerPointDocument>] [-Title <string>] [-TemplateLayout <PowerPointLayoutSelector>] [-Master <int>] [-Background <OfficeColor>] [-Transition <PowerPointSlideTransition>] [-PassThru] [<CommonParameters>]
 ```
 
 ### BackgroundImage
 ```powershell
-Set-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector> -BackgroundImage <string> [-Document <PowerPointPresentation>] [-Title <string>] [-TemplateLayout <PowerPointLayoutSelector>] [-Master <int>] [-Transition <PowerPointSlideTransition>] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector> -BackgroundImage <string> [-Document <PowerPointDocument>] [-Title <string>] [-TemplateLayout <PowerPointLayoutSelector>] [-Master <int>] [-Transition <PowerPointSlideTransition>] [-PassThru] [<CommonParameters>]
 ```
 
 ### ClearBackground
 ```powershell
-Set-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector> -ClearBackground [-Document <PowerPointPresentation>] [-Title <string>] [-TemplateLayout <PowerPointLayoutSelector>] [-Master <int>] [-Transition <PowerPointSlideTransition>] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector> -ClearBackground [-Document <PowerPointDocument>] [-Title <string>] [-TemplateLayout <PowerPointLayoutSelector>] [-Master <int>] [-Transition <PowerPointSlideTransition>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -101,7 +101,7 @@ Accept wildcard characters: False
 Gets or sets the document for numeric slide and template layout selection; omission uses the enclosing document block.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: Default, BackgroundImage, ClearBackground
 Aliases: None
 Possible values:

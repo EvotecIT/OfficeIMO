@@ -11,7 +11,7 @@ Creates a themed presentation, returning a live document or saving a completed c
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficePowerPoint [[-Path] <string>] [[-Content] <scriptblock>] [-Force] [-Theme <OfficeThemeInput>] [-Password <securestring>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficePowerPoint [[-Path] <string>] [[-Content] <scriptblock>] [-Force] [-Theme <OfficeThemeInput>] [-Template <string>] [-Password <securestring>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -150,6 +150,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Template
+Existing presentation/template copied as starting content. Theme applies visual styling separately.
+
+```yaml
+Type: String
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Theme
 Built-in theme name, theme object, or PowerPoint template path. Defaults to Modern.
 
@@ -175,7 +191,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 - `System.IO.FileInfo`
 
 ## RELATED LINKS

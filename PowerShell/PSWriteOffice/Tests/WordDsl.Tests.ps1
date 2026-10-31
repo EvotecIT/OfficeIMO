@@ -220,13 +220,6 @@ Describe 'Word DSL surface' {
     }
 
     It 'round-trips encrypted Word documents through lifecycle cmdlets' {
-        if (-not (Test-OfficeLoadedMethod -TypeName 'OfficeIMO.Word.WordDocument' -MethodName 'LoadEncrypted')) {
-            (Get-Command New-OfficeWord).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command Save-OfficeWord).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command Open-OfficeWord).Parameters.Keys | Should -Contain 'Password'
-            return
-        }
-
         $path = Join-Path $TestDrive 'EncryptedWord.docx'
 
         New-OfficeWord -Path $path -Password 'secret' {
@@ -309,7 +302,7 @@ Describe 'Word DSL surface' {
         } | Out-Null
         Add-TestWordParagraphStyle -Path $templatePath -StyleId $styleId
 
-        New-OfficeWord -TemplatePath $templatePath -Path $outputPath {
+        New-OfficeWord -Template $templatePath -Path $outputPath {
             WordParagraph -Text 'Generated appendix' -StyleId $styleId
         } | Out-Null
 
@@ -372,13 +365,6 @@ Describe 'Word DSL surface' {
         }
 
         Test-Path $path | Should -BeTrue
-        (Get-Command WordNew).ResolvedCommandName | Should -Be 'New-OfficeWord'
-        (Get-Command WordCheckBox).ResolvedCommandName | Should -Be 'Add-OfficeWordCheckBox'
-        (Get-Command WordDatePicker).ResolvedCommandName | Should -Be 'Add-OfficeWordDatePicker'
-        (Get-Command WordDropDownList).ResolvedCommandName | Should -Be 'Add-OfficeWordDropDownList'
-        (Get-Command WordTableCondition).ResolvedCommandName | Should -Be 'Add-OfficeWordTableCondition'
-        (Get-Command WordTableOfContents).ResolvedCommandName | Should -Be 'Add-OfficeWordTableOfContents'
-        (Get-Command WordSection).ResolvedCommandName | Should -Be 'Add-OfficeWordSection'
     }
 
     It 'creates multiple continuous sections from a PowerShell-friendly break type' {
@@ -585,13 +571,9 @@ Describe 'Word DSL surface' {
     }
 
     It 'creates Word paragraphs and table cells from rich text runs with named colors' {
-        foreach ($name in 'WordNew', 'WordTextRun', 'WordTableCellSpec') {
-            Get-Command $name | Should -Not -BeNullOrEmpty
-        }
-
         $path = Join-Path $TestDrive 'DslRichTextRunsWord.docx'
 
-        WordNew -Path $path {
+        New-OfficeWord -Path $path {
             WordParagraph -Run @{
                 Text      = 'Status: ', 'Ready'
                 Color     = $null, 'SeaGreen'
@@ -671,7 +653,7 @@ Describe 'Word DSL surface' {
 
     It 'preserves half-point Word font sizes through text, rich runs, links, and style updates' {
         $path = Join-Path $TestDrive 'DslHalfPointWordFonts.docx'
-        WordNew -Path $path {
+        New-OfficeWord -Path $path {
             WordParagraph { WordText -Text 'DirectHalf' -FontSize 10.5 }
             WordParagraph -Run @(
                 WordTextRun 'RichHalf' -FontSize 10.5
@@ -694,7 +676,7 @@ Describe 'Word DSL surface' {
         $path = Join-Path $TestDrive 'DslRichTextRunsWordMismatch.docx'
 
         {
-            WordNew -Path $path {
+            New-OfficeWord -Path $path {
                 WordParagraph -Run @{
                     Text  = 'Red ', 'Green '
                     Color = 'Red', 'Green', 'Blue'
@@ -703,7 +685,7 @@ Describe 'Word DSL surface' {
         } | Should -Throw "*property 'Color'*match the Text count (2)*received 3 values*"
 
         {
-            WordNew -Path $path {
+            New-OfficeWord -Path $path {
                 WordParagraph -Run @{
                     Text  = 'Red ', 'Green '
                     Color = @()
@@ -715,7 +697,7 @@ Describe 'Word DSL surface' {
     It 'treats rich and styled Word table cells as structured without spans' {
         $path = Join-Path $TestDrive 'DslRichRunMixedObjectWordTable.docx'
 
-        WordNew -Path $path {
+        New-OfficeWord -Path $path {
             WordTable -Style TableGrid -InputObject @(
                 [pscustomobject]@{
                     Service = 'Entra'
@@ -749,7 +731,7 @@ Describe 'Word DSL surface' {
     It 'keeps ordinary Run columns in normal Word tables' {
         $path = Join-Path $TestDrive 'DslOrdinaryRunColumnWordTable.docx'
 
-        WordNew -Path $path {
+        New-OfficeWord -Path $path {
             WordTable -Style TableGrid -InputObject @(
                 [pscustomobject]@{
                     Run = 'Nightly'
@@ -1121,7 +1103,7 @@ Describe 'Word DSL surface' {
             [PSCustomObject]@{ Month = 'Mar'; Sales = 15; Profit = 7 }
         )
 
-        $document = New-OfficeWord -Path $path -NoSave
+        $document = New-OfficeWord -Path $path
         try {
             $chart = Add-OfficeWordChart -Document $document -Type Line -InputObject $rows -Category Month -Value Sales, Profit -Legend -XAxisTitle 'Month' -YAxisTitle 'Value' -Title 'Monthly Trend' -PassThru
             $chart.Title | Should -Be 'Monthly Trend'
@@ -1519,7 +1501,7 @@ Describe 'Word DSL surface' {
 
     It 'does not mutate live Word documents when text update uses WhatIf' {
         $path = Join-Path $TestDrive 'DslReplaceLiveWhatIf.docx'
-        $document = New-OfficeWord -Path $path -NoSave
+        $document = New-OfficeWord -Path $path
 
         try {
             $document.AddParagraph('FY24 live document') | Out-Null
@@ -1533,14 +1515,14 @@ Describe 'Word DSL surface' {
         }
     }
 
-    It 'does not mutate the tracked Word document when text update uses WhatIf' {
+    It 'does not mutate the selected live Word document when text update uses WhatIf' {
         $path = Join-Path $TestDrive 'DslReplaceTrackedWhatIf.docx'
-        $document = New-OfficeWord -Path $path -NoSave
+        $document = New-OfficeWord -Path $path
 
         try {
             $document.AddParagraph('FY24 tracked document') | Out-Null
 
-            Update-OfficeWordText -OldValue 'FY24' -NewValue 'FY25' -WhatIf -PassThru | Should -BeNullOrEmpty
+            Update-OfficeWordText -Document $document -OldValue 'FY24' -NewValue 'FY25' -WhatIf -PassThru | Should -BeNullOrEmpty
 
             (Find-OfficeWord -Document $document -Text 'FY24').Count | Should -Be 1
             (Find-OfficeWord -Document $document -Text 'FY25').Count | Should -Be 0
@@ -1549,21 +1531,23 @@ Describe 'Word DSL surface' {
         }
     }
 
-    It 'tracks current Word documents for update and close operations' {
+    It 'updates and saves only the explicitly selected live Word document' {
         $pathOne = Join-Path $TestDrive 'TrackedOne.docx'
         $pathTwo = Join-Path $TestDrive 'TrackedTwo.docx'
 
-        $docOne = New-OfficeWord -Path $pathOne -NoSave
-        $docTwo = New-OfficeWord -Path $pathTwo -NoSave
+        $docOne = New-OfficeWord -Path $pathOne
+        $docTwo = New-OfficeWord -Path $pathTwo
 
         try {
             $docOne.AddParagraph('First tracked document') | Out-Null
             $docTwo.AddParagraph('Second tracked FY24 document') | Out-Null
 
-            Update-OfficeWordText -OldValue 'FY24' -NewValue 'FY25' -PassThru | Should -Be 1
+            Update-OfficeWordText -Document $docTwo -OldValue 'FY24' -NewValue 'FY25' -PassThru | Should -Be 1
 
-            Close-OfficeWord -Save
-            Close-OfficeWord -All -Save
+            Save-OfficeWord -Document $docOne
+            Save-OfficeWord -Document $docTwo
+            Close-OfficeWord -Document $docTwo
+            Close-OfficeWord -Document $docOne
         } finally {
             foreach ($doc in @($docOne, $docTwo)) {
                 if ($null -ne $doc) {
@@ -1591,7 +1575,7 @@ Describe 'Word DSL surface' {
 
     It 'does not fall back to the tracked document when -Document is null' {
         $path = Join-Path $TestDrive 'NullDocumentGuard.docx'
-        $doc = New-OfficeWord -Path $path -NoSave
+        $doc = New-OfficeWord -Path $path
 
         try {
             $nullDocument = $null

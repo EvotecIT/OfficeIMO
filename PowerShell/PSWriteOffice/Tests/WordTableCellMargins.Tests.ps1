@@ -7,7 +7,7 @@ Describe 'Word table cell padding' {
     It 'rejects an invalid margin before changing the cell' -ForEach @(
         @{ Value = -0.1 }, @{ Value = 58.0 }, @{ Value = [double]::NaN }
     ) {
-        New-OfficeWord -Path (Join-Path $TestDrive 'Invalid.docx') {
+        New-OfficeWord -Path (Join-Path $TestDrive ("Invalid-" + [guid]::NewGuid().ToString("N") + ".docx")) {
             $table = WordTable -InputObject @([pscustomobject]@{ Site = 'Warsaw' }) -PassThru
             $cell = $table | Get-OfficeWordTableCell -Row 1 -Column 0
             { $cell | Set-OfficeWordTableCell -Text 'Changed' -MarginTopCentimeters $Value } | Should -Throw

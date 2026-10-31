@@ -453,7 +453,7 @@
           ]
         }
       ],
-      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged (X 1in, Y 1in, 2in x 1in). -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had.",
+      "notes": "Geometry is OfficeLength: a bare number means points, so scripts that relied on the old implicit inches write units (-X 1in -Width 2in). Physical defaults are unchanged: X and Y are 1in; rectangles and ellipses are 2in x 1in, diamonds 1in x 1in, and text boxes 2in x 0.5in. -Unit is removed. All four basic shapes share one style parameter list (Name, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle); Ellipse, Diamond and TextBox gain the ones only Rectangle had.",
       "examples": [
         {
           "title": "Add a process box",

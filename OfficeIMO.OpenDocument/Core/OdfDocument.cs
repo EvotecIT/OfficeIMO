@@ -4,6 +4,12 @@ namespace OfficeIMO.OpenDocument;
 
 /// <summary>Common package lifecycle for ODT, ODS, and ODP documents.</summary>
 public abstract partial class OdfDocument {
+    /// <summary>Creates an empty ODF 1.4 model with an optional associated save path, without writing a file.</summary>
+    public static OdfDocument Create(OdfDocumentKind kind, string? path = null) {
+        if (path != null) EnsurePath(path);
+        return CreateForPackage(OdfPackage.Create(kind), path == null ? null : Path.GetFullPath(path));
+    }
+
     private string? _sourcePath;
 
     internal OdfDocument(OdfPackage package, string? sourcePath) {

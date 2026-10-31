@@ -11,7 +11,7 @@ Copies a native slide within its document, preserving its content and relationsh
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Copy-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector> [-Document <PowerPointPresentation>] [-Position <Int32>] [-PassThru] [<CommonParameters>]
+Copy-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector> [-Document <PowerPointDocument>] [-Position <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -37,7 +37,7 @@ $slide | Copy-OfficePowerPointSlide -PassThru
 Gets or sets the document for numeric selection; omission uses the enclosing scope or native slide owner.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

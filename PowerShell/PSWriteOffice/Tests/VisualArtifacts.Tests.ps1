@@ -359,7 +359,7 @@ Describe 'ChartForgeX visual artifacts' {
     It 'rejects conversion overrides when a prepared visual is reused' {
         $visual = $SvgPath | ConvertTo-OfficeVisual -Width 300
         $wordPath = Join-Path $TestDrive 'override.docx'
-        $document = New-OfficeWord -Path $wordPath -NoSave
+        $document = New-OfficeWord -Path $wordPath
         try {
             $paragraph = $document.AddParagraph()
             { $visual | Add-OfficeWordVisual -Paragraph $paragraph -Width 240 -ErrorAction Stop } | Should -Throw '*cannot be used with an existing*'

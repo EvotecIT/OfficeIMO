@@ -24,3 +24,4 @@ const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericConventionMismatch = "pdf-e
 const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericConventionMixed = "pdf-excel-numeric-convention-mixed" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.PdfExcelNumericValueAmbiguous = "pdf-excel-numeric-value-ambiguous" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.WordDocColorApproximated = "word-doc-color-approximated" -> string!
+static OfficeIMO.OfficeTheme.FromDocument(string! path) -> OfficeIMO.OfficeTheme!

@@ -11,7 +11,7 @@ Sets layout placeholder text margins for a slide layout (points).
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficePowerPointLayoutPlaceholderTextMargins -Layout <int> -PlaceholderType <PowerPointPlaceholderType> -Left <double> -Top <double> -Right <double> -Bottom <double> [-Presentation <PowerPointPresentation>] [-Master <int>] [-Index <UInt32>] [-CreateIfMissing] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointLayoutPlaceholderTextMargins -Layout <int> -PlaceholderType <PowerPointPlaceholderType> -Left <double> -Top <double> -Right <double> -Bottom <double> [-Presentation <PowerPointDocument>] [-Master <int>] [-Index <UInt32>] [-CreateIfMissing] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -170,7 +170,7 @@ Accept wildcard characters: False
 Presentation to update (optional inside DSL).
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -219,7 +219,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

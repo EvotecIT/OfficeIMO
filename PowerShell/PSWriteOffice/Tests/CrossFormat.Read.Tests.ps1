@@ -61,8 +61,8 @@ Describe 'Consolidated document reading' {
         $path = Join-Path $TestDrive 'sheets.xlsx'
         $workbook = [OfficeIMO.Excel.ExcelDocument]::Create()
         try {
-            $null = $workbook.AddWorksheet('2').CellValue(1, 1, 'Named sheet evidence')
-            $null = $workbook.AddWorksheet('Evidence').CellValue(1, 1, 'Second sheet evidence')
+            $null = $workbook.AddSheet('2').CellValue(1, 1, 'Named sheet evidence')
+            $null = $workbook.AddSheet('Evidence').CellValue(1, 1, 'Second sheet evidence')
             $workbook.Save($path)
         } finally { $workbook.Dispose() }
         Read-OfficeDocument $path -Sheet 2 -NoHeaderRow -As Text | Should -Match 'Second sheet evidence'
@@ -81,7 +81,7 @@ Describe 'Consolidated document reading' {
         $path = Join-Path $TestDrive 'table-once.xlsx'
         $workbook = [OfficeIMO.Excel.ExcelDocument]::Create()
         try {
-            $sheet = $workbook.AddWorksheet('Evidence')
+            $sheet = $workbook.AddSheet('Evidence')
             $null = $sheet.CellValue(1, 1, 'Item')
             $null = $sheet.CellValue(2, 1, 'Delivery')
             $workbook.Save($path)

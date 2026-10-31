@@ -222,26 +222,26 @@ Describe 'PSWriteOffice public API consistency' {
         foreach ($case in $cases) {
             $quietPath = Join-Path $TestDrive ("quiet-{0}.{1}" -f $case.Name, $case.Extension)
             $quietOutput = @(switch ($case.Name) {
-                    Word { New-OfficeWord -Path $quietPath }
-                    Excel { New-OfficeExcel -Path $quietPath }
+                    Word { New-OfficeWord -Path $quietPath {} }
+                    Excel { New-OfficeExcel -Path $quietPath {} }
                     PowerPoint { New-OfficePowerPoint -Path $quietPath {} }
                     Markdown { New-OfficeMarkdown -Path $quietPath -Content {} }
                     PDF { New-OfficePdf -Path $quietPath { PdfParagraph 'API contract' } }
-                    Visio { New-OfficeVisio -Path $quietPath }
-                    OpenDocument { New-OfficeOpenDocument -Kind Text -Path $quietPath }
+                    Visio { New-OfficeVisio -Path $quietPath {} }
+                    OpenDocument { New-OfficeOpenDocument -Kind Text -Path $quietPath {} }
                 })
             $quietOutput | Should -HaveCount 0 -Because "$($case.Name) should be quiet by default"
             Test-Path -LiteralPath $quietPath | Should -BeTrue
 
             $passThruPath = Join-Path $TestDrive ("passthru-{0}.{1}" -f $case.Name, $case.Extension)
             $passThruOutput = @(switch ($case.Name) {
-                    Word { New-OfficeWord -Path $passThruPath -PassThru }
-                    Excel { New-OfficeExcel -Path $passThruPath -PassThru }
+                    Word { New-OfficeWord -Path $passThruPath -PassThru {} }
+                    Excel { New-OfficeExcel -Path $passThruPath -PassThru {} }
                     PowerPoint { New-OfficePowerPoint -Path $passThruPath -PassThru {} }
                     Markdown { New-OfficeMarkdown -Path $passThruPath -Content {} -PassThru }
                     PDF { New-OfficePdf -Path $passThruPath -PassThru { PdfParagraph 'API contract' } }
-                    Visio { New-OfficeVisio -Path $passThruPath -PassThru }
-                    OpenDocument { New-OfficeOpenDocument -Kind Text -Path $passThruPath -PassThru }
+                    Visio { New-OfficeVisio -Path $passThruPath -PassThru {} }
+                    OpenDocument { New-OfficeOpenDocument -Kind Text -Path $passThruPath -PassThru {} }
                 })
             $passThruOutput | Should -HaveCount 1 -Because "$($case.Name) PassThru should emit the saved file"
             $passThruOutput[0] | Should -BeOfType System.IO.FileInfo

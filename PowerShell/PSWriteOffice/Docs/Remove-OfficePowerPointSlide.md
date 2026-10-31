@@ -11,7 +11,7 @@ Removes selected native slides or one-based slide positions.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Remove-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector[]> [-PassThru] [-Document <PowerPointPresentation>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector[]> [-PassThru] [-Document <PowerPointDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -37,7 +37,7 @@ $slide | Remove-OfficePowerPointSlide -WhatIf
 Gets or sets the document for numeric selection; omission uses the enclosing scope or native slide owner.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -90,7 +90,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## RELATED LINKS
 

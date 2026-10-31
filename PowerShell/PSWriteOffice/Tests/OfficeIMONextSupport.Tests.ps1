@@ -115,7 +115,7 @@ Describe 'Expanded OfficeIMO support' {
 
     It 'saves native drawings directly and rejects mismatched drawing extensions before output' {
         $path = Join-Path $TestDrive 'direct.odg'
-        $saved = New-OfficeOpenDocument -Kind Graphics -Path $path -PassThru
+        $saved = New-OfficeOpenDocument -Kind Graphics -Path $path -PassThru -Content {}
         $saved.FullName | Should -Be $path
         $drawing = Get-OfficeOpenDocument -Path $path
         $drawing.GetType().FullName | Should -Be 'OfficeIMO.OpenDocument.OdgDocument'
@@ -128,7 +128,7 @@ Describe 'Expanded OfficeIMO support' {
         Test-Path -LiteralPath $wrongPath | Should -BeFalse
 
         $whatIfPath = Join-Path $TestDrive 'preview.odg'
-        New-OfficeOpenDocument -Kind Graphics -Path $whatIfPath -WhatIf | Out-Null
+        New-OfficeOpenDocument -Kind Graphics -Path $whatIfPath -WhatIf -Content {} | Out-Null
         Test-Path -LiteralPath $whatIfPath | Should -BeFalse
     }
 
@@ -193,7 +193,7 @@ Describe 'Expanded OfficeIMO support' {
         $script:OpenDocumentInvalidExtensionDslRan | Should -BeFalse
 
         $signedPath = Join-Path $TestDrive 'signed.odt'
-        New-OfficeOpenDocument -Kind Text -Path $signedPath | Out-Null
+        New-OfficeOpenDocument -Kind Text -Path $signedPath -Content {} | Out-Null
         $stream = [System.IO.File]::Open($signedPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite)
         try {
             $archive = [System.IO.Compression.ZipArchive]::new($stream, [System.IO.Compression.ZipArchiveMode]::Update, $false)
@@ -227,7 +227,7 @@ Describe 'Expanded OfficeIMO support' {
 
         $textPath = Join-Path $TestDrive 'reverse-source.odt'
         $wrongOfficeOutput = Join-Path $TestDrive 'text.xlsx'
-        New-OfficeOpenDocument -Kind Text -Path $textPath | Out-Null
+        New-OfficeOpenDocument -Kind Text -Path $textPath -Content {} | Out-Null
         { ConvertFrom-OfficeOpenDocument -Path $textPath -OutputPath $wrongOfficeOutput -ErrorAction Stop } |
             Should -Throw '*must use the .docx extension*'
         Test-Path -LiteralPath $wrongOfficeOutput | Should -BeFalse

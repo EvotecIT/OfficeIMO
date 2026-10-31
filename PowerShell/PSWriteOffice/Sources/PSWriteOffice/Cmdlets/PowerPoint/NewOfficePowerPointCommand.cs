@@ -35,10 +35,14 @@ public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoin
     [Parameter]
     public SwitchParameter Force { get; set; }
 
-    /// <summary>Built-in theme name, theme object, or PowerPoint template path. Defaults to Modern.</summary>
+    /// <summary>Built-in theme, theme object or a Word, Excel or PowerPoint document/template whose visual theme is read. Defaults to Modern.</summary>
     [Parameter]
     [OfficeThemeTransformation]
     public OfficeThemeInput? Theme { get; set; }
+
+    /// <summary>Existing presentation/template copied as starting content. Theme applies visual styling separately.</summary>
+    [Parameter, ValidateNotNullOrEmpty]
+    public string? Template { get; set; }
 
     /// <summary>Password for the saved file; plaintext input warns, and credentials contribute their password.</summary>
     [Parameter]
@@ -47,10 +51,14 @@ public sealed class NewOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoin
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        if (Content == null && MyInvocation.BoundParameters.ContainsKey(nameof(Password))) {
+            InvalidArgument(new PSArgumentException("Password requires a content block. Supply it to Save-OfficePowerPoint when saving a live document."), Password);
+            return;
+        }
         var options = new PowerPointCreateOptions {
             PersistenceMode = DocumentPersistenceMode.Explicit,
-            Theme = Theme?.Theme ?? OfficeTheme.Modern,
-            Template = Theme?.TemplatePath
+            Theme = Theme?.Resolve(OfficeTheme.FromDocument),
+            Template = Template == null ? null : ResolveOutputPath(Template)
         };
         RunDocument(Path, isNew: true, force: Force.IsPresent,
             path => path == null ? PowerPointDocument.Create(options) : PowerPointDocument.Create(path, options),

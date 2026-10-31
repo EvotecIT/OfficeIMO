@@ -11,7 +11,7 @@ Renames the first section matching the supplied name.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Rename-OfficePowerPointSection [-Name] <string> [-NewName] <string> [-Document <PowerPointPresentation>] [-CaseSensitive] [-PassThru] [<CommonParameters>]
+Rename-OfficePowerPointSection [-Name] <string> [-NewName] <string> [-Document <PowerPointDocument>] [-CaseSensitive] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -53,7 +53,7 @@ Accept wildcard characters: False
 Gets or sets the live document; omission uses its enclosing content block.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -118,7 +118,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

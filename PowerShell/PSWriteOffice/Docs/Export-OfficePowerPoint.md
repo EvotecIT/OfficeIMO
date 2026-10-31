@@ -11,7 +11,7 @@ Exports objects as a designed presentation with editable tables and optional cha
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Export-OfficePowerPoint [-Path] <string> -InputObject <Object[]> [-Title <string>] [-Subtitle <string>] [-Property <string[]>] [-Category <string>] [-Value <string[]>] [-ChartType <OfficeChartKind>] [-ChartTitle <string>] [-GroupBy <string>] [-NoSummary] [-NoTable] [-MaxRows <Int32>] [-Theme <OfficeThemeInput>] [-Accent <OfficeColor>] [-Culture <cultureinfo>] [-NoClobber] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficePowerPoint [-Path] <string> -InputObject <Object[]> [-Title <string>] [-Subtitle <string>] [-Property <string[]>] [-Category <string>] [-Value <string[]>] [-ChartType <OfficeChartType>] [-ChartTitle <string>] [-GroupBy <string>] [-NoSummary] [-NoTable] [-MaxRows <Int32>] [-Theme <OfficeThemeInput>] [-Accent <OfficeColor>] [-Culture <cultureinfo>] [-NoClobber] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -79,10 +79,10 @@ Accept wildcard characters: False
 Shared native chart kind; defaults to clustered columns.
 
 ```yaml
-Type: OfficeChartKind
+Type: OfficeChartType
 Parameter Sets: __AllParameterSets
 Aliases: None
-Possible values: ColumnClustered, ColumnStacked, ColumnStacked100, BarClustered, BarStacked, BarStacked100, Line, LineStacked, LineStacked100, Area, AreaStacked, AreaStacked100, Scatter, Radar, Pie, Doughnut, Bubble
+Possible values: ColumnClustered, Column, ColumnStacked, ColumnStacked100, BarClustered, Bar, BarStacked, BarStacked100, Line, LineStacked, LineStacked100, Area, AreaStacked, AreaStacked100, Scatter, Radar, Pie, Doughnut, Bubble, Column3DClustered, Column3DStacked, Column3DStacked100, Bar3DClustered, Bar3DStacked, Bar3DStacked100, Line3D, Area3D, Area3DStacked, Area3DStacked100, Pie3D, PieOfPie, BarOfPie, Stock, Surface, SurfaceWireframe, SurfaceContour, Funnel, Waterfall, BoxWhisker, Treemap, SurfaceContourWireframe, Sunburst
 
 Required: False
 Position: named

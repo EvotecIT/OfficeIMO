@@ -5,7 +5,7 @@ $checks = @(
     [pscustomobject]@{ Check = 'Customer notice reviewed'; Owner = 'Support'; Required = 'No' }
 )
 
-WordNew -Path $path {
+New-OfficeWord -Path $path {
     WordSection {
         WordHeader { WordParagraph -Text 'Production change control' -Style Heading2 }
         WordFooter { WordPageNumber -IncludeTotal }

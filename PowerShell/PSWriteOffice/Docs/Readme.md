@@ -86,7 +86,7 @@ Adds a paragraph line to the current Excel report sheet.
 Adds a section heading to the current Excel report sheet.
 
 ### [Add-OfficeExcelReportSheet](Add-OfficeExcelReportSheet.md)
-Creates a worksheet through the OfficeIMO sheet composer and runs report-block cmdlets inside it.
+Creates a worksheet through the OfficeIMO report builder and runs report-block cmdlets inside it.
 
 ### [Add-OfficeExcelReportSpacer](Add-OfficeExcelReportSpacer.md)
 Adds vertical spacing to the current Excel report sheet.
@@ -1232,7 +1232,7 @@ Creates deterministic email writer settings through ordinary PowerShell paramete
 Creates an EPUB publication with native navigation and metadata.
 
 ### [New-OfficeExcel](New-OfficeExcel.md)
-Creates a new Excel workbook using the DSL.
+Creates a themed Excel workbook, returning a live workbook or saving a completed content block.
 
 ### [New-OfficeExcelDashboard](New-OfficeExcelDashboard.md)
 Builds a worksheet dashboard from tabular data using OfficeIMO dashboard defaults.
@@ -1274,7 +1274,7 @@ Creates native Markdown dialect, normalization, URL and input-limit settings.
 Creates OCR settings without starting a provider or downloading language data.
 
 ### [New-OfficeOpenDocument](New-OfficeOpenDocument.md)
-Creates a native ODT, ODS, ODP, or ODG document.
+Creates an ODT, ODS, ODP or ODG model, returning it live or saving a completed content block.
 
 ### [New-OfficePdf](New-OfficePdf.md)
 Creates a PDF document using the OfficeIMO.Pdf composition engine.
@@ -1343,7 +1343,7 @@ Creates literal text decoding and PDF layout settings for Export-OfficeDocumentP
 Creates a reusable rich text run specification for Word, Excel, PowerPoint, and PDF commands.
 
 ### [New-OfficeVisio](New-OfficeVisio.md)
-Creates a new OfficeIMO.Visio document with an initial page and optional DSL content.
+Creates a Visio document with an initial page, returning it live or saving a completed content block.
 
 ### [New-OfficeVisioGallery](New-OfficeVisioGallery.md)
 Generates the OfficeIMO Visio reference gallery as editable .vsdx diagrams.
@@ -1352,7 +1352,7 @@ Generates the OfficeIMO Visio reference gallery as editable .vsdx diagrams.
 Creates discoverable page and rendering settings for Export-OfficeVisioImage.
 
 ### [New-OfficeWord](New-OfficeWord.md)
-Creates a Word document using the DSL.
+Creates a themed Word document, returning a live document or saving a completed content block.
 
 ### [New-OfficeWordComparisonOptions](New-OfficeWordComparisonOptions.md)
 Creates discoverable structural comparison settings for Compare-OfficeWordDocument.

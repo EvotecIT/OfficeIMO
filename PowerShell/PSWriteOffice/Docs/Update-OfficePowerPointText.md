@@ -16,7 +16,7 @@ Update-OfficePowerPointText -OldValue <string> -NewValue <string> [-IncludeTable
 
 ### Presentation
 ```powershell
-Update-OfficePowerPointText -OldValue <string> -NewValue <string> [-Presentation <PowerPointPresentation>] [-IncludeTables <bool>] [-IncludeNotes] [-PassThru] [<CommonParameters>]
+Update-OfficePowerPointText -OldValue <string> -NewValue <string> [-Presentation <PowerPointDocument>] [-IncludeTables <bool>] [-IncludeNotes] [-PassThru] [<CommonParameters>]
 ```
 
 ### Slide
@@ -127,7 +127,7 @@ Accept wildcard characters: False
 Presentation to update.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: Presentation
 Aliases: None
 Possible values:
@@ -160,7 +160,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 - `OfficeIMO.PowerPoint.PowerPointSlide`
 
 ## OUTPUTS

@@ -12,7 +12,7 @@ New-OfficeMarkdown -Path '.\Service-Status.md' {
     MarkdownTaskList -Items 'Review Remote access', 'Assign the incident action', 'Publish the approved status pack'
 }
 
-WordNew -Path '.\Service-Status.docx' {
+New-OfficeWord -Path '.\Service-Status.docx' {
     WordSection {
         WordHeader { WordParagraph -Text 'Weekly service status' -Style Heading2 }
         WordFooter { WordPageNumber -IncludeTotal }
@@ -26,7 +26,7 @@ WordNew -Path '.\Service-Status.docx' {
     }
 }
 
-ExcelNew -Path '.\Service-Status.xlsx' {
+New-OfficeExcel -Path '.\Service-Status.xlsx' {
     ExcelSheet 'Services' {
         # Keep the chart's category and one numeric measure adjacent; owners and percentages remain in the table.
         ExcelTable -Data ($services | Select-Object Service,Incidents,Owner,Availability,Status) -Name 'ServiceStatus' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit

@@ -11,12 +11,12 @@ Sets a presentation's slide size using a preset or physical lengths.
 ## SYNTAX
 ### Preset (Default)
 ```powershell
-Set-OfficePowerPointSlideSize -Preset <PowerPointSlideSizePreset> [-Portrait] [-PassThru] [-Document <PowerPointPresentation>] [<CommonParameters>]
+Set-OfficePowerPointSlideSize -Preset <PowerPointSlideSizePreset> [-Portrait] [-PassThru] [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
 
 ### Size
 ```powershell
-Set-OfficePowerPointSlideSize -Width <OfficeLength> -Height <OfficeLength> [-PassThru] [-Document <PowerPointPresentation>] [<CommonParameters>]
+Set-OfficePowerPointSlideSize -Width <OfficeLength> -Height <OfficeLength> [-PassThru] [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -45,7 +45,7 @@ New-OfficePowerPoint -Path ./Review.pptx {
 Gets or sets an explicit live document; omission uses the enclosing content block.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: Preset, Size
 Aliases: None
 Possible values:
@@ -142,7 +142,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

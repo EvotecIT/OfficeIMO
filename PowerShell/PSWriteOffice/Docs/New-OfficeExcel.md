@@ -6,89 +6,41 @@ schema: 2.0.0
 ---
 # New-OfficeExcel
 ## SYNOPSIS
-Creates a new Excel workbook using the DSL.
+Creates a themed Excel workbook, returning a live workbook or saving a completed content block.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeExcel [-Path] <string> [[-Content] <scriptblock>] [-TemplatePath <string>] [-NoSave] [-Open] [-Password <string>] [-SafePreflight] [-SafeRepairDefinedNames] [-ValidateOpenXml] [-DisableFastPackageWriter] [-EvaluateFormulas] [-ClearCachedFormulaResults] [-MarkFormulasDirty] [-ForceFullCalculationOnOpen] [-DateSystem <string>] [-PassThru] [-DocumentTitle <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Description <string>] [-Category <string>] [-Company <string>] [-Manager <string>] [-ApplicationName <string>] [-LastModifiedBy <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficeExcel [[-Path] <string>] [[-Content] <scriptblock>] [-Theme <OfficeThemeInput>] [-Template <string>] [-Force] [-Password <securestring>] [-SaveOptions <ExcelSaveOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-MaxDegreeOfParallelism <Int32>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Runs the provided script block inside an ExcelSheet/ExcelCell DSL context and saves the file.
+Without a block no file is written, including on disposal. A block saves atomically; an existing destination requires Force. Template copies content; Theme reads only the visual theme. SaveOptions and Password apply to a completed content block.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficeExcel -Path .\report.xlsx { ExcelSheet 'Data' { ExcelCell -Address 'ExcelA1' -Value 'Region' } }
+New-OfficeExcel -Path ./Report.xlsx -Theme Modern -PassThru {
+    ExcelSheet 'Data' { ExcelCell -Address A1 -Value 'Region' }
+}
 ```
 
-Creates report.xlsx and writes “Region” into cell ExcelA1 on the Data worksheet.
 
 ### EXAMPLE 2
 ```powershell
-PS> $workbook = New-OfficeExcel -Path .\report.xlsx -NoSave
-$sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
-$sheet | Set-OfficeExcelCell -Address ExcelA1 -Value 'Region'
-$workbook | Save-OfficeExcel
-$workbook | Close-OfficeExcel
+$workbook = New-OfficeExcel -Theme Boardroom
+$sheet = Add-OfficeExcelSheet -Document $workbook -Name Data -PassThru
+Set-OfficeExcelCell -Sheet $sheet -Address A1 -Value 'Region'
+Save-OfficeExcel -Document $workbook -Path ./Report.xlsx
+Close-OfficeExcel -Document $workbook
 ```
 
-Associates the output path with a live workbook, changes a worksheet, then saves and closes it once.
 
 ## PARAMETERS
 
-### -ApplicationName
-Workbook application-name metadata.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Author
-Workbook author metadata.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Category
-Workbook category metadata.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ClearCachedFormulaResults
-Remove cached formula results before saving.
+### -AllowLoss
+Gets or sets whether native-save loss is explicitly accepted.
 
 ```yaml
 Type: SwitchParameter
@@ -103,24 +55,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Company
-Workbook company metadata.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Content
-DSL scriptblock describing workbook content.
+Gets or sets a content block; omission returns the live document.
 
 ```yaml
 Type: ScriptBlock
@@ -136,13 +72,13 @@ Accept wildcard characters: False
 ```
 
 ### -DateSystem
-Workbook date system for Excel date serials.
+Native workbook date system.
 
 ```yaml
-Type: String
+Type: ExcelDateSystem
 Parameter Sets: __AllParameterSets
 Aliases: None
-Possible values: 1900, 1904, NineteenHundred, NineteenFour
+Possible values: NineteenHundred, NineteenFour
 
 Required: False
 Position: named
@@ -151,11 +87,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Description
-Workbook description metadata.
+### -DocumentProperty
+Workbook properties such as Title, Author, Subject, Keywords, Company and Manager.
 
 ```yaml
-Type: String
+Type: Hashtable
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -167,8 +103,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -DisableFastPackageWriter
-Disable OfficeIMO fast package writers for this save.
+### -Force
+Allow a completed content block to replace an existing destination.
 
 ```yaml
 Type: SwitchParameter
@@ -183,139 +119,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -DocumentTitle
-Workbook document title metadata.
+### -MaxDegreeOfParallelism
+Maximum parallel workers; 1 runs sequentially. Omission retains the native execution policy.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -EvaluateFormulas
-Evaluate supported formulas and write cached values before saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ForceFullCalculationOnOpen
-Request a full workbook recalculation when opened in Excel-compatible applications.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Keywords
-Workbook keyword metadata.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -LastModifiedBy
-Workbook last-modified-by metadata.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Manager
-Workbook manager metadata.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MarkFormulasDirty
-Mark formula cells dirty before saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NoSave
-Skip saving the workbook after running the DSL.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Open
-Open the workbook in Excel after saving.
-
-```yaml
-Type: SwitchParameter
+Type: Int32
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -328,7 +136,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit a FileInfo for convenience.
+Gets or sets whether a completed content block returns the saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
@@ -344,10 +152,10 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to save the workbook as an encrypted package.
+Password for a completed content block's saved file; use Save-OfficeExcel for a live workbook.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -360,23 +168,39 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Destination path for the workbook.
+Optional associated destination; required with a content block.
 
 ```yaml
 Type: String
 Parameter Sets: __AllParameterSets
-Aliases: FilePath
+Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SafePreflight
-Run OfficeIMO worksheet preflight cleanup before saving.
+### -SaveOptions
+Native save options or a hashtable, applied to a completed content block.
+
+```yaml
+Type: ExcelSaveOptions
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Show
+Gets or sets whether the saved file opens in the system default application.
 
 ```yaml
 Type: SwitchParameter
@@ -391,24 +215,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SafeRepairDefinedNames
-Repair common defined-name issues before saving.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Subject
-Workbook subject metadata.
+### -Template
+Existing workbook copied as starting content. Its styling is preserved unless Theme is supplied.
 
 ```yaml
 Type: String
@@ -423,27 +231,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -TemplatePath
-Optional workbook template package copied before running the DSL.
+### -Theme
+Built-in theme, theme object or a document/template whose visual theme is read.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: Template
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ValidateOpenXml
-Validate the saved package with OpenXmlValidator and throw on errors.
-
-```yaml
-Type: SwitchParameter
+Type: OfficeThemeInput
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -464,7 +256,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.Excel.ExcelDocument`
+- `System.IO.FileInfo`
 
 ## RELATED LINKS
 

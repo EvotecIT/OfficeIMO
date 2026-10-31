@@ -125,12 +125,6 @@
               "pipeline": "none"
             },
             {
-              "name": "Password",
-              "type": "SecureString",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
               "name": "DocumentProperty",
               "type": "hashtable",
               "mandatory": false,
@@ -143,12 +137,6 @@
               "pipeline": "none"
             },
             {
-              "name": "SaveOptions",
-              "type": "ExcelSaveOptions",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
               "name": "MaxDegreeOfParallelism",
               "type": "int",
               "mandatory": false,
@@ -157,7 +145,7 @@
           ]
         }
       ],
-      "notes": "With a content block the workbook is saved and closed when the block ends (FileInfo with -PassThru); a block that throws saves nothing and removes the partial file. Without a block (Live set) the live ExcelDocument is returned and -Path is optional (Save-OfficeExcel -Path later). Saving fails if content would be lost unless -AllowLoss. Refuses to replace an existing file without -Force. -Template accepts .xltx/.xlsx/.xlsm (absorbs Copy-OfficeExcelWorkbook). -DocumentProperty takes Title, Author, Subject, Keywords, Description, Category, Company, Manager, ApplicationName and LastModifiedBy keys. -MaxDegreeOfParallelism 1 forces sequential execution; the rest of the execution policy is the document's Execution property.",
+      "notes": "With a content block the workbook is saved and closed when the block ends (FileInfo with -PassThru); a block that throws saves nothing and removes the partial file. Without a block (Live set) the live ExcelDocument is returned and -Path is optional (Save-OfficeExcel -Path later). Saving fails if content would be lost unless -AllowLoss. Refuses to replace an existing file without -Force. -Template accepts .xltx/.xlsx/.xlsm (absorbs Copy-OfficeExcelWorkbook). -DocumentProperty takes Title, Author, Subject, Keywords, Description, Category, Company, Manager, ApplicationName and LastModifiedBy keys. -MaxDegreeOfParallelism 1 forces sequential execution; the rest of the execution policy is the document's Execution property. Password and SaveOptions are valid only with a content block; apply save policy through Save-OfficeExcel when working with a live document. Theme reads the source palette and Latin fonts; Template copies the document content.",
       "examples": [
         {
           "title": "Create a workbook with one table",

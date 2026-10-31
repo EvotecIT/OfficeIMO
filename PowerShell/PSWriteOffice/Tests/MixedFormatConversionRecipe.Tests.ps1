@@ -50,7 +50,7 @@ Describe 'Mixed-format conversion review recipe' -Skip:($PSVersionTable.PSEditio
         $first.Summary.Skipped | Should -Be 1
         @($first.Outcomes | Where-Object { $_.Status -eq 'Failed' -and $_.ReviewRequired }).Count | Should -Be 1
         @($first.Outcomes | Where-Object { $_.Status -eq 'Skipped' -and $_.ReviewRequired }).Count | Should -Be 1
-        WordNew -Path $broken { WordParagraph -Text 'Corrected synthetic handover attachment.' }
+        New-OfficeWord -Path $broken -Force { WordParagraph -Text 'Corrected synthetic handover attachment.' }
         $retry = & $recipe -InputDirectory $source -OutputDirectory $destination -ModulePath $moduleManifest -RetryFailed
         $retry.Completed | Should -Be 4
         $retry.Reused | Should -Be 3

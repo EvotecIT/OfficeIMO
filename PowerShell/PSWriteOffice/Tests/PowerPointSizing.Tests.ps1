@@ -13,15 +13,15 @@ Describe 'PowerPoint slide sizing through the module' {
         $path = Join-Path $TestDrive 'Custom-size.pptx'
         New-OfficePowerPoint -Path $path {
             $size = Set-OfficePowerPointSlideSize -Width '25.4cm' -Height '14cm' -PassThru
-            [math]::Round($size.WidthCm, 1) | Should -Be 25.4
-            [math]::Round($size.HeightCm, 1) | Should -Be 14.0
+            [math]::Round($size.Width.ToCentimeters(), 1) | Should -Be 25.4
+            [math]::Round($size.Height.ToCentimeters(), 1) | Should -Be 14.0
             $slide = PowerPointSlide -Title 'Transition demo' -PassThru
             Set-OfficePowerPointSlide -Slide $slide -Transition Fade
         }
         $document = Open-OfficePowerPoint -LiteralPath $path
         try {
-            [math]::Round($document.SlideSize.WidthCm, 1) | Should -Be 25.4
-            [math]::Round($document.SlideSize.HeightCm, 1) | Should -Be 14.0
+            [math]::Round($document.SlideSize.Width.ToCentimeters(), 1) | Should -Be 25.4
+            [math]::Round($document.SlideSize.Height.ToCentimeters(), 1) | Should -Be 14.0
             $document.Slides[0].Transition | Should -Be 'Fade'
             @($document.ValidateDocument()).Count | Should -Be 0
         } finally {

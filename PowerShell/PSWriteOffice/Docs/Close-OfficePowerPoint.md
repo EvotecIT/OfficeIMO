@@ -11,7 +11,7 @@ Closes a live presentation without saving it.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Close-OfficePowerPoint [-Document <PowerPointPresentation>] [<CommonParameters>]
+Close-OfficePowerPoint [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -33,7 +33,7 @@ Close-OfficePowerPoint -Document $deck
 Gets or sets an explicit live document; omission uses the enclosing content block.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -50,7 +50,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

@@ -1,222 +1,99 @@
 using System;
+using System.Collections;
 using System.IO;
 using System.Management.Automation;
+using System.Security;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Excel;
-using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Creates a new Excel workbook using the DSL.</summary>
-/// <para>Runs the provided script block inside an <c>ExcelSheet</c>/<c>ExcelCell</c> DSL context and saves the file.</para>
-/// <example>
-///   <summary>Create a workbook with a sheet and a few cells.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficeExcel -Path .\report.xlsx { ExcelSheet 'Data' { ExcelCell -Address 'A1' -Value 'Region' } }</code>
-///   <para>Creates <c>report.xlsx</c> and writes “Region” into cell A1 on the Data worksheet.</para>
-/// </example>
-/// <example>
-///   <summary>Keep a workbook for incremental composition.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$workbook = New-OfficeExcel -Path .\report.xlsx -NoSave
-/// $sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
-/// $sheet | Set-OfficeExcelCell -Address A1 -Value 'Region'
-/// $workbook | Save-OfficeExcel
-/// $workbook | Close-OfficeExcel</code>
-///   <para>Associates the output path with a live workbook, changes a worksheet, then saves and closes it once.</para>
-/// </example>
+/// <summary>Creates a themed Excel workbook, returning a live workbook or saving a completed content block.</summary>
+/// <para>Without a block no file is written, including on disposal. A block saves atomically; an existing destination requires Force. Template copies content; Theme reads only the visual theme. SaveOptions and Password apply to a completed content block.</para>
+/// <example><summary>Create a workbook and return its saved file.</summary>
+/// <code>New-OfficeExcel -Path ./Report.xlsx -Theme Modern -PassThru {
+///     ExcelSheet 'Data' { ExcelCell -Address A1 -Value 'Region' }
+/// }</code></example>
+/// <example><summary>Create a live workbook for explicit editing and saving.</summary>
+/// <code>$workbook = New-OfficeExcel -Theme Boardroom
+/// $sheet = Add-OfficeExcelSheet -Document $workbook -Name Data -PassThru
+/// Set-OfficeExcelCell -Sheet $sheet -Address A1 -Value 'Region'
+/// Save-OfficeExcel -Document $workbook -Path ./Report.xlsx
+/// Close-OfficeExcel -Document $workbook</code></example>
 [Cmdlet(VerbsCommon.New, "OfficeExcel", SupportsShouldProcess = true)]
-[Alias("OfficeExcel", "ExcelNew")]
-public sealed class NewOfficeExcelCommand : PSCmdlet {
-    /// <summary>Destination path for the workbook.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    [Alias("FilePath")]
-    public string Path { get; set; } = string.Empty;
+[OutputType(typeof(ExcelDocument), typeof(FileInfo))]
+public sealed class NewOfficeExcelCommand : OfficeLifecycleCmdlet<ExcelDocument> {
+    /// <summary>Optional associated destination; required with a content block.</summary>
+    [Parameter(Position = 0), ValidateNotNullOrEmpty]
+    public string? Path { get; set; }
 
-    /// <summary>DSL scriptblock describing workbook content.</summary>
-    [Parameter(Position = 1)]
-    public ScriptBlock? Content { get; set; }
+    /// <summary>Built-in theme, theme object or a document/template whose visual theme is read.</summary>
+    [Parameter, OfficeThemeTransformation]
+    public OfficeThemeInput? Theme { get; set; }
 
-    /// <summary>Optional workbook template package copied before running the DSL.</summary>
+    /// <summary>Existing workbook copied as starting content. Its styling is preserved unless Theme is supplied.</summary>
+    [Parameter, ValidateNotNullOrEmpty]
+    public string? Template { get; set; }
+
+    /// <summary>Allow a completed content block to replace an existing destination.</summary>
     [Parameter]
-    [Alias("Template")]
-    public string? TemplatePath { get; set; }
+    public SwitchParameter Force { get; set; }
 
-    /// <summary>Skip saving the workbook after running the DSL.</summary>
-    [Parameter]
-    public SwitchParameter NoSave { get; set; }
+    /// <summary>Password for a completed content block's saved file; use Save-OfficeExcel for a live workbook.</summary>
+    [Parameter, OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
-    /// <summary>Open the workbook in Excel after saving.</summary>
-    [Parameter]
-    public SwitchParameter Open { get; set; }
+    /// <summary>Native save options or a hashtable, applied to a completed content block.</summary>
+    [Parameter, OfficeExcelSaveOptionsTransformation, ValidateNotNull]
+    public ExcelSaveOptions? SaveOptions { get; set; }
 
-    /// <summary>Password used to save the workbook as an encrypted package.</summary>
-    [Parameter]
-    public string? Password { get; set; }
+    /// <summary>Workbook properties such as Title, Author, Subject, Keywords, Company and Manager.</summary>
+    [Parameter, ValidateNotNull]
+    public Hashtable? DocumentProperty { get; set; }
 
-    /// <summary>Run OfficeIMO worksheet preflight cleanup before saving.</summary>
+    /// <summary>Native workbook date system.</summary>
     [Parameter]
-    public SwitchParameter SafePreflight { get; set; }
+    public ExcelDateSystem? DateSystem { get; set; }
 
-    /// <summary>Repair common defined-name issues before saving.</summary>
-    [Parameter]
-    public SwitchParameter SafeRepairDefinedNames { get; set; }
-
-    /// <summary>Validate the saved package with OpenXmlValidator and throw on errors.</summary>
-    [Parameter]
-    public SwitchParameter ValidateOpenXml { get; set; }
-
-    /// <summary>Disable OfficeIMO fast package writers for this save.</summary>
-    [Parameter]
-    public SwitchParameter DisableFastPackageWriter { get; set; }
-
-    /// <summary>Evaluate supported formulas and write cached values before saving.</summary>
-    [Parameter]
-    public SwitchParameter EvaluateFormulas { get; set; }
-
-    /// <summary>Remove cached formula results before saving.</summary>
-    [Parameter]
-    public SwitchParameter ClearCachedFormulaResults { get; set; }
-
-    /// <summary>Mark formula cells dirty before saving.</summary>
-    [Parameter]
-    public SwitchParameter MarkFormulasDirty { get; set; }
-
-    /// <summary>Request a full workbook recalculation when opened in Excel-compatible applications.</summary>
-    [Parameter]
-    public SwitchParameter ForceFullCalculationOnOpen { get; set; }
-
-    /// <summary>Workbook date system for Excel date serials.</summary>
-    [Parameter]
-    [ValidateSet("1900", "1904", "NineteenHundred", "NineteenFour")]
-    public string? DateSystem { get; set; }
-
-    /// <summary>Emit a <see cref="FileInfo"/> for convenience.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
-
-    /// <summary>Workbook document title metadata.</summary>
-    [Parameter]
-    public string? DocumentTitle { get; set; }
-
-    /// <summary>Workbook author metadata.</summary>
-    [Parameter]
-    public string? Author { get; set; }
-
-    /// <summary>Workbook subject metadata.</summary>
-    [Parameter]
-    public string? Subject { get; set; }
-
-    /// <summary>Workbook keyword metadata.</summary>
-    [Parameter]
-    public string? Keywords { get; set; }
-
-    /// <summary>Workbook description metadata.</summary>
-    [Parameter]
-    public string? Description { get; set; }
-
-    /// <summary>Workbook category metadata.</summary>
-    [Parameter]
-    public string? Category { get; set; }
-
-    /// <summary>Workbook company metadata.</summary>
-    [Parameter]
-    public string? Company { get; set; }
-
-    /// <summary>Workbook manager metadata.</summary>
-    [Parameter]
-    public string? Manager { get; set; }
-
-    /// <summary>Workbook application-name metadata.</summary>
-    [Parameter]
-    public string? ApplicationName { get; set; }
-
-    /// <summary>Workbook last-modified-by metadata.</summary>
-    [Parameter]
-    public string? LastModifiedBy { get; set; }
+    /// <summary>Maximum parallel workers; 1 runs sequentially. Omission retains the native execution policy.</summary>
+    [Parameter, ValidateRange(1, int.MaxValue)]
+    public int? MaxDegreeOfParallelism { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        if (NoSave.IsPresent && Open.IsPresent) {
-            throw new PSArgumentException("-Open cannot be used with -NoSave because no file is written. Save the returned workbook explicitly, then use -Open on Save-OfficeExcel.", nameof(Open));
-        }
-
-        var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-        var action = NoSave.IsPresent
-            ? string.IsNullOrWhiteSpace(TemplatePath)
-                ? "Create in-memory Excel workbook"
-                : "Create Excel workbook from template"
-            : "Write new Excel workbook";
-        if (!PdfCommandUtilities.ShouldWrite(this, resolvedPath, action)) {
+        if (Content == null && (MyInvocation.BoundParameters.ContainsKey(nameof(Password)) || SaveOptions != null)) {
+            InvalidArgument(new PSArgumentException("Password and SaveOptions require a content block. Supply them to Save-OfficeExcel when saving a live workbook."), Path);
             return;
         }
-
-        if (!NoSave.IsPresent) {
-            var directory = System.IO.Path.GetDirectoryName(resolvedPath);
-            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) {
-                Directory.CreateDirectory(directory);
-            }
-        }
-
-        var document = string.IsNullOrWhiteSpace(TemplatePath)
-            ? NoSave.IsPresent
-                ? ExcelDocumentService.CreateInMemoryDocument()
-                : ExcelDocumentService.CreateDocument(resolvedPath, autoSave: false)
-            : ExcelDocumentService.CreateFromTemplate(
-                SessionState.Path.GetUnresolvedProviderPathFromPSPath(TemplatePath!), resolvedPath);
-        var closed = false;
-        try {
-            if (NoSave.IsPresent) {
-                ExcelDocumentService.UpdateSaveAssociation(document, resolvedPath);
-            }
-
-            ExcelDateSystemService.ApplyIfSpecified(document, DateSystem, nameof(DateSystem));
-            ExcelDocumentPropertyService.ApplyCommonProperties(
-                document,
-                DocumentTitle,
-                Author,
-                Subject,
-                Keywords,
-                Description,
-                Category,
-                Company,
-                Manager,
-                ApplicationName,
-                LastModifiedBy);
-
-            using (ExcelDslContext.Enter(document)) {
-                Content?.InvokeReturnAsIs();
-            }
-
-            if (!NoSave.IsPresent) {
-                if (document.Sheets.Count == 0) {
-                    document.AddSheet(string.Empty, ExcelSheetNameValidationMode.Sanitize);
+        var options = new ExcelCreateOptions {
+            PersistenceMode = DocumentPersistenceMode.Explicit,
+            Theme = Theme?.Resolve(OfficeTheme.FromDocument),
+            Template = Template == null ? null : ResolveOutputPath(Template)
+        };
+        RunDocument(Path, isNew: true, force: Force.IsPresent, path => {
+            ExcelDocument document = path == null ? ExcelDocument.Create(options) : ExcelDocument.Create(path, options);
+            try {
+                if (DateSystem.HasValue) document.DateSystem = DateSystem.Value;
+                if (MaxDegreeOfParallelism.HasValue) document.Execution.MaxDegreeOfParallelism = MaxDegreeOfParallelism.Value;
+                if (DocumentProperty != null) {
+                    foreach (DictionaryEntry property in DocumentProperty)
+                        ExcelDocumentPropertyService.SetProperty(document, Convert.ToString(property.Key)!, property.Value);
                 }
-                var saveOptions = ExcelDocumentService.CreateSaveOptions(
-                    SafePreflight.IsPresent,
-                    SafeRepairDefinedNames.IsPresent,
-                    ValidateOpenXml.IsPresent,
-                    DisableFastPackageWriter.IsPresent,
-                    EvaluateFormulas.IsPresent,
-                    ClearCachedFormulaResults.IsPresent,
-                    MarkFormulasDirty.IsPresent,
-                    ForceFullCalculationOnOpen.IsPresent);
-                ExcelDocumentService.SaveDocument(document, Open.IsPresent, resolvedPath, Password, saveOptions);
-                closed = true;
-            } else {
-                WriteObject(document);
-                return;
-            }
-        } catch {
-            if (!closed) {
-                ExcelDocumentService.CloseDocument(document);
-            }
-            throw;
-        }
-
-        if (PassThru.IsPresent) {
-            WriteObject(new FileInfo(resolvedPath));
-        }
+                return document;
+            } catch { document.Dispose(); throw; }
+        }, (document, path, allowLoss) => {
+            if (document.Sheets.Count == 0) document.AddSheet("Sheet1");
+            document.Save(path, ExcelDocumentService.NativeSaveOptions(SaveOptions,
+                MyInvocation.BoundParameters.ContainsKey(nameof(AllowLoss)) ? allowLoss : (bool?)null,
+                Password, MyInvocation.BoundParameters.ContainsKey(nameof(Password))));
+            return null;
+        });
     }
 
+    /// <inheritdoc />
+    protected override void InvokeContent(ExcelDocument document) {
+        using (ExcelDslContext.Enter(document)) Content!.InvokeReturnAsIs();
+    }
 }

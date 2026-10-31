@@ -151,23 +151,23 @@ Describe 'PowerPointDesign workflows' {
             $colorSlide.BackgroundColor | Should -Be 'f4f7fb'
 
             $contentBox = Get-OfficePowerPointLayoutBox -Presentation $presentation -MarginCm 1.5
-            [math]::Round($contentBox.LeftCm, 2) | Should -Be 1.5
-            [math]::Round($contentBox.TopCm, 2) | Should -Be 1.5
-            [math]::Round($contentBox.WidthCm, 2) | Should -Be 27
-            [math]::Round($contentBox.HeightCm, 2) | Should -Be 17
+            [math]::Round($contentBox.Left.ToCentimeters(), 2) | Should -Be 1.5
+            [math]::Round($contentBox.Top.ToCentimeters(), 2) | Should -Be 1.5
+            [math]::Round($contentBox.Width.ToCentimeters(), 2) | Should -Be 27
+            [math]::Round($contentBox.Height.ToCentimeters(), 2) | Should -Be 17
 
             $columns = @(Get-OfficePowerPointLayoutBox -Presentation $presentation -ColumnCount 2 -MarginCm 1.5 -GutterCm 1.0)
             $columns.Count | Should -Be 2
-            [math]::Round($columns[0].WidthCm, 2) | Should -Be 13
-            [math]::Round($columns[1].LeftCm, 2) | Should -Be 15.5
+            [math]::Round($columns[0].Width.ToCentimeters(), 2) | Should -Be 13
+            [math]::Round($columns[1].Left.ToCentimeters(), 2) | Should -Be 15.5
 
             $rows = @(Get-OfficePowerPointLayoutBox -Presentation $presentation -RowCount 2 -MarginCm 1.5 -GutterCm 0.5)
             $rows.Count | Should -Be 2
-            [math]::Round($rows[0].HeightCm, 2) | Should -Be 8.25
-            [math]::Round($rows[1].TopCm, 2) | Should -Be 10.25
+            [math]::Round($rows[0].Height.ToCentimeters(), 2) | Should -Be 8.25
+            [math]::Round($rows[1].Top.ToCentimeters(), 2) | Should -Be 10.25
 
-            Add-OfficePowerPointTextBox -Slide $colorSlide -Text 'Left column' -X $columns[0].LeftPoints -Y $columns[0].TopPoints -Width $columns[0].WidthPoints -Height 40 | Out-Null
-            Add-OfficePowerPointTextBox -Slide $colorSlide -Text 'Right column' -X $columns[1].LeftPoints -Y $columns[1].TopPoints -Width $columns[1].WidthPoints -Height 40 | Out-Null
+            Add-OfficePowerPointTextBox -Slide $colorSlide -Text 'Left column' -X $columns[0].Left.ToPoints() -Y $columns[0].Top.ToPoints() -Width $columns[0].Width.ToPoints() -Height 40 | Out-Null
+            Add-OfficePowerPointTextBox -Slide $colorSlide -Text 'Right column' -X $columns[1].Left.ToPoints() -Y $columns[1].Top.ToPoints() -Width $columns[1].Width.ToPoints() -Height 40 | Out-Null
 
             $imageSlide = $presentation.AddSlide(0, 1)
             Set-OfficePowerPointSlide -Slide $imageSlide -Title 'Image Background' | Out-Null

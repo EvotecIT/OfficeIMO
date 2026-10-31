@@ -1486,6 +1486,14 @@
         "OfficeIMO.Workflows/OfficeRasterContentSafetyOptions.cs"
       ],
       "note": "All native classifier scaling, risk ordering, evidence and exact defaults remain. Nonfinite values are rejected by the shared length factory before option assignment; finite negative and above-range values remain rejected by option validation. No PDF user-space reinterpretation is made."
+    },
+    {
+      "phase": "M5",
+      "action": "add",
+      "new": "OfficeTheme.FromDocument(string path)",
+      "reason": "Read the referenced DrawingML palette and Latin heading/body fonts from DOCX/DOTX, XLSX/XLTX or PPTX/POTX without copying document content. PowerPoint uses its first declared slide master; composition sizes and spacing retain Modern defaults.",
+      "file": "OfficeIMO.Core/Themes/OfficeTheme.FromDocument.cs",
+      "applied": "implemented"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

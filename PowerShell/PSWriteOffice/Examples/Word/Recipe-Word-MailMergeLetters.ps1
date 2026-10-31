@@ -6,7 +6,7 @@ $recipients = @(
 foreach ($recipient in $recipients) {
     $path = ".\Order-$($recipient.OrderId).docx"
 
-    WordNew -Path $path {
+    New-OfficeWord -Path $path {
         WordSection {
             WordParagraph -Text 'Order confirmation' -Style Heading1
             WordParagraph {

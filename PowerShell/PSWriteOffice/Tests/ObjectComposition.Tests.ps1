@@ -19,7 +19,7 @@ Describe 'Object-style document composition' {
             [pscustomobject]@{ Service = 'Certificates'; Status = 'Watch' }
         )
 
-        $document = New-OfficeWord -Path $path -NoSave
+        $document = New-OfficeWord -Path $path
         try {
             $heading = $document | Add-OfficeWordParagraph -Text 'Service status' -Style Heading1 -PassThru
             $heading | Add-OfficeWordText -Text ' — reviewed' -Italic
@@ -49,7 +49,7 @@ Describe 'Object-style document composition' {
 
     It 'adds a Word section through the document pipeline' {
         $path = Join-Path $TestDrive 'ObjectSections.docx'
-        $document = New-OfficeWord -Path $path -NoSave
+        $document = New-OfficeWord -Path $path
         try {
             $section = $document | Add-OfficeWordSection -BreakType NextPage -PassThru
             $section | Add-OfficeWordParagraph -Text 'Second section' -PassThru | Should -Not -BeNullOrEmpty
@@ -74,7 +74,7 @@ Describe 'Object-style document composition' {
             [pscustomobject]@{ Project = 'Beacon'; Owner = 'Security'; Progress = 0.55 }
         )
 
-        $workbook = New-OfficeExcel -Path $path -NoSave
+        $workbook = New-OfficeExcel -Path $path
         try {
             $sheet = $workbook | Add-OfficeExcelSheet -Name 'Projects' -PassThru
             $sheet | Set-OfficeExcelCell -Address A1 -Value 'Portfolio' -BackgroundColor '#D9EAF7'
@@ -93,7 +93,7 @@ Describe 'Object-style document composition' {
 
     It 'reuses the active Excel scope for an explicit matching workbook target' {
         $path = Join-Path $TestDrive 'NestedObjectFlow.xlsx'
-        $workbook = New-OfficeExcel -Path $path -NoSave
+        $workbook = New-OfficeExcel -Path $path
         try {
             $workbook | Add-OfficeExcelSheet -Name 'Outer' -Content {
                 Add-OfficeExcelSheet -Document $workbook -Name 'Inner' -Content {
@@ -112,11 +112,11 @@ Describe 'Object-style document composition' {
     }
 
     It 'rejects mismatched nested Excel targets before creating a worksheet' {
-        $target = New-OfficeExcel -Path (Join-Path $TestDrive 'Target.xlsx') -NoSave
+        $target = New-OfficeExcel -Path (Join-Path $TestDrive 'Target.xlsx')
         $active = $null
         try {
             $sheetCount = $target.Sheets.Count
-            $active = New-OfficeExcel -Path (Join-Path $TestDrive 'Active.xlsx') -NoSave {
+            $active = New-OfficeExcel -Path (Join-Path $TestDrive 'Active.xlsx') {
                 {
                     Add-OfficeExcelSheet -Document $target -Name 'Rejected' -Content {
                         Set-OfficeExcelCell -Address A1 -Value 'Must not be written'
@@ -132,14 +132,14 @@ Describe 'Object-style document composition' {
     }
 
     It 'rejects mismatched nested Word targets before changing the document' {
-        $target = New-OfficeWord -Path (Join-Path $TestDrive 'Target.docx') -NoSave
+        $target = New-OfficeWord -Path (Join-Path $TestDrive 'Target.docx')
         $active = $null
         try {
             $sectionCount = $target.Sections.Count
             $paragraphCount = $target.Paragraphs.Count
             $targetSection = $target.Sections[0]
 
-            $active = New-OfficeWord -Path (Join-Path $TestDrive 'Active.docx') -NoSave {
+            $active = New-OfficeWord -Path (Join-Path $TestDrive 'Active.docx') {
                 {
                     Add-OfficeWordSection -Document $target -Content {
                         Add-OfficeWordParagraph -Text 'Must not be written'
@@ -167,20 +167,20 @@ Describe 'Object-style document composition' {
         }
     }
 
-    It 'preserves existing destinations when a NoSave DSL block fails' {
+    It 'preserves existing destinations when a creation content block fails' {
         $excelPath = Join-Path $TestDrive 'Failed.xlsx'
         $wordPath = Join-Path $TestDrive 'Failed.docx'
         [IO.File]::WriteAllText($excelPath, 'Existing Excel destination')
         [IO.File]::WriteAllText($wordPath, 'Existing Word destination')
 
         {
-            New-OfficeExcel -Path $excelPath -NoSave {
+            New-OfficeExcel -Path $excelPath -Force {
                 throw 'Expected Excel DSL failure'
             }
         } | Should -Throw '*Expected Excel DSL failure*'
 
         {
-            New-OfficeWord -Path $wordPath -NoSave {
+            New-OfficeWord -Path $wordPath -Force {
                 throw 'Expected Word DSL failure'
             }
         } | Should -Throw '*Expected Word DSL failure*'

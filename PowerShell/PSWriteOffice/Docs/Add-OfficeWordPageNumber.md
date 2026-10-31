@@ -35,7 +35,7 @@ Optional number format.
 Type: WordFieldFormat
 Parameter Sets: __AllParameterSets
 Aliases: None
-Possible values: Lower, Upper, FirstCap, Caps, Mergeformat, Roman, roman, Arabic, Alphabetical, ALPHABETICAL, Ordinal, OrdText, CardText, DollarText, Hex, CharFormat
+Possible values: Lower, Upper, FirstCap, Caps, MergeFormat, UpperRoman, LowerRoman, Arabic, LowerLetter, UpperLetter, Ordinal, OrdText, CardText, DollarText, Hex, CharFormat
 
 Required: False
 Position: named

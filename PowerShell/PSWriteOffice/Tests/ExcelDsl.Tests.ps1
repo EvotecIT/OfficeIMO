@@ -641,7 +641,7 @@ Describe 'Excel DSL surface' {
     It 'returns preflight repair hints through the thin command surface' {
         $path = Join-Path $TestDrive 'DslExcelPreflightRepairHints.xlsx'
 
-        New-OfficeExcel -Path $path -ForceFullCalculationOnOpen {
+        New-OfficeExcel -Path $path -SaveOptions @{ FullCalculationOnOpen = $true } {
             Add-OfficeExcelSheet -Name 'Calc' -Content {
                 Set-OfficeExcelCell -Address A1 -Value 2
                 Set-OfficeExcelFormula -Address B1 -Formula 'A1+1'
@@ -668,7 +668,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        New-OfficeExcel -TemplatePath $template -Path $path {
+        New-OfficeExcel -Template $template -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Set-OfficeExcelCell -Address 'A1' -Value 100
             }
@@ -738,7 +738,9 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $tableXml = Read-XlsxEntryText -Path $path -Entry 'xl/tables/table1.xml'
+        $tableParts = @(Get-ZipEntriesLocal -Path $path | Where-Object { $_ -match '^xl/tables/[^/]+\.xml$' })
+        $tableParts | Should -HaveCount 1
+        $tableXml = Read-XlsxEntryText -Path $path -Entry $tableParts[0]
         $tableXml | Should -Match 'showFirstColumn="(?:1|true)"'
         $tableXml | Should -Match 'showLastColumn="(?:1|true)"'
         $tableXml | Should -Match 'showRowStripes="(?:0|false)"'
@@ -758,14 +760,18 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $falseSwitchTableXml = Read-XlsxEntryText -Path $falseSwitchPath -Entry 'xl/tables/table1.xml'
+        $tableParts = @(Get-ZipEntriesLocal -Path $falseSwitchPath | Where-Object { $_ -match '^xl/tables/[^/]+\.xml$' })
+        $tableParts | Should -HaveCount 1
+        $falseSwitchTableXml = Read-XlsxEntryText -Path $falseSwitchPath -Entry $tableParts[0]
         $falseSwitchTableXml | Should -Not -Match 'showFirstColumn="(?:1|true)"'
         $falseSwitchTableXml | Should -Not -Match 'showColumnStripes="(?:1|true)"'
         $falseSwitchTableXml | Should -Not -Match 'showRowStripes="(?:0|false)"'
 
         $exportPath = Join-Path $TestDrive 'ExportTableVisualFlags.xlsx'
         $rows | Export-OfficeExcel -Path $exportPath -TableName 'ExportedSales' -ShowFirstColumn -ShowLastColumn -NoRowStripes -ShowColumnStripes
-        $exportTableXml = Read-XlsxEntryText -Path $exportPath -Entry 'xl/tables/table1.xml'
+        $tableParts = @(Get-ZipEntriesLocal -Path $exportPath | Where-Object { $_ -match '^xl/tables/[^/]+\.xml$' })
+        $tableParts | Should -HaveCount 1
+        $exportTableXml = Read-XlsxEntryText -Path $exportPath -Entry $tableParts[0]
         $exportTableXml | Should -Match 'showFirstColumn="(?:1|true)"'
         $exportTableXml | Should -Match 'showLastColumn="(?:1|true)"'
         $exportTableXml | Should -Match 'showRowStripes="(?:0|false)"'
@@ -783,7 +789,9 @@ Describe 'Excel DSL surface' {
             Add-OfficeExcelDataSet -DataSet $dataSet -ShowFirstColumn -ShowLastColumn -NoRowStripes -ShowColumnStripes
         }
 
-        $dataSetTableXml = Read-XlsxEntryText -Path $dataSetPath -Entry 'xl/tables/table1.xml'
+        $tableParts = @(Get-ZipEntriesLocal -Path $dataSetPath | Where-Object { $_ -match '^xl/tables/[^/]+\.xml$' })
+        $tableParts | Should -HaveCount 1
+        $dataSetTableXml = Read-XlsxEntryText -Path $dataSetPath -Entry $tableParts[0]
         $dataSetTableXml | Should -Match 'showFirstColumn="(?:1|true)"'
         $dataSetTableXml | Should -Match 'showLastColumn="(?:1|true)"'
         $dataSetTableXml | Should -Match 'showRowStripes="(?:0|false)"'
@@ -796,7 +804,9 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $reportTableXml = Read-XlsxEntryText -Path $reportPath -Entry 'xl/tables/table1.xml'
+        $tableParts = @(Get-ZipEntriesLocal -Path $reportPath | Where-Object { $_ -match '^xl/tables/[^/]+\.xml$' })
+        $tableParts | Should -HaveCount 1
+        $reportTableXml = Read-XlsxEntryText -Path $reportPath -Entry $tableParts[0]
         $reportTableXml | Should -Match 'showFirstColumn="(?:1|true)"'
         $reportTableXml | Should -Match 'showLastColumn="(?:1|true)"'
         $reportTableXml | Should -Match 'showRowStripes="(?:0|false)"'
@@ -1886,7 +1896,7 @@ Describe 'Excel DSL surface' {
     }
 
     It 'adds a DataTable inside the Excel DSL table command' {
-        $path = Join-Path $TestDrive 'DslExcelDataTable.xlsx'
+        $path = Join-Path $TestDrive 'DslExcelDataTableInput.xlsx'
         $table = [System.Data.DataTable]::new('Items')
         [void] $table.Columns.Add('Name', [string])
         [void] $table.Columns.Add('Quantity', [int])
@@ -2314,7 +2324,7 @@ Describe 'Excel DSL surface' {
     It 'saves evaluated formula caches through friendly save options' {
         $path = Join-Path $TestDrive 'DslExcelFormulaSaveOptions.xlsx'
 
-        New-OfficeExcel -Path $path -EvaluateFormulas {
+        New-OfficeExcel -Path $path -SaveOptions @{ EvaluateFormulas = $true } {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Set-OfficeExcelRow -Row 1 -Values 'A', 'B', 'Total'
                 Set-OfficeExcelRow -Row 2 -Values 10, 15, ''
@@ -2329,7 +2339,7 @@ Describe 'Excel DSL surface' {
     It 'sets and reads Excel document metadata' {
         $path = Join-Path $TestDrive 'DslExcelMetadata.xlsx'
 
-        New-OfficeExcel -Path $path -DocumentTitle 'Operations Report' -Author 'PSWriteOffice' -Company 'Evotec' {
+        New-OfficeExcel -Path $path -DocumentProperty @{ Title = 'Operations Report'; Author = 'PSWriteOffice'; Company = 'Evotec' } {
             Set-OfficeExcelDocumentProperty -Name Subject -Value 'Spreadsheet metadata'
             Set-OfficeExcelDocumentProperty -Name ReleaseStatus -Value Approved -Custom
             Set-OfficeExcelDocumentProperty -Name Ticket -Value 42 -Custom
@@ -3257,12 +3267,10 @@ Describe 'Excel DSL surface' {
     }
 
     It 'sets and reads mixed rich text runs in Excel cells' {
-        Get-Command ExcelNew | Should -Not -BeNullOrEmpty
-        Get-Command ExcelTextRun | Should -Not -BeNullOrEmpty
 
         $path = Join-Path $TestDrive 'DslExcelRichText.xlsx'
 
-        ExcelNew -Path $path {
+        New-OfficeExcel -Path $path {
             ExcelSheet -Name 'Summary' -Content {
                 ExcelRichText -Address A1 -Run @(
                     ExcelTextRun 'Status: '
@@ -3284,7 +3292,7 @@ Describe 'Excel DSL surface' {
         $runs[2].Underline | Should -BeTrue
 
         $roundTripPath = Join-Path $TestDrive 'DslExcelRichText.RoundTrip.xlsx'
-        ExcelNew -Path $roundTripPath {
+        New-OfficeExcel -Path $roundTripPath {
             ExcelSheet -Name 'Summary' -Content {
                 ExcelRichText -Address A1 -Run $runs
             }
@@ -4363,12 +4371,11 @@ namespace PSWriteOffice.Tests {
     It 'keeps a single-cell image Range as a two-cell anchor' {
         $path = Join-Path $TestDrive 'DslExcelSingleCellRangeImages.xlsx'
         $imagePath = New-TestOfficeImageFile -Directory $TestDrive
-        $imageUrl = [System.Uri]::new($imagePath).AbsoluteUri
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Images' -Content {
                 Add-OfficeExcelImage -Range B2 -Path $imagePath -Name 'LocalRange' -Placement MoveOnly -EndOffsetXPixels 3 -EndOffsetYPixels 5
-                Add-OfficeExcelImageFromUrl -Range D4 -Url $imageUrl -Name 'UrlRange' -Placement FreeFloating -EndOffsetXPixels 3 -EndOffsetYPixels 5
+                Add-OfficeExcelImage -Range D4 -Path $imagePath -Name 'FloatingRange' -Placement FreeFloating -EndOffsetXPixels 3 -EndOffsetYPixels 5
             }
         } | Out-Null
 

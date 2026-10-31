@@ -11,17 +11,17 @@ Adds a native Excel chart from a range, named table or input rows.
 ## SYNTAX
 ### Range (Default)
 ```powershell
-Add-OfficeExcelChart [-Range] <string> -Address <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Type <OfficeChartKind>] [-Title <string>] [-Preset <ExcelDashboardChartPreset>] [-Style <Int32>] [-ColorStyle <Int32>] [-NoHeader] [-NoCachedData] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelChart [-Range] <string> -Address <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Type <OfficeChartType>] [-Title <string>] [-Preset <ExcelDashboardChartPreset>] [-Style <Int32>] [-ColorStyle <Int32>] [-NoHeader] [-NoCachedData] [-PassThru] [<CommonParameters>]
 ```
 
 ### Table
 ```powershell
-Add-OfficeExcelChart -Table <string> -Address <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Category <string>] [-Value <string[]>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Type <OfficeChartKind>] [-Title <string>] [-Preset <ExcelDashboardChartPreset>] [-Style <Int32>] [-ColorStyle <Int32>] [-NoCachedData] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelChart -Table <string> -Address <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Category <string>] [-Value <string[]>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Type <OfficeChartType>] [-Title <string>] [-Preset <ExcelDashboardChartPreset>] [-Style <Int32>] [-ColorStyle <Int32>] [-NoCachedData] [-PassThru] [<CommonParameters>]
 ```
 
 ### Data
 ```powershell
-Add-OfficeExcelChart -InputObject <Object> -Category <string> -Value <string[]> -Address <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Type <OfficeChartKind>] [-Title <string>] [-Preset <ExcelDashboardChartPreset>] [-Style <Int32>] [-ColorStyle <Int32>] [-NoCachedData] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelChart -InputObject <Object> -Category <string> -Value <string[]> -Address <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Type <OfficeChartType>] [-Title <string>] [-Preset <ExcelDashboardChartPreset>] [-Style <Int32>] [-ColorStyle <Int32>] [-NoCachedData] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -289,10 +289,10 @@ Accept wildcard characters: False
 Shared chart family. Bubble requires the separate native bubble-data contract.
 
 ```yaml
-Type: OfficeChartKind
+Type: OfficeChartType
 Parameter Sets: Range, Table, Data
 Aliases: None
-Possible values: ColumnClustered, ColumnStacked, ColumnStacked100, BarClustered, BarStacked, BarStacked100, Line, LineStacked, LineStacked100, Area, AreaStacked, AreaStacked100, Scatter, Radar, Pie, Doughnut, Bubble
+Possible values: ColumnClustered, Column, ColumnStacked, ColumnStacked100, BarClustered, Bar, BarStacked, BarStacked100, Line, LineStacked, LineStacked100, Area, AreaStacked, AreaStacked100, Scatter, Radar, Pie, Doughnut, Bubble, Column3DClustered, Column3DStacked, Column3DStacked100, Bar3DClustered, Bar3DStacked, Bar3DStacked100, Line3D, Area3D, Area3DStacked, Area3DStacked100, Pie3D, PieOfPie, BarOfPie, Stock, Surface, SurfaceWireframe, SurfaceContour, Funnel, Waterfall, BoxWhisker, Treemap, SurfaceContourWireframe, Sunburst
 
 Required: False
 Position: named

@@ -49,7 +49,7 @@ Describe 'PowerPointShapeEditing workflows' {
         $bullets = Add-OfficePowerPointBullets -Slide $slide -Bullets 'Wins','Risks','Next Steps' -X 420 -Y 150 -Width 250 -Height 200 -PassThru
         Set-OfficePowerPointNotes -Slide $slide -Text 'Keep this under five minutes.'
 
-        $presentation.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointPresentation'
+        $presentation.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointDocument'
         $slide.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointSlide'
         $shape.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointAutoShape'
         $table.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointTable'
@@ -167,8 +167,8 @@ Describe 'PowerPointShapeEditing workflows' {
             $shape3 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.Three' -ShapeType Rectangle -X 320 -Y 200 -Width 80 -Height 40 -PassThru
 
             @($shape1, $shape2, $shape3) | Set-OfficePowerPointShapeLayout -Slide $slide -Align Top
-            $shape1.TopPoints | Should -Be $shape2.TopPoints
-            $shape1.TopPoints | Should -Be $shape3.TopPoints
+            $shape1.Top.ToPoints() | Should -Be $shape2.Top.ToPoints()
+            $shape1.Top.ToPoints() | Should -Be $shape3.Top.ToPoints()
 
             Find-OfficePowerPointShape -Slide $slide -Name 'Kpi.*' |
                 Set-OfficePowerPointShapeLayout -Grid -Columns 3 -Rows 1 -ToSlide -GutterXPoints 12 -NoResize | Out-Null
@@ -235,19 +235,19 @@ Describe 'PowerPointShapeEditing workflows' {
         if ($layoutPlaceholder) {
             $layoutPlaceholderType = $layoutPlaceholder.PlaceholderType.ToString()
             $boundsBox = Set-OfficePowerPointLayoutPlaceholderBounds -Presentation $presentation -Master $layoutMaster -Layout $layoutIndex -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -Left 48 -Top 36 -Width 620 -Height 180 -PassThru
-            $boundsBox.LeftPoints | Should -Be 48
-            $boundsBox.TopPoints | Should -Be 36
-            $boundsBox.WidthPoints | Should -Be 620
-            $boundsBox.HeightPoints | Should -Be 180
+            $boundsBox.Left.ToPoints() | Should -Be 48
+            $boundsBox.Top.ToPoints() | Should -Be 36
+            $boundsBox.Width.ToPoints() | Should -Be 620
+            $boundsBox.Height.ToPoints() | Should -Be 180
 
             $marginsBox = Set-OfficePowerPointLayoutPlaceholderTextMargins -Presentation $presentation -Master $layoutMaster -Layout $layoutIndex -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -Left 12 -Top 8 -Right 12 -Bottom 8 -PassThru
-            $marginsBox.TextMarginLeftPoints | Should -Be 12
-            $marginsBox.TextMarginTopPoints | Should -Be 8
-            $marginsBox.TextMarginRightPoints | Should -Be 12
-            $marginsBox.TextMarginBottomPoints | Should -Be 8
+            $marginsBox.TextMarginLeft.ToPoints() | Should -Be 12
+            $marginsBox.TextMarginTop.ToPoints() | Should -Be 8
+            $marginsBox.TextMarginRight.ToPoints() | Should -Be 12
+            $marginsBox.TextMarginBottom.ToPoints() | Should -Be 8
 
             $styleBox = Set-OfficePowerPointLayoutPlaceholderTextStyle -Presentation $presentation -Master $layoutMaster -Layout $layoutIndex -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -Style Body -FontSize 18 -Bold $true -PassThru
-            $styleBox.FontSize | Should -Be 18
+            $styleBox.FontSize.ToPoints() | Should -Be 18
             $styleBox.Bold | Should -BeTrue
         }
 
@@ -263,10 +263,10 @@ Describe 'PowerPointShapeEditing workflows' {
                 $reloadedLayoutPlaceholder = Get-OfficePowerPointLayoutPlaceholder -Slide $reloadedSlide -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex
                 $reloadedLayoutPlaceholder | Should -Not -BeNullOrEmpty
                 $reloadedLayoutPlaceholder.Bounds | Should -Not -BeNullOrEmpty
-                [math]::Abs($reloadedLayoutPlaceholder.Bounds.LeftPoints - 48) | Should -BeLessThan 0.1
-                [math]::Abs($reloadedLayoutPlaceholder.Bounds.TopPoints - 36) | Should -BeLessThan 0.1
-                [math]::Abs($reloadedLayoutPlaceholder.Bounds.WidthPoints - 620) | Should -BeLessThan 0.1
-                [math]::Abs($reloadedLayoutPlaceholder.Bounds.HeightPoints - 180) | Should -BeLessThan 0.1
+                [math]::Abs($reloadedLayoutPlaceholder.Bounds.Left.ToPoints() - 48) | Should -BeLessThan 0.1
+                [math]::Abs($reloadedLayoutPlaceholder.Bounds.Top.ToPoints() - 36) | Should -BeLessThan 0.1
+                [math]::Abs($reloadedLayoutPlaceholder.Bounds.Width.ToPoints() - 620) | Should -BeLessThan 0.1
+                [math]::Abs($reloadedLayoutPlaceholder.Bounds.Height.ToPoints() - 180) | Should -BeLessThan 0.1
             }
         } finally {
             if ($reloaded) {

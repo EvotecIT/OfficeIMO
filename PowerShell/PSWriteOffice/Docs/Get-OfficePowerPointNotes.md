@@ -11,7 +11,7 @@ Reads speaker notes without creating empty notes parts.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficePowerPointNotes [-Document <PowerPointPresentation>] [-Slide <PowerPointSlideSelector>] [-IncludeEmpty] [<CommonParameters>]
+Get-OfficePowerPointNotes [-Document <PowerPointDocument>] [-Slide <PowerPointSlideSelector>] [-IncludeEmpty] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -37,7 +37,7 @@ Get-OfficePowerPointNotes -Document $deck -Slide 3
 Gets or sets a live document; omission uses the enclosing document block.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -86,7 +86,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

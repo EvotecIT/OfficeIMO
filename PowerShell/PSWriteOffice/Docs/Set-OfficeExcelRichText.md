@@ -32,7 +32,7 @@ Sets mixed-format rich text runs in an Excel cell.
 ### EXAMPLE 1
 ```powershell
 PS> ExcelSheet 'Summary' {
-    Set-OfficeExcelRichText -Address ExcelA1 -Run 'Status: ', @{ Text = 'Blocked'; Bold = $true; Color = '#C00000' }
+    Set-OfficeExcelRichText -Address A1 -Run 'Status: ', @{ Text = 'Blocked'; Bold = $true; Color = '#C00000' }
 }
 ```
 

@@ -11,7 +11,7 @@ Inspects a live or saved presentation without changing or reopening a supplied d
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Test-OfficePowerPoint [-Document <PowerPointPresentation>] [-Options <Object[]>] [<CommonParameters>]
+Test-OfficePowerPoint [-Document <PowerPointDocument>] [-Options <Object[]>] [<CommonParameters>]
 ```
 
 ### Path
@@ -48,7 +48,7 @@ Test-OfficePowerPoint -Document $deck -Options $policy
 Gets or sets a live document; omission uses the enclosing presentation block.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -145,7 +145,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 - `System.String[]`
 
 ## OUTPUTS

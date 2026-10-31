@@ -11,7 +11,7 @@ $trend = @(
     [pscustomobject]@{ Week = 'W4'; Complete = 72 }
 )
 
-WordNew -Path $path {
+New-OfficeWord -Path $path {
     WordSection {
         WordHeader { WordParagraph -Text 'Northwind migration | Weekly status' -Style Heading2 }
         WordFooter {

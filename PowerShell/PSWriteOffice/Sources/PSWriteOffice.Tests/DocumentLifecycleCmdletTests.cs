@@ -6,17 +6,53 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using PSWriteOffice.Cmdlets.Excel;
 using PSWriteOffice.Cmdlets.Word;
+using PSWriteOffice.Cmdlets.OpenDocument;
+using OfficeIMO.OpenDocument;
 
 namespace PSWriteOffice.Tests;
 
 [Collection(PowerShellRunspaceCollection.Name)]
 public sealed class DocumentLifecycleCmdletTests {
     [Theory]
+    [InlineData("Text", ".odt", "application/vnd.oasis.opendocument.text")]
+    [InlineData("Spreadsheet", ".ods", "application/vnd.oasis.opendocument.spreadsheet")]
+    [InlineData("Presentation", ".odp", "application/vnd.oasis.opendocument.presentation")]
+    [InlineData("Graphics", ".odg", "application/vnd.oasis.opendocument.graphics")]
+    public void OpenDocumentCreationInfersItsNativeKindAndAssociatesThePathWithoutWriting(string kind, string extension, string mediaType) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-odf-lifecycle-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string path = Path.Combine(root, "Document" + extension);
+            var state = InitialSessionState.CreateDefault();
+            state.Commands.Add(new SessionStateCmdletEntry("New-OfficeOpenDocument", typeof(NewOfficeOpenDocumentCommand), null));
+            state.Commands.Add(new SessionStateCmdletEntry("Save-OfficeOpenDocument", typeof(SaveOfficeOpenDocumentCommand), null));
+            using var runspace = RunspaceFactory.CreateRunspace(state);
+            runspace.Open();
+            using var shell = PowerShell.Create();
+            shell.Runspace = runspace;
+            var document = Assert.IsAssignableFrom<OdfDocument>(Assert.Single(shell.AddCommand("New-OfficeOpenDocument")
+                .AddParameter("Path", path).Invoke()).BaseObject);
+            Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            Assert.Equal(kind, document.Kind.ToString());
+            Assert.Equal(path, document.FilePath);
+            Assert.Empty(Directory.GetFiles(root));
+            shell.Commands.Clear();
+            shell.AddCommand("Save-OfficeOpenDocument").AddParameter("Document", document).Invoke();
+            Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            using var package = System.IO.Compression.ZipFile.OpenRead(path);
+            using var input = new StreamReader(package.GetEntry("mimetype")!.Open());
+            Assert.Equal(mediaType, input.ReadToEnd());
+        } finally {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Theory]
     [InlineData("Word", ".docx", ".docx")]
     [InlineData("Word", ".docx", ".dotx")]
     [InlineData("Excel", ".xlsx", ".xlsx")]
     [InlineData("Excel", ".xlsx", ".xltx")]
-    public void TemplateNoSavePreservesSourceAndDestinationUntilExplicitSave(string format, string extension, string templateExtension) {
+    public void LiveTemplatePreservesSourceAndDestinationUntilExplicitSave(string format, string extension, string templateExtension) {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-template-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try {
@@ -45,8 +81,8 @@ public sealed class DocumentLifecycleCmdletTests {
             runspace.Open();
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
-            shell.AddCommand("New-Office" + format).AddParameter("TemplatePath", template)
-                .AddParameter("Path", destination).AddParameter("NoSave");
+            shell.AddCommand("New-Office" + format).AddParameter("Template", template)
+                .AddParameter("Path", destination).AddParameter("Force");
             var document = Assert.Single(shell.Invoke()).BaseObject;
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
             try {

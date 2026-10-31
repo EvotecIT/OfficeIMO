@@ -36,12 +36,6 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
-            },
-            {
-              "name": "Password",
-              "type": "SecureString",
-              "mandatory": false,
-              "pipeline": "none"
             }
           ]
         },
@@ -109,7 +103,7 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Keeping a document open means leaving out the block: the Document set returns the live WordDocument, and -Path is optional there (Save-OfficeWord -Path later). With a block -Path is required. With -Content saves and closes when the block ends and returns the file only with -PassThru; if the block throws nothing is saved and the partial file is removed. -NoSave is removed. -Template clones an existing .docx as starting content; -Theme applies a visual theme (built-in name, OfficeTheme or a .dotx/.docx whose theme is read). Refuses to replace an existing file without -Force.",
+      "notes": "Keeping a document open means leaving out the block: the Document set returns the live WordDocument, and -Path is optional there (Save-OfficeWord -Path later). With a block -Path is required. With -Content saves and closes when the block ends and returns the file only with -PassThru; if the block throws nothing is saved and the partial file is removed. -NoSave is removed. -Template clones an existing .docx as starting content; -Theme applies a visual theme (built-in name, OfficeTheme or a .dotx/.docx whose theme is read). Refuses to replace an existing file without -Force. Password is valid only with a content block; apply save policy through Save-OfficeWord when working with a live document. Theme reads the source palette and Latin fonts; Template copies the document content.",
       "examples": [
         {
           "title": "Create a one-paragraph document",

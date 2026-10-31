@@ -321,7 +321,7 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Cell width value.
+Native cell preference: twips for Dxa or fiftieths of a percent for Pct. Null removes the preference.
 
 ```yaml
 Type: Int32

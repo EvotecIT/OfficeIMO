@@ -16,8 +16,7 @@ $wordType = [OfficeIMO.Word.WordDocument]
 $word = [OfficeIMO.Word.WordDocument]::Create()
 try { $word.AddParagraph('Isolated document') | Out-Null } finally { $word.Dispose() }
 $moduleOpenXml = @($context.Assemblies | Where-Object { $_.GetName().Name -eq 'DocumentFormat.OpenXml' })[0]
-# Remove a legacy alias in this disposable process so command lookup exercises its actual replacement hint.
-Remove-Item -LiteralPath Alias:ExcelNew -Force
+# Exercise the retired command through its replacement hint in this disposable process.
 $records = @(& { try { & 'ExcelNew' } catch { } } 3>&1)
 $hint = @($records | Where-Object { $_ -is [Management.Automation.WarningRecord] } | ForEach-Object Message)
 $priorWasCalled = $priorCalls.Contains('ExcelNew')

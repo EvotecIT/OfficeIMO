@@ -11,7 +11,7 @@ Lists template layouts from all masters, or one selected master.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficePowerPointLayout [[-Document] <PowerPointPresentation>] [-Master <Int32>] [<CommonParameters>]
+Get-OfficePowerPointLayout [[-Document] <PowerPointDocument>] [-Master <Int32>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -40,7 +40,7 @@ New-OfficePowerPoint -Path ./Review.pptx {
 Gets or sets the live document; omission uses the enclosing content scope.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -73,7 +73,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

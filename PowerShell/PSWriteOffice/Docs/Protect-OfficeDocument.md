@@ -239,7 +239,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 - `System.IO.FileInfo`
 - `OfficeIMO.Word.WordDocument`
 - `OfficeIMO.Excel.ExcelDocument`
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 - `OfficeIMO.Pdf.PdfDocument`
 
 ## RELATED LINKS

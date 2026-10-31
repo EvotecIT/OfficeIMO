@@ -16,7 +16,7 @@ Describe 'PowerPoint HTML output controls' {
         $htmlPath = Join-Path $TestDrive ($Profile + '.html')
         $presentation = New-OfficePowerPoint -Path $deckPath -ErrorAction Stop
         try {
-            $presentation.SlideSize.SetSizePoints(160, 100)
+            $presentation.SlideSize.SetSize([OfficeIMO.OfficeLength]::Points(160), [OfficeIMO.OfficeLength]::Points(100))
             $slide = $presentation.AddSlide()
             Add-OfficePowerPointTextBox -Slide $slide -Text 'Visible slide content' -X 10 -Y 10 -Width 140 -Height 50 -ErrorAction Stop
             $slide.AddRectangle([OfficeIMO.OfficeLength]::Points(500), [OfficeIMO.OfficeLength]::Points(500), [OfficeIMO.OfficeLength]::Points(20), [OfficeIMO.OfficeLength]::Points(20), 'Outside slide bounds') | Out-Null

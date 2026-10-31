@@ -11,12 +11,12 @@ Adds a designed slide, choosing its layout from typed content unless Layout is s
 ## SYNTAX
 ### Content (Default)
 ```powershell
-Add-OfficePowerPointSlide [[-Content] <scriptblock>] [-Title <string>] [-Subtitle <string>] [-Eyebrow <string>] [-MapLabel <string>] [-Layout <PowerPointLayout>] [-Seed <string>] [-NoFooter] [-NoSlideNumber] [-Background <OfficeColor>] [-BackgroundImage <string>] [-Transition <PowerPointSlideTransition>] [-PassThru] [-Document <PowerPointPresentation>] [<CommonParameters>]
+Add-OfficePowerPointSlide [[-Content] <scriptblock>] [-Title <string>] [-Subtitle <string>] [-Eyebrow <string>] [-MapLabel <string>] [-Layout <PowerPointLayout>] [-Seed <string>] [-NoFooter] [-NoSlideNumber] [-Background <OfficeColor>] [-BackgroundImage <string>] [-Transition <PowerPointSlideTransition>] [-PassThru] [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
 
 ### Template
 ```powershell
-Add-OfficePowerPointSlide [[-Content] <scriptblock>] -TemplateLayout <PowerPointLayoutSelector> [-Title <string>] [-Subtitle <string>] [-Eyebrow <string>] [-MapLabel <string>] [-Layout <PowerPointLayout>] [-Master <int>] [-Seed <string>] [-NoFooter] [-NoSlideNumber] [-Background <OfficeColor>] [-BackgroundImage <string>] [-Transition <PowerPointSlideTransition>] [-PassThru] [-Document <PowerPointPresentation>] [<CommonParameters>]
+Add-OfficePowerPointSlide [[-Content] <scriptblock>] -TemplateLayout <PowerPointLayoutSelector> [-Title <string>] [-Subtitle <string>] [-Eyebrow <string>] [-MapLabel <string>] [-Layout <PowerPointLayout>] [-Master <int>] [-Seed <string>] [-NoFooter] [-NoSlideNumber] [-Background <OfficeColor>] [-BackgroundImage <string>] [-Transition <PowerPointSlideTransition>] [-PassThru] [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -87,7 +87,7 @@ Accept wildcard characters: False
 Gets or sets an explicit live document; omission uses the enclosing content block.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: Content, Template
 Aliases: None
 Possible values:
@@ -296,7 +296,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

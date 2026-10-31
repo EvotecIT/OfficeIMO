@@ -11,7 +11,7 @@ Sets layout placeholder text style and bullet/numbering settings.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficePowerPointLayoutPlaceholderTextStyle -Layout <int> -PlaceholderType <PowerPointPlaceholderType> [-Presentation <PowerPointPresentation>] [-Master <int>] [-Index <UInt32>] [-Style <string>] [-FontSize <Int32>] [-FontName <string>] [-Color <string>] [-Bold <Boolean>] [-Italic <Boolean>] [-Underline <Boolean>] [-HighlightColor <string>] [-Level <Int32>] [-BulletChar <string>] [-Numbering <PowerPointNumberingScheme>] [-CreateIfMissing] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointLayoutPlaceholderTextStyle -Layout <int> -PlaceholderType <PowerPointPlaceholderType> [-Presentation <PowerPointDocument>] [-Master <int>] [-Index <UInt32>] [-Style <string>] [-FontSize <Int32>] [-FontName <string>] [-Color <string>] [-Bold <Boolean>] [-Italic <Boolean>] [-Underline <Boolean>] [-HighlightColor <string>] [-Level <Int32>] [-BulletChar <string>] [-Numbering <PowerPointNumberingScheme>] [-CreateIfMissing] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -282,7 +282,7 @@ Accept wildcard characters: False
 Presentation to update (optional inside DSL).
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -331,7 +331,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

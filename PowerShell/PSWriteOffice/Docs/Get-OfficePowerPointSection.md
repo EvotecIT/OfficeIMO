@@ -11,7 +11,7 @@ Reads sections from a live presentation, optionally matching a PowerShell wildca
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficePowerPointSection [[-Document] <PowerPointPresentation>] [-Name <string>] [-CaseSensitive] [<CommonParameters>]
+Get-OfficePowerPointSection [[-Document] <PowerPointDocument>] [-Name <string>] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -55,7 +55,7 @@ Accept wildcard characters: False
 Gets or sets the live document; omission uses its enclosing content block.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -88,7 +88,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

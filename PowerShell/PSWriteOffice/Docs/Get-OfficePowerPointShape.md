@@ -16,7 +16,7 @@ Get-OfficePowerPointShape [-Slide <PowerPointSlide>] [-ShapeIndex <int[]>] [-Nam
 
 ### Presentation
 ```powershell
-Get-OfficePowerPointShape [-Presentation <PowerPointPresentation>] [-Index <Int32>] [-ShapeIndex <int[]>] [-Name <string[]>] [-Kind <OfficePowerPointShapeKind[]>] [<CommonParameters>]
+Get-OfficePowerPointShape [-Presentation <PowerPointDocument>] [-Index <Int32>] [-ShapeIndex <int[]>] [-Name <string[]>] [-Kind <OfficePowerPointShapeKind[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -92,7 +92,7 @@ Accept wildcard characters: False
 Presentation whose slides should be inspected.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: Presentation
 Aliases: None
 Possible values:
@@ -142,7 +142,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `OfficeIMO.PowerPoint.PowerPointSlide`
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

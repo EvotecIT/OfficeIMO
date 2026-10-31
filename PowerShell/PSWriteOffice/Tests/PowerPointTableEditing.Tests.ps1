@@ -167,7 +167,7 @@ Describe 'PowerPointTableEditing workflows' {
             $table.GetCell(0, 0).Text | Should -Be 'Build Ready'
             $table.GetCell(0, 0).Runs[0].Bold | Should -BeTrue
             $table.GetCell(0, 0).Runs[0].Color | Should -Be 'FF0000'
-            $table.GetCell(0, 0).Runs[0].FontSize | Should -Be 18
+            $table.GetCell(0, 0).Runs[0].FontSize.ToPoints() | Should -Be 18
             $table.GetCell(0, 0).Runs[1].Bold | Should -BeTrue
             $table.GetCell(0, 0).Runs[1].Color | Should -Be '2E8B57'
             $table.GetCell(1, 0).Text | Should -Be 'Owner'

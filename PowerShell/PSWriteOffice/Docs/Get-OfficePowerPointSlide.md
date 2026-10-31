@@ -11,7 +11,7 @@ Gets editable slides from a live document, or detached slide summaries from file
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Get-OfficePowerPointSlide [[-Document] <PowerPointPresentation>] [-Slide <int[]>] [-Summary] [<CommonParameters>]
+Get-OfficePowerPointSlide [[-Document] <PowerPointDocument>] [-Slide <int[]>] [-Summary] [<CommonParameters>]
 ```
 
 ### Path
@@ -47,7 +47,7 @@ Get-OfficePowerPointSlide -Document $deck -Slide 3
 Gets or sets a live document; omission uses the enclosing document block.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -128,7 +128,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 - `System.String[]`
 
 ## OUTPUTS

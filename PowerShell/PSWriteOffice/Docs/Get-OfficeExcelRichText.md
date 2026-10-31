@@ -31,7 +31,7 @@ Gets mixed-format rich text runs from an Excel cell.
 
 ### EXAMPLE 1
 ```powershell
-PS> $runs = Get-OfficeExcelRichText -Path .\Report.xlsx -Sheet Summary -Address ExcelA1
+PS> $runs = Get-OfficeExcelRichText -Path .\Report.xlsx -Sheet Summary -Address A1
 $runs |
     Format-Table Index, Text, Bold, Italic, Color
 ```

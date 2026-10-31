@@ -11,7 +11,7 @@ Starts a named section at an existing, current or next appended slide.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Add-OfficePowerPointSection [-Name] <string> [-Document <PowerPointPresentation>] [-Slide <PowerPointSlideSelector>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointSection [-Name] <string> [-Document <PowerPointDocument>] [-Slide <PowerPointSlideSelector>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -41,7 +41,7 @@ Add-OfficePowerPointSection -Document $deck -Name Appendix -Slide 9
 Gets or sets the document; omission uses the enclosing scope or selected native slide's owner.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -106,7 +106,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

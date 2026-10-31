@@ -241,12 +241,6 @@
               "notes": "Title wording for continuation slides. {0} is the title, {1} the part and {2} the number of parts. Default: '{0} (continued {1}/{2})', shortened to '(continued)' for two parts."
             },
             {
-              "name": "Password",
-              "type": "SecureString",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
               "name": "Force",
               "type": "switch",
               "mandatory": false,
@@ -255,7 +249,7 @@
           ]
         }
       ],
-      "notes": "Template-free creation from the theme. -Password is SecureString; its transformation also accepts a plain string (with a warning) or a PSCredential. The designer-deck engine renders every slide, so deck-plan options live here. Outline route: a Markdown outline becomes a deck through Convert-OfficeDocument -Path .\\Review.md -To PowerPoint (headings/--- start slides, lists become PowerPointList, tables/images flow, blockquotes become notes); nothing in this area maps to it. -Theme is the one user-facing design choice; -Style (renamed from -Direction) is optional designer-engine tuning layered on it. The Boardroom creative direction is selected by -Theme Boardroom, so PowerPointDeckStyle has no Boardroom value: Auto, FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix.",
+      "notes": "Template-free creation from the theme. -Password is SecureString; its transformation also accepts a plain string (with a warning) or a PSCredential. The designer-deck engine renders every slide, so deck-plan options live here. Outline route: a Markdown outline becomes a deck through Convert-OfficeDocument -Path .\\Review.md -To PowerPoint (headings/--- start slides, lists become PowerPointList, tables/images flow, blockquotes become notes); nothing in this area maps to it. -Theme is the one user-facing design choice; -Style (renamed from -Direction) is optional designer-engine tuning layered on it. The Boardroom creative direction is selected by -Theme Boardroom, so PowerPointDeckStyle has no Boardroom value: Auto, FieldProof, EditorialCaseStudy, TechnicalMap, QuietAppendix. Password is valid only with a content block; apply save policy through Save-OfficePowerPoint when working with a live document. Theme reads the source palette and Latin fonts; Template copies the document content.",
       "examples": [
         {
           "title": "Create a one-slide deck",

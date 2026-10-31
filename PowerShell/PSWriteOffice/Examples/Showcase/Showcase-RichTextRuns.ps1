@@ -29,7 +29,7 @@ $serviceRows = @(
     [pscustomobject]@{ Service = 'Remote Access'; Status = 'Needs action'; Owner = 'Security' }
 )
 
-WordNew -Path $wordPath {
+New-OfficeWord -Path $wordPath {
     WordSection {
         WordParagraph -Text 'Rich text runs' -Style Heading1
         WordParagraph -Run $runs
@@ -47,7 +47,7 @@ WordNew -Path $wordPath {
     }
 }
 
-ExcelNew -Path $excelPath {
+New-OfficeExcel -Path $excelPath {
     ExcelSheet -Name 'Summary' -Content {
         ExcelRichText -Address A1 -Run @(
             ExcelTextRun 'Status: '

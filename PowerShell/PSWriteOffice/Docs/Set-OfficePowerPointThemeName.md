@@ -11,7 +11,7 @@ Sets the PowerPoint theme name.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficePowerPointThemeName -Name <string> [-Presentation <PowerPointPresentation>] [-AllMasters] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointThemeName -Name <string> [-Presentation <PowerPointDocument>] [-AllMasters] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -83,7 +83,7 @@ Accept wildcard characters: False
 Presentation to update (optional inside New-OfficePowerPoint).
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -100,11 +100,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## RELATED LINKS
 

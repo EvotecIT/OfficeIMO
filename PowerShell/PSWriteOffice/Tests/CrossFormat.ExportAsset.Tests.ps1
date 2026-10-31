@@ -77,10 +77,10 @@ Describe 'Document asset export' {
         $path = Join-Path $TestDrive 'sheets.xlsx'
         $workbook = [OfficeIMO.Excel.ExcelDocument]::Create()
         try {
-            $first = $workbook.AddWorksheet('2')
+            $first = $workbook.AddSheet('2')
             $null = $first.CellValue(1, 1, 'Header')
             $null = $first.CellValue(2, 1, 'Excluded')
-            $second = $workbook.AddWorksheet('Evidence')
+            $second = $workbook.AddSheet('Evidence')
             $null = $second.CellValue(1, 1, 'Header')
             $null = $second.CellValue(2, 1, 'Selected')
             $null = $second.CellValue(3, 1, 'Outside range')

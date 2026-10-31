@@ -11,7 +11,7 @@ Saves a live presentation without closing it.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Save-OfficePowerPoint [-Path <string>] [-Password <securestring>] [-AllowLoss] [-Show] [-PassThru] [-Document <PowerPointPresentation>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficePowerPoint [-Path <string>] [-Password <securestring>] [-AllowLoss] [-Show] [-PassThru] [-Document <PowerPointDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -49,7 +49,7 @@ Accept wildcard characters: False
 Gets or sets an explicit live document; omission uses the enclosing content block.
 
 ```yaml
-Type: PowerPointPresentation
+Type: PowerPointDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -130,7 +130,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 
