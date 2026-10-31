@@ -32,14 +32,13 @@ jobs:
   website-build:
     needs: changes
     if: github.event_name == 'pull_request' && needs.changes.outputs.selected == 'true'
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@396e00acba04dcaae4c3c95433338f4df65fbc01
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@2c29156fc471bc8d1d5b80035084866ceb44e2c8
     with:
       website_root: Website
       authenticate_public_github_data: true
       pipeline_config: Website/pipeline.json
-      # Cold API documentation builds exceeded 40 minutes twice.
-      # Preserve the complete generation and downstream site checks.
-      timeout_minutes: 90
+      # Production-equivalent rendering took 79 minutes on a cold build.
+      timeout_minutes: 120
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       dotnet_version: "10.0.x"
@@ -57,13 +56,13 @@ jobs:
       actions: read
       contents: read
       packages: read
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-run.yml@396e00acba04dcaae4c3c95433338f4df65fbc01
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-run.yml@2c29156fc471bc8d1d5b80035084866ceb44e2c8
     with:
       website_root: Website
       pipeline_config: Website/pipeline.json
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
-      timeout_minutes: 90
+      timeout_minutes: 120
       dotnet_version: "10.0.114"
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
