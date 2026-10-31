@@ -2705,6 +2705,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelRuntimePreflightCommand.cs#L16"
     },
     {
+      "name": "Get-OfficeExcelSheetView",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelSheetViewCommand.cs",
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelSheetViewCommand.cs#L17"
+    },
+    {
       "name": "Get-OfficeExcelStreamingContract",
       "kind": "Cmdlet",
       "aliases": [
@@ -2759,16 +2767,6 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelUsedRangeCommand.cs",
       "sourceLine": 25,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelUsedRangeCommand.cs#L25"
-    },
-    {
-      "name": "Get-OfficeExcelWorksheetView",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ExcelWorksheetView"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelWorksheetViewCommand.cs",
-      "sourceLine": 20,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelWorksheetViewCommand.cs#L20"
     },
     {
       "name": "Get-OfficeExcelWriteReservation",
@@ -4657,26 +4655,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelFormulaCommand.cs#L17"
     },
     {
-      "name": "Set-OfficeExcelFreeze",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ExcelFreeze"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelFreezeCommand.cs",
-      "sourceLine": 22,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelFreezeCommand.cs#L22"
-    },
-    {
-      "name": "Set-OfficeExcelGridlines",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ExcelGridlines"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelGridlinesCommand.cs",
-      "sourceLine": 16,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelGridlinesCommand.cs#L16"
-    },
-    {
       "name": "Set-OfficeExcelHeaderFooter",
       "kind": "Cmdlet",
       "aliases": [
@@ -4845,6 +4823,16 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelSheetCommand.cs#L22"
     },
     {
+      "name": "Set-OfficeExcelSheetView",
+      "kind": "Cmdlet",
+      "aliases": [
+        "ExcelSheetView"
+      ],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelSheetViewCommand.cs",
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelSheetViewCommand.cs#L17"
+    },
+    {
       "name": "Set-OfficeExcelSmartHyperlink",
       "kind": "Cmdlet",
       "aliases": [
@@ -4883,16 +4871,6 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelUrlLinksByHeaderCommand.cs",
       "sourceLine": 18,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelUrlLinksByHeaderCommand.cs#L18"
-    },
-    {
-      "name": "Set-OfficeExcelWorksheetView",
-      "kind": "Cmdlet",
-      "aliases": [
-        "ExcelSheetView"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelWorksheetViewCommand.cs",
-      "sourceLine": 16,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelWorksheetViewCommand.cs#L16"
     },
     {
       "name": "Set-OfficeExcelWriteReservation",

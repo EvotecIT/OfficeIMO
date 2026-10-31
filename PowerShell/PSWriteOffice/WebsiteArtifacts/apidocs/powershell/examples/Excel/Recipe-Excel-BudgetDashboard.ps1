@@ -12,7 +12,7 @@ $decision = if ($overspend.Count) { 'Decision: review overspend in ' + ($overspe
 
 New-OfficeExcel -Path $path -SaveOptions @{ EvaluateFormulas = $true } {
     ExcelSheet 'Dashboard' {
-        ExcelGridlines -Hide
+        ExcelSheetView -NoGridlines
         ExcelColumn -ColumnName A -Width 38
         ExcelColumn -ColumnName B -Width 24
         ExcelCell -Address A1 -Value 'Department budget review'
@@ -36,7 +36,7 @@ New-OfficeExcel -Path $path -SaveOptions @{ EvaluateFormulas = $true } {
 
     ExcelSheet 'Detail' {
         ExcelTable -Data $budget -Name 'DepartmentBudget' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium4' -AutoFit
-        ExcelFreeze -TopRows 1
+        ExcelSheetView -FreezeRows 1
         ExcelConditionalDataBar -Range 'C2:C5' -Color '#5B9BD5'
         ExcelConditionalIconSet -Range 'D2:D5' -IconSet ThreeTrafficLights1
         foreach ($header in 'Budget', 'Actual', 'Forecast', 'Variance') {

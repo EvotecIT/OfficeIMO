@@ -57,7 +57,7 @@ try {
     # A PowerShell number remains numeric, so Excel can calculate with it.
     $sheet | Set-OfficeExcelCell -Address A8 -Value 'Availability target'
     $sheet | Set-OfficeExcelCell -Address B8 -Value 0.999 -NumberFormat '0.00%'
-    $workbook | Set-OfficeExcelFreeze -Sheet 'Review' -TopRows 3
+    $workbook | Set-OfficeExcelSheetView -Sheet 'Review' -FreezeRows 3
     $workbook | Set-OfficeExcelPageSetup -Sheet 'Review' -FitToWidth 1 -FitToHeight 0
     $workbook | Save-OfficeExcel
 } finally {

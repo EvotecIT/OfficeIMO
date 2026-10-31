@@ -30,7 +30,7 @@ New-OfficeExcel -Path '.\Service-Status.xlsx' {
     ExcelSheet 'Services' {
         # Keep the chart's category and one numeric measure adjacent; owners and percentages remain in the table.
         ExcelTable -Data ($services | Select-Object Service,Incidents,Owner,Availability,Status) -Name 'ServiceStatus' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
-        ExcelFreeze -TopRows 1
+        ExcelSheetView -FreezeRows 1
         ExcelValidationList -TableName 'ServiceStatus' -HeaderName Status -Values Healthy,Watch,Action
         ExcelConditionalColorScale -Range 'D2:D4' -StartColor '#FEE2E2' -EndColor '#DCFCE7'
         ExcelChart -Range 'A1:B4' -Address A7 -Type ColumnClustered -Title 'Incidents by service' -Width 700px -Height 320px

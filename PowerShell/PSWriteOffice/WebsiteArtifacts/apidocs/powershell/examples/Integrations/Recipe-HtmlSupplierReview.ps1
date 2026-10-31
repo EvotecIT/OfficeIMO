@@ -99,7 +99,7 @@ Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
 
 New-OfficeExcel -Path $xlsx {
     ExcelSheet 'Offers' {
-        ExcelGridlines -Hide
+        ExcelSheetView -NoGridlines
         ExcelCell -Address A1 -Value 'Supplier offers / USD per unit'
         ExcelRow -Row 1 -Height 30 -Bold $true -FontName 'Carlito'
         ExcelCell -Address A2 -Value 'Editable numeric values; freight and tax excluded.'
@@ -115,7 +115,7 @@ New-OfficeExcel -Path $xlsx {
         ExcelColumn -Column 2 -Width 22
         ExcelColumn -Column 3 -AutoFit
         ExcelColumn -Column 4 -Width 16
-        ExcelFreeze -TopRows 4
+        ExcelSheetView -FreezeRows 4
     }
 }
 Get-Item -LiteralPath $docx, $pdf, $xlsx | Select-Object Name, Length

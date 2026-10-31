@@ -19,7 +19,7 @@ New-OfficeExcel -Path $path {
         ExcelValidationList -Range 'D2:D20' -Values 'New','In Progress','Done'
         ExcelConditionalRule -Range 'C2:C20' -Operator GreaterThan -Value 1000 -Style 'Good'
         ExcelAutoFilter -Range 'A1:D20'
-        ExcelFreeze -Rows 1
+        ExcelSheetView -FreezeRows 1
         ExcelSort -Range 'A1:D20' -Key 'C' -Descending
         ExcelSparkline -DataRange 'C2:C7' -LocationRange 'E2:E7' -Type Line -ShowMarkers
         ExcelPivotTable -SourceRange 'A1:D7' -DestinationCell 'G2' -RowField 'Region' -DataField 'Sales'
@@ -37,7 +37,7 @@ New-OfficeExcel -Path $path {
         ExcelOrientation -Orientation Landscape
         ExcelMargins -Left 0.5 -Right 0.5 -Top 0.75 -Bottom 0.75
         ExcelPageSetup -FitToWidth 1 -FitToHeight 0
-        ExcelGridlines -Show $false
+        ExcelSheetView -NoGridlines
     }
 
     ExcelSheet 'Hidden' {
