@@ -51,6 +51,7 @@ internal static class RtfPdfMapping {
 
     internal static PdfCore.PdfParagraphStyle ToPdfParagraphStyle(RtfDocument document, RtfParagraph paragraph,
         IReadOnlyList<PdfCore.PdfTextRun> runs, PdfCore.PdfCreateOptions options) {
+        bool markerAfterTab = paragraph.ListText?.ToPlainText().StartsWith("\t", StringComparison.Ordinal) == true;
         paragraph = document.GetParagraphFormatting(paragraph);
 
         int? leftIndent = paragraph.LeftIndentTwips;
@@ -71,7 +72,20 @@ internal static class RtfPdfMapping {
         double leftIndentPoints = ToNonNegativePoints(leftIndent);
         pdfStyle.LeftIndent = global::OfficeIMO.OfficeLength.Points(leftIndentPoints);
         pdfStyle.RightIndent = global::OfficeIMO.OfficeLength.Points(ToNonNegativePoints(rightIndent));
-        pdfStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(ToSafeFirstLineIndent(firstLineIndent, leftIndentPoints));
+        double firstLinePoints = ToSafeFirstLineIndent(firstLineIndent, leftIndentPoints);
+        double? markerTabWidth = null;
+        if (markerAfterTab) {
+            // Cocoa starts its list text with a tab to the marker's stop, inside the hanging indent.
+            double lineStart = leftIndentPoints + firstLinePoints;
+            foreach (RtfTabStop tabStop in tabStops.OrderBy(static stop => stop.PositionTwips)) {
+                double position = TwipsToPoints(tabStop.PositionTwips);
+                if (position <= lineStart) continue;
+                if (position < leftIndentPoints) firstLinePoints = position - leftIndentPoints;
+                break;
+            }
+            markerTabWidth = -firstLinePoints;
+        }
+        pdfStyle.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(firstLinePoints);
 
         if (spaceBefore.HasValue && spaceBefore.Value >= 0) {
             pdfStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(TwipsToPoints(spaceBefore.Value));
@@ -107,6 +121,9 @@ internal static class RtfPdfMapping {
         if (defaultTabWidth.HasValue && defaultTabWidth.Value > 0) {
             pdfStyle.DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(TwipsToPoints(defaultTabWidth.Value));
         }
+
+        // The text after the marker still starts at the left indent, which is the next default stop from the marker.
+        if (markerTabWidth > 0D) pdfStyle.DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(markerTabWidth.Value);
 
         foreach (RtfTabStop tabStop in tabStops) {
             // RTF measures tab stops from the margin and the PDF paragraph from its text frame, after the left indent.
