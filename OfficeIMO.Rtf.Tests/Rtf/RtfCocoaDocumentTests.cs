@@ -118,6 +118,36 @@ public class RtfCocoaDocumentTests {
     }
 
     [Fact]
+    public void ShortLinesAfterAnIndentedListStayAfterIt() {
+        byte[] bytes = RtfDocument.Parse("{\\rtf1\\ansi\\margl1440\\pard\\sa240 A full width introduction that reaches across most of the page body.\\par" +
+            "\\pard\\li2880 First item\\par Second item\\par\\pard Region\\par Sales\\par North\\par}")
+            .ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes();
+
+        PdfCore.PdfLogicalPage page = PdfCore.PdfDocument.Load(bytes).Read(new PdfCore.PdfLoadOptions()).Pages[0];
+        string text = string.Join("|", page.TextBlocks.Select(block => block.Text));
+
+        Assert.True(text.IndexOf("Second item", StringComparison.Ordinal) < text.IndexOf("Region", StringComparison.Ordinal), text);
+    }
+
+    [Fact]
+    public void CocoaListMarkerSitsAtItsTabStop() {
+        using var pdf = PdfPigDocument.Open(RtfDocument.Parse(Report).ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes());
+        var letters = pdf.GetPage(1).Letters;
+
+        Assert.Equal(83D, letters.Single(letter => letter.Value == "\u2022").StartBaseLine.X, 0);
+        Assert.Equal(108D, letters.First(letter => letter.Value == "I").StartBaseLine.X, 0);
+    }
+
+    [Fact]
+    public void EditingAFontInAnUngroupedTableReplacesIt() {
+        RtfLosslessEditor editor = RtfDocument.Read(Report).EditLossless();
+        editor.SetFont(1, "Georgia");
+
+        RtfDocument document = RtfDocument.Parse(editor.ToRtf());
+        Assert.Equal(new[] { "Times-Bold", "Georgia" }, document.Fonts.Select(font => font.Name));
+    }
+
+    [Fact]
     public void ColumnNarrowerThanItsPaddingStillConverts() {
         byte[] bytes = RtfDocument.Parse("{\\rtf1\\ansi\\trowd\\trgaph108\\cellx14\\cellx3000\\pard\\intbl\\cell Wide\\cell\\row}")
             .ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes();
