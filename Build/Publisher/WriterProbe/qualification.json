@@ -23169,5 +23169,312 @@
       "New page/master topology, inheritance and generic public native creation remain outside this save contract.",
       "The measured text-origin differences remain; no native/managed pixel parity or repair-free opening is claimed."
     ]
+  },
+  "verticalTextPlacement": {
+    "scope": "Modern-generation paragraph spacing at Publisher flow-region boundaries and complete text assignment when an internal after-gap cannot fit. Font-baseline/line-advance parity and broader native layout remain unqualified.",
+    "sourceCommit": "7d144d75dba62810fee088e7197565e0f4353751",
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeVerticalPlacementControl.ps1",
+        "sha256": "4068ce42dad083aa88d78ffb8457f025fee1881ac82342dfdc00b012f60cb650"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "5ef61f1e6bb9d9d06f80823345112a61f59cb398a2cf4e26de6b332a8489c371"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "cd3714a426dfa4841ecce9842aed847a00db00ede761645b25d920e0edad963b"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "2921c1de1f577bd7b156486ffce1a01ecb992e911fa9463eb645c25c6cc27118"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/README.md",
+        "sha256": "0485e94de85b8f52a999f05e974035fde840a87e1500bfcaf2274acf93881291"
+      },
+      {
+        "path": "Docs/ROADMAP.md",
+        "sha256": "8d482eb4b33294bb144d877fc3ecd40cd43d102f6fc86813472256d28972f108"
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeRichTextFlow.cs",
+        "sha256": "7972b95ed94114094715083d8b1fd664ff3eb9cacfeb17db10d6b4f8e8c0588e"
+      },
+      {
+        "path": "OfficeIMO.Drawing.Tests/Drawing.RichText.Flow.cs",
+        "sha256": "548960de02a09506340f64b5138cfac608beee8397f845f9378e8037542cc0c3"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextVerticalPlacement/native-textverticalplacement.json",
+        "sha256": "a736b62ff864e78537cd9b8dfd6b9079009c54cf129fb18b96d44077ca445594"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextVerticalPlacement/native-textverticalplacement.pdf",
+        "sha256": "d7d6141fb768b1ed170193b8110c91b1576d9071fe5938cdac170e9335ad9ee3"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextVerticalPlacement/native-textverticalplacement.pub",
+        "sha256": "d6a42c0c52313d867c8d5c16b26bbcfef0cb6a3f544b833a8812c4d68eed3e50"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextVerticalPlacement/provenance.json",
+        "sha256": "3e1a5eda66a1fe87e9997f82873c5942c37689cd4601f347ffdfe7e040d407fa"
+      },
+      {
+        "path": "OfficeIMO.Publisher/SUPPORT.md",
+        "sha256": "a99cd7fc39e7368324e5f0da762f8ba6c037bbc3f522c821d1dad244bac2d2a1"
+      }
+    ],
+    "contract": {
+      "owner": "Core OfficeRichTextFlow, consumed by Publisher frame projection; ordinary drawing paragraph-margin semantics remain unchanged.",
+      "regionEnd": "Returned final paragraphs omit after-spacing from top/center/bottom alignment height. Original story margins and complete text remain unchanged; internal paragraph gaps remain.",
+      "accounting": "A completed paragraph reserves its actual resolved line heights and full after-spacing before another paragraph is admitted, including an after-gap omitted by clipped layout.",
+      "continuation": "Text that cannot render behind its preceding gap remains for a following linked frame/column/exclusion region or becomes unassigned overflow. Incomplete paragraphs retain the existing continuation accounting.",
+      "metadata": "Source paragraphs, inline styles, language, links, labels, tabs, indentation and continuation flags retain their existing ownership."
+    },
+    "nativeProducer": {
+      "name": "Microsoft Publisher",
+      "executableVersion": "16.0.20527.20088",
+      "automationSecurity": 3
+    },
+    "fixtures": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextVerticalPlacement/native-textverticalplacement.json",
+        "sha256": "a736b62ff864e78537cd9b8dfd6b9079009c54cf129fb18b96d44077ca445594"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextVerticalPlacement/native-textverticalplacement.pdf",
+        "sha256": "d7d6141fb768b1ed170193b8110c91b1576d9071fe5938cdac170e9335ad9ee3"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextVerticalPlacement/native-textverticalplacement.pub",
+        "sha256": "d6a42c0c52313d867c8d5c16b26bbcfef0cb6a3f544b833a8812c4d68eed3e50"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "independent-vertical-placement",
+        "sha256": "d6a42c0c52313d867c8d5c16b26bbcfef0cb6a3f544b833a8812c4d68eed3e50",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "pages": 8,
+        "sourceUnchanged": true
+      },
+      {
+        "name": "public-clipped-gap",
+        "sha256": "3e8212fed7bf0dbf7bda03d46d4ad83ce23032fcbd23c6a0b0ef42ce895b3acb",
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "pages": 8,
+        "sourceUnchanged": true
+      }
+    ],
+    "nativeEvidence": {
+      "independentProfiles": 22,
+      "independentPages": 8,
+      "paragraphAfterPoints": [
+        0,
+        6,
+        12
+      ],
+      "fontSizesPoints": [
+        12,
+        18
+      ],
+      "fontFamily": "Arial",
+      "fullFiles": 2,
+      "qualifiedOperations": 14,
+      "completeInventories": 4,
+      "nativeResaveStablePagePairsAt144Dpi": 16,
+      "qualifiedProfiles": "Single/two requested paragraphs, requested terminal CR, Top/Center/Bottom. Saved native text determines actual terminal empty-paragraph counts.",
+      "nativeAssignedRangesMatchFinalPublicProjection": true,
+      "completeStoryRetainedWhenNativeResavedPublicationIsRead": true,
+      "repairFreeAssessed": false,
+      "proofHashes": [
+        {
+          "name": "qualified-proof.json",
+          "sha256": "d612202e5abde7656d2daa930c97f5f7a345b803b9b86e45cebe6ac76a6cbc2d"
+        },
+        {
+          "name": "overflow-proof.json",
+          "sha256": "992614eddff678bc15b6b1f3ae6a5ec15cb113cd6aad427044fa58d2f1778166"
+        },
+        {
+          "name": "remediated-proof.json",
+          "sha256": "cb520565eabb11f2d526df671050049db47e6b11f533a7967fb16834b0a0a0a6"
+        }
+      ]
+    },
+    "measuredPlacement": {
+      "beforeMaximumFirstBaselineYDifferencePoints": 13.05999755859375,
+      "currentMaximumFirstBaselineYDifferencePoints": 1.4000244140625,
+      "compoundBottomFirstBaselineYDifferencePoints": 1.05999755859375,
+      "comparison": "Identical text/profile markers against native PDF origins; the spacing effect is isolated from the remaining font/line-metric differences.",
+      "nativeManagedPixelParityClaimed": false
+    },
+    "publicOverflow": {
+      "frameHeightPoints": 30,
+      "paragraphAfterPoints": 20,
+      "completeStoryCharacters": 48,
+      "assignedCharacters": 26,
+      "hasOverflow": true,
+      "completeStoryAndNativeSaveBytesUnchanged": true,
+      "nativeFrameGetterContainsAssignedRange": true
+    },
+    "managedEvidence": {
+      "finalIndependentProfilePdfPages": 8,
+      "svgPagesValidated": 8,
+      "finalProfileRenderEquivalencePairsAt144Dpi": 8,
+      "publicSourceSaves": {
+        "files": 19,
+        "preparedAndReopenedPdfPages": 114,
+        "svgPagesValidated": 114,
+        "saveStablePagePairsAt144Dpi": 57
+      },
+      "powershell": {
+        "runtime": "7.6.9",
+        "files": 3,
+        "pages": 19,
+        "equalDirectManagedPairsAt144Dpi": 19,
+        "coreSourceOwnerBound": true,
+        "coreSha256": "46617cfd7d5e7e9fbb53033a25637315e1e85f73bafb8ee66f9dc66f80eb6c72"
+      }
+    },
+    "priorOutputs": {
+      "creationPubFilesByteIdentical": 30,
+      "publicEditedPubFilesByteIdentical": 19,
+      "proofs": [
+        {
+          "name": "remediated-prior-equivalence.json",
+          "sha256": "645ce954081b42153fd4d8d741b72675c8c9192f73dadec6144d42426a7aee54"
+        },
+        {
+          "name": "remediated-source-save-equivalence.json",
+          "sha256": "9081f57008b6ad5ca0120f6fc4f87689ef7b31469aeff41db37c48a69151c585"
+        }
+      ]
+    },
+    "validation": {
+      "tests": [
+        {
+          "name": "end-spacing-flow-remediated",
+          "passed": 20,
+          "failed": 0,
+          "notExecuted": 0,
+          "unchangedSkippedTests": []
+        },
+        {
+          "name": "end-spacing-remediated-reader",
+          "passed": 95,
+          "failed": 0,
+          "notExecuted": 0,
+          "unchangedSkippedTests": []
+        },
+        {
+          "name": "end-spacing-remediated-publisher-net10.0",
+          "passed": 961,
+          "failed": 0,
+          "notExecuted": 0,
+          "unchangedSkippedTests": []
+        },
+        {
+          "name": "end-spacing-remediated-publisher-net8.0",
+          "passed": 961,
+          "failed": 0,
+          "notExecuted": 0,
+          "unchangedSkippedTests": []
+        },
+        {
+          "name": "end-spacing-remediated-publisher-net472",
+          "passed": 961,
+          "failed": 0,
+          "notExecuted": 0,
+          "unchangedSkippedTests": []
+        },
+        {
+          "name": "end-spacing-remediated-drawing-net10.0",
+          "passed": 6249,
+          "failed": 0,
+          "notExecuted": 5,
+          "unchangedSkippedTests": [
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops"
+          ]
+        },
+        {
+          "name": "end-spacing-remediated-drawing-net8.0",
+          "passed": 6249,
+          "failed": 0,
+          "notExecuted": 5,
+          "unchangedSkippedTests": [
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange"
+          ]
+        },
+        {
+          "name": "end-spacing-remediated-drawing-net472",
+          "passed": 6221,
+          "failed": 0,
+          "notExecuted": 5,
+          "unchangedSkippedTests": [
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowTiffDecodeObservesCancellationInsidePixelLoops",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.WideSingleRowBmpDecodeObservesCancellationInsidePixelLoops",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.PngUnfilterObservesCancellationAfterPixelsChange",
+            "OfficeIMO.Tests.DrawingRasterCodecRobustnessTests.BoundedPngIdentificationObservesCancellationDuringChunkValidation"
+          ]
+        }
+      ],
+      "requiredBuilds": [
+        "end-spacing-remediated-assignment-probe-build-qualified-relocation",
+        "end-spacing-remediated-assignment-powershell-build-relocation",
+        "end-spacing-remediated-assignment-standard-pdf-relocation",
+        "end-spacing-remediated-assignment-standard-reader-relocation",
+        "end-spacing-remediated-assignment-reader-relocation"
+      ],
+      "nativeScriptsParsedOn": [
+        "PowerShell7.6.9",
+        "WindowsPowerShell5.1.26100.9711"
+      ],
+      "regressionTests": [
+        "RegionEndDropsAfterSpacingWithoutMutatingSourceOrInternalParagraphGaps",
+        "ParagraphAfterSpacingCountsBeforeAssigningTheFollowingParagraph"
+      ],
+      "preFixControls": "Both region-end cases fail on retained6/9pt margins. The clipped20pt-gap/30pt-region control consumes the following paragraph before repair;43pt and exact44pt boundaries retain their protection.",
+      "focusedFlowCases": 20,
+      "finalChecksSha256": "f9c9595ee63fd109a2c263f57a0f8fb681820a0a8ef64da7d85868a4df9456c1"
+    },
+    "corpusIntegrity": {
+      "provenancePayloads": 198,
+      "workingAndGitBlobHashesMatch": true,
+      "proofSha256": "713d0098b7451e71716a0705bd93b5fc738d5de727e94999e8c598c6cd88b09b"
+    },
+    "limits": [
+      "Native/managed first-baseline differences remain up to1.40pt for these closed profiles; font metrics, line advances, balancing and broader wrapping are not qualified.",
+      "Requested terminal CR does not establish the saved empty-paragraph count; complete native stories and their source formatting remain authoritative.",
+      "Native Full operations and resave stability do not establish repair-free opening, generic public native creation or legacy-generation coverage."
+    ]
   }
 }
