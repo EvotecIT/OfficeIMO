@@ -1,5 +1,6 @@
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Pdf;
+using PdfCore = OfficeIMO.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
@@ -90,6 +91,15 @@ public class RtfCocoaDocumentTests {
         Assert.True(Baseline("Region") > Baseline("North"));
         Assert.DoesNotContain(page.Paths, path => path.IsFilled && path.GetBoundingRectangle() is { Height: > 2D, Width: > 2D });
         Assert.DoesNotContain(options.Report.Warnings, warning => warning.Code == "FontFamilySlotExhausted");
+    }
+
+    [Fact]
+    public void BorderWidthIsReadAsTwips() {
+        RtfTable table = Assert.Single(RtfDocument.Parse(Report).Blocks.OfType<RtfTable>());
+
+        PdfCore.PdfCellBorder border = RtfPdfMapping.ToPdfTableStyle(RtfDocument.Parse(Report), table, new RtfToPdfOptions()).CellBorders![(0, 0)];
+
+        Assert.Equal(1D, border.TopBorder!.Width.ToPoints(), 6);
     }
 
     [Fact]

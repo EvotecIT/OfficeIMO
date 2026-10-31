@@ -133,7 +133,7 @@ internal static class RtfPdfMapping {
 
         PdfCore.PdfPageBorder border = new PdfCore.PdfPageBorder {
             DashStyle = ToPdfDashStyle(source.Style),
-            Width = global::OfficeIMO.OfficeLength.Points(source.Width.HasValue && source.Width.Value > 0 ? source.Width.Value / 8D : 1D),
+            Width = global::OfficeIMO.OfficeLength.Points(source.Width.HasValue && source.Width.Value > 0 ? TwipsToPoints(source.Width.Value) : 1D),
             Inset = global::OfficeIMO.OfficeLength.Points(source.Space.HasValue && source.Space.Value >= 0 ? source.Space.Value : 36D)
         };
 
@@ -330,7 +330,7 @@ internal static class RtfPdfMapping {
     private static PdfCore.PdfCellBorderSide CreatePdfCellBorderSide(RtfDocument document, RtfTableCellBorderStyle style, int? width, int? colorIndex) {
         return new PdfCore.PdfCellBorderSide {
             Color = ToPdfColor(document, colorIndex) ?? DefaultBorderColor,
-            Width = global::OfficeIMO.OfficeLength.Points(width.HasValue && width.Value > 0 ? width.Value / 8D : 0.5D),
+            Width = global::OfficeIMO.OfficeLength.Points(width.HasValue && width.Value > 0 ? TwipsToPoints(width.Value) : 0.5D),
             DashStyle = ToPdfDashStyle(style),
             LineStyle = style == RtfTableCellBorderStyle.Double ? PdfCore.PdfCellBorderLineStyle.TwoLine : PdfCore.PdfCellBorderLineStyle.Standard
         };
