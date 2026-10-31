@@ -67,6 +67,7 @@ internal sealed partial class PdfWorkspace {
                     PdfSelectionQuad bounds = page.MapUserSpaceRectangleToVisual(area.X, area.Y, area.Right, area.Top);
                     string preview = string.Join(" ", plan.Matches.Where(match => ReferenceEquals(match.Area, area) && match.Text is not null)
                         .Select(match => match.Text).Distinct());
+                    if (string.IsNullOrWhiteSpace(preview)) preview = text;
                     if (preview.Length > 180) preview = preview[..180] + "…";
                     return new PdfRedactionCandidate(area,
                         new StudioRectangle(bounds.TopLeft.X, bounds.TopLeft.Y,
