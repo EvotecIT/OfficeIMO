@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
     private static PdfCore.PdfCreateOptions CreatePdfOptions(PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions options) {
-        PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfCreateOptions();
+        PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.PowerPoint.Pdf");
 

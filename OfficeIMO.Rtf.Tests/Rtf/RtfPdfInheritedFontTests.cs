@@ -56,7 +56,7 @@ public sealed class RtfPdfInheritedFontTests {
         PdfCore.RichParagraphBlock paragraph = Assert.IsType<PdfCore.RichParagraphBlock>(actualDocument.Blocks.ElementAt(1));
         PdfCore.PdfTextRun strut = Assert.Single(paragraph.Runs, run => run.IsLineBoxStrut);
         Assert.Equal(PdfCore.PdfStandardFont.Courier, strut.Font);
-        Assert.Equal(24D, strut.FontSize);
+        Assert.Equal(24D, strut.FontSize!.Value.ToPoints());
 
         using PdfPigDocument actual = PdfPigDocument.Open(actualDocument.ToBytes());
         Assert.Equal(1, actual.NumberOfPages);
@@ -180,7 +180,7 @@ public sealed class RtfPdfInheritedFontTests {
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
         PdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = 12
+            DefaultFontSize = OfficeLength.Points(12)
         }
     };
 }

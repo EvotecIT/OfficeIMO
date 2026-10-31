@@ -149,7 +149,7 @@ public class RtfPdfConverterTests {
         int[] scalars = Enumerable.Range(32, 95).ToArray();
         var pdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = OfficeLength.Points(10)
         };
         pdfOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, new PdfCore.PdfEmbeddedFontFamily("Caller Sans",
             ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, scalars)));
@@ -190,7 +190,7 @@ public class RtfPdfConverterTests {
         Assert.Equal(5D, letters[1].StartBaseLine.X - letters[0].StartBaseLine.X, 3);
         Assert.Equal(sourceBefore, document.ToBytes());
         Assert.Equal(PdfCore.PdfStandardFont.Helvetica, pdfOptions.DefaultFont);
-        Assert.Equal(10D, pdfOptions.DefaultFontSize);
+        Assert.Equal(10D, pdfOptions.DefaultFontSize.ToPoints());
         Assert.Equal(callerFontsBefore.Count, pdfOptions.EmbeddedFonts.Count);
         foreach (var callerFont in callerFontsBefore) {
             Assert.Equal(callerFont.Value.Data, pdfOptions.EmbeddedFonts[callerFont.Key].Data);

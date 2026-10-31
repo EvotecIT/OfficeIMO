@@ -4,7 +4,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static PdfCore.PdfCreateOptions CreatePdfOptions(ExcelPdfExportOptions options, out bool preserveConfiguredFontSlots) {
-            PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfCreateOptions();
+            PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();
             pdfOptions.UseContentStreamCompressionByDefault();
             pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Excel.Pdf");
 

@@ -282,6 +282,7 @@ public sealed class PowerPointPdfExportOptions {
         if (MaximumEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumEmbeddedImageBytes));
         if (MaximumTotalEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumTotalEmbeddedImageBytes));
         var clone = (PowerPointPdfExportOptions)MemberwiseClone();
+        clone.PdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
         clone.EmbeddedImageBytesRead = 0;
         clone.SelectedSlides = SelectedSlides == null ? null : new HashSet<PowerPointSlide>(SelectedSlides);
         clone.ResourcePolicy = ResourcePolicy.Clone();

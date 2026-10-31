@@ -10,10 +10,11 @@ internal static partial class RtfPdfConverter {
 
         RtfTableTraversalGuard.ValidateDocument(document);
         RtfToPdfOptions normalized = options ?? new RtfToPdfOptions();
+        normalized.PdfOptions = normalized.PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
         foreach (RtfConversionDiagnostic diagnostic in document.GetStyleConversionDiagnostics().Diagnostics) {
             AddConversionWarning(normalized, diagnostic.Code, diagnostic.SourcePath ?? "Styles", diagnostic.Message, diagnostic.Action);
         }
-        PdfCore.PdfCreateOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfCreateOptions();
+        PdfCore.PdfCreateOptions pdfOptions = normalized.PdfOptions ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();
         // RTF leaves pair kerning disabled unless a run supplies a positive threshold.
         pdfOptions.TextKerning = false;
         if (!pdfOptions.HasExplicitTextWhitespaceConfiguration) {

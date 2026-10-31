@@ -438,6 +438,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         internal ExcelPdfExportOptions CloneForConversion() {
             var clone = (ExcelPdfExportOptions)MemberwiseClone();
+            clone.PdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
             clone.SheetNames = SheetNames?.ToArray();
             clone.ResourcePolicy = ResourcePolicy.Clone();
             clone.Warnings = new List<ExcelPdfExportWarning>();

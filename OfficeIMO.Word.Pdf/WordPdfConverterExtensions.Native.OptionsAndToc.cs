@@ -17,7 +17,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeFontMap nativeFontMap,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             WordSection? firstSection = document.Sections.FirstOrDefault();
-            PdfCore.PdfCreateOptions pdfOptions = options?.PdfOptions?.Clone() ?? new PdfCore.PdfCreateOptions();
+            PdfCore.PdfCreateOptions pdfOptions = options?.PdfOptions?.Clone() ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();
             pdfOptions.UseFontUnitTextLayout = true;
             // Flat running content follows the same source defaults as styled runs.
             // Retain the configured shaper so explicit ligatures use its Latin feature path.

@@ -262,7 +262,7 @@ namespace OfficeIMO.Word.Pdf {
             var clone = new WordPdfExportOptions {
                 CancellationToken = CancellationToken,
                 MaxImagesPerParagraph = MaxImagesPerParagraph,
-                PdfOptions = PdfOptions,
+                PdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false),
                 FontFamily = FontFamily,
                 ResourcePolicy = ResourcePolicy.Clone(),
                 TextFallbacks = TextFallbacks,

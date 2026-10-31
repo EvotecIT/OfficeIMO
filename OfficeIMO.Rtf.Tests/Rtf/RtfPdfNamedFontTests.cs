@@ -288,7 +288,7 @@ public sealed class RtfPdfNamedFontTests {
             ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 800, scalars),
             ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, scalars),
             ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 900, scalars));
-        var options = new PdfCore.PdfCreateOptions { DefaultFontSize = 10 }.RegisterNamedFontFamily(family);
+        var options = new PdfCore.PdfCreateOptions { DefaultFontSize = OfficeLength.Points(10) }.RegisterNamedFontFamily(family);
         if (substitute) options.RegisterFontFamilySubstitution(Source, familyName, PdfCore.PdfFontFamilySubstitutionImpact.Compatible);
         return options;
     }
