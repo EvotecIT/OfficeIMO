@@ -2306,8 +2306,20 @@ A search mark keeps its full height, but only image pixels follow that rectangle
 Vector paths and annotations are removed when they overlap the matched glyphs, so a
 table rule or link on the next line stays. Annotations holding the searched text in
 their contents or appearance go on every searched page, even one with no text match,
-and appear in the plan as annotation matches. Such a page paints no mark. Form widgets
-are left out, because their values belong to the field. Unpainted forms holding the searched text
+and appear in the plan as annotation matches. Such a page paints no mark.
+
+Search also covers form fields, whether or not `/Fields` lists the widget. A field holding
+the searched text in `/V`, `/DV`, `/RV`, a widget caption or its appearance has the whole
+value cleared, because cutting a word out can't be proven safe against formats, comb
+layouts and scripts. The field and its widgets stay, appearances keep their border and
+background, choice options holding the text are dropped and selections renumbered, and a
+button state holding it is renamed with the button set to off. Each field appears in the
+plan as a `FormField` match carrying its name, never its value. A field has one value, so
+one reaching a searched page is cleared on every page; a field with no widget on a
+searched page stays. XFA data holding the text is removed from hybrid forms, and a form
+that depends on XFA is refused. Output still holding a searched value is refused. Field
+names themselves and form scripts are not changed. Signed files are not rewritten: use
+an unsigned derivative workflow and re-sign the result. Unpainted forms holding the searched text
 are removed too.
 
 Whole-block search removes the block's own glyphs and marks its full rectangle, so a

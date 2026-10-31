@@ -106,13 +106,17 @@ internal static partial class PdfRedactionPlanner {
                 AddArea(areas, keys, area, search.MaximumCandidates, area.ContentScope);
             }
         }
-        PdfRedactionSearchCriteria? textCriteria = PdfRedactionSearchCriteria.Create(search.LiteralText, expressions);
-        AddAnnotationOnlyAreas(readDocument, search, textCriteria, areas, keys);
+        PdfRedactionSearchCriteria? textCriteria = AddAnnotationOnlyAreas(readDocument, search,
+            PdfRedactionSearchCriteria.Create(search.LiteralText, expressions, search.PageNumbers.Count == 0), areas, keys);
         var requestedFields = new HashSet<string>(search.FormFieldNames, StringComparer.Ordinal);
         foreach (PdfLogicalFormWidget widget in logical.FormWidgets) {
             search.CancellationToken.ThrowIfCancellationRequested();
             if (search.PageNumbers.Count > 0 && !search.PageNumbers.Contains(widget.PageNumber)) continue;
             if (widget.FieldName is not null && requestedFields.Contains(widget.FieldName)) AddArea(areas, keys, new PdfRedactionArea(widget.PageNumber, widget.X1, widget.Y1, widget.Width, widget.Height, "field:" + widget.FieldName), search.MaximumCandidates, search.ContentScope);
+        }
+        if (areas.Count > 0 && textCriteria is not null) {
+            // Earlier areas were made before the affected fields were known.
+            for (int index = 0; index < areas.Count; index++) areas[index] = areas[index].WithSearchCriteria(textCriteria);
         }
         if (areas.Count == 0) return new PdfRedactionPlan(PdfInspector.Preflight(pdf, readOptions, search.CancellationToken), Array.Empty<PdfRedactionArea>(), Array.Empty<PdfRedactionMatch>(), selectionFindings.Count > 0 ? selectionFindings.ToArray() : new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info, "redaction-search-no-matches", "No logical content matched the requested redaction search criteria.") }, DescribeCriteria(search), PdfRedactionPlan.ComputeSourceSha256(pdf), PdfRedactionPlan.CapturePageIdentities(readDocument, Array.Empty<PdfRedactionArea>()));
         PdfRedactionPlan planned = Plan(pdf, areas.Select(area => area.WithSearchCriteria(textCriteria)), layoutOptions, readOptions, search.CancellationToken);
@@ -122,9 +126,9 @@ internal static partial class PdfRedactionPlanner {
 
     // A note on a page with no text match can still hold the searched word. The area gives that page a place
     // in the plan, so the annotation is listed for review, without painting anything or touching page content.
-    private static void AddAnnotationOnlyAreas(PdfReadDocument document, PdfRedactionSearchOptions search, PdfRedactionSearchCriteria? criteria,
+    private static PdfRedactionSearchCriteria? AddAnnotationOnlyAreas(PdfReadDocument document, PdfRedactionSearchOptions search, PdfRedactionSearchCriteria? criteria,
         List<PdfRedactionArea> areas, HashSet<string> keys) {
-        if (criteria is null) return;
+        if (criteria is null) return null;
         var searched = new[] { criteria };
         for (int pageNumber = 1; pageNumber <= document.Pages.Count; pageNumber++) {
             search.CancellationToken.ThrowIfCancellationRequested();
@@ -139,6 +143,20 @@ internal static partial class PdfRedactionPlanner {
                 .WithGlyphSelection(new PdfRedactionGlyphSelection(Array.Empty<PdfRedactionSelectedGlyph>(), isHiddenOnly: true, isCompleteBlock: true))
                 .WithSearchCriteria(criteria), search.MaximumCandidates, PdfRedactionContentScope.TextOnly);
         }
+
+        // Form fields can be the only place a page holds the word, so they earn a page its place in the plan too.
+        var searchedPages = new HashSet<int>(search.PageNumbers.Count > 0 ? search.PageNumbers : Enumerable.Range(1, document.Pages.Count));
+        PdfRedactionFormAnalysis forms = PdfRedactionApplier.AnalyzeFormFields(document.Objects, document.CatalogDictionary,
+            document.Pages.Select(static page => page.ObjectNumber).ToArray(), searched, searchedPages, criteria.CoversAllPages);
+        foreach (PdfRedactionAffectedField field in forms.Fields) {
+            foreach (int pageNumber in field.Pages) {
+                if (areas.Any(area => area.PageNumber == pageNumber)) continue;
+                AddArea(areas, keys, new PdfRedactionArea(pageNumber, 0D, 0D, 1D, 1D, "field-value", PdfRedactionContentScope.TextOnly)
+                    .WithGlyphSelection(new PdfRedactionGlyphSelection(Array.Empty<PdfRedactionSelectedGlyph>(), isHiddenOnly: true, isCompleteBlock: true))
+                    .WithSearchCriteria(criteria), search.MaximumCandidates, PdfRedactionContentScope.TextOnly);
+            }
+        }
+        return criteria.WithAffectedFields(forms.Fields.Select(static field => field.Name));
     }
 
     private static string? MatchText(PdfLogicalTextBlock block, PdfRedactionSearchOptions search, Regex[] expressions, StringComparison comparison, PdfRedactionSearchWorkBudget workBudget) {

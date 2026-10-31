@@ -108,6 +108,9 @@ public sealed class PdfRedactionPlan {
         Guard.NotNull(reviewedAreas, nameof(reviewedAreas));
         Guard.NotNull(reviewedTextObjectScopes, nameof(reviewedTextObjectScopes));
         IReadOnlyDictionary<int, string> stablePageReferences = CreateStablePageReferenceLabels(document);
+        // A cleared field changes on every page its widgets reach, including pages with no area.
+        var affectedFields = new HashSet<string>(reviewedAreas.Where(static area => area.SearchCriteria is not null)
+            .SelectMany(static area => area.SearchCriteria!.AffectedFields), StringComparer.Ordinal);
         var identities = new string[document.Pages.Count];
         for (int i = 0; i < document.Pages.Count; i++) {
             PdfReadPage page = document.Pages[i];
@@ -131,7 +134,7 @@ public sealed class PdfRedactionPlan {
             AppendUnredactedPathIdentity(identity, document, page, pageAreas, drawingEffects);
             AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas, drawingEffects);
             if (includeInteractiveContent) {
-                AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences);
+                AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences, affectedFields);
                 AppendUnredactedLinkIdentity(identity, page, pageAreas);
             }
             AppendPageRenderingResourceIdentity(identity, document, page, reviewedAreas);
@@ -741,12 +744,15 @@ public sealed class PdfRedactionPlan {
         PdfReadDocument document,
         PdfReadPage page,
         IReadOnlyList<PdfRedactionArea> pageAreas,
-        IReadOnlyDictionary<int, string> stablePageReferences) {
+        IReadOnlyDictionary<int, string> stablePageReferences,
+        HashSet<string> affectedFields) {
         IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotationsForContentSafety();
         for (int i = 0; i < annotations.Count; i++) {
             PdfAnnotation annotation = annotations[i];
             if (annotation.HasReadableRectangle &&
                 IntersectsReviewedUnderlay(pageAreas, annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) continue;
+            if (affectedFields.Count > 0 && annotation.SourceDictionary is PdfDictionary widget &&
+                affectedFields.Contains(PdfRedactionApplier.GetFieldName(document.Objects, widget))) continue;
             // Carrying the searched text takes it out of the kept set wherever it sits.
             if (PdfRedactionApplier.CarriesSearchedText(document.Objects, page.ObjectNumber, annotation, pageAreas)) continue;
 

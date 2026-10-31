@@ -10,9 +10,10 @@ internal static partial class PdfRedactionPlanner {
             out IReadOnlyList<PdfDiagnosticFinding> selectionFindings);
         var areas = new List<PdfRedactionArea>();
         var keys = new HashSet<string>(StringComparer.Ordinal);
-        PdfRedactionSearchCriteria? textCriteria = PdfRedactionSearchCriteria.Create(search.LiteralText, expressions);
-        foreach (PdfRedactionArea area in textAreas) AddArea(areas, keys, area.WithSearchCriteria(textCriteria), search.MaximumCandidates, area.ContentScope);
-        AddAnnotationOnlyAreas(readDocument, search, textCriteria, areas, keys);
+        foreach (PdfRedactionArea area in textAreas) AddArea(areas, keys, area, search.MaximumCandidates, area.ContentScope);
+        PdfRedactionSearchCriteria? textCriteria = AddAnnotationOnlyAreas(readDocument, search,
+            PdfRedactionSearchCriteria.Create(search.LiteralText, expressions, search.PageNumbers.Count == 0), areas, keys);
+        for (int index = 0; index < areas.Count; index++) areas[index] = areas[index].WithSearchCriteria(textCriteria);
         if (search.FormFieldNames.Count > 0) {
             var fields = new HashSet<string>(search.FormFieldNames, StringComparer.Ordinal);
             PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions, search.CancellationToken);

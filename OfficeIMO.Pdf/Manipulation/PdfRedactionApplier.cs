@@ -302,6 +302,8 @@ internal static partial class PdfRedactionApplier {
         bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
         cleanupChanged = RemoveAlternateTextHoldingMatches(objects, areaArray, limits) || cleanupChanged;
         if (mutationScope == RedactionMutationScope.All) {
+            int nextFormObjectNumber = objects.Keys.Max() + 1;
+            cleanupChanged = ClearFormFieldsHoldingSearch(objects, (PdfDictionary)objects[catalogObjectNumber].Value, document, areaArray, limits, ref nextFormObjectNumber) || cleanupChanged;
             cleanupChanged = RemoveUnpaintedRedactedResources(objects, plan.Matches
                 .Where(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement && match.RequiresRemoval)
                 .Select(static match => match.ObjectNumber).OfType<int>(), areaArray, limits, sourceStreamIdentities) || cleanupChanged;
@@ -726,6 +728,9 @@ internal static partial class PdfRedactionApplier {
 
         return true;
     }
+
+    internal static bool TryReadFieldRectangle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, out double x, out double y, out double width, out double height) =>
+        TryReadRect(objects, widget, out x, out y, out width, out height);
 
     private static bool MatchesAnnotationRedaction(
         Dictionary<int, PdfIndirectObject> objects,

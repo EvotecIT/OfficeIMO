@@ -11,16 +11,27 @@ internal sealed class PdfRedactionSearchCriteria {
     private readonly string[] _literals;
     private readonly Regex[] _expressions;
 
-    private PdfRedactionSearchCriteria(string[] literals, Regex[] expressions) {
+    private PdfRedactionSearchCriteria(string[] literals, Regex[] expressions, bool coversAllPages, IReadOnlyCollection<string> affectedFields) {
         _literals = literals;
         _expressions = expressions;
+        CoversAllPages = coversAllPages;
+        AffectedFields = affectedFields;
     }
 
-    internal static PdfRedactionSearchCriteria? Create(IEnumerable<string> literals, IEnumerable<Regex> expressions) {
+    /// <summary>True when the search wasn't limited to pages, so content tied to no page is in scope.</summary>
+    internal bool CoversAllPages { get; }
+
+    /// <summary>Names of the fields this search clears. A name survives the renumbering of a rewrite, so identity can skip them.</summary>
+    internal IReadOnlyCollection<string> AffectedFields { get; }
+
+    internal PdfRedactionSearchCriteria WithAffectedFields(IEnumerable<string> fields) =>
+        new PdfRedactionSearchCriteria(_literals, _expressions, CoversAllPages, new HashSet<string>(fields, StringComparer.Ordinal));
+
+    internal static PdfRedactionSearchCriteria? Create(IEnumerable<string> literals, IEnumerable<Regex> expressions, bool coversAllPages) {
         string[] literalCriteria = literals.ToArray();
         Regex[] expressionCriteria = expressions.ToArray();
         return literalCriteria.Length == 0 && expressionCriteria.Length == 0
-            ? null : new PdfRedactionSearchCriteria(literalCriteria, expressionCriteria);
+            ? null : new PdfRedactionSearchCriteria(literalCriteria, expressionCriteria, coversAllPages, Array.Empty<string>());
     }
 
     internal bool Matches(string text) =>

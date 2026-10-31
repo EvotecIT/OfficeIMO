@@ -849,7 +849,6 @@ namespace OfficeIMO.Tests.Pdf {
             PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret"));
             Assert.True(plan.IsReviewable, DescribeFindings(plan));
             Assert.Equal(new[] { 2, 3 }, plan.Matches.Where(static match => match.Kind == PdfRedactionMatchKind.Annotation).Select(static match => match.PageNumber).OrderBy(static page => page));
-            Assert.DoesNotContain(plan.Areas, area => area.PageNumber == 4);
 
             PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
 
@@ -858,7 +857,8 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.DoesNotContain("secret plan", raw, StringComparison.Ordinal);
             Assert.DoesNotContain("Stamp secret", raw + DecodeAllStreams(result.Pdf), StringComparison.Ordinal);
             Assert.Contains("Harmless remark", raw, StringComparison.Ordinal);
-            Assert.Contains("secret value", raw, StringComparison.Ordinal);
+            Assert.DoesNotContain("secret value", raw, StringComparison.Ordinal);
+            Assert.Contains("/T (Field)", raw, StringComparison.Ordinal);
             Assert.Equal(3, Regex.Matches(result.ToDocument().Read().Text, "Plain page").Count);
             Assert.Single(PdfReadDocument.Open(result.Pdf).Pages[0].GetIdentityVisualPrimitives());
             Assert.Empty(PdfReadDocument.Open(result.Pdf).Pages[1].GetIdentityVisualPrimitives());
@@ -888,6 +888,212 @@ namespace OfficeIMO.Tests.Pdf {
             PdfRedactionPlan plan = PdfDocument.Load(bytes).Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("secret"));
             PdfDiagnosticFinding finding = Assert.Single(plan.Findings, static item => item.Code == "redaction-search-glyph-mapping-unsupported");
             Assert.DoesNotContain("block", finding.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private byte[] BuildForm(string fields, string formExtra = "", string catalogExtra = "", string annots = "10 0 R", params string[] extra) => BuildPdf(new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [" + fields + "] /DA (/F1 12 Tf 0 g) /DR << /Font << /F1 4 0 R >> >> " + formExtra + " >> " + catalogExtra + " >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 2 /Kids [3 0 R 6 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Annots [" + annots + "] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Page body text) Tj ET")),
+            "6 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Annots [11 0 R] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "11 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Tx /T (Second) /V (secret on page two) /Rect [100 100 300 120] >>\nendobj",
+        }.Concat(extra).ToArray(), rootObjectNumber: 1);
+
+        private static string TextWidget(int number, string entries) =>
+            number + " 0 obj\n<< /Type /Annot /Subtype /Widget /Rect [100 600 300 620] " + entries + " >>\nendobj";
+
+        private static string Appearance(int number, string content) =>
+            number + " 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 200 20] /Resources << /Font << /F1 4 0 R >> >> /Length " + content.Length + " >>\nstream\n" + content + "\nendstream\nendobj";
+
+        private static PdfRedactionSearchOptions FormSearch(PdfRedactionTextSelection selection) =>
+            new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret");
+
+        private static string Everything(byte[] pdf) => PdfEncoding.Latin1GetString(pdf) + DecodeAllStreams(pdf);
+
+        public static TheoryData<PdfRedactionTextSelection, string, string[]> FieldValueCases => new() {
+            { PdfRedactionTextSelection.MatchedGlyphs, "/FT /Tx /T (Name) /V (my secret code)", Array.Empty<string>() },
+            { PdfRedactionTextSelection.LogicalBlocks, "/FT /Tx /T (Name) /V (my secret code)", Array.Empty<string>() },
+            { PdfRedactionTextSelection.MatchedGlyphs, "/FT /Tx /T (Name) /V (kept) /DV (secret default)", Array.Empty<string>() },
+            { PdfRedactionTextSelection.MatchedGlyphs, "/FT /Tx /T (Name) /V <FEFF00730065006300720065007400>", Array.Empty<string>() },
+            { PdfRedactionTextSelection.MatchedGlyphs, "/FT /Tx /T (Name) /RV (<p>the secret text</p>)", Array.Empty<string>() },
+            { PdfRedactionTextSelection.LogicalBlocks, "/FT /Ch /Ff 131072 /T (Combo) /Opt [(red) (secret option) [(x) (secret display)]] /V (red) /I [0]", Array.Empty<string>() },
+            { PdfRedactionTextSelection.MatchedGlyphs, "/FT /Tx /T (Name) /MK << /CA (secret caption) >>", Array.Empty<string>() }
+        };
+
+        [Theory]
+        [MemberData(nameof(FieldValueCases))]
+        public void FormFieldValuesHoldingTheSearchAreClearedAndTheFieldStays(PdfRedactionTextSelection selection, string entries, string[] unused) {
+            _ = unused;
+            byte[] bytes = BuildForm("10 0 R 11 0 R", extra: TextWidget(10, entries));
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(FormSearch(selection));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            PdfRedactionMatch[] fields = plan.Matches.Where(static match => match.Kind == PdfRedactionMatchKind.FormField).ToArray();
+            Assert.Equal(2, fields.Length);
+            Assert.DoesNotContain(fields, field => field.Text!.Contains("secret", StringComparison.Ordinal));
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.DoesNotContain("secret", Everything(result.Pdf).ToLowerInvariant(), StringComparison.Ordinal);
+            Assert.DoesNotContain("00730065006300720065", Everything(result.Pdf), StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(2, result.ToDocument().Reader.FormFields().Count);
+        }
+
+        [Fact]
+        public void InheritedValueIsClearedForEveryWidgetAndTheAppearanceFollows() {
+            string appearance = "q 0.9 g 0 0 200 20 re f Q /Tx BMC q BT /F1 12 Tf 2 5 Td (secret parent value) Tj ET Q EMC";
+            byte[] bytes = BuildForm("9 0 R 11 0 R", annots: "10 0 R 12 0 R",
+                extra: new[] {
+                    "9 0 obj\n<< /FT /Tx /T (Parent) /V (secret parent value) /Kids [10 0 R 12 0 R] >>\nendobj",
+                    "10 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 9 0 R /Rect [100 600 300 620] /AP << /N 13 0 R >> >>\nendobj",
+                    "12 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 9 0 R /Rect [100 500 300 520] /AP << /N 13 0 R >> >>\nendobj",
+                    Appearance(13, appearance)
+                });
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string all = Everything(result.Pdf);
+            Assert.DoesNotContain("secret", all, StringComparison.Ordinal);
+            Assert.Contains("0 0 200 20 re f", all, StringComparison.Ordinal);
+            Assert.Contains("/T (Parent)", all, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void StaleWidgetAppearanceHoldingTheSearchIsClearedEvenWhenTheValueDoesNot() {
+            byte[] bytes = BuildForm("10 0 R", extra: new[] {
+                TextWidget(10, "/FT /Tx /T (Name) /V (clean) /AP << /N 13 0 R >>"), Appearance(13, "BT /F1 12 Tf 2 5 Td (old secret text) Tj ET") });
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(source.Redactions.Search(PreciseOptions().AddLiteral("secret")));
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.DoesNotContain("secret", Everything(result.Pdf), StringComparison.Ordinal);
+            Assert.Contains("/V (clean)", Everything(result.Pdf), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WidgetMissingFromTheFieldTreeIsStillCleared() {
+            byte[] bytes = BuildForm("11 0 R", annots: "10 0 R", extra: TextWidget(10, "/FT /Tx /T (Loose) /V (my secret code)"));
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(source.Redactions.Search(PreciseOptions().AddLiteral("secret")));
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.DoesNotContain("secret", Everything(result.Pdf), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void CheckBoxWhoseStateHoldsTheSearchGoesOffAndKeepsAWorkingState() {
+            byte[] bytes = BuildForm("10 0 R", extra: new[] {
+                TextWidget(10, "/FT /Btn /T (Box) /V /secret /AS /secret /AP << /N << /secret 13 0 R /Off 14 0 R >> >>"),
+                Appearance(13, "BT /F1 12 Tf 2 5 Td (4) Tj ET"), Appearance(14, "q Q") });
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(source.Redactions.Search(PreciseOptions().AddLiteral("secret")));
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string raw = PdfEncoding.Latin1GetString(result.Pdf);
+            Assert.DoesNotContain("/secret", raw, StringComparison.Ordinal);
+            Assert.Contains("/Choice1", raw, StringComparison.Ordinal);
+            Assert.Contains("/AS /Off", raw, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ChoiceSelectionIndexesFollowRemovedOptions() {
+            byte[] bytes = BuildForm("10 0 R", extra: TextWidget(10, "/FT /Ch /T (List) /Opt [(secret one) (keep two) (keep three)] /I [2]"));
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(source.Redactions.Search(PreciseOptions().AddLiteral("secret")));
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string raw = PdfEncoding.Latin1GetString(result.Pdf);
+            Assert.DoesNotContain("secret one", raw, StringComparison.Ordinal);
+            Assert.Contains("keep three", raw, StringComparison.Ordinal);
+            Assert.Matches(@"/I \[\s*1\s*\]", raw);
+            Assert.Contains("/NeedAppearances true", raw, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PageLimitedSearchLeavesFieldsOnExcludedPagesAndFieldsWithoutWidgets() {
+            byte[] bytes = BuildForm("10 0 R 11 0 R 12 0 R", extra: new[] {
+                TextWidget(10, "/FT /Tx /T (First) /V (secret first)"), "12 0 obj\n<< /FT /Tx /T (Orphan) /V (secret orphan) /Kids [] >>\nendobj" });
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionSearchOptions options = PreciseOptions().AddLiteral("secret");
+            options.PageNumbers.Add(1);
+            PdfRedactionPlan plan = source.Redactions.Search(options);
+            Assert.Equal("First", Assert.Single(plan.Matches, static match => match.Kind == PdfRedactionMatchKind.FormField).Text);
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string raw = PdfEncoding.Latin1GetString(result.Pdf);
+            Assert.DoesNotContain("secret first", raw, StringComparison.Ordinal);
+            Assert.Contains("secret on page two", raw, StringComparison.Ordinal);
+            Assert.Contains("secret orphan", raw, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void FieldReachingAnExcludedPageIsClearedBecauseItHasOneValue() {
+            byte[] bytes = BuildForm("9 0 R", annots: "10 0 R", extra: new[] {
+                "9 0 obj\n<< /FT /Tx /T (Shared) /V (secret shared) /Kids [10 0 R 12 0 R] >>\nendobj",
+                "10 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 9 0 R /Rect [100 600 300 620] >>\nendobj",
+                "12 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 9 0 R /Rect [100 500 300 520] >>\nendobj" });
+            bytes = PdfEncoding.Latin1GetBytes(PdfEncoding.Latin1GetString(bytes).Replace("/Annots [11 0 R]", "/Annots [12 0 R]"));
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionSearchOptions options = PreciseOptions().AddLiteral("secret");
+            options.PageNumbers.Add(1);
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(source.Redactions.Search(options));
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.DoesNotContain("secret shared", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void VerifierRefusesAFieldStillHoldingTheValue() {
+            byte[] bytes = BuildForm("10 0 R 11 0 R", extra: TextWidget(10, "/FT /Tx /T (Name) /V (my secret code)"));
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            PdfRedactionVerificationReport report = source.Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
+            Assert.Contains(report.Issues, static issue => issue.Marker == "FormFieldValue");
+        }
+
+        [Fact]
+        public void ManualRectangleLeavesFieldValuesAlone() {
+            byte[] bytes = BuildForm("10 0 R 11 0 R", extra: TextWidget(10, "/FT /Tx /T (Name) /V (my secret code)"));
+            PdfDocument source = PdfDocument.Load(bytes);
+            string raw = PdfEncoding.Latin1GetString(source.Redactions.Apply(new[] { new PdfRedactionArea(1, 60, 710, 100, 20) }).ToBytes());
+            Assert.Contains("my secret code", raw, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData("<xfa><v>my secret code</v></xfa>")]
+        [InlineData("<xfa><v>sec<b>ret</b></v></xfa>")]
+        [InlineData("<xfa><v>&#115;ecret</v></xfa>")]
+        public void HybridXfaHoldingTheSearchIsRemoved(string data) {
+            byte[] bytes = BuildForm("10 0 R 11 0 R", "/XFA 12 0 R", extra: new[] { TextWidget(10, "/FT /Tx /T (Name) /V (clean)"), BuildStreamObject(12, System.Text.Encoding.ASCII.GetBytes(data)) });
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            Assert.Contains(plan.Matches, static match => match.Kind == PdfRedactionMatchKind.FormField && match.Text == "XFA form data");
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.DoesNotContain("/XFA", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+            Assert.DoesNotContain("<xfa>", Everything(result.Pdf), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void DynamicXfaHoldingTheSearchIsRefused() {
+            byte[] bytes = BuildForm("11 0 R", "/XFA 12 0 R", "/NeedsRendering true", annots: "", extra: BuildStreamObject(12, System.Text.Encoding.ASCII.GetBytes("<xfa>secret</xfa>")));
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.False(plan.IsReviewable);
+            Assert.Contains(plan.Findings, static finding => finding.Code == "redaction-search-form-xfa-unsupported");
+            Assert.Throws<InvalidOperationException>(() => source.Redactions.Apply(plan));
+        }
+
+        [Fact]
+        public void SignedFormIsNotRewritten() {
+            byte[] bytes = BuildForm("10 0 R 11 0 R 12 0 R", "/SigFlags 3", extra: new[] {
+                TextWidget(10, "/FT /Tx /T (Name) /V (my secret code)"),
+                "12 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Sig /T (Signature) /Rect [0 0 0 0] /V 13 0 R >>\nendobj",
+                "13 0 obj\n<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /ByteRange [0 10 20 30] /Contents <00> >>\nendobj" });
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Exception? refused = Record.Exception(() => source.Redactions.Apply(plan));
+            Assert.NotNull(refused);
+            Assert.Equal(bytes, source.ToBytes());
         }
 
         private byte[] BuildTaggedSource() => BuildPdf(new[] {

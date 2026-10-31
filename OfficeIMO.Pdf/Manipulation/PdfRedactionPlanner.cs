@@ -161,6 +161,23 @@ internal static partial class PdfRedactionPlanner {
             }
         }
 
+        PdfRedactionFormAnalysis forms = PdfRedactionApplier.AnalyzeFormFields(readDocument, areaArray);
+        foreach (PdfRedactionAffectedField field in forms.Fields) {
+            int pageNumber = field.Pages.Count > 0 ? field.Pages.Min() : areaArray[0].PageNumber;
+            double x = 0D, y = 0D, width = 0D, height = 0D;
+            if (field.FirstWidget is PdfDictionary widget) PdfRedactionApplier.TryReadFieldRectangle(readDocument.Objects, widget, out x, out y, out width, out height);
+            // The field name, never the value: the plan is shown to people deciding about that value.
+            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.FormField, areaArray.FirstOrDefault(area => area.PageNumber == pageNumber) ?? areaArray[0],
+                pageNumber, x, y, width, height, field.Name, "Field", null));
+        }
+        if (forms.XfaHoldsSearch) {
+            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.FormField, areaArray[0], areaArray[0].PageNumber, 0D, 0D, 0D, 0D, "XFA form data", "XFA", null));
+            if (!forms.XfaCanBeRemoved && !excludeGeneratedRedactionMarks) {
+                findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, "redaction-search-form-xfa-unsupported",
+                    "This form's content is defined by XFA data that holds the searched text, and removing that data would remove the form. It can't be redacted by search."));
+            }
+        }
+
         var imageFingerprints = new Dictionary<int, IReadOnlyList<string>>();
         foreach (PdfRedactionMatch match in matches) {
             if (match.Kind != PdfRedactionMatchKind.ImagePlacement || match.ObjectNumber is not int imageObject) continue;

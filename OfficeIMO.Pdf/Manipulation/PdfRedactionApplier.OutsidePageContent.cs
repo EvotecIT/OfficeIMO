@@ -215,6 +215,14 @@ internal static partial class PdfRedactionApplier {
                 "Marked content in object " + item.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " still holds searched text."));
         }
 
+        PdfRedactionFormAnalysis forms = AnalyzeFormFields(document, plan.Areas);
+        foreach (PdfRedactionAffectedField field in forms.Fields) {
+            issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "FormFieldValue", "A form field still holds searched text: " + field.Name + "."));
+        }
+        if (forms.XfaHoldsSearch) {
+            issues.Add(new PdfRedactionVerificationIssue("RedactedContentOutsidePageContent", "XfaData", "XFA form data still holds searched text."));
+        }
+
         var painted = new HashSet<PdfStream>();
         var listed = new Dictionary<PdfStream, PdfDictionary>();
         var visited = new HashSet<PdfStream>();

@@ -9,7 +9,9 @@ public enum PdfRedactionMatchKind {
     /// <summary>Image XObject placement rectangle.</summary>
     ImagePlacement = 2,
     /// <summary>Vector path inside nested Form XObject content that the current redaction writer cannot safely remove.</summary>
-    VectorPath = 3
+    VectorPath = 3,
+    /// <summary>Form field whose value is cleared. Text holds the field name, never the value.</summary>
+    FormField = 4
 }
 
 /// <summary>Content intersecting a requested redaction area.</summary>
@@ -82,5 +84,5 @@ public sealed class PdfRedactionMatch {
     internal IReadOnlyList<string> ImageDataSha256 { get; set; } = Array.Empty<string>();
 
     internal bool RequiresRemoval => Area.ContentScope == PdfRedactionContentScope.TextAndUnderlay ||
-        Kind is PdfRedactionMatchKind.TextBlock or PdfRedactionMatchKind.Annotation;
+        Kind is PdfRedactionMatchKind.TextBlock or PdfRedactionMatchKind.Annotation or PdfRedactionMatchKind.FormField;
 }
