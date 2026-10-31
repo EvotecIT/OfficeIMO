@@ -12576,13 +12576,24 @@ function numericProfile(format) {
 }
 /** Separate declared literal units before recognizing the captured numeric token. */
 function capturedNumber(text, profile) {
-    let body = text;
+    let body = text, signBeforePrefix = false;
     if (profile.prefix && body.startsWith(profile.prefix))
         body = body.slice(profile.prefix.length);
+    else if (profile.prefix && /^[+-]/.test(body) && body.slice(1).startsWith(profile.prefix)) {
+        signBeforePrefix = true;
+        body = body[0] + body.slice(1 + profile.prefix.length);
+    }
     if (profile.suffix && body.endsWith(profile.suffix))
         body = body.slice(0, -profile.suffix.length);
     const match = /^([^0-9+-]*)([+-]?\d[\d., \u00a0\u202f]*?)([^0-9]*)$/.exec(body);
-    return match ? { prefix: profile.prefix || match[1], number: match[2], suffix: profile.suffix || match[3] } : undefined;
+    return match ? { prefix: profile.prefix || match[1], number: match[2], suffix: profile.suffix || match[3], signBeforePrefix } : undefined;
+}
+/** Distinguish a captured thousands mark from a decimal, using the raw value. */
+function groupedInteger(numeric, value) {
+    if (!/^[+-]?\d{1,3}(?:,\d{3})+$/.test(numeric) && !/^[+-]?\d{1,3}(?:\.\d{3})+$/.test(numeric))
+        return false;
+    const grouped = Number(numeric.replace(/[.,]/g, ""));
+    return grouped !== 0 && Math.abs(grouped - value) < .5;
 }
 /** Choose once for the document; percent text is the strongest captured culture signal. */
 function documentDecimal(sample, columns) {
@@ -12607,11 +12618,9 @@ function documentDecimal(sample, columns) {
                 if (match && match[2].length <= profile.maximumFractionDigits) {
                     const numeric = captured.number;
                     const scaled = cell.value * (profile.percent ? 100 : 1);
-                    if (/^[+-]?\d{1,3}(?:,\d{3})+$/.test(numeric) || /^[+-]?\d{1,3}(?:\.\d{3})+$/.test(numeric)) {
-                        if (Math.abs(Number(numeric.replace(/[.,]/g, "")) - scaled) < .5) {
-                            fallback = match[1] === "," ? "." : ",";
-                            continue;
-                        }
+                    if (groupedInteger(numeric, scaled)) {
+                        fallback = match[1] === "," ? "." : ",";
+                        continue;
                     }
                     return match[1];
                 }
@@ -12632,12 +12641,13 @@ function canopyPdfNumbers(sample, columns) {
         const captured = capturedNumber(value.text ?? "", profile);
         if (value.text && !captured)
             return value;
-        // General overrides only plain numeric labels; it must not reinterpret a
-        // captured percentage or other decorated presentation as an unscaled value.
-        if (format === "General" && captured && (captured.prefix.trim() || captured.suffix.trim()))
+        // Undeclared formats normalize only plain numeric labels; a decoration
+        // alone does not declare how the raw value was transformed for display.
+        if ((format === undefined || format === "General") && captured && (captured.prefix.trim() || captured.suffix.trim()))
             return value;
         if (format === undefined || format === "General") {
-            const digits = Number.isInteger(value.value) ? 0 : /[.,](\d+)$/.exec(captured?.number ?? "")?.[1]?.length;
+            const digits = Number.isInteger(value.value) || (captured && groupedInteger(captured.number, value.value)) ? 0 :
+                captured ? /[.,](\d+)$/.exec(captured.number.trimEnd())?.[1]?.length ?? 0 : undefined;
             // Retain a fractional value's captured precision, without padding an
             // undeclared whole aggregate merely because its display text was padded.
             if (digits !== undefined && digits <= 20)
@@ -12651,12 +12661,17 @@ function canopyPdfNumbers(sample, columns) {
             });
             formatters.set(key, formatter);
         }
-        const formatted = formatter.format(value.value * (profile.percent ? 100 : 1));
+        let formatted = formatter.format(value.value * (profile.percent ? 100 : 1));
+        if (captured?.number.startsWith("+") && !formatted.startsWith("-"))
+            formatted = "+" + formatted;
+        const leadingSign = captured?.signBeforePrefix ? /^[+-]/.exec(formatted)?.[0] ?? "" : "";
+        if (leadingSign)
+            formatted = formatted.slice(1);
         const prefix = captured?.prefix || profile.prefix;
         let suffix = captured?.suffix || profile.suffix;
         if (profile.percent && !profile.suffix)
             suffix = suffix.replace(/%/g, "");
-        return new ExportCell(value.value, { text: prefix + formatted + (profile.percent ? "%" : "") + suffix,
+        return new ExportCell(value.value, { text: leadingSign + prefix + formatted + (profile.percent ? "%" : "") + suffix,
             ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
     });
 }

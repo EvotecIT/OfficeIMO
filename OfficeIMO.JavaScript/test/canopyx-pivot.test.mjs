@@ -93,6 +93,28 @@ test("pivot PDF General numeric cells share the document decimal separator", asy
   assert.ok(lines.includes("18,60%"));
 });
 
+test("pivot PDF preserves signs before and after declared numeric prefixes", async () => {
+  for (const [value, text, expected] of [[-12.5, "-$12.50", "-$12,50"], [12.5, "+$12.50", "+$12,50"],
+    [-12.5, "$-12.50", "$-12,50"], [12.5, "$+12.50", "$+12,50"]]) {
+    const snapshot = structuredClone(fixture.percent);
+    snapshot.rows[0].cells.v0_0 = { value, text, mode: "value", numberFormat: '"$"0.00' };
+    snapshot.rows[0].cells.v0_1 = { value: .186, text: "18,6%", mode: "percentGrandTotal", numberFormat: "0.00%" };
+    const pdf = await inspectPdf(await exportCanopy(capture(snapshot), "pdf"));
+    assert.ok(pdf.pages.flatMap(page => page.lines).includes(expected), expected);
+  }
+});
+
+test("pivot PDF zero percentage samples supply decimal culture rather than a thousands mark", async () => {
+  for (const decimal of [",", "."]) for (const value of [0, .0000001]) {
+    const snapshot = structuredClone(fixture.percent);
+    snapshot.rows[0].cells.v0_0 = { value, text: "0" + decimal + "000%", mode: "percentGrandTotal", numberFormat: "0.000%" };
+    snapshot.rows[0].cells.v0_1 = { value: 12.5, text: "12.50", mode: "value", numberFormat: "0.00" };
+    const pdf = await inspectPdf(await exportCanopy(capture(snapshot), "pdf")), lines = pdf.pages.flatMap(page => page.lines);
+    assert.ok(lines.includes("0" + decimal + "000%"));
+    assert.ok(lines.includes("12" + decimal + "50"));
+  }
+});
+
 test("pivot PDF preserves digit-bearing quoted affixes with the document decimal separator", async () => {
   for (const [format, text, expected] of [[ '0.00" m2"', "1234.50 m2", "1234,50 m2" ],
     [ '"CO2 "0.00', "CO2 1234.50", "CO2 1234,50" ]]) {

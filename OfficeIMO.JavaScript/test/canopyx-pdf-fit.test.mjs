@@ -147,3 +147,23 @@ test("flat PDF preserves quoted and backslash numeric affixes using the document
   for (const [prefix, suffix] of affixes) assert.ok(lines.includes(prefix + "12,50" + suffix), prefix + "12,50" + suffix);
   assert.ok(lines.includes("18,6%"));
 });
+
+test("flat PDF undeclared numeric precision preserves captured integer rounding", async () => {
+  for (const [value, text, expected] of [[12.0001, "12", "12"], [1234.25, "1,234", "1234"]]) {
+    const input = { request: { columns: [{ id: "value", title: "Value", kind: "number" }], recordCount: 1,
+      values: "raw", presentation: "text", timeZone: "utc", revision: "rounded-integer" },
+      async *rows() { yield { id: "a", cells: { value: { value, text } } }; } };
+    const pdf = await inspectPdf(await exportCanopy(input, "pdf"));
+    assert.ok(pdf.pages.flatMap(page => page.lines).includes(expected), expected);
+  }
+});
+
+test("flat PDF preserves undeclared decorated numeric labels without inferring scaling", async () => {
+  for (const [value, text] of [[.186, "18.6%"], [.7, "Score 7"]]) {
+    const input = { request: { columns: [{ id: "value", title: "Value", kind: "number" }], recordCount: 1,
+      values: "raw", presentation: "text", timeZone: "utc", revision: "explicit-label" },
+      async *rows() { yield { id: "a", cells: { value: { value, text } } }; } };
+    const pdf = await inspectPdf(await exportCanopy(input, "pdf"));
+    assert.ok(pdf.pages.flatMap(page => page.lines).includes(text), text);
+  }
+});
