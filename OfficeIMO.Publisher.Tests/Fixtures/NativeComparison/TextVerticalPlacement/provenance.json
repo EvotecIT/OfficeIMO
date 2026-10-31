@@ -1,0 +1,34 @@
+{
+  "schema": "officeimo.publisher.native-vertical-placement-fixture.v1",
+  "reproduction": "New-NativeComparisonCorpus -Case TextVerticalPlacement -OutputDirectory <empty-directory>",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-textverticalplacement.json",
+      "sha256": "a736b62ff864e78537cd9b8dfd6b9079009c54cf129fb18b96d44077ca445594"
+    },
+    {
+      "name": "native-textverticalplacement.pdf",
+      "sha256": "d7d6141fb768b1ed170193b8110c91b1576d9071fe5938cdac170e9335ad9ee3"
+    },
+    {
+      "name": "native-textverticalplacement.pub",
+      "sha256": "d6a42c0c52313d867c8d5c16b26bbcfef0cb6a3f544b833a8812c4d68eed3e50"
+    }
+  ],
+  "observed": "Twenty-two explicit top/center/bottom paragraph-placement profiles over eight pages; paragraph-after0/6/12, one/two requested paragraphs, requested terminal CR and12/18pt Arial. Native saved text can retain or normalize additional terminal empty paragraphs; inspect the saved text instead of inferring its count from the request.",
+  "limits": "Modern synthetic controls only. Final paragraph-after spacing is excluded from native alignment height; font metrics and baseline differences remain. No repair-free opening or native/managed pixel parity claim."
+}

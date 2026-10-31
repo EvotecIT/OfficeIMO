@@ -501,6 +501,14 @@ controls distinguish this from deleting a native reference. Unknown relationship
 encodings remain explicit gaps and are not rewritten. New topology and generic
 native creation remain separate contracts.
 
+The `verticalTextPlacement` record qualifies final paragraph-after spacing in
+22 independent native top/center/bottom profiles over eight pages. The shared
+flow owner omits spacing at the region boundary while preserving source margins,
+internal paragraph gaps and complete stories. Explicit 0/6/12 pt spacing, 12/18 pt
+Arial and requested terminal marks distinguish that contract from deleting empty
+paragraphs or changing the source styles. The largest measured first-baseline
+difference is 1.40 pt; native font metrics and line advances remain unqualified.
+
 The `linkedStoryCreation` record qualifies a three-frame story whose chain order
 differs from physical page order. Frame catalog rows are ordered by story and
 ordinal; the story's `CRef` count is independent of `IdLayout`. Generated Quill

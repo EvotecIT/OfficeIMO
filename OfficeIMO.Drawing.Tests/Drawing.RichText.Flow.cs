@@ -12,6 +12,54 @@ public sealed class DrawingRichTextFlowTests {
     private static string Text(IReadOnlyList<OfficeRichTextParagraph> paragraphs) => string.Join("\n",
         paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(run => run.Text))));
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RegionEndDropsAfterSpacingWithoutMutatingSourceOrInternalParagraphGaps(bool sameRegion) {
+        var paragraphs = new[] {
+            new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("A", 10, OfficeColor.Black) },
+                margins: new OfficeTextPadding(0, 2, 0, 6)),
+            new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("B", 10, OfficeColor.Red) },
+                margins: new OfficeTextPadding(0, 3, 0, 9))
+        };
+        var flow = new OfficeRichTextFlow(paragraphs, _ => { });
+        IReadOnlyList<OfficeRichTextParagraph> first = flow.Take(100, sameRegion ? 100 : 20, Measure, default);
+        Assert.Equal(sameRegion ? "A\nB" : "A", Text(first));
+        Assert.Equal(0, first[first.Count - 1].Margins.Bottom);
+        Assert.Equal(sameRegion ? 35 : 14, OfficeDrawingTextLayout.CreateParagraphs(first, 100, 100, Measure).Height);
+        if (sameRegion) Assert.Equal(6, first[0].Margins.Bottom);
+        else {
+            Assert.True(flow.HasRemaining);
+            IReadOnlyList<OfficeRichTextParagraph> second = flow.Take(100, 100, Measure, default);
+            Assert.Equal("B", Text(second)); Assert.Equal(0, Assert.Single(second).Margins.Bottom);
+            Assert.Equal(15, OfficeDrawingTextLayout.CreateParagraphs(second, 100, 100, Measure).Height);
+        }
+        Assert.False(flow.HasRemaining); Assert.Equal(3, flow.CharacterPosition);
+        Assert.Equal(6, paragraphs[0].Margins.Bottom); Assert.Equal(9, paragraphs[1].Margins.Bottom);
+    }
+
+    [Theory]
+    [InlineData(30, false)]
+    [InlineData(43, false)]
+    [InlineData(44, true)]
+    public void ParagraphAfterSpacingCountsBeforeAssigningTheFollowingParagraph(double regionHeight, bool bothFit) {
+        var paragraphs = new[] {
+            new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("A", 10, OfficeColor.Black) },
+                margins: new OfficeTextPadding(0, 0, 0, 20)),
+            new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("B", 10, OfficeColor.Red) })
+        };
+        var flow = new OfficeRichTextFlow(paragraphs, _ => { });
+        IReadOnlyList<OfficeRichTextParagraph> first = flow.Take(100, regionHeight, Measure, default);
+        Assert.Equal(bothFit ? "A\nB" : "A", Text(first));
+        Assert.Equal(!bothFit, flow.HasRemaining); Assert.Equal(bothFit ? 3 : 2, flow.CharacterPosition);
+        Assert.Equal(bothFit ? 44 : 12, OfficeDrawingTextLayout.CreateParagraphs(first, 100, regionHeight, Measure).Height);
+        if (!bothFit) {
+            IReadOnlyList<OfficeRichTextParagraph> second = flow.Take(100, 30, Measure, default);
+            Assert.Equal("B", Text(second)); Assert.False(flow.HasRemaining); Assert.Equal(3, flow.CharacterPosition);
+        }
+        Assert.Equal(20, paragraphs[0].Margins.Bottom);
+    }
+
     [Fact]
     public void ContinuationUsesCompleteWrappedLinesAndKeepsSourceWhitespaceAndStyles() {
         var paragraph = new OfficeRichTextParagraph(new[] {
@@ -39,7 +87,7 @@ public sealed class DrawingRichTextFlowTests {
         var second = flow.Take(100, 40, Measure, default);
         OfficeRichTextParagraph tail = Assert.Single(second);
         Assert.Null(tail.Label); Assert.Equal(0, tail.Indent.FirstLineOffset); Assert.Equal(0, tail.Margins.Top);
-        Assert.Equal(4, tail.Margins.Bottom); Assert.False(flow.HasRemaining);
+        Assert.Equal(0, tail.Margins.Bottom); Assert.Equal(4, paragraph.Margins.Bottom); Assert.False(flow.HasRemaining);
     }
 
     [Fact]

@@ -44,12 +44,15 @@ internal sealed class OfficeRichTextFlow {
                 width, remainingHeight, measure, cancellationToken: cancellationToken);
             int consumed = 0;
             bool sourceEndVisible = false;
+            double measuredHeight = 0D, completedHeight = 0D;
             foreach (OfficeRichTextLine line in layout.Lines) {
                 // Ordinary drawing wrapping may force an indivisible glyph onto
                 // a narrow line. Flow must retain it for a region that can hold it.
                 if (line.OffsetX < -.000001D || line.OffsetX + line.Width > width - tail.Margins.Right + .000001D) break;
+                measuredHeight += OfficeTextBlockRenderer.ResolveRichTextRenderLineHeight(line, layout.LineHeight);
                 consumed = Math.Max(consumed, line.SourceTextEnd);
                 sourceEndVisible |= line.CompletesSource;
+                if (line.CompletesSource) completedHeight = measuredHeight + tail.Margins.Bottom;
             }
             consumed = Math.Min(consumed, length - _offset);
             bool complete = consumed == length - _offset && sourceEndVisible;
@@ -59,10 +62,23 @@ internal sealed class OfficeRichTextFlow {
             visible.Add(Slice(source, _offset, consumed, complete));
             CharacterPosition = checked(CharacterPosition + consumed);
             _offset += consumed;
-            remainingHeight -= layout.Height;
+            // Layout omits an after-gap that does not fit. Still account for
+            // that gap before admitting another paragraph into this region.
+            remainingHeight -= complete ? completedHeight : layout.Height;
             if (!complete) break;
             _paragraph++; _offset = 0;
             if (HasRemaining) CharacterPosition++;
+        }
+        if (visible.Count > 0 && visible[visible.Count - 1].Margins.Bottom != 0) {
+            // Paragraph spacing separates paragraphs inside a region; it does
+            // not enlarge the final block used for center/bottom alignment.
+            OfficeRichTextParagraph last = visible[visible.Count - 1];
+            var margins = new OfficeTextPadding(last.Margins.Left, last.Margins.Top, last.Margins.Right, 0);
+            OfficeRichTextParagraph trimmed = last.Label == null
+                ? new OfficeRichTextParagraph(last.Runs, last.Alignment, last.LineHeight, margins, last.Indent, last.LineHeightFactor)
+                : new OfficeRichTextParagraph(last.Runs, last.Label, last.Alignment, last.LineHeight, margins, last.Indent, last.LineHeightFactor);
+            trimmed.ContinuesInNextRegion = last.ContinuesInNextRegion;
+            visible[visible.Count - 1] = trimmed.WithTabStops(last.TabStops);
         }
         return visible;
     }

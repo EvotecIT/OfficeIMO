@@ -482,9 +482,22 @@ New definitions/pages, inheritance, unsafe carriers and other topology remain re
 The native compound check also covers suppression together with frame alignment
 and picture-resource relocation; its native appearance is not independently qualified.
 Managed save/reload output is stable and agrees with the source PowerShell route.
-Native/managed text origins differ by up to 1.38 pt vertically in the assignment
-specimens and 7.06 pt in the compound bottom-aligned text specimen; native/managed
-pixel parity remains unqualified.
+Final paragraph-after spacing remains in the editable story but is excluded from
+the region's alignment height. Native/managed text origins differ by up to 1.38 pt
+vertically in the assignment specimens and 1.06 pt in the compound bottom-aligned
+text specimen; native/managed pixel parity remains unqualified.
+
+The `verticalTextPlacement` record qualifies region-end paragraph spacing through
+22 independently authored native profiles over eight pages. Explicit after-spacing
+of 0, 6 and 12 pt remains between paragraphs and is omitted at the region boundary
+for top, center and bottom placement. The source paragraph margins, complete text,
+native terminal empty paragraphs and byte-exact no-op native save are preserved.
+An after-spacing gap that cannot fit ends the current region; it does not consume
+following text that must continue into another region or remain as overflow.
+The controls include 12 and 18 pt Arial and requested terminal paragraph marks;
+saved native text determines the actual empty-paragraph count. First-baseline
+differences from native PDF output reach 1.40 pt. Font metrics, line advances and
+broader native layout remain separate qualification work.
 
 The `linkedStoryCreation` record covers source-free creation of one story shared
 by three frames flowing through pages 1, 3 and 2, beside an independent story.
