@@ -25,11 +25,11 @@ Describe 'Object-style document composition' {
             $heading | Add-OfficeWordText -Text ' — reviewed' -Italic
 
             $details = $document | Add-OfficeWordParagraph -PassThru
-            $details | Add-OfficeWordText -Run @{
-                Text  = 'Owner: ', 'Platform', '  Status: ', 'Ready'
-                Bold  = $true, $false, $true, $true
-                Color = $null, $null, $null, 'SeaGreen'
-            }
+            $styledParagraph = $details | Add-OfficeWordText 'Owner: ' -Bold -PassThru
+            [object]::ReferenceEquals($details, $styledParagraph) | Should -BeTrue
+            $details | Add-OfficeWordText 'Platform'
+            $details | Add-OfficeWordText '  Status: ' -Bold
+            $details | Add-OfficeWordText 'Ready' -Bold -Color SeaGreen
 
             Add-OfficeWordTable -Document $document -InputObject $rows -Style GridTable4Accent1 -Layout AutoFitToWindow
             $document | Save-OfficeWord

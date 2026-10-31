@@ -9220,10 +9220,12 @@
         "Run": null,
         "Strike": "Strikethrough",
         "FontSize": "Size",
-        "FontName": "Font"
+        "FontName": "Font",
+        "FontFamily": "Font",
+        "Typeface": "Font"
       },
       "hint": "WordParagraph { WordText 'Important: ' -Bold; WordText 'read first' -Italic }",
-      "reason": "Parameter names follow the shared vocabulary: -Run -> removed, -Strike -> -Strikethrough, -FontSize -> -Size, -FontName -> -Font."
+      "reason": "One styled-run command uses -Strikethrough, -Font and unit-aware -Size. Replace -Run with consecutive WordText calls; rich-run arrays remain supported by WordParagraph."
     },
     {
       "old": "Add-OfficeWordTextBox",

@@ -99,9 +99,9 @@ Describe 'Word reader helpers' {
 
             Add-OfficeWordParagraph {
                 Add-OfficeWordText -Text 'See '
-                Add-OfficeWordHyperlink -Text 'Example' -Url 'https://example.org/docs' -Styled
+                Add-OfficeWordText -Text 'Example' -Link 'https://example.org/docs'
                 Add-OfficeWordText -Text ' and '
-                Add-OfficeWordHyperlink -Text 'Summary' -Anchor 'Summary'
+                Add-OfficeWordText -Text 'Summary' -Anchor 'Summary'
             }
 
             Add-OfficeWordParagraph {

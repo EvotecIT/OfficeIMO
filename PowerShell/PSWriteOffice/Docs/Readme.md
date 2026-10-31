@@ -436,9 +436,6 @@ Adds content to a section header.
 ### [Add-OfficeWordHeading](Add-OfficeWordHeading.md)
 Adds a heading using the document's built-in heading, title or subtitle style.
 
-### [Add-OfficeWordHyperlink](Add-OfficeWordHyperlink.md)
-Adds a hyperlink to the current Word paragraph.
-
 ### [Add-OfficeWordImage](Add-OfficeWordImage.md)
 Inserts an image into the current paragraph.
 
@@ -485,7 +482,7 @@ Appends a row to an existing Word table.
 Adds a tab stop to a Word paragraph.
 
 ### [Add-OfficeWordText](Add-OfficeWordText.md)
-Adds inline text to the current paragraph.
+Adds styled text or a hyperlink to the current or given Word paragraph.
 
 ### [Add-OfficeWordTextBox](Add-OfficeWordTextBox.md)
 Adds an OfficeIMO Word text box to the current Word DSL location.

@@ -50,7 +50,7 @@ New-OfficeWord -Path $path {
         }
         WordParagraph {
             WordParagraphStyle -SpacingAfterPoints 4 -KeepWithNext $true
-            WordBold 'Approve the pilot window: '
+            WordText -Bold 'Approve the pilot window: '
             WordCheckBox -Alias 'PilotApproved' -Tag 'pilot-approved'
         }
         WordParagraph {

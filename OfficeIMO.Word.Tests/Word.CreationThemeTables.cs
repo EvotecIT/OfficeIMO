@@ -76,6 +76,36 @@ public class WordCreationThemeTables {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TextColorRolesPreserveNativeThemeSlotsAndLiteralOverrides(bool loaded) {
+        byte[] seed;
+        using (var source = WordDocument.Create(new WordCreateOptions { Theme = CustomTheme("13579B", "Tahoma") }))
+            seed = source.ToBytes();
+        using var input = new MemoryStream(seed);
+        using var document = loaded ? WordDocument.Load(input) :
+            WordDocument.Create(new WordCreateOptions { Theme = CustomTheme("13579B", "Tahoma") });
+        var text = document.AddParagraph("Accent text");
+        text.Color = OfficeColor.Accent1;
+        var link = document.AddParagraph().AddHyperLink("Accent link", new Uri("https://example.org"));
+        link.Runs[0].Color = OfficeColor.Accent1;
+        var native = ReadNative(document.ToBytes());
+        foreach (string label in new[] { "Accent text", "Accent link" }) {
+            var color = native.Body.Descendants(WordNs + "r")
+                .Single(run => run.Element(WordNs + "t")?.Value == label)
+                .Element(WordNs + "rPr")!.Element(WordNs + "color")!;
+            Assert.Equal("13579B", (string?)color.Attribute(WordNs + "val"));
+            Assert.Equal("accent1", (string?)color.Attribute(WordNs + "themeColor"));
+        }
+        text.Color = OfficeColor.ParseHex("2468AC");
+        var literal = ReadNative(document.ToBytes()).Body.Descendants(WordNs + "r")
+            .Single(run => run.Element(WordNs + "t")?.Value == "Accent text")
+            .Element(WordNs + "rPr")!.Element(WordNs + "color")!;
+        Assert.Equal("2468AC", (string?)literal.Attribute(WordNs + "val"));
+        Assert.Null(literal.Attribute(WordNs + "themeColor"));
+    }
+
+    [Theory]
     [InlineData("typed", false)]
     [InlineData("matrix", false)]
     [InlineData("text", false)]

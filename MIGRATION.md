@@ -123,7 +123,7 @@ Styled runs are child commands. Replace `-Run @{ Text = ...; Bold = ... }` hasht
 | --- | --- | --- |
 | `New-OfficeWord` | `New-OfficeWord` | `-Open` &rarr; `-Show`<br>`-TemplatePath` &rarr; `-Template`<br>Removed: `-NoSave` |
 | `Add-OfficeWordParagraph` | `Add-OfficeWordParagraph` | `-Target` &rarr; `-Document`<br>Removed: `-Run` |
-| `Add-OfficeWordText` | `Add-OfficeWordText` | `-Strike` &rarr; `-Strikethrough`<br>`-FontSize` &rarr; `-Size`<br>`-FontName` &rarr; `-Font`<br>Removed: `-Run` |
+| `Add-OfficeWordText` | `Add-OfficeWordText` | `-Strike` &rarr; `-Strikethrough`<br>`-FontSize` &rarr; `-Size`<br>`-FontName`, `-FontFamily`, `-Typeface` &rarr; `-Font`<br>Removed: `-Run` |
 
 ```powershell
 $doc = New-OfficeWord -Path .\Report.docx   # no block = live document
@@ -427,7 +427,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Add-OfficeWordTableOfContents` | `Add-OfficeWordTableOfContents` | Kept |   |   |
 | `Add-OfficeWordTableRow` | `Add-OfficeWordTableRow` | Kept | `-Values` &rarr; `-InputObject` |   |
 | `Add-OfficeWordTabStop` | `Add-OfficeWordTabStop` | Kept |   | `WordTabStop -Position 3in -Alignment Decimal` |
-| `Add-OfficeWordText` | `Add-OfficeWordText` | Kept | `-Strike` &rarr; `-Strikethrough`<br>`-FontSize` &rarr; `-Size`<br>`-FontName` &rarr; `-Font`<br>Removed: `-Run` | `WordParagraph { WordText 'Important: ' -Bold; WordText 'read first' -Italic }` |
+| `Add-OfficeWordText` | `Add-OfficeWordText` | Kept | `-Strike` &rarr; `-Strikethrough`<br>`-FontSize` &rarr; `-Size`<br>`-FontName`, `-FontFamily`, `-Typeface` &rarr; `-Font`<br>Removed: `-Run` | `WordParagraph { WordText 'Important: ' -Bold; WordText 'read first' -Italic }` |
 | `Add-OfficeWordTextBox` | `Add-OfficeWordTextBox` | Kept | `-WidthCentimeters` &rarr; `-Width`<br>`-HeightCentimeters` &rarr; `-Height`<br>`-HorizontalOffsetCentimeters` &rarr; `-X`<br>`-VerticalOffsetCentimeters` &rarr; `-Y`<br>`-WrapText` &rarr; `-Wrap` | `WordTextBox 'Note' -Width 5cm -X 2cm -Y 1cm` |
 | `Add-OfficeWordVisual` | `Add-OfficeWordImage` (`InputObject` set) | Merged | `-AlternativeText` &rarr; `-Description`<br>`-MaximumSvgViewportPixels` &rarr; `-MaximumSvgViewportPixelCount` | `$artifact \| WordImage -Width 420` |
 | `Add-OfficeWordWatermark` | `Add-OfficeWordWatermark` | Kept | `-HorizontalOffset` &rarr; `-X`<br>`-VerticalOffset` &rarr; `-Y` |   |

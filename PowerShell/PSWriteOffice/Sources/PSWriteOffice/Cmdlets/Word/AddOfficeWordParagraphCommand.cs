@@ -22,7 +22,8 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <summary>Add mixed-format text through explicit objects.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$paragraph = $document | Add-OfficeWordParagraph -PassThru
-/// $paragraph | Add-OfficeWordText -Run @{ Text = 'Owner: ', 'Platform'; Bold = $true, $false }</code>
+/// $paragraph | Add-OfficeWordText 'Owner: ' -Bold
+/// $paragraph | Add-OfficeWordText 'Platform'</code>
 ///   <para>Creates a paragraph on a live document and appends two differently formatted runs.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordParagraph", DefaultParameterSetName = ParameterSetText)]

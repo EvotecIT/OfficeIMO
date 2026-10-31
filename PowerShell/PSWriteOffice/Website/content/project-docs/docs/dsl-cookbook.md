@@ -51,7 +51,7 @@ New-OfficeWord -Path '.\Formatting.docx' {
             ' that will show '
             'how WordText joins segments '
             'with the same formatting.'
-        ) -Font Tahoma -FontSize 10 -Color Blue
+        ) -Font Tahoma -Size 10pt -Color Blue
     }
 }
 ```

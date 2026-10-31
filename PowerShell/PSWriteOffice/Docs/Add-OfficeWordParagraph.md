@@ -41,7 +41,8 @@ Applies a paragraph style id, including custom styles already present in a templ
 ### EXAMPLE 3
 ```powershell
 PS> $paragraph = $document | Add-OfficeWordParagraph -PassThru
-$paragraph | Add-OfficeWordText -Run @{ Text = 'Owner: ', 'Platform'; Bold = $true, $false }
+$paragraph | Add-OfficeWordText 'Owner: ' -Bold
+$paragraph | Add-OfficeWordText 'Platform'
 ```
 
 Creates a paragraph on a live document and appends two differently formatted runs.

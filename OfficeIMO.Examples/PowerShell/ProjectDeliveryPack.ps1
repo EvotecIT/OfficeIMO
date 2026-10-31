@@ -103,7 +103,7 @@ $reviewRows = $rows | Select-Object Milestone,Owner,
 New-OfficeWord -Path $docx {
     WordHeader { WordParagraph -Text "DELIVERY | $reviewContext | $($snapshotDate.ToString('yyyy-MM-dd'))" }
     WordFooter { WordPageNumber -IncludeTotal }
-    WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Project delivery review' -Bold -FontSize 25 -Color '17365D' }
+    WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Project delivery review' -Bold -Size 25 -Color '17365D' }
     WordParagraph -Text "$($done.Count) of $($rows.Count) milestones are complete; $($overdue.Count) overdue milestone(s) need an owner decision at $($snapshotDate.ToString('yyyy-MM-dd'))."
     WordParagraph -Text 'Decisions and recovery actions' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
     WordList -Style Bulleted {

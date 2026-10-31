@@ -42,16 +42,16 @@ New-OfficeWord -Path $docxPath {
 
     WordParagraph {
         WordParagraphStyle -SpacingAfterPoints 14 -KeepWithNext $true
-        WordText 'Patch compliance report' -Bold -FontSize 26 -Color '17365D'
+        WordText 'Patch compliance report' -Bold -Size 26 -Color '17365D'
     }
     WordParagraph {
-        WordText "$([math]::Round(100 * $patched / $servers, 1))%" -Bold -FontSize 20 -Color '166534'
-        WordText "  of $servers production servers are patched, $($servers - $patched) are pending." -FontSize 12
+        WordText "$([math]::Round(100 * $patched / $servers, 1))%" -Bold -Size 20 -Color '166534'
+        WordText "  of $servers production servers are patched, $($servers - $patched) are pending." -Size 12
     }
 
     WordParagraph {
         WordParagraphStyle -Style Heading1 -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Compliance by site' -Bold -FontSize 15 -Color '17365D'
+        WordText 'Compliance by site' -Bold -Size 15 -Color '17365D'
     }
     $table = WordTable -InputObject $rows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru {
         WordTableCondition -FilterScript { $_.Status -eq 'Watch' } -BackgroundColor '#fff4d6'
@@ -70,7 +70,7 @@ New-OfficeWord -Path $docxPath {
 
     WordParagraph {
         WordParagraphStyle -Style Heading1 -SpacingBeforePoints 10 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Next steps' -Bold -FontSize 15 -Color '17365D'
+        WordText 'Next steps' -Bold -Size 15 -Color '17365D'
     }
     WordList -Style Numbered {
         WordListItem -Text 'Frankfurt: patch the eight pending servers in the Thursday window.'

@@ -1,42 +1,29 @@
 using System;
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.Word;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Adds inline text to the current paragraph.</summary>
-/// <para>Supports bold/italic/underline and color tweaks for quick DSL composition.</para>
-/// <example>
-///   <summary>Append bold text.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Add-OfficeWordParagraph { Add-OfficeWordText -Text 'Important: ' -Bold }</code>
-///   <para>Writes “Important:” with bold formatting.</para>
-/// </example>
-/// <example>
-///   <summary>Append several styled segments to a paragraph.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$paragraph | Add-OfficeWordText -Run @{ Text = 'Status: ', 'Ready'; Bold = $true, $false; Color = $null, 'SeaGreen' }</code>
-///   <para>Appends one line with independent formatting for its label and value.</para>
-/// </example>
+/// <summary>Adds styled text or a hyperlink to the current or given Word paragraph.</summary>
+/// <para>A bare Size means points; unit-suffixed lengths are accepted. Hyperlinks use the Hyperlink style unless NoLinkStyle is supplied.</para>
+/// <example><summary>Append styled text.</summary>
+/// <code>WordParagraph { WordText 'Important: ' -Bold -Font Aptos -Size 11pt; WordText 'read first' -Italic }</code></example>
+/// <example><summary>Add a link and a bookmark reference.</summary>
+/// <code>WordParagraph { WordText 'Example' -Link 'https://example.org' -Tooltip 'External reference'; WordText 'Summary' -Anchor Summary }</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordText", DefaultParameterSetName = "Text")]
-[Alias("WordText", "WordBold", "WordItalic")]
-[OutputType(typeof(WordParagraph))]
-public sealed class AddOfficeWordTextCommand : PSCmdlet
-{
-    private const string ParameterSetText = "Text";
-    private const string ParameterSetRun = "Run";
-
+[Alias("WordText")]
+[OutputType(typeof(WordParagraph), typeof(WordHyperLink))]
+public sealed class AddOfficeWordTextCommand : PSCmdlet {
     /// <summary>Text segments to append.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetText)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Link")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Anchor")]
     public string[] Text { get; set; } = Array.Empty<string>();
 
-    /// <summary>Rich text runs. Each run can be created with TextRun/WordTextRun or provided as a hashtable/object.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetRun)]
-    [Alias("Runs")]
-    public object[]? Run { get; set; }
-
-    /// <summary>Paragraph that will receive the text outside a DSL context.</summary>
+    /// <summary>Paragraph to receive text outside a content block.</summary>
     [Parameter(ValueFromPipeline = true)]
     public WordParagraph? Paragraph { get; set; }
 
@@ -48,81 +35,93 @@ public sealed class AddOfficeWordTextCommand : PSCmdlet
     [Parameter]
     public SwitchParameter Italic { get; set; }
 
-    /// <summary>Optional underline style.</summary>
+    /// <summary>Apply strikethrough.</summary>
+    [Parameter]
+    public SwitchParameter Strikethrough { get; set; }
+
+    /// <summary>Underline style.</summary>
     [Parameter]
     public WordUnderlineStyle? Underline { get; set; }
 
-    /// <summary>Run color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? Color { get; set; }
+    /// <summary>Text color, including a semantic theme role.</summary>
+    [Parameter, OfficeColorTransformation]
+    public OfficeColor? Color { get; set; }
 
-    /// <summary>Render text with strikethrough.</summary>
+    /// <summary>Font family.</summary>
     [Parameter]
-    public SwitchParameter Strike { get; set; }
+    public string? Font { get; set; }
 
-    /// <summary>Font size in points.</summary>
-    [Parameter]
-    public double? FontSize { get; set; }
+    /// <summary>Font size; a bare number means points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Size { get; set; }
 
-    /// <summary>Font name or family.</summary>
-    [Parameter]
-    [Alias("Font", "FontFamily", "Typeface")]
-    public string? FontName { get; set; }
+    /// <summary>Absolute hyperlink URL.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = "Link")]
+    public Uri? Link { get; set; }
 
-    /// <summary>Emit the target paragraph for further composition.</summary>
+    /// <summary>Bookmark target in this document.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = "Anchor"), ValidateNotNullOrEmpty]
+    public string? Anchor { get; set; }
+
+    /// <summary>Hyperlink tooltip.</summary>
+    [Parameter(ParameterSetName = "Link"), Parameter(ParameterSetName = "Anchor")]
+    public string? Tooltip { get; set; }
+
+    /// <summary>Disable hyperlink navigation history.</summary>
+    [Parameter(ParameterSetName = "Link"), Parameter(ParameterSetName = "Anchor")]
+    public SwitchParameter NoHistory { get; set; }
+
+    /// <summary>Do not apply the built-in Hyperlink character style.</summary>
+    [Parameter(ParameterSetName = "Link"), Parameter(ParameterSetName = "Anchor")]
+    public SwitchParameter NoLinkStyle { get; set; }
+
+    /// <summary>Emit the target paragraph, or each created hyperlink for Link and Anchor.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
-    protected override void BeginProcessing()
-    {
-        var name = MyInvocation.InvocationName;
-        if (string.Equals(name, "WordBold", StringComparison.OrdinalIgnoreCase))
-        {
-            Bold = true;
-        }
-        else if (string.Equals(name, "WordItalic", StringComparison.OrdinalIgnoreCase))
-        {
-            Italic = true;
-        }
+    protected override void BeginProcessing() {
+        if (Link != null && !Link.IsAbsoluteUri)
+            throw new PSArgumentException("Provide an absolute URL such as https://example.org or mailto:user@example.org.", nameof(Link));
+        if (ParameterSetName == "Anchor" && string.IsNullOrWhiteSpace(Anchor))
+            throw new PSArgumentException("Provide a bookmark anchor.", nameof(Anchor));
+        // Validate before appending any text or creating an implicit paragraph.
+        if (Size.HasValue && (Size.Value.ToPoints() < 0 || Size.Value.ToPoints() > int.MaxValue / 2D))
+            throw new ArgumentOutOfRangeException(nameof(Size), "The Word font size is outside the supported range.");
     }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
+    protected override void ProcessRecord() {
         var paragraph = Paragraph;
-        if (paragraph == null)
-        {
+        if (paragraph == null) {
             var context = WordDslContext.Require(this);
             paragraph = context.CurrentParagraph ?? context.RequireParagraphHost().AddParagraph();
         }
+        foreach (string entry in Text) {
+            WordHyperLink? hyperlink = null;
+            if (ParameterSetName == "Link")
+                hyperlink = paragraph.AddHyperLink(entry, Link!, !NoLinkStyle, Tooltip ?? string.Empty, !NoHistory);
+            else if (ParameterSetName == "Anchor")
+                hyperlink = paragraph.AddHyperLink(entry, Anchor!, !NoLinkStyle, Tooltip ?? string.Empty, !NoHistory);
 
-        if (ParameterSetName == ParameterSetRun)
-        {
-            WordTextRunService.ApplyRuns(paragraph, Run!);
-        }
-        else
-        {
-            foreach (var entry in Text)
-            {
-                WordTextRunService.AddText(
-                    paragraph,
-                    entry,
-                    Bold.IsPresent,
-                    Italic.IsPresent,
-                    Underline,
-                    Strike.IsPresent,
-                    Color,
-                    FontSize,
-                    FontName);
+            if (hyperlink != null) {
+                foreach (var run in hyperlink.Runs) ApplyStyle(run);
+                if (PassThru) WriteObject(hyperlink);
+            } else {
+                ApplyStyle(paragraph.AddFormattedText(entry, Bold, Italic));
             }
         }
+        if (PassThru && ParameterSetName == "Text") WriteObject(paragraph);
+    }
 
-        if (PassThru.IsPresent)
-        {
-            WriteObject(paragraph);
-        }
+    private void ApplyStyle(WordParagraph run) {
+        // Preserve theme hyperlink defaults unless the caller supplies an override.
+        if (Bold) run.SetBold();
+        if (Italic) run.SetItalic();
+        if (Strikethrough) run.SetStrike();
+        if (Underline.HasValue) run.SetUnderline(Underline.Value);
+        if (Size.HasValue) run.FontSize = Size;
+        if (!string.IsNullOrWhiteSpace(Font)) run.SetFontFamily(Font!);
+        if (Color.HasValue) run.Color = Color;
     }
 }

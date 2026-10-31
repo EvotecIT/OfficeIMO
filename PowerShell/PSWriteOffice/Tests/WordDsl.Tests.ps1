@@ -582,7 +582,7 @@ Describe 'Word DSL surface' {
                 FontSize  = 12
             }
             WordParagraph {
-                WordText -Text 'Same ', 'formatting' -Color Navy -FontFamily Arial -FontSize 10
+                WordText -Text 'Same ', 'formatting' -Color Navy -Font Arial -Size 10
             }
             WordParagraph -Run @(
                 WordTextRun 'Highlight ' -BackgroundColor Yellow
@@ -654,7 +654,10 @@ Describe 'Word DSL surface' {
     It 'preserves half-point Word font sizes through text, rich runs, links, and style updates' {
         $path = Join-Path $TestDrive 'DslHalfPointWordFonts.docx'
         New-OfficeWord -Path $path {
-            WordParagraph { WordText -Text 'DirectHalf' -FontSize 10.5 }
+            WordParagraph {
+                WordText -Text 'DirectHalf' -Size 10.5
+                WordText -Text 'DirectUnit' -Size 14px -Font Arial -Strikethrough
+            }
             WordParagraph -Run @(
                 WordTextRun 'RichHalf' -FontSize 10.5
                 WordTextRun 'LinkHalf' -LinkUri 'https://example.org/half' -FontSize 10.5
@@ -666,10 +669,12 @@ Describe 'Word DSL surface' {
         $documentXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'word/document.xml'
         $namespaceManager = New-Object System.Xml.XmlNamespaceManager($documentXml.NameTable)
         $namespaceManager.AddNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main')
-        foreach ($text in 'DirectHalf', 'RichHalf', 'LinkHalf', 'StyledHalf') {
+        foreach ($text in 'DirectHalf', 'DirectUnit', 'RichHalf', 'LinkHalf', 'StyledHalf') {
             $documentXml.SelectSingleNode("//w:r[w:t='$text']/w:rPr/w:sz[@w:val='21']", $namespaceManager) |
                 Should -Not -BeNullOrEmpty
         }
+        $documentXml.SelectSingleNode('//w:r[w:t="DirectUnit"]/w:rPr/w:strike', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $documentXml.SelectSingleNode('//w:r[w:t="DirectUnit"]/w:rPr/w:rFonts[@w:ascii="Arial"]', $namespaceManager) | Should -Not -BeNullOrEmpty
     }
 
     It 'rejects mismatched columnar Word rich text formatting arrays' {
@@ -1342,9 +1347,10 @@ Describe 'Word DSL surface' {
 
             WordParagraph {
                 WordText 'Open '
-                WordHyperlink -Text 'Example' -Url 'https://example.org' -Styled -Tooltip 'External link'
+                $createdLink = WordText -Text 'Example' -Link 'https://example.org' -Tooltip 'External link' -NoHistory -Bold -Size 16px -Font Arial -Color Navy -PassThru
+                $createdLink.GetType().FullName | Should -Be 'OfficeIMO.Word.WordHyperLink'
                 WordText ' or jump to '
-                WordHyperlink -Text 'Summary' -Anchor 'Summary'
+                WordText -Text 'Summary' -Anchor 'Summary' -NoLinkStyle -Italic
             }
 
             WordParagraph {
@@ -1377,6 +1383,19 @@ Describe 'Word DSL surface' {
         $hyperlinkTargets | Should -Contain 'https://example.org/run'
         ($links | Where-Object Text -eq 'Run link' | Select-Object -First 1).Tooltip | Should -Be 'Run tooltip'
         ($links | Where-Object Text -eq 'run anchor' | Select-Object -First 1).Anchor | Should -Be 'Summary'
+        $documentXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'word/document.xml'
+        $namespaceManager = New-Object System.Xml.XmlNamespaceManager($documentXml.NameTable)
+        $namespaceManager.AddNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main')
+        $external = $documentXml.SelectSingleNode('//w:hyperlink[.//w:t="Example"]', $namespaceManager)
+        [System.Xml.XmlConvert]::ToBoolean($external.GetAttribute('history', $namespaceManager.LookupNamespace('w'))) | Should -BeFalse
+        $external.SelectSingleNode('.//w:rStyle[@w:val="Hyperlink"]', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $external.SelectSingleNode('.//w:b', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $external.SelectSingleNode('.//w:sz[@w:val="24"]', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $external.SelectSingleNode('.//w:rFonts[@w:ascii="Arial"]', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $external.SelectSingleNode('.//w:color[translate(@w:val,"abcdef","ABCDEF")="000080"]', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $anchor = $documentXml.SelectSingleNode('//w:hyperlink[@w:anchor="Summary"][.//w:t="Summary"]', $namespaceManager)
+        $anchor.SelectSingleNode('.//w:rStyle', $namespaceManager) | Should -BeNullOrEmpty
+        $anchor.SelectSingleNode('.//w:i', $namespaceManager) | Should -Not -BeNullOrEmpty
     }
 
     It 'supports background colors and mail merge in the DSL' {
@@ -1438,11 +1457,11 @@ Describe 'Word DSL surface' {
         New-OfficeWord -Path $path {
             WordParagraph {
                 WordText 'FY24 status'
-                WordHyperlink -Text 'Portal FY24' -Url 'https://old.example.com/FY24' -Tooltip 'FY24 link'
+                WordText -Text 'Portal FY24' -Link 'https://old.example.com/FY24' -Tooltip 'FY24 link'
             }
 
             WordParagraph {
-                WordHyperlink -Text 'Jump FY24' -Anchor 'FY24Summary' -Tooltip 'FY24 anchor'
+                WordText -Text 'Jump FY24' -Anchor 'FY24Summary' -Tooltip 'FY24 anchor'
             }
 
             WordParagraph {
@@ -1475,7 +1494,7 @@ Describe 'Word DSL surface' {
 
         New-OfficeWord -Path $path {
             WordParagraph {
-                WordHyperlink -Text 'Relative FY24' -Url 'https://placeholder.invalid/FY24'
+                WordText -Text 'Relative FY24' -Link 'https://placeholder.invalid/FY24'
             }
         } | Out-Null
 

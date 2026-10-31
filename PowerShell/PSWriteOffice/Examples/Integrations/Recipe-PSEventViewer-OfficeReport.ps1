@@ -75,19 +75,19 @@ New-OfficeWord -Path $docx {
     WordFooter -Type Default { WordPageNumber -IncludeTotal }
     WordParagraph {
         WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
-        WordText 'Event incident brief' -Bold -FontSize 26 -Color '17365D'
+        WordText 'Event incident brief' -Bold -Size 26 -Color '17365D'
     }
     WordParagraph -Text $scope
     WordParagraph {
         WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 10
-        WordText "$($records.Count) retained records" -Bold -FontSize 18 -Color '9A3412'
+        WordText "$($records.Count) retained records" -Bold -Size 18 -Color '9A3412'
     }
     WordParagraph -Text 'Use this snapshot to assign investigation. Event counts alone do not establish a root cause or service impact.'
     WordParagraph -Text "$computerCount named source computers / $logCount named source logs. The register preserves each record's source where supplied."
     if ($providerSummary.Count) {
         WordParagraph {
             WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
-            WordText 'Most represented providers' -Bold -FontSize 15 -Color '17365D'
+            WordText 'Most represented providers' -Bold -Size 15 -Color '17365D'
         }
         $table = WordTable -InputObject $providerSummary -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru
         $table | Get-OfficeWordTableCell | ForEach-Object {
@@ -97,7 +97,7 @@ New-OfficeWord -Path $docx {
     } else { WordParagraph -Text 'No matching events were returned. The workbook records that empty result.' }
     WordParagraph {
         WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Investigation handoff' -Bold -FontSize 15 -Color '17365D'
+        WordText 'Investigation handoff' -Bold -Size 15 -Color '17365D'
     }
     WordList -Style Numbered {
         WordListItem -Text 'Review source computers, logs, timestamps and full messages in the attached event register.'
@@ -106,7 +106,7 @@ New-OfficeWord -Path $docx {
     }
     WordParagraph {
         WordParagraphStyle -SpacingBeforePoints 12
-        WordText 'Only the top eight providers appear here. The workbook retains every record in this bounded snapshot. Review event messages before sharing them.' -FontSize 10 -Color '475569'
+        WordText 'Only the top eight providers appear here. The workbook retains every record in this bounded snapshot. Review event messages before sharing them.' -Size 10 -Color '475569'
     }
 }
 Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
