@@ -38,7 +38,7 @@ Describe 'PowerPointDesign workflows' {
             $textBox.Text | Should -Be 'Hello from native handles'
             $layoutPlaceholders = @(Get-OfficePowerPointLayoutPlaceholder -Slide $slide)
             $layoutPlaceholders.Count | Should -BeGreaterThan 0
-            $placeholder = Get-OfficePowerPointPlaceholder -Slide $slide -PlaceholderType Title
+            $placeholder = Get-OfficePowerPointPlaceholder -Slide $slide -Type Title
             $placeholder.Text | Should -Be 'Native Slide'
         }
 
@@ -67,7 +67,7 @@ Describe 'PowerPointDesign workflows' {
             $summary = Get-OfficePowerPointSlide -Document $reloaded -Slide 1 -Summary
             $summary.LayoutPlaceholderCount | Should -BeGreaterThan 0
             $summary.Title | Should -Be 'Native Slide'
-            $placeholder = Get-OfficePowerPointPlaceholder -Slide $slide -PlaceholderType Title
+            $placeholder = Get-OfficePowerPointPlaceholder -Slide $slide -Type Title
             $placeholder.Text | Should -Be 'Native Slide'
             $slide.TextBoxes.Text | Should -Contain 'Hello from native handles'
             $slide.TextBoxes.Text | Should -Contain 'Hello from content blocks'

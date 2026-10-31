@@ -53,6 +53,7 @@ public sealed class AddOfficePowerPointImageCommand : PSWriteOffice.Cmdlets.Offi
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        PowerPointPicture? picture = null;
         try {
             var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
             if (Width <= 0) {
@@ -63,13 +64,18 @@ public sealed class AddOfficePowerPointImageCommand : PSWriteOffice.Cmdlets.Offi
                 throw new ArgumentOutOfRangeException(nameof(Height), "Height must be greater than 0.");
             }
 
-            var scope = Slide == null ? PowerPointContentScope.Current : null;
+            var scope = PowerPointContentScope.Current;
             var slide = Slide ?? scope?.NativeSlide ?? PowerPointDslContext.Require(this).RequireSlide();
-            var picture = slide.AddImage(resolvedPath, OfficeLength.Points(X), OfficeLength.Points(Y), OfficeLength.Points(Width), OfficeLength.Points(Height));
+            picture = slide.AddImage(resolvedPath, OfficeLength.Points(X), OfficeLength.Points(Y), OfficeLength.Points(Width), OfficeLength.Points(Height));
             if (AlternativeText != null) picture.Description = AlternativeText;
-            if (scope != null) scope.AddFigure(new PowerPointLayoutImage(resolvedPath, AlternativeText) { NativePicture = picture }, picture);
+            if (scope != null && ReferenceEquals(scope.NativeSlide, slide)) {
+                if (Slide != null || PowerPointManualPlacement.HasExplicitBounds(MyInvocation.BoundParameters.Keys)) scope.TrackFixedFigure(picture);
+                else scope.AddFigure(new PowerPointLayoutImage(resolvedPath, AlternativeText) { NativePicture = picture }, picture);
+            }
             WritePassThru(picture);
         } catch (Exception ex) {
+            picture?.Remove();
+            if (ex is PipelineStoppedException or ActionPreferenceStopException) throw;
             if (PowerPointContentScope.Current != null) ThrowTerminatingError(OfficeError.Create(ex, "invalid-argument", Path, ErrorCategory.InvalidArgument));
             WriteError(new ErrorRecord(ex, "PowerPointAddImageFailed", ErrorCategory.InvalidOperation, Slide));
         }

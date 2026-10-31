@@ -48,6 +48,8 @@ namespace OfficeIMO.PowerPoint {
         internal string? MapLabel { get; set; }
         internal PowerPointLayout Layout { get; set; }
         internal List<PowerPointLayoutBlock> Blocks { get; } = new();
+        /// <summary>Native figures already occupy this slide; an empty flowing body is not an empty slide.</summary>
+        internal bool HasFixedContent { get; set; }
         internal string? Notes { get; set; }
         internal bool NoFooter { get; set; }
         internal bool NoSlideNumber { get; set; }
@@ -93,6 +95,7 @@ namespace OfficeIMO.PowerPoint {
                 Eyebrow = Eyebrow,
                 MapLabel = MapLabel,
                 Layout = Layout,
+                HasFixedContent = HasFixedContent,
                 NoFooter = NoFooter,
                 NoSlideNumber = NoSlideNumber,
                 FooterRightText = FooterRightText,

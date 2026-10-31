@@ -113,6 +113,7 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        PowerPointChart? chart = null;
         try {
             if (Width <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(Width), "Width must be greater than 0.");
@@ -122,9 +123,9 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
                 throw new ArgumentOutOfRangeException(nameof(Height), "Height must be greater than 0.");
             }
 
-            var scope = Slide == null ? PowerPointContentScope.Current : null;
+            var scope = PowerPointContentScope.Current;
             var slide = Slide ?? scope?.NativeSlide ?? PowerPointDslContext.Require(this).RequireSlide();
-            var chart = ParameterSetName switch {
+            chart = ParameterSetName switch {
                 ParameterSetCategorical => AddCategoricalChart(slide),
                 ParameterSetScatter => AddScatterChart(slide),
                 _ => AddDefaultChart(slide)
@@ -134,13 +135,18 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
                 chart.SetTitle(Title!);
             }
 
-            if (scope != null) {
-                if (!chart.TryGetOfficeSnapshot(out var snapshot)) throw new InvalidOperationException("The created chart has no supported data snapshot.");
-                scope.AddFigure(new PowerPointLayoutChart(snapshot.ChartKind, snapshot.Data) { NativeChart = chart }, chart);
+            if (scope != null && ReferenceEquals(scope.NativeSlide, slide)) {
+                if (Slide != null || PowerPointManualPlacement.HasExplicitBounds(MyInvocation.BoundParameters.Keys)) scope.TrackFixedFigure(chart);
+                else {
+                    if (!chart.TryGetOfficeSnapshot(out var snapshot)) throw new InvalidOperationException("The created chart has no supported data snapshot.");
+                    scope.AddFigure(new PowerPointLayoutChart(snapshot.ChartKind, snapshot.Data) { NativeChart = chart }, chart);
+                }
             }
 
             WritePassThru(chart);
         } catch (Exception ex) {
+            chart?.Remove();
+            if (ex is PipelineStoppedException or ActionPreferenceStopException) throw;
             if (PowerPointContentScope.Current != null) ThrowTerminatingError(OfficeError.Create(ex, "invalid-argument", InputObject, ErrorCategory.InvalidArgument));
             WriteError(new ErrorRecord(ex, "PowerPointAddChartFailed", ErrorCategory.InvalidOperation, Slide));
         }

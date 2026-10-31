@@ -6,37 +6,50 @@ schema: 2.0.0
 ---
 # Add-OfficePowerPointShape
 ## SYNOPSIS
-Adds a basic shape to a slide.
+Adds a native preset shape at physical coordinates or on the theme grid.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Add-OfficePowerPointShape [-Slide <PowerPointSlide>] [-ShapeType <OfficePresetShapeType>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-Name <string>] [-FillColor <string>] [-OutlineColor <string>] [-OutlineWidth <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointShape [-Slide <PowerPointSlideSelector>] [-Type <OfficePresetShapeType>] [-Name <string>] [-FillColor <OfficeColor>] [-OutlineColor <OfficeColor>] [-OutlineWidth <OfficeLength>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates an auto shape at the requested coordinates and applies optional fill and outline styling.
+Adds a native preset shape at physical coordinates or on the theme grid.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePowerPoint -Path .\Examples\Documents\PowerPointShape.pptx {
-    $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-    Add-OfficePowerPointShape -Slide $slide -ShapeType Rectangle -X 60 -Y 120 -Width 220 -Height 90 -FillColor '#DDEEFF' -OutlineColor '#2563EB' -OutlineWidth 1
-    Add-OfficePowerPointTextBox -Slide $slide -Text 'Highlighted status' -X 80 -Y 145 -Width 180 -Height 32
+PowerPointSlide -Title 'Service health' {
+    PowerPointShape -Type Ellipse -Name 'Healthy' -FillColor Success -X 2cm -Y 4cm -Width 2cm -Height 2cm
 }
 ```
 
-Creates a styled rectangle and overlays a text box.
 
 ## PARAMETERS
 
-### -FillColor
-Fill color (hex or named color).
+### -Column
+Gets or sets the one-based theme grid column; explicit X overrides its position.
 
 ```yaml
-Type: String
+Type: Int32
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -FillColor
+Gets or sets the fill color or theme role.
+
+```yaml
+Type: OfficeColor
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -49,10 +62,10 @@ Accept wildcard characters: False
 ```
 
 ### -Height
-Shape height in points.
+Gets or sets the height; omission uses the native default.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -65,7 +78,7 @@ Accept wildcard characters: False
 ```
 
 ### -Name
-Optional name assigned to the shape.
+Gets or sets the native shape name.
 
 ```yaml
 Type: String
@@ -81,10 +94,10 @@ Accept wildcard characters: False
 ```
 
 ### -OutlineColor
-Outline color (hex or named color).
+Gets or sets the outline color or theme role.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -97,10 +110,10 @@ Accept wildcard characters: False
 ```
 
 ### -OutlineWidth
-Outline width in points.
+Gets or sets the outline thickness; numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -113,7 +126,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Gets or sets whether the live native shape is returned.
 
 ```yaml
 Type: SwitchParameter
@@ -128,8 +141,40 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ShapeType
-Shape geometry preset name (e.g., Rectangle, Ellipse, Line).
+### -Slide
+Gets or sets a native slide or one-based position; omission uses the current slide block.
+
+```yaml
+Type: PowerPointSlideSelector
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Span
+Gets or sets the number of grid columns; the default is twelve, and explicit Width overrides it.
+
+```yaml
+Type: Int32
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Type
+Gets or sets the native preset geometry.
 
 ```yaml
 Type: OfficePresetShapeType
@@ -144,27 +189,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Slide
-Target slide that will receive the shape (optional inside DSL).
-
-```yaml
-Type: PowerPointSlide
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### -Width
-Shape width in points.
+Gets or sets the width; omission uses the native default.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -177,10 +206,10 @@ Accept wildcard characters: False
 ```
 
 ### -X
-Left offset (in points) from the slide origin.
+Gets or sets the left coordinate; numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -193,10 +222,10 @@ Accept wildcard characters: False
 ```
 
 ### -Y
-Top offset (in points) from the slide origin.
+Gets or sets the top coordinate; numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -213,11 +242,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointSlide`
+- `PSWriteOffice.Foundation.PowerPointSlideSelector`: A live slide or a one-based slide position in a document.
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.PowerPoint.PowerPointAutoShape`
 
 ## RELATED LINKS
 

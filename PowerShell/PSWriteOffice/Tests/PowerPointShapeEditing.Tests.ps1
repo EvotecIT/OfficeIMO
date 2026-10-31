@@ -83,7 +83,7 @@ Describe 'PowerPointShapeEditing workflows' {
         ($shapeInfo | Where-Object Kind -eq 'Picture' | Select-Object -First 1).MimeType | Should -Be 'image/bmp'
         ($shapeInfo | Where-Object Kind -eq 'Table' | Select-Object -First 1).RowCount | Should -Be 3
         ($shapeInfo | Where-Object Kind -eq 'Table' | Select-Object -First 1).ColumnCount | Should -Be 2
-        $placeholder = Get-OfficePowerPointPlaceholder -Slide $slide -PlaceholderType Title
+        $placeholder = Get-OfficePowerPointPlaceholder -Slide $slide -Type Title
         $placeholder.Text | Should -Be 'Status Update'
         $placeholderUpdate = Set-OfficePowerPointPlaceholderText -Slide $slide -PlaceholderType Title -Text 'Status Update v2' -PassThru
         $placeholderUpdate.Text | Should -Be 'Status Update v2'
@@ -103,9 +103,9 @@ Describe 'PowerPointShapeEditing workflows' {
             $reloaded.Slides.Count | Should -Be 2
 
             $reloadedSlide = Get-OfficePowerPointSlide -Document $reloaded -Slide 2
-            $reloadedPlaceholder = Get-OfficePowerPointPlaceholder -Slide $reloadedSlide -PlaceholderType Title
+            $reloadedPlaceholder = Get-OfficePowerPointPlaceholder -Slide $reloadedSlide -Type Title
             if (-not $reloadedPlaceholder) {
-                $reloadedPlaceholder = Get-OfficePowerPointPlaceholder -Slide $reloadedSlide -PlaceholderType CenteredTitle
+                $reloadedPlaceholder = Get-OfficePowerPointPlaceholder -Slide $reloadedSlide -Type CenteredTitle
             }
             $reloadedPlaceholder.Text | Should -Be 'Status Update v2'
             $reloadedNotes = Get-OfficePowerPointNotes -Slide $reloadedSlide
@@ -303,9 +303,9 @@ Describe 'PowerPointShapeEditing workflows' {
         try {
             $afterRemoval.Slides.Count | Should -Be 1
             $remainingSlide = Get-OfficePowerPointSlide -Document $afterRemoval -Slide 1
-            $remainingPlaceholder = Get-OfficePowerPointPlaceholder -Slide $remainingSlide -PlaceholderType Title
+            $remainingPlaceholder = Get-OfficePowerPointPlaceholder -Slide $remainingSlide -Type Title
             if (-not $remainingPlaceholder) {
-                $remainingPlaceholder = Get-OfficePowerPointPlaceholder -Slide $remainingSlide -PlaceholderType CenteredTitle
+                $remainingPlaceholder = Get-OfficePowerPointPlaceholder -Slide $remainingSlide -Type CenteredTitle
             }
             $remainingPlaceholder.Text | Should -Be 'Keep me v2'
         } finally {
@@ -338,9 +338,9 @@ Describe 'PowerPointShapeEditing workflows' {
             $reloaded.Slides.Count | Should -Be 3
 
             $copied = Get-OfficePowerPointSlide -Document $reloaded -Slide 2
-            $copiedTitle = Get-OfficePowerPointPlaceholder -Slide $copied -PlaceholderType Title
+            $copiedTitle = Get-OfficePowerPointPlaceholder -Slide $copied -Type Title
             if (-not $copiedTitle) {
-                $copiedTitle = Get-OfficePowerPointPlaceholder -Slide $copied -PlaceholderType CenteredTitle
+                $copiedTitle = Get-OfficePowerPointPlaceholder -Slide $copied -Type CenteredTitle
             }
 
             $copiedTitle.Text | Should -Be 'Quarterly Overview'
@@ -348,9 +348,9 @@ Describe 'PowerPointShapeEditing workflows' {
             ($copied.Shapes.Count -gt 0) | Should -BeTrue
 
             $lastSlide = Get-OfficePowerPointSlide -Document $reloaded -Slide 3
-            $lastTitle = Get-OfficePowerPointPlaceholder -Slide $lastSlide -PlaceholderType Title
+            $lastTitle = Get-OfficePowerPointPlaceholder -Slide $lastSlide -Type Title
             if (-not $lastTitle) {
-                $lastTitle = Get-OfficePowerPointPlaceholder -Slide $lastSlide -PlaceholderType CenteredTitle
+                $lastTitle = Get-OfficePowerPointPlaceholder -Slide $lastSlide -Type CenteredTitle
             }
 
             $lastTitle.Text | Should -Be 'Closing Slide'
@@ -408,17 +408,17 @@ Describe 'PowerPointShapeEditing workflows' {
             $reloaded.Slides.Count | Should -Be 3
 
             $slide0 = Get-OfficePowerPointSlide -Document $reloaded -Slide 1
-            $title0 = Get-OfficePowerPointPlaceholder -Slide $slide0 -PlaceholderType Title
+            $title0 = Get-OfficePowerPointPlaceholder -Slide $slide0 -Type Title
             if (-not $title0) {
-                $title0 = Get-OfficePowerPointPlaceholder -Slide $slide0 -PlaceholderType CenteredTitle
+                $title0 = Get-OfficePowerPointPlaceholder -Slide $slide0 -Type CenteredTitle
             }
             $title0.Text | Should -Be 'FY25 Overview'
             (Get-OfficePowerPointNotes -Slide $slide0).Text | Should -Be 'FY25 note for intro'
 
             $slide1 = Get-OfficePowerPointSlide -Document $reloaded -Slide 2
-            $title1 = Get-OfficePowerPointPlaceholder -Slide $slide1 -PlaceholderType Title
+            $title1 = Get-OfficePowerPointPlaceholder -Slide $slide1 -Type Title
             if (-not $title1) {
-                $title1 = Get-OfficePowerPointPlaceholder -Slide $slide1 -PlaceholderType CenteredTitle
+                $title1 = Get-OfficePowerPointPlaceholder -Slide $slide1 -Type CenteredTitle
             }
             $title1.Text | Should -Be 'FY24 Imported'
             (Get-OfficePowerPointNotes -Slide $slide1).Text | Should -Be 'FY24 source notes'

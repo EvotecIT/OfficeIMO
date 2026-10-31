@@ -52,6 +52,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Automatic layout selection (powerpoint-layouts.json, selection.rules), first match wins.</summary>
         internal static PowerPointLayout Select(PowerPointLayoutSlide slide, bool isFirst, bool isLast, int deckSize) {
             List<PowerPointLayoutBlock> blocks = ContentBlocks(slide);
+            if (blocks.Count == 0 && slide.HasFixedContent) return PowerPointLayout.TitleAndContent;
             if (isFirst && blocks.Count == 0 && !HasSemantic(slide)) return PowerPointLayout.Title;
             if (slide.Items<PowerPointLayoutLocation>().Any()) return PowerPointLayout.Coverage;
             bool kpis = slide.Items<PowerPointLayoutKpi>().Any();
@@ -102,7 +103,7 @@ namespace OfficeIMO.PowerPoint {
                 case PowerPointLayout.Section:
                     return !semantic && blocks.Count == 0;
                 case PowerPointLayout.TitleAndContent:
-                    return !semantic && blocks.Count == 1;
+                    return !semantic && (blocks.Count == 1 || blocks.Count == 0 && slide.HasFixedContent);
                 case PowerPointLayout.TwoContent:
                     return !semantic && blocks.Count >= 1;
                 case PowerPointLayout.Comparison:

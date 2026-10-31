@@ -63,7 +63,8 @@ namespace OfficeIMO.PowerPoint {
                 Title = Title, Subtitle = Subtitle, Layout = Layout, Eyebrow = Eyebrow,
                 MapLabel = MapLabel, TemplateLayout = TemplateLayout,
                 Notes = Notes, Takeaway = Takeaway, SourceNote = SourceNote,
-                NoFooter = NoFooter, NoSlideNumber = NoSlideNumber
+                NoFooter = NoFooter, NoSlideNumber = NoSlideNumber,
+                HasFixedContent = Blocks.Count == 0 && MaterializedSlide?.Shapes.Count > 0
             };
             slide.Blocks.AddRange(Blocks);
             slide.Meta.AddRange(Metadata);

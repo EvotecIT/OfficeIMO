@@ -119,15 +119,17 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
     protected override void EndProcessing() {
         if (ParameterSetName == ParameterSetInputObject) InputObject = _input.ToArray();
         PowerPointSlide? slide = null;
+        PowerPointTable? table = null;
         try {
-            if (Slide == null && PowerPointContentScope.Current != null && ParameterSetName == ParameterSetInputObject) {
+            bool explicitBounds = PowerPointManualPlacement.HasExplicitBounds(MyInvocation.BoundParameters.Keys);
+            if (Slide == null && !explicitBounds && PowerPointContentScope.Current != null && ParameterSetName == ParameterSetInputObject) {
                 AddLayoutTable();
                 return;
             }
             ValidateDimensions();
-            slide = Slide ?? PowerPointDslContext.Require(this).RequireSlide();
+            slide = Slide ?? PowerPointManualPlacement.Resolve(null).Slide;
 
-            PowerPointTable table = ParameterSetName == ParameterSetSize
+            table = ParameterSetName == ParameterSetSize
                 ? CreateSizedTable(slide)
                 : CreateDataTable(slide);
 
@@ -135,8 +137,12 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
                 table.StyleId = StyleId;
             }
 
+            var scope = PowerPointContentScope.Current;
+            if (scope != null && ReferenceEquals(scope.NativeSlide, slide)) scope.TrackFixedFigure(table);
             WritePassThru(table);
         } catch (Exception ex) {
+            table?.Remove();
+            if (ex is PipelineStoppedException or ActionPreferenceStopException) throw;
             if (PowerPointContentScope.Current != null) ThrowTerminatingError(OfficeError.Create(ex, "invalid-argument", InputObject, ErrorCategory.InvalidArgument));
             WriteError(new ErrorRecord(ex, "PowerPointAddTableFailed", ErrorCategory.InvalidOperation, slide ?? Slide));
         }

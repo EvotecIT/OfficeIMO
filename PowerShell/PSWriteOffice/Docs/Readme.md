@@ -329,7 +329,7 @@ Adds a quotation and attribution to the current designed slide.
 Starts a named section at an existing, current or next appended slide.
 
 ### [Add-OfficePowerPointShape](Add-OfficePowerPointShape.md)
-Adds a basic shape to a slide.
+Adds a native preset shape at physical coordinates or on the theme grid.
 
 ### [Add-OfficePowerPointSlide](Add-OfficePowerPointSlide.md)
 Adds a designed slide, choosing its layout from typed content unless Layout is supplied.
@@ -347,7 +347,7 @@ Appends or inserts a row in an existing PowerPoint table.
 Adds a live styled run to the enclosing paragraph or list item, or starts a slide paragraph.
 
 ### [Add-OfficePowerPointTextBox](Add-OfficePowerPointTextBox.md)
-Adds a text box to a slide.
+Adds a native text box with deliberate placement and plain or rich content.
 
 ### [Add-OfficePowerPointVisual](Add-OfficePowerPointVisual.md)
 Adds a ChartForgeX artifact, portable SVG, or converted Office visual to a PowerPoint slide.
