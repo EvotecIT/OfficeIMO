@@ -15422,6 +15422,396 @@
         "Mixed-script font selection/rendering, native repair-free opening, general opaque preservation and managed/native layout parity remain unassessed.",
         "Source-built PS7 conversion and PS5.1 syntax do not establish packaged installation or native lifecycle cmdlet support."
       ]
+    },
+    "nonuniformTextReplacement": {
+      "scope": "Count-changing nonempty single-run text replacement in nonuniform native ordinary stories and fixed table cells with unchanged complete editable formatting.",
+      "codecCommit": "7e670da5f078bd8c8006a63876831d9d6d9ff570",
+      "sources": [
+        {
+          "path": "Build/Publisher/Add-NativeParagraphTopologyControl.ps1",
+          "sha256": "91e3ca6ccac0ff33ce37efb3678e390aa676a2462db4ddf963924df2a099f56c"
+        },
+        {
+          "path": "Build/Publisher/Add-NativeTableParagraphTopologyControl.ps1",
+          "sha256": "3027e028dcf90f9e529d80f73fd3175edfb511e0babca6247dc1ce53e9d46d6f"
+        },
+        {
+          "path": "Build/Publisher/Get-NativeParagraphTopologyProfiles.ps1",
+          "sha256": "7231a0cd710b2ef4be7bd78318ad1f79b42c4835a3451fb46c04d154c0121611"
+        },
+        {
+          "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+          "sha256": "0bc404ac47c349f4aa8504ca64cdc91bb182ab48a56f2db6a8de745c6b30a3db"
+        },
+        {
+          "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+          "sha256": "cfba425a10bfee430179add344a90f7dd064cdfc9b977f2641c8ba849280077b"
+        },
+        {
+          "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+          "sha256": "29f145859f9aaa6265c9362bb6043465aa2625348646a8a6e37d507f59a0ee4e"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherNonuniformTextReplacementWritingTests.cs",
+          "sha256": "5c5fb6e3eba5f27bf58546ac8192f43cc4ae6ae6cf919971bb4b5b054ea4d614"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherTableParagraphWritingTests.cs",
+          "sha256": "d51e447536dcf1831478c6add41406d75cc1345c48b2ed7a87d41e2c22b4f5c8"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+          "sha256": "763d1f2adff143b2dda3efc86e6ebfb15a4c9a2de02a6aa045b587ebc2c3387a"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Retention.cs",
+          "sha256": "1f875a8f7455d588387222e5e0d7774f91507c4ce2ab9b841a91ca75d3db03ca"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherTextComparison.cs",
+          "sha256": "6567444d3b32d8ad196e932822e77876c690dce9db0d6c5f6f333575d9fa3363"
+        },
+        {
+          "path": "OfficeIMO.Publisher/PublisherDocument.Editing.cs",
+          "sha256": "9ec04b0cf23e45206c9e4a029d22fe1c82b76c1cb845cdfaf4730cfe6186aabc"
+        },
+        {
+          "path": "OfficeIMO.Publisher/PublisherDocument.Tables.cs",
+          "sha256": "0bc4aa29129d0cfc6fc861cf9d469a7b14985c951467e81817cf405c8de1da04"
+        }
+      ],
+      "controls": [
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableNonuniformTextReplacements/provenance.json",
+          "sha256": "a7d492ebe49e8be0c9628c34bfa3cf686b5aaed6d4cc0a24dd33f7275f65966b"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextNonuniformTextReplacements/provenance.json",
+          "sha256": "d94263082d6968875e6745715cb08460b9c1e5b905d93b8f227120526d1fa42e"
+        }
+      ],
+      "nativeApplication": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "automationSecurity": 3
+      },
+      "contract": [
+        "Exact retained source references and exact values resolve before formatting-based replacement. Ambiguous exact values do not fall through to broader matching.",
+        "Replacement text must be nonempty and have one run with unchanged complete editable paragraph/run formatting. Every same-format one-run source template participates in ambiguity checks, including empty or unsupported body definitions.",
+        "Every replacement candidate must have a nonempty uniform native body and agree on complete native PP/body definitions; interior destinations also require agreement on qualified intermediate CR. The final destination retains original final CR typing.",
+        "Text lengths remap formatting and complete story endpoints together; table matching stays within each edited cell and TCD boundaries update without changing neighboring cell content, tracks or unrelated storage.",
+        "No inferred source IDs, public provenance API, native runtime dependency or simultaneous formatting rewrite. Unsupported or ambiguous matching definitions refuse output even under Allow."
+      ],
+      "cases": [
+        {
+          "kind": "ordinary",
+          "mode": "grow",
+          "sourceSha256": "a61dfdf093778f68e6f4def444728e96683383717230df5880fa766ce1d679e7",
+          "candidateSha256": "9c2a4d5e4dd57206565d50efe7bd84f21b55ab406b92ef1f32b3777e33e28b1f",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "ordinary",
+          "mode": "shrink",
+          "sourceSha256": "a61dfdf093778f68e6f4def444728e96683383717230df5880fa766ce1d679e7",
+          "candidateSha256": "06db68a2b238ea7a3c24e075592d29b88c35650bde1a83a97d0b27ac094e1fff",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "ordinary",
+          "mode": "reorder",
+          "sourceSha256": "a61dfdf093778f68e6f4def444728e96683383717230df5880fa766ce1d679e7",
+          "candidateSha256": "09c4bd5c410e89f96553a80c701e0a681c59459f3c46689b4eb6d2ab4e34b2d7",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "ordinary",
+          "mode": "duplicate",
+          "sourceSha256": "a61dfdf093778f68e6f4def444728e96683383717230df5880fa766ce1d679e7",
+          "candidateSha256": "0d3ed430d74ebd791e05c3e1bc0110f916e38c81c2b08633b1fad0b5ec055a06",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "ordinary",
+          "mode": "only-final",
+          "sourceSha256": "a61dfdf093778f68e6f4def444728e96683383717230df5880fa766ce1d679e7",
+          "candidateSha256": "e8656c6abbdd3d1323c7534b0fa4095e0c743af52019733cd5d067931ac4a895",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "ordinary",
+          "mode": "only-first",
+          "sourceSha256": "a61dfdf093778f68e6f4def444728e96683383717230df5880fa766ce1d679e7",
+          "candidateSha256": "85b5f33ced4855a02d4ece521f3e43c7709c5682ed5417554f3439064c58f097",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "ordinary",
+          "mode": "equivalent",
+          "sourceSha256": "a61dfdf093778f68e6f4def444728e96683383717230df5880fa766ce1d679e7",
+          "candidateSha256": "795fe134b9ed807e873bbbcca1fa83863dcd99dc2184c45042579d1205421823",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "ordinary",
+          "mode": "mixed-empty",
+          "sourceSha256": "a61dfdf093778f68e6f4def444728e96683383717230df5880fa766ce1d679e7",
+          "candidateSha256": "d085e9cb4492cefa87fb2d62f55cb521b2c5cc30c8420a69a95025edc7debf15",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "ordinary",
+          "mode": "language-0",
+          "sourceSha256": "a61dfdf093778f68e6f4def444728e96683383717230df5880fa766ce1d679e7",
+          "candidateSha256": "3fe5f7aeb2c7b922a2dff48f94a6ebdf9e8a0c33d4b238c170da699e92c8a1b3",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "ordinary",
+          "mode": "language-1",
+          "sourceSha256": "a61dfdf093778f68e6f4def444728e96683383717230df5880fa766ce1d679e7",
+          "candidateSha256": "013bfae7035fcd3455324d6d5e79b425aad74f2a67b02bce69b62a995e6b359c",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "cell",
+          "mode": "grow",
+          "sourceSha256": "900ef483eb9a86cf8532615eb35067f36bb667adaa683ef0aace69c504713f5b",
+          "candidateSha256": "3f8d538a5b62779fd380dcd5c23fcfaae3bd9d5eae154556e4d47eba06489ca3",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "cell",
+          "mode": "shrink",
+          "sourceSha256": "900ef483eb9a86cf8532615eb35067f36bb667adaa683ef0aace69c504713f5b",
+          "candidateSha256": "89dd86f24faa83e0938e4c3cf45c5d5269284c4175a223260a31ea2d5492ae78",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "cell",
+          "mode": "reorder",
+          "sourceSha256": "900ef483eb9a86cf8532615eb35067f36bb667adaa683ef0aace69c504713f5b",
+          "candidateSha256": "e560fed187989779885be4d2c53d76114729a1268e670696a96be8bd04f5c3e3",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "cell",
+          "mode": "duplicate",
+          "sourceSha256": "900ef483eb9a86cf8532615eb35067f36bb667adaa683ef0aace69c504713f5b",
+          "candidateSha256": "bc724d4a7641826fce5eac9bc83126684689a1594bee68762badb1b62e32f7b0",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "cell",
+          "mode": "only-final",
+          "sourceSha256": "900ef483eb9a86cf8532615eb35067f36bb667adaa683ef0aace69c504713f5b",
+          "candidateSha256": "231a33db10fe59239d08650305b90589127b6fff5648090dca422786926fe093",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "cell",
+          "mode": "only-first",
+          "sourceSha256": "900ef483eb9a86cf8532615eb35067f36bb667adaa683ef0aace69c504713f5b",
+          "candidateSha256": "2901ead440f7b1398f26601f4831a5e4025e1ed5f700b9cda7ea2ac6f594f9b7",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "cell",
+          "mode": "equivalent",
+          "sourceSha256": "900ef483eb9a86cf8532615eb35067f36bb667adaa683ef0aace69c504713f5b",
+          "candidateSha256": "0685ec5944add2eb72c7ac807efe67f87e748b03d57a0dd7525409e2c418251f",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "cell",
+          "mode": "mixed-empty",
+          "sourceSha256": "900ef483eb9a86cf8532615eb35067f36bb667adaa683ef0aace69c504713f5b",
+          "candidateSha256": "2ced1757a51333b014b63c78e243ded603e7543ba3f8d0606390e49dbb744cbb",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "cell",
+          "mode": "language-0",
+          "sourceSha256": "900ef483eb9a86cf8532615eb35067f36bb667adaa683ef0aace69c504713f5b",
+          "candidateSha256": "14360b3b0cdc76f7ba6e7351fc1b32ee3f41d0ff3ba598456cf7df8b1e8d68b9",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        },
+        {
+          "kind": "cell",
+          "mode": "language-1",
+          "sourceSha256": "900ef483eb9a86cf8532615eb35067f36bb667adaa683ef0aace69c504713f5b",
+          "candidateSha256": "77ab5d72cd1aa5bb0ccf0f9d24da953982f518fec88731934d314f937f166128",
+          "nativeOperations": 7,
+          "completeNativeTemplates": true,
+          "unaffectedStorage": true,
+          "nativeTextAndPartitions": true,
+          "nativeEffectiveFontsAndLanguage": true,
+          "stageMatchedPixelsAndSpans": 2,
+          "unchangedNeighborPages": 13
+        }
+      ],
+      "validation": {
+        "publisherTests": {
+          "net10.0": 755,
+          "net8.0": 755,
+          "net472": 755
+        },
+        "focusedCases": 24,
+        "directlyAffectedExistingCases": 3,
+        "readerTests": 95,
+        "nativePublicReloads": 40,
+        "nativeEditedFiles": 20,
+        "selectedNativeStagePairs": 40,
+        "neighborNativeStagePairs": 520,
+        "earlierByteIdenticalSaves": 168,
+        "stableCandidateByteIdenticalSaves": 20,
+        "sourceBuiltPowerShell": {
+          "runtime": "7.6.9",
+          "route": "publisher-pdf",
+          "cases": 20,
+          "pages": 280,
+          "actualPublisherOwnerBound": true,
+          "completeTextRetained": true,
+          "unicodeFallbacks": true
+        },
+        "nativeControlSyntax": [
+          "PowerShell7",
+          "WindowsPowerShell5.1"
+        ],
+        "compatibilityBuilds": [
+          "Publisher.Pdf netstandard2.0",
+          "Reader.Publisher netstandard2.0",
+          "WriterProbe",
+          "PSWriteOffice net8.0"
+        ]
+      },
+      "regressionTests": [
+        "Nonuniform_text_replacements_preserve_selected_native_templates_during_count_changes",
+        "Changed_text_refuses_indistinguishable_formatting_with_conflicting_native_language_templates",
+        "Count_changes_refuse_ambiguous_native_style_mapping_even_when_projected_formatting_is_uniform",
+        "Unique_run_formatting_selects_the_native_cell_template_for_count_changing_text_replacement"
+      ],
+      "limits": [
+        "Simultaneous count-changing formatting rewrites, mixed-run replacements, nonuniform empty-source refill and zero-paragraph native story states remain outside this profile.",
+        "The fitting native controls use Arial12 bodies with distinct paragraph formatting and language metadata; broad producer/style coverage and general native row reflow remain unqualified.",
+        "Native repair-free opening, general opaque preservation and managed/native layout parity remain unassessed.",
+        "Source-built PS7 conversion and PS5.1 syntax do not qualify packaged installation or native lifecycle cmdlets."
+      ]
     }
   },
   "characterReading": {
