@@ -14,13 +14,20 @@ function Add-NativeComparisonPictures {
     Its first physical page.
     .PARAMETER PicturePath
     The synthetic PNG produced by the worker's New-ReferencePicture helper.
+    .PARAMETER ReplacementPath
+    Optional synthetic PNG to embed in the original physical placement after
+    duplication. The other physical placement and master retain the first image.
+    .PARAMETER Cropped
+    Applies explicit nonzero source-image crop to the original physical placement.
     .OUTPUTS
     Authored page/master assignments and observed crop/link values for each picture.
     #>
     param(
         $Document,
         $FirstPage,
-        [string] $PicturePath
+        [string] $PicturePath,
+        [string] $ReplacementPath,
+        [switch] $Cropped
     )
 
     Set-NativePhase 'PictureOwnership-AddSecondPage'
@@ -99,16 +106,30 @@ function Add-NativeComparisonPictures {
         $shape.Line.Visible = 0
         $format = $shape.PictureFormat
         $objects.Add($format)
+        if ($ReplacementPath -and $placement.name -eq 'PhysicalPictureOriginal') {
+            Set-NativePhase 'PictureOwnership-ReplacePhysicalPicture'
+            $format.Replace($ReplacementPath, 1) # pbPictureInsertAsEmbedded
+        }
+        $croppedTarget = $Cropped -and $placement.name -eq 'PhysicalPictureOriginal'
+        if (($ReplacementPath -or $Cropped) -and $placement.name -eq 'PhysicalPictureOriginal') {
+            $shape.LockAspectRatio = 0
+        }
         # Numeric crop values are points relative to the original image size.
         # Zero deliberately qualifies the uncropped rectangular edit profile.
-        $format.CropLeft = 0
-        $format.CropTop = 0
-        $format.CropRight = 0
-        $format.CropBottom = 0
+        $wantedCrop = if ($croppedTarget) { @(6, 3, 0, 3) } else { @(0, 0, 0, 0) }
+        $format.CropLeft = [double]$wantedCrop[0]
+        $format.CropTop = [double]$wantedCrop[1]
+        $format.CropRight = [double]$wantedCrop[2]
+        $format.CropBottom = [double]$wantedCrop[3]
         $shape.Left = $placement.left
         $shape.Top = $placement.top
         $shape.Width = $placement.width
         $shape.Height = $placement.height
+        foreach ($property in @('Left', 'Top', 'Width', 'Height')) {
+            if ([Math]::Abs([double]$shape.$property - $placement.($property.ToLowerInvariant())) -gt 0.001) {
+                throw ('Publisher did not retain the authored picture bounds: ' + $placement.name + '/' + $property)
+            }
+        }
         $expectedShapes.Add([pscustomobject]@{
             name = $placement.name
             kind = 'Image'
@@ -119,10 +140,10 @@ function Add-NativeComparisonPictures {
             width = $placement.width
             height = $placement.height
             cropPoints = [pscustomobject]@{
-                left = 0
-                top = 0
-                right = 0
-                bottom = 0
+                left = $wantedCrop[0]
+                top = $wantedCrop[1]
+                right = $wantedCrop[2]
+                bottom = $wantedCrop[3]
             }
         })
         Set-NativePhase ('PictureOwnership-ReadCropLeft-' + $placement.name)
@@ -142,9 +163,9 @@ function Add-NativeComparisonPictures {
             bottom = $cropBottom
         }
         $cropValues = @($crop.left, $crop.top, $crop.right, $crop.bottom)
-        $nonzeroCrop = @($cropValues | Where-Object { [Math]::Abs($_) -gt 0.001 })
-        if ($isLinked -ne 0 -or $nonzeroCrop.Count -gt 0) {
-            throw ('Publisher did not retain the embedded, uncropped picture contract: ' + $placement.name)
+        $wrongCrop = @(0..3 | Where-Object { [Math]::Abs($cropValues[$_] - $wantedCrop[$_]) -gt 0.001 })
+        if ($isLinked -ne 0 -or $wrongCrop.Count -gt 0) {
+            throw ('Publisher did not retain the embedded picture/crop contract: ' + $placement.name)
         }
         $pictureObservations.Add([pscustomobject]@{
             name = $placement.name

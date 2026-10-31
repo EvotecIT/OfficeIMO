@@ -169,14 +169,13 @@ public sealed class PublisherNativeWritingTests {
     [InlineData("text-frame")]
     [InlineData("shape")]
     [InlineData("picture")]
-    [InlineData("image-replacement")]
     [InlineData("table-cell")]
     [InlineData("table-bounds")]
     [InlineData("table")]
     [InlineData("source-free")]
     public void Unsupported_current_mutation_families_refuse_output_instead_of_copying_the_unchanged_source(string mutation) {
         string file = mutation.StartsWith("table-", StringComparison.Ordinal) ? "NativeComparison/TableLabel/native-tablelabel.pub"
-            : mutation == "image-replacement" ? "NativeComparison/Image/native-image.pub" : "NativeComparison/Text/native-text.pub";
+            : "NativeComparison/Text/native-text.pub";
         PublisherDocument document = mutation == "source-free" ? PublisherDocument.Create(612, 792)
             : PublisherDocument.Load(PublisherNativeTests.Fixture(file));
         PublisherPage page = document.Pages[0];
@@ -197,7 +196,6 @@ public sealed class PublisherNativeWritingTests {
             case "text-frame": document.AddTextFrame(page.Id, 40, 300, 200, 60, Paragraphs("New story")); break;
             case "shape": document.AddShape(page.Id, OfficeShape.Rectangle(40, 30), 40, 300); break;
             case "picture": document.AddPicture(page.Id, PictureBytes(), 40, 300, 40, 30); break;
-            case "image-replacement": document.ReplacePictureImage(page.Pictures[0].Id, PictureBytes()); break;
             case "table-cell": document.ReplaceTableCellParagraphs(page.Tables[0].Id, 0, 0, Paragraphs("Changed cell")); break;
             case "table-bounds":
                 PublisherTable table = page.Tables[0]; document.SetTableBounds(table.Id, table.X + 6, table.Y, table.Width, table.Height); break;

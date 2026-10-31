@@ -43,7 +43,7 @@ param(
     [ValidateSet('Corpus', 'Validate')]
     [string] $Operation = 'Corpus',
 
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
     [string] $Case = 'Blank',
 
     [string] $InputPath,
@@ -105,8 +105,11 @@ $artifactNames = @(Get-NativeValidationArtifactNames -Stage $Stage)
 if ($Operation -eq 'Corpus') {
     $stem = 'native-' + $Case.ToLowerInvariant()
     $artifactNames = @(($stem + '.pub'), ($stem + '.pdf'), ($stem + '.json'))
-    if ($Case -in @('Image', 'Newsletter', 'TableLabel', 'PictureOwnership')) {
+    if ($Case -in @('Image', 'Newsletter', 'TableLabel', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')) {
         $artifactNames += $stem + '.png'
+        if ($Case -eq 'PictureReplacement') {
+            $artifactNames += $stem + '-replacement.png'
+        }
     }
 }
 $plannedPaths = @($artifactNames | ForEach-Object { Join-Path $output $_ }) + $diagnosticPaths

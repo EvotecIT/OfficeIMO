@@ -1,0 +1,263 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "PictureCropped",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 2,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [],
+    "shapes": [
+      {
+        "name": "MasterPicture",
+        "kind": "Image",
+        "pageRole": "Master",
+        "pageIndex": 1,
+        "left": 24,
+        "top": 24,
+        "width": 48,
+        "height": 48,
+        "cropPoints": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        }
+      },
+      {
+        "name": "PhysicalPictureOriginal",
+        "kind": "Image",
+        "pageRole": "Physical",
+        "pageIndex": 1,
+        "left": 72,
+        "top": 144,
+        "width": 96,
+        "height": 96,
+        "cropPoints": {
+          "left": 6,
+          "top": 3,
+          "right": 0,
+          "bottom": 3
+        }
+      },
+      {
+        "name": "PhysicalPictureDuplicate",
+        "kind": "Image",
+        "pageRole": "Physical",
+        "pageIndex": 1,
+        "left": 216,
+        "top": 144,
+        "width": 96,
+        "height": 96,
+        "cropPoints": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        }
+      }
+    ],
+    "masterAssignments": [
+      {
+        "pageIndex": 1,
+        "masterPageId": 33554695
+      },
+      {
+        "pageIndex": 2,
+        "masterPageId": 33554695
+      }
+    ],
+    "panelWidthPoints": null,
+    "pictureDuplication": {
+      "sourceName": "PhysicalPictureOriginal",
+      "duplicateName": "PhysicalPictureDuplicate",
+      "method": "Shape.Duplicate",
+      "nativeImageStoreSharing": "Unassessed"
+    }
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "PhysicalPictureOriginal",
+          "type": 13,
+          "left": 72.0,
+          "top": 144.0,
+          "width": 96.0,
+          "height": 96.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": {
+            "fileName": "native-picturecropped.png",
+            "isLinked": false,
+            "cropPoints": {
+              "left": 6.0000786781311035,
+              "top": 3.0000786781311035,
+              "right": 0.0,
+              "bottom": 3.0000786781311035
+            }
+          }
+        },
+        {
+          "name": "PhysicalPictureDuplicate",
+          "type": 13,
+          "left": 216.0,
+          "top": 144.0,
+          "width": 96.0,
+          "height": 96.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": {
+            "fileName": "native-picturecropped.png",
+            "isLinked": false,
+            "cropPoints": {
+              "left": 0.0,
+              "top": 0.0,
+              "right": 0.0,
+              "bottom": 0.0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554725,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": []
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 1,
+      "shapes": [
+        {
+          "name": "MasterPicture",
+          "type": 13,
+          "left": 24.0,
+          "top": 24.0,
+          "width": 48.0,
+          "height": 48.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": {
+            "fileName": "native-picturecropped.png",
+            "isLinked": false,
+            "cropPoints": {
+              "left": 0.0,
+              "top": 0.0,
+              "right": 0.0,
+              "bottom": 0.0
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-picturecropped.pub",
+      "sha256": "e837962f47f806492fba0c5063e6ab21c606f3d734cce7d67d0e1a77fd9dbe2c"
+    },
+    "reference": {
+      "name": "native-picturecropped.pdf",
+      "sha256": "023f942bfdf890376de8affd6545fb94a2af8d4d4f3c77456f243ba4c2e802f7"
+    },
+    "sourceImage": {
+      "name": "native-picturecropped.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    }
+  },
+  "nativePictureObservations": [
+    {
+      "name": "MasterPicture",
+      "pageRole": "Master",
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "isLinked": false,
+      "cropPoints": {
+        "left": 0.0,
+        "top": 0.0,
+        "right": 0.0,
+        "bottom": 0.0
+      }
+    },
+    {
+      "name": "PhysicalPictureOriginal",
+      "pageRole": "Physical",
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "isLinked": false,
+      "cropPoints": {
+        "left": 6.0000786781311035,
+        "top": 3.0000786781311035,
+        "right": 0.0,
+        "bottom": 3.0000786781311035
+      }
+    },
+    {
+      "name": "PhysicalPictureDuplicate",
+      "pageRole": "Physical",
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "isLinked": false,
+      "cropPoints": {
+        "left": 0.0,
+        "top": 0.0,
+        "right": 0.0,
+        "bottom": 0.0
+      }
+    }
+  ]
+}

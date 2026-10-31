@@ -2,25 +2,27 @@ using OfficeIMO.Drawing.Binary;
 
 namespace OfficeIMO.Publisher.Internal;
 
-/// <summary>Grows selected local FOPT tables and their containing record lengths, retaining native separators and opaque records.</summary>
-internal sealed class PublisherEscherLayoutWriter {
+/// <summary>Composes source-bound image-store and local FOPT changes with enclosing lengths, preserving separators and opaque records.</summary>
+internal sealed class PublisherEscherSourceWriter {
     private readonly PublisherBinaryData _data;
     private readonly PublisherParseContext _context;
     private readonly PublisherEscherReader _reader;
-    private readonly IReadOnlyDictionary<int, IReadOnlyDictionary<ushort, uint>> _changes;
+    private readonly IReadOnlyDictionary<int, IReadOnlyDictionary<ushort, OfficeArtProperty>> _changes;
+    private readonly PublisherNativeStreamEdit? _imageStore;
     private readonly List<PublisherNativeStreamEdit> _edits = new();
     private int _seen;
+    private bool _imageStoreSeen;
 
-    private PublisherEscherLayoutWriter(byte[] source, IReadOnlyDictionary<int, IReadOnlyDictionary<ushort, uint>> changes,
-        PublisherParseContext context) {
+    private PublisherEscherSourceWriter(byte[] source, IReadOnlyDictionary<int, IReadOnlyDictionary<ushort, OfficeArtProperty>> changes,
+        PublisherNativeStreamEdit? imageStore, PublisherParseContext context) {
         _data = new(source, "Escher/EscherStm"); _context = context;
-        _reader = new(_data, null, context); _changes = changes;
+        _reader = new(_data, null, context); _changes = changes; _imageStore = imageStore;
     }
 
-    internal static byte[]? Rewrite(byte[] source, IReadOnlyDictionary<int, IReadOnlyDictionary<ushort, uint>> changes,
-        PublisherParseContext context, long maximumBytes) {
-        var writer = new PublisherEscherLayoutWriter(source, changes, context);
-        if (!writer.Visit(0, source.Length, 0, out _) || writer._seen != changes.Count) return null;
+    internal static byte[]? Rewrite(byte[] source, IReadOnlyDictionary<int, IReadOnlyDictionary<ushort, OfficeArtProperty>> changes,
+        PublisherNativeStreamEdit? imageStore, PublisherParseContext context, long maximumBytes) {
+        var writer = new PublisherEscherSourceWriter(source, changes, imageStore, context);
+        if (!writer.Visit(0, source.Length, 0, out _) || writer._seen != changes.Count || imageStore != null && !writer._imageStoreSeen) return null;
         return PublisherNativeStreamEdit.Apply(source, writer._edits, maximumBytes, context.Token);
     }
 
@@ -28,7 +30,12 @@ internal sealed class PublisherEscherLayoutWriter {
         _context.CheckDepth(depth); growth = 0;
         foreach (PublisherEscherRecord record in _reader.Records(start, end)) {
             int delta = 0;
-            if (record.Kind == 0xF004) {
+            bool replaced = false;
+            if (record.Kind == 0xF001 && _imageStore != null && record.Offset - 8 == _imageStore.Offset) {
+                if (_imageStore.Length != record.Length + 8 || _imageStoreSeen) return false;
+                _imageStoreSeen = true; _edits.Add(_imageStore); replaced = true;
+                delta = _imageStore.Bytes.Length - _imageStore.Length;
+            } else if (record.Kind == 0xF004) {
                 if (_changes.TryGetValue(record.Offset, out var changes)) {
                     _seen++;
                     if (!Shape(record, changes, out delta)) return false;
@@ -36,13 +43,13 @@ internal sealed class PublisherEscherLayoutWriter {
             } else if ((record.Initial & 15) == 15 && record.Kind != 0xF001) {
                 if (!Visit(record.Offset, record.End, depth + 1, out delta)) return false;
             }
-            if (delta != 0) _edits.Add(new(record.Offset - 4, 4, BitConverter.GetBytes(checked((uint)(record.Length + delta)))));
+            if (delta != 0 && !replaced) _edits.Add(new(record.Offset - 4, 4, BitConverter.GetBytes(checked((uint)(record.Length + delta)))));
             growth = checked(growth + delta);
         }
         return true;
     }
 
-    private bool Shape(PublisherEscherRecord shape, IReadOnlyDictionary<ushort, uint> changes, out int growth) {
+    private bool Shape(PublisherEscherRecord shape, IReadOnlyDictionary<ushort, OfficeArtProperty> changes, out int growth) {
         growth = 0;
         var tables = _reader.Records(shape.Offset, shape.End).Where(record => record.Kind is 0xF00B or 0xF122).ToArray();
         var owners = new Dictionary<ushort, PublisherEscherRecord>();
@@ -62,8 +69,13 @@ internal sealed class PublisherEscherLayoutWriter {
         }
         foreach (var group in owners.GroupBy(pair => pair.Value)) {
             PublisherEscherRecord table = group.Key;
-            byte[]? body = OfficeArtPropertyTableEditor.RewriteScalars(_data.Bytes, table.Offset, table.Length,
-                (ushort)(table.Initial >> 4), group.ToDictionary(pair => pair.Key, pair => changes[pair.Key]), out ushort count);
+            var selected = group.ToDictionary(pair => pair.Key, pair => changes[pair.Key]);
+            byte[]? body; ushort count;
+            if (selected.Values.All(property => !property.IsComplex && !property.IsBlipId))
+                body = OfficeArtPropertyTableEditor.RewriteScalars(_data.Bytes, table.Offset, table.Length,
+                    (ushort)(table.Initial >> 4), selected.ToDictionary(pair => pair.Key, pair => pair.Value.Value), out count);
+            else body = OfficeArtPropertyTableEditor.Rewrite(_data.Bytes, table.Offset, table.Length,
+                (ushort)(table.Initial >> 4), selected, out count);
             if (body == null) return false;
             byte[] record = new byte[checked(body.Length + 8)];
             BitConverter.GetBytes((ushort)((count << 4) | 3)).CopyTo(record, 0);

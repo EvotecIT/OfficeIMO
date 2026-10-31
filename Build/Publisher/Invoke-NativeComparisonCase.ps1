@@ -28,7 +28,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -74,8 +74,11 @@ if ($Operation -eq 'Validate') {
     . (Join-Path $PSScriptRoot 'Get-NativeValidationArtifactNames.ps1')
     $reservedArtifacts = Get-NativeValidationArtifactNames -Stage $Stage |
         ForEach-Object { Join-Path $output $_ }
-} elseif ($Case -in @('Image', 'Newsletter', 'TableLabel', 'PictureOwnership')) {
+} elseif ($Case -in @('Image', 'Newsletter', 'TableLabel', 'PictureOwnership', 'PictureReplacement', 'PictureCropped')) {
     $reservedArtifacts += Join-Path $output ($stem + '.png')
+    if ($Case -eq 'PictureReplacement') {
+        $reservedArtifacts += Join-Path $output ($stem + '-replacement.png')
+    }
 }
 foreach ($path in @($reservedArtifacts) + @($ReceiptPath, $failurePath, $cleanupPath)) {
     if (Test-Path -LiteralPath $path) {
@@ -126,6 +129,7 @@ if ($Case -eq 'TableLabel') {
 $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeComparisonLayout.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeComparisonPictures.ps1')
+. (Join-Path $PSScriptRoot 'New-NativeReplacementImage.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeCharacterAttributeControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeParagraphFormatControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeFrameLayoutControl.ps1')
@@ -206,6 +210,7 @@ function Get-NativeShapeInventory {
         $nextLink = $false
         $previousLink = $false
         $frameLayout = $null
+        $picture = $null
         if ($shape.HasTextFrame -eq -1) {
             $frame = $shape.TextFrame
             $range = $frame.TextRange
@@ -222,6 +227,22 @@ function Get-NativeShapeInventory {
                 verticalAlignment = [int]$frame.VerticalTextAlignment
             }
         }
+        if ($shape.Type -eq 13) {
+            $format = $shape.PictureFormat
+            $objects.Add($format)
+            if ($format.IsEmpty -eq 0) {
+                $picture = [pscustomobject]@{
+                    fileName = [string]$format.FileName
+                    isLinked = $format.IsLinked -ne 0
+                    cropPoints = [pscustomobject]@{
+                        left = [double]$format.CropLeft
+                        top = [double]$format.CropTop
+                        right = [double]$format.CropRight
+                        bottom = [double]$format.CropBottom
+                    }
+                }
+            }
+        }
         $nativeShapes.Add([pscustomobject]@{
             name = [string]$shape.Name
             type = [int]$shape.Type
@@ -234,6 +255,7 @@ function Get-NativeShapeInventory {
             nextLink = $nextLink
             previousLink = $previousLink
             frameLayout = $frameLayout
+            picture = $picture
         })
     }
     return $nativeShapes.ToArray()
@@ -701,6 +723,20 @@ try {
             $layout = Add-NativeComparisonPictures -Document $document -FirstPage $page -PicturePath $picturePath
             $pageCount = $layout.pages
         }
+        'PictureReplacement' {
+            $picturePath = Join-Path $output ($stem + '.png')
+            $replacementPath = Join-Path $output ($stem + '-replacement.png')
+            New-ReferencePicture $picturePath
+            New-NativeReplacementImage $replacementPath
+            $layout = Add-NativeComparisonPictures -Document $document -FirstPage $page -PicturePath $picturePath -ReplacementPath $replacementPath
+            $pageCount = $layout.pages
+        }
+        'PictureCropped' {
+            $picturePath = Join-Path $output ($stem + '.png')
+            New-ReferencePicture $picturePath
+            $layout = Add-NativeComparisonPictures -Document $document -FirstPage $page -PicturePath $picturePath -Cropped
+            $pageCount = $layout.pages
+        }
     }
     Set-NativePhase 'ObserveCorpusPageCount'
     if ($document.Pages.Count -ne $pageCount) {
@@ -766,13 +802,25 @@ try {
         $contract.expected.masterAssignments = $layout.masterAssignments
         $contract.expected.panelWidthPoints = $layout.panelWidthPoints
     }
-    if ($Case -eq 'PictureOwnership') {
+    if ($Case -in @('PictureOwnership', 'PictureReplacement', 'PictureCropped')) {
         $contract.nativePictureObservations = $layout.pictureObservations
         $contract.expected.pictureDuplication = [pscustomobject]@{
             sourceName = 'PhysicalPictureOriginal'
             duplicateName = 'PhysicalPictureDuplicate'
             method = 'Shape.Duplicate'
             nativeImageStoreSharing = 'Unassessed'
+        }
+    }
+    if ($Case -eq 'PictureReplacement') {
+        $contract.expected.pictureReplacement = [pscustomobject]@{
+            targetName = 'PhysicalPictureOriginal'
+            method = 'PictureFormat.Replace'
+            insertAs = 'Embedded'
+            framePolicy = 'Restore authored bounds and zero crop after replacement.'
+        }
+        $contract.files.replacementImage = [ordered]@{
+            name = [IO.Path]::GetFileName($replacementPath)
+            sha256 = (Get-FileHash -LiteralPath $replacementPath -Algorithm SHA256).Hash.ToLowerInvariant()
         }
     }
     $sourceImage = Join-Path $output ($stem + '.png')

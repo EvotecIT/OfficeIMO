@@ -4,6 +4,31 @@ namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherOfficeArtEditingTests {
     [Fact]
+    public void Explicit_blip_and_complex_edits_relocate_the_name_without_changing_following_complex_data_or_row_roles() {
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write((ushort)0x4104); writer.Write(1U);
+        writer.Write((ushort)0xC105); writer.Write(4U);
+        writer.Write((ushort)0x83FE); writer.Write(4U);
+        writer.Write(new byte[] { 65, 0, 0, 0, 1, 2, 3, 4, 0xCC });
+        byte[] source = stream.ToArray(), name = System.Text.Encoding.Unicode.GetBytes("Image2\0");
+        byte[]? edited = OfficeArtPropertyTableEditor.Rewrite(source, 0, source.Length, 3, new Dictionary<ushort, OfficeArtProperty> {
+            [0x104] = new(0, 0x4104, 2), [0x105] = new(0, 0xC105, (uint)name.Length, name.Length, complexData: name)
+        }, out ushort count);
+        Assert.NotNull(edited); Assert.Equal(3, count);
+        var properties = OfficeArtPropertyTableReader.Read(edited!, count);
+        Assert.Equal(new ushort[] { 0x4104, 0xC105, 0x83FE }, properties.Select(property => property.RawOperationId));
+        Assert.Equal(2U, properties[0].Value); Assert.Equal(name, properties[1].CopyComplexData());
+        Assert.Equal(new byte[] { 1, 2, 3, 4 }, properties[2].CopyComplexData()); Assert.Equal(0xCC, edited![edited.Length - 1]);
+        Assert.Null(OfficeArtPropertyTableEditor.RewriteScalars(source, 0, source.Length, 3, new Dictionary<ushort, uint> { [0x104] = 2 }, out _));
+        Assert.Null(OfficeArtPropertyTableEditor.Rewrite(source, 0, source.Length, 3, new Dictionary<ushort, OfficeArtProperty> {
+            [0x105] = new(0, 0x0105, 2)
+        }, out _));
+        Assert.Null(OfficeArtPropertyTableEditor.Rewrite(source, 0, source.Length, 3, new Dictionary<ushort, OfficeArtProperty> {
+            [0x105] = new(0, 0xC105, (uint)name.Length + 2, name.Length, complexData: name)
+        }, out _));
+    }
+
+    [Fact]
     public void Scalar_table_growth_preserves_unedited_rows_and_the_raw_complex_tail() {
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write((ushort)0x81); writer.Write(0U);

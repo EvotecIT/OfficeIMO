@@ -13,6 +13,7 @@ internal sealed class PublisherNativeSource {
     internal byte[] EscherBytes => _compound.Streams["Escher/EscherStm"];
     internal byte[] QuillBytes => _compound.Streams["Quill/QuillSub/CONTENTS"];
     internal byte[] ContentsBytes => _compound.Streams["Contents"];
+    internal byte[]? ImageDelayBytes => _compound.Streams.TryGetValue("Escher/EscherDelayStm", out byte[]? bytes) ? bytes : null;
 
     internal bool CanRewrite(OfficeLegacyImportLimits limits, CancellationToken token) {
         var bounds = new OfficeCompoundReadOptions(maxDirectoryEntries: limits.MaxRecords,

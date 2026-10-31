@@ -29,12 +29,15 @@ internal sealed class PublisherEscherReader {
         }
         foreach (PublisherEscherRecord record in records)
             Visit(record, null, 0, groupChildren.TryGetValue(record.Offset, out var children) ? children : null);
+        // Publisher can leave zero-reference descriptors pointing at repacked
+        // delay data. Resolve them only after every native BLIP role is known.
+        foreach (PublisherEscherRecord store in _result.ImageStores) ReadImages(store, _result.ImageReferences);
         return _result;
     }
     private void Visit(PublisherEscherRecord record, PublisherGroupSpace? space, int depth,
         IReadOnlyList<PublisherEscherRecord>? cachedChildren = null) {
         _context.CheckDepth(depth);
-        if (record.Kind == 0xF001) { ReadImages(record); return; }
+        if (record.Kind == 0xF001) { _result.ImageStores.Add(record); return; }
         if (record.Kind == 0xF004) { ReadShape(record, space); return; }
         if ((record.Initial & 15) != 15) return;
         PublisherGroupSpace? childSpace = space;
@@ -138,6 +141,7 @@ internal sealed class PublisherEscherReader {
                 _context.Record();
                 if (value.IsComplex && !value.HasCompleteComplexData)
                     throw new InvalidDataException("Truncated Publisher OfficeArt complex property.");
+                if (value.IsBlipId && !value.IsComplex) _result.ImageReferences.Add(value.Value);
                 result.Add(value);
             }
         }
@@ -155,7 +159,7 @@ internal sealed class PublisherEscherReader {
         }
         return result;
     }
-    private void ReadImages(PublisherEscherRecord store) {
+    private void ReadImages(PublisherEscherRecord store, HashSet<uint> references) {
         int index = 0;
         foreach (PublisherEscherRecord record in Records(store.Offset, store.End)) {
             _context.AccountImageStoreEntry();
@@ -172,6 +176,12 @@ internal sealed class PublisherEscherReader {
             if (!read)
                 throw new InvalidDataException("Invalid Publisher image store entry.");
             _context.AccountImageProcessing(image!.BlipPayloadAvailableLength.GetValueOrDefault());
+            if (image!.ReferenceCount == 0 && !references.Contains((uint)index)
+                && (image.IsPayloadTruncated || !ImageUidMatches(image, record))) {
+                _context.Add("PUB_IMAGE_RETIRED_SLOT", "An unreferenced zero-count native image slot retains stale payload metadata. The slot remains reserved and its bytes remain inert; no active image is imported from the stale offset.",
+                    OfficeConversionLossKind.None, "Escher/image/" + index);
+                continue;
+            }
             if (image!.WasImageRejectedBySizeLimit) throw new InvalidDataException("Publisher decoded image byte limit exceeded.");
             if (image.IsPayloadTruncated) throw new InvalidDataException("Truncated Publisher image payload.");
             byte[]? bytes = image.HasImportableImage ? image.ImageBytes : ReadPublisherGif(image, record, Math.Min(_context.Options.MaximumImageBytes, remaining));
@@ -181,6 +191,16 @@ internal sealed class PublisherEscherReader {
             } else _context.Add("PUB_IMAGE_PAYLOAD_UNAVAILABLE", "An image store entry has no recoverable embedded payload; external resources were not fetched.",
                 OfficeConversionLossKind.Omission, "Escher/image/" + index);
         }
+    }
+    private bool ImageUidMatches(OfficeArtBlipStoreEntry image, PublisherEscherRecord record) {
+        PublisherBinaryData target; long start;
+        if (image.Storage == OfficeArtBlipStorage.Delayed && _delay != null) { target = _delay; start = image.DelayedStreamOffset; }
+        else if (image.Storage == OfficeArtBlipStorage.Embedded) { target = _data; start = (long)record.Offset + 36 + image.NameByteCount; }
+        else return false;
+        if (start < 0 || start > target.Length - 24) return false;
+        for (int index = 0; index < 16; index++)
+            if (target.U8((int)start + 8 + index) != _data.U8(record.Offset + 2 + index)) return false;
+        return true;
     }
     private byte[]? ReadPublisherGif(OfficeArtBlipStoreEntry image, PublisherEscherRecord record, int maximumBytes) {
         // Publisher stores GIF bytes in the nominal OfficeArt PNG record. This
@@ -239,6 +259,8 @@ internal sealed class PublisherEscherRecord {
 internal sealed class PublisherEscherData {
     internal List<PublisherEscherShape> Shapes { get; } = new();
     internal Dictionary<int, PublisherImage> Images { get; } = new();
+    internal List<PublisherEscherRecord> ImageStores { get; } = new();
+    internal HashSet<uint> ImageReferences { get; } = new();
 }
 
 internal sealed class PublisherEscherShape {

@@ -47,6 +47,8 @@ internal static partial class PublisherModelImporter {
         // Unavailable store entries and unresolved references still reserve their
         // identities. A new asset must never resolve an unrelated missing picture.
         int maximumImageId = Math.Max(context.ImageStoreEntryCount, artwork.Images.Keys.DefaultIfEmpty(0).Max());
+        foreach (uint reference in artwork.ImageReferences)
+            if (reference is > 0 and <= int.MaxValue) maximumImageId = Math.Max(maximumImageId, (int)reference);
         foreach (PublisherEscherShape shape in artwork.Shapes) {
             var reference = shape.Properties.LastOrDefault(property => property.PropertyId == 0x0104);
             if (reference is { IsComplex: false, IsBlipId: true, Value: > 0 and <= int.MaxValue })

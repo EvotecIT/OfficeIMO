@@ -26,9 +26,7 @@ internal sealed partial class PublisherNativeWriter {
         if (!MapEqual(_baseline.Text.WrapInfo, _current.Text.WrapInfo, (a, b) => Equals(a, b))
             || !MapEqual(_baseline.Text.ImportedObstacles, _current.Text.ImportedObstacles, (a, b) => Equals(a, b)))
             Reject("Contents", "Native wrap intent or unsupported artwork placement changed.");
-        if (!MapEqual(_baseline.Images, _current.Images, (a, b) => ReferenceEquals(a, b)
-            || a.Id == b.Id && a.ContentType == b.ContentType && a.Bytes.SequenceEqual(b.Bytes)))
-            Reject("Escher/images", "Embedded asset identities or bytes changed. Image-store rewriting is unavailable.");
+        PrepareImages();
         foreach (var entry in _baseline.Tables) {
             _token.ThrowIfCancellationRequested();
             if (!TableEqual(entry.Value, _current.Tables[entry.Key]))
@@ -118,7 +116,7 @@ internal sealed partial class PublisherNativeWriter {
     private void ComparePicture(PublisherPicture a, PublisherPicture b) {
         _token.ThrowIfCancellationRequested();
         if (ReferenceEquals(a, b)) return;
-        if (a.Id != b.Id || a.PageId != b.PageId || a.ImageId != b.ImageId || !a.Crop.Equals(b.Crop)
+        if (a.Id != b.Id || a.PageId != b.PageId || a.ImageId != b.ImageId && !_pictureNames.ContainsKey(a.Id) || !a.Crop.Equals(b.Crop)
             || a.HasPlacement != b.HasPlacement || a.CanEdit != b.CanEdit || a.EditLimitation != b.EditLimitation || a.IsAuthored != b.IsAuthored
             || !a.CanEdit || !ShapeEqual(PublisherShapeGeometry.Resize(a.CreatePaint(), b.Width, b.Height), b.CreatePaint())) {
             Reject("Contents/object/" + a.Id, "Picture asset binding, crop, paint or unsupported placement changed."); return;
