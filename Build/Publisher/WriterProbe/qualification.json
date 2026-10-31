@@ -14072,6 +14072,482 @@
         "Native repair-free opening, general opaque preservation and managed/native rendering parity remain unassessed.",
         "Source-built PS7 conversion and PS5.1 syntax are not packaged installation or native lifecycle cmdlet qualification."
       ]
+    },
+    "cellParagraphRetention": {
+      "scope": "Retained nonempty unlabelled native paragraphs from nonuniform definitions inside fixed table cells; fitting first/final-cell controls.",
+      "codecCommit": "7404cc69dd13411069d70d21c13cdc7af5d1b7e9",
+      "qualificationCommit": "0dc6cdbb2dc9c038b85ba2d1d23d08e1dc816b8e",
+      "writerLogicUnchanged": true,
+      "sources": [
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherTextComparison.cs",
+          "sha256": "a2ac526d5ce4f994067e55b1337b7619fae5e8d58d6aa40a8fb3096cd69fcc7e"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherStoryEditor.cs",
+          "sha256": "60a348572bd3157523fe179adb2b92f3f41d462d26de285d196b7867637ae178"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+          "sha256": "9cef303d087aa0db65e730a973adbc28ecc2f8be311293ecc0e5e5f45d3f6504"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.cs",
+          "sha256": "2ab3779304665b133a5606123ce4b5444fcd0c73e9d600784e80a9e656c628b7"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Retention.cs",
+          "sha256": "7af1ee2d5251b489f2dfc25858c8e721adeb3126efcbcf1f050760c2f6aac025"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillTableTextWriter.cs",
+          "sha256": "e4d62c72eb775626a5cc7d1725508aaccf6ace896dac35b1c3e0ed5ba6e547ae"
+        },
+        {
+          "path": "OfficeIMO.Publisher/Internal/PublisherQuillStoriesWriter.cs",
+          "sha256": "b47fc4cfcc5f7236a9ec1fabc2162ecca399f8ec881fdd3d9da30fc846307d52"
+        },
+        {
+          "path": "OfficeIMO.Publisher/PublisherDocument.Tables.cs",
+          "sha256": "2f658f3ebdc5a3c34e66af2406b6e323e28e7d2051607d04f0d022c311674f54"
+        },
+        {
+          "path": "OfficeIMO.Publisher.Tests/PublisherCellParagraphRetentionWritingTests.cs",
+          "sha256": "aadfd8e95055dff81b843a84907e12125ed7d19357d35118a3eb5869e1c63bad"
+        },
+        {
+          "path": "Build/Publisher/Add-NativeParagraphTopologyControl.ps1",
+          "sha256": "c0f604bcddbeb476bd58479c9c7831afbf4ac2d7abf11382ab92331c0a7fc6a1"
+        },
+        {
+          "path": "Build/Publisher/Get-NativeParagraphTopologyProfiles.ps1",
+          "sha256": "75f93e6d9ff506e0bea3baed1cbc219813e854a09a35700b289c38bba26ad63c"
+        },
+        {
+          "path": "Build/Publisher/Set-NativeParagraphTopologyFormatting.ps1",
+          "sha256": "b3d0b9be21c7352b448c9560ab272619310d4a5cc0cdadbeab0b7b763ecb6156"
+        },
+        {
+          "path": "Build/Publisher/Add-NativeTableParagraphTopologyControl.ps1",
+          "sha256": "8097424a4110c7efb858238e68b7295f6737f2e95ebec6d06b4e663e80fc2ff0"
+        },
+        {
+          "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+          "sha256": "0d34eeff538794b1254afe272523b08a0829e0ccb36ce06a7aef2ca1044af8bb"
+        },
+        {
+          "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+          "sha256": "bb5005a46021f84437a92953b023dc1c113bd9eb55bbd57c634dcfe4b81f6457"
+        },
+        {
+          "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+          "sha256": "ebff6895c2cf255d02ef24b008a7cf06f0f285cadc9d4f59c6434c3f385b6553"
+        }
+      ],
+      "control": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableNonuniformParagraphs/provenance.json",
+      "sourceSha256": "b8809522f70e26508b6c5129bcef1fd26caed92aef697bc5d2e2711b99d6aefe",
+      "nativeApplication": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "automationSecurity": 3
+      },
+      "contract": [
+        "Source correspondence is resolved independently inside each cell through the existing shared retention codec; no cross-cell matching or new public API.",
+        "Original immutable source paragraphs select exact definitions; detached values require identical complete native definitions for the destination role. Ambiguous copied language definitions remain refused.",
+        "Complete native PC/PP definitions, original cell-final CR and qualified intermediate CR roles remain retained. TCD endpoints, complete stories and formatting positions update together.",
+        "Tracks, geometry, neighboring cells/tables/stories and unrelated compound storage remain retained; source inputs stay unchanged."
+      ],
+      "cases": [
+        {
+          "mode": "drop-first",
+          "candidateSha256": "ab50dbe1061198db5f406799b89c501c70fd716cf70220c1f72e77508ccf10ca",
+          "targets": [
+            0,
+            3
+          ],
+          "order": [
+            1,
+            2,
+            3
+          ],
+          "nativeDefinitionsExact": true,
+          "cellTerminatorRolesExact": true,
+          "cellOwnership": true,
+          "unrelatedStorage": true,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 1,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 1,
+              "pixelAndSpanIdentical": true
+            }
+          ],
+          "nativeOperations": 7
+        },
+        {
+          "mode": "drop-middle",
+          "candidateSha256": "616aad055940a3d42281b7c908ab1c78836817e2d76ac15204a1f3017b90cfd5",
+          "targets": [
+            0,
+            3
+          ],
+          "order": [
+            0,
+            2,
+            3
+          ],
+          "nativeDefinitionsExact": true,
+          "cellTerminatorRolesExact": true,
+          "cellOwnership": true,
+          "unrelatedStorage": true,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 2,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 2,
+              "pixelAndSpanIdentical": true
+            }
+          ],
+          "nativeOperations": 7
+        },
+        {
+          "mode": "drop-final",
+          "candidateSha256": "d5324d45737301b62ec29480640cc875160896fd1c8e4531001942e57d14f104",
+          "targets": [
+            0,
+            3
+          ],
+          "order": [
+            0,
+            1,
+            2
+          ],
+          "nativeDefinitionsExact": true,
+          "cellTerminatorRolesExact": true,
+          "cellOwnership": true,
+          "unrelatedStorage": true,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 3,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 3,
+              "pixelAndSpanIdentical": true
+            }
+          ],
+          "nativeOperations": 7
+        },
+        {
+          "mode": "reorder",
+          "candidateSha256": "5bc5e024676dca23473e40dfcea95228036aca9b80ef68836e151a29cbce64d4",
+          "targets": [
+            0,
+            3
+          ],
+          "order": [
+            3,
+            0,
+            2
+          ],
+          "nativeDefinitionsExact": true,
+          "cellTerminatorRolesExact": true,
+          "cellOwnership": true,
+          "unrelatedStorage": true,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 4,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 4,
+              "pixelAndSpanIdentical": true
+            }
+          ],
+          "nativeOperations": 7
+        },
+        {
+          "mode": "duplicate",
+          "candidateSha256": "225dbfaf8ad67838d6cccf854588f4c81851f79990b98d02aea6493713d348ae",
+          "targets": [
+            0,
+            3
+          ],
+          "order": [
+            0,
+            1,
+            1,
+            2,
+            3
+          ],
+          "nativeDefinitionsExact": true,
+          "cellTerminatorRolesExact": true,
+          "cellOwnership": true,
+          "unrelatedStorage": true,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 5,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 5,
+              "pixelAndSpanIdentical": true
+            }
+          ],
+          "nativeOperations": 7
+        },
+        {
+          "mode": "detached",
+          "candidateSha256": "5bc5e024676dca23473e40dfcea95228036aca9b80ef68836e151a29cbce64d4",
+          "targets": [
+            0,
+            3
+          ],
+          "order": [
+            3,
+            0,
+            2
+          ],
+          "nativeDefinitionsExact": true,
+          "cellTerminatorRolesExact": true,
+          "cellOwnership": true,
+          "unrelatedStorage": true,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 4,
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 4,
+              "pixelAndSpanIdentical": true
+            }
+          ],
+          "nativeOperations": 7
+        },
+        {
+          "mode": "language-0",
+          "candidateSha256": "c071c756593ef7e894f83dba642cb1d75288f2a5252019586a3f324b5ac3b949",
+          "targets": [
+            0,
+            3
+          ],
+          "order": [
+            0,
+            2
+          ],
+          "nativeDefinitionsExact": true,
+          "cellTerminatorRolesExact": true,
+          "cellOwnership": true,
+          "unrelatedStorage": true,
+          "nativePaint": [],
+          "nativeOperations": 7
+        },
+        {
+          "mode": "language-1",
+          "candidateSha256": "038de332a23f70556caf425374f0ec1861067a14c198cdf0024d28c2b4b8c1be",
+          "targets": [
+            0,
+            3
+          ],
+          "order": [
+            1,
+            2
+          ],
+          "nativeDefinitionsExact": true,
+          "cellTerminatorRolesExact": true,
+          "cellOwnership": true,
+          "unrelatedStorage": true,
+          "nativePaint": [],
+          "nativeOperations": 7
+        },
+        {
+          "mode": "first-only",
+          "candidateSha256": "1bcf061d4a11b92f18fc6e028ef96fd0db6852be58df0dc2fd5708761fd2e05d",
+          "targets": [
+            0
+          ],
+          "order": [
+            0,
+            1,
+            2
+          ],
+          "nativeDefinitionsExact": true,
+          "cellTerminatorRolesExact": true,
+          "cellOwnership": true,
+          "unrelatedStorage": true,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 3,
+              "clip": [
+                0.0,
+                0.0,
+                612.0,
+                288.0
+              ],
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "initial",
+              "referencePage": 0,
+              "clip": [
+                0.0,
+                288.0,
+                612.0,
+                792.0
+              ],
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 3,
+              "clip": [
+                0.0,
+                0.0,
+                612.0,
+                288.0
+              ],
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 0,
+              "clip": [
+                0.0,
+                288.0,
+                612.0,
+                792.0
+              ],
+              "pixelAndSpanIdentical": true
+            }
+          ],
+          "nativeOperations": 7
+        },
+        {
+          "mode": "final-only",
+          "candidateSha256": "b921fe1b53433fec374e452db11513f8a5430eb66c85c797fb2bba9b8d4ca7a8",
+          "targets": [
+            3
+          ],
+          "order": [
+            1,
+            2,
+            3
+          ],
+          "nativeDefinitionsExact": true,
+          "cellTerminatorRolesExact": true,
+          "cellOwnership": true,
+          "unrelatedStorage": true,
+          "nativePaint": [
+            {
+              "phase": "initial",
+              "referencePage": 0,
+              "clip": [
+                0.0,
+                0.0,
+                612.0,
+                288.0
+              ],
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "initial",
+              "referencePage": 1,
+              "clip": [
+                0.0,
+                288.0,
+                612.0,
+                792.0
+              ],
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 0,
+              "clip": [
+                0.0,
+                0.0,
+                612.0,
+                288.0
+              ],
+              "pixelAndSpanIdentical": true
+            },
+            {
+              "phase": "resaved",
+              "referencePage": 1,
+              "clip": [
+                0.0,
+                288.0,
+                612.0,
+                792.0
+              ],
+              "pixelAndSpanIdentical": true
+            }
+          ],
+          "nativeOperations": 7
+        }
+      ],
+      "ordinaryAuthoring": {
+        "pages": 7,
+        "pixelAndSpanIdentical": true,
+        "completeRawPcPpAndStoriesEqual": true
+      },
+      "validation": {
+        "publisherTests": {
+          "net10.0": 682,
+          "net8.0": 682,
+          "net472": 682
+        },
+        "focusedCases": 12,
+        "explicitAmbiguousCopyRefusals": 2,
+        "nativePublicReloads": 20,
+        "finalByteIdenticalSaves": 10,
+        "sourceBuiltPowerShell": {
+          "runtime": "7.6.9",
+          "route": "publisher-pdf",
+          "cases": 10,
+          "pages": 70,
+          "samePreviouslyQualifiedAssembly": true,
+          "actualPublisherOwnerBound": true,
+          "completeTextRetained": true,
+          "unicodeFallbacks": true
+        },
+        "nativeControlSyntax": [
+          "PowerShell7",
+          "WindowsPowerShell5.1"
+        ]
+      },
+      "regressionTests": [
+        "Nonuniform_cell_retention_preserves_partitions_styles_and_neighboring_native_storage",
+        "Copied_cell_paragraphs_refuse_ambiguous_native_language_definitions"
+      ],
+      "reproduction": {
+        "control": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableNonuniformParagraphs",
+        "native": "pwsh -NoProfile -File Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -InputPath <candidate.pub> -OutputDirectory <empty-directory>"
+      },
+      "limits": [
+        "These first/final-cell controls use fitting two-by-two tables with uniform Arial12 body styling and independently varying paragraph formatting/language metadata; general producer/style profiles and row reflow remain unqualified.",
+        "Nonuniform empty paragraphs, labels and count-changing text/formatting rewrites remain refused.",
+        "Native repair-free opening, general opaque preservation and managed/native rendering parity remain unassessed.",
+        "Source-built PS7 conversion and PS5.1 syntax are not packaged installation or native lifecycle cmdlet qualification."
+      ]
     }
   },
   "characterReading": {

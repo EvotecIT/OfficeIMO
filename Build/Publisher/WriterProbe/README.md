@@ -429,9 +429,20 @@ Raw checks preserve complete PC/PP definitions, final/intermediate CR roles,
 neighboring stories and unrelated storage. Detached values require unambiguous
 native templates. The public regression tests cover both explicit identity and
 the refusal of ambiguous copies. The existing 116 save specimens remain
-byte-identical. These controls qualify ordinary stories; empty nonuniform
-paragraphs, table-cell retention, text/formatting changes during nonuniform count
-changes and repair-free opening require separate qualification.
+byte-identical. These controls qualify ordinary stories. The separate table-cell
+controls are described below; empty nonuniform paragraphs, text/formatting changes
+during nonuniform count changes and repair-free opening remain unqualified.
+
+The `sourceEditing.cellParagraphRetention` record qualifies the same shared codec
+inside fixed table cells. Ten public outputs exercise first/final cells together,
+each boundary cell on its own, copied values and explicit native language
+selection. Complete PC/PP definitions, cell CR roles, TCD endpoints, tracks and
+unrelated storage stay intact. Twelve full-page and eight row-region stage
+comparisons match independently authored native controls in pixels and text spans.
+Twenty public reloads retain complete text and cell ownership after native saving.
+The shared authoring helper also reproduces all seven ordinary-control pages
+without pixel/span changes. No writer logic or public API was added for these
+fitting table profiles; general row reflow remains unqualified.
 
 The `sourceEditing.tableTrackGeometry` record covers saved table endpoints and
 native row-growth controls. The reader recovers laid-out tracks from cumulative

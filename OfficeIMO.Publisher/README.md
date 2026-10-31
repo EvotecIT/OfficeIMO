@@ -427,14 +427,16 @@ formatting and leaves typing unspecified. Native saving retains that cell's CR
 typing; supply an empty styled run when a particular typing style is required.
 Native source saving supports qualified fixed cell partitions and supported
 text formatting. Paragraph counts can change when source definitions are uniform
-within the edited cell; neighboring cells may have different styles. Unknown
+within the edited cell; neighboring cells may have different styles. Nonempty,
+unlabelled native paragraphs can also be retained, deleted, reordered or duplicated
+within a cell without changing their text or formatting. Original paragraph
+snapshots select their exact native definitions; copied values require
+unambiguous definitions within that cell. Unknown
 native partition records, arbitrary count-changing rewrites of nonuniform cell
 definitions and unsupported typing encodings refuse output. Publisher can expand rows when text
 wraps or exceeds a cell, so retained stored bounds do not guarantee fixed native
 rendered heights.
 These native limits are separate from in-memory cell editing.
-Independent qualification of nonuniform paragraph retention currently covers
-ordinary stories; equivalent table-cell retention remains unqualified.
 
 `SetTableBounds` uses positive finite frame dimensions and proportionally scales
 column and row tracks. Imported differences between track sums and frame size

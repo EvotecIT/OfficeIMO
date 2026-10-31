@@ -215,8 +215,8 @@ have twelve initial/resaved PDF comparisons with independently authored final
 states, identical in pixels and text spans. Two outputs select between equal
 visible paragraphs with different native language definitions. Raw checks verify
 complete paragraph/body definitions, CR roles, neighboring stories and retained
-storage. These controls qualify ordinary-story retention; table-cell retention
-requires separate native controls. Repair-free opening remains unassessed.
+storage. These controls qualify ordinary-story retention; the separate table-cell
+controls are described below. Repair-free opening remains unassessed.
 
 When ranges no longer fit the original allocation, the codec can append aligned
 formatting pages and directory pages, relocate enlarged BTE indexes and resources,
@@ -337,6 +337,11 @@ Native table-cell text saving retains existing tables, tracks, merged ownership,
 cell order, stored bounds and paint. Each cell retains its final terminator
 convention. Paragraph counts can change when projected and raw source definitions
 are uniform within that cell; neighboring cells may have different styles.
+Nonempty, unlabelled source paragraphs with different definitions can also be
+retained, deleted, reordered or duplicated within the edited cell without changing
+their text or formatting. Source correspondence and final/intermediate CR roles
+are resolved independently inside each cell; definitions from another cell do not
+disambiguate copied values.
 Supported run/paragraph formatting uses the same Quill
 writer as ordinary stories; cell partitions use separately validated `TCD `
 records. Their descriptor uses flag 1 and secondary kind `PLC `; the payload
@@ -353,6 +358,17 @@ from nonuniform definitions within the edited cell
 refuse edited output. Table creation,
 bounds/grid changes, cell merges and table styling have no native save profile.
 These limits apply with `Allow`; unchanged content still returns an exact copy.
+
+The `sourceEditing.cellParagraphRetention` record covers ten public saves from
+the seven-page `TableNonuniformParagraphs` control. First/final cells contain
+independently formatted paragraphs and two neighboring cells stay unchanged.
+Twelve full-page initial/resaved comparisons and eight row-region comparisons
+match independent native final states in pixels and text spans. Two additional
+outputs select between equal visible paragraphs with different native language
+definitions. Raw checks preserve complete paragraph/body definitions, per-cell
+CR roles, TCD ownership, tracks, neighboring stories and unrelated storage.
+These fitting controls do not qualify general row reflow, nonuniform empty
+paragraphs, count-changing text/formatting rewrites or repair-free opening.
 
 The `sourceEditing.tableText` qualification record covers six public saves over
 twelve native document-page states: first/final/all cell replacements, bold/italic

@@ -48,6 +48,11 @@ definitions. Alignment, paragraph spacing and indentation distinguish the source
 paragraphs. Each frame uses Arial 12-point body text; the final CR has its own
 inherited typing style. Its contract records requested and observed paragraph
 formatting and language values.
+TableNonuniformParagraphs uses the same seven paragraph profiles in the first
+and final cells of a two-by-two table, with two unchanged neighboring cells.
+Each 468-by-432-point table fits on one page. The control distinguishes native
+per-cell formatting and language metadata from the complete table story and
+its TCD partition endpoints; it does not measure general row reflow.
 TextStories has three separate stories, with an empty
 paragraph inside its middle story. TextFormattingPages retains 96 paragraphs,
 including overflow beyond its sole text frame, across two native paragraph-formatting
