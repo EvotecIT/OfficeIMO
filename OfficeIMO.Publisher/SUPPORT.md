@@ -472,6 +472,20 @@ native row/column getters confirm the intended tracks. Larger, merged and styled
 table authoring, generic public native creation and repair-free opening remain
 unqualified.
 
+The internal `frame-layout` and `frame-layout-edited` creation specimens carry
+six frames on two pages from public `SetTextFrameLayout` snapshots into the
+native shape properties and alignment records. They cover one, two and three
+columns, explicit full gaps of 0/12/18/12.1 points, asymmetric and fractional
+insets, and Top/Center/Bottom alignment. The `frameLayoutCreation` qualification
+record covers five files and 35 native operations, including public layout edits
+of generated, native-normalized and independent sources. Ten reloads preserve
+all six complete stories and the 60 observed native frame layouts. Eighteen of
+20 initial/resaved page comparisons match independent controls at 144 dpi;
+the two baseline page-one comparisons retain a native hyphenation and column-break
+difference. Every edited output matches its independent control. Native column
+balancing, general layout parity, repair-free opening and generic public native
+creation remain unqualified.
+
 Crop source saving can set or clear all four edge fractions, including local
 zero overrides, and combine them with image replacement and bounds changes.
 `PUB_NATIVE_PICTURE_CROP_UNQUALIFIED` keeps native acceptance conservative for

@@ -1,0 +1,343 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "FrameCreation",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 2,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten.",
+      "One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten.",
+      "One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten.",
+      "Short native body.",
+      "Short native body.",
+      "One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten."
+    ],
+    "shapes": [
+      {
+        "name": "Frame0",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "frameLayout": {
+          "columns": 1,
+          "columnSpacing": 0.0,
+          "left": 12.0,
+          "top": 6.0,
+          "right": 18.0,
+          "bottom": 9.0,
+          "verticalAlignment": 0
+        }
+      },
+      {
+        "name": "Frame1",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "frameLayout": {
+          "columns": 2,
+          "columnSpacing": 6.0,
+          "left": 0.0,
+          "top": 0.0,
+          "right": 0.0,
+          "bottom": 0.0,
+          "verticalAlignment": 0
+        }
+      },
+      {
+        "name": "Frame2",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "frameLayout": {
+          "columns": 3,
+          "columnSpacing": 9.0,
+          "left": 0.0,
+          "top": 0.0,
+          "right": 0.0,
+          "bottom": 0.0,
+          "verticalAlignment": 0
+        }
+      },
+      {
+        "name": "Frame3",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "frameLayout": {
+          "columns": 1,
+          "columnSpacing": 0.0,
+          "left": 12.0,
+          "top": 6.0,
+          "right": 18.0,
+          "bottom": 9.0,
+          "verticalAlignment": 1
+        }
+      },
+      {
+        "name": "Frame4",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "frameLayout": {
+          "columns": 1,
+          "columnSpacing": 0.0,
+          "left": 0.0,
+          "top": 0.0,
+          "right": 0.0,
+          "bottom": 0.0,
+          "verticalAlignment": 2
+        }
+      },
+      {
+        "name": "Frame5",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "frameLayout": {
+          "columns": 3,
+          "columnSpacing": 6.050000190734863,
+          "left": 1.2100000381469727,
+          "top": 2.4200000762939453,
+          "right": 3.630000114440918,
+          "bottom": 4.840000152587891,
+          "verticalAlignment": 0
+        }
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Frame0",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 0.0,
+            "left": 12.0,
+            "top": 6.0,
+            "right": 18.0,
+            "bottom": 9.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "Frame1",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 2,
+            "columnSpacing": 6.0,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "Frame2",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 3,
+            "columnSpacing": 9.0,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554725,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Frame3",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "Short native body.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 0.0,
+            "left": 12.0,
+            "top": 6.0,
+            "right": 18.0,
+            "bottom": 9.0,
+            "verticalAlignment": 1
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "Frame4",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "Short native body.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 0.0,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 2
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "Frame5",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten. One two three four five six seven eight nine ten.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 3,
+            "columnSpacing": 6.050000190734863,
+            "left": 1.2100000381469727,
+            "top": 2.4200000762939453,
+            "right": 3.630000114440918,
+            "bottom": 4.840000152587891,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-framecreation.pub",
+      "sha256": "3aaa3ebdd6f178b379f88e3b3267a3ab072085ee68d7ade752ae5ac92116a668"
+    },
+    "reference": {
+      "name": "native-framecreation.pdf",
+      "sha256": "fbc37c7304ad6eb33f8aa2798ad358fd7e6742750869a6e274679ee8780093d2"
+    }
+  }
+}

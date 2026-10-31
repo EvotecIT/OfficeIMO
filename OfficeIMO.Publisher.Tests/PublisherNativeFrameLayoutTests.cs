@@ -24,12 +24,16 @@ public sealed class PublisherNativeFrameLayoutTests {
     }
 
     [Theory]
-    [InlineData("Text")]
-    [InlineData("TextFrameLayout")]
-    [InlineData("MultipleMasters")]
-    [InlineData("Newsletter")]
+    [InlineData("Text/native-text.pub")]
+    [InlineData("TextFrameLayout/native-textframelayout.pub")]
+    [InlineData("MultipleMasters/native-multiplemasters.pub")]
+    [InlineData("Newsletter/native-newsletter.pub")]
+    [InlineData("FrameCreation/native-framecreation.pub")]
+    [InlineData("GeneratedFrameLayout/generated-frame-layout.pub")]
+    [InlineData("GeneratedFrameLayout/native-normalized.pub")]
+    [InlineData("GeneratedFrameLayout/generated-edited.pub")]
     public void Native_layout_saves_grow_missing_fields_and_preserve_complete_stories_and_object_ownership(string fixture) {
-        byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture($"NativeComparison/{fixture}/native-{fixture.ToLowerInvariant()}.pub"));
+        byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture($"NativeComparison/{fixture}"));
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTextFrame[] frames = document.Pages.Concat(document.MasterPages).SelectMany(page => page.TextFrames)
             .Where(frame => frame.CanEditLayout).ToArray();
@@ -59,7 +63,7 @@ public sealed class PublisherNativeFrameLayoutTests {
         Assert.Equal(before.Streams.Keys.OrderBy(key => key), after.Streams.Keys.OrderBy(key => key));
         foreach (string name in before.Streams.Keys.Where(key => key != "Contents" && key != "Escher/EscherStm" && key != "\u0005SummaryInformation"))
             Assert.Equal(before.Streams[name], after.Streams[name]);
-        Assert.Equal(source, File.ReadAllBytes(PublisherNativeTests.Fixture($"NativeComparison/{fixture}/native-{fixture.ToLowerInvariant()}.pub")));
+        Assert.Equal(source, File.ReadAllBytes(PublisherNativeTests.Fixture($"NativeComparison/{fixture}")));
         foreach (PublisherTextFrame original in frames)
             reopened.SetTextFrameLayout(original.Id, original.ColumnCount, original.ColumnSpacing, original.Padding, original.VerticalAlignment);
         PublisherDocument reset = PublisherDocument.Load(reopened.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));

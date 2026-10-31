@@ -1,0 +1,34 @@
+{
+  "schema": "officeimo.publisher.native-frame-creation-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case FrameCreation",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-framecreation.json",
+      "sha256": "6fb13dab73263a958d4c3fd27c36447d37a2f4f37e2c796639e4c5d10fba5a2d"
+    },
+    {
+      "name": "native-framecreation.pdf",
+      "sha256": "fbc37c7304ad6eb33f8aa2798ad358fd7e6742750869a6e274679ee8780093d2"
+    },
+    {
+      "name": "native-framecreation.pub",
+      "sha256": "3aaa3ebdd6f178b379f88e3b3267a3ab072085ee68d7ade752ae5ac92116a668"
+    }
+  ],
+  "observed": "Six frames on two pages; explicit Arial12/18pt line height, one/two/three columns, full gaps0/12/18/12.1pt, asymmetric and fractional insets, Top/Center/Bottom. Edited: two columns, fullgap14pt, insets9/3/15/6pt, Bottom.",
+  "limits": "Native hyphenation differs on baseline page one; balancing and repair-free opening remain unqualified."
+}

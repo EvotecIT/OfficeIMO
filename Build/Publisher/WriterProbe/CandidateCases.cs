@@ -5,6 +5,10 @@ internal static class CandidateCases {
     private static readonly CandidatePlacement DefaultPlacement = new(72, 72, 288, 108);
 
     internal static CandidatePublicationSpec Create(string kind, string? value, string? secondValue = null) {
+        if (kind is "frame-layout" or "frame-layout-edited") {
+            if (value != null || secondValue != null) throw new ArgumentException("The frame layout specimens use fixed text.");
+            return CandidateFrameLayout.Create(kind == "frame-layout-edited");
+        }
         if (kind is "table" or "table-edited") {
             if (value != null || secondValue != null) throw new ArgumentException("The table specimens use fixed cell text.");
             return CandidateTableCreation.Create(kind == "table-edited");

@@ -81,6 +81,8 @@ internal static class NativePublicationGraph {
                 if (item.Source.Table == null) fields.Add(Scalar(0x28, 0x20, item.Source.FrameOrder));
             }
             if (item.Source.Table != null) fields.AddRange(CandidateTableRecords.Fields(item.Source.Table, tableCells[item.Id]));
+            if (item.Source.FrameLayout is { VerticalAlignment: not OfficeIMO.Drawing.OfficeTextVerticalAlignment.Top } layout)
+                fields.Add(Scalar(0x35, 0x20, (uint)layout.VerticalAlignment));
             if (pictureResources.TryGetValue(item.Id, out uint resource)) fields.Add(Scalar(0x3A, 0x70, resource));
             chunks.Add(new NativeRecord(item.Source.NativeKind, item.OwnerPageId, Chunk(fields.ToArray())));
         }

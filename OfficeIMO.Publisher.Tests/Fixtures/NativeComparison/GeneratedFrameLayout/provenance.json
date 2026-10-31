@@ -1,0 +1,23 @@
+{
+  "schema": "officeimo.publisher.generated-frame-layout-fixture.v1",
+  "reproduction": "WriterProbe create frame-layout|frame-layout-edited <output.pub>; native Validate/Full",
+  "sourcePublication": null,
+  "files": [
+    {
+      "name": "generated-frame-layout.pub",
+      "sha256": "f76e797c724b2d8ad2619344d01b0a8fbbbbed0d15be5dda4586779c823a855f"
+    },
+    {
+      "name": "native-normalized.pub",
+      "sha256": "b19c35ad773db7763f0f30df7227813bfbc0dbb0f5001baf07c9135f8c7e7bbe"
+    },
+    {
+      "name": "generated-edited.pub",
+      "sha256": "9c80dcb7dab03bdc088c4e327c017eef277b16cf75b7d0a31bc67f65f7470dba"
+    }
+  ],
+  "nativeProducer": "Microsoft Publisher16.0.20527.20088",
+  "independentReference": "../FrameCreation and ../FrameCreationEdited",
+  "profile": "Six public-model layout frames on two pages, six independent complete stories.",
+  "limits": "Baseline native hyphenation differs on page one; balancing, repair-free and generic public native creation remain unqualified."
+}

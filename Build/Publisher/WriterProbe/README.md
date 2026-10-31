@@ -40,6 +40,8 @@ dotnet $probe create linked-story ./candidate-linked-story.pub
 dotnet $probe create linked-story-overflow ./candidate-linked-overflow.pub
 dotnet $probe create table ./candidate-table.pub
 dotnet $probe create table-edited ./candidate-table-edited.pub
+dotnet $probe create frame-layout ./candidate-frame-layout.pub
+dotnet $probe create frame-layout-edited ./candidate-frame-layout-edited.pub
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create styled-text ./candidate-styled-text.pub
 dotnet $probe create shape ./candidate-shape.pub
@@ -306,6 +308,7 @@ Page, picture and image-asset counts depend on the selected case.
 | `mixed-object-pages` | Authors overlapping rectangle/picture/text/rectangle on the first page and text/picture/rectangle/picture on the last, with an empty middle page. Three pictures share one asset; two text frames own independent stories. One PNG path required. |
 | `master-content` | One master owns a rectangle, picture and text frame and is applied to three physical pages. Page-owned foreground overlaps the master; one page picture reuses the master asset. One PNG path required. |
 | `linked-story`, `linked-story-overflow` | One story flows through three frames on pages 1, 3 and 2, alongside an independent label. Fixed Arial text and 18-point line spacing; the longer specimen retains terminal overflow. |
+| `frame-layout`, `frame-layout-edited` | Six public-model text frames on two pages: one/two/three columns, asymmetric and fractional insets, full intercolumn gaps and Top/Center/Bottom alignment. The edited case applies two columns, a 14-point full gap, 9/3/15/6-point insets and Bottom alignment. |
 | `table`, `table-edited` | Borderless 2×2 table with unequal tracks, bold headers, an empty final cell and independent label. The edited specimen adds a first-cell paragraph and refills the last cell. |
 | `cropped-image-pages` | Uses the named-image model and public `SetPictureCrop` on the first picture, with distinct left/top/right/bottom fractions `0.25/0.125/0.0625/0.1875`. The shared OfficeArt encoder owns the native values. Two PNG paths required for this qualified specimen. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
@@ -569,6 +572,18 @@ resave with retired image slots. Its recipes bind input and replacement hashes
 to independent raw image/filename/crop checks and native before/after PDFs.
 Qualification covers delayed image streams; no-delay embedded-BLIP appends,
 exact cropped rendering parity and repair-free opening remain separate gaps.
+
+The `frameLayoutCreation` record qualifies six public-model frames on two pages
+with one/two/three columns, full intercolumn gaps, asymmetric/fractional insets
+and Top/Center/Bottom alignment. Creation writes those current snapshots into
+OfficeArt properties and Contents alignment fields. Public layout edits save
+across generated, normalized and independent producer profiles. Five native
+Full runs complete 35 operations; 60 getter states and ten public reloads retain
+the layouts and six complete stories. Eighteen of 20 independent page comparisons
+match at 144 dpi. The baseline page-one difference is native hyphenation and its
+resulting column breaks; all edited files match the edited native reference.
+Column balancing, general appearance parity and repair-free opening remain
+separate qualification work.
 
 The `sourceEditing.tableText` record covers existing cell text saves with fixed
 grid, cell order and per-cell paragraph counts, including ordinary stories in

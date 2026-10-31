@@ -83,9 +83,17 @@ internal static class CandidateOfficeArt {
         }
         if (isTextBox || isTable) {
             properties[1] = (0x1BF, 0x00100000); // Text frame has no fill.
-            properties.Add((0x81, 0)); properties.Add((0x82, 0));
-            properties.Add((0x83, 0)); properties.Add((0x84, 0));
-            if (item.Source.ColumnSpacing.HasValue)
+            uint Distance(double points) => checked((uint)Math.Round(points * 12700));
+            if (item.Source.FrameLayout is { } layout) {
+                properties.Add((0x81, Distance(layout.Padding.Left))); properties.Add((0x82, Distance(layout.Padding.Top)));
+                properties.Add((0x83, Distance(layout.Padding.Right))); properties.Add((0x84, Distance(layout.Padding.Bottom)));
+                properties.Add((0x8C, checked((uint)layout.ColumnCount)));
+                properties.Add((0x8D, Distance(layout.ColumnSpacing)));
+            } else {
+                properties.Add((0x81, 0)); properties.Add((0x82, 0));
+                properties.Add((0x83, 0)); properties.Add((0x84, 0));
+            }
+            if (item.Source.FrameLayout == null && item.Source.ColumnSpacing.HasValue)
                 properties.Add((0x8D, checked((uint)(item.Source.ColumnSpacing.Value * 12700))));
         }
         if (imageIndex.HasValue) properties.Add((0x4104, imageIndex.Value)); // Native BLIP-ID flag.
