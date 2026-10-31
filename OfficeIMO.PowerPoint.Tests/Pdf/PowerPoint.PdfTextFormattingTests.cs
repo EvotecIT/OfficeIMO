@@ -126,6 +126,43 @@ public sealed class PowerPointPdfTextFormattingTests {
         Assert.Contains(conversion.Warnings, warning => warning.Code == "character-spacing-approximation");
     }
 
+    [Theory]
+    [InlineData("paragraph")]
+    [InlineData("list")]
+    [InlineData("master")]
+    public void InheritedTableHighlightsUseTheConsumingSlideColorMap(string owner) {
+        using var presentation = PowerPointDocument.Create();
+        presentation.SetThemeColor(PowerPointThemeColor.Accent1, "FF0000");
+        presentation.SetThemeColor(PowerPointThemeColor.Accent2, "112233");
+        var slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
+        var map = new A.OverrideColorMapping();
+        map.SetAttributes(slide.SlidePart.SlideLayoutPart!.SlideMasterPart!.SlideMaster.ColorMap!.GetAttributes());
+        map.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("accent1", string.Empty, "accent2"));
+        slide.SlidePart.Slide.ColorMapOverride = new P.ColorMapOverride(map);
+        var table = slide.AddTable(1, 1, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(200), OfficeLength.Points(60));
+        var cell = table.GetCell(0, 0);
+        cell.Text = "Mapped highlight";
+        var run = cell.Runs[0];
+        run.RunProperties!.RemoveAllChildren<A.SolidFill>();
+        run.RunProperties.AddChild(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }));
+        var highlight = new A.Highlight(new A.SchemeColor(new A.Alpha { Val = 50000 }) { Val = A.SchemeColorValues.Accent1 });
+        var defaults = new A.DefaultRunProperties(highlight);
+        if (owner == "paragraph") cell.Cell.TextBody!.Elements<A.Paragraph>().First().ParagraphProperties = new A.ParagraphProperties(defaults);
+        else if (owner == "list") cell.Cell.TextBody!.ListStyle = new A.ListStyle(new A.Level1ParagraphProperties(defaults));
+        else {
+            var level = slide.SlidePart.SlideLayoutPart.SlideMasterPart.SlideMaster.TextStyles!.OtherStyle!
+                .GetFirstChild<A.Level1ParagraphProperties>()!;
+            var existing = level.GetFirstChild<A.DefaultRunProperties>() ?? level.AppendChild(new A.DefaultRunProperties());
+            existing.Append(highlight.CloneNode(true));
+        }
+        using var reopened = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
+        Assert.True(PowerPointSlideImageRenderer.TryCreateTableDrawing(reopened.Slides[0].Tables.Single(), out var drawing, out string? reason), reason);
+        var drawn = Assert.Single(drawing.Elements.OfType<OfficeDrawingRichText>().SelectMany(item => item.Runs),
+            item => item.Text == "Mapped highlight");
+        Assert.Equal(OfficeColor.FromRgba(17, 34, 51, 128), drawn.BackgroundColor);
+        Assert.Equal(OfficeColor.FromRgb(17, 34, 51), drawn.Color);
+    }
+
     [Fact]
     public void NativeRunFormattingProjectsToSharedDrawingRuns() {
         using PowerPointDocument presentation = PowerPointDocument.Create(

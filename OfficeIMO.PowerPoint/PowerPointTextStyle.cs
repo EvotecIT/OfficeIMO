@@ -1,4 +1,5 @@
 using System;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -10,13 +11,19 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextStyle(global::OfficeIMO.OfficeLength? fontSize = null, string? fontName = null, string? color = null,
             bool? bold = null, bool? italic = null, bool? underline = null, string? highlightColor = null,
-            bool? strikethrough = null) {
+            bool? strikethrough = null)
+            : this(fontSize, fontName, color, bold, italic, underline, highlightColor, strikethrough, null) { }
+
+        private PowerPointTextStyle(global::OfficeIMO.OfficeLength? fontSize, string? fontName, string? color,
+            bool? bold, bool? italic, bool? underline, string? highlightColor, bool? strikethrough,
+            PowerPointUnderlineStyle? underlineStyle) {
             FontSize = fontSize;
             FontName = fontName;
             Color = color;
             Bold = bold;
             Italic = italic;
-            Underline = underline;
+            Underline = underlineStyle.HasValue ? underlineStyle.Value != PowerPointUnderlineStyle.None : underline;
+            UnderlineStyle = underlineStyle;
             HighlightColor = highlightColor;
             Strikethrough = strikethrough;
         }
@@ -50,6 +57,12 @@ namespace OfficeIMO.PowerPoint {
         /// Underline formatting.
         /// </summary>
         public bool? Underline { get; }
+
+        /// <summary>Precise native underline variant; null leaves the variant unspecified.</summary>
+        public PowerPointUnderlineStyle? UnderlineStyle { get; }
+
+        internal bool HasFormatting => FontSize.HasValue || FontName != null || Color != null || Bold.HasValue
+            || Italic.HasValue || Underline.HasValue || HighlightColor != null || Strikethrough.HasValue;
 
         /// <summary>
         /// Strikethrough formatting.
@@ -109,9 +122,8 @@ namespace OfficeIMO.PowerPoint {
             if (Italic != null) {
                 run.Italic = Italic.Value;
             }
-            if (Underline != null) {
-                run.Underline = Underline.Value;
-            }
+            if (UnderlineStyle.HasValue) run.UnderlineStyle = UnderlineStyle;
+            else if (Underline != null) run.Underline = Underline.Value;
             if (Strikethrough != null) {
                 run.Strikethrough = Strikethrough.Value;
             }
@@ -143,9 +155,10 @@ namespace OfficeIMO.PowerPoint {
             if (Italic != null) {
                 paragraph.SetItalic(Italic.Value);
             }
-            if (Underline != null) {
-                paragraph.SetUnderline(Underline.Value);
-            }
+            if (UnderlineStyle.HasValue) {
+                paragraph.SetUnderline(UnderlineStyle.Value != PowerPointUnderlineStyle.None);
+                paragraph.Runs[paragraph.Runs.Count - 1].UnderlineStyle = UnderlineStyle;
+            } else if (Underline != null) paragraph.SetUnderline(Underline.Value);
             if (Strikethrough != null) {
                 paragraph.SetStrikethrough(Strikethrough.Value);
             }
@@ -158,35 +171,35 @@ namespace OfficeIMO.PowerPoint {
         /// Returns a copy with a new font size.
         /// </summary>
         public PowerPointTextStyle WithFontSize(global::OfficeIMO.OfficeLength? fontSize) {
-            return new PowerPointTextStyle(fontSize, FontName, Color, Bold, Italic, Underline, HighlightColor, Strikethrough);
+            return new PowerPointTextStyle(fontSize, FontName, Color, Bold, Italic, Underline, HighlightColor, Strikethrough, UnderlineStyle);
         }
 
         /// <summary>
         /// Returns a copy with a new font name.
         /// </summary>
         public PowerPointTextStyle WithFontName(string? fontName) {
-            return new PowerPointTextStyle(FontSize, fontName, Color, Bold, Italic, Underline, HighlightColor, Strikethrough);
+            return new PowerPointTextStyle(FontSize, fontName, Color, Bold, Italic, Underline, HighlightColor, Strikethrough, UnderlineStyle);
         }
 
         /// <summary>
         /// Returns a copy with a new color.
         /// </summary>
         public PowerPointTextStyle WithColor(string? color) {
-            return new PowerPointTextStyle(FontSize, FontName, color, Bold, Italic, Underline, HighlightColor, Strikethrough);
+            return new PowerPointTextStyle(FontSize, FontName, color, Bold, Italic, Underline, HighlightColor, Strikethrough, UnderlineStyle);
         }
 
         /// <summary>
         /// Returns a copy with bold formatting updated.
         /// </summary>
         public PowerPointTextStyle WithBold(bool? bold) {
-            return new PowerPointTextStyle(FontSize, FontName, Color, bold, Italic, Underline, HighlightColor, Strikethrough);
+            return new PowerPointTextStyle(FontSize, FontName, Color, bold, Italic, Underline, HighlightColor, Strikethrough, UnderlineStyle);
         }
 
         /// <summary>
         /// Returns a copy with italic formatting updated.
         /// </summary>
         public PowerPointTextStyle WithItalic(bool? italic) {
-            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, italic, Underline, HighlightColor, Strikethrough);
+            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, italic, Underline, HighlightColor, Strikethrough, UnderlineStyle);
         }
 
         /// <summary>
@@ -200,14 +213,34 @@ namespace OfficeIMO.PowerPoint {
         /// Returns a copy with strikethrough formatting updated.
         /// </summary>
         public PowerPointTextStyle WithStrikethrough(bool? strikethrough) {
-            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, Underline, HighlightColor, strikethrough);
+            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, Underline, HighlightColor, strikethrough, UnderlineStyle);
         }
 
         /// <summary>
         /// Returns a copy with a new highlight color.
         /// </summary>
         public PowerPointTextStyle WithHighlightColor(string? highlightColor) {
-            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, Underline, highlightColor, Strikethrough);
+            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, Underline, highlightColor, Strikethrough, UnderlineStyle);
+        }
+
+        /// <summary>Returns a copy with a native underline variant; null clears the underline override.</summary>
+        public PowerPointTextStyle WithUnderlineStyle(PowerPointUnderlineStyle? underlineStyle) {
+            if (underlineStyle.HasValue && !Enum.IsDefined(typeof(PowerPointUnderlineStyle), underlineStyle.Value))
+                throw new ArgumentOutOfRangeException(nameof(underlineStyle));
+            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, null, HighlightColor, Strikethrough, underlineStyle);
+        }
+
+        /// <summary>Applies requested formatting to the paragraph defaults inherited by new placeholder text.</summary>
+        internal void ApplyDefaults(A.DefaultRunProperties properties) {
+            if (FontSize.HasValue) properties.FontSize = PowerPointTextDefaults.ToDrawingFontSize(FontSize.Value.ToPoints(), nameof(FontSize));
+            if (FontName != null) PowerPointTextPropertyFormatting.SetFontName(properties, FontName);
+            if (Color != null) PowerPointTextPropertyFormatting.SetColor(properties, Color);
+            if (Bold.HasValue) properties.Bold = Bold.Value;
+            if (Italic.HasValue) properties.Italic = Italic.Value;
+            if (UnderlineStyle.HasValue) properties.Underline = UnderlineStyle.Value.ToOpenXml();
+            else if (Underline.HasValue) properties.Underline = Underline.Value ? A.TextUnderlineValues.Single : A.TextUnderlineValues.None;
+            if (Strikethrough.HasValue) properties.Strike = Strikethrough.Value ? A.TextStrikeValues.SingleStrike : A.TextStrikeValues.NoStrike;
+            if (HighlightColor != null) PowerPointTextPropertyFormatting.SetHighlightColor(properties, HighlightColor);
         }
     }
 }

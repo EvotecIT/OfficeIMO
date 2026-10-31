@@ -410,6 +410,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExplicitTemplateLayoutKeepsEditedTitleBoundsOnANewThemedDeck() {
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            var layout = PowerPointTemplate.Inspect(presentation).Masters[0].Layouts.Single(item => item.Name == "Title and Content");
+            presentation.SetLayoutPlaceholderBounds(layout.MasterIndex, layout.LayoutIndex, PowerPointPlaceholderType.Title,
+                new PowerPointLayoutBox(OfficeLength.Points(60), OfficeLength.Points(40), OfficeLength.Points(600), OfficeLength.Points(120)));
+            presentation.SetLayoutPlaceholderTextStyle(layout.MasterIndex, layout.LayoutIndex, PowerPointPlaceholderType.Title,
+                new PowerPointTextStyle(fontSize: OfficeLength.Points(36), fontName: "Arial", bold: false, italic: true)
+                    .WithUnderlineStyle(PowerPointUnderlineStyle.Double).WithColor("336699").WithHighlightColor("FFFF0080"));
+            var content = new PowerPointLayoutSlide { Title = "Edited template title", TemplateLayout = layout };
+            content.Blocks.Add(new PowerPointLayoutKpi("99%", "Availability"));
+            PowerPointLayoutEngine.AddSlides(presentation, content);
+
+            using var reopened = PowerPointDocument.Load(new MemoryStream(presentation.ToBytes()));
+            var slide = Assert.Single(reopened.Slides);
+            var title = Assert.Single(slide.TextBoxes, box => box.Text == "Edited template title");
+            Assert.True(title.TryGetExportBoundsPoints(out double left, out double top, out double width, out double height));
+            Assert.Equal(60D, left);
+            Assert.Equal(40D, top);
+            Assert.Equal(600D, width);
+            Assert.Equal(120D, height);
+            Assert.Empty(reopened.ValidateDocument());
+            var defaults = reopened.GetLayoutPlaceholderTextBox(layout.MasterIndex, layout.LayoutIndex, PowerPointPlaceholderType.Title)!
+                .Paragraphs[0].Paragraph.ParagraphProperties!.GetFirstChild<A.DefaultRunProperties>()!;
+            Assert.Equal(A.TextUnderlineValues.Double, defaults.Underline!.Value);
+            using var pdf = reopened.ToPdf(null, out var report);
+            var drawn = Assert.Single(Pdf.PowerPointPdfTextFormattingTests.GetDrawingTextRuns(
+                Assert.IsType<OfficeIMO.Pdf.PdfCanvasBlock>(Assert.Single(pdf.Blocks))), run => run.Text == "Edited template title");
+            Assert.False(drawn.Bold);
+            Assert.True(drawn.Italic);
+            Assert.Equal("Arial", drawn.FontFamily);
+            Assert.Equal(OfficeTextDecorationStyle.Double, drawn.UnderlineStyle);
+            Assert.Equal((byte)128, drawn.BackgroundColor?.A);
+            // Font-provider approximations remain in the report; inspect the serialized title's size as well.
+            var spans = OfficeIMO.Pdf.PdfReadDocument.Open(pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).Pages.SelectMany(page => page.GetTextSpans())
+                .Where(span => !string.IsNullOrWhiteSpace(span.Text) && "Edited template title".Contains(span.Text)).ToArray();
+            Assert.NotEmpty(spans);
+            Assert.All(spans, span => Assert.Equal(36D, span.FontSize));
+        }
+
+        [Fact]
         public void Compose_ReportsLayoutDiagnosticsInThePreflight() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             var plan = new PowerPointDeckPlan().AddLogoWall("Partners", null, new[] { new PowerPointLogoItem("Contoso") },

@@ -282,7 +282,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor color = ResolveTextRunColor(run, textBox, colorScheme, paragraph);
             if (markerRun && paragraph != null)
                 color = PowerPointEffectiveRunStyleResolver.ResolveBulletColorForExport(paragraph, textBox, color);
-            OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, textBox, colorScheme);
+            OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, textBox, colorScheme, paragraph);
             return new OfficeRichTextRun(
                 ResolvePowerPointDisplayText(text, run, paragraph, markerRun),
                 mapping.MapFontSize(markerRun ? paragraph?.BulletSize?.ToPoints() ?? run?.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints() ?? 18 : run?.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints() ?? 18),
@@ -454,9 +454,13 @@ namespace OfficeIMO.PowerPoint {
                 ?? OfficeColor.Black;
         }
 
-        private static OfficeColor? ResolveTextRunBackgroundColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme) =>
-            PowerPointEffectiveRunStyleResolver.ResolveTextColorElementForExport(
-                run?.RunProperties?.GetFirstChild<A.Highlight>(), textBox);
+        private static OfficeColor? ResolveTextRunBackgroundColor(PowerPointTextRun? run, PowerPointTextBox textBox,
+            A.ColorScheme? colorScheme, PowerPointParagraph? paragraph = null) {
+            if (run != null) paragraph ??= textBox.Paragraphs.FirstOrDefault(item =>
+                ReferenceEquals(item.Paragraph, run.Run.Parent ?? run.RunProperties?.Parent?.Parent));
+            return PowerPointEffectiveRunStyleResolver.ResolveTextColorElementForExport(
+                PowerPointEffectiveRunStyleResolver.ResolveHighlightElement(run, paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle), textBox);
+        }
 
         private static OfficeTextAlignment MapTextAlignment(PowerPointTextAlignment? alignment) {
             if (alignment == PowerPointTextAlignment.Center) {

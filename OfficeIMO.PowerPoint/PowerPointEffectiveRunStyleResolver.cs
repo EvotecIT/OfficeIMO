@@ -441,7 +441,24 @@ namespace OfficeIMO.PowerPoint {
             if (paragraphDefaults != null) sources.Add(paragraphDefaults);
             int level = paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0;
             sources.AddRange(FindDefaultRunProperties(listStyle, level));
+            var shape = paragraph.Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Shape>().FirstOrDefault();
+            if (shape?.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape != null) {
+                var owner = (paragraph.OwnerPart ?? run.OwnerPart) as SlidePart;
+                foreach (var inherited in EnumeratePlaceholderShapes(shape, owner?.SlideLayoutPart).Skip(1))
+                    AddPlaceholderDefaults(sources, inherited, level);
+            }
             return sources;
+        }
+
+        /// <summary>Finds the nearest authored highlight using the same character inheritance as fonts and emphasis.</summary>
+        internal static A.Highlight? ResolveHighlightElement(PowerPointTextRun? run, PowerPointParagraph? paragraph,
+            A.ListStyle? listStyle, OpenXmlCompositeElement? masterTextStyle) {
+            if (run == null) return null;
+            if (paragraph == null) return run.RunProperties?.GetFirstChild<A.Highlight>();
+            IEnumerable<A.TextCharacterPropertiesType> sources = ResolveDirectSources(run, paragraph, listStyle, includeParagraphMark: false);
+            int level = paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0;
+            return sources.Concat(FindDefaultRunProperties(masterTextStyle, level))
+                .Select(properties => properties.GetFirstChild<A.Highlight>()).FirstOrDefault(highlight => highlight != null);
         }
 
         private static IEnumerable<A.DefaultRunProperties> FindDefaultRunProperties(

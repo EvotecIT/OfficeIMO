@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Management.Automation;
 using OfficeIMO;
 using OfficeIMO.Drawing;
@@ -119,13 +118,17 @@ public sealed class SetOfficePowerPointLayoutPlaceholderCommand : OfficeDocument
             if (Highlight.HasValue) style = style.WithHighlightColor(theme.ResolveColor(Highlight));
             if (BoundSwitch(nameof(Bold)) is bool bold) style = style.WithBold(bold);
             if (BoundSwitch(nameof(Italic)) is bool italic) style = style.WithItalic(italic);
+            if (Underline.HasValue) style = style.WithUnderlineStyle(Underline);
 
             var box = CreateIfMissing
                 ? document.EnsureLayoutPlaceholderTextBox(layout.MasterIndex, layout.LayoutIndex, Type, Index)
                 : document.GetLayoutPlaceholderTextBox(layout.MasterIndex, layout.LayoutIndex, Type, Index)
                     ?? throw new ArgumentException("The selected layout placeholder does not exist; use CreateIfMissing to add it.");
-            if (X.HasValue || Y.HasValue || Width.HasValue || Height.HasValue)
-                box.Bounds = new PowerPointLayoutBox(X ?? box.Left, Y ?? box.Top, Width ?? box.Width, Height ?? box.Height);
+            if (X.HasValue || Y.HasValue || Width.HasValue || Height.HasValue) {
+                var bounds = document.GetEffectiveLayoutPlaceholderBounds(layout.MasterIndex, layout.LayoutIndex, Type, Index)
+                    ?? box.Bounds;
+                box.Bounds = new PowerPointLayoutBox(X ?? bounds.Left, Y ?? bounds.Top, Width ?? bounds.Width, Height ?? bounds.Height);
+            }
             if (TextMargin != null) {
                 OfficeLength top = TextMargin[0], right = TextMargin.Length == 1 ? top : TextMargin[1];
                 OfficeLength bottom = TextMargin.Length == 4 ? TextMargin[2] : top;
@@ -138,11 +141,6 @@ public sealed class SetOfficePowerPointLayoutPlaceholderCommand : OfficeDocument
             if (hasStyle) {
                 document.SetLayoutPlaceholderTextStyle(layout.MasterIndex, layout.LayoutIndex, Type, style, Index,
                     Level, BulletChar?[0], Numbering);
-                if (Underline.HasValue) {
-                    var paragraph = box.Paragraphs[0];
-                    var run = paragraph.Runs.LastOrDefault() ?? paragraph.AddRun(string.Empty);
-                    run.UnderlineStyle = Underline;
-                }
             }
             if (PassThru) WriteObject(box);
         } catch (ArgumentException error) { InvalidArgument(error, document); }

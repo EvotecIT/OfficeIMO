@@ -47,6 +47,44 @@ public sealed partial class PowerPointContentWorkflowTests {
     }
 
     [Theory]
+    [InlineData("X", 60, 40, 600, 120)]
+    [InlineData("Y", 30, 60, 600, 120)]
+    [InlineData("Width", 30, 40, 60, 120)]
+    [InlineData("Height", 30, 40, 600, 60)]
+    public void PartialLayoutBoundsPreserveTheInheritedMasterTransform(string parameter, int x, int y, int width, int height) {
+        using var document = PowerPointDocument.Create();
+        var layout = document.GetSlideLayouts().Single(item => item.Name == "Title and Content");
+        var master = document.OpenXmlDocument.PresentationPart!.SlideMasterParts.First();
+        var title = master.SlideMaster!.CommonSlideData!.ShapeTree!
+            .Elements<DocumentFormat.OpenXml.Presentation.Shape>().Single(shape =>
+                shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value
+                    == DocumentFormat.OpenXml.Presentation.PlaceholderValues.Title);
+        title.ShapeProperties!.Transform2D = new DocumentFormat.OpenXml.Drawing.Transform2D(
+            new DocumentFormat.OpenXml.Drawing.Offset { X = 30 * 12700, Y = 40 * 12700 },
+            new DocumentFormat.OpenXml.Drawing.Extents { Cx = 600 * 12700, Cy = 120 * 12700 });
+        var part = master.SlideLayoutParts.ElementAt(layout.LayoutIndex);
+        part.SlideLayout!.CommonSlideData!.ShapeTree!
+            .Elements<DocumentFormat.OpenXml.Presentation.Shape>().Single(shape =>
+                shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value
+                    == DocumentFormat.OpenXml.Presentation.PlaceholderValues.Title).ShapeProperties!.Transform2D = null;
+        using var runspace = Open();
+        runspace.SessionStateProxy.SetVariable("deck", document);
+        runspace.SessionStateProxy.SetVariable("layout", layout);
+        using var shell = PowerShell.Create();
+        shell.Runspace = runspace;
+        shell.AddScript("Set-OfficePowerPointLayoutPlaceholder -Document $deck -TemplateLayout $layout -Type Title -" + parameter + " 60pt");
+        Assert.Empty(shell.Invoke());
+        Assert.False(shell.HadErrors, Errors(shell));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
+        Assert.Empty(saved.ValidateDocument());
+        var edited = saved.GetLayoutPlaceholderTextBox(0, layout.LayoutIndex, PowerPointPlaceholderType.Title)!;
+        Assert.Equal(x, edited.Left.ToPoints());
+        Assert.Equal(y, edited.Top.ToPoints());
+        Assert.Equal(width, edited.Width.ToPoints());
+        Assert.Equal(height, edited.Height.ToPoints());
+    }
+
+    [Theory]
     [InlineData("4pt", 4, 4, 4, 4)]
     [InlineData("2pt,3pt", 2, 3, 2, 3)]
     [InlineData("1pt,2pt,3pt,4pt", 1, 2, 3, 4)]

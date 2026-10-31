@@ -144,6 +144,18 @@ namespace OfficeIMO.PowerPoint {
             return shape == null ? null : new PowerPointTextBox(shape);
         }
 
+        /// <summary>Reads layout geometry in native inheritance order before a partial edit materializes a local transform.</summary>
+        internal PowerPointLayoutBox? GetEffectiveLayoutPlaceholderBounds(int masterIndex, int layoutIndex,
+            PowerPointPlaceholderType placeholderType, uint? index = null) {
+            ThrowIfDisposed();
+            SlideLayoutPart layout = GetSlideLayoutPart(masterIndex, layoutIndex);
+            Shape? shape = FindLayoutPlaceholderShape(layout, placeholderType, index);
+            PlaceholderShape? placeholder = shape?.NonVisualShapeProperties?
+                .ApplicationNonVisualDrawingProperties?.PlaceholderShape;
+            return shape == null || placeholder == null ? null
+                : PowerPointSlide.GetLayoutElementBounds(shape) ?? PowerPointSlide.GetExportPlaceholderBounds(layout, placeholder);
+        }
+
         /// <summary>
         ///     Ensures a layout placeholder textbox exists, creating it if missing.
         /// </summary>
@@ -229,6 +241,15 @@ namespace OfficeIMO.PowerPoint {
             }
 
             style.Apply(paragraph);
+            if (style.HasFormatting) {
+                A.ParagraphProperties properties = paragraph.Paragraph.ParagraphProperties ??= new A.ParagraphProperties();
+                A.DefaultRunProperties? defaults = properties.GetFirstChild<A.DefaultRunProperties>();
+                if (defaults == null) {
+                    defaults = new A.DefaultRunProperties();
+                    properties.AddChild(defaults, true);
+                }
+                style.ApplyDefaults(defaults);
+            }
         }
 
         /// <summary>

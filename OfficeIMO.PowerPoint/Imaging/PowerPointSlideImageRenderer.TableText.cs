@@ -168,7 +168,7 @@ internal static partial class PowerPointSlideImageRenderer {
         OfficeColor color = ResolveTableCellTextRunColor(run, cell, colorScheme);
         if (markerRun && paragraph != null)
             color = PowerPointEffectiveRunStyleResolver.ResolveBulletColorForExport(paragraph, cell, colorScheme, color);
-        OfficeColor? backgroundColor = ResolveTableCellTextRunBackgroundColor(run, colorScheme);
+        OfficeColor? backgroundColor = ResolveTableCellTextRunBackgroundColor(run, cell, paragraph, colorScheme);
         Uri? hyperlink = markerRun ? null : run?.Hyperlink;
         return new OfficeRichTextRun(
             ResolvePowerPointDisplayText(text, run, paragraph, markerRun),
@@ -254,7 +254,8 @@ internal static partial class PowerPointSlideImageRenderer {
     }
 
     private static OfficeColor ResolveTableCellTextRunColor(PowerPointTextRun? run, PowerPointTableCell cell, A.ColorScheme? colorScheme) {
-        OfficeColor? runColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
+        OfficeColor? runColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme,
+            colorMap: PowerPointSlide.ResolveExportColorMap(cell.SlidePart));
         if (runColor.HasValue) {
             return runColor.Value;
         }
@@ -266,13 +267,20 @@ internal static partial class PowerPointSlideImageRenderer {
         PowerPointTextRun? run = cell.Paragraphs
             .SelectMany(paragraph => paragraph.InlineNodes)
             .FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run;
-        OfficeColor? cellColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
+        OfficeColor? cellColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme,
+            colorMap: PowerPointSlide.ResolveExportColorMap(cell.SlidePart));
         return cellColor.HasValue
             ? cellColor.Value
             : OfficeColor.Black;
     }
 
-    private static OfficeColor? ResolveTableCellTextRunBackgroundColor(PowerPointTextRun? run, A.ColorScheme? colorScheme) {
-        return OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.Highlight>(), colorScheme);
+    private static OfficeColor? ResolveTableCellTextRunBackgroundColor(PowerPointTextRun? run, PowerPointTableCell cell,
+        PowerPointParagraph? paragraph, A.ColorScheme? colorScheme) {
+        if (run != null) paragraph ??= cell.Paragraphs.FirstOrDefault(item =>
+            ReferenceEquals(item.Paragraph, run.Run.Parent ?? run.RunProperties?.Parent?.Parent));
+        var masterStyle = cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles?.OtherStyle;
+        return OfficeOpenXmlThemeColorResolver.ResolveColor(
+            PowerPointEffectiveRunStyleResolver.ResolveHighlightElement(run, paragraph, cell.Cell.TextBody?.ListStyle, masterStyle), colorScheme,
+            colorMap: PowerPointSlide.ResolveExportColorMap(cell.SlidePart));
     }
 }

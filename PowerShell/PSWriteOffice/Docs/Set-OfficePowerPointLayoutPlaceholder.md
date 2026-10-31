@@ -4,45 +4,35 @@ Module Name: PSWriteOffice
 online version: https://github.com/EvotecIT/OfficeIMO
 schema: 2.0.0
 ---
-# Set-OfficePowerPointLayoutPlaceholderTextStyle
+# Set-OfficePowerPointLayoutPlaceholder
 ## SYNOPSIS
-Sets layout placeholder text style and bullet/numbering settings.
+Updates a template layout placeholder's geometry, text margins and text style.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficePowerPointLayoutPlaceholderTextStyle -Layout <int> -PlaceholderType <PowerPointPlaceholderType> [-Presentation <PowerPointDocument>] [-Master <int>] [-Index <UInt32>] [-Style <string>] [-FontSize <Int32>] [-FontName <string>] [-Color <string>] [-Bold <Boolean>] [-Italic <Boolean>] [-Underline <Boolean>] [-HighlightColor <string>] [-Level <Int32>] [-BulletChar <string>] [-Numbering <PowerPointNumberingScheme>] [-CreateIfMissing] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointLayoutPlaceholder -TemplateLayout <PowerPointLayoutSelector> -Type <PowerPointPlaceholderType> [-Master <int>] [-Index <UInt32>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-TextMargin <OfficeLength[]>] [-Style <string>] [-Size <OfficeLength>] [-Font <string>] [-Color <OfficeColor>] [-Highlight <OfficeColor>] [-Bold] [-Italic] [-Underline <PowerPointUnderlineStyle>] [-Level <Int32>] [-BulletChar <string>] [-Numbering <PowerPointNumberingScheme>] [-CreateIfMissing] [-PassThru] [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Sets layout placeholder text style and bullet/numbering settings.
+Omitted properties keep their current values. Master and layout positions start at one.
+Numbers mean points; text margins use one, two or four values in CSS order.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Set-OfficePowerPointLayoutPlaceholderTextStyle -Presentation $ppt -Master 0 -Layout 1 -PlaceholderType Title -Style Title
+Set-OfficePowerPointLayoutPlaceholder -Document $deck -TemplateLayout 'Title and Content' -Type Title -X 2cm -Width 24cm -TextMargin 6pt,8pt -Size 32pt -Bold
 ```
 
-Applies the Title preset to the layout placeholder.
-
-### EXAMPLE 2
-```powershell
-PS> New-OfficePowerPoint -Path .\deck.pptx {
-  $layout = Get-OfficePowerPointLayout | Select-Object -First 1
-  Set-OfficePowerPointLayoutPlaceholderTextStyle -Master $layout.MasterIndex -Layout $layout.LayoutIndex -PlaceholderType Title -Style Title -FontSize 36 -Bold $true
-}
-```
-
-Uses the DSL context to resolve the presentation.
 
 ## PARAMETERS
 
 ### -Bold
-Apply bold formatting.
+Gets or sets bold formatting; an explicitly false switch clears it.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -55,7 +45,7 @@ Accept wildcard characters: False
 ```
 
 ### -BulletChar
-Optional bullet character (ignored when -Numbering is supplied).
+Gets or sets a single bullet character, exclusive with Numbering.
 
 ```yaml
 Type: String
@@ -71,10 +61,10 @@ Accept wildcard characters: False
 ```
 
 ### -Color
-Text color. Named colors and hexadecimal values are accepted.
+Gets or sets text color, resolving theme roles against the selected master.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -87,7 +77,7 @@ Accept wildcard characters: False
 ```
 
 ### -CreateIfMissing
-Create the placeholder if it is missing.
+Gets or sets whether to create a missing placeholder.
 
 ```yaml
 Type: SwitchParameter
@@ -102,8 +92,24 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FontName
-Font name (Latin).
+### -Document
+Gets or sets an explicit live document; omission uses the enclosing content block.
+
+```yaml
+Type: PowerPointDocument
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Font
+Gets or sets the Latin font family.
 
 ```yaml
 Type: String
@@ -118,11 +124,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FontSize
-Font size in points.
+### -Height
+Gets or sets the positive placeholder height.
 
 ```yaml
-Type: Int32
+Type: OfficeLength
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -134,11 +140,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -HighlightColor
-Highlight color. Named colors and hexadecimal values are accepted.
+### -Highlight
+Gets or sets the highlight color.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -151,7 +157,7 @@ Accept wildcard characters: False
 ```
 
 ### -Index
-Optional placeholder index.
+Gets or sets the optional native placeholder index.
 
 ```yaml
 Type: UInt32
@@ -167,10 +173,10 @@ Accept wildcard characters: False
 ```
 
 ### -Italic
-Apply italic formatting.
+Gets or sets italic formatting; an explicitly false switch clears it.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -182,24 +188,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Layout
-Layout index within the master.
-
-```yaml
-Type: Int32
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Level
-Paragraph level (0-8) to set before applying style.
+Gets or sets the zero-based paragraph indentation level.
 
 ```yaml
 Type: Int32
@@ -215,7 +205,7 @@ Accept wildcard characters: False
 ```
 
 ### -Master
-Slide master index.
+Gets or sets the one-based master position, defaulting to the first or to the layout metadata's master.
 
 ```yaml
 Type: Int32
@@ -231,7 +221,7 @@ Accept wildcard characters: False
 ```
 
 ### -Numbering
-Optional numbering scheme name (e.g. ArabicPeriod, RomanUpper).
+Gets or sets the native numbering scheme, exclusive with BulletChar.
 
 ```yaml
 Type: PowerPointNumberingScheme
@@ -247,7 +237,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the placeholder textbox after update.
+Gets or sets whether to emit the updated native text box.
 
 ```yaml
 Type: SwitchParameter
@@ -262,27 +252,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PlaceholderType
-Placeholder type to target.
+### -Size
+Gets or sets the font size, from one through 4000 points.
 
 ```yaml
-Type: PowerPointPlaceholderType
-Parameter Sets: __AllParameterSets
-Aliases: Type
-Possible values: Title, Body, CenteredTitle, SubTitle, DateAndTime, SlideNumber, Footer, Header, Object, Chart, Table, ClipArt, Diagram, Media, SlideImage, Picture
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Presentation
-Presentation to update (optional inside DSL).
-
-```yaml
-Type: PowerPointDocument
+Type: OfficeLength
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -290,12 +264,12 @@ Possible values:
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Style
-Named style preset (Title, Subtitle, Body, Caption, Emphasis).
+Gets or sets a native text preset.
 
 ```yaml
 Type: String
@@ -310,11 +284,107 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Underline
-Apply underline formatting.
+### -TemplateLayout
+Gets or sets a layout name, one-based position, native type or returned layout metadata.
 
 ```yaml
-Type: Boolean
+Type: PowerPointLayoutSelector
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -TextMargin
+Gets or sets margins: all; vertical,horizontal; or top,right,bottom,left.
+
+```yaml
+Type: OfficeLength[]
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Type
+Gets or sets the placeholder type.
+
+```yaml
+Type: PowerPointPlaceholderType
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values: Title, Body, CenteredTitle, SubTitle, DateAndTime, SlideNumber, Footer, Header, Object, Chart, Table, ClipArt, Diagram, Media, SlideImage, Picture
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Underline
+Gets or sets the native underline style; None removes underlining.
+
+```yaml
+Type: PowerPointUnderlineStyle
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values: None, Words, Single, Double, Heavy, Dotted, HeavyDotted, Dash, DashHeavy, DashLong, DashLongHeavy, DotDash, DotDashHeavy, DotDotDash, DotDotDashHeavy, Wavy, WavyHeavy, WavyDouble
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Width
+Gets or sets the positive placeholder width.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -X
+Gets or sets the left position; negative positions are allowed.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Y
+Gets or sets the top position; negative positions are allowed.
+
+```yaml
+Type: OfficeLength
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

@@ -1669,14 +1669,8 @@ Injects externally produced CMS, CAdES, or timestamp signature bytes into a prep
 ### [Set-OfficePdfTheme](Set-OfficePdfTheme.md)
 Applies an OfficeIMO.Pdf theme preset to a generated PDF document.
 
-### [Set-OfficePowerPointLayoutPlaceholderBounds](Set-OfficePowerPointLayoutPlaceholderBounds.md)
-Sets layout placeholder bounds for a slide layout.
-
-### [Set-OfficePowerPointLayoutPlaceholderTextMargins](Set-OfficePowerPointLayoutPlaceholderTextMargins.md)
-Sets layout placeholder text margins for a slide layout (points).
-
-### [Set-OfficePowerPointLayoutPlaceholderTextStyle](Set-OfficePowerPointLayoutPlaceholderTextStyle.md)
-Sets layout placeholder text style and bullet/numbering settings.
+### [Set-OfficePowerPointLayoutPlaceholder](Set-OfficePowerPointLayoutPlaceholder.md)
+Updates a template layout placeholder's geometry, text margins and text style.
 
 ### [Set-OfficePowerPointNotes](Set-OfficePowerPointNotes.md)
 Sets speaker notes on a native slide or in the current slide content block.

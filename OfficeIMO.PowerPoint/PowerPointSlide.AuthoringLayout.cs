@@ -16,7 +16,8 @@ namespace OfficeIMO.PowerPoint {
             if (_authoringHeader != null && title == null) return _authoringHeader;
             var header = new PowerPointLayoutSlide { Title = title, Layout = PowerPointLayout.TitleAndContent };
             PowerPointSlideLayoutInfo? layout = GetLayoutInfo();
-            if (layout.HasValue) header.TemplateLayout = OwnerDocument?.InspectTemplate().Masters
+            // The implicit Modern layout keeps automatic title fitting; an imported template retains its authored frame.
+            if (layout.HasValue && OwnerDocument?.OwnsLayoutTheme == false) header.TemplateLayout = OwnerDocument.InspectTemplate().Masters
                 .SelectMany(master => master.Layouts)
                 .FirstOrDefault(item => item.MasterIndex == layout.Value.MasterIndex && item.LayoutIndex == layout.Value.LayoutIndex);
             return header;

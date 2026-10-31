@@ -211,7 +211,7 @@ namespace OfficeIMO.PowerPoint {
             };
         }
 
-        private static PowerPointLayoutBox? GetLayoutElementBounds(OpenXmlElement element) {
+        internal static PowerPointLayoutBox? GetLayoutElementBounds(OpenXmlElement element) {
             return element switch {
                 Shape s => GetLayoutElementBounds(s.ShapeProperties?.Transform2D),
                 DocumentFormat.OpenXml.Presentation.Picture p => GetLayoutElementBounds(p.ShapeProperties?.Transform2D),

@@ -94,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Reads the selected layout's authored title frame without creating a provisional slide.</summary>
         internal static PowerPointLayoutBox? TemplateTitleBounds(PowerPointLayoutContext context, PowerPointLayoutSlide slide) {
-            if (context.Document.OwnsLayoutTheme) return null;
+            if (context.Document.OwnsLayoutTheme && slide.TemplateLayout == null) return null;
             int master, layout;
             if (slide.TemplateLayout != null) {
                 master = slide.TemplateLayout.MasterIndex;
@@ -162,7 +162,7 @@ namespace OfficeIMO.PowerPoint {
         internal static HeaderGeometry RenderHeader(PowerPointLayoutContext context, PowerPointLayoutWriter writer,
             PowerPointLayoutSlide slide, bool decorate = true) {
             PowerPointLayoutGrid grid = context.Grid;
-            if (!context.Document.OwnsLayoutTheme &&
+            if ((!context.Document.OwnsLayoutTheme || slide.TemplateLayout != null) &&
                 TemplateTitle(context, writer.Slide.SlidePart.SlideLayoutPart) is PowerPointLayoutPlaceholderInfo templateTitle) {
                 return RenderTemplateHeader(context, writer, slide, templateTitle);
             }

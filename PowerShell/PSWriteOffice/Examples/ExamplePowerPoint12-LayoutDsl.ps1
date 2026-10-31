@@ -4,20 +4,14 @@ $null = New-Item -Path $documents -ItemType Directory -Force
 $path = Join-Path $documents 'LayoutDslExample.pptx'
 
 New-OfficePowerPoint -Path $path {
-    $layout = Get-OfficePowerPointLayout | Select-Object -First 1
-    if (-not $layout) {
-        return
-    }
+    $layout = Get-OfficePowerPointLayout |
+        Where-Object Name -eq 'Title and Content' | Select-Object -First 1
 
     Set-OfficePowerPointLayoutPlaceholder -TemplateLayout $layout -Type Title `
-        -X 60 -Y 40 -Width 600 -Height 120 -CreateIfMissing
-    Set-OfficePowerPointLayoutPlaceholder -TemplateLayout $layout -Type Title `
-        -TextMargin 6,8,6,8 -CreateIfMissing
-    Set-OfficePowerPointLayoutPlaceholder -TemplateLayout $layout -Type Title `
-        -Style Title -Size 36 -Bold -CreateIfMissing
+        -X 60pt -Y 40pt -Width 600pt -Height 120pt -TextMargin 6pt,8pt -Style Title -Size 36pt -Bold
 
-    PptSlide -LayoutType $layout.Type {
-        PptTitle -Title 'Layout Styled'
+    PowerPointSlide -Title 'Layout styled' -TemplateLayout $layout {
+        PowerPointParagraph 'One command sets the layout title geometry and formatting.'
     }
 }
 
