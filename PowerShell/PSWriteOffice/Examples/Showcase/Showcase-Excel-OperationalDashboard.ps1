@@ -1,5 +1,5 @@
 param(
-    [switch] $Open,
+    [switch] $Show,
     [string] $OutputDirectory = (Join-Path $PSScriptRoot 'Output')
 )
 
@@ -142,7 +142,7 @@ New-OfficeExcel -Path $path {
     }
 
     ExcelTableOfContents -SheetName 'Index' -IncludeNamedRanges -AddBackLinks -BackLinkText 'Back to Index'
-} -Open:$Open -EvaluateFormulas
+} -Show:$Show -SaveOptions (New-OfficeExcelSaveOptions -EvaluateFormulas)
 
 $threaded = Add-OfficeExcelThreadedComment -Path $path -Sheet Summary -Address A2 -Text 'Review dashboard posture before sending to service owners.' -Author 'Automation Reviewer' -PassThru
 Add-OfficeExcelThreadedComment -Path $path -Sheet Summary -Address A2 -Text 'Ready for owner review.' -Author 'Report Owner' -ParentId $threaded.Id -Done

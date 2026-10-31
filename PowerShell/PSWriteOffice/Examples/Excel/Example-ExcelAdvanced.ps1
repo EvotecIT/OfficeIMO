@@ -1,3 +1,5 @@
+param([switch] $Show)
+
 Import-Module PSWriteOffice -ErrorAction Stop
 $documents = Join-Path $PSScriptRoot '..\Documents'
 $null = New-Item -Path $documents -ItemType Directory -Force
@@ -15,25 +17,27 @@ $imagePath = Join-Path $PSScriptRoot '..\Word\Example-WordTableCells.fixture.png
 
 New-OfficeExcel -Path $path {
     ExcelSheet 'Data' {
-        ExcelTable -Data $data -Start A1 -AutoFit -Style 'TableStyleMedium9'
+        ExcelTable -Data $data -Name 'SalesData' -AutoFit -TableStyle 'TableStyleMedium9'
         ExcelValidationList -Range 'D2:D20' -Values 'New','In Progress','Done'
-        ExcelConditionalRule -Range 'C2:C20' -Operator GreaterThan -Value 1000 -Style 'Good'
         ExcelAutoFilter -Range 'A1:D20'
         ExcelSheetView -FreezeRows 1
-        ExcelSort -Range 'A1:D20' -Key 'C' -Descending
+        ExcelSort -Header 'Sales' -Descending
         ExcelSparkline -DataRange 'C2:C7' -LocationRange 'E2:E7' -Type Line -ShowMarkers
         ExcelPivotTable -SourceRange 'A1:D7' -DestinationCell 'G2' -RowField 'Region' -DataField 'Sales'
-        ExcelChart -Range 'A1:C7' -Type ColumnClustered -Title 'Sales by Region' -Address I1
-        ExcelHyperlink -Cell 'A2' -Uri 'https://evotec.xyz'
-        ExcelComment -Cell 'C2' -Text 'Review this value'
+        ExcelChart -Table 'SalesData' -Category Region -Value Sales -Type ColumnClustered -Title 'Sales by Region' -Address I1
+        ExcelHyperlink -Address 'A2' -Url 'https://evotec.xyz'
+        ExcelComment -Address 'C2' -Text 'Review this value'
 
         if (Test-Path $imagePath) {
             ExcelImage -Path $imagePath -Range 'I8:J12' -Name 'OfficeIMOLogo' -AltText 'OfficeIMO logo'
         }
+    } -PassThru | ForEach-Object {
+        $null = $_.AddConditionalRule('C2:C20', [OfficeIMO.Excel.ExcelConditionalFormattingOperator]::GreaterThan,
+            '1000', $null, '#C6EFCE')
     }
 
     ExcelSheet 'Print' {
-        ExcelTable -Data $data -Start A1 -AutoFit
+        ExcelTable -Data $data -AutoFit
         ExcelOrientation -Orientation Landscape
         ExcelMargins -Left 0.5 -Right 0.5 -Top 0.75 -Bottom 0.75
         ExcelPageSetup -FitToWidth 1 -FitToHeight 0
@@ -44,6 +48,6 @@ New-OfficeExcel -Path $path {
         ExcelCell -Address A1 -Value 'Internal notes'
         Set-OfficeExcelSheet -Visibility Hidden
     }
-} -Open
+} -Show:$Show
 
 Write-Host "Workbook saved to $path"
