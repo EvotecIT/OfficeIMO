@@ -20411,5 +20411,301 @@
       "Managed/native image interpolation and crop-layout parity remain separate limits.",
       "Native resave may normalize/deduplicate equal-content active image slots; reload IDs remain document-scoped."
     ]
+  },
+  "mixedObjectOrderCreation": {
+    "schema": "officeimo.publisher.mixed-object-order-qualification.v1",
+    "sourceCommit": "efde3311cf811571a0a35a42cf0490c1bbd749ff",
+    "sourceFileHashBasis": "SHA-256 of canonical Git blob bytes at sourceCommit.",
+    "sourceFiles": [
+      {
+        "path": "Build/Publisher/Add-NativeMixedPagesControl.ps1",
+        "sha256": "ede94e9ecd2c5dd460fd2e61c4512bf487059b262034ade711e35b411551650e"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "sha256": "9660a7d6e15007ba3b73a9e38d6e57c00ce61733d8089c27853f0510ed052afa"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "sha256": "0cd037a66533c21f60c27dba6aa04e11070bad84d3b738310dd2d4b4ee9ced01"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "sha256": "547a19b8c4f62b59ac5e1174b5a4a3b034ba69ffd6004ce19f2886a3e3239c9d"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateCases.cs",
+        "sha256": "0fe1f720839a67014bd1c940cdc9b74ff5db2af7d9b0fa6205c708eb3a392dbe"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateMixedPages.cs",
+        "sha256": "3524eff6d8cbc71f4d34da3040f4b11774db90e5e077b631491d2faf1d05fff1"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateOfficeArt.cs",
+        "sha256": "420119c57c162beb450687a7a8d0edb8f12c485c8ad7253a2ccb1bef248ddfa8"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/NativePublicationGraph.cs",
+        "sha256": "5bb9a284b814018a69f8d180728d096e19efbf66ca1796c99e83a1c00ad59184"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/Program.cs",
+        "sha256": "67f46ab87800e6898705bcca20a849c8dbb09f36db1eb8992f619f924d50b61c"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/QuillCandidate.cs",
+        "sha256": "3c5b0e9b2bfabc257a224efe163bb00ab06b176b19c5801ae23996a89f250104"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherMixedObjectOrderTests.cs",
+        "sha256": "fac2b5015b1effb04121f56d1f6ec31928649e6f0ab85c34f647401e212ea996"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillDirectoryWriter.cs",
+        "sha256": "f77bdc03dc10e7ed9b3fc0c2122e074dc6518e2ba3dd97b3ba1c94dd913efc23"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillPageAllocator.cs",
+        "sha256": "93bf4a83daaadeb7cdd587815156e5c35c9b5511db8abcb207142161f0774673"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillSourceLayout.cs",
+        "sha256": "77c716d0802a5ea868783c269a1b54239ad683c01d1bb5015cf0b831c7b567bf"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillStorageWriter.cs",
+        "sha256": "cad3b68705d3c6d42b9d2b593b4b0bf4e9ab782680c300eda8c60e66de820dd8"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillStoriesWriter.cs",
+        "sha256": "ac6ed58eca676acb472ebc4d4d32dc6c5a25e1ac2a9a7137d59e1ee80f696452"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherQuillWriteResources.cs",
+        "sha256": "0d126a830eeefc1e175d63aba3334df7d144f0087cf171201b8d60c9711d39c1"
+      }
+    ],
+    "profile": {
+      "case": "mixed-object-pages",
+      "physicalPages": 3,
+      "objects": 8,
+      "independentStories": 2,
+      "assetCount": 1,
+      "picturePlacements": 3,
+      "imageStoreReferenceCount": 3,
+      "firstPageOrder": [
+        "rectangle",
+        "picture",
+        "text",
+        "rectangle"
+      ],
+      "middlePage": "empty",
+      "lastPageOrder": [
+        "text",
+        "picture",
+        "rectangle",
+        "picture"
+      ],
+      "authoring": "Existing public shape/picture/text APIs, including explicit existing-asset reuse. Current public snapshots supply native object records in append order."
+    },
+    "nativeControl": {
+      "cases": [
+        "MixedObjectPages",
+        "MixedObjectPagesEdited"
+      ],
+      "wrapping": "Explicit Shape.TextWrap.Type=0 (pbWrapTypeNone) matches public authoring without wrap exclusions.",
+      "reference": "https://learn.microsoft.com/en-us/office/vba/api/publisher.pbwraptype",
+      "producer": "Microsoft Publisher16.0.20527.20088",
+      "automationSecurity": 3
+    },
+    "cases": [
+      {
+        "name": "created",
+        "sha256": "86e117bd19d3f4c4545670ae56988e68962279a2306bc9275d7a7ea270c4573e",
+        "nativeOperations": 7,
+        "independentNativePagePixelPairs": 6,
+        "publicReloads": 2
+      },
+      {
+        "name": "edited-created",
+        "sha256": "a13fd4833f77f18cc8f5facbc91d815583df23a2363bd8b2d541e06d1e4e99db",
+        "nativeOperations": 7,
+        "independentNativePagePixelPairs": 6,
+        "publicReloads": 2
+      },
+      {
+        "name": "edited-normalized",
+        "sha256": "48611557020ae9e2aa0f8c6292d5d58f67da547b2389a9e9863d8d7fd48393d0",
+        "nativeOperations": 7,
+        "independentNativePagePixelPairs": 6,
+        "publicReloads": 2
+      },
+      {
+        "name": "edited-control",
+        "sha256": "edf9af180fca362e357c03a858a273093cc0aeb2c965073bc230d9f03b7a299b",
+        "nativeOperations": 7,
+        "independentNativePagePixelPairs": 6,
+        "publicReloads": 2
+      }
+    ],
+    "formattingGrowth": [
+      {
+        "case": "100",
+        "count": 100,
+        "paragraphs": false,
+        "save": "initial",
+        "sha256": "7177c829a38d6ffdf8e6a6633963cc7f3ebb8f7f17bf2ee0638a4336adac8319",
+        "nativeOperations": 7,
+        "nativeStagePixelPairs": 3,
+        "publicReloads": 2,
+        "characterPages": 2,
+        "paragraphPages": 1
+      },
+      {
+        "case": "100",
+        "count": 100,
+        "paragraphs": false,
+        "save": "reedited",
+        "sha256": "3cd94359884e5e26356d7904c6612b80a4b03dac1b1602af26149183ef2bdb5c",
+        "nativeOperations": 7,
+        "nativeStagePixelPairs": 3,
+        "publicReloads": 2,
+        "characterPages": 2,
+        "paragraphPages": 1
+      },
+      {
+        "case": "1800",
+        "count": 1800,
+        "paragraphs": false,
+        "save": "initial",
+        "sha256": "1727ccdc539e82bcfb211c00bbcc62f766a871ce37ae2944ed78bffce6a9aaa9",
+        "nativeOperations": 7,
+        "nativeStagePixelPairs": 3,
+        "publicReloads": 2,
+        "characterPages": 36,
+        "paragraphPages": 1
+      },
+      {
+        "case": "1800",
+        "count": 1800,
+        "paragraphs": false,
+        "save": "reedited",
+        "sha256": "338965d23644a534228be5dcd39e0739b420fecc9de290d7d560b1438548179f",
+        "nativeOperations": 7,
+        "nativeStagePixelPairs": 3,
+        "publicReloads": 2,
+        "characterPages": 36,
+        "paragraphPages": 1
+      },
+      {
+        "case": "paragraph-900",
+        "count": 900,
+        "paragraphs": true,
+        "save": "initial",
+        "sha256": "d906e994d9374efcb4af709b4429b7fbd92fcbe4127f80539f8000a3f11be05b",
+        "nativeOperations": 7,
+        "nativeStagePixelPairs": 3,
+        "publicReloads": 2,
+        "characterPages": 1,
+        "paragraphPages": 11
+      },
+      {
+        "case": "paragraph-900",
+        "count": 900,
+        "paragraphs": true,
+        "save": "reedited",
+        "sha256": "5db705aef860ba57573f949a5bbffca26c243edd60e65b7a85240214c61c8bd2",
+        "nativeOperations": 7,
+        "nativeStagePixelPairs": 3,
+        "publicReloads": 2,
+        "characterPages": 1,
+        "paragraphPages": 11
+      }
+    ],
+    "nativeFullFiles": 10,
+    "nativeOperations": 70,
+    "independentNativePagePixelPairs": 24,
+    "growthNativeStagePixelPairs": 18,
+    "pixelComparisonDpi": 144,
+    "publicReloads": 20,
+    "managedPdfSvgPages": 60,
+    "previousCreationProfilesByteIdentical": 17,
+    "compactQuill": {
+      "admission": "Exact TEXT/SYID/STRS/STSH0/STSH1/INK/FONT prefix, contiguous character then paragraph formatting pages, BTEC/BTEP indexes; no unknown tag or resource family admitted.",
+      "metadata": "Zero story flags, exact16+8countSTRS bytes, final zero, one empty self-inclusive4-byte definition per story. Canonical full native255/22+8count profile remains separate.",
+      "preservation": "Existing descriptor counts/IDs, nonoverlapping physical ranges, directory chains, formatting indexes and definition bounds remain enforced.",
+      "allocation": "Existing page/directory allocator owns growth.100alternatingruns,1800runs and900paragraphs save/reload/re-edit successfully, including two-directory outputs.",
+      "resourceLimits": "Unavailable compact font/color resource growth refuses output; missing palette does not raise an internal lookup exception.",
+      "regression": "Before the allocation fix,100runs saved11264bytes then the next text save failed. The fixed saved file is editable again. Before compact admission, initial generated text edits refused output."
+    },
+    "rawPreservation": {
+      "combinedEditSources": 3,
+      "retained": "Unrelated artwork leaves, anchors and paint; exact Contents, image-store/delay payloads, opaque Quill libraries and direct style OPLs; compound metadata. Only stale summary thumbnail invalidated.",
+      "formattingGrowthFiles": 6,
+      "growthRetained": "Every non-Quill logical stream and compound metadata remain exact."
+    },
+    "fixtures": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MixedObjectPages/provenance.json",
+        "sha256": "9a20aeeb95857142b9c59921e02f30564ec373bf0b1c47d454d3bf85d3884fab"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MixedObjectPagesEdited/provenance.json",
+        "sha256": "fdd26b22b520f8bf6dbdbfe7816e334782ead62f31e59db8f58b883f8cb8f77f"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/GeneratedMixedObjectPages/provenance.json",
+        "sha256": "73ea42ae4c4a8bc420b2bc1cd54edd612d8a864984c3e50d619f15e27afd2205"
+      }
+    ],
+    "tests": {
+      "frameworks": {
+        "net10.0": 903,
+        "net8.0": 903,
+        "net472": 903
+      },
+      "readerNet10": 95,
+      "focused": 16,
+      "contracts": [
+        "Mixed_additions_preserve_append_order_and_old_page_scenes",
+        "Native_overlap_control_projects_saved_cross_kind_order",
+        "Generated_compact_stories_can_be_edited_before_native_resave",
+        "Compact_source_refuses_unqualified_resource_growth_without_publishing_output",
+        "Compact_formatting_and_directory_growth_remains_editable_on_the_next_save"
+      ],
+      "negativeControls": "Disabling compact admission fails the first text-save regression; removing missing-PL refusal fails the color-resource row. Sources restored byte-for-byte."
+    },
+    "sourcePowerShell": {
+      "runtime": "net8.0 / PowerShell7",
+      "pdfCount": 7,
+      "pageCount": 21,
+      "managedPixelPairs": 21,
+      "actualOwnerAssemblyBound": true,
+      "pdfOptions": "Defaults on both in-process callers; explicit named Arial and Helvetica fallback are separate configurations."
+    },
+    "validation": {
+      "unsigned": true,
+      "publisherPdfAndReaderPublisherNetstandard20Builds": true,
+      "sourcePowerShellBuild": true,
+      "probeNoIncrementalBuild": true,
+      "ps7AndPs51SyntaxFiles": 4
+    },
+    "reproduction": [
+      "Create mixed-object-pages with the retained native Image PNG; produce MixedObjectPages/Edited with the isolated corpus runner.",
+      "Apply first-story text, last-band fill/bounds and top-picture bounds edits through public APIs on generated, native-resaved and independent native-authored sources; save with explicit Allow.",
+      "Run native Validate/Full on original and3edited files; compare all initial/resaved pages with stage-matched independent controls.",
+      "Edit generated compact story to100/1800alternating18-point Arial runs or900paragraphs, save/reload/change first character/save again; run native Full on all6saved files.",
+      "Reload each initial/native-resaved result and verify complete content/per-position styling/unrelated story/asset/order, including overflow. Compare growth native stages separately from independent-producer parity.",
+      "Run maintained Publisher tests on all target frameworks and affected Reader/build/PowerShell consumers; compare unchanged creation hashes."
+    ],
+    "limits": [
+      "Closed untransformed physical-page overlap profile; grouped/transformed/master ordering and generic native creation remain unqualified.",
+      "Growth stage pixel equality is initial-versus-native-resaved, not independent producer parity. Complete text/formatting is checked after native resave, including overflow.",
+      "Managed/native text layout and image interpolation remain distinct limits; PS parity is against managed engine.",
+      "Repair-free opening remains unassessed.",
+      "Compact font/color resource-library growth remains unqualified; the general native full-resource profile retains its existing contract.",
+      "Native controls may expose empty rectangle CR stories that generated pure geometry does not store; nonempty stories and page paint are compared explicitly."
+    ]
   }
 }
