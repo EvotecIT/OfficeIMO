@@ -59,6 +59,8 @@ internal static partial class PdfMerger {
             ResolveObject(objects, fieldsObject) is not PdfArray fields) {
             return;
         }
+        if (fields.Items.Any(static item => item is not PdfReference))
+            throw new NotSupportedException("Form composition requires indirect AcroForm field roots.");
         var visited = new HashSet<int>();
         foreach (PdfReference root in fields.Items.OfType<PdfReference>()) AlignFormParents(objects, root.ObjectNumber, visited);
     }

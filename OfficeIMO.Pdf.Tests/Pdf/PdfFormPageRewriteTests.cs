@@ -182,12 +182,22 @@ public sealed class PdfFormPageRewriteTests {
         Assert.Single(form.Fields);
     }
 
-    private static byte[] CreateHierarchicalForm(string firstChildParent = "/Parent 6 0 R ") => BuildRawPdf(
+    [Fact]
+    public void PartialSelectionRefusesDirectFieldRoots() {
+        byte[] source = CreateHierarchicalForm(fields: "<< /T (Parent) /FT /Tx /Kids [7 0 R 8 0 R 9 0 R] >>");
+        var error = Assert.Throws<NotSupportedException>(() => PdfPageInterleaver.Interleave(new[] {
+            new PdfInterleaveSource(source) { Pages = PdfPageSelector.Parse("1") },
+            new PdfInterleaveSource(PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).ToBytes())
+        }));
+        Assert.Contains("indirect AcroForm field roots", error.Message, StringComparison.Ordinal);
+    }
+
+    private static byte[] CreateHierarchicalForm(string firstChildParent = "/Parent 6 0 R ", string fields = "6 0 R") => BuildRawPdf(
         "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
         "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
         "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] /Resources << >> /Annots [10 0 R 12 0 R] >>",
         "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] /Resources << >> /Annots [11 0 R 13 0 R] >>",
-        "<< /Fields [6 0 R] /CO [7 0 R 8 0 R 9 0 R] /NeedAppearances true /DA (/Helv 10 Tf 0 g) /DR << /Font << /Helv 14 0 R >> >> >>",
+        "<< /Fields [" + fields + "] /CO [7 0 R 8 0 R 9 0 R] /NeedAppearances true /DA (/Helv 10 Tf 0 g) /DR << /Font << /Helv 14 0 R >> >> >>",
         "<< /T (Parent) /FT /Tx /TU (Parent metadata) /Kids [7 0 R 8 0 R 9 0 R] >>",
         "<< " + firstChildParent + "/T (First) /V (one) /Kids [10 0 R 11 0 R] >>",
         "<< /Parent 6 0 R /T (Second) /V (two) /Kids [12 0 R] >>",
