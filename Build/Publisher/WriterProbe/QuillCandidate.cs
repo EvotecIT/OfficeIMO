@@ -9,7 +9,8 @@ internal static class QuillCandidate {
     private const int FirstPayloadOffset = 512;
     private const int MinimumStreamBytes = 1024;
 
-    internal static byte[] Create(IReadOnlyList<NativePublicationGraph.StoryBinding> stories) {
+    internal static byte[] Create(NativePublicationGraph.Graph graph) {
+        IReadOnlyList<NativePublicationGraph.StoryBinding> stories = graph.Stories;
         string? text = stories.Count == 0 ? null : string.Concat(stories.Select(story => story.Source.Text));
         var records = new List<QuillRecord>();
         if (text != null) {
@@ -27,6 +28,8 @@ internal static class QuillCandidate {
             })));
         }
         records.AddRange(QuillDefaultLibraries.Create());
+        if (graph.Objects.Any(frame => frame.Source.FrameOrder != 0))
+            records.Add(new QuillRecord("MCLD", 0, QuillLayoutCatalog.Create(graph)));
         if (text != null) {
             // TEXT is first, so its absolute formatting endpoint follows its
             // actual serialized position even when the other libraries grow.
@@ -40,7 +43,7 @@ internal static class QuillCandidate {
                 if (story.Source.Paragraph == null)
                     characterRanges.Add(new PublisherQuillFormattingRange(storyEnd, Chunk(Scalar(0x0C, 0x22, 18 * 12700))));
                 else characterRanges.AddRange(QuillCharacterFormatting.FromParagraph(story.Source.Paragraph, storyStart));
-                paragraphRanges.Add(new PublisherQuillFormattingRange(storyEnd, Chunk()));
+                paragraphRanges.Add(new PublisherQuillFormattingRange(storyEnd, QuillParagraphFormatting.Create(story.Source.Paragraph)));
                 storyStart = storyEnd;
             }
             records.AddRange(QuillTextFormatting.CreateRecords(textEnd, firstPageOffset, characterRanges, paragraphRanges));

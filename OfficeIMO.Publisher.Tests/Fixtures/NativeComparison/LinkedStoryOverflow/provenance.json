@@ -1,0 +1,34 @@
+{
+  "schema": "officeimo.publisher.native-linked-story-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case LinkedStoryOverflow",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-linkedstoryoverflow.json",
+      "sha256": "382bd6ef51d643e4e0caae16256b306d472688c493bc7cc7128869141f436754"
+    },
+    {
+      "name": "native-linkedstoryoverflow.pdf",
+      "sha256": "dce1ed512994c87fdb6226fa201896904c5b64185a59841a92122041abf1fc05"
+    },
+    {
+      "name": "native-linkedstoryoverflow.pub",
+      "sha256": "61cde1d47972dd1a5ee595df0a2832f761d5114d418ee4906dd43f41953b2dce"
+    }
+  ],
+  "observed": "One story shared by three frames on pages 1,3,2, plus an independent label; Arial, zero insets/gap and explicit 18-point line spacing.",
+  "limits": "Native reference; generated/native hyphenation and CR defaults differ. Repair-free opening remains unassessed."
+}

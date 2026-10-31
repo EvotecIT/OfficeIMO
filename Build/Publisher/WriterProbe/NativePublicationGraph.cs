@@ -25,13 +25,17 @@ internal static class NativePublicationGraph {
         uint firstObjectId = firstPageId + orderedPageCount;
         var objects = new List<ObjectBinding>();
         var stories = new List<StoryBinding>();
+        var storyBindings = new Dictionary<CandidateStorySpec, StoryBinding>();
         for (int index = 0; index < specification.Objects.Count; index++) {
             CandidateObjectSpec source = specification.Objects[index];
             StoryBinding? story = null;
             if (source.Story != null) {
-                uint key = (uint)stories.Count + 1;
-                story = new StoryBinding(source.Story, key, key);
-                stories.Add(story);
+                if (!storyBindings.TryGetValue(source.Story, out story)) {
+                    uint key = (uint)stories.Count + 1;
+                    story = new StoryBinding(source.Story, key, key);
+                    stories.Add(story);
+                    storyBindings.Add(source.Story, story);
+                }
             }
             uint ownerPageId = firstPageId + (source.OnMaster ? 0 : checked((uint)(MasterPageCount + source.PageIndex)));
             objects.Add(new ObjectBinding(source, firstObjectId + (uint)index, RootShapeId + (uint)index + 1, story, ownerPageId));
@@ -70,7 +74,7 @@ internal static class NativePublicationGraph {
         foreach (ObjectBinding item in objects) {
             var fields = new List<byte[]>();
             if (item.Story != null) {
-                fields.Add(Scalar(0x27, 0x20, item.Story.Key)); fields.Add(Scalar(0x28, 0x20, 0));
+                fields.Add(Scalar(0x27, 0x20, item.Story.Key)); fields.Add(Scalar(0x28, 0x20, item.Source.FrameOrder));
             }
             if (pictureResources.TryGetValue(item.Id, out uint resource)) fields.Add(Scalar(0x3A, 0x70, resource));
             chunks.Add(new NativeRecord(item.Source.NativeKind, item.OwnerPageId, Chunk(fields.ToArray())));
@@ -81,15 +85,17 @@ internal static class NativePublicationGraph {
         chunks.Add(new NativeRecord(0x5B, documentId, Chunk(
             Scalar(1, 0x70, quillDocumentId + 1), Scalar(2, 0x70, quillDocumentId + 2),
             Variable(10, 0x98, Scalar(1, 0x20, 0x08000000)))));
-        chunks.Add(new NativeRecord(0x61, quillDocumentId, stories.Count != 0
-            ? Chunk(Scalar(1, 0x20, (uint)stories.Count), Variable(2, 0xA0, objects.Where(item => item.Story != null)
-                .Select(item => Variable(0, 0x88, Scalar(1, 0x20, item.Story!.Key), Scalar(3, 0x68, item.Id))).ToArray()))
+        ObjectBinding[] frames = objects.Where(item => item.Story != null)
+            .OrderBy(item => item.Story!.Key).ThenBy(item => item.Source.FrameOrder).ToArray();
+        chunks.Add(new NativeRecord(0x61, quillDocumentId, frames.Length != 0
+            ? Chunk(Scalar(1, 0x20, (uint)frames.Length), Variable(2, 0xA0, frames
+                .Select(item => FrameCatalogEntry(item)).ToArray()))
             : Chunk()));
         // Fresh creation assigns stable progressive layout identifiers. IdLayout
         // is separate from the frame reference count and from retained native keys.
         chunks.Add(new NativeRecord(0x65, quillDocumentId, stories.Count != 0
             ? Chunk(Scalar(1, 0x20, (uint)stories.Count), Variable(2, 0xA0, stories.Select(story =>
-                Variable(0, 0x88, Scalar(1, 0x20, story.Key), Scalar(7, 0x20, story.LayoutId))).ToArray()))
+                StoryCatalogEntry(story, frames.Count(frame => frame.Story == story))).ToArray()))
             : Chunk()));
         // The normal native loader requires OhPrintBlock (document field 3).
         // Normal opening accesses row zero of Rgdnb. One empty typed OplDnb
@@ -109,4 +115,20 @@ internal static class NativePublicationGraph {
     internal sealed record ObjectBinding(CandidateObjectSpec Source, uint Id, uint Spid, StoryBinding? Story, uint OwnerPageId);
     internal sealed record StoryBinding(CandidateStorySpec Source, uint Key, uint LayoutId);
     internal sealed record NativeRecord(uint Kind, uint? Parent, byte[] Bytes);
+
+    private static byte[] FrameCatalogEntry(ObjectBinding frame) {
+        var fields = new List<byte[]> { Scalar(1, 0x20, frame.Story!.Key) };
+        if (frame.Source.FrameOrder != 0) fields.Add(Scalar(2, 0x20, frame.Source.FrameOrder));
+        fields.Add(Scalar(3, 0x68, frame.Id));
+        return Variable(0, 0x88, fields.ToArray());
+    }
+
+    private static byte[] StoryCatalogEntry(StoryBinding story, int frameCount) {
+        var fields = new List<byte[]> { Scalar(1, 0x20, story.Key) };
+        // The native OplQsb schema calls field 2 CRef; omission defaults to one.
+        // IdLayout remains an independent identifier in field 7.
+        if (frameCount != 1) fields.Add(ShortScalar(2, 0x18, checked((ushort)frameCount)));
+        fields.Add(Scalar(7, 0x20, story.LayoutId));
+        return Variable(0, 0x88, fields.ToArray());
+    }
 }

@@ -22,7 +22,7 @@ internal sealed class PublisherQuillSourceLayout {
     internal PublisherQuillChunk StoryLengths { get; }
     internal PublisherQuillChunk[] CharacterPages { get; }
     internal PublisherQuillChunk[] ParagraphPages { get; }
-    /// <summary>Known compact story profile without optional native auxiliary libraries.</summary>
+    /// <summary>Known compact story profile, with an optional opaque layout catalog.</summary>
     internal bool IsMinimalProfile { get; }
     internal PublisherQuillChunk Find(string tag) => Chunks.Single(chunk => chunk.Tag == tag);
 
@@ -33,8 +33,10 @@ internal sealed class PublisherQuillSourceLayout {
         if (pc < 1 || pp < 1 || chunks.Count > MaximumDescriptors) return null;
         string[] expected = new[] { "TEXT", "STSH", "STSH", "STSH" }.Concat(Enumerable.Repeat("FDPP", pp))
             .Concat(Enumerable.Repeat("FDPC", pc)).Concat(new[] { "SYID", "SGP ", "INK ", "BTEP", "BTEC", "FONT" })
-            .Concat(Enumerable.Repeat("TCD ", chunks.Count(chunk => chunk.Tag == "TCD "))).Concat(new[] { "STRS", "MCLD", "PL  " }).ToArray();
+            .Concat(Enumerable.Repeat("TCD ", chunks.Count(chunk => chunk.Tag == "TCD "))).Concat(new[] { "STRS", "MCLD" })
+            .Concat(chunks.Any(chunk => chunk.Tag == "PL  ") ? new[] { "PL  " } : Array.Empty<string>()).ToArray();
         string[] minimal = new[] { "TEXT", "SYID", "STRS", "STSH", "STSH", "INK ", "FONT" }
+            .Concat(chunks.Any(chunk => chunk.Tag == "MCLD") ? new[] { "MCLD" } : Array.Empty<string>())
             .Concat(Enumerable.Repeat("FDPC", pc)).Concat(Enumerable.Repeat("FDPP", pp)).Concat(new[] { "BTEC", "BTEP" }).ToArray();
         bool compact = chunks.Select(chunk => chunk.Tag).SequenceEqual(minimal);
         if ((!compact && !chunks.Select(chunk => chunk.Tag).SequenceEqual(expected))

@@ -17,7 +17,7 @@ internal static class CandidateWriter {
         IReadOnlyList<CandidateOfficeArt.ImageBinding> images = CandidateOfficeArt.BindImages(graph);
         var streams = new List<OfficeCompoundStream> {
             new OfficeCompoundStream("Contents", Contents(graph)),
-            new OfficeCompoundStream("Quill/QuillSub/CONTENTS", QuillCandidate.Create(graph.Stories)),
+            new OfficeCompoundStream("Quill/QuillSub/CONTENTS", QuillCandidate.Create(graph)),
             new OfficeCompoundStream("Escher/EscherStm", CandidateOfficeArt.Create(graph, images)),
             new OfficeCompoundStream("Escher/EscherDelayStm", CandidateOfficeArt.CreateImageDelayStream(images)),
             new OfficeCompoundStream("\u0003Internal", InternalHeader()),
