@@ -381,3 +381,11 @@ text, styles, geometry and image pixels against explicit expectations.
 OfficeIMO read/render success establishes only the managed result. Evidence for
 these bounded cases does not qualify arbitrary Publisher features or a public
 creation/save contract.
+
+The `sourceEditing.imageReplacement` record covers public native saves for
+existing PNG/JPEG picture placements, including shared assets, master pictures,
+cropping, repeated replacement, combined frame changes and re-editing a native
+resave with retired image slots. Its recipes bind input and replacement hashes
+to independent raw image/filename/crop checks and native before/after PDFs.
+Qualification covers delayed image streams; no-delay embedded-BLIP appends,
+exact cropped rendering parity and repair-free opening remain separate gaps.

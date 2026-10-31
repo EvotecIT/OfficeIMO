@@ -91,6 +91,17 @@ Its saved native image-store references must be inspected separately; duplicatin
 a shape does not establish that Publisher shares the embedded image asset.
 The retained PictureOwnership PUB has three placements referencing one native
 image-store entry: one master picture and two pictures on the first physical page.
+PictureReplacement replaces only the original physical placement with a distinct
+64-by-32-pixel embedded PNG, retaining the duplicated and master placements.
+The replacement target is unlocked before restoring its original 96-point
+square bounds; the native contract asserts every picture's bounds and crop.
+PictureCropped applies nonzero left/top/bottom crop to that original placement
+while retaining the shared asset and physical frame. These two controls retain
+their source PNGs, native PUB/PDF and authored/observed contracts.
+ImageRetiredSlot contains a separate lifecycle regression: a public source-save
+candidate independently resaved in Publisher, which retains stale zero-count
+image-store metadata. Its provenance records the candidate hash and native
+operations; it does not qualify independent template-free creation.
 Omitting `-Case` selects every available case.
 
 Each case has a PUB, a Publisher-exported PDF and JSON that separates its authored

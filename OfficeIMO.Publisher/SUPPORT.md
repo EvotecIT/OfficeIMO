@@ -40,6 +40,14 @@ remaining separate boundaries.
 Inline OfficeArt picture data stays in the preserved source and reports omitted
 artwork; positioned reconstruction uses image-store references. Cleared picture
 references do not report missing images.
+Native resaving can retain zero-count image-store descriptors whose delayed
+offsets now point at another image. After collecting native BLIP references,
+the reader leaves an unreferenced zero-count truncated or UID-mismatched slot
+inert and reports `PUB_IMAGE_RETIRED_SLOT`; its identity remains reserved.
+Valid unused assets remain available. Referenced or positive-count truncated
+payloads still fail the read. UID comparison identifies retired slots; it is
+not an integrity check over every active payload. Inspected retired payloads
+still consume the image-processing byte budget.
 
 ## Reconstruction
 
@@ -249,6 +257,35 @@ byte-identical. Source-built PSWriteOffice converts five edited publications
 through `publisher-pdf`, with twelve reopened output pages. Native column
 balancing, managed/native rendering parity, repair-free opening and broader
 producer/profile coverage remain unqualified.
+
+Existing editable rectangular picture placements can save a replacement PNG or
+JPEG through `ReplacePictureImage`. The native writer retains original image
+payloads, changes only the selected placement's BLIP binding and filename, and
+appends owned image slots and filename resources. Shared source assets, other
+placements, master ownership, crop values and bounds remain retained; bounds
+and qualified frame-layout changes can be combined with replacement. Repeated
+edits can leave gaps in document-scoped asset IDs; saving maps new assets to
+native slots and reports renumbering with `PUB_NATIVE_IMAGE_BINDINGS_RENUMBERED`.
+An unresolved source reference cannot be satisfied accidentally by a newly
+appended slot. Ambiguous picture properties, filename ownership, allocation
+counters, image stores or reference-count underflow refuse output even with
+`Allow`.
+
+The `sourceEditing.imageReplacement` qualification record binds eight public
+saves over 30 native physical page states: PNG/JPEG, one/all shared placements,
+master ownership, repeated edits, combined frame/bounds edits, cropped pictures
+and re-editing a Publisher-resaved file with retired image slots. Independent
+decoding verifies image pixels, filenames, reference counts, retained source
+payloads and crop fields; native getters verify physical bounds. Native PDF
+pixels and spans match before/after resave. Seventy-four earlier saves remain
+byte-identical. Source-built PSWriteOffice exercises the same edited files
+through `publisher-pdf`. Independent native qualification covers the delayed
+image stream; the embedded-BLIP append branch without that stream remains
+unqualified. Cropped raster-matrix rounding has a measured residual of about
+0.0074 points against the continuous model, so exact managed/native crop
+rendering parity remains unqualified. Repair-free opening and broader producer
+coverage also remain unassessed; changed native image output reports
+`PUB_NATIVE_IMAGE_REPLACEMENT_UNQUALIFIED`.
 
 Two independent reading controls cover 17 whole-frame profiles over five pages,
 including indexed arrays with two tabs and left/center/right tabbed lines. The

@@ -83,6 +83,10 @@ entries retain their identities and bytes.
 Frame-layout saves retain links and page/master ownership. They can add missing
 default fields and relocate native records; changed distances must be exact
 nonnegative EMU values. This API's gap is the full distance between columns.
+Existing qualified pictures can save a replacement PNG or JPEG. Replacing one
+placement retains the original asset and leaves other placements sharing it
+unchanged, including master pictures. Native image slots and filename resources
+are allocated together; asset IDs are document-scoped and can change on reload.
 Paragraph edits include alignment, before/after spacing, margins, first-line or
 hanging indents, explicit absolute/multiple line spacing, and ordinary left tabs.
 For native center/right paragraphs, use tab settings with
@@ -92,7 +96,7 @@ spacing. The support contract defines native units and representability limits.
 Ambiguous source definitions, unsupported directory layouts and zero-paragraph
 native story states are refused. The [support contract](SUPPORT.md)
 defines the precise restrictions. Other in-memory edits, including new objects,
-image replacement, table changes and page/master relationships, cannot be saved
+table changes and page/master relationships, cannot be saved
 as native PUB through this profile. Source-free native creation is unavailable.
 
 The default loss policy is `Block`, including unassessed fidelity. Edited native
