@@ -35,7 +35,7 @@ $receipt.package | Add-Member -NotePropertyName name -NotePropertyValue 'PSWrite
 $receipt.package | Add-Member -NotePropertyName files -NotePropertyValue @([pscustomobject]@{ path = 'PSWriteOffice.psd1'; sha256 = 'a' * 64 }, [pscustomobject]@{ path = 'PSWriteOffice.psm1'; sha256 = 'b' * 64 })
 $receipt.package | Add-Member -NotePropertyName fileCount -NotePropertyValue 2
 $receipt.outputs[0] | Add-Member -NotePropertyName diagnostics -NotePropertyValue ([pscustomobject]@{ pageCount = 1; fonts = @() })
-$receipt | Add-Member -NotePropertyName conversions -NotePropertyValue @([pscustomobject]@{ outputPath = '/downloads/showcase/report.pdf'; outputSha256 = 'output-hash'; routeId = 'docx-pdf'; command = 'Export-OfficeDocumentPdf'; routeEvidence = 'fixture'; report = [pscustomobject]@{ Warnings = @() }; warnings = @() })
+$receipt | Add-Member -NotePropertyName conversions -NotePropertyValue @([pscustomobject]@{ outputPath = '/downloads/showcase/report.pdf'; outputSha256 = 'output-hash'; routeId = 'docx-pdf'; command = 'Export-OfficeDocumentPdf'; routeEvidence = 'fixture'; report = [pscustomobject]@{ Diagnostics = @() }; warnings = @() })
 $receipt | Add-Member -NotePropertyName previews -NotePropertyValue @([pscustomobject]@{ path = '/downloads/showcase/preview.png'; rendering = [ordered]@{ tool = 'pdftocairo'; version = 'fixture'; executableSha256 = 'c' * 64; page = 1; inputSha256 = 'output-hash'; sha256 = 'preview-hash'; diagnostics = @() } })
 $receipt | Add-Member -NotePropertyName evidenceProducer -NotePropertyValue (Get-ShowcaseEvidenceProducerBinding $TestRoot)
 $receipt | Add-Member -NotePropertyName receiptSha256 -NotePropertyValue (Get-ShowcaseGenerationReceiptHash $receipt)

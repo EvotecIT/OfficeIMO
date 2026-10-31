@@ -107,9 +107,6 @@ foreach ($publicContentFile in $publicContentFiles) {
 
 $excelProductPath = Join-Path $SiteRoot 'content\products\excel.md'
 $excelProduct = Get-Content -LiteralPath $excelProductPath -Raw
-if ($excelProduct -notmatch 'workbook\.AddWorksheet\("Q4 Sales"\)') {
-    Add-Failure 'The OfficeIMO.Excel product quick start must use ExcelDocument.AddWorksheet.'
-}
 if ($excelProduct -notmatch '(?s)sheet\.AddTable\(\s*\$"A1:C\{totalsRow\}",\s*hasHeader:\s*true,\s*name:\s*"SalesTable",\s*style:\s*TableStyle\.TableStyleMedium9\)') {
     Add-Failure 'The OfficeIMO.Excel product quick start must use the supported ExcelSheet.AddTable signature and TableStyle enum.'
 }

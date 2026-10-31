@@ -38,7 +38,7 @@ $rows = $sites | Select-Object Site, Servers, Patched, Pending,
 
 New-OfficeWord -Path $docxPath {
     WordHeader -Type Default { WordParagraph -Text 'Contoso IT operations - week 41' }
-    WordFooter -Type Default { WordPageNumber -IncludeTotalPages }
+    WordFooter -Type Default { WordPageNumber -IncludeTotal }
 
     WordParagraph {
         WordParagraphStyle -SpacingAfterPoints 14 -KeepWithNext $true
@@ -64,7 +64,7 @@ New-OfficeWord -Path $docxPath {
     }
     WordParagraph {
         WordParagraphStyle -SpacingBeforePoints 14 -SpacingAfterPoints 12
-        WordChart -Type Bar -InputObject $rows -CategoryProperty Site -SeriesProperty Patched, Pending `
+        WordChart -Type Bar -InputObject $rows -Category Site -Value Patched, Pending `
             -Title 'Patched and pending by site' -Legend -FitToPageWidth -WidthFraction 1 -HeightPixels 260
     }
 
