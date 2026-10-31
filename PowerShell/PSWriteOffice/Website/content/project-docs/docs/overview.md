@@ -23,7 +23,7 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 
 - **Excel — 163 commands:** authoring, reading, charts, pivots, validation, comments, templates, comparison, repair, accessibility, streaming, visual placement, and image export.
 - **Word — 99 commands:** sections, paragraphs, lists, tables, fields, content controls, review, mail merge, protection, merging, visual placement, and conversion.
-- **PDF — 95 commands:** composition, structured reading, explicit Word/Excel/PowerPoint/Markdown/RTF export, editable Office reconstruction, text and image extraction, searchable OCR output, merge/split, pages, forms, annotations, attachments, signatures, compliance, redaction, optimization, visual placement, and diagnostics.
+- **PDF — 96 commands:** composition, structured reading, explicit Word/Excel/PowerPoint/Markdown/RTF export, editable Office reconstruction, text and image extraction, searchable OCR output, merge/split, pages, forms, annotations, attachments, signatures, compliance, redaction, optimization, visual placement, and diagnostics.
 - **PowerPoint — 69 commands:** slides, sections, shapes, charts, tables, notes, themes, layouts, transitions, visual placement, import, inspection, and HTML review.
 - **Conversion and capabilities — 7 commands:** inspect executable routes and protected-content support, then run single-file, selected-file or resumable directory conversions with limits and reports. See [Choose a conversion route](/docs/pswriteoffice/conversion-routes/).
 - **Project — 19 commands:** create and schedule tasks, resources and assignments; exchange mapped tables; save native MPP or Project XML and export reports.

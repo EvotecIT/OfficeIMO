@@ -3,12 +3,12 @@ $second = '.\Pdf-Pack-Part-B.pdf'
 $merged = '.\Pdf-Combined-Pack.pdf'
 $splitDirectory = '.\Pdf-Combined-Pack-Pages'
 
-PdfNew -Path $first {
+New-OfficePdf -Path $first {
     PdfHeading 'Part A'
     PdfParagraph 'Operations summary.'
 }
 
-PdfNew -Path $second {
+New-OfficePdf -Path $second {
     PdfHeading 'Part B'
     PdfParagraph 'Detailed evidence.'
 }

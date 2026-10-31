@@ -56,7 +56,7 @@ New-OfficePowerPoint -Path '.\Service-Status.pptx' {
     PowerPointNotes -Slide $focus -Text 'Discuss incident reduction separately from availability targets.'
 }
 
-PdfNew -Path '.\Service-Status.pdf' {
+New-OfficePdf -Path '.\Service-Status.pdf' {
     PdfTheme Report
     PdfMetadata -Title 'Weekly service status' -Author 'Operations'
     PdfPageSetup -PageSize A4 -Margin 42
