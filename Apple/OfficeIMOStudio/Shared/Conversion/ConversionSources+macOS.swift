@@ -38,7 +38,28 @@ enum ConversionSources {
         panel.message = String(localized: "Choose the files to combine into one PDF.")
         panel.prompt = String(localized: "Combine")
         guard panel.runModal() == .OK else { return }
-        open(newDocument) { try await DocumentConversion.combine(panel.urls) }
+        let files = CombineOrderView.sorted(panel.urls)
+        Task {
+            guard let ordered = await chooseOrder(files) else { return }
+            open(newDocument) { try await DocumentConversion.combine(ordered) }
+        }
+    }
+
+    /// The order sheet, over the window the command came from.
+    private static func chooseOrder(_ files: [URL]) async -> [URL]? {
+        guard let parent = NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first(where: \.isVisible) else { return files }
+        return await withCheckedContinuation { continuation in
+            var sheet: NSWindow?
+            let host = NSHostingController(rootView: CombineOrderView(files: files) { result in
+                if let sheet { parent.endSheet(sheet) }
+                sheet = nil
+                continuation.resume(returning: result)
+            })
+            let window = NSWindow(contentViewController: host)
+            window.title = String(localized: "Combine Files")
+            sheet = window
+            parent.beginSheet(window)
+        }
     }
 
     private static func open(_ newDocument: NewDocumentAction, then finish: @escaping @MainActor () -> Void = {},

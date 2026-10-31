@@ -62,15 +62,14 @@ enum DocumentConversion {
 }
 
 extension DocumentConversion {
-    /// One new PDF from several files, in name order as a file picker's selection has no order of its own.
+    /// One new PDF from several files, in the order given.
     static func combine(_ inputs: [URL]) async throws -> URL {
-        let sorted = inputs.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
         let folder = StudioTemporaryFiles.root.appending(path: "Converted/\(UUID().uuidString)", directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let scoped = sorted.filter { $0.startAccessingSecurityScopedResource() }
+        let scoped = inputs.filter { $0.startAccessingSecurityScopedResource() }
         defer { scoped.forEach { $0.stopAccessingSecurityScopedResource() } }
         do {
-            return try await DocumentActions.combine(sorted, names: sorted.map(\.lastPathComponent),
+            return try await DocumentActions.combine(inputs, names: inputs.map(\.lastPathComponent),
                                                      into: folder.appending(path: String(localized: "Combined") + ".pdf"))
         } catch {
             try? FileManager.default.removeItem(at: folder)

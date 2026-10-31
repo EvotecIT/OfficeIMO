@@ -596,6 +596,46 @@
         }
       }
     },
+    "%lld%% smaller" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld %% kleiner"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld %% más pequeño"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld %% plus petit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%% più piccolo"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mniejszy o %lld%%"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%% menor"
+          }
+        }
+      }
+    },
     "A .p12 or .pfx file with your certificate and its private key, such as one exported from Keychain Access or issued by your organization." : {
       "localizations" : {
         "de" : {
@@ -2596,6 +2636,46 @@
         }
       }
     },
+    "Combine Files" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dateien kombinieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combinar archivos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combiner des fichiers"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combina file"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz pliki"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combinar arquivos"
+          }
+        }
+      }
+    },
     "Combine Files…" : {
       "localizations" : {
         "de" : {
@@ -2676,6 +2756,46 @@
         }
       }
     },
+    "Compress" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komprimieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprimir"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compresser"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprimi"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kompresuj"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprimir"
+          }
+        }
+      }
+    },
     "Compress PDF" : {
       "localizations" : {
         "de" : {
@@ -2752,6 +2872,86 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Comprimir PDF…"
+          }
+        }
+      }
+    },
+    "Compressed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komprimiert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprimido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compressé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compresso"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "skompresowany"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprimido"
+          }
+        }
+      }
+    },
+    "Compressed Size" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komprimierte Größe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tamaño comprimido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taille compressée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dimensione compressa"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rozmiar po kompresji"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tamanho comprimido"
           }
         }
       }
@@ -5676,6 +5876,46 @@
         }
       }
     },
+    "Drag the files into the order you want." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziehe die Dateien in die gewünschte Reihenfolge."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrastra los archivos para ordenarlos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites glisser les fichiers dans l’ordre voulu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascina i file nell’ordine desiderato."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przeciągnij pliki, aby ustawić ich kolejność."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arraste os arquivos para a ordem desejada."
+          }
+        }
+      }
+    },
     "Draw" : {
       "localizations" : {
         "de" : {
@@ -5952,6 +6192,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Duplicar páginas"
+          }
+        }
+      }
+    },
+    "Each match removes its whole block of text, including the words around it. Check each one before redacting." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jeder Treffer entfernt seinen ganzen Textblock, auch die Wörter darum herum. Prüfe jeden Treffer vor dem Schwärzen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada coincidencia elimina todo su bloque de texto, incluidas las palabras de alrededor. Revisa cada una antes de censurar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque résultat supprime tout son bloc de texte, y compris les mots voisins. Vérifiez chacun avant de caviarder."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ogni corrispondenza rimuove l’intero blocco di testo, comprese le parole vicine. Controlla ciascuna prima di oscurare."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każde dopasowanie usuwa cały blok tekstu, także otaczające słowa. Sprawdź każde przed utajnieniem."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cada correspondência remove todo o bloco de texto, incluindo as palavras ao redor. Verifique cada uma antes de ocultar."
           }
         }
       }
@@ -6272,6 +6552,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "A cada grupo de páginas"
+          }
+        }
+      }
+    },
+    "Everything happens on your device. Nothing is uploaded and no account is needed." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles geschieht auf deinem Gerät. Nichts wird hochgeladen, und du brauchst kein Konto."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo ocurre en tu dispositivo. No se sube nada y no necesitas cuenta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout se passe sur votre appareil. Rien n’est envoyé et aucun compte n’est nécessaire."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutto avviene sul dispositivo. Non viene caricato nulla e non serve un account."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wszystko dzieje się na urządzeniu. Nic nie jest wysyłane i nie potrzebujesz konta."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tudo acontece no seu dispositivo. Nada é enviado e nenhuma conta é necessária."
           }
         }
       }
@@ -7032,6 +7352,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Localizar anterior"
+          }
+        }
+      }
+    },
+    "Find Whole Text Blocks" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ganze Textblöcke suchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar bloques de texto completos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher des blocs de texte entiers"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trova blocchi di testo interi"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Znajdź całe bloki tekstu"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encontrar blocos de texto inteiros"
           }
         }
       }
@@ -11116,6 +11476,46 @@
         }
       }
     },
+    "Paper into a searchable PDF" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papier wird zu einer durchsuchbaren PDF"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papel a PDF con búsqueda"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du papier vers un PDF consultable"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da carta a PDF ricercabile"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papier w przeszukiwalny PDF"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papel em PDF pesquisável"
+          }
+        }
+      }
+    },
     "PDF" : {
       "localizations" : {
         "de" : {
@@ -12916,6 +13316,46 @@
         }
       }
     },
+    "Read, edit, convert and sign documents on your device." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokumente auf deinem Gerät lesen, bearbeiten, konvertieren und signieren."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lee, edita, convierte y firma documentos en tu dispositivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lisez, modifiez, convertissez et signez des documents sur votre appareil."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leggi, modifica, converti e firma documenti sul dispositivo."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czytaj, edytuj, konwertuj i podpisuj dokumenty na urządzeniu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leia, edite, converta e assine documentos no seu dispositivo."
+          }
+        }
+      }
+    },
     "Read, edit, convert and sign documents on your Mac." : {
       "localizations" : {
         "de" : {
@@ -14672,6 +15112,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Salvar cópia sanitizada…"
+          }
+        }
+      }
+    },
+    "Saved to OfficeIMO Studio in Files." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In „OfficeIMO Studio“ in „Dateien“ gesichert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardado en OfficeIMO Studio, en Archivos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistré dans OfficeIMO Studio, dans Fichiers."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvato in OfficeIMO Studio in File."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisano w OfficeIMO Studio w aplikacji Pliki."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvo em OfficeIMO Studio, no app Arquivos."
           }
         }
       }
@@ -16956,42 +17436,42 @@
         }
       }
     },
-    "The content was removed from %lld page(s) and checked. Save to keep the change; until then Undo restores it." : {
+    "The content was removed from %lld page(s) and checked. Your document saves automatically; Undo brings the content back until you close it." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Inhalt wurde von %lld Seite(n) entfernt und geprüft. Sichere, um die Änderung zu behalten; bis dahin stellt Widerrufen ihn wieder her."
+            "value" : "Der Inhalt wurde von %lld Seite(n) entfernt und geprüft. Dein Dokument wird automatisch gesichert; mit „Widerrufen“ holst du den Inhalt zurück, bis du es schließt."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se ha eliminado y comprobado el contenido de %lld página(s). Guarde para conservar el cambio; hasta entonces, Deshacer lo restaura."
+            "value" : "El contenido se eliminó de %lld página(s) y se comprobó. Tu documento se guarda automáticamente; Deshacer recupera el contenido hasta que lo cierres."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le contenu a été supprimé de %lld page(s) et vérifié. Enregistrez pour conserver la modification ; d’ici là, Annuler le rétablit."
+            "value" : "Le contenu a été supprimé de %lld page(s) et vérifié. Votre document s’enregistre automatiquement ; Annuler rétablit le contenu jusqu’à sa fermeture."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il contenuto è stato rimosso da %lld pagine e verificato. Salva per conservare la modifica; fino ad allora Annulla operazione lo ripristina."
+            "value" : "Il contenuto è stato rimosso da %lld pagina/e e verificato. Il documento viene salvato automaticamente; Annulla ripristina il contenuto finché non lo chiudi."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Treść usunięto ze stron (%lld) i sprawdzono. Zapisz, aby zachować zmianę; do tego czasu Cofnij ją przywraca."
+            "value" : "Treść usunięto ze stron (%lld) i sprawdzono. Dokument zapisuje się automatycznie; Cofnij przywraca treść do czasu jego zamknięcia."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "O conteúdo foi removido de %lld página(s) e verificado. Salve para manter a alteração; até lá, Desfazer restaura o conteúdo."
+            "value" : "O conteúdo foi removido de %lld página(s) e verificado. Seu documento é salvo automaticamente; Desfazer restaura o conteúdo até você fechá-lo."
           }
         }
       }
@@ -17956,42 +18436,122 @@
         }
       }
     },
-    "This text overlaps other text on the page, so it can’t be removed on its own. Choose Mark Areas to Redact in Tools > Protect and drag over the area instead." : {
+    "This PDF is already as small as it can be with this setting." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieser Text überlappt anderen Text auf der Seite und kann nicht einzeln entfernt werden. Wähle unter Werkzeuge > Schützen „Bereiche zum Schwärzen markieren“ und ziehe über den Bereich."
+            "value" : "Diese PDF ist mit dieser Einstellung bereits so klein wie möglich."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Este texto se superpone a otro texto de la página y no se puede eliminar por separado. Elige Marcar áreas para censurar en Herramientas > Proteger y arrastra sobre el área."
+            "value" : "Este PDF ya es lo más pequeño posible con este ajuste."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ce texte chevauche un autre texte de la page et ne peut pas être supprimé seul. Choisissez Marquer des zones à caviarder dans Outils > Protéger, puis faites glisser sur la zone."
+            "value" : "Ce PDF est déjà aussi petit que possible avec ce réglage."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Questo testo si sovrappone ad altro testo della pagina e non può essere rimosso da solo. Scegli Contrassegna aree da oscurare in Strumenti > Proteggi e trascina sull’area."
+            "value" : "Questo PDF è già il più piccolo possibile con questa impostazione."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ten tekst nachodzi na inny tekst na stronie, więc nie można go usunąć osobno. Wybierz Zaznacz obszary do utajnienia w Narzędzia > Chroń i przeciągnij po obszarze."
+            "value" : "Ten PDF jest już najmniejszy przy tym ustawieniu."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Este texto se sobrepõe a outro texto da página e não pode ser removido sozinho. Escolha Marcar áreas para ocultar em Ferramentas > Proteger e arraste sobre a área."
+            "value" : "Este PDF já está o menor possível com esta opção."
+          }
+        }
+      }
+    },
+    "This text can’t be removed safely, so nothing was changed." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Text kann nicht sicher entfernt werden. Es wurde nichts geändert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este texto no se puede eliminar de forma segura, así que no se ha cambiado nada."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce texte ne peut pas être supprimé en toute sécurité. Rien n’a été modifié."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo testo non può essere rimosso in sicurezza, quindi non è stato modificato nulla."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tego tekstu nie można bezpiecznie usunąć, więc niczego nie zmieniono."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este texto não pode ser removido com segurança, então nada foi alterado."
+          }
+        }
+      }
+    },
+    "This text is too close to the lines around it to remove on its own. You can remove the whole block of text that contains it instead." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Text liegt zu nah an den umgebenden Zeilen, um ihn einzeln zu entfernen. Du kannst stattdessen den ganzen Textblock entfernen, der ihn enthält."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este texto está demasiado cerca de las líneas contiguas para eliminarlo por separado. Puedes eliminar todo el bloque de texto que lo contiene."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce texte est trop proche des lignes voisines pour être supprimé seul. Vous pouvez supprimer tout le bloc de texte qui le contient."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo testo è troppo vicino alle righe adiacenti per essere rimosso da solo. Puoi rimuovere l’intero blocco di testo che lo contiene."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten tekst jest zbyt blisko sąsiednich wierszy, by usunąć go osobno. Możesz zamiast tego usunąć cały blok tekstu, który go zawiera."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este texto está muito perto das linhas ao redor para ser removido sozinho. Você pode remover todo o bloco de texto que o contém."
           }
         }
       }
@@ -18072,6 +18632,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Título"
+          }
+        }
+      }
+    },
+    "To fill in the form, go back to Read." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wechsle zum Ausfüllen zurück zu „Lesen“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para rellenar el formulario, vuelve a Leer."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour remplir le formulaire, revenez à Lecture."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per compilare il modulo, torna a Lettura."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aby wypełnić formularz, wróć do trybu Czytanie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Para preencher o formulário, volte para Ler."
           }
         }
       }
@@ -18392,6 +18992,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Testar um PDF de exemplo"
+          }
+        }
+      }
+    },
+    "Try it on a sample form" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probiere es mit einem Beispielformular aus"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pruébalo con un formulario de ejemplo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Essayez sur un formulaire d’exemple"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provalo su un modulo di esempio"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wypróbuj na przykładowym formularzu"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Experimente em um formulário de exemplo"
           }
         }
       }
@@ -19032,6 +19672,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Endereço web ou de e-mail"
+          }
+        }
+      }
+    },
+    "Welcome" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Willkommen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bienvenido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bienvenue"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benvenuto"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Witaj"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bem-vindo"
           }
         }
       }

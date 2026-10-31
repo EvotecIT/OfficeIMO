@@ -63,6 +63,7 @@ struct OfficeIMOStudioApp: App {
             // The scene folds buttons after the first two into a More menu, so the other ways to start share one.
             Button("Convert to PDF") { LaunchDocuments.open { try await ConversionSources.newDocumentFromFile() } }
             Button("Create PDF…") { LaunchDocuments.open { try await ScanSources.newDocumentFromChoice() } }
+                .onAppear { WelcomeView.presentIfNeeded() }
         }
         #endif
     }

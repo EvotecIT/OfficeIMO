@@ -131,13 +131,14 @@ struct CompressSheet: View {
     @State private var problem: String?
     @State private var profile = "balanced"
     @State private var isWriting = false
+    @State private var compressed: ExportedFile?
+    @State private var compressedSize: Int64?
 
     var body: some View {
-        ReportForm(title: "Compress PDF", problem: problem, isLoading: fileSize == nil && problem == nil, done: { dismiss() }) {
+        ReportForm(title: "Compress PDF", problem: problem, isLoading: fileSize == nil && problem == nil, done: close) {
             if let fileSize {
                 Section {
-                    LabeledContent("File Size", value: Measurement(value: Double(fileSize), unit: UnitInformationStorage.bytes),
-                                   format: .byteCount(style: .file))
+                    size("File Size", fileSize)
                     Picker("Optimize For", selection: $profile) {
                         Text("Balanced").tag("balanced")
                         Text("Smallest File").tag("smallest")
@@ -145,23 +146,45 @@ struct CompressSheet: View {
                 } footer: {
                     Text("Makes a smaller copy without changing what the pages show. Your document stays as it is.")
                 }
-                Section {
-                    Button(action: compress) {
-                        HStack {
-                            Label("Save Compressed Copy…", systemImage: "arrow.down.right.and.arrow.up.left")
-                            if isWriting { Spacer(); ProgressView().controlSize(.small) }
+                if let compressedSize, compressedSize < fileSize {
+                    Section {
+                        size("Compressed Size", compressedSize)
+                        Button("Save Compressed Copy…", systemImage: "square.and.arrow.down") {
+                            session.pendingExportedFile = compressed
+                            compressed = nil
+                            dismiss()
+                        }
+                    } footer: {
+                        Text("\(Int((1 - Double(compressedSize) / Double(fileSize)) * 100))% smaller")
+                    }
+                } else if compressedSize != nil {
+                    Section {
+                        Label("This PDF is already as small as it can be with this setting.", systemImage: "checkmark.circle")
+                    }
+                } else {
+                    Section {
+                        Button(action: compress) {
+                            HStack {
+                                Label("Compress", systemImage: "arrow.down.right.and.arrow.up.left")
+                                if isWriting { Spacer(); ProgressView().controlSize(.small) }
+                            }
                         }
                     }
                 }
             }
         }
         .disabled(isWriting)
+        .onChange(of: profile) { discard() }
         .task {
             do {
                 guard let health = try await session.check(CheckRequest(health: true)).health else { return }
-                fileSize = Int64(health.fileSize)
+                fileSize = health.fileSize
             } catch { problem = error.localizedDescription }
         }
+    }
+
+    private func size(_ title: LocalizedStringKey, _ bytes: Int64) -> some View {
+        LabeledContent(title, value: Measurement(value: Double(bytes), unit: UnitInformationStorage.bytes), format: .byteCount(style: .file))
     }
 
     private func compress() {
@@ -170,12 +193,27 @@ struct CompressSheet: View {
         Task {
             defer { isWriting = false }
             do {
-                _ = try await session.writeHealthCopy(.optimize, profile: profile)
-                dismiss()
+                _ = try await session.writeHealthCopy(.optimize, profile: profile, suffix: String(localized: "Compressed"))
+                // The sheet shows the result first; the window offers the copy only when asked.
+                compressed = session.pendingExportedFile
+                session.pendingExportedFile = nil
+                let files = compressed.flatMap { try? FileManager.default.contentsOfDirectory(at: $0.folder, includingPropertiesForKeys: nil) }
+                compressedSize = files?.first.flatMap { try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize }.map(Int64.init)
             } catch {
                 problem = error.localizedDescription
             }
         }
+    }
+
+    private func discard() {
+        if let compressed { try? FileManager.default.removeItem(at: compressed.folder) }
+        compressed = nil
+        compressedSize = nil
+    }
+
+    private func close() {
+        discard()
+        dismiss()
     }
 }
 
@@ -271,6 +309,7 @@ struct RedactSheet: View {
     @State private var sanitize = false
     @State private var problem: String?
     @State private var isSearching = false
+    @State private var canUseWholeBlocks = false
 
     var body: some View {
         SheetForm(title: "Redact", confirm: "Redact", isComplete: searched?.matches(find, revision: session.revision) == true && !included.isEmpty, isWriting: isSearching,
@@ -284,6 +323,17 @@ struct RedactSheet: View {
                     .disabled(find.text.trimmingCharacters(in: .whitespaces).isEmpty)
             } footer: {
                 Text("Redaction removes the text, images and drawings under each match and covers it in black. Select text on a page to redact just that, or use Mark Areas to Redact to drag across images and drawings.")
+            }
+            if canUseWholeBlocks {
+                Section {
+                    Button("Find Whole Text Blocks", systemImage: "text.justify") {
+                        canUseWholeBlocks = false
+                        find.wholeBlocks = true
+                        search()
+                    }
+                } footer: {
+                    Text("This text is too close to the lines around it to remove on its own. You can remove the whole block of text that contains it instead.")
+                }
             }
             if searched != nil {
                 Section {
@@ -300,6 +350,10 @@ struct RedactSheet: View {
                     }
                 } header: {
                     Text("Matches (\(marks.count))")
+                } footer: {
+                    if find.wholeBlocks {
+                        Text("Each match removes its whole block of text, including the words around it. Check each one before redacting.")
+                    }
                 }
                 Section {
                     Toggle("Also Remove Hidden Information", isOn: $sanitize)
@@ -307,6 +361,10 @@ struct RedactSheet: View {
                     Text("Removes the document’s properties, attachments, scripts and comments too.")
                 }
             }
+        }
+        .onChange(of: find.text) {
+            find.wholeBlocks = false
+            canUseWholeBlocks = false
         }
         .onChange(of: find) {
             if searched?.matches(find, revision: session.revision) != true { searched = nil }
@@ -329,7 +387,15 @@ struct RedactSheet: View {
                 included = Set(marks.indices)
                 searched = request
             } catch {
-                problem = RedactionProblem.message(for: error)
+                if RedactionProblem.needsWholeBlocks(error) {
+                    if request.find.wholeBlocks {
+                        problem = String(localized: "This text can’t be removed safely, so nothing was changed.")
+                    } else {
+                        canUseWholeBlocks = true
+                    }
+                } else {
+                    problem = error.localizedDescription
+                }
             }
         }
     }

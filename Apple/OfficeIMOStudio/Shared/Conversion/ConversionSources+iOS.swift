@@ -1,4 +1,5 @@
 #if os(iOS)
+import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 
@@ -18,10 +19,30 @@ enum ConversionSources {
     /// One new PDF from the files the user picks, for Create PDF's Combine Files.
     static func newDocumentFromFiles() async throws -> URL? {
         let inputs = await DocumentPickerSession(types: PageSources.contentTypes, allowsMultiple: true).run()
-        guard !inputs.isEmpty else { return nil }
-        let output = try await DocumentConversion.combine(inputs)
+        guard !inputs.isEmpty, let ordered = await chooseOrder(CombineOrderView.sorted(inputs)) else { return nil }
+        let output = try await DocumentConversion.combine(ordered)
         StudioTemporaryFiles.markReturnedOutput(output)
         return output
+    }
+
+    private static func chooseOrder(_ files: [URL]) async -> [URL]? {
+        await withCheckedContinuation { continuation in
+            var host: UIHostingController<CombineOrderView>?
+            let view = CombineOrderView(files: files) { result in
+                guard let current = host else { return }
+                host = nil
+                current.dismiss(animated: true) { continuation.resume(returning: result) }
+            }
+            let controller = UIHostingController(rootView: view)
+            controller.isModalInPresentation = true
+            host = controller
+            Task {
+                if !(await ScanSources.present(controller)), host != nil {
+                    host = nil
+                    continuation.resume(returning: nil)
+                }
+            }
+        }
     }
 }
 

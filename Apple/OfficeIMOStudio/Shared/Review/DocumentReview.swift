@@ -183,12 +183,9 @@ extension EngineDocument {
     }
 }
 
-/// What to tell the user when redaction can't be limited to the matches, in place of the engine's technical account.
+/// Redaction the engine refuses because a match can't be removed without touching the text around it.
 enum RedactionProblem {
-    static func message(for error: any Error) -> String {
-        if let error = error as? EngineError, error.message.contains("precise search area") {
-            return String(localized: "This text overlaps other text on the page, so it can’t be removed on its own. Choose Mark Areas to Redact in Tools > Protect and drag over the area instead.")
-        }
-        return error.localizedDescription
+    static func needsWholeBlocks(_ error: any Error) -> Bool {
+        (error as? EngineError)?.message.contains("would remove an unselected glyph") == true
     }
 }

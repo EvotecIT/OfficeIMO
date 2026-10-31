@@ -6,12 +6,16 @@ import UIKit
 /// app's documents and open it through the document browser, as if the user had picked it there.
 @MainActor
 enum LaunchDocuments {
+    /// What the next document window tells the user about the file it opens.
+    static var pendingNotice: String?
+
     static func open(_ prepare: @escaping @MainActor () async throws -> URL?) {
         Task {
             do {
                 guard let output = try await prepare() else { return }
                 defer { StudioTemporaryFiles.removeGeneratedPDF(output) }
                 guard let browser = documentBrowser() else { throw CocoaError(.featureUnsupported) }
+                if output != SampleDocument.url { pendingNotice = String(localized: "Saved to OfficeIMO Studio in Files.") }
                 browser.delegate?.documentBrowser?(browser, didPickDocumentsAt: [try keep(output)])
             } catch {
                 let alert = UIAlertController(title: nil, message: error.localizedDescription, preferredStyle: .alert)
@@ -26,6 +30,8 @@ enum LaunchDocuments {
         let folder = URL.documentsDirectory
         let name = output.deletingPathExtension().lastPathComponent
         var kept = folder.appending(path: output.lastPathComponent)
+        // The sample is one document, however often it is opened.
+        if output == SampleDocument.url, FileManager.default.fileExists(atPath: kept.path) { return kept }
         var number = 2
         while FileManager.default.fileExists(atPath: kept.path) {
             kept = folder.appending(path: "\(name) \(number).pdf")

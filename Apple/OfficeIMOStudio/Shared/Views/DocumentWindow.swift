@@ -47,6 +47,10 @@ struct DocumentWindow: View {
                 if session.isPageListShown == nil { session.isPageListShown = !isCompact }
                 session.undoManager = undoManager
                 await session.load(originalURL: fileURL)
+                #if os(iOS)
+                session.transientNotice = LaunchDocuments.pendingNotice
+                LaunchDocuments.pendingNotice = nil
+                #endif
             }
             .onChange(of: undoManager) { session.undoManager = undoManager }
             .onChange(of: fileURL) { _, url in Task { await session.updateOriginalURL(url) } }
@@ -239,10 +243,46 @@ struct DocumentWindow: View {
                 Text(message)
             }
         case .ready:
-            switch session.task {
-            case .read, .markup: ReadView(session: session)
-            case .pages: PagesTaskView(session: session, isCompact: isCompact)
+            VStack(spacing: 0) {
+                taskHeader
+                switch session.task {
+                case .read, .markup: ReadView(session: session)
+                case .pages: PagesTaskView(session: session, isCompact: isCompact)
+                }
             }
+            .onChange(of: session.task) { _, task in
+                if task == .markup, session.formFields(session.currentPage)?.fields.contains(where: \.isFillable) == true {
+                    session.transientNotice = String(localized: "To fill in the form, go back to Read.")
+                }
+            }
+            .task(id: session.transientNotice) {
+                guard session.transientNotice != nil else { return }
+                try? await Task.sleep(for: .seconds(5))
+                if !Task.isCancelled { session.transientNotice = nil }
+            }
+        }
+    }
+
+    /// What sits above the pages: the tasks on iPad and iPhone, search when it is open, and short notices.
+    @ViewBuilder private var taskHeader: some View {
+        #if os(iOS)
+        if session.task != .markup {
+            Picker("Task", selection: $session.task) {
+                ForEach(StudioTask.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+        }
+        if session.isSearchFocused, session.task != .pages { SearchField(session: session) }
+        #endif
+        if let notice = session.transientNotice {
+            Label(notice, systemImage: "info.circle")
+                .font(.callout)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .glassEffect(.regular, in: .capsule)
+                .padding(.vertical, 6)
         }
     }
 
@@ -321,12 +361,7 @@ struct ReadView: View {
                 }
                 .padding(.bottom, 12)
             }
-            #if os(iOS)
-            // A document window has no navigation bar of its own to hold the system's search field.
-            .safeAreaInset(edge: .top) {
-                if session.isSearchFocused { SearchField(session: session) }
-            }
-            #else
+            #if os(macOS)
             .searchable(text: $session.searchText, isPresented: $session.isSearchFocused, prompt: Text("Search"))
             .onSubmit(of: .search) { session.runSearch() }
             #endif
