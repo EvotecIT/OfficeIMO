@@ -204,6 +204,10 @@ internal static partial class PdfRedactionVerification {
                 (string.IsNullOrWhiteSpace(detail) ? string.Empty : " " + detail)));
         }
 
+        if (rewrittenPreflight.CanReadLogicalObjects) {
+            issues.AddRange(PdfRedactionApplier.FindSearchedTextOutsidePageContent(redactedPdf, reviewedPlan.Areas, readOptions, options.CancellationToken));
+        }
+
         if (hasResidualText) {
             issues.Add(new PdfRedactionVerificationIssue(
                 "RedactionPlanResidual",

@@ -2291,10 +2291,16 @@ selected, relabeled areas to `source.Redactions.Plan(...)` for a fresh impact re
 Matched-glyph selection removes exactly the selected glyphs, identified by page
 position and encoded bytes, and paints the full mark over them. The mark can reach
 into a neighbouring line: on single-spaced text it clips the descender tips of the
-line above, and that line stays in the file and remains extractable. Occurrences in
-hidden layers are selected too, and tagged `Alt`, `ActualText`, `E` and `TU` entries
-holding the matched wording are removed. A search mark cannot be saved as a `/Redact`
-annotation, because an annotation records only a rectangle.
+line above, and that line stays in the file and remains extractable. A search mark
+cannot be saved as a `/Redact` annotation, because an annotation records only a
+rectangle.
+
+Both selection modes also cover copies the page text doesn't show. Occurrences in
+hidden layers are selected (whole-block search takes the hidden line that holds the
+match), tagged `Alt`, `ActualText`, `E` and `TU` entries holding the searched text are
+removed, and the output is refused if either those entries or a Form XObject that no
+page paints still hold it. Whole-block areas are rectangles, so they also remove text
+from a neighbouring line that the rectangle reaches.
 
 `TextAndUnderlay` still removes image pixels and intersecting vector paths across the
 whole mark, so scanned ink under a match is erased, including descenders, while

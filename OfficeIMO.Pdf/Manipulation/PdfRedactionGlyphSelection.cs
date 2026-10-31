@@ -14,15 +14,9 @@ internal sealed class PdfRedactionGlyphSelection {
     private const double OriginTolerance = 0.005D;
     private readonly PdfRedactionSelectedGlyph[] _glyphs;
 
-    internal PdfRedactionGlyphSelection(IEnumerable<PdfRedactionSelectedGlyph> glyphs, IEnumerable<string> matchedTexts) {
-        _glyphs = glyphs.ToArray();
-        MatchedTexts = matchedTexts.Distinct(StringComparer.Ordinal).ToArray();
-    }
+    internal PdfRedactionGlyphSelection(IEnumerable<PdfRedactionSelectedGlyph> glyphs) => _glyphs = glyphs.ToArray();
 
     internal int Count => _glyphs.Length;
-
-    /// <summary>The matched wording, used to clear copies of it held outside the page content.</summary>
-    internal IReadOnlyList<string> MatchedTexts { get; }
 
     internal bool Contains(double x, double y, IReadOnlyList<byte> encodedBytes) {
         for (int index = 0; index < _glyphs.Length; index++) {

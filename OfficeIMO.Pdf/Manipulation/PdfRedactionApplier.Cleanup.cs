@@ -12,29 +12,6 @@ internal static partial class PdfRedactionApplier {
         return changed;
     }
 
-    // Tagged alternate text repeats wording outside the page content. A search mark removes the entries
-    // holding what it matched, whatever the cleanup scope, and leaves every other description in place.
-    private static bool RemoveAlternateTextHoldingMatches(Dictionary<int, PdfIndirectObject> objects, PdfRedactionArea[] areas) {
-        string[] matched = areas.SelectMany(static area => area.GlyphSelection?.MatchedTexts ?? Array.Empty<string>())
-            .Where(static text => !string.IsNullOrWhiteSpace(text)).Distinct(StringComparer.Ordinal).ToArray();
-        if (matched.Length == 0) return false;
-        bool changed = false;
-        foreach (PdfIndirectObject item in objects.Values) changed = RemoveMatchingAlternateText(objects, item.Value, matched) || changed;
-        return changed;
-    }
-
-    private static bool RemoveMatchingAlternateText(Dictionary<int, PdfIndirectObject> objects, PdfObject value, string[] matched) {
-        PdfDictionary? dictionary = value is PdfDictionary direct ? direct : value is PdfStream stream ? stream.Dictionary : null;
-        if (dictionary is null) return false;
-        bool changed = false;
-        foreach (string key in new[] { "Alt", "ActualText", "E", "TU" }) {
-            if (dictionary.Items.TryGetValue(key, out PdfObject? entry) && PdfObjectLookup.Resolve(objects, entry) is PdfStringObj text &&
-                matched.Any(match => PdfTextSearchNormalization.Contains(text.Value, match, StringComparison.OrdinalIgnoreCase))) changed = dictionary.Items.Remove(key) || changed;
-        }
-        foreach (PdfObject child in dictionary.Items.Values.ToArray()) changed = RemoveMatchingAlternateText(objects, child, matched) || changed;
-        return changed;
-    }
-
     private static bool RemoveAttachments(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog) {
         bool changed = PdfAssociatedFileGraph.RemoveAssociatedFileReferences(objects);
         PdfDictionary? names = ResolveDictionary(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);

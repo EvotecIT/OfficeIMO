@@ -34,6 +34,39 @@ internal static partial class PdfTextEditor {
     private static bool HasOptionalContent(byte[] pdf, PdfLoadOptions? readOptions, CancellationToken cancellationToken) =>
         PdfReadDocument.Open(pdf, readOptions, cancellationToken).CatalogDictionary?.Items.ContainsKey("OCProperties") == true;
 
+    // Logical blocks don't include hidden layers, so a hidden match is selected as the whole line that holds it.
+    internal static IReadOnlyList<(int Page, string Label, PdfTextSpanBounds Bounds)> FindHiddenLayerRedactionLines(
+        byte[] pdf, PdfRedactionSearchOptions search, Regex[] expressions, PdfLoadOptions? readOptions, PdfRedactionSearchWorkBudget budget) {
+        var lines = new List<(int Page, string Label, PdfTextSpanBounds Bounds)>();
+        if (!HasOptionalContent(pdf, readOptions, search.CancellationToken)) return lines;
+        var options = new PdfTextSearchOptions {
+            MatchCase = search.MatchCase, IncludeTextRenderingMode3 = true, PageNumbers = search.PageNumbers.ToArray()
+        };
+        foreach (string literal in search.LiteralText) {
+            AddLines(FindHits(pdf, literal, options, readOptions, budget, includeUnsafeSpans: true, hiddenOptionalContentOnly: true,
+                cancellationToken: search.CancellationToken, maximumHits: search.MaximumCandidates), "literal:" + literal);
+        }
+        for (int index = 0; index < expressions.Length; index++) {
+            Regex expression = expressions[index];
+            AddLines(FindHits(pdf, expression.ToString(), options, readOptions, budget,
+                unit => budget.Matches(expression, unit.Text).Where(static match => match.Length > 0)
+                    .Select(static match => new TextSearchRange(match.Index, match.Length, match.Value)),
+                includeUnsafeSpans: true, hiddenOptionalContentOnly: true,
+                cancellationToken: search.CancellationToken, maximumHits: search.MaximumCandidates), "regex:" + search.RegularExpressions[index]);
+        }
+        return lines;
+
+        void AddLines(IReadOnlyList<TextSearchHit> hits, string label) {
+            foreach (TextSearchHit hit in hits) {
+                foreach (PdfTextSpan[] line in hit.Lines) {
+                    PdfTextSpanBounds[] bounds = line.Select(PdfTextSpanGeometry.GetRedactionBounds).ToArray();
+                    lines.Add((hit.PageNumber, label, new PdfTextSpanBounds(bounds.Min(static value => value.Left), bounds.Min(static value => value.Bottom),
+                        bounds.Max(static value => value.Right), bounds.Max(static value => value.Top))));
+                }
+            }
+        }
+    }
+
     // Reuse the editor's source-range, line-flow and table boundaries instead of
     // approximating a substring's position from logical-block text lengths.
     internal static IReadOnlyList<PdfRedactionArea> FindRedactionAreas(
@@ -72,8 +105,7 @@ internal static partial class PdfTextEditor {
             .Select(group => {
                 MatchedGlyphDraft first = group.First();
                 return new PdfRedactionArea(first.Page, first.Left, first.Bottom, first.Right - first.Left, first.Top - first.Bottom, first.Label, search.ContentScope)
-                    .WithGlyphSelection(new PdfRedactionGlyphSelection(group.SelectMany(static draft => draft.Glyphs),
-                        group.SelectMany(static draft => draft.MatchedTexts)));
+                    .WithGlyphSelection(new PdfRedactionGlyphSelection(group.SelectMany(static draft => draft.Glyphs)));
             }).ToArray();
         if (areas.Length > 0) {
             PdfReadDocument document = PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(readOptions), search.CancellationToken);
@@ -153,7 +185,6 @@ internal static partial class PdfTextEditor {
                     if (draftKeys.TryGetValue(key, out MatchedGlyphDraft? existing)) {
                         // Coincident glyphs share one rectangle, and each of them still has to go.
                         existing.Glyphs.AddRange(coveredGlyphs);
-                        existing.MatchedTexts.Add(hit.Match.Text);
                         continue;
                     }
                     // A phrase may cross adjacent native text shows (including explicit spaces).
@@ -165,7 +196,6 @@ internal static partial class PdfTextEditor {
                         MatchedGlyphDraft previous = drafts[drafts.Count - 1];
                         previous.Join(left, bottom, right, top);
                         previous.Glyphs.AddRange(coveredGlyphs);
-                        previous.MatchedTexts.Add(hit.Match.Text);
                         draftKeys[key] = previous;
                         previousSpan = span;
                         continue;
@@ -173,7 +203,6 @@ internal static partial class PdfTextEditor {
                     if (drafts.Count >= search.MaximumCandidates) throw new InvalidOperationException("Redaction search exceeded the configured candidate limit.");
                     var draft = new MatchedGlyphDraft(hit.PageNumber, left, bottom, right, top, label);
                     draft.Glyphs.AddRange(coveredGlyphs);
-                    draft.MatchedTexts.Add(hit.Match.Text);
                     drafts.Add(draft);
                     draftKeys[key] = draft;
                     previousSpan = span;
@@ -226,7 +255,6 @@ internal static partial class PdfTextEditor {
         internal double Top { get; private set; }
         internal string Label { get; }
         internal List<PdfRedactionSelectedGlyph> Glyphs { get; } = new();
-        internal List<string> MatchedTexts { get; } = new();
 
         internal bool CanJoin(int page, double left, double bottom, double right, double top, double tolerance) =>
             Page == page && (

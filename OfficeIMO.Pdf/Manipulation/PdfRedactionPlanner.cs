@@ -89,6 +89,7 @@ internal static partial class PdfRedactionPlanner {
         var hiddenImagePlacementsByPage = new Dictionary<int, IReadOnlyList<PdfImagePlacement>>();
         var inconclusiveOptionalContentPages = new HashSet<int>();
         var staleSelectionPages = new HashSet<int>();
+        var generatedMarksByPage = new Dictionary<int, HashSet<int>>();
 
         PdfReadDocument? glyphDocument = null;
         foreach (PdfRedactionArea area in areaArray) {
@@ -146,7 +147,12 @@ internal static partial class PdfRedactionPlanner {
                     primitives = page.GetIdentityVisualPrimitives(cancellationToken);
                     nestedPathPrimitivesByPage.Add(area.PageNumber, primitives);
                 }
-                AddPathMatches(area, page, primitives, matches, findings, excludeGeneratedRedactionMarks);
+                if (!generatedMarksByPage.TryGetValue(area.PageNumber, out HashSet<int>? generatedMarks)) {
+                    generatedMarks = excludeGeneratedRedactionMarks
+                        ? FindGeneratedRedactionMarks(areaArray, area.PageNumber, page, primitives) : new HashSet<int>();
+                    generatedMarksByPage.Add(area.PageNumber, generatedMarks);
+                }
+                AddPathMatches(area, page, primitives, matches, findings, generatedMarks);
             }
         }
 
@@ -380,14 +386,10 @@ internal static partial class PdfRedactionPlanner {
         IReadOnlyList<PdfPageVisualPrimitive> primitives,
         List<PdfRedactionMatch> matches,
         List<PdfDiagnosticFinding> findings,
-        bool excludeGeneratedRedactionMarks) {
-        PdfVisualBounds visualArea = page.TransformBoundsToVisual(area.X, area.Y, area.Right, area.Top);
-        int generatedMarkIndex = excludeGeneratedRedactionMarks
-            ? FindGeneratedRedactionMarkIndex(area, visualArea, primitives)
-            : -1;
+        HashSet<int> generatedMarks) {
         for (int i = 0; i < primitives.Count; i++) {
             PdfPageVisualPrimitive primitive = primitives[i];
-            if (i == generatedMarkIndex) continue;
+            if (generatedMarks.Contains(i)) continue;
             double strokePadding = primitive.HasStrokePaint ? Math.Max(0D, primitive.StrokeWidth) / 2D : 0D;
             double left = primitive.X - strokePadding;
             double top = primitive.Y - strokePadding;
@@ -418,6 +420,21 @@ internal static partial class PdfRedactionPlanner {
                     : "The redaction area intersects a page-level vector path. Applying the plan removes supported intersecting paths when path removal is enabled; otherwise applied-plan verification remains unverified while the path survives.",
                 pageNumber: area.PageNumber));
         }
+    }
+
+    // Marks on adjacent lines overlap, so one area's mark must not read as residual content in the next.
+    private static HashSet<int> FindGeneratedRedactionMarks(
+        IReadOnlyList<PdfRedactionArea> areas,
+        int pageNumber,
+        PdfReadPage page,
+        IReadOnlyList<PdfPageVisualPrimitive> primitives) {
+        var marks = new HashSet<int>();
+        foreach (PdfRedactionArea area in areas) {
+            if (area.PageNumber != pageNumber) continue;
+            int mark = FindGeneratedRedactionMarkIndex(area, page.TransformBoundsToVisual(area.X, area.Y, area.Right, area.Top), primitives);
+            if (mark >= 0) marks.Add(mark);
+        }
+        return marks;
     }
 
     private static int FindGeneratedRedactionMarkIndex(

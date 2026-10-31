@@ -301,6 +301,134 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains("line above", opened.Read().Text.Replace("\n", " "), StringComparison.Ordinal);
         }
 
+        [Theory]
+        [InlineData(PdfRedactionTextSelection.LogicalBlocks)]
+        [InlineData(PdfRedactionTextSelection.MatchedGlyphs)]
+        public void TouchingMarksOnAdjacentLinesDoNotCountAsResidualContent(PdfRedactionTextSelection selection) {
+            byte[] bytes = BuildTextContentRedactionSource(
+                "BT /F1 12 Tf 13.8 TL 72 720 Td (secret first) Tj T* (secret second) Tj ET");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            Assert.Equal(2, plan.Areas.Count);
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.DoesNotContain("secret", result.ToDocument().Read().Text, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void WholeBlockSearchRemovesHiddenLayerMatches(bool regex) {
+            byte[] bytes = BuildLayeredSource("BT /F1 12 Tf 72 720 Td (Alpha secret Omega) Tj ET BT /F1 12 Tf 72 500 Td (Unrelated visible text) Tj ET " +
+                "/OC /Layer BDC BT /F1 12 Tf 72 300 Td (Layer secret note) Tj ET BT /F1 12 Tf 72 200 Td (Other hidden words) Tj ET EMC");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionSearchOptions options = new PdfRedactionSearchOptions();
+            if (regex) options.AddRegex("sec[r]et"); else options.AddLiteral("secret");
+            PdfRedactionPlan plan = source.Redactions.Search(options);
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+            Assert.Equal(2, plan.Areas.Count);
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            IReadOnlyList<(string Text, double X, double Y)> glyphs = ReadAllGlyphs(result.Pdf);
+            string kept = string.Concat(glyphs.Select(static glyph => glyph.Text));
+            Assert.DoesNotContain("secret", kept, StringComparison.Ordinal);
+            Assert.DoesNotContain("Layer", kept, StringComparison.Ordinal);
+            Assert.Contains("Unrelated visible text", kept, StringComparison.Ordinal);
+            Assert.Contains("Other hidden words", kept, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData(PdfRedactionTextSelection.LogicalBlocks, false)]
+        [InlineData(PdfRedactionTextSelection.LogicalBlocks, true)]
+        [InlineData(PdfRedactionTextSelection.MatchedGlyphs, false)]
+        [InlineData(PdfRedactionTextSelection.MatchedGlyphs, true)]
+        public void AlternateTextHoldingTheSearchIsRemovedThroughARebuiltPlan(PdfRedactionTextSelection selection, bool regex) {
+            byte[] bytes = BuildTaggedSource();
+            PdfDocument source = PdfDocument.Load(bytes);
+            var options = new PdfRedactionSearchOptions { TextSelection = selection };
+            if (regex) options.AddRegex("sec[r]et"); else options.AddLiteral("secret");
+            PdfRedactionArea mark = Assert.Single(source.Redactions.Search(options).Areas);
+
+            string raw = PdfEncoding.Latin1GetString(source.Redactions.Apply(source.Redactions.Plan(new[] { mark.WithLabel("Reviewed") })).ToBytes());
+
+            Assert.DoesNotContain("secret", raw, StringComparison.Ordinal);
+            Assert.Contains("A harmless picture", raw, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData(PdfRedactionTextSelection.LogicalBlocks)]
+        [InlineData(PdfRedactionTextSelection.MatchedGlyphs)]
+        public void WholeBlockAndGlyphSearchClearFormsPaintedTwice(PdfRedactionTextSelection selection) {
+            byte[] bytes = BuildRepeatedFormSource();
+            PdfDocument source = PdfDocument.Load(bytes);
+            var options = new PdfRedactionSearchOptions { TextSelection = selection }.AddLiteral("secret");
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(source.Redactions.Search(options));
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            Assert.DoesNotContain("Form secret", DecodeAllStreams(result.Pdf), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void VerifierFlagsAnOrphanedFormHoldingTheSearchedText() {
+            byte[] bytes = BuildRepeatedFormSource();
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            // Same document, but the page no longer paints the form that holds the text.
+            byte[] orphaned = BuildRepeatedFormSource("q 1 0 0 1 72 720 cm Q");
+            Assert.DoesNotContain("secret", PdfDocument.Load(orphaned).Read().Text, StringComparison.Ordinal);
+
+            PdfRedactionVerificationReport report = PdfDocument.Load(orphaned).Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
+
+            Assert.Contains(report.Issues, issue => issue.Feature == "SearchedTextOutsidePageContent" && issue.Marker == "OrphanedFormXObject");
+        }
+
+        [Fact]
+        public void VerifierAcceptsAFormStillPaintedAndFlagsRetainedAlternateText() {
+            byte[] bytes = BuildRepeatedFormSource();
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan search = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            PdfRedactionApplyResult one = source.Redactions.ApplyWithEvidence(source.Redactions.Plan(new[] { search.Areas[0] }));
+            Assert.True(one.Evidence.IsVerified, one.Evidence.Summary);
+
+            PdfDocument tagged = PdfDocument.Load(BuildTaggedSource());
+            PdfRedactionPlan plan = tagged.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            PdfRedactionVerificationReport report = tagged.Redactions.VerifyAppliedPlan(plan, new PdfRedactionVerificationOptions());
+            Assert.Contains(report.Issues, issue => issue.Feature == "SearchedTextOutsidePageContent" && issue.Marker == "AlternateText");
+        }
+
+        private byte[] BuildTaggedSource() => BuildPdf(new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Alpha secret Omega) Tj ET")),
+            "6 0 obj\n<< /Type /StructTreeRoot /K [7 0 R 8 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /StructElem /S /P /P 6 0 R /Alt (the secret alt) /ActualText (Alpha secret actual) >>\nendobj",
+            "8 0 obj\n<< /Type /StructElem /S /P /P 6 0 R /Alt (A harmless picture) >>\nendobj"
+        }, rootObjectNumber: 1);
+
+        private byte[] BuildRepeatedFormSource(string? pageContent = null) {
+            const string form = "BT /F1 12 Tf 0 0 Td (Form secret text) Tj ET";
+            return BuildPdf(new[] {
+                "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+                "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+                "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R /Resources << /Font << /F1 4 0 R >> /XObject << /Fm1 6 0 R >> >> >>\nendobj",
+                "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+                BuildStreamObject(5, System.Text.Encoding.ASCII.GetBytes(pageContent ?? "q 1 0 0 1 72 720 cm /Fm1 Do Q q 1 0 0 1 72 680 cm /Fm1 Do Q")),
+                "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 -20 300 20] /Resources << /Font << /F1 4 0 R >> >> /Length " + form.Length + " >>\nstream\n" + form + "\nendstream\nendobj"
+            }, rootObjectNumber: 1);
+        }
+
+        private static string DecodeAllStreams(byte[] pdf) {
+            Dictionary<int, PdfIndirectObject> objects = PdfReadDocument.Open(pdf).Objects;
+            return string.Concat(objects.Values.Select(static item => item.Value).OfType<PdfStream>()
+                .Select(stream => PdfEncoding.Latin1GetString(OfficeIMO.Pdf.Filters.StreamDecoder.DecodeRequired(stream, objects, int.MaxValue))));
+        }
+
         private byte[] BuildLayeredSource(string content) => BuildPdf(new[] {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /BaseState /ON /OFF [6 0 R] >> >> >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",

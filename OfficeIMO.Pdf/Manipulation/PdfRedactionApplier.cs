@@ -69,6 +69,9 @@ internal static partial class PdfRedactionApplier {
             generatedGrowth: out generatedGrowth,
             appliedImageMatches: out appliedImageMatches);
         VerifySearchedTextRemoved(output, pdf, plan, layoutOptions, readOptions, generatedGrowth, effectiveOptions.CancellationToken);
+        PdfRedactionVerificationIssue[] outsidePages = FindSearchedTextOutsidePageContent(output, plan.Areas,
+            PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth), effectiveOptions.CancellationToken).ToArray();
+        if (outsidePages.Length > 0) throw new InvalidOperationException(string.Join(" ", outsidePages.Select(static issue => issue.Message)));
         if (plan.Areas.Any(static area => area.RequiresGlyphRewrite)) {
             // Even the non-evidence Apply route must preserve unselected text for precise plans.
             PdfRedactionVerification.VerifyAppliedPlan(output, plan, new PdfRedactionVerificationOptions {
@@ -90,8 +93,8 @@ internal static partial class PdfRedactionApplier {
         PdfLoadOptions? readOptions = null) {
         Guard.NotNull(areas, nameof(areas));
         PdfRedactionArea[] areaArray = areas.ToArray();
-        if (areaArray.Any(static area => area.RequiresGlyphRewrite)) {
-            // Search marks need the plan route, which proves the exact glyph outcome before returning.
+        if (areaArray.Any(static area => area.SearchCriteria is not null || area.RequiresGlyphRewrite)) {
+            // Search areas need the plan route, which proves the outcome before returning.
             return Apply(pdf, PdfRedactionPlanner.Plan(pdf, areaArray, layoutOptions, readOptions, applyOptions?.CancellationToken ?? default),
                 applyOptions, layoutOptions, readOptions);
         }
