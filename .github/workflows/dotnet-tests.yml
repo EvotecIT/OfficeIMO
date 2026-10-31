@@ -444,8 +444,9 @@ jobs:
     if: fromJSON(needs.changes.outputs.suites)['build-matrix']
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: ${{ fromJSON(needs.changes.outputs.full == 'true' && '["ubuntu-latest","windows-latest"]' || '["ubuntu-latest"]') }}
+        os: ${{ fromJSON(needs.changes.outputs.full == 'true' && (github.event_name != 'pull_request' && '["ubuntu-latest","macos-latest","windows-latest"]' || '["ubuntu-latest","windows-latest"]') || '["ubuntu-latest"]') }}
     timeout-minutes: 45
     steps:
       - name: Checkout code
@@ -479,6 +480,7 @@ jobs:
         run: ./Build/Ci/Invoke-PrBuild.ps1 -ProjectsJson $env:OFFICEIMO_CI_PROJECTS
 
       - name: Test optional C2PA process adapter
+        if: runner.os != 'macOS'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -490,6 +492,7 @@ jobs:
           }
 
       - name: Test electronic invoice contracts
+        if: runner.os != 'macOS'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -501,6 +504,7 @@ jobs:
           }
 
       - name: Test optional invoice PDF adapter
+        if: runner.os != 'macOS'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -512,7 +516,7 @@ jobs:
           }
 
       - name: Build public examples
-        if: needs.changes.outputs.full == 'true'
+        if: needs.changes.outputs.full == 'true' && runner.os != 'macOS'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -1921,10 +1925,10 @@ jobs:
     # Linux covers the full net8.0/net10.0 solution test contract. Hosted macOS
     # runners are scarce for the organization, so keep this lane to one focused
     # platform smoke that proves macOS restore/build/test execution still works.
-    # PRs build only the projects below; full runs retain macOS solution compilation.
+    # Full runs compile the whole macOS solution in build-matrix. Keep this
+    # job's execution window for the platform tests and native Keychain proof.
     env:
       OFFICEIMO_SMOKE_FRAMEWORK: ${{ matrix.framework }}
-      OFFICEIMO_CI_FULL: ${{ needs.changes.outputs.full }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -1948,14 +1952,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          if ($env:OFFICEIMO_CI_FULL -eq 'true') {
-            dotnet restore OfficeIMO.sln
-          } else {
-            $projects = 'Word', 'Html', 'Pdf', 'Markdown', 'CSV', 'Email', 'Security', 'IWork', 'VerifyTests'
-            foreach ($name in $projects) {
-              $project = if ($name -eq 'VerifyTests') { 'OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj' } else { "OfficeIMO.$name.Tests/OfficeIMO.$name.Tests.csproj" }
-              dotnet restore $project
-            }
+          $projects = 'Word', 'Html', 'Pdf', 'Markdown', 'CSV', 'Email', 'Security', 'IWork', 'VerifyTests'
+          foreach ($name in $projects) {
+            $project = if ($name -eq 'VerifyTests') { 'OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj' } else { "OfficeIMO.$name.Tests/OfficeIMO.$name.Tests.csproj" }
+            dotnet restore $project
           }
 
       - name: Build solution
@@ -1963,14 +1963,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          if ($env:OFFICEIMO_CI_FULL -eq 'true') {
-            dotnet build OfficeIMO.sln -c $env:BUILD_CONFIGURATION --no-restore
-          } else {
-            $projects = 'Word', 'Html', 'Pdf', 'Markdown', 'CSV', 'Email', 'Security', 'IWork', 'VerifyTests'
-            foreach ($name in $projects) {
-              $project = if ($name -eq 'VerifyTests') { 'OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj' } else { "OfficeIMO.$name.Tests/OfficeIMO.$name.Tests.csproj" }
-              dotnet build $project -c $env:BUILD_CONFIGURATION -f $env:OFFICEIMO_SMOKE_FRAMEWORK --no-restore -m:1
-            }
+          $projects = 'Word', 'Html', 'Pdf', 'Markdown', 'CSV', 'Email', 'Security', 'IWork', 'VerifyTests'
+          foreach ($name in $projects) {
+            $project = if ($name -eq 'VerifyTests') { 'OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj' } else { "OfficeIMO.$name.Tests/OfficeIMO.$name.Tests.csproj" }
+            dotnet build $project -c $env:BUILD_CONFIGURATION -f $env:OFFICEIMO_SMOKE_FRAMEWORK --no-restore -m:1
           }
 
       - name: Run tests
@@ -2038,11 +2034,15 @@ jobs:
   test-macos:
     name: 'macOS'
     runs-on: ubuntu-latest
-    needs: [changes, test-macos-matrix]
+    needs: [changes, build-matrix, test-macos-matrix]
     if: always() && needs.changes.result == 'success'
     steps:
       - name: Check macOS test matrix
         run: |
+          if [ "${{ github.event_name }}" != "pull_request" ] && [ "${{ needs.changes.outputs.full }}" = "true" ] && [ "${{ needs.build-matrix.result }}" != "success" ]; then
+            echo "Full macOS solution build matrix result: ${{ needs.build-matrix.result }}"
+            exit 1
+          fi
           if [ "${{ needs.test-macos-matrix.result }}" != "success" ] && [ "${{ needs.test-macos-matrix.result }}" != "skipped" ]; then
             echo "macOS test matrix result: ${{ needs.test-macos-matrix.result }}"
             exit 1
