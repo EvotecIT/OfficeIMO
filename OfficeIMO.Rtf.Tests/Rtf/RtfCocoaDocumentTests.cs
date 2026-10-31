@@ -104,6 +104,20 @@ public class RtfCocoaDocumentTests {
     }
 
     [Fact]
+    public void BordersStrokedCellByCellCountAsTheTable() {
+        byte[] bytes = RtfDocument.Parse(Report.Replace("\\clvertalc \\clshdrawnil \\clwWidth693\\clftsWidth3 \\gaph\\cellx4320",
+                "\\clvertalc \\clshdrawnil \\clwWidth693\\clftsWidth3 \\clbrdrt\\brdrs\\brdrw20\\brdrcf2 \\clbrdrl\\brdrs\\brdrw20\\brdrcf2 \\clbrdrb\\brdrs\\brdrw20\\brdrcf2 \\clbrdrr\\brdrs\\brdrw20\\brdrcf2 \\gaph\\cellx4320")
+            .Replace("\\clvertalc \\clshdrawnil \\clwWidth506\\clftsWidth3 \\gaph\\cellx8640",
+                "\\clvertalc \\clshdrawnil \\clwWidth506\\clftsWidth3 \\clbrdrt\\brdrs\\brdrw20\\brdrcf2 \\clbrdrl\\brdrs\\brdrw20\\brdrcf2 \\clbrdrb\\brdrs\\brdrw20\\brdrcf2 \\clbrdrr\\brdrs\\brdrw20\\brdrcf2 \\gaph\\cellx8640"))
+            .ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes();
+
+        PdfCore.PdfLogicalPage page = PdfCore.PdfDocument.Load(bytes).Read(new PdfCore.PdfLoadOptions()).Pages[0];
+
+        Assert.True(page.VectorPrimitiveCount > 0);
+        Assert.Equal(0, page.UnrepresentedVectorPrimitiveCount);
+    }
+
+    [Fact]
     public void ColumnNarrowerThanItsPaddingStillConverts() {
         byte[] bytes = RtfDocument.Parse("{\\rtf1\\ansi\\trowd\\trgaph108\\cellx14\\cellx3000\\pard\\intbl\\cell Wide\\cell\\row}")
             .ConvertToPdfWithEvidence(new RtfToPdfOptions()).ToBytes();

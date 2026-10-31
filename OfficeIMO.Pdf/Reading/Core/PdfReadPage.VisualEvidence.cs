@@ -152,9 +152,9 @@ public sealed partial class PdfReadPage {
         var horizontal = new List<double>();
         double tableLeft = table.Columns[0].From;
         double tableRight = table.Columns[table.Columns.Count - 1].To;
-        double averageRowHeight = (table.YTop - table.YBottom) / Math.Max(1, table.Rows.Count - 1);
-        double firstRowBoundary = table.YTop + averageRowHeight / 2D;
-        double lastRowBoundary = table.YBottom - averageRowHeight / 2D;
+        double averageRowHeight = (table.YTop - table.YBottom) / Math.Max(1, table.HasRuledBounds ? table.Rows.Count : table.Rows.Count - 1);
+        double firstRowBoundary = table.HasRuledBounds ? table.YTop : table.YTop + averageRowHeight / 2D;
+        double lastRowBoundary = table.HasRuledBounds ? table.YBottom : table.YBottom - averageRowHeight / 2D;
         var columnBoundaries = new HashSet<double>();
         for (int index = 0; index < table.Columns.Count; index++) {
             columnBoundaries.Add(table.Columns[index].From);
