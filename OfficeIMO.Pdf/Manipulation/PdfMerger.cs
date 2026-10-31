@@ -108,7 +108,7 @@ internal static partial class PdfMerger {
         IReadOnlyList<Func<PdfReadDocument>?> readDocumentFactories, CancellationToken cancellationToken = default) {
         Guard.NotNull(readOptions, nameof(readOptions));
         Guard.NotNull(readDocumentFactories, nameof(readDocumentFactories));
-        return MergeCore(pdfs, primarySourceIndex, options: null, readOptions, readDocumentFactories, cancellationToken).OwnedBytes;
+        return MergeCore(pdfs, primarySourceIndex, PageImportMergeOptions(), readOptions, readDocumentFactories, cancellationToken).OwnedBytes;
     }
 
     internal static byte[] MergePrimaryWithInsertedPages(byte[] primaryPdf, byte[] insertedPdf, int insertBeforePageNumber) {
@@ -139,7 +139,7 @@ internal static partial class PdfMerger {
 
         (_, primaryDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
             primaryPdf,
-            PdfMutationOperation.ModifyPageTree,
+            PdfMutationOperation.ImportPages,
             primaryDocument,
             primaryReadOptions, cancellationToken: cancellationToken);
         if (primaryDocument.Pages.Count == 0) {
@@ -187,7 +187,8 @@ internal static partial class PdfMerger {
         byte[] output = WriteMerged(importedSources, primarySourceIndex: 0, outputOrder, out int outputObjectCount, cancellationToken);
         PdfLoadOptions outputReadOptions = PdfLoadOptions.ForComposedOutput(primaryDocument.ReadOptions,
             new[] { primaryDocument.ReadOptions, insertedDocument.ReadOptions }, output.LongLength, outputObjectCount);
-        return PdfSourceEncryptionContext.Create(primaryDocument, cancellationToken)?.Protect(output, generatedReadOptions: outputReadOptions, cancellationToken: cancellationToken) ?? output;
+        return ApplyMergePolicy(output, importedSources, 0, PageImportMergeOptions(), outputReadOptions,
+            outputOrder.Select(page => page.SourceIndex).ToArray(), cancellationToken).OwnedBytes;
     }
 
     private static PdfMergeResult MergeCore(

@@ -398,7 +398,7 @@ public sealed class PdfConversionScenarioManifestTests {
             entry.Id == "forms-full-rewrite-blocked" &&
             entry.ActualClassification == PdfCore.PdfRewritePreservationMatrixClassification.Blocked &&
             entry.FailureMessage is not null &&
-            entry.FailureMessage.Contains("PDF form fields are not supported for rewriting", StringComparison.Ordinal));
+            entry.FailureMessage.Contains("FullRewrite.Forms", StringComparison.Ordinal));
         Assert.Contains(matrix.Entries, entry =>
             entry.Id == "tagged-full-rewrite-blocked" &&
             entry.ActualClassification == PdfCore.PdfRewritePreservationMatrixClassification.Blocked &&
@@ -478,7 +478,7 @@ public sealed class PdfConversionScenarioManifestTests {
             Assert.Contains(rows.EnumerateArray(), row =>
                 RequireString(row, "Id") == "forms-full-rewrite-blocked" &&
                 RequireString(row, "ActualClassification") == "Blocked" &&
-                RequireString(row, "FailureMessage").Contains("PDF form fields are not supported for rewriting", StringComparison.Ordinal));
+                RequireString(row, "FailureMessage").Contains("FullRewrite.Forms", StringComparison.Ordinal));
             Assert.Contains(rows.EnumerateArray(), row =>
                 RequireString(row, "Id") == "tagged-full-rewrite-blocked" &&
                 RequireString(row, "ActualClassification") == "Blocked" &&

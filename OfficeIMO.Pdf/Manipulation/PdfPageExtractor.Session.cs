@@ -38,7 +38,7 @@ internal static partial class PdfPageExtractor {
             Guard.NotNull(pageNumbers, nameof(pageNumbers));
             if (pageNumbers.Length == 0) throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
             ValidatePageNumbers(pageNumbers, PageCount, nameof(pageNumbers), _cancellationToken);
-            if (PdfTaggedPageOrganizer.IsTagged(_document))
+            if (PdfTaggedPageOrganizer.IsTagged(_document) || _document.FormFields.Count > 0)
                 return PdfTaggedPageOrganizer.Rewrite(_source, _document, pageNumbers, _options, maximumOutputBytes, token: _cancellationToken);
             var objects = new int[pageNumbers.Length];
             for (int index = 0; index < pageNumbers.Length; index++) {

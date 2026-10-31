@@ -329,7 +329,7 @@ internal static class PdfInspector {
         }
 
         if (probe.HasForms) {
-            AddRewriteBlocker(PdfRewriteBlockerKind.Forms, "PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.");
+            AddRewriteBlocker(PdfRewriteBlockerKind.Forms, "PDF contains AcroForm fields; this writer requires explicit field and widget preservation.");
         }
 
         var rewriteMarkerSource = new PdfRewriteMarkerSource(pdf, effectiveOptions, readDocument);
