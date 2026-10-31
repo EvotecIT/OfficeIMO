@@ -55217,475 +55217,6 @@ table formatting, borders, and style choices are preserved.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
-      <command:name>Add-OfficeWordHyperlink</command:name>
-      <command:verb>Add</command:verb>
-      <command:noun>OfficeWordHyperlink</command:noun>
-      <maml:description>
-        <maml:para>Adds a hyperlink to the current Word paragraph.</maml:para>
-      </maml:description>
-    </command:details>
-    <maml:description>
-      <maml:para>Adds a hyperlink to the current Word paragraph.</maml:para>
-    </maml:description>
-    <command:syntax>
-      <command:syntaxItem parameterSetName="ContextUrl">
-        <maml:name>Add-OfficeWordHyperlink</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoHistory</maml:name>
-          <maml:description>
-            <maml:para>Do not mark the hyperlink in navigation history.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the created hyperlink.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Styled</maml:name>
-          <maml:description>
-            <maml:para>Apply the built-in hyperlink style.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-          <maml:name>Text</maml:name>
-          <maml:description>
-            <maml:para>Displayed hyperlink text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Tooltip</maml:name>
-          <maml:description>
-            <maml:para>Optional hyperlink tooltip.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Uri">
-          <maml:name>Url</maml:name>
-          <maml:description>
-            <maml:para>External hyperlink URL.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="ParagraphUrl">
-        <maml:name>Add-OfficeWordHyperlink</maml:name>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoHistory</maml:name>
-          <maml:description>
-            <maml:para>Do not mark the hyperlink in navigation history.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Paragraph</maml:name>
-          <maml:description>
-            <maml:para>Paragraph to update outside the DSL context.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">WordParagraph</command:parameterValue>
-          <dev:type>
-            <maml:name>WordParagraph</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the created hyperlink.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Styled</maml:name>
-          <maml:description>
-            <maml:para>Apply the built-in hyperlink style.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-          <maml:name>Text</maml:name>
-          <maml:description>
-            <maml:para>Displayed hyperlink text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Tooltip</maml:name>
-          <maml:description>
-            <maml:para>Optional hyperlink tooltip.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Uri">
-          <maml:name>Url</maml:name>
-          <maml:description>
-            <maml:para>External hyperlink URL.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="ParagraphAnchor">
-        <maml:name>Add-OfficeWordHyperlink</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Bookmark">
-          <maml:name>Anchor</maml:name>
-          <maml:description>
-            <maml:para>Bookmark anchor target within the document.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoHistory</maml:name>
-          <maml:description>
-            <maml:para>Do not mark the hyperlink in navigation history.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Paragraph</maml:name>
-          <maml:description>
-            <maml:para>Paragraph to update outside the DSL context.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">WordParagraph</command:parameterValue>
-          <dev:type>
-            <maml:name>WordParagraph</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the created hyperlink.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Styled</maml:name>
-          <maml:description>
-            <maml:para>Apply the built-in hyperlink style.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-          <maml:name>Text</maml:name>
-          <maml:description>
-            <maml:para>Displayed hyperlink text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Tooltip</maml:name>
-          <maml:description>
-            <maml:para>Optional hyperlink tooltip.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="ContextAnchor">
-        <maml:name>Add-OfficeWordHyperlink</maml:name>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Bookmark">
-          <maml:name>Anchor</maml:name>
-          <maml:description>
-            <maml:para>Bookmark anchor target within the document.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>NoHistory</maml:name>
-          <maml:description>
-            <maml:para>Do not mark the hyperlink in navigation history.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>PassThru</maml:name>
-          <maml:description>
-            <maml:para>Emit the created hyperlink.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Styled</maml:name>
-          <maml:description>
-            <maml:para>Apply the built-in hyperlink style.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-          <dev:type>
-            <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-          <maml:name>Text</maml:name>
-          <maml:description>
-            <maml:para>Displayed hyperlink text.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Tooltip</maml:name>
-          <maml:description>
-            <maml:para>Optional hyperlink tooltip.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-      </command:syntaxItem>
-    </command:syntax>
-    <command:parameters>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Bookmark">
-        <maml:name>Anchor</maml:name>
-        <maml:description>
-          <maml:para>Bookmark anchor target within the document.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>NoHistory</maml:name>
-        <maml:description>
-          <maml:para>Do not mark the hyperlink in navigation history.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Paragraph</maml:name>
-        <maml:description>
-          <maml:para>Paragraph to update outside the DSL context.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">WordParagraph</command:parameterValue>
-        <dev:type>
-          <maml:name>WordParagraph</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>PassThru</maml:name>
-        <maml:description>
-          <maml:para>Emit the created hyperlink.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Styled</maml:name>
-        <maml:description>
-          <maml:para>Apply the built-in hyperlink style.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
-        <dev:type>
-          <maml:name>SwitchParameter</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
-        <maml:name>Text</maml:name>
-        <maml:description>
-          <maml:para>Displayed hyperlink text.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Tooltip</maml:name>
-        <maml:description>
-          <maml:para>Optional hyperlink tooltip.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Uri">
-        <maml:name>Url</maml:name>
-        <maml:description>
-          <maml:para>External hyperlink URL.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-    </command:parameters>
-    <command:inputTypes>
-      <command:inputType>
-        <dev:type>
-          <maml:name>OfficeIMO.Word.WordParagraph</maml:name>
-        </dev:type>
-      </command:inputType>
-    </command:inputTypes>
-    <command:returnValues>
-      <command:returnValue>
-        <dev:type>
-          <maml:name>OfficeIMO.Word.WordHyperLink</maml:name>
-        </dev:type>
-      </command:returnValue>
-    </command:returnValues>
-    <maml:alertSet>
-      <maml:alert>
-        <maml:para></maml:para>
-      </maml:alert>
-    </maml:alertSet>
-    <command:examples>
-      <command:example>
-        <maml:title>Add an external hyperlink.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Add-OfficeWordParagraph { Add-OfficeWordHyperlink -Text 'Example' -Url 'https://example.org' -Styled }</dev:code>
-        <dev:remarks>
-          <maml:para>Creates a styled external hyperlink in the active paragraph.</maml:para>
-        </dev:remarks>
-      </command:example>
-    </command:examples>
-    <command:relatedLinks />
-  </command:command>
-  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
-    <command:details>
       <command:name>Add-OfficeWordImage</command:name>
       <command:verb>Add</command:verb>
       <command:noun>OfficeWordImage</command:noun>
@@ -56794,7 +56325,8 @@ table formatting, borders, and style choices are preserved.</maml:para>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
         <dev:code>$paragraph = $document | Add-OfficeWordParagraph -PassThru
-            $paragraph | Add-OfficeWordText -Run @{ Text = 'Owner: ', 'Platform'; Bold = $true, $false }</dev:code>
+            $paragraph | Add-OfficeWordText 'Owner: ' -Bold
+            $paragraph | Add-OfficeWordText 'Platform'</dev:code>
         <dev:remarks>
           <maml:para>Creates a paragraph on a live document and appends two differently formatted runs.</maml:para>
         </dev:remarks>
@@ -59860,11 +59392,11 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <command:verb>Add</command:verb>
       <command:noun>OfficeWordText</command:noun>
       <maml:description>
-        <maml:para>Adds inline text to the current paragraph.</maml:para>
+        <maml:para>Adds styled text or a hyperlink to the current or given Word paragraph.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Supports bold/italic/underline and color tweaks for quick DSL composition.</maml:para>
+      <maml:para>A bare Size means points; unit-suffixed lengths are accepted. Hyperlinks use the Hyperlink style unless NoLinkStyle is supplied.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Text">
@@ -59884,35 +59416,23 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Color</maml:name>
           <maml:description>
-            <maml:para>Run color. Named colors and hexadecimal values are accepted.</maml:para>
+            <maml:para>Text color, including a semantic theme role.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Font,FontFamily,Typeface">
-          <maml:name>FontName</maml:name>
-          <maml:description>
-            <maml:para>Font name or family.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>OfficeColor</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>FontSize</maml:name>
+          <maml:name>Font</maml:name>
           <maml:description>
-            <maml:para>Font size in points.</maml:para>
+            <maml:para>Font family.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>String</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -59932,7 +59452,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Paragraph</maml:name>
           <maml:description>
-            <maml:para>Paragraph that will receive the text outside a DSL context.</maml:para>
+            <maml:para>Paragraph to receive text outside a content block.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">WordParagraph</command:parameterValue>
           <dev:type>
@@ -59944,7 +59464,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the target paragraph for further composition.</maml:para>
+            <maml:para>Emit the target paragraph, or each created hyperlink for Link and Anchor.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -59954,9 +59474,21 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Strike</maml:name>
+          <maml:name>Size</maml:name>
           <maml:description>
-            <maml:para>Render text with strikethrough.</maml:para>
+            <maml:para>Font size; a bare number means points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Strikethrough</maml:name>
+          <maml:description>
+            <maml:para>Apply strikethrough.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -59980,7 +59512,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Underline</maml:name>
           <maml:description>
-            <maml:para>Optional underline style.</maml:para>
+            <maml:para>Underline style.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">WordUnderlineStyle</command:parameterValue>
           <command:parameterValueGroup>
@@ -60010,7 +59542,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
       </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Run">
+      <command:syntaxItem parameterSetName="Link">
         <maml:name>Add-OfficeWordText</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Bold</maml:name>
@@ -60027,35 +59559,23 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Color</maml:name>
           <maml:description>
-            <maml:para>Run color. Named colors and hexadecimal values are accepted.</maml:para>
+            <maml:para>Text color, including a semantic theme role.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Font,FontFamily,Typeface">
-          <maml:name>FontName</maml:name>
-          <maml:description>
-            <maml:para>Font name or family.</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-          <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>OfficeColor</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>FontSize</maml:name>
+          <maml:name>Font</maml:name>
           <maml:description>
-            <maml:para>Font size in points.</maml:para>
+            <maml:para>Font family.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>String</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -60072,10 +59592,46 @@ cells. This keeps existing-document editing simple without forcing callers back 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Link</maml:name>
+          <maml:description>
+            <maml:para>Absolute hyperlink URL.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Uri</command:parameterValue>
+          <dev:type>
+            <maml:name>Uri</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoHistory</maml:name>
+          <maml:description>
+            <maml:para>Disable hyperlink navigation history.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoLinkStyle</maml:name>
+          <maml:description>
+            <maml:para>Do not apply the built-in Hyperlink character style.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Paragraph</maml:name>
           <maml:description>
-            <maml:para>Paragraph that will receive the text outside a DSL context.</maml:para>
+            <maml:para>Paragraph to receive text outside a content block.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">WordParagraph</command:parameterValue>
           <dev:type>
@@ -60087,35 +59643,59 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the target paragraph for further composition.</maml:para>
+            <maml:para>Emit the target paragraph, or each created hyperlink for Link and Anchor.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
             <maml:name>SwitchParameter</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Runs">
-          <maml:name>Run</maml:name>
-          <maml:description>
-            <maml:para>Rich text runs. Each run can be created with TextRun/WordTextRun or provided as a hashtable/object.</maml:para>
-          </maml:description>
-          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
-          <dev:type>
-            <maml:name>Object[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Strike</maml:name>
+          <maml:name>Size</maml:name>
           <maml:description>
-            <maml:para>Render text with strikethrough.</maml:para>
+            <maml:para>Font size; a bare number means points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Strikethrough</maml:name>
+          <maml:description>
+            <maml:para>Apply strikethrough.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
             <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="None">
+          <maml:name>Text</maml:name>
+          <maml:description>
+            <maml:para>Text segments to append.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Tooltip</maml:name>
+          <maml:description>
+            <maml:para>Hyperlink tooltip.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -60123,7 +59703,198 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Underline</maml:name>
           <maml:description>
-            <maml:para>Optional underline style.</maml:para>
+            <maml:para>Underline style.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">WordUnderlineStyle</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Single</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Words</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Thick</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Dotted</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DottedHeavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Dash</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DashedHeavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DashLong</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DashLongHeavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DotDash</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DashDotHeavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DotDotDash</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DashDotDotHeavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Wave</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">WavyHeavy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">WavyDouble</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">None</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>WordUnderlineStyle</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Anchor">
+        <maml:name>Add-OfficeWordText</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Anchor</maml:name>
+          <maml:description>
+            <maml:para>Bookmark target in this document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Bold</maml:name>
+          <maml:description>
+            <maml:para>Apply bold formatting.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Color</maml:name>
+          <maml:description>
+            <maml:para>Text color, including a semantic theme role.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeColor</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Font</maml:name>
+          <maml:description>
+            <maml:para>Font family.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Italic</maml:name>
+          <maml:description>
+            <maml:para>Apply italic formatting.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoHistory</maml:name>
+          <maml:description>
+            <maml:para>Disable hyperlink navigation history.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoLinkStyle</maml:name>
+          <maml:description>
+            <maml:para>Do not apply the built-in Hyperlink character style.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Paragraph</maml:name>
+          <maml:description>
+            <maml:para>Paragraph to receive text outside a content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">WordParagraph</command:parameterValue>
+          <dev:type>
+            <maml:name>WordParagraph</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Emit the target paragraph, or each created hyperlink for Link and Anchor.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Size</maml:name>
+          <maml:description>
+            <maml:para>Font size; a bare number means points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Strikethrough</maml:name>
+          <maml:description>
+            <maml:para>Apply strikethrough.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="None">
+          <maml:name>Text</maml:name>
+          <maml:description>
+            <maml:para>Text segments to append.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Tooltip</maml:name>
+          <maml:description>
+            <maml:para>Hyperlink tooltip.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Underline</maml:name>
+          <maml:description>
+            <maml:para>Underline style.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">WordUnderlineStyle</command:parameterValue>
           <command:parameterValueGroup>
@@ -60155,6 +59926,18 @@ cells. This keeps existing-document editing simple without forcing callers back 
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Anchor</maml:name>
+        <maml:description>
+          <maml:para>Bookmark target in this document.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Bold</maml:name>
         <maml:description>
@@ -60170,35 +59953,23 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Color</maml:name>
         <maml:description>
-          <maml:para>Run color. Named colors and hexadecimal values are accepted.</maml:para>
+          <maml:para>Text color, including a semantic theme role.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Font,FontFamily,Typeface">
-        <maml:name>FontName</maml:name>
-        <maml:description>
-          <maml:para>Font name or family.</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
-        <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>OfficeColor</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>FontSize</maml:name>
+        <maml:name>Font</maml:name>
         <maml:description>
-          <maml:para>Font size in points.</maml:para>
+          <maml:para>Font family.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>String</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -60215,10 +59986,46 @@ cells. This keeps existing-document editing simple without forcing callers back 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Link</maml:name>
+        <maml:description>
+          <maml:para>Absolute hyperlink URL.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Uri</command:parameterValue>
+        <dev:type>
+          <maml:name>Uri</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoHistory</maml:name>
+        <maml:description>
+          <maml:para>Disable hyperlink navigation history.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoLinkStyle</maml:name>
+        <maml:description>
+          <maml:para>Do not apply the built-in Hyperlink character style.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
         <maml:name>Paragraph</maml:name>
         <maml:description>
-          <maml:para>Paragraph that will receive the text outside a DSL context.</maml:para>
+          <maml:para>Paragraph to receive text outside a content block.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">WordParagraph</command:parameterValue>
         <dev:type>
@@ -60230,7 +60037,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the target paragraph for further composition.</maml:para>
+          <maml:para>Emit the target paragraph, or each created hyperlink for Link and Anchor.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -60239,22 +60046,22 @@ cells. This keeps existing-document editing simple without forcing callers back 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Runs">
-        <maml:name>Run</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Size</maml:name>
         <maml:description>
-          <maml:para>Rich text runs. Each run can be created with TextRun/WordTextRun or provided as a hashtable/object.</maml:para>
+          <maml:para>Font size; a bare number means points.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Object[]</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Strike</maml:name>
+        <maml:name>Strikethrough</maml:name>
         <maml:description>
-          <maml:para>Render text with strikethrough.</maml:para>
+          <maml:para>Apply strikethrough.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -60276,9 +60083,21 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Tooltip</maml:name>
+        <maml:description>
+          <maml:para>Hyperlink tooltip.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Underline</maml:name>
         <maml:description>
-          <maml:para>Optional underline style.</maml:para>
+          <maml:para>Underline style.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">WordUnderlineStyle</command:parameterValue>
         <command:parameterValueGroup>
@@ -60321,6 +60140,11 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:name>OfficeIMO.Word.WordParagraph</maml:name>
         </dev:type>
       </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Word.WordHyperLink</maml:name>
+        </dev:type>
+      </command:returnValue>
     </command:returnValues>
     <maml:alertSet>
       <maml:alert>
@@ -60329,23 +60153,17 @@ cells. This keeps existing-document editing simple without forcing callers back 
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Append bold text.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Add-OfficeWordParagraph { Add-OfficeWordText -Text 'Important: ' -Bold }</dev:code>
+        <maml:title>Append styled text.</maml:title>
+        <dev:code>WordParagraph { WordText 'Important: ' -Bold -Font Aptos -Size 11pt; WordText 'read first' -Italic }</dev:code>
         <dev:remarks>
-          <maml:para>Writes “Important:” with bold formatting.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>Append several styled segments to a paragraph.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>$paragraph | Add-OfficeWordText -Run @{ Text = 'Status: ', 'Ready'; Bold = $true, $false; Color = $null, 'SeaGreen' }</dev:code>
+        <maml:title>Add a link and a bookmark reference.</maml:title>
+        <dev:code>WordParagraph { WordText 'Example' -Link 'https://example.org' -Tooltip 'External reference'; WordText 'Summary' -Anchor Summary }</dev:code>
         <dev:remarks>
-          <maml:para>Appends one line with independent formatting for its label and value.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>

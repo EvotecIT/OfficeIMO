@@ -65,16 +65,16 @@ New-OfficeWord -Path $docx {
     WordFooter -Type Default { WordPageNumber -IncludeTotal }
     WordParagraph {
         WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
-        WordText 'Supplier offer review' -Bold -FontSize 26 -Color '17365D'
+        WordText 'Supplier offer review' -Bold -Size 26 -Color '17365D'
     }
     WordParagraph {
         WordParagraphStyle -SpacingAfterPoints 10
-        WordText "$($offers.Count) offers / $itemCount items" -Bold -FontSize 16 -Color '166534'
+        WordText "$($offers.Count) offers / $itemCount items" -Bold -Size 16 -Color '166534'
     }
     WordParagraph -Text 'Compare price and delivery together. The workbook retains numeric values for your own calculations.'
     WordParagraph {
         WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Offers received' -Bold -FontSize 15 -Color '17365D'
+        WordText 'Offers received' -Bold -Size 15 -Color '17365D'
     }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru
     $table | Get-OfficeWordTableCell | ForEach-Object {
@@ -83,7 +83,7 @@ New-OfficeWord -Path $docx {
     }
     WordParagraph {
         WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Before choosing an offer' -Bold -FontSize 15 -Color '17365D'
+        WordText 'Before choosing an offer' -Bold -Size 15 -Color '17365D'
     }
     WordList -Style Bulleted {
         WordListItem -Text 'Confirm stock, quote expiry and the required delivery date.'
@@ -92,7 +92,7 @@ New-OfficeWord -Path $docx {
     }
     WordParagraph {
         WordParagraphStyle -SpacingBeforePoints 12
-        WordText 'Input contract: Item, Supplier, UnitPriceUsd and LeadDays. The bundled HTML contains synthetic data.' -FontSize 10 -Color '475569'
+        WordText 'Input contract: Item, Supplier, UnitPriceUsd and LeadDays. The bundled HTML contains synthetic data.' -Size 10 -Color '475569'
     }
 }
 Export-OfficeDocumentPdf -InputPath $docx -Path $pdf

@@ -112,7 +112,7 @@ $reviewRows = $rows | Select-Object Department,
 New-OfficeWord -Path $docx {
     WordHeader { WordParagraph -Text "FINANCE | $inputLabel | $($AsOfDate.ToString('yyyy-MM-dd'))" }
     WordFooter { WordPageNumber -IncludeTotal }
-    WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Budget and forecast review' -Bold -FontSize 25 -Color '17365D' }
+    WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Budget and forecast review' -Bold -Size 25 -Color '17365D' }
     WordParagraph -Text "Forecast $($totalForecast.ToString('C2',$money)) against budget $($totalBudget.ToString('C2',$money)); actual spend $($totalActual.ToString('C2',$money))."
     WordParagraph -Text "$(if ($variance -eq 0) {'The forecast matches the approved budget.'} else { "The forecast is $([math]::Abs($variance).ToString('C2',$money)) $(if ($variance -gt 0) {'above'} else {'below'}) budget." }) $($exceptions.Count) department(s) need an overspend decision."
     WordParagraph -Text 'Positive variance is overspend; negative is favorable. The workbook retains detail, formulas and input validation. Regenerate this dated review after changing the CSV.'

@@ -12,9 +12,9 @@ PSWriteOffice is not limited to the three desktop Office formats. Smaller comman
 
 Twenty-six commands build and inspect typed Markdown. Add headings, paragraphs, lists, task lists, tables, code, callouts, details, front matter, images, quotes, definition lists, and tables of contents. Reader commands expose headings, nodes, tables, and front matter; converters bridge HTML and Word workflows.
 
-Start with the [operations runbook](https://github.com/EvotecIT/OfficeIMO/blob/db5cd62b6fa2764054f42714ee58a56f8fd7e062/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-OperationsRunbook.ps1) for operational content or the [release notes recipe](https://github.com/EvotecIT/OfficeIMO/blob/db5cd62b6fa2764054f42714ee58a56f8fd7e062/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-ReleaseNotes.ps1) for publishable change documentation. The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) includes both and shows how the same data can also produce Word, Excel, PowerPoint, and PDF output.
+Start with the [operations runbook](https://github.com/EvotecIT/OfficeIMO/blob/2fa093a7dc76bfebc53781b5eccc54e715aa3db6/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-OperationsRunbook.ps1) for operational content or the [release notes recipe](https://github.com/EvotecIT/OfficeIMO/blob/2fa093a7dc76bfebc53781b5eccc54e715aa3db6/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-ReleaseNotes.ps1) for publishable change documentation. The [DSL cookbook](/docs/pswriteoffice/dsl-cookbook/) includes both and shows how the same data can also produce Word, Excel, PowerPoint, and PDF output.
 
-The [object composition recipe](https://github.com/EvotecIT/OfficeIMO/blob/db5cd62b6fa2764054f42714ee58a56f8fd7e062/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-ObjectComposition.ps1) shows explicit document targets, while the [definition guide](https://github.com/EvotecIT/OfficeIMO/blob/db5cd62b6fa2764054f42714ee58a56f8fd7e062/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-DefinitionGuide.ps1) demonstrates definition lists and reusable reference content.
+The [object composition recipe](https://github.com/EvotecIT/OfficeIMO/blob/2fa093a7dc76bfebc53781b5eccc54e715aa3db6/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-ObjectComposition.ps1) shows explicit document targets, while the [definition guide](https://github.com/EvotecIT/OfficeIMO/blob/2fa093a7dc76bfebc53781b5eccc54e715aa3db6/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-DefinitionGuide.ps1) demonstrates definition lists and reusable reference content.
 
 Use the focused Markdown guides for complete workflows:
 
@@ -26,13 +26,13 @@ Use the focused Markdown guides for complete workflows:
 
 Six canonical commands create, load, update, convert, inspect, and configure PDF export for Rich Text Format documents. Use RTF when a lightweight rich-text interchange file is the required source or destination, and keep loss-aware conversion diagnostics for complex content.
 
-See [update and convert RTF](https://github.com/EvotecIT/OfficeIMO/blob/db5cd62b6fa2764054f42714ee58a56f8fd7e062/PowerShell/PSWriteOffice/Examples/Rtf/Recipe-Rtf-UpdateAndConvert.ps1) for an end-to-end example.
+See [update and convert RTF](https://github.com/EvotecIT/OfficeIMO/blob/2fa093a7dc76bfebc53781b5eccc54e715aa3db6/PowerShell/PSWriteOffice/Examples/Rtf/Recipe-Rtf-UpdateAndConvert.ps1) for an end-to-end example.
 
 ## CSV
 
 Five commands convert, import, export, and inspect CSV through OfficeIMO.CSV. Use the CSV family for delimited-data contracts; use Excel when worksheet formatting, formulas, charts, or workbook structure are part of the outcome.
 
-See [safe CSV export](https://github.com/EvotecIT/OfficeIMO/blob/db5cd62b6fa2764054f42714ee58a56f8fd7e062/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1) for delimiter, quoting, and round-trip validation choices.
+See [safe CSV export](https://github.com/EvotecIT/OfficeIMO/blob/2fa093a7dc76bfebc53781b5eccc54e715aa3db6/PowerShell/PSWriteOffice/Examples/Csv/Recipe-Csv-SafeExport.ps1) for delimiter, quoting, and round-trip validation choices.
 
 ## OpenDocument
 
@@ -60,7 +60,7 @@ Use `New-OfficeWordOpenDocumentOptions`, `New-OfficeExcelOpenDocumentOptions`, o
 
 Four artifact commands load and save messages and mailbox files through OfficeIMO.Email, and five option builders expose their safety and fidelity policies. The underlying engine covers multiple message, personal-information, store, and address-book families; exact support and diagnostics belong to the generated command/API reference.
 
-The module boundary is deliberate. PSWriteOffice treats email as document content: it reads or writes supported artifacts and lets OfficeIMO.Reader normalize mail sources for mixed-format search and reporting. [Mailozaurr](https://github.com/EvotecIT/Mailozaurr) owns transport, authentication, mailbox/store lifecycle, PST/OST import and conversion, querying, export, and delivery. Workflows can use Mailozaurr to acquire or deliver content and pass ordinary paths or attachments to PSWriteOffice without either module duplicating the other's operational responsibilities. The [PDF delivery recipe](https://github.com/EvotecIT/OfficeIMO/blob/db5cd62b6fa2764054f42714ee58a56f8fd7e062/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-Mailozaurr-PdfDelivery.ps1) is a runnable handoff: PSWriteOffice creates the attachment and Mailozaurr saves a local EML review package. Delivery occurs only when `-Send` and SMTP settings are explicitly supplied.
+The module boundary is deliberate. PSWriteOffice treats email as document content: it reads or writes supported artifacts and lets OfficeIMO.Reader normalize mail sources for mixed-format search and reporting. [Mailozaurr](https://github.com/EvotecIT/Mailozaurr) owns transport, authentication, mailbox/store lifecycle, PST/OST import and conversion, querying, export, and delivery. Workflows can use Mailozaurr to acquire or deliver content and pass ordinary paths or attachments to PSWriteOffice without either module duplicating the other's operational responsibilities. The [PDF delivery recipe](https://github.com/EvotecIT/OfficeIMO/blob/2fa093a7dc76bfebc53781b5eccc54e715aa3db6/PowerShell/PSWriteOffice/Examples/Integrations/Recipe-Mailozaurr-PdfDelivery.ps1) is a runnable handoff: PSWriteOffice creates the attachment and Mailozaurr saves a local EML review package. Delivery occurs only when `-Send` and SMTP settings are explicitly supplied.
 
 Advanced safety and fidelity controls are also PowerShell-native. Use `New-OfficeEmailReaderOptions`, `New-OfficeEmailWriterOptions`, `New-OfficeEmailStoreReaderOptions`, `New-OfficeEmailMailboxReaderOptions`, and `New-OfficeEmailMailboxWriterOptions`; their output binds directly to the matching `-Options` or `-StoreOptions` parameter. You do not need a hashtable, `New-Object`, or an OfficeIMO constructor.
 
@@ -70,4 +70,4 @@ Each family provides four bounded interoperability commands for reading, saving,
 
 ## HTML review
 
-Office format families provide focused HTML conversion commands, and `Export-OfficeHtmlImage` supports extracted assets. Use the [HTML review examples](https://github.com/EvotecIT/OfficeIMO/tree/db5cd62b6fa2764054f42714ee58a56f8fd7e062/PowerShell/PSWriteOffice/Examples) to build a browser-review step without discarding the source document.
+Office format families provide focused HTML conversion commands, and `Export-OfficeHtmlImage` supports extracted assets. Use the [HTML review examples](https://github.com/EvotecIT/OfficeIMO/tree/2fa093a7dc76bfebc53781b5eccc54e715aa3db6/PowerShell/PSWriteOffice/Examples) to build a browser-review step without discarding the source document.

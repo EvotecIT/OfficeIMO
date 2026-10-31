@@ -20,7 +20,7 @@ New-OfficeWord -Path $docPath {
 
         WordParagraph {
             WordText 'Hello '
-            WordBold 'world'
+            WordText -Bold 'world'
             WordText '! This section uses pure aliases.'
         }
 
@@ -36,7 +36,7 @@ New-OfficeWord -Path $docPath {
 
         WordParagraph {
             WordText 'Generated on '
-            WordBold (Get-Date -Format 'yyyy-MM-dd HH:mm')
+            WordText -Bold (Get-Date -Format 'yyyy-MM-dd HH:mm')
         }
     }
 }

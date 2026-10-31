@@ -1403,16 +1403,6 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordHeadingCommand.cs#L45"
     },
     {
-      "name": "Add-OfficeWordHyperlink",
-      "kind": "Cmdlet",
-      "aliases": [
-        "WordHyperlink"
-      ],
-      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordHyperlinkCommand.cs",
-      "sourceLine": 18,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordHyperlinkCommand.cs#L18"
-    },
-    {
       "name": "Add-OfficeWordImage",
       "kind": "Cmdlet",
       "aliases": [
@@ -1459,8 +1449,8 @@
         "WordParagraph"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordParagraphCommand.cs",
-      "sourceLine": 31,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordParagraphCommand.cs#L31"
+      "sourceLine": 32,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordParagraphCommand.cs#L32"
     },
     {
       "name": "Add-OfficeWordPictureControl",
@@ -1564,13 +1554,11 @@
       "name": "Add-OfficeWordText",
       "kind": "Cmdlet",
       "aliases": [
-        "WordBold",
-        "WordItalic",
         "WordText"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordTextCommand.cs",
-      "sourceLine": 25,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordTextCommand.cs#L25"
+      "sourceLine": 19,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordTextCommand.cs#L19"
     },
     {
       "name": "Add-OfficeWordTextBox",

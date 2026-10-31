@@ -9,7 +9,7 @@
     "validationProjectCount": 67,
     "apiReferenceCount": 122,
     "conceptualPageCount": 132,
-    "conceptualWordCount": 60842
+    "conceptualWordCount": 60801
   },
   "categories": [
     {
@@ -2118,7 +2118,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 812,
+      "sourceFileCount": 813,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -2274,7 +2274,7 @@
       "description": "PSWriteOffice is a focused component in the OfficeIMO managed document platform.",
       "kind": "library",
       "projectPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
-      "sourceFileCount": 781,
+      "sourceFileCount": 780,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pswriteoffice/",
       "apiUrl": null,
