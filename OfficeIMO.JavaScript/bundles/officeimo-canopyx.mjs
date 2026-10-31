@@ -11903,7 +11903,7 @@ function prepareCanopyExport(capture, format, options = {}) {
                     const summary = format === "pdf" && pivot && (row.summary || row.grandTotal);
                     const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat || summary ? {
                         ...rowStyle, ...(summary ? { bold: true } : {}), ...cellStyle,
-                        ...((format === "xlsx" || format === "pdf") && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
+                        ...((format === "pdf" || (format === "xlsx" && pivot)) && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
                     } : undefined;
                     // CSV has no presentation or link metadata: emit its selected scalar directly.
                     // This also avoids a frozen wrapper for every cell in large CSV captures.
@@ -12597,7 +12597,7 @@ function groupedInteger(numeric, value) {
 }
 /** Choose once for the document; percent text is the strongest captured culture signal. */
 function documentDecimal(sample, columns) {
-    let fallback = ".";
+    let fallback;
     for (const percent of [true, false]) {
         for (const row of sample)
             for (let index = 0; index < columns.length; index++) {
@@ -12605,17 +12605,17 @@ function documentDecimal(sample, columns) {
                 if (!(cell instanceof ExportCell) || typeof cell.value !== "number")
                     continue;
                 const profile = numericProfile(cell.presentation?.numberFormat ?? column.format);
-                if (!profile?.maximumFractionDigits)
+                if (!profile)
                     continue;
                 const captured = capturedNumber(cell.text ?? "", profile);
                 if (!captured)
                     continue;
                 // A literal percent label is a culture signal without requesting numeric scaling.
-                const percentageSignal = profile.percent || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
+                const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
                 if (percentageSignal !== percent)
                     continue;
                 const match = /([.,])(\d+)$/.exec(captured.number.trimEnd());
-                if (match && match[2].length <= profile.maximumFractionDigits) {
+                if (match && (percentageSignal || match[2].length <= profile.maximumFractionDigits)) {
                     const numeric = captured.number;
                     const scaled = cell.value * (profile.percent ? 100 : 1);
                     if (groupedInteger(numeric, scaled)) {
@@ -12625,8 +12625,10 @@ function documentDecimal(sample, columns) {
                     return match[1];
                 }
             }
+        if (fallback !== undefined)
+            return fallback;
     }
-    return fallback;
+    return ".";
 }
 /** Apply one captured numeric convention to every supported numeric cell, including later streamed rows. */
 function canopyPdfNumbers(sample, columns) {

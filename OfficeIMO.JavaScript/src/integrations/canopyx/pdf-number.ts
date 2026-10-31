@@ -35,20 +35,20 @@ function groupedInteger(numeric: string, value: number): boolean {
 
 /** Choose once for the document; percent text is the strongest captured culture signal. */
 function documentDecimal(sample: readonly (readonly ExportValue[])[], columns: readonly ColumnSettings[]): string {
-  let fallback = ".";
+  let fallback: string | undefined;
   for (const percent of [true, false]) {
     for (const row of sample) for (let index = 0; index < columns.length; index++) {
       const cell = row[index], column = columns[index]!;
       if (!(cell instanceof ExportCell) || typeof cell.value !== "number") continue;
       const profile = numericProfile(cell.presentation?.numberFormat ?? column.format);
-      if (!profile?.maximumFractionDigits) continue;
+      if (!profile) continue;
       const captured = capturedNumber(cell.text ?? "", profile);
       if (!captured) continue;
       // A literal percent label is a culture signal without requesting numeric scaling.
-      const percentageSignal = profile.percent || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
+      const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
       if (percentageSignal !== percent) continue;
       const match = /([.,])(\d+)$/.exec(captured.number.trimEnd());
-      if (match && match[2]!.length <= profile.maximumFractionDigits) {
+      if (match && (percentageSignal || match[2]!.length <= profile.maximumFractionDigits)) {
         const numeric = captured.number;
         const scaled = cell.value * (profile.percent ? 100 : 1);
         if (groupedInteger(numeric, scaled)) {
@@ -57,8 +57,9 @@ function documentDecimal(sample: readonly (readonly ExportValue[])[], columns: r
         return match[1]!;
       }
     }
+    if (fallback !== undefined) return fallback;
   }
-  return fallback;
+  return ".";
 }
 
 /** Apply one captured numeric convention to every supported numeric cell, including later streamed rows. */

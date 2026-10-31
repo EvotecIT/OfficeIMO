@@ -11861,7 +11861,7 @@ _modules.set("040752afe195985e6f2e91f8c62fc13464c455fc44034b8cef4828851e05b83d",
 return _exports;
 })();
 
-const _m96 = _modules.get("36a9bb6248cc45e1b18686ddd2ca7d6045bd08775d540c8fac8fae75b9c12b82") ?? (() => {
+const _m96 = _modules.get("40e200b77947621ffacdfa2e1326760a78a52a7dfb6d0cbaa7c7a71607b119a2") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
 const { canopyPivot, pivotNumberFormat } = _m97;
@@ -12007,7 +12007,7 @@ function prepareCanopyExport(capture, format, options = {}) {
                     const summary = format === "pdf" && pivot && (row.summary || row.grandTotal);
                     const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat || summary ? {
                         ...rowStyle, ...(summary ? { bold: true } : {}), ...cellStyle,
-                        ...((format === "xlsx" || format === "pdf") && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
+                        ...((format === "pdf" || (format === "xlsx" && pivot)) && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {})
                     } : undefined;
                     // CSV has no presentation or link metadata: emit its selected scalar directly.
                     // This also avoids a frozen wrapper for every cell in large CSV captures.
@@ -12031,7 +12031,7 @@ function prepareCanopyExport(capture, format, options = {}) {
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
 const _exports = Object.freeze({ canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("36a9bb6248cc45e1b18686ddd2ca7d6045bd08775d540c8fac8fae75b9c12b82", _exports);
+_modules.set("40e200b77947621ffacdfa2e1326760a78a52a7dfb6d0cbaa7c7a71607b119a2", _exports);
 return _exports;
 })();
 
@@ -12338,7 +12338,7 @@ _modules.set("eb8cf81d2a340cdb41301d59c667cef44f3ad1d6a19f717eb8137257b545115e",
 return _exports;
 })();
 
-const _m102 = _modules.get("07a4ac2444ac5d649c4e040f94d338948abfb4a2d300005bdd47d35edaf122de") ?? (() => {
+const _m102 = _modules.get("97b7bd3037e8060328387470a7e471b6933f1fa062e9562c7908f8ea9a29044b") ?? (() => {
 const { createGroupedReport } = _m8;
 
 const { checkAbort } = _m4;
@@ -12544,7 +12544,7 @@ function canopyGrouped(source, request, options, limits, report, format) {
         ...(options.signal === undefined ? {} : { signal: options.signal }), ...(sourceLimits === undefined ? {} : { limits: sourceLimits }) });
 }
 const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
-_modules.set("07a4ac2444ac5d649c4e040f94d338948abfb4a2d300005bdd47d35edaf122de", _exports);
+_modules.set("97b7bd3037e8060328387470a7e471b6933f1fa062e9562c7908f8ea9a29044b", _exports);
 return _exports;
 })();
 
@@ -12668,7 +12668,7 @@ _modules.set("ccfefc97a47cc288f2c9a2eed33fff323570e35193cedbd876ebb3e8fb78a42e",
 return _exports;
 })();
 
-const _m106 = _modules.get("8b895f152579de2e35e95094df749cd5b2e62fcc6eba9c914b0217af6a38bc7a") ?? (() => {
+const _m106 = _modules.get("9077d4d3097e279cd9f6426973361a9f0d277c03da6f0d3e1f609aaaf4802e04") ?? (() => {
 const { ExportCell } = _m1;
 
 /** Fixed numeric formats affect PDF text, not the frozen numeric value used by other writers. */
@@ -12707,7 +12707,7 @@ function groupedInteger(numeric, value) {
 }
 /** Choose once for the document; percent text is the strongest captured culture signal. */
 function documentDecimal(sample, columns) {
-    let fallback = ".";
+    let fallback;
     for (const percent of [true, false]) {
         for (const row of sample)
             for (let index = 0; index < columns.length; index++) {
@@ -12715,17 +12715,17 @@ function documentDecimal(sample, columns) {
                 if (!(cell instanceof ExportCell) || typeof cell.value !== "number")
                     continue;
                 const profile = numericProfile(cell.presentation?.numberFormat ?? column.format);
-                if (!profile?.maximumFractionDigits)
+                if (!profile)
                     continue;
                 const captured = capturedNumber(cell.text ?? "", profile);
                 if (!captured)
                     continue;
                 // A literal percent label is a culture signal without requesting numeric scaling.
-                const percentageSignal = profile.percent || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
+                const percentageSignal = profile.percent || profile.prefix.includes("%") || profile.suffix.includes("%") || (cell.text ?? "").includes("%");
                 if (percentageSignal !== percent)
                     continue;
                 const match = /([.,])(\d+)$/.exec(captured.number.trimEnd());
-                if (match && match[2].length <= profile.maximumFractionDigits) {
+                if (match && (percentageSignal || match[2].length <= profile.maximumFractionDigits)) {
                     const numeric = captured.number;
                     const scaled = cell.value * (profile.percent ? 100 : 1);
                     if (groupedInteger(numeric, scaled)) {
@@ -12735,8 +12735,10 @@ function documentDecimal(sample, columns) {
                     return match[1];
                 }
             }
+        if (fallback !== undefined)
+            return fallback;
     }
-    return fallback;
+    return ".";
 }
 /** Apply one captured numeric convention to every supported numeric cell, including later streamed rows. */
 function canopyPdfNumbers(sample, columns) {
@@ -12786,11 +12788,11 @@ function canopyPdfNumbers(sample, columns) {
     });
 }
 const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
-_modules.set("8b895f152579de2e35e95094df749cd5b2e62fcc6eba9c914b0217af6a38bc7a", _exports);
+_modules.set("9077d4d3097e279cd9f6426973361a9f0d277c03da6f0d3e1f609aaaf4802e04", _exports);
 return _exports;
 })();
 
-const _m105 = _modules.get("906dc03c4a0862ea5ba5bd6339abce4184c20587e2e70a062269fb4e7e98982a") ?? (() => {
+const _m105 = _modules.get("85dc57d2af4a8bad99ec6f252af7253e61dfd486a1d3a00ea7bec36ba773a091") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _m1;
 
 const { inputRows, checkAbort, pause, taskYieldDue } = _m4;
@@ -12895,11 +12897,11 @@ async function withCanopyPdfLayout(source, captured, options, write) {
     }
 }
 const _exports = Object.freeze({ withCanopyPdfLayout: withCanopyPdfLayout });
-_modules.set("906dc03c4a0862ea5ba5bd6339abce4184c20587e2e70a062269fb4e7e98982a", _exports);
+_modules.set("85dc57d2af4a8bad99ec6f252af7253e61dfd486a1d3a00ea7bec36ba773a091", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("65ce71f27374cea1742d2460096c50e6bc6601c68b7f178d4ac464104e4c5c6a") ?? (() => {
+const _m0 = _modules.get("b14fd0588a73abdc2bee5cd5b7ccab284dc6e068b1c4e6d90c3face7600a8f16") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -13038,7 +13040,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("65ce71f27374cea1742d2460096c50e6bc6601c68b7f178d4ac464104e4c5c6a", _exports);
+_modules.set("b14fd0588a73abdc2bee5cd5b7ccab284dc6e068b1c4e6d90c3face7600a8f16", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

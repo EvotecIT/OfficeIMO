@@ -13,6 +13,51 @@ function capture(rows, columns = [column("Name")], request = {}) {
     async *rows({ signal } = {}) { for (const row of rows) { signal?.throwIfAborted(); yield row; } } };
 }
 const collect = async source => { const rows = []; for await (const row of source.rows()) rows.push(row); return rows; };
+
+test("Canopy non-pivot XLSX cellStyle retains precedence over the column number format", async () => {
+  const input = capture([{ id: "r", cells: { Name: cell("A"), Amount: cell(12.5, "12.50") } }],
+    [column("Name"), column("Amount", "number")]);
+  const zip = await readZip(await exportCanopy(input, "xlsx", {
+    columnOptions: { Amount: { format: "0.00" } },
+    xlsx: { sheet: { cellStyle: ({ column }) => column.key === "Amount" ? { numberFormat: "0.000" } : undefined } }
+  }));
+  const xml = zip.get("xl/worksheets/sheet1.xml").content, styles = zip.get("xl/styles.xml").content;
+  const actual = /<c r="B2" s="(\d+)"[^>]*><v>([^<]+)<\/v>/.exec(xml);
+  assert.ok(actual); assert.equal(Number(actual[2]), 12.5);
+  const formats = new Map([...styles.matchAll(/<numFmt numFmtId="(\d+)" formatCode="([^"]*)"/g)].map(m => [m[1], m[2]]));
+  const xfs = [.../<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/.exec(styles)[1].matchAll(/<xf\b[^>]*numFmtId="(\d+)"/g)];
+  assert.equal(formats.get(xfs[Number(actual[1])][1]), "0.000");
+});
+
+test("Canopy PDF escaped percent prefixes supply culture without scaling", async () => {
+  const input = capture([{ id: "r", cells: { Amount: cell(12.5, "12.50"), Share: cell(18.6, "18,6") } }],
+    [column("Amount", "number"), column("Share", "number")]);
+  const pdf = await inspectPdf(await exportCanopy(input, "pdf", {
+    columnOptions: { Amount: { format: "0.00" }, Share: { format: "\\%0.0" } }
+  }));
+  const lines = pdf.pages.flatMap(page => page.lines);
+  assert.ok(lines.includes("%18,6")); assert.ok(lines.includes("12,50"));
+});
+
+test("Canopy PDF percentage grouping evidence precedes ordinary decimal text", async () => {
+  const input = capture([{ id: "r", cells: { Share: cell(1234, "1.234%"), Amount: cell(12.5, "12.50") } }],
+    [column("Share", "number"), column("Amount", "number")]);
+  const pdf = await inspectPdf(await exportCanopy(input, "pdf", {
+    columnOptions: { Share: { format: "#,##0.###\\%" }, Amount: { format: "0.00" } }
+  }));
+  const lines = pdf.pages.flatMap(page => page.lines);
+  assert.ok(lines.includes("1.234%")); assert.ok(lines.includes("12,50"));
+});
+
+test("Canopy PDF integer percentage formats retain captured decimal culture", async () => {
+  const input = capture([{ id: "r", cells: { Amount: cell(12.5, "12.50"), Share: cell(.186, "18,6%") } }],
+    [column("Amount", "number"), column("Share", "number")]);
+  const pdf = await inspectPdf(await exportCanopy(input, "pdf", {
+    columnOptions: { Amount: { format: "0.00" }, Share: { format: "0%" } }
+  }));
+  const lines = pdf.pages.flatMap(page => page.lines);
+  assert.ok(lines.includes("19%")); assert.ok(lines.includes("12,50"));
+});
 async function fixture(name, blob) {
   if (process.env.OFFICEIMO_CANOPY_FIXTURES) await writeFile(process.env.OFFICEIMO_CANOPY_FIXTURES + "/" + name, new Uint8Array(await blob.arrayBuffer()));
 }

@@ -129,7 +129,7 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
         const summary = format === "pdf" && pivot && (row.summary || row.grandTotal);
         const cellStyle = tone(cell.tone, row.id, spec.id), presentation = rowStyle || cellStyle || nativeFormat || summary ? {
           ...rowStyle, ...(summary ? { bold: true } : {}), ...cellStyle,
-          ...((format === "xlsx" || format === "pdf") && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {}) } : undefined;
+          ...((format === "pdf" || (format === "xlsx" && pivot)) && values === "raw" && nativeFormat !== undefined ? { numberFormat: nativeFormat } : {}) } : undefined;
         // CSV has no presentation or link metadata: emit its selected scalar directly.
         // This also avoids a frozen wrapper for every cell in large CSV captures.
         if (format === "csv") result.push(value);
