@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using static OfficeIMO.Publisher.Internal.PublisherTextComparison;
 
 namespace OfficeIMO.Publisher.Internal;
 
@@ -98,7 +99,13 @@ internal sealed partial class PublisherNativeWriter {
         bool reshape = before.Paragraphs.Count != after.Paragraphs.Count;
         if (reshape && before.Paragraphs.Any(paragraph => paragraph.Runs.Count != 1 || paragraph.Label != null
             || !ParagraphFormattingEqual(before.Paragraphs[0], paragraph)
-            || !RunFormattingEqual(before.Paragraphs[0].Runs[0], paragraph.Runs[0]))) return false;
+            || !RunFormattingEqual(before.Paragraphs[0].Runs[0], paragraph.Runs[0]))) {
+            // Exact retained values need native correspondence rather than the
+            // uniform-source character/paragraph rewrite contract below.
+            var retained = new HashSet<OfficeRichTextParagraph>(before.Paragraphs.Where(p => p.Label == null), PublisherTextComparison.Paragraphs);
+            extended = true;
+            return after.Paragraphs.All(p => p.Label == null && retained.Contains(p));
+        }
         for (int paragraph = 0; paragraph < after.Paragraphs.Count; paragraph++) {
             OfficeRichTextParagraph a = before.Paragraphs[reshape ? 0 : paragraph], b = after.Paragraphs[paragraph];
             bool empty = b.Runs.Count == 0 || b.Runs.Count == 1 && b.Runs[0].Text.Length == 0;
@@ -209,21 +216,4 @@ internal sealed partial class PublisherNativeWriter {
         && a.Shadow == null && b.Shadow == null && a.Glow == null && b.Glow == null && a.ClipPath == null && b.ClipPath == null
         && a.StrokeStartMarker == null && b.StrokeStartMarker == null && a.StrokeEndMarker == null && b.StrokeEndMarker == null;
 
-    private static bool StoryEqual(PublisherTextStory a, PublisherTextStory b) => ReferenceEquals(a, b)
-        || a.Id == b.Id && a.Text == b.Text && a.HasFinalParagraphTerminator == b.HasFinalParagraphTerminator
-        && a.Paragraphs.Count == b.Paragraphs.Count && a.Paragraphs.Zip(b.Paragraphs, ParagraphEqual).All(value => value);
-    private static bool ParagraphEqual(OfficeRichTextParagraph a, OfficeRichTextParagraph b) => ReferenceEquals(a, b)
-        || ParagraphFormattingEqual(a, b)
-        && a.Runs.Count == b.Runs.Count && a.Runs.Zip(b.Runs, RunEqual).All(value => value);
-    private static bool ParagraphFormattingEqual(OfficeRichTextParagraph a, OfficeRichTextParagraph b) =>
-        !PublisherQuillParagraphStyleWriter.HasChanges(a, b) && LabelEqual(a.Label, b.Label);
-    private static bool RunEqual(OfficeRichTextRun a, OfficeRichTextRun b) => a.Text == b.Text && RunFormattingEqual(a, b);
-    private static bool RunFormattingEqual(OfficeRichTextRun a, OfficeRichTextRun b) => a.FontSize == b.FontSize
-        && a.Bold == b.Bold && !PublisherQuillCharacterStyleWriter.HasExtendedChanges(a, b) && RunPreservedFormattingEqual(a, b);
-    private static bool RunPreservedFormattingEqual(OfficeRichTextRun a, OfficeRichTextRun b) =>
-        a.BackgroundColor == b.BackgroundColor && a.ParagraphIndent == b.ParagraphIndent
-        && a.LinkUri == b.LinkUri && a.LinkDestinationName == b.LinkDestinationName;
-    private static bool LabelEqual(OfficeTextParagraphLabel? a, OfficeTextParagraphLabel? b) => ReferenceEquals(a, b)
-        || a != null && b != null && a.Position == b.Position && a.Alignment == b.Alignment && a.MinimumWidth == b.MinimumWidth
-        && a.MinimumDistance == b.MinimumDistance && a.FollowedBy == b.FollowedBy && a.TextPosition == b.TextPosition && RunEqual(a.Run, b.Run);
 }

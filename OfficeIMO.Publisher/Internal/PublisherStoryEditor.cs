@@ -41,7 +41,10 @@ internal static class PublisherStoryEditor {
             OfficeRichTextParagraph copy = paragraph.Label == null
                 ? new OfficeRichTextParagraph(values, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)
                 : new OfficeRichTextParagraph(values, paragraph.Label, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor);
-            copied.Add(copy.WithTabStops(paragraph.TabStops));
+            copy = copy.WithTabStops(paragraph.TabStops);
+            // Immutable source paragraphs identify a deliberate native selection when
+            // equal projected values carry different opaque formatting definitions.
+            copied.Add(PublisherTextComparison.ParagraphEqual(paragraph, copy) ? paragraph : copy);
             if (copied.Count > 1) text.Append('\n');
             foreach (OfficeRichTextRun run in values) text.Append(run.Text);
             if ((long)text.Length + labelCharacters > 100000 || (long)text.Length + labelCharacters > options.Limits.MaxTextCharacters)
