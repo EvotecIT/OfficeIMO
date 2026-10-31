@@ -2208,11 +2208,11 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Set-OfficeExcelRow -Row 1 -Values 'Name', 'Value'
-                Set-OfficeExcelWorksheetView -HideGridlines -RightToLeft -ZoomScale 125 -ZoomScaleNormal 100 -View PageLayout
+                Set-OfficeExcelSheetView -NoGridlines -RightToLeft -Zoom 125 -ZoomNormal 100 -View PageLayout
             }
         }
 
-        $view = Get-OfficeExcelWorksheetView -Path $path -Sheet Data
+        $view = Get-OfficeExcelSheetView -Path $path -Sheet Data
         $view.ShowGridlines | Should -BeFalse
         $view.RightToLeft | Should -BeTrue
         $view.ZoomScale | Should -Be 125
@@ -2233,13 +2233,13 @@ Describe 'Excel DSL surface' {
 
         $doc = Open-OfficeExcel -Path $path
         try {
-            $doc | Set-OfficeExcelWorksheetView -Sheet Data -ShowGridlines -LeftToRight -ZoomScale 90 -View Normal
+            $doc | Set-OfficeExcelSheetView -Sheet Data -NoGridlines:$false -RightToLeft:$false -Zoom 90 -View Normal
         } finally {
             $doc | Save-OfficeExcel
             Close-OfficeExcel -Document $doc
         }
 
-        $viewAfterUpdate = Get-OfficeExcelWorksheetView -Path $path -Sheet Data
+        $viewAfterUpdate = Get-OfficeExcelSheetView -Path $path -Sheet Data
         $viewAfterUpdate.ShowGridlines | Should -BeTrue
         $viewAfterUpdate.RightToLeft | Should -BeFalse
         $viewAfterUpdate.ZoomScale | Should -Be 90
@@ -2253,8 +2253,8 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Set-OfficeExcelRow -Row 1 -Values 'Name', 'Value'
-                Set-OfficeExcelWorksheetView -HideGridlines -ZoomScale 125 -View PageLayout
-                $script:currentSheetView = Get-OfficeExcelWorksheetView
+                Set-OfficeExcelSheetView -NoGridlines -Zoom 125 -View PageLayout
+                $script:currentSheetView = Get-OfficeExcelSheetView
             }
         }
 
@@ -2720,7 +2720,7 @@ Describe 'Excel DSL surface' {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales' -AutoFit
                 Add-OfficeExcelAutoFilter -Range 'A1:F4'
                 Invoke-OfficeExcelSort -Header 'Region'
-                Set-OfficeExcelFreeze -TopRows 1
+                Set-OfficeExcelSheetView -FreezeRows 1
                 Add-OfficeExcelConditionalRule -Range 'B2:B4' -Operator GreaterThan -Formula1 '150'
                 Add-OfficeExcelConditionalDataBar -Range 'B2:B4' -Color '#FF4F81BD'
                 Add-OfficeExcelConditionalColorScale -Range 'C2:C4' -StartColor '#FE9' -EndColor '#6A84'
@@ -3609,8 +3609,8 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelPageSetup -FitToWidth 1 -FitToHeight 0
                 Set-OfficeExcelMargins -Preset Narrow
                 Set-OfficeExcelOrientation -Orientation Landscape
-                Set-OfficeExcelGridlines -Hide
-                Set-OfficeExcelFreeze -TopRows 1 -LeftColumns 1
+                Set-OfficeExcelSheetView -NoGridlines
+                Set-OfficeExcelSheetView -FreezeRows 1 -FreezeColumns 1
                 Set-OfficeExcelSheet -Visibility Hidden
             }
         }
@@ -3628,7 +3628,7 @@ Describe 'Excel DSL surface' {
         $summary.HiddenSheetCount | Should -Be 1
         $summary.Sheets[0].State | Should -Be 'Hidden'
 
-        $view = Get-OfficeExcelWorksheetView -Path $path -Sheet Data
+        $view = Get-OfficeExcelSheetView -Path $path -Sheet Data
         $view.ShowGridlines | Should -BeFalse
         $view.FrozenRowCount | Should -Be 1
         $view.FrozenColumnCount | Should -Be 1

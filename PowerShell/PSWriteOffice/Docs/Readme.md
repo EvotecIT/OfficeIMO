@@ -874,6 +874,9 @@ Gets mixed-format rich text runs from an Excel cell.
 ### [Get-OfficeExcelRuntimePreflight](Get-OfficeExcelRuntimePreflight.md)
 Inspects the current process for runtime settings that affect Excel workflows.
 
+### [Get-OfficeExcelSheetView](Get-OfficeExcelSheetView.md)
+Gets frozen panes, gridlines, direction, zoom and view mode for worksheets.
+
 ### [Get-OfficeExcelStreamingContract](Get-OfficeExcelStreamingContract.md)
 Reports large-workbook streaming and direct-writer suitability.
 
@@ -891,9 +894,6 @@ Lists Excel template markers such as {{Name}} and optionally shows whether suppl
 
 ### [Get-OfficeExcelUsedRange](Get-OfficeExcelUsedRange.md)
 Reads the used range from an Excel workbook.
-
-### [Get-OfficeExcelWorksheetView](Get-OfficeExcelWorksheetView.md)
-Gets worksheet view settings such as frozen panes and gridline visibility.
 
 ### [Get-OfficeExcelWriteReservation](Get-OfficeExcelWriteReservation.md)
 Gets workbook write-reservation metadata.
@@ -1546,12 +1546,6 @@ Configures OfficeIMO Excel execution and validation behavior for a workbook.
 ### [Set-OfficeExcelFormula](Set-OfficeExcelFormula.md)
 Sets a formula in a worksheet cell.
 
-### [Set-OfficeExcelFreeze](Set-OfficeExcelFreeze.md)
-Freezes panes on the current worksheet.
-
-### [Set-OfficeExcelGridlines](Set-OfficeExcelGridlines.md)
-Shows or hides worksheet gridlines.
-
 ### [Set-OfficeExcelHeaderFooter](Set-OfficeExcelHeaderFooter.md)
 Sets worksheet header and footer text and optional images.
 
@@ -1603,6 +1597,9 @@ Configures collapsible Excel outline grouping for worksheet rows.
 ### [Set-OfficeExcelSheet](Set-OfficeExcelSheet.md)
 Sets worksheet visibility, tab color and the active worksheet.
 
+### [Set-OfficeExcelSheetView](Set-OfficeExcelSheetView.md)
+Sets frozen panes, gridlines, direction, zoom and view mode for a worksheet.
+
 ### [Set-OfficeExcelSmartHyperlink](Set-OfficeExcelSmartHyperlink.md)
 Sets an external hyperlink using a smart display strategy.
 
@@ -1614,9 +1611,6 @@ Converts cells in a range into external URL hyperlinks.
 
 ### [Set-OfficeExcelUrlLinksByHeader](Set-OfficeExcelUrlLinksByHeader.md)
 Converts cells under a header into external URL hyperlinks.
-
-### [Set-OfficeExcelWorksheetView](Set-OfficeExcelWorksheetView.md)
-Sets worksheet view options such as gridlines, direction, zoom, and view mode.
 
 ### [Set-OfficeExcelWriteReservation](Set-OfficeExcelWriteReservation.md)
 Sets workbook write-reservation metadata.

@@ -63,7 +63,7 @@ $ownerSummary = $services |
 
 New-OfficeExcel -Path $path {
     ExcelSheet 'Summary' {
-        ExcelGridlines -Hide
+        ExcelSheetView -NoGridlines
         ExcelCell -Address 'A1' -Value 'Operational Dashboard'
         ExcelCell -Address 'A2' -Value 'Generated with PSWriteOffice from PowerShell objects.'
         ExcelCell -Address 'A4' -Value 'Average Health'
@@ -92,7 +92,7 @@ New-OfficeExcel -Path $path {
 
     ExcelSheet 'Services' {
         ExcelTable -Data $serviceRows -Name 'ServiceHealth' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
-        ExcelFreeze -TopRows 1
+        ExcelSheetView -FreezeRows 1
         ExcelValidationList -Range 'F2:F50' -Values 'Healthy','Watch','Risk'
         ExcelConditionalColorScale -Range 'B2:B9' -StartColor '#F8696B' -EndColor '#63BE7B'
         ExcelConditionalDataBar -Range 'C2:C9' -Color '#5B9BD5'
@@ -108,7 +108,7 @@ New-OfficeExcel -Path $path {
 
     ExcelSheet 'Trend' {
         ExcelTable -Data $trend -Name 'TrendData' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium2' -AutoFit
-        ExcelFreeze -TopRows 1
+        ExcelSheetView -FreezeRows 1
         ExcelCell -Address 'F1' -Value 'Six-month trends'
         ExcelCell -Address 'F2' -Value 'Availability (%)'
         ExcelSparkline -DataRange 'B2:B7' -LocationRange 'G2'

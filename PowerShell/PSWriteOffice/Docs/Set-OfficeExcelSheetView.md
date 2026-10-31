@@ -4,57 +4,52 @@ Module Name: PSWriteOffice
 online version: https://github.com/EvotecIT/OfficeIMO
 schema: 2.0.0
 ---
-# Set-OfficeExcelWorksheetView
+# Set-OfficeExcelSheetView
 ## SYNOPSIS
-Sets worksheet view options such as gridlines, direction, zoom, and view mode.
+Sets frozen panes, gridlines, direction, zoom and view mode for a worksheet.
 
 ## SYNTAX
-### Context (Default)
+### Default (Default)
 ```powershell
-Set-OfficeExcelWorksheetView [-ShowGridlines] [-HideGridlines] [-RightToLeft] [-LeftToRight] [-ZoomScale <UInt32>] [-ZoomScaleNormal <UInt32>] [-View <ExcelWorksheetViewKind>] [-PassThru] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Set-OfficeExcelWorksheetView -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-ShowGridlines] [-HideGridlines] [-RightToLeft] [-LeftToRight] [-ZoomScale <UInt32>] [-ZoomScaleNormal <UInt32>] [-View <ExcelWorksheetViewKind>] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelSheetView [-Sheet <OfficeSheetSelector>] [-FreezeRows <Int32>] [-FreezeColumns <Int32>] [-NoGridlines] [-RightToLeft] [-Zoom <UInt32>] [-ZoomNormal <UInt32>] [-View <ExcelWorksheetViewKind>] [-PassThru] [-Document <ExcelDocument>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Sets worksheet view options such as gridlines, direction, zoom, and view mode.
+Omitted settings keep their values; explicitly false switches reverse their setting.
+Set both frozen dimensions to zero to unfreeze the sheet.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Set-OfficeExcelWorksheetView -HideGridlines -ZoomScale 125 -View PageLayout }
+ExcelSheet 'Dashboard' { ExcelSheetView -FreezeRows 3 -FreezeColumns 1 -NoGridlines -Zoom 85 }
 ```
 
-Hides gridlines, sets zoom, and switches the sheet view.
 
 ## PARAMETERS
 
 ### -Document
-Workbook to operate on outside the DSL context.
+Gets or sets an explicit live document; omission uses the enclosing content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -HideGridlines
-Hide worksheet gridlines.
+### -FreezeColumns
+Gets or sets the number of frozen left columns; omission preserves the current column count.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Type: Int32
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,12 +60,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -LeftToRight
-Show worksheet left-to-right.
+### -FreezeRows
+Gets or sets the number of frozen top rows; omission preserves the current row count.
+
+```yaml
+Type: Int32
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoGridlines
+Gets or sets whether gridlines are hidden; explicitly false shows them.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -82,11 +93,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the worksheet after applying view options.
+Gets or sets whether to emit the edited native worksheet.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -98,11 +109,11 @@ Accept wildcard characters: False
 ```
 
 ### -RightToLeft
-Show worksheet right-to-left.
+Gets or sets right-to-left layout; explicitly false restores left-to-right.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -114,43 +125,11 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name when using Document.
+Gets or sets a worksheet name, one-based position or native worksheet.
 
 ```yaml
-Type: String
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index (0-based) when using Document.
-
-```yaml
-Type: Int32
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ShowGridlines
-Show worksheet gridlines.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Type: OfficeSheetSelector
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -162,11 +141,11 @@ Accept wildcard characters: False
 ```
 
 ### -View
-Worksheet view mode.
+Gets or sets the worksheet view mode.
 
 ```yaml
 Type: ExcelWorksheetViewKind
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values: Normal, PageBreakPreview, PageLayout
 
@@ -177,12 +156,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ZoomScale
-Active worksheet zoom percentage. Excel supports values from 10 to 400.
+### -Zoom
+Gets or sets the current zoom percentage from 10 to 400.
 
 ```yaml
 Type: UInt32
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -193,12 +172,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ZoomScaleNormal
-Normal-view worksheet zoom percentage. Excel supports values from 10 to 400.
+### -ZoomNormal
+Gets or sets the normal-view zoom percentage from 10 to 400.
 
 ```yaml
 Type: UInt32
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -218,7 +197,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `None`
+- `OfficeIMO.Excel.ExcelSheet`
 
 ## RELATED LINKS
 

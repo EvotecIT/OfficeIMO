@@ -60,5 +60,13 @@ public sealed class OfficeSheetSelector {
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public sealed class OfficeSheetTransformationAttribute : ArgumentTransformationAttribute {
     /// <inheritdoc />
-    public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) => OfficeSheetSelector.From(inputData);
+    public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) {
+        object? input = OfficeArgumentValue.Unwrap(inputData);
+        if (input is Array items) {
+            var selectors = new OfficeSheetSelector[items.Length];
+            for (int index = 0; index < items.Length; index++) selectors[index] = OfficeSheetSelector.From(items.GetValue(index)!);
+            return selectors;
+        }
+        return OfficeSheetSelector.From(input!);
+    }
 }

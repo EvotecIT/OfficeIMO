@@ -9,7 +9,7 @@ $tasks = @(
 New-OfficeExcel -Path $path {
     ExcelSheet 'Tracker' {
         ExcelTable -Data $tasks -Name 'ProjectTasks' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
-        ExcelFreeze -TopRows 1
+        ExcelSheetView -FreezeRows 1
         ExcelValidationList -TableName 'ProjectTasks' -HeaderName 'Status' `
             -Values 'Not started', 'In progress', 'Blocked', 'Done'
         ExcelConditionalColorScale -Range 'D2:D20' -StartColor '#FEE2E2' -EndColor '#DCFCE7'

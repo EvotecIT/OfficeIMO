@@ -112,7 +112,7 @@ New-OfficeWord -Path $docx {
 Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
 New-OfficeExcel -Path $xlsx {
     ExcelSheet 'Events' {
-        ExcelGridlines -Hide
+        ExcelSheetView -NoGridlines
         ExcelCell -Address A1 -Value 'Event register'
         ExcelRow -Row 1 -Height 30 -Bold $true -FontName 'Carlito'
         ExcelCell -Address A2 -Value $scope
@@ -130,7 +130,7 @@ New-OfficeExcel -Path $xlsx {
         ExcelColumn -Column 5 -Width 22
         ExcelColumn -Column 6 -Width 18
         ExcelColumn -Column 7 -Width 60
-        ExcelFreeze -TopRows 4
+        ExcelSheetView -FreezeRows 4
     }
 }
 Get-Item -LiteralPath $docx, $pdf, $xlsx | Select-Object Name, Length
