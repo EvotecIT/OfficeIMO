@@ -16,7 +16,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
         }
 
         { Get-ZipEntriesLocal -Path $path } | Should -Throw
-        $doc = Get-OfficeExcel -Path $path -Password 'secret' -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -Password 'secret' -ReadOnly
         try {
             $doc.Sheets[0].Name | Should -Be 'Secure'
             $value = $null
@@ -30,7 +30,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
             Close-OfficeExcel -Document $doc
         }
 
-        $doc = Get-OfficeExcel -Path $path -Password 'secret'
+        $doc = Open-OfficeExcel -Path $path -Password 'secret'
         try {
             $doc.Sheets[0].Cell(1, 1, 'Saved with retained encryption', $null, $null)
             $saved = $doc | Save-OfficeExcel -PassThru -ErrorAction Stop
@@ -42,7 +42,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
             Close-OfficeExcel -Document $doc
         }
 
-        $doc = Get-OfficeExcel -Path $path -Password 'secret' -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -Password 'secret' -ReadOnly
         try {
             $savedValue = $null
             $doc.Sheets[0].TryGetCellText(1, 1, [ref] $savedValue) | Should -BeTrue
@@ -51,7 +51,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
         $sourceHash = (Get-FileHash -LiteralPath $path).Hash
 
         $plainCopyPath = Join-Path $TestDrive 'EncryptedExcelPlainCopy.xlsx'
-        $doc = Get-OfficeExcel -Path $path -Password 'secret'
+        $doc = Open-OfficeExcel -Path $path -Password 'secret'
         try {
             $doc | Save-OfficeExcel -Path $plainCopyPath -Password $null
             $doc.Sheets[0].Cell(1, 1, 'Updated plain copy', $null, $null)
@@ -61,7 +61,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
         }
 
         { Get-ZipEntriesLocal -Path $plainCopyPath } | Should -Not -Throw
-        $plainCopy = Get-OfficeExcel -Path $plainCopyPath -ReadOnly
+        $plainCopy = Open-OfficeExcel -Path $plainCopyPath -ReadOnly
         try {
             $plainValue = $null
             $plainCopy.Sheets[0].TryGetCellText(1, 1, [ref] $plainValue) | Should -BeTrue
@@ -71,7 +71,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
         }
 
         $encryptedCopyPath = Join-Path $TestDrive 'EncryptedExcelCopy.xlsx'
-        $doc = Get-OfficeExcel -Path $path -Password 'secret'
+        $doc = Open-OfficeExcel -Path $path -Password 'secret'
         try {
             $doc | Save-OfficeExcel -Path $encryptedCopyPath -Password 'copy-secret'
             $doc.Sheets[0].Cell(1, 1, 'Updated encrypted copy', $null, $null)
@@ -80,7 +80,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
             Close-OfficeExcel -Document $doc
         }
 
-        $encryptedCopy = Get-OfficeExcel -Path $encryptedCopyPath -Password 'copy-secret' -ReadOnly
+        $encryptedCopy = Open-OfficeExcel -Path $encryptedCopyPath -Password 'copy-secret' -ReadOnly
         try {
             $copyValue = $null
             $encryptedCopy.Sheets[0].TryGetCellText(1, 1, [ref] $copyValue) | Should -BeTrue
@@ -91,7 +91,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
 
         (Get-FileHash -LiteralPath $path).Hash | Should -Be $sourceHash
 
-        $doc = Get-OfficeExcel -Path $path -Password 'secret'
+        $doc = Open-OfficeExcel -Path $path -Password 'secret'
         try {
             $doc.Sheets[0].Cell(1, 1, 'Updated encrypted value', $null, $null)
             $doc | Save-OfficeExcel -Password 'secret'
@@ -99,7 +99,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
             Close-OfficeExcel -Document $doc
         }
 
-        $doc = Get-OfficeExcel -Path $path -Password 'secret' -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -Password 'secret' -ReadOnly
         try {
             $value = $null
             $doc.Sheets[0].TryGetCellText(1, 1, [ref] $value) | Should -BeTrue

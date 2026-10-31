@@ -267,7 +267,7 @@ Describe 'CSV and Excel mutation contracts' {
             Add-OfficeExcelSheet -Name Data
         }
 
-        $document = Get-OfficeExcel -Path $xlsx
+        $document = Open-OfficeExcel -Path $xlsx
         try {
             $document | Add-OfficeExcelThreadedComment -Sheet Data -Address A1 -Text 'Nope' -Author Reviewer -WhatIf
             $audit = $document | Get-OfficeExcelCommentAudit -IncludeComments
@@ -287,7 +287,7 @@ Describe 'CSV and Excel mutation contracts' {
             Add-OfficeExcelSheet -Name Source
         }
 
-        $document = Get-OfficeExcel -Path $target
+        $document = Open-OfficeExcel -Path $target
         try {
             $document | Join-OfficeExcelWorkbook -SourcePath $source -WhatIf | Should -BeNullOrEmpty
             $summary = $document | Get-OfficeExcelSummary -IncludeSheets
@@ -305,7 +305,7 @@ Describe 'CSV and Excel mutation contracts' {
             Add-OfficeExcelSheet -Name Data
         }
 
-        $document = Get-OfficeExcel -Path $xlsx
+        $document = Open-OfficeExcel -Path $xlsx
         try {
             $document | Repair-OfficeExcelWorkbook -PassThru -WhatIf | Should -BeNullOrEmpty
         } finally {

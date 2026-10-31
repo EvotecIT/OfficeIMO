@@ -294,7 +294,7 @@ Describe 'Excel DSL surface' {
 
         Test-Path $path | Should -BeTrue
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $doc.Sheets.Count | Should -BeGreaterThan 0
         } finally {
@@ -330,7 +330,7 @@ Describe 'Excel DSL surface' {
         Get-TestWorkbookDate1904 -Path $path | Should -Be '1'
         [math]::Abs(([double] (Get-TestWorksheetCellValue -Path $path -Address 'A2')) - (Get-TestExcel1904Serial -Value $date)) | Should -BeLessThan 0.000001
 
-        $document = Get-OfficeExcel -Path $path
+        $document = Open-OfficeExcel -Path $path
         try {
             $document | Set-OfficeExcelDateSystem -DateSystem 1900 | Out-Null
             $document | Save-OfficeExcel
@@ -346,7 +346,7 @@ Describe 'Excel DSL surface' {
         $path = Join-Path $TestDrive 'SaveOfficeExcelWhatIf.xlsx'
         New-OfficeExcel -Path $path { Add-OfficeExcelSheet -Name 'Data' }
         $before = (Get-FileHash -LiteralPath $path).Hash
-        $document = Get-OfficeExcel -Path $path
+        $document = Open-OfficeExcel -Path $path
         try {
             $document.Sheets[0].CellValue(1, 1, 'Unsaved edit')
             $document | Save-OfficeExcel -SaveOptions @{ EvaluateFormulas = $true } -WhatIf -ErrorAction Stop
@@ -475,7 +475,7 @@ Describe 'Excel DSL surface' {
 
         $summary = Get-OfficeExcelSummary -Path $target -IncludeSheets
         $summary.Sheets.Name | Should -Contain 'Imported South'
-        $document = Get-OfficeExcel -Path $target -ReadOnly
+        $document = Open-OfficeExcel -Path $target -ReadOnly
         try {
             $importedValue = $null
             $document['Imported South'].TryGetCellText(1, 1, [ref] $importedValue) | Should -BeTrue
@@ -819,7 +819,7 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Policy'
         }
-        $doc = Get-OfficeExcel -Path $path
+        $doc = Open-OfficeExcel -Path $path
         try {
             $result = $doc | Set-OfficeExcelExecutionPolicy -Mode Parallel -ParallelThreshold 3 -MaxDegreeOfParallelism 2 -WorksheetValidation Disabled -Diagnostics -DisableAutoFitImmediateSave -PassThru
 
@@ -926,7 +926,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $doc = Get-OfficeExcel -Path $path
+        $doc = Open-OfficeExcel -Path $path
         try {
             $table = $doc | Add-OfficeExcelTableRow -Sheet Data -TableName Sales -InputObject ([pscustomobject]@{ Region = 'APAC'; Revenue = 300 }) -PassThru
             $table.Range | Should -Be 'A1:B4'
@@ -1008,8 +1008,8 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $doc1 = Get-OfficeExcel -Path $path1
-        $doc2 = Get-OfficeExcel -Path $path2
+        $doc1 = Open-OfficeExcel -Path $path1
+        $doc2 = Open-OfficeExcel -Path $path2
         try {
             $table1 = $doc1.Sheets[0].Table('Sales')
             $table2 = $doc2.Sheets[0].Table('Sales')
@@ -1615,7 +1615,7 @@ Describe 'Excel DSL surface' {
 
         Export-OfficeExcel -Path $path -InputObject $dataSet -Append
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $existingText = $null
             $doc['Sheet1'].TryGetCellText(1, 1, [ref] $existingText) | Should -BeTrue
@@ -1657,7 +1657,7 @@ Describe 'Excel DSL surface' {
         $replacedRows[0].Region | Should -Be 'APAC'
         $replacedRows[0].Revenue | Should -Be 300
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $existingText = $null
             $doc['Sheet1'].TryGetCellText(1, 1, [ref] $existingText) | Should -BeTrue
@@ -1708,7 +1708,7 @@ Describe 'Excel DSL surface' {
         $firstRows[1].Region | Should -Be 'APAC'
         $secondRows[1].Region | Should -Be 'LATAM'
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $doc.Sheets.Name | Should -Not -Contain 'Sales_2026 (3)'
         } finally {
@@ -1776,7 +1776,7 @@ Describe 'Excel DSL surface' {
 
         Export-OfficeExcel -Path $path -InputObject $dataSet -Append
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $doc.Sheets.Name | Should -Contain 'Q1__Ops'
             $doc.Sheets.Name | Should -Not -Contain 'Q1_Ops (2)'
@@ -1859,7 +1859,7 @@ Describe 'Excel DSL surface' {
         $newRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Budget' -Range 'A1:A2')
         $newRows.Count | Should -Be 1
         $newRows[0].Status | Should -Be 'New'
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $original = $null
             $doc['Budget (2)'].TryGetCellText(2, 1, [ref] $original) | Should -BeTrue
@@ -1884,7 +1884,7 @@ Describe 'Excel DSL surface' {
 
         Export-OfficeExcel -Path $path -InputObject $dataSet
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $doc.Sheets.Name | Should -Contain '---'
             $doc.Sheets.Name | Should -Contain '___'
@@ -2009,7 +2009,7 @@ Describe 'Excel DSL surface' {
         $tableRows[1].Name | Should -Be 'Beta'
         $tableRows[1].Value | Should -Be 20
 
-        $doc = Get-OfficeExcel -Path $path
+        $doc = Open-OfficeExcel -Path $path
         try {
             $documentRows = @($doc | Import-OfficeExcel -Sheet 'Data' -Range 'A1:B3')
             $documentRows.Count | Should -Be 2
@@ -2043,7 +2043,7 @@ Describe 'Excel DSL surface' {
             $remoteNamedRows = @($remoteNamed | Import-OfficeExcel -AllowHttp)
             $remoteNamedRows.Count | Should -Be 2
 
-            $remoteDoc = Get-OfficeExcel -Uri $uri -AllowHttp -ReadOnly
+            $remoteDoc = Open-OfficeExcel -Uri $uri -AllowHttp -ReadOnly
             try {
                 $remoteDocRows = @($remoteDoc | Import-OfficeExcel -Sheet 'Data' -Range 'A1:B3')
                 $remoteDocRows.Count | Should -Be 2
@@ -2190,7 +2190,7 @@ Describe 'Excel DSL surface' {
         $summary = Get-OfficeExcelSummary -Path $path -IncludeSchema
         $summary.Schema.Worksheets[0].TabColorArgb | Should -Be 'FF336699'
 
-        $doc = Get-OfficeExcel -Path $path
+        $doc = Open-OfficeExcel -Path $path
         try {
             $doc | Set-OfficeExcelSheetTabColor -Sheet Data -Clear
         } finally {
@@ -2231,7 +2231,7 @@ Describe 'Excel DSL surface' {
         $worksheetXml | Should -Match 'zoomScale="125"'
         $worksheetXml | Should -Match 'view="pageLayout"'
 
-        $doc = Get-OfficeExcel -Path $path
+        $doc = Open-OfficeExcel -Path $path
         try {
             $doc | Set-OfficeExcelWorksheetView -Sheet Data -ShowGridlines -LeftToRight -ZoomScale 90 -View Normal
         } finally {
@@ -2735,7 +2735,7 @@ Describe 'Excel DSL surface' {
         $conditionalXml | Should -Match 'rgb="FFFFEE99"'
         $conditionalXml | Should -Match 'rgb="4466AA88"'
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $doc.Sheets.Count | Should -Be 1
             $sheet = $doc.Sheets[0]
@@ -2830,7 +2830,7 @@ Describe 'Excel DSL surface' {
         $pivot.DataFields[0].FieldName | Should -Be 'Sales'
         $pivot.DataFields[0].DisplayName | Should -Be 'Total Sales'
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $doc.Sheets.Count | Should -Be 1
             $doc.Sheets[0].IsProtected | Should -BeTrue
@@ -3336,7 +3336,7 @@ Describe 'Excel DSL surface' {
             Protect-OfficeExcelWorkbook -LegacyPasswordHash 'CAFE' -ProtectWindows
         }
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $doc.IsWorkbookProtected | Should -BeTrue
         } finally {
@@ -3358,7 +3358,7 @@ Describe 'Excel DSL surface' {
         $unprotectedFile | Should -BeOfType ([System.IO.FileInfo])
         $unprotectedFile.FullName | Should -Be (Resolve-Path -LiteralPath $path).Path
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $doc.IsWorkbookProtected | Should -BeFalse
         } finally {
@@ -3378,7 +3378,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $doc = Get-OfficeExcel -Path $path
+        $doc = Open-OfficeExcel -Path $path
         try {
             ($doc | Rename-OfficeExcelNamedRange -Name 'Totals' -NewName 'GrandTotal' -Sheet 'Data' -PassThru) | Should -BeTrue
         } finally {
@@ -3388,7 +3388,7 @@ Describe 'Excel DSL surface' {
         (Get-OfficeExcelNamedRange -Path $path -Sheet 'Data').Name | Should -Contain 'Totals'
         (Get-OfficeExcelNamedRange -Path $path -Sheet 'Data').Name | Should -Not -Contain 'GrandTotal'
 
-        $doc = Get-OfficeExcel -Path $path
+        $doc = Open-OfficeExcel -Path $path
         try {
             ($doc | Rename-OfficeExcelNamedRange -Name 'Totals' -NewName 'GrandTotal' -Sheet 'Data' -Save -PassThru) | Should -BeTrue
             ($doc | Remove-OfficeExcelNamedRange -Name 'GrandTotal' -Sheet 'Data' -PassThru) | Should -BeTrue
@@ -3398,7 +3398,7 @@ Describe 'Excel DSL surface' {
 
         (Get-OfficeExcelNamedRange -Path $path -Sheet 'Data').Name | Should -Contain 'GrandTotal'
 
-        $doc = Get-OfficeExcel -Path $path
+        $doc = Open-OfficeExcel -Path $path
         try {
             ($doc | Remove-OfficeExcelNamedRange -Name 'GrandTotal' -Sheet 'Data' -Save -PassThru) | Should -BeTrue
         } finally {
@@ -3566,7 +3566,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $summary = Get-OfficeExcelSummary -Document $doc -IncludeSchema
             $summary.PivotTableCount | Should -Be 1
@@ -3886,7 +3886,7 @@ Describe 'Excel DSL surface' {
         ($summary.Sheets | Where-Object Name -eq 'Data').UsedRange | Should -Be 'A1:B5'
         ($summary.Sheets | Where-Object Name -eq 'Data').Tables.Name | Should -Contain 'Sales'
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $doc.Sheets[0].Name | Should -Be 'TOC'
 
@@ -4303,7 +4303,7 @@ namespace PSWriteOffice.Tests {
         $entries = Get-ZipEntriesLocal -Path $path
         ($entries | Where-Object { $_ -like 'xl/media/*' }).Count | Should -BeGreaterThan 0
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $smartText = $null
             $hostText = $null
@@ -4326,7 +4326,7 @@ namespace PSWriteOffice.Tests {
         $imageUrl = [System.Uri]::new($imagePath).AbsoluteUri
         New-OfficeExcel -Path $path { Add-OfficeExcelSheet -Name 'Data' } | Out-Null
 
-        $document = Get-OfficeExcel -Path $path
+        $document = Open-OfficeExcel -Path $path
         try {
             { Add-OfficeExcelImageFromUrl -Document $document -Sheet 'Data' -Address 'A1' -Url $imageUrl } | Should -Throw '*HTTP or HTTPS*'
             { Add-OfficeExcelImage -Document $document -Sheet 'Data' -Address 'B1' -Url $imageUrl } | Should -Throw '*HTTP or HTTPS*'
@@ -4415,7 +4415,7 @@ namespace PSWriteOffice.Tests {
             }
         } | Out-Null
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $summarySheet = $doc['Summary']
             $tableLink1 = $null
@@ -4460,7 +4460,7 @@ namespace PSWriteOffice.Tests {
             }
         } | Out-Null
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $summarySheet = $doc['Summary']
             $tableLink1 = $null
@@ -4556,7 +4556,7 @@ namespace PSWriteOffice.Tests {
             }
         }
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $sheet = $doc['Summary']
             $title = $null
@@ -4615,7 +4615,7 @@ namespace PSWriteOffice.Tests {
             }
         }
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $outer = $doc['Outer']
             $inner = $doc['Inner']
@@ -4648,7 +4648,7 @@ namespace PSWriteOffice.Tests {
             }
         }
 
-        $doc = Get-OfficeExcel -Path $path -ReadOnly
+        $doc = Open-OfficeExcel -Path $path -ReadOnly
         try {
             $outer = $doc['Outer']
             $inner = $doc['Inner']
@@ -4744,7 +4744,7 @@ namespace PSWriteOffice.Tests {
         $repair = Repair-OfficeExcelWorkbook -Path $left -PassThru
         $repair.ActionCount | Should -BeGreaterThan 0
 
-        $doc = Get-OfficeExcel -Path $left
+        $doc = Open-OfficeExcel -Path $left
         try {
             ($doc | Rename-OfficeExcelNamedRange -Name 'Totals' -NewName 'GrandTotal' -Sheet 'Data' -PassThru) | Should -BeTrue
             ($doc | Remove-OfficeExcelNamedRange -Name 'GrandTotal' -Sheet 'Data' -PassThru) | Should -BeTrue

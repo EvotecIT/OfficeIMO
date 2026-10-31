@@ -18,7 +18,7 @@ New-OfficeExcel -Path $path {
 }
 
 # Second pass: append rows to the named table without rebuilding the workbook through the DSL.
-$workbook = Get-OfficeExcel -Path $path
+$workbook = Open-OfficeExcel -Path $path
 try {
     $workbook |
         Add-OfficeExcelTableRow -Sheet Readiness -TableName ServiceReadiness -InputObject ([PSCustomObject]@{

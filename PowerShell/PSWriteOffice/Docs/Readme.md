@@ -826,9 +826,6 @@ Reads a native mbox mailbox with bounded per-message diagnostics.
 ### [Get-OfficeEpubChapter](Get-OfficeEpubChapter.md)
 Projects chapters to searchable PowerShell objects.
 
-### [Get-OfficeExcel](Get-OfficeExcel.md)
-Opens an existing Excel workbook.
-
 ### [Get-OfficeExcelComment](Get-OfficeExcelComment.md)
 Gets legacy worksheet comments (notes) from one or more worksheets.
 
@@ -1374,6 +1371,9 @@ Creates a reusable Word table cell definition for explicit table rows.
 
 ### [Open-OfficeEpub](Open-OfficeEpub.md)
 Opens an EPUB publication, optionally saving an editing block atomically.
+
+### [Open-OfficeExcel](Open-OfficeExcel.md)
+Opens a workbook for explicit editing, or atomically saves a completed content block.
 
 ### [Open-OfficeMarkdown](Open-OfficeMarkdown.md)
 Opens native Markdown from a file or parses text; a file content block saves atomically.

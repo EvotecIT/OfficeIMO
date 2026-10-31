@@ -246,7 +246,7 @@ Describe 'Office document PDF exports' {
             }
         }
 
-        $workbook = Get-OfficeExcel -Path $xlsx
+        $workbook = Open-OfficeExcel -Path $xlsx
         try {
             $workbook | Export-OfficeDocumentPdf -Path $pdf
         } finally {

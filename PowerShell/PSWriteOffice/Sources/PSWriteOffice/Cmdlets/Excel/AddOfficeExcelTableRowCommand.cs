@@ -24,7 +24,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Append a row to a named table in an open workbook.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeExcel -Path .\Report.xlsx
+///   <code>$doc = Open-OfficeExcel -Path .\Report.xlsx
 /// $doc | Add-OfficeExcelTableRow -Sheet Data -TableName Sales -InputObject ([pscustomobject]@{ Region='APAC'; Revenue=300 })
 /// $doc | Close-OfficeExcel -Save</code>
 ///   <para>Uses the existing OfficeIMO Excel table append API and keeps the workbook open for further changes.</para>
@@ -134,7 +134,7 @@ public sealed class AddOfficeExcelTableRowCommand : PSCmdlet {
 
         if (PassThru.IsPresent) {
             if (string.Equals(ParameterSetName, ParameterSetPath, StringComparison.OrdinalIgnoreCase)) {
-                WriteWarning("Path-owned workbooks are saved and closed by Add-OfficeExcelTableRow; no live ExcelTable is emitted. Open the workbook with Get-OfficeExcel when chaining table edits.");
+                WriteWarning("Path-owned workbooks are saved and closed by Add-OfficeExcelTableRow; no live ExcelTable is emitted. Open the workbook with Open-OfficeExcel when chaining table edits.");
                 return;
             }
 

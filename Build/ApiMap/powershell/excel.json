@@ -319,20 +319,7 @@
               "pipeline": "none"
             },
             {
-              "name": "Content",
-              "type": "scriptblock",
-              "mandatory": false,
-              "position": 1,
-              "pipeline": "none"
-            },
-            {
               "name": "ReadOnly",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "AllowLoss",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -344,33 +331,15 @@
               "pipeline": "none"
             },
             {
-              "name": "SaveOptions",
-              "type": "ExcelSaveOptions",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
               "name": "MaxDegreeOfParallelism",
               "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "Show",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "PassThru",
-              "type": "switch",
               "mandatory": false,
               "pipeline": "none"
             }
           ]
         }
       ],
-      "notes": "Replaces Get-OfficeExcel. With a content block the workbook is saved to its own path and closed when the block ends (not with -ReadOnly, and a -Uri workbook is never written back; save it with Save-OfficeExcel -Path). Without a block the live document is returned. Opening never restyles the workbook.",
+      "notes": "Replaces Get-OfficeExcel. A local content block saves and closes only after success; read-only input cannot run one. Without a block the workbook stays live. URI loads return detached live workbooks; save them with Save-OfficeExcel -Path. Opening preserves the workbook's theme.",
       "examples": [
         {
           "title": "Update a cell in an existing workbook",

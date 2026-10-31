@@ -234,7 +234,7 @@ public sealed class DocumentLifecycleCmdletTests {
             }
             byte[] original = File.ReadAllBytes(path);
             var state = InitialSessionState.CreateDefault();
-            state.Commands.Add(new SessionStateCmdletEntry("Get-OfficeExcel", typeof(GetOfficeExcelCommand), null));
+            state.Commands.Add(new SessionStateCmdletEntry("Open-OfficeExcel", typeof(OpenOfficeExcelCommand), null));
             state.Commands.Add(new SessionStateCmdletEntry("New-OfficeExcelSaveOptions", typeof(NewOfficeExcelSaveOptionsCommand), null));
             state.Commands.Add(new SessionStateCmdletEntry("Save-OfficeExcel", typeof(SaveOfficeExcelCommand), null));
             state.Commands.Add(new SessionStateCmdletEntry("Close-OfficeExcel", typeof(CloseOfficeExcelCommand), null));
@@ -242,9 +242,11 @@ public sealed class DocumentLifecycleCmdletTests {
             runspace.Open();
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
-            using var document = Assert.IsType<ExcelDocument>(Assert.Single(shell.AddCommand("Get-OfficeExcel")
-                .AddParameter("Path", path).AddParameter("Password", "test-secret").Invoke()).BaseObject);
+            using var document = Assert.IsType<ExcelDocument>(Assert.Single(shell.AddCommand("Get-Item")
+                .AddParameter("LiteralPath", path).AddCommand("Open-OfficeExcel")
+                .AddParameter("Password", "test-secret").AddParameter("MaxDegreeOfParallelism", 1).Invoke()).BaseObject);
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            Assert.Equal(1, document.Execution.MaxDegreeOfParallelism);
             document.Sheets[0].CellValue(1, 1, "Reviewed");
             shell.Commands.Clear();
             var saved = Assert.Single(shell.AddCommand("Save-OfficeExcel").AddParameter("Document", document)

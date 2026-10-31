@@ -25,7 +25,7 @@ Describe 'Cross-format document information' {
     It 'inspects unsaved native edits after the associated file is removed' {
         $path = Join-Path $TestDrive 'live.xlsx'
         New-OfficeExcel -Path $path { ExcelSheet 'Saved' { } } | Out-Null
-        $workbook = Get-OfficeExcel -Path $path
+        $workbook = Open-OfficeExcel -Path $path
         try {
             $workbook | Add-OfficeExcelSheet -Name Unsaved
             Remove-Item -LiteralPath $path
