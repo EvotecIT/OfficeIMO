@@ -8,6 +8,7 @@ struct DocumentWindow: View {
     @State private var isAddingNote = false
     #if os(macOS)
     @Environment(\.newDocument) private var newDocument
+    @Environment(\.dismissWindow) private var dismissWindow
     #endif
     @State private var noteText = ""
     @State private var importPassword = ""
@@ -39,6 +40,7 @@ struct DocumentWindow: View {
             #if os(macOS)
             // Continuity Camera delivers here; a scan becomes a new document rather than changing this one.
             .importsItemProviders([.image]) { ScanSources.newDocument(from: $0, newDocument) }
+            .onAppear { dismissWindow(id: StartWindow.id) }
             #endif
             .focusedSceneValue(\.documentSession, session)
             .task {
@@ -319,8 +321,15 @@ struct ReadView: View {
                 }
                 .padding(.bottom, 12)
             }
+            #if os(iOS)
+            // A document window has no navigation bar of its own to hold the system's search field.
+            .safeAreaInset(edge: .top) {
+                if session.isSearchFocused { SearchField(session: session) }
+            }
+            #else
             .searchable(text: $session.searchText, isPresented: $session.isSearchFocused, prompt: Text("Search"))
             .onSubmit(of: .search) { session.runSearch() }
+            #endif
             .onChange(of: session.searchText) { _, text in
                 if text.isEmpty { session.clearSearch() }
             }
@@ -356,6 +365,39 @@ struct ReadView: View {
 }
 
 /// The search hit count with previous and next, as Safari and Preview show it while finding.
+#if os(iOS)
+/// The search field on iPad and iPhone, under the navigation bar while search is open.
+private struct SearchField: View {
+    @Bindable var session: DocumentSession
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Label("Search", systemImage: "magnifyingglass").labelStyle(.iconOnly).foregroundStyle(.secondary)
+            TextField("Search", text: $session.searchText)
+                .focused($isFocused)
+                .submitLabel(.search)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .onSubmit { session.runSearch() }
+            Button("Done", systemImage: "xmark.circle.fill") {
+                session.searchText = ""
+                session.clearSearch()
+                session.isSearchFocused = false
+            }
+            .labelStyle(.iconOnly)
+            .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .glassEffect(.regular, in: .capsule)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .onAppear { isFocused = true }
+    }
+}
+#endif
+
 struct FindBar: View {
     let session: DocumentSession
 

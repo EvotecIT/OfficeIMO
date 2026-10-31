@@ -13,7 +13,7 @@ enum SidebarMode: String, CaseIterable, Identifiable {
 
 /// The page production and output sheets a window shows.
 enum StructureSheet: String, Identifiable {
-    case crop, pageSize, headerFooter, watermark, bates, split, export, flatten, signatures, standard, health, redact, link
+    case crop, pageSize, headerFooter, watermark, bates, split, export, flatten, signatures, standard, compress, health, redact, link
 
     var id: String { rawValue }
 }

@@ -14,6 +14,10 @@ enum StudioMain {
 }
 
 struct OfficeIMOStudioApp: App {
+    #if os(macOS)
+    @NSApplicationDelegateAdaptor(StudioAppDelegate.self) private var appDelegate
+    #endif
+
     init() {
         StudioDocument.removeStaleWorkingCopies()
         // Unattended runs start with the app rather than a window, which may never appear when launched from a shell.
@@ -25,7 +29,15 @@ struct OfficeIMOStudioApp: App {
 
     var body: some Scene {
         DocumentGroup(newDocument: { StudioDocument() }) { configuration in
+            #if os(macOS)
+            if let source = configuration.document.officeSource {
+                OfficeDocumentView(source: source)
+            } else {
+                DocumentWindow(document: configuration.document, fileURL: configuration.fileURL)
+            }
+            #else
             DocumentWindow(document: configuration.document, fileURL: configuration.fileURL)
+            #endif
         }
         #if os(macOS)
         .defaultSize(width: 1180, height: 860)
@@ -38,15 +50,19 @@ struct OfficeIMOStudioApp: App {
             #endif
         }
 
+        #if os(macOS)
+        // A WindowGroup, as a Window scene beside a DocumentGroup crashes in SwiftUI at launch.
+        WindowGroup("OfficeIMO Studio", id: StartWindow.id) { StartWindow() }
+            .windowResizability(.contentSize)
+            .defaultLaunchBehavior(.presented)
+            .restorationBehavior(.disabled)
+        #endif
+
         #if os(iOS)
         DocumentGroupLaunchScene("OfficeIMO Studio", backgroundStyle: Color.accentColor.gradient) {
-            NewDocumentButton("New Blank PDF")
-            // Or from paper: the document camera where the device has one, or photos.
-            if ScanSources.isCameraAvailable {
-                NewDocumentButton("Scan Document", contentType: .pdf) { try await ScanSources.newDocumentFromCamera() }
-            }
-            NewDocumentButton("PDF from Photos", contentType: .pdf) { try await ScanSources.newDocumentFromPhotos() }
-            NewDocumentButton("Convert to PDF", contentType: .pdf) { try await ConversionSources.newDocumentFromFile() }
+            // The scene folds buttons after the first two into a More menu, so the other ways to start share one.
+            Button("Convert to PDF") { LaunchDocuments.open { try await ConversionSources.newDocumentFromFile() } }
+            Button("Create PDF…") { LaunchDocuments.open { try await ScanSources.newDocumentFromChoice() } }
         }
         #endif
     }
@@ -64,6 +80,8 @@ struct StudioCommands: Commands {
         CommandGroup(after: .newItem) {
             Button("New PDF from Images…") { ScanSources.newDocumentFromImageFiles(newDocument) }
             Button("Convert to PDF…") { ConversionSources.newDocumentFromFile(newDocument) }
+            Button("Combine Files…") { ConversionSources.newDocumentFromFiles(newDocument) }
+            Button("Try a Sample PDF") { SampleDocument.open(newDocument) }
         }
         #endif
 
@@ -176,13 +194,7 @@ struct StudioCommands: Commands {
             Button("Extract Pages…") { session.map { $0.extract($0.targetPages) } }
                 .disabled(session?.canExtractPages != true || (session?.task == .pages && session?.selection.isEmpty == true))
             Divider()
-            Button("Make Searchable") { session?.makeSearchable() }
-                .disabled(session?.canMakeSearchable != true)
-            if let session {
-                SignatureMenu(session: session)
-                Divider()
-                StructureCommands(session: session)
-            }
+            if let session { StructureCommands(session: session) }
         }
     }
 

@@ -2476,6 +2476,286 @@
         }
       }
     },
+    "Check" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüfen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifier"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificar"
+          }
+        }
+      }
+    },
+    "Choose the files to combine into one PDF." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle die Dateien, die zu einer PDF kombiniert werden sollen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige los archivos que quieres combinar en un PDF."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisissez les fichiers à combiner en un seul PDF."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli i file da combinare in un PDF."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz pliki do połączenia w jeden PDF."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escolha os arquivos para combinar em um PDF."
+          }
+        }
+      }
+    },
+    "Combine" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kombinieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combinar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combiner"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combina"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combinar"
+          }
+        }
+      }
+    },
+    "Combine Files…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dateien kombinieren …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combinar archivos…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combiner des fichiers…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combina file…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz pliki…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combinar arquivos…"
+          }
+        }
+      }
+    },
+    "Combined" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kombiniert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combinado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combiné"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combinato"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połączony"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combinado"
+          }
+        }
+      }
+    },
+    "Compress PDF" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF komprimieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprimir PDF"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compresser le PDF"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprimi PDF"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kompresuj PDF"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprimir PDF"
+          }
+        }
+      }
+    },
+    "Compress PDF…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF komprimieren …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprimir PDF…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compresser le PDF…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprimi PDF…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kompresuj PDF…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprimir PDF…"
+          }
+        }
+      }
+    },
     "CONFIDENTIAL" : {
       "localizations" : {
         "de" : {
@@ -3716,6 +3996,46 @@
         }
       }
     },
+    "Convert to Word, Excel…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Word, Excel konvertieren …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convertir a Word, Excel…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convertir en Word, Excel…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Converti in Word, Excel…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konwertuj na Word, Excel…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Converter para Word, Excel…"
+          }
+        }
+      }
+    },
     "Converted with Notes" : {
       "localizations" : {
         "de" : {
@@ -3752,6 +4072,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Convertido com notas"
+          }
+        }
+      }
+    },
+    "Converting to PDF…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In PDF konvertieren …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convirtiendo a PDF…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conversion en PDF…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conversione in PDF…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konwertowanie na PDF…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convertendo para PDF…"
           }
         }
       }
@@ -4032,6 +4392,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Criar PDF"
+          }
+        }
+      }
+    },
+    "Create PDF…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF erstellen …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear PDF…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer un PDF…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea PDF…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utwórz PDF…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Criar PDF…"
           }
         }
       }
@@ -4632,6 +5032,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Desmarcar tudo"
+          }
+        }
+      }
+    },
+    "Details" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detalles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Détails"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dettagli"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szczegóły"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detalhes"
           }
         }
       }
@@ -6312,6 +6752,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Arquivos"
+          }
+        }
+      }
+    },
+    "Fill & Sign" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausfüllen & Signieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rellenar y firmar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remplir et signer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compila e firma"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wypełnij i podpisz"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preencher e assinar"
           }
         }
       }
@@ -8596,6 +9076,46 @@
         }
       }
     },
+    "Makes a smaller copy without changing what the pages show. Your document stays as it is." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstellt eine kleinere Kopie, ohne den Seiteninhalt zu ändern. Dein Dokument bleibt unverändert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea una copia más pequeña sin cambiar lo que muestran las páginas. Tu documento no cambia."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crée une copie plus petite sans modifier l’affichage des pages. Votre document reste inchangé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea una copia più piccola senza cambiare ciò che mostrano le pagine. Il documento resta invariato."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tworzy mniejszą kopię bez zmiany wyglądu stron. Twój dokument pozostaje bez zmian."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cria uma cópia menor sem alterar o que as páginas mostram. Seu documento não muda."
+          }
+        }
+      }
+    },
     "Mark Areas to Redact" : {
       "localizations" : {
         "de" : {
@@ -9596,6 +10116,46 @@
         }
       }
     },
+    "No recent documents" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine zuletzt verwendeten Dokumente"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay documentos recientes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun document récent"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun documento recente"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brak ostatnich dokumentów"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum documento recente"
+          }
+        }
+      }
+    },
     "No Results" : {
       "localizations" : {
         "de" : {
@@ -10196,6 +10756,46 @@
         }
       }
     },
+    "Open a PDF…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF öffnen …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir un PDF…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir un PDF…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri un PDF…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz PDF…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir um PDF…"
+          }
+        }
+      }
+    },
     "Optimize For" : {
       "localizations" : {
         "de" : {
@@ -10352,6 +10952,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opcional"
+          }
+        }
+      }
+    },
+    "Organize Pages" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seiten organisieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organizar páginas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organiser les pages"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organizza pagine"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uporządkuj strony"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organizar páginas"
           }
         }
       }
@@ -11276,6 +11916,86 @@
         }
       }
     },
+    "PDFs with form fields can’t be combined yet. Open the PDF, choose Tools > Protect > Flatten, then try again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDFs mit Formularfeldern können noch nicht kombiniert werden. Öffne die PDF, wähle „Werkzeuge > Schützen > Reduzieren“ und versuche es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los PDF con campos de formulario aún no se pueden combinar. Abre el PDF, elige Herramientas > Proteger > Acoplar y vuelve a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les PDF avec champs de formulaire ne peuvent pas encore être combinés. Ouvrez le PDF, choisissez Outils > Protéger > Aplatir, puis réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I PDF con campi modulo non possono ancora essere combinati. Apri il PDF, scegli Strumenti > Proteggi > Appiattisci e riprova."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plików PDF z polami formularzy nie można jeszcze łączyć. Otwórz PDF, wybierz Narzędzia > Chroń > Spłaszcz i spróbuj ponownie."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDFs com campos de formulário ainda não podem ser combinados. Abra o PDF, escolha Ferramentas > Proteger > Achatar e tente novamente."
+          }
+        }
+      }
+    },
+    "PDFs, images and documents into one PDF" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDFs, Bilder und Dokumente in einer PDF"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF, imágenes y documentos en un PDF"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF, images et documents en un seul PDF"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF, immagini e documenti in un unico PDF"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF-y, obrazy i dokumenty w jednym PDF"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDFs, imagens e documentos em um PDF"
+          }
+        }
+      }
+    },
     "Pen" : {
       "localizations" : {
         "de" : {
@@ -12196,6 +12916,46 @@
         }
       }
     },
+    "Read, edit, convert and sign documents on your Mac." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokumente auf dem Mac lesen, bearbeiten, konvertieren und signieren."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lee, edita, convierte y firma documentos en tu Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lisez, modifiez, convertissez et signez des documents sur votre Mac."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leggi, modifica, converti e firma documenti sul Mac."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Czytaj, edytuj, konwertuj i podpisuj dokumenty na Macu."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leia, edite, converta e assine documentos no seu Mac."
+          }
+        }
+      }
+    },
     "Reading Layout" : {
       "localizations" : {
         "de" : {
@@ -12352,6 +13112,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Motivo"
+          }
+        }
+      }
+    },
+    "Recent" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt verwendet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recientes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Récents"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recenti"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ostatnie"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recentes"
           }
         }
       }
@@ -13712,6 +14512,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Salvar"
+          }
+        }
+      }
+    },
+    "Save Compressed Copy…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Komprimierte Kopie sichern …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar copia comprimida…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer une copie compressée…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva copia compressa…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zapisz skompresowaną kopię…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvar cópia comprimida…"
           }
         }
       }
@@ -17116,6 +17956,46 @@
         }
       }
     },
+    "This text overlaps other text on the page, so it can’t be removed on its own. Choose Mark Areas to Redact in Tools > Protect and drag over the area instead." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Text überlappt anderen Text auf der Seite und kann nicht einzeln entfernt werden. Wähle unter Werkzeuge > Schützen „Bereiche zum Schwärzen markieren“ und ziehe über den Bereich."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este texto se superpone a otro texto de la página y no se puede eliminar por separado. Elige Marcar áreas para censurar en Herramientas > Proteger y arrastra sobre el área."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce texte chevauche un autre texte de la page et ne peut pas être supprimé seul. Choisissez Marquer des zones à caviarder dans Outils > Protéger, puis faites glisser sur la zone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo testo si sovrappone ad altro testo della pagina e non può essere rimosso da solo. Scegli Contrassegna aree da oscurare in Strumenti > Proteggi e trascina sull’area."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ten tekst nachodzi na inny tekst na stronie, więc nie można go usunąć osobno. Wybierz Zaznacz obszary do utajnienia w Narzędzia > Chroń i przeciągnij po obszarze."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este texto se sobrepõe a outro texto da página e não pode ser removido sozinho. Escolha Marcar áreas para ocultar em Ferramentas > Proteger e arraste sobre a área."
+          }
+        }
+      }
+    },
     "Thumbnails" : {
       "localizations" : {
         "de" : {
@@ -17476,6 +18356,46 @@
         }
       }
     },
+    "Try a Sample PDF" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beispiel-PDF ausprobieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Probar un PDF de ejemplo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Essayer un PDF d’exemple"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prova un PDF di esempio"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wypróbuj przykładowy PDF"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testar um PDF de exemplo"
+          }
+        }
+      }
+    },
     "Two Pages" : {
       "localizations" : {
         "de" : {
@@ -17552,6 +18472,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Digite um valor…"
+          }
+        }
+      }
+    },
+    "Untitled" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unbenannt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin título"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sans titre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senza titolo"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bez nazwy"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sem título"
           }
         }
       }
@@ -17836,6 +18796,46 @@
         }
       }
     },
+    "Verify Signatures…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signaturen prüfen …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificar firmas…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifier les signatures…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica firme…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprawdź podpisy…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificar assinaturas…"
+          }
+        }
+      }
+    },
     "Watermark" : {
       "localizations" : {
         "de" : {
@@ -18072,6 +19072,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Documento Word"
+          }
+        }
+      }
+    },
+    "Word, Excel, PowerPoint and more" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word, Excel, PowerPoint und mehr"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word, Excel, PowerPoint y más"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word, Excel, PowerPoint et plus"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word, Excel, PowerPoint e altro"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word, Excel, PowerPoint i inne"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word, Excel, PowerPoint e mais"
           }
         }
       }

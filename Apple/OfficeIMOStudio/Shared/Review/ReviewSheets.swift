@@ -123,6 +123,62 @@ struct StandardSheet: View {
     }
 }
 
+/// Compress PDF: a smaller copy that shows the same pages. The document stays as it is.
+struct CompressSheet: View {
+    let session: DocumentSession
+    @Environment(\.dismiss) private var dismiss
+    @State private var fileSize: Int64?
+    @State private var problem: String?
+    @State private var profile = "balanced"
+    @State private var isWriting = false
+
+    var body: some View {
+        ReportForm(title: "Compress PDF", problem: problem, isLoading: fileSize == nil && problem == nil, done: { dismiss() }) {
+            if let fileSize {
+                Section {
+                    LabeledContent("File Size", value: Measurement(value: Double(fileSize), unit: UnitInformationStorage.bytes),
+                                   format: .byteCount(style: .file))
+                    Picker("Optimize For", selection: $profile) {
+                        Text("Balanced").tag("balanced")
+                        Text("Smallest File").tag("smallest")
+                    }
+                } footer: {
+                    Text("Makes a smaller copy without changing what the pages show. Your document stays as it is.")
+                }
+                Section {
+                    Button(action: compress) {
+                        HStack {
+                            Label("Save Compressed Copy…", systemImage: "arrow.down.right.and.arrow.up.left")
+                            if isWriting { Spacer(); ProgressView().controlSize(.small) }
+                        }
+                    }
+                }
+            }
+        }
+        .disabled(isWriting)
+        .task {
+            do {
+                guard let health = try await session.check(CheckRequest(health: true)).health else { return }
+                fileSize = Int64(health.fileSize)
+            } catch { problem = error.localizedDescription }
+        }
+    }
+
+    private func compress() {
+        isWriting = true
+        problem = nil
+        Task {
+            defer { isWriting = false }
+            do {
+                _ = try await session.writeHealthCopy(.optimize, profile: profile)
+                dismiss()
+            } catch {
+                problem = error.localizedDescription
+            }
+        }
+    }
+}
+
 /// Document Health: what the document's structure says about it, and copies that are optimized, repaired or sanitized.
 struct HealthSheet: View {
     let session: DocumentSession
@@ -273,7 +329,7 @@ struct RedactSheet: View {
                 included = Set(marks.indices)
                 searched = request
             } catch {
-                problem = error.localizedDescription
+                problem = RedactionProblem.message(for: error)
             }
         }
     }

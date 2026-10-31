@@ -53,6 +53,7 @@ struct DocumentToolbar: ToolbarContent {
                 }
                 .disabled(!session.isReady)
             }
+            toolsMenu
             share
         }
         ToolbarItem(placement: .primaryAction) {
@@ -89,6 +90,7 @@ struct DocumentToolbar: ToolbarContent {
             if session.task == .pages {
                 ToolbarItem(placement: .bottomBar) { taskMenu }
                 ToolbarSpacer(.flexible, placement: .bottomBar)
+                ToolbarItem(placement: .bottomBar) { toolsMenu }
                 ToolbarItemGroup(placement: .bottomBar) { pageActions }
             } else {
                 ToolbarItem(placement: .bottomBar) {
@@ -98,11 +100,17 @@ struct DocumentToolbar: ToolbarContent {
                 ToolbarSpacer(.flexible, placement: .bottomBar)
                 ToolbarItem(placement: .bottomBar) { taskMenu }
                 ToolbarSpacer(.flexible, placement: .bottomBar)
-                ToolbarItem(placement: .bottomBar) { share }
+                ToolbarItemGroup(placement: .bottomBar) {
+                    searchButton
+                    toolsMenu
+                    share
+                }
             }
         } else if session.task != .markup {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 taskMenu
+                searchButton
+                toolsMenu
                 share
                 inspectorToggle
             }
@@ -203,17 +211,6 @@ struct DocumentToolbar: ToolbarContent {
             } label: {
                 Label("Reading Layout", systemImage: session.readingLayout.systemImage)
             }
-            Section {
-                Button("Make Searchable", systemImage: "text.viewfinder") { session.makeSearchable() }
-                    .disabled(!session.canMakeSearchable)
-            }
-            Section {
-                StructureCommands(session: session)
-            }
-            Section {
-                SignatureMenu(session: session)
-                SecurityCommands(session: session)
-            }
         } label: {
             HStack(spacing: 4) {
                 Text(session.task.title)
@@ -225,6 +222,20 @@ struct DocumentToolbar: ToolbarContent {
         }
         .menuIndicator(.hidden)
         .fixedSize()
+        .disabled(!session.isReady)
+    }
+
+    /// Opens the search field, which on iPad and iPhone appears only when it is asked for.
+    private var searchButton: some View {
+        Button("Search", systemImage: "magnifyingglass") { session.isSearchFocused = true }
+            .disabled(!session.isReady || session.facts?.canExtractText == false)
+    }
+
+    /// What can be done to the document, as the Tools menu does on the Mac.
+    private var toolsMenu: some View {
+        Menu("Tools", systemImage: "wrench.and.screwdriver") {
+            StructureCommands(session: session)
+        }
         .disabled(!session.isReady)
     }
 

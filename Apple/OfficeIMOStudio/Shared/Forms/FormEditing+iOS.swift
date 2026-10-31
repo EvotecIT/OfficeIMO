@@ -20,7 +20,7 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
         tap.require(toFail: scrollView.doubleTap)
         tap.delegate = self
         scrollView.addGestureRecognizer(tap)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardShown), name: UIResponder.keyboardDidShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardShown(_:)), name: UIResponder.keyboardDidShowNotification, object: nil)
     }
 
     func setEnabled(_ enabled: Bool) {
@@ -167,13 +167,19 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
         editing = nil
         let text = (current.control as? UITextField)?.text ?? (current.control as? UITextView)?.text ?? ""
         current.control.removeFromSuperview()
+        scrollView.keyboardInset = 0
         if commit, text != current.field.text { session.setField(current.field, values: [text]) }
     }
 
-    @objc private func keyboardShown() {
-        // The keyboard may cover the field; the page scrolls it back into view.
-        guard let editing else { return }
-        session.reveal(page: editing.page, rect: editing.widget.bounds.cgRect.insetBy(dx: 0, dy: -24))
+    @objc private func keyboardShown(_ notification: Notification) {
+        // The keyboard may cover the field. Room under the pages lets a field near the end scroll above it.
+        guard let editing, let window = scrollView.window,
+              let keyboard = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        let bottom = window.convert(scrollView.bounds, from: scrollView).maxY
+        scrollView.keyboardInset = max(0, bottom - keyboard.minY)
+        let field = window.convert(editing.control.bounds, from: editing.control)
+        let overlap = field.maxY + 24 - keyboard.minY
+        if overlap > 0 { scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: scrollView.contentOffset.y + overlap), animated: true) }
     }
 
     // MARK: Choices
