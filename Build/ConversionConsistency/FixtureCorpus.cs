@@ -32,9 +32,9 @@ internal static partial class FixtureCorpus {
                 sheet.CellValue(1, 1, "SERVICE REVIEW " + page);
                 sheet.CellValue(2, 1, "Availability"); sheet.CellValue(2, 2, 99.95D);
                 sheet.CellValue(3, 1, "Completed"); sheet.CellValue(3, 2, 9);
-                // Author the existing 304px canvas using stored widths, which already
-                // include padding: 196px in column A and 108px in column B at 7px/digit.
-                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(28)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(108D / 7D));
+                // The pinned Open Sans font has an 8px maximum digit advance at 11pt.
+                // Stored widths include padding: retain the 196px + 108px authored canvas.
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(196D / 8D)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(108D / 8D));
                 for (int row = 1; row <= 3; row++) {
                     sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                     for (int column = 1; column <= 2; column++) sheet.CellFontName(row, column, family);
