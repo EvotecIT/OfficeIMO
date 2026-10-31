@@ -155,14 +155,27 @@ public sealed class PdfFormPageRewriteTests {
         return names;
     }
 
-    private static byte[] CreateHierarchicalForm() => BuildRawPdf(
+    [Theory]
+    [InlineData("")]
+    [InlineData("/Parent 8 0 R ")]
+    public void CollisionRenameFollowsKidsWhenChildParentIsMissingOrWrong(string firstChildParent) {
+        PdfDocument source = PdfDocument.Load(CreateHierarchicalForm(firstChildParent));
+        PdfDocument result = source.Pages.Append(source);
+        Assert.Equal(new[] { "Parent.First", "Parent.Omitted", "Parent.Second", "Parent_source2.First", "Parent_source2.Omitted", "Parent_source2.Second" },
+            result.Inspect().FormFieldNames.OrderBy(name => name, StringComparer.Ordinal).ToArray());
+        using PdfPigDocument independent = PdfPigDocument.Open(result.ToBytes());
+        Assert.True(independent.TryGetForm(out var form));
+        Assert.Equal(2, form.Fields.Count);
+    }
+
+    private static byte[] CreateHierarchicalForm(string firstChildParent = "/Parent 6 0 R ") => BuildRawPdf(
         "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
         "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
         "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] /Resources << >> /Annots [10 0 R 12 0 R] >>",
         "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] /Resources << >> /Annots [11 0 R 13 0 R] >>",
         "<< /Fields [6 0 R] /CO [7 0 R 8 0 R 9 0 R] /NeedAppearances true /DA (/Helv 10 Tf 0 g) /DR << /Font << /Helv 14 0 R >> >> >>",
         "<< /T (Parent) /FT /Tx /TU (Parent metadata) /Kids [7 0 R 8 0 R 9 0 R] >>",
-        "<< /Parent 6 0 R /T (First) /V (one) /Kids [10 0 R 11 0 R] >>",
+        "<< " + firstChildParent + "/T (First) /V (one) /Kids [10 0 R 11 0 R] >>",
         "<< /Parent 6 0 R /T (Second) /V (two) /Kids [12 0 R] >>",
         "<< /Parent 6 0 R /T (Omitted) /V (three) /Kids [13 0 R] >>",
         "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /P 3 0 R /Rect [20 20 180 50] >>",
