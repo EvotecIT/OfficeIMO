@@ -91,6 +91,10 @@ Existing qualified tables can save cell text and supported run formatting while
 retaining the grid, cell ownership and each cell's paragraph count. Cell text
 endpoints are remapped with the complete story; preceding ordinary stories can
 also change length without detaching table cells.
+Retained empty paragraphs can save source typing or an explicit empty styled
+run. A paragraph with no runs retains its native CR style; native reload exposes
+one styled empty run. Uniform-source paragraph growth can end in an empty
+paragraph. Removing every paragraph from a native story remains unsupported.
 Paragraph edits include alignment, before/after spacing, margins, first-line or
 hanging indents, explicit absolute/multiple line spacing, and ordinary left tabs.
 For native center/right paragraphs, use tab settings with
@@ -405,9 +409,12 @@ terminator convention, including when clearing and refilling a cell. Compatible
 tables sharing a story update together. Conflicting cell grids, unresolved
 boundaries and stories also referenced by ordinary text frames reject cell edits.
 Complete text remains inspectable when a cell overflows its rendered frame.
+Clearing through an empty paragraph collection retains the final paragraph's
+formatting and leaves typing unspecified. Native saving retains that cell's CR
+typing; supply an empty styled run when a particular typing style is required.
 Native source saving supports qualified fixed cell partitions and supported
 text formatting. Unknown native partition records, changed per-cell paragraph
-counts and empty cells with distinct native typing definitions refuse output.
+counts and unsupported typing encodings refuse output.
 These native limits are separate from in-memory cell editing.
 
 `SetTableBounds` uses positive finite frame dimensions and proportionally scales

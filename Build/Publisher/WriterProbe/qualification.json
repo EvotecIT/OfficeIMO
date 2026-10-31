@@ -12006,6 +12006,1087 @@
         "Repair-free opening, additional table producer/object profiles, cell-count/paragraph-boundary changes and native table structure/geometry/styling remain unqualified.",
         "Source-built PS7 Unicode-configured conversions are separate from package installation and native lifecycle cmdlets."
       ]
+    },
+    "emptyTyping": {
+      "scope": "Native existing-cell/paragraph empty typing and uniform trailing-empty topology; no zero-paragraph native story or general table-structure qualification.",
+      "codecCommit": "d7a822450dcc421b05a1e3d76fce046a64c2e5ab",
+      "sourceFiles": [
+        {
+          "path": "../../../Build/Publisher/Add-NativeTableControl.ps1",
+          "sha256": "8444f62307cc04729fe28287d1fe59a5e60b0eb3d58ad2c389cab00faeca73aa",
+          "gitBlobSha256": "8444f62307cc04729fe28287d1fe59a5e60b0eb3d58ad2c389cab00faeca73aa"
+        },
+        {
+          "path": "../../../Build/Publisher/Invoke-NativeComparisonCase.ps1",
+          "sha256": "ea67354d946bd5d287a4cdef6f87e8d1aac9148493a7f8410e2cffa4454dd96f",
+          "gitBlobSha256": "f36cdabcfed7fa3d22c95feca8fad6836160d926ceacb4d275c9fe268504710d"
+        },
+        {
+          "path": "../../../Build/Publisher/Invoke-NativePublisherOperation.ps1",
+          "sha256": "7ad3a4b1fa2ccf92b13e82cf191b286acb3399628bcd07a945ba973c98e891d3",
+          "gitBlobSha256": "d2f9baa9b9975877037cf7db87521626a621998307da7f70b82f439f81d3c54e"
+        },
+        {
+          "path": "../../../Build/Publisher/New-NativeComparisonCorpus.ps1",
+          "sha256": "f3c8bdd285b196c4a6c4e1cf895e15fa51235d6e0cba9d531c44d7f86d9f8d70",
+          "gitBlobSha256": "acdc81dc4c090ee420597b4beac224e53825797c22f2ed4e9d1cb32898f53f2a"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+          "sha256": "8ec9e61f580fa5365635ccbe6cac8f5780faf0c766b824d6893d08f3dddf5327",
+          "gitBlobSha256": "8ec9e61f580fa5365635ccbe6cac8f5780faf0c766b824d6893d08f3dddf5327"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.Compare.cs",
+          "sha256": "1ff092148fbe3b1339a0f7f73ecbf72df8c5735f57caf443e7d285bf11aec357",
+          "gitBlobSha256": "1ff092148fbe3b1339a0f7f73ecbf72df8c5735f57caf443e7d285bf11aec357"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.cs",
+          "sha256": "d0b846edfa1092c1532674304a5a93d2d2222657476b1cdfc3d49054039bacd5",
+          "gitBlobSha256": "d0b846edfa1092c1532674304a5a93d2d2222657476b1cdfc3d49054039bacd5"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillParagraphWriter.Topology.cs",
+          "sha256": "9b4f53ee05bcd2331641777909d6db9779dc0f0b0652b0ae9c1723668e6d2b6e",
+          "gitBlobSha256": "9b4f53ee05bcd2331641777909d6db9779dc0f0b0652b0ae9c1723668e6d2b6e"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillStoriesWriter.cs",
+          "sha256": "2a49044f8be7ee74db17711b94dc03f110eb0b3719c61f39d89c1def3b1ee69d",
+          "gitBlobSha256": "2a49044f8be7ee74db17711b94dc03f110eb0b3719c61f39d89c1def3b1ee69d"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherTableStory.cs",
+          "sha256": "123542b26e8bf92a2d71214c1808875033c2c85728ad661a3519ab21126ab3dc",
+          "gitBlobSha256": "123542b26e8bf92a2d71214c1808875033c2c85728ad661a3519ab21126ab3dc"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/PublisherDocument.Editing.cs",
+          "sha256": "9f8b429dccc678b80eceb0ad5baea16bc327a029c77d81a1c37d71c42dbb4d9b",
+          "gitBlobSha256": "9f8b429dccc678b80eceb0ad5baea16bc327a029c77d81a1c37d71c42dbb4d9b"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/PublisherDocument.Tables.cs",
+          "sha256": "a917891dbb077fc02db0c3e25c1d4be172b21bac3b17770f1ec2c42178dc85df",
+          "gitBlobSha256": "a917891dbb077fc02db0c3e25c1d4be172b21bac3b17770f1ec2c42178dc85df"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherNativeWritingTests.cs",
+          "sha256": "212b771931e41f76e5932a6f301478372941dc1c1e7e62b18ec6ec5a92d941a6",
+          "gitBlobSha256": "212b771931e41f76e5932a6f301478372941dc1c1e7e62b18ec6ec5a92d941a6"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherEmptyTypingWritingTests.cs",
+          "sha256": "6bf72729135317c5e5d59b8008f19caa9526c3b805e317106f653d71f7f643fa",
+          "gitBlobSha256": "6bf72729135317c5e5d59b8008f19caa9526c3b805e317106f653d71f7f643fa"
+        }
+      ],
+      "fixtures": [
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellTyping/native-tablecelltyping.json",
+          "sha256": "e0b9c96913d373d645c35ae3b6a1d32465a39e1842b917ff0f00508e818445c1"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellTyping/native-tablecelltyping.pdf",
+          "sha256": "8e295b912a43584644a8b315efff0ed42edc5f60722c9f709d329f7cf270ae54"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellTyping/native-tablecelltyping.pub",
+          "sha256": "bfb4a2165fabe5e1f58dd334c760f78396e79263b49a17443eda7ac67b4875bb"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellTyping/provenance.json",
+          "sha256": "8f09b145732ce0fd4acfa665ef38e97ccaeecdb6b34377cc1c49640ac0c1eb16"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellTypingEarlyRange/native-tablecelltyping.json",
+          "sha256": "3743e835f775a0838b35e9a6b5bb0a5285944d992bd1acdf7cef4cb5301f91d0"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellTypingEarlyRange/native-tablecelltyping.pdf",
+          "sha256": "3cf894f09905c255bd238c6e608f8dd017dee0f5edd5ff0f48a91d237db41c10"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellTypingEarlyRange/native-tablecelltyping.pub",
+          "sha256": "f6fd2c15de8af25f79efbf96dd7c0f9affa3270cc618e413f781d36d968c048f"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableCellTypingEarlyRange/provenance.json",
+          "sha256": "3f79471caefd013e502f0212856408dcf1ebe337498f0122e4322d0566130c92"
+        }
+      ],
+      "producer": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20088",
+        "automationSecurity": 3
+      },
+      "nativeExecutable": {
+        "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+        "version": "16.0.20527.20088",
+        "path": "MSPUB.EXE"
+      },
+      "fontFiles": [
+        {
+          "file": "arial.ttf",
+          "lastWriteTimeUtc": "2026-06-01T06:35:11.0374904Z",
+          "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+          "version": null
+        },
+        {
+          "file": "arialbd.ttf",
+          "lastWriteTimeUtc": "2026-06-01T06:35:11.0364901Z",
+          "sha256": "e8f4e3baf6cc35fed6fcce3a540e8b39e8f6cda1d22a28f2ec8f526fef7a43f5",
+          "version": null
+        },
+        {
+          "file": "calibri.ttf",
+          "lastWriteTimeUtc": "2026-02-11T05:19:19.1589041Z",
+          "sha256": "57e93ff143572bcc092c1f56202d43ddc07bb119aa104c6d7af163470fb551f6",
+          "version": null
+        },
+        {
+          "file": "times.ttf",
+          "lastWriteTimeUtc": "2026-06-01T06:35:11.0654904Z",
+          "sha256": "931c5de5c70401d9324d5014c123802b4fb753000360ceb2f56c589403cd58c5",
+          "version": null
+        },
+        {
+          "file": "timesi.ttf",
+          "lastWriteTimeUtc": "2026-06-01T06:35:11.0794825Z",
+          "sha256": "e7f7a88b65188328aea58670f955022e23c712f55679524729da1e4e03c49d88",
+          "version": null
+        },
+        {
+          "file": "timesbi.ttf",
+          "lastWriteTimeUtc": "2026-06-01T06:35:11.0764890Z",
+          "sha256": "3a29d114cb5229e8dbda5bef6c69be4a210a13b7277de4d66e9fc86963226f6c",
+          "version": null
+        }
+      ],
+      "reproduction": {
+        "controls": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableCellTyping,TableCellTypingEarlyRange",
+        "save": "ReplaceTableCellParagraphs(tableId,row,column,Array.Empty<OfficeRichTextParagraph>()) retains final paragraph layout and unspecified CR typing; use an empty styled run for explicit typing.",
+        "native": "pwsh -NoProfile -File Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -InputPath <candidate.pub> -OutputDirectory <empty-directory>"
+      },
+      "controls": {
+        "freshProfiles": 9,
+        "freshDocumentPages": 3,
+        "earlyProfiles": 8,
+        "earlyDocumentPages": 2,
+        "earlyCurrentGeneratorReproduced": true,
+        "rangeBehavior": "Capturing a cell range before text assignment can leave CR default Calibri/regular while the body becomes Arial/bold. Fresh whole-cell ranges style both.",
+        "language": "Whole-cell LanguageID setter changes field12; exact body-only3E semantic role remains unassessed. No production whitelist or inferred language rule was introduced."
+      },
+      "cases": [
+        {
+          "name": "table-first-default",
+          "nativeFull": true,
+          "pages": 1,
+          "states": 2,
+          "sourceSha256": "0c16849655cb00915b075b931237206ac87cb08a71928b3a72ca9a2b3352a729",
+          "candidateSha256": "b4e8e38628fd72fd4906b92ba53fbb013d4bd700d8afb93c92be064884821625",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 1,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": false,
+          "recipe": {
+            "mode": "table-first-default",
+            "input": "native-tablelabel.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "b4e8e38628fd72fd4906b92ba53fbb013d4bd700d8afb93c92be064884821625"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "9fe35458357019f1423852af92d9f9822969ebcecdd3515270e55c10d6d5fc0e"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "4c9a36800d88d390cebce3cfb68a5aec2015a3b1398f26e330608323bc2b7d13"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "2ce7e257b70fb42ffa21e4ce7843ca3d58124cb81a7031747f0225d04a3c45d2"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "ff22f446126bf734a33bba932dbd9967b7b0e359cdab295fb62e48cf45693aa0"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "f93ad8ef145faae5f877819f967c6d042f86e40357c213727143e607f8c800a8"
+            }
+          ]
+        },
+        {
+          "name": "table-final-default",
+          "nativeFull": true,
+          "pages": 1,
+          "states": 2,
+          "sourceSha256": "0c16849655cb00915b075b931237206ac87cb08a71928b3a72ca9a2b3352a729",
+          "candidateSha256": "ad11fc06c88c702b7f89b332966e8b1b40e776d25923152d56cd571b2d18c672",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 1,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": false,
+          "recipe": {
+            "mode": "table-final-default",
+            "input": "native-tablelabel.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "ad11fc06c88c702b7f89b332966e8b1b40e776d25923152d56cd571b2d18c672"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "1f23ccebdcbbf53ce56b835536bbfc1be1ec8219103a63d98b810a9295acd884"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "689bf06fe9928c449fea257395eb4c4130eed0b2d91ccaa415bead14246f5f26"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "f5a7a05eecaf720ab09b438d0f71d2e32e001cbb4c03b0871a87db22aee97c80"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "2b314a0d004728d2584b531761016a5f8bf5317808e464aaa63da4f4580c296d"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "18a480c66787be9a080a366a3825432a42d236cbf07a1f46769b331eaa825843"
+            }
+          ]
+        },
+        {
+          "name": "table-first-typed",
+          "nativeFull": true,
+          "pages": 1,
+          "states": 2,
+          "sourceSha256": "0c16849655cb00915b075b931237206ac87cb08a71928b3a72ca9a2b3352a729",
+          "candidateSha256": "73f4e0538ebd625c2ba63e7f431b92592653da6ee0d767e8181d5879903baa02",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 0,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": false,
+          "recipe": {
+            "mode": "table-first-typed",
+            "input": "native-tablelabel.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "73f4e0538ebd625c2ba63e7f431b92592653da6ee0d767e8181d5879903baa02"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "2801d650a0b58294560899689d7ee20fdeb0856231fc6a7b27225f21ab8b85ff"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "6f3ff28bf78045b1ccb11debe6b80946e5087c0a5814f5df4f22e54864425b25"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "83d61060b49a0fca9e55ae02c8ed5afad9334aa8130e2cf761be281be83b2789"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "d46e7416cb5c33c5085a02e37724fb780bff273b7fbd874433f2a4b7fdf533b8"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "ffc57deca6af7f6c8323433f174138e44a2ec2eefdc76ea19d0afb3516344af7"
+            }
+          ]
+        },
+        {
+          "name": "all-default",
+          "nativeFull": true,
+          "pages": 1,
+          "states": 2,
+          "sourceSha256": "0c16849655cb00915b075b931237206ac87cb08a71928b3a72ca9a2b3352a729",
+          "candidateSha256": "be7ca58c75fc8239cc2951e8c19bc484282b8ea5ec5285ebd849d8639ae14be6",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 4,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": false,
+          "recipe": {
+            "mode": "all-default",
+            "input": "native-tablelabel.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "be7ca58c75fc8239cc2951e8c19bc484282b8ea5ec5285ebd849d8639ae14be6"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "03880a78114d8bbdf88fbc677e47c4e7289457509b45ea081140818f31eb201a"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "b6f5b4884608a23781bf2753d6f4ea97cacca48bd569353a2536ccdcd1e7deb3"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "b88420c50c478fa694e82a548c64fecd9438bbf78bfe2add1af38979e9ff960e"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "c9999b7f8250b66663a0fee9d55c0349d66d86e926e8fd5737334c406f4584d5"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "6a010d05ce3ca6764cd57c1efb692d2bd34b64c073b7a14b9f12e9576c181c29"
+            }
+          ]
+        },
+        {
+          "name": "early-first-default",
+          "nativeFull": true,
+          "pages": 2,
+          "states": 4,
+          "sourceSha256": "f6fd2c15de8af25f79efbf96dd7c0f9affa3270cc618e413f781d36d968c048f",
+          "candidateSha256": "f6fd0d3691d94b3ea155fb940efdefe274695a57d6a9baaad9f1c64b245e12c3",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 1,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": false,
+          "recipe": {
+            "mode": "early-first-default",
+            "input": "native-tablecelltyping.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "f6fd0d3691d94b3ea155fb940efdefe274695a57d6a9baaad9f1c64b245e12c3"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "32a63c18b384faf51b2bb61cbee1cebf70e836d655cf198d3c3e6427db218fae"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "8d65656a0b5ba4f2f40633bfd43e67659ed27dcb915927b070c58f581f925b71"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "ce0ae2b680dbac1cfea4d65305cf0fc40f5d01cee9f338f6b92c5c4ea6eb6e17"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "4a5239b69e89ab46b80323fb85aca5e6d0e9fca153e27a1531e7ae656daea139"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "799b0b3d1306b0a61e6365e0c1fc53e3b74745cd195ddf80d6d2bbd6ec754719"
+            }
+          ]
+        },
+        {
+          "name": "early-first-typed",
+          "nativeFull": true,
+          "pages": 2,
+          "states": 4,
+          "sourceSha256": "f6fd2c15de8af25f79efbf96dd7c0f9affa3270cc618e413f781d36d968c048f",
+          "candidateSha256": "db68df09e0afbef0d18d3445cb04a2eb135e723120189069a4053a313a50769a",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 0,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": false,
+          "recipe": {
+            "mode": "early-first-typed",
+            "input": "native-tablecelltyping.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "db68df09e0afbef0d18d3445cb04a2eb135e723120189069a4053a313a50769a"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "2e3797302888ee32504f476c3e8b40ea36b0ca877104f4a8f2d1806e38101d2a"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "6cf216b29871acb3b688229b04c2d328e3634aceca3dfc2134f38b91101f26ba"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "9fbd53b51c09bb88a06e2f2027fa087e66004c9ff9f4109de03e7834e7034f08"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "7c48a953c9fb5609f37c545d4b40aeff9ef3f2ae4bc6615d9fd96b8b8cdf7def"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "bcaeb2a861c410bc4d4f53e647caa91cf1dc0abe3dcc386617eea66fa30afe53"
+            }
+          ]
+        },
+        {
+          "name": "full-first-typed",
+          "nativeFull": true,
+          "pages": 3,
+          "states": 6,
+          "sourceSha256": "bfb4a2165fabe5e1f58dd334c760f78396e79263b49a17443eda7ac67b4875bb",
+          "candidateSha256": "c2bcad2f83568bd0695472e8d1ac1b1a0b18b545e1d0f3d44b7a4b0978423b75",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 0,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": false,
+          "recipe": {
+            "mode": "full-first-typed",
+            "input": "native-tablecelltyping.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "c2bcad2f83568bd0695472e8d1ac1b1a0b18b545e1d0f3d44b7a4b0978423b75"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "47c79e9b2712b63a439b56e0be6486174b97624af9d727d357a5bdf2e762cba9"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "e07fc8e1f8f39d2e5bcce7ad565ae8f4931132fbf4d226742a6ce3be9898b229"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "5c467f3009a0b96cb1d8c57a52e160fb044fbfc327abd7bb1389f463c2a96a45"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "dd756a73162d73d91d3287e3ed834aa65b5300c95826bd9c862f5101db551ac2"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "dc05a099bac5d80034539e14cc097fd9f6d5ba7073eaa04dd40d695eec07ec41"
+            }
+          ]
+        },
+        {
+          "name": "paragraph-final",
+          "nativeFull": true,
+          "pages": 1,
+          "states": 2,
+          "sourceSha256": "8fcf3743fa67c16e68a56249374cfeba72aad69a2466c66a88ee3c51f29bb1b8",
+          "candidateSha256": "22b0c3012467c312af63a17ac638c0c05c02c1b6ff1adf76c8f7b866f20ec33b",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 0,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": false,
+          "recipe": {
+            "mode": "paragraph-final",
+            "input": "native-textparagraphs.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "22b0c3012467c312af63a17ac638c0c05c02c1b6ff1adf76c8f7b866f20ec33b"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "1976cae4ac31feef42bd07d5e4ecd6077c22dbf81679cce7c8de620706bb2198"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "c3493ec8d62f97c1b803de5a2d86271d5fc7a2c2116e81f3d0f9d0914ab671a4"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "3aabf704f3ff04d9b4316ebe132ec07ba43bfe122a71791fa190e2159302e220"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "4a5ceb1548021c3ce1ec8518325aa5b919f42f926a4d0c21daf578888100ef5d"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "7e1a614438ba58237d9ed73ba7dc8695326f5bba308f871fbc40aa8a8a0c0687"
+            }
+          ]
+        },
+        {
+          "name": "single-default",
+          "nativeFull": true,
+          "pages": 1,
+          "states": 2,
+          "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+          "candidateSha256": "da1b4d7ee9533af0b70339f3b10163e80dc6c735e3c7a70547d005fc5c56528c",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 1,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": false,
+          "recipe": {
+            "mode": "single-default",
+            "input": "native-text.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "da1b4d7ee9533af0b70339f3b10163e80dc6c735e3c7a70547d005fc5c56528c"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "1a1450aaafd05418e67f9f7c05281221ac3966b8fb1b4144f9f0d43573d6bf89"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "727264bc5089c9dda39e343b7781794044128858c39a61e948891b3459582b7a"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "d95784d88a21595914e6cb2ebf5710ae26880b892df81d25c125fbca37d1377e"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "3a755b7962c4173c2f4779920ed397e239e31759cc30161fc311c64119ec33e2"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "55eb34482897c436c01dea1d49e7ef0d2f6168f30dc9df4e3e18c74c7e681af2"
+            }
+          ]
+        },
+        {
+          "name": "single-typed",
+          "nativeFull": true,
+          "pages": 1,
+          "states": 2,
+          "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+          "candidateSha256": "7ef6458f2b80fe77d59737073a55513bed036580b3251744850073fe1cb3ca22",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 0,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": false,
+          "recipe": {
+            "mode": "single-typed",
+            "input": "native-text.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "7ef6458f2b80fe77d59737073a55513bed036580b3251744850073fe1cb3ca22"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "6dbfe8552abde633084d987995cc72402f9bfabb3eed44e25b51a082bc2d1663"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "0cd1dfea100a4a35c54903d8a539a064b21a403845a40c244fe93cf19f733dcf"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "e41c1f3883ff1e1c07fbea8e2aadf0396374adeb2dba69cb0b765bb8e8749a46"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "cb3c599495ac1e95c4f0802dbcafab6b6ec60bab374dd41f272589afae9fa69c"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "2d57e7aca853a8127e665a89a7866f42e44fa972db19f4e7eee1743e52763600"
+            }
+          ]
+        },
+        {
+          "name": "refill-native-typed",
+          "nativeFull": true,
+          "pages": 1,
+          "states": 2,
+          "sourceSha256": "6f3ff28bf78045b1ccb11debe6b80946e5087c0a5814f5df4f22e54864425b25",
+          "candidateSha256": "18ea34e442c8ff12de3ccc78da083237a74f93b7c06b1ab68ba8e0673ea0f5b9",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 0,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": true,
+          "recipe": {
+            "mode": "refill-typed",
+            "input": "native-resaved.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "18ea34e442c8ff12de3ccc78da083237a74f93b7c06b1ab68ba8e0673ea0f5b9"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "3d0c35b902a0b534deec7a6b926c8b5eb97a0f5e8d540fb37c1f4a7821bf832c"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "2109384ff7134a5152229853f689124332c4f990d9e827d50f5e923378c81720"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "356e7533a356b1ce259341654138c54f7e5b6434a6f4bcadf4aa098e81cb81df"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "88de5a0dcee65867fba42a4085fd8c4fd60fa35fd8e24c4a729ca95b9b57175c"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "02719d4eb664cdd4bb97542be2be68e548af2bb602274da5e91f1a1d1b98efcb"
+            }
+          ]
+        },
+        {
+          "name": "refill-native-default",
+          "nativeFull": true,
+          "pages": 2,
+          "states": 4,
+          "sourceSha256": "8d65656a0b5ba4f2f40633bfd43e67659ed27dcb915927b070c58f581f925b71",
+          "candidateSha256": "a47f4cf38bd499057f6f03b72586c62ceb0927f07fc72a5673d43f01b38c247e",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 0,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": true,
+          "recipe": {
+            "mode": "refill-default",
+            "input": "native-resaved.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "a47f4cf38bd499057f6f03b72586c62ceb0927f07fc72a5673d43f01b38c247e"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "75167be59ff9bf5ba1467aa0062416c5a0b53d3b5532da9a8879f8046d1447f9"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "b0075253893c6091a9a8e838f19172761f99ddc8b50aa316f0d945871a973309"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "3776b03635ffd558c61bcaad5589b95db9d8e1201560337bf216ff8d42e4c028"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "46a45eff3ecba0ce2e8ac8483ce7f250153c082df076b13f099c58ac87905dc1"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "5946a9c8503377c9fe0490bf98d6ae929f1f95374da0c777043c5c1f5ecf7621"
+            }
+          ]
+        },
+        {
+          "name": "single-refill",
+          "nativeFull": true,
+          "pages": 1,
+          "states": 2,
+          "sourceSha256": "0cd1dfea100a4a35c54903d8a539a064b21a403845a40c244fe93cf19f733dcf",
+          "candidateSha256": "459473c30c5776cc89c9253e068172281a81550bf2ee8be57a31b5a9c6454520",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 0,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": true,
+          "recipe": {
+            "mode": "single-refill",
+            "input": "native-resaved.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "459473c30c5776cc89c9253e068172281a81550bf2ee8be57a31b5a9c6454520"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "8ca95cff397300b074d05b38df412c5bf073f76533fa217b08bcf250b75eb41f"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "51417c61a2654489c772f7588b0a0b579f13c374018783f0a0550fce43359a39"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "9c0409c172fb326af84e851315587f3f580e9651d96a7583bf3cc8c6577d0ca5"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "34f514c908d111e2cdf1cf0cb0b7c12290451b6ab9a045c5dbf99a2d1bc130f4"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "bd7fad2e127ac4dbd7f8dc73553aff5fdb6a8a46f10b46781556640f2d4c3611"
+            }
+          ]
+        },
+        {
+          "name": "single-append-default",
+          "nativeFull": true,
+          "pages": 1,
+          "states": 2,
+          "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+          "candidateSha256": "f60b06e3b54eb70d9eba6fe43312d31f44501369f649c1b54d80f6023b677b97",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 1,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": false,
+          "recipe": {
+            "mode": "single-append-default",
+            "input": "native-text.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "f60b06e3b54eb70d9eba6fe43312d31f44501369f649c1b54d80f6023b677b97"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "a028456faf8d7bb48ad55aa1cad5d4583fe87c367b506ebf3c2188006499d116"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "a7b697f94692404c54c02ff7ad6cc389b39f7f08036d83e80d814ab99d70d068"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "9ed41d68dcb94f6f3ca080758b3ed7006cf5220ad211ab56ecfcad800bdfa029"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "32f6609a205e5471b0c19d280cc9b71ad5bd8811faa792b7f9c0a69ad48ad64f"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "b08f762597a7fff2b59b75976f370186bde74d482c5a4eedb761e624004d14d5"
+            }
+          ]
+        },
+        {
+          "name": "single-append-typed",
+          "nativeFull": true,
+          "pages": 1,
+          "states": 2,
+          "sourceSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+          "candidateSha256": "b8f3de50484c906a730395887b42597ad99b42af9cde993e9311af268ad6bebe",
+          "sourcePreserved": true,
+          "completeStoriesAndCells": true,
+          "independentInheritedTyping": true,
+          "retainedEmptyCrs": 0,
+          "nativeFrameBounds": true,
+          "pdfPixelsAndSpansEqual": true,
+          "visibleRefill": false,
+          "recipe": {
+            "mode": "single-append-typed",
+            "input": "native-text.pub"
+          },
+          "qualifiedOperations": [
+            "ReadOnlyOpen",
+            "InitialInventory",
+            "InitialPdfExport",
+            "NativeSaveAs",
+            "ReadOnlyReopen",
+            "ResavedInventory",
+            "ResavedPdfExport"
+          ],
+          "sourceUnchanged": true,
+          "publicInitialAndNativeResavedCanonicalReload": true,
+          "artifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "b8f3de50484c906a730395887b42597ad99b42af9cde993e9311af268ad6bebe"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "1266f04db4f3bf49f452bc1ae996608737d25cfda118fe25e8260f7bdf85fdd4"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "e910266d04bf20f1d14c43b04e210c8467ee48348545765fcffa0110f8434459"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "98e0a7cb420500aba510739fd1572e102a5802cab756b771f37a89cd36b57a6b"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "f5bc171694a1a8b54103715670493c40ecad979e29be3bec7ce570d132e71163"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "3c461fa9b159b99b16d273e82661134e7e455944ef4562d49a71eaf03f523286"
+            }
+          ]
+        }
+      ],
+      "nativeDocumentPageStates": 40,
+      "semantics": [
+        "No runs means unspecified typing: retain original CR bytes exactly. Native reload exposes one styled empty CR run.",
+        "An explicit empty styled run is applied relative to the actual source CR inheritance, resolved by the canonical Quill reader in a new operation context with the original palette.",
+        "Cell clear retains final paragraph alignment, spacing, margins, indents, tabs and boundary, while other cells/grid/ownership remain intact.",
+        "Uniform source paragraph-count changes can include an empty final paragraph, using its retained CR or explicitly requested typing."
+      ],
+      "preservation": [
+        "Complete native and public-reloaded stories, TCD cell endpoints, paragraph counts, frame bounds and source identities.",
+        "Exact candidate CR bytes for unspecified typing; unrelated CR fields retained for explicit supported edits.",
+        "Exact candidate paragraph definitions and existing FONT/PL prefixes; unrelated Quill payloads, other logical streams and compound metadata retained.",
+        "All native initial/resaved PDF pages have identical pixels/spans.",
+        "Visible refill in the actual target region has the expected family, bold/italic and color after native resave/reopen.",
+        "All fifteen candidates and native resaves have the expected canonical public model, with unspecified-to-styled empty-run normalization explicit."
+      ],
+      "previousSaveEquivalence": {
+        "cases": 88,
+        "byteIdentical": true,
+        "groups": {
+          "character": 24,
+          "linkedStories": 7,
+          "paragraphTopology": 11,
+          "paragraphFormatting": 21,
+          "frameLayout": 11,
+          "imageReplacement": 8,
+          "tableText": 6
+        }
+      },
+      "validation": {
+        "publisherTests": {
+          "net10.0": 648,
+          "net8.0": 648,
+          "net472": 648
+        },
+        "readerTests": 95,
+        "standard2Builds": [
+          "OfficeIMO.Publisher.Pdf",
+          "OfficeIMO.Reader.Publisher"
+        ],
+        "writerProbeBuild": true,
+        "sourceBuiltPowerShell": {
+          "runtime": "7.6.9",
+          "route": "publisher-pdf",
+          "cases": 15,
+          "reopenedPages": 20,
+          "retainedTextRecovered": true,
+          "actualPublisherAssemblyBound": true,
+          "unicodeFallbacks": true
+        },
+        "nativeControlSyntax": [
+          "PowerShell7",
+          "WindowsPowerShell5.1"
+        ]
+      },
+      "refusals": [
+        "Zero-paragraph native story states, unsupported cell paragraph-count/grid/topology changes and source ownership conflicts remain.",
+        "Unsupported CR shadow/alternate size encoding still refuses an explicit typing change; Allow never overrides it.",
+        "Existing unsupported font/script/color/decorations, native source/carrier protection, cancellation and resource/output limits remain."
+      ],
+      "limits": [
+        "All changed output remains Unassessed and is blocked by default.",
+        "The control range-lifetime observations are finite native behavior evidence; body-only3E metadata is not assigned a general meaning.",
+        "Native TableLabel print layout and nominal/PDF font-size quantization remain distinct from logical document geometry and declared styles.",
+        "Repair-free opening, generic opaque semantics, additional producer profiles and exact managed/native rendering parity remain unqualified.",
+        "Source-built PS7 conversions and PS5.1 syntax do not establish packaged installation or native lifecycle cmdlets."
+      ]
     }
   },
   "characterReading": {

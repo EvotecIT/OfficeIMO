@@ -76,6 +76,19 @@ getters and independently decoded records establish that automation column
 spacing is half the full native gap. Top alignment is omitted; center/bottom use
 Contents field `0x35`. Its PUB, PDF and contract support the separately recorded
 source-save qualification, including growth from omitted default fields.
+TableCellTyping supplies nine table profiles on three pages: first/final/all
+clearing, styled empty CRs, French language, refill and styling after clearing.
+TableCellTypingEarlyRange supplies eight profiles on two pages with ranges
+captured before assigning text. That range can exclude the subsequently
+materialized CR, leaving its default typing different from the visible body.
+The historical early-range fixture retains its original `native-tablecelltyping`
+filenames; the current EarlyRange case reproduces its normalized cell/CR styles
+and language observations. Both controls record whole-cell text and the documented
+[`TextRange.LanguageID`](https://learn.microsoft.com/en-us/office/vba/api/publisher.textrange.languageid)
+before and after editing. Original TableLabel authoring uses fresh whole-cell
+ranges. These controls qualify the separately recorded empty-typing source saves;
+they do not establish general language metadata editing or renderer parity.
+
 Newsletter adds a two-page linked story
 and a picture. TableLabel adds a custom page size, styled 2-by-2 table, picture
 and Polish/Greek characters. Brochure adds two 792-by-612-point landscape sides,

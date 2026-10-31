@@ -137,8 +137,8 @@ endpoints, page indexes and later-page start headers remapped. The original
 single-story/one-page path retains its accepted encoding. In multi-paragraph stories, existing empty paragraphs can remain empty or
 gain text. Each paragraph's
 native definition and endpoint are retained independently; character ranges can
-cross paragraph boundaries. Making a paragraph empty refuses output when its
-source CR has a distinct OPL from the last visible run. Unsupported run merges,
+cross paragraph boundaries. Empty paragraph typing follows the source CR or an
+explicit empty styled run, as described below. Unsupported nonempty run merges,
 unsupported formatting and unknown directory metadata refuse
 output. Edited output removes the optional [SummaryInformation thumbnail](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oleps/f7933d28-2cc4-4b36-bc23-8861cbcd37c4) so it
 cannot retain that stale content preview. The shared OLE property-set editor
@@ -300,8 +300,8 @@ locations are rewritten together. Ordinary stories in table-bearing documents
 can also change length without changing relative cell ownership.
 
 Unknown partition headers/descriptors, unresolved or conflicting ownership,
-table stories also used by ordinary frames, changed per-cell paragraph counts
-and distinct empty-cell typing definitions refuse edited output. Table creation,
+table stories also used by ordinary frames and changed per-cell paragraph counts
+refuse edited output. Table creation,
 bounds/grid changes, cell merges and table styling have no native save profile.
 These limits apply with `Allow`; unchanged content still returns an exact copy.
 
@@ -317,6 +317,39 @@ PDF cell sizes retain the source's 9.984-point spans for nominal ten-point text;
 exact managed/native font metrics and rendering parity remain unqualified.
 Broader table profiles and repair-free opening remain unassessed. Changed Quill
 output reports `PUB_NATIVE_QUILL_TEXT_UNQUALIFIED` and is blocked by default.
+
+Empty existing paragraphs and fixed cells can save without requiring byte-equal
+body/CR definitions. A paragraph with no runs leaves typing unspecified: the
+native CR definition is retained byte-for-byte. A supplied empty styled run
+requests its font, size, color and supported decorations. The canonical Quill
+reader resolves the actual CR inheritance and original palette in an
+operation-local context before applying those changes. Unrelated CR fields remain
+retained; no meaning is guessed for body-only metadata removed with its text.
+Native reload represents an empty CR as one styled empty run, including when the
+input paragraph supplied no runs.
+
+Clearing a cell with an empty paragraph collection keeps one empty paragraph and
+the final paragraph's alignment, spacing, margins, indents and tabs. Other cells
+and the final terminator convention remain retained. Supported uniform-source
+paragraph-count changes can also end in an empty paragraph. Removing every
+paragraph from a native story remains unsupported, and cell paragraph-count or
+grid changes still have no native save profile. Unsupported CR encodings remain
+refused when an explicit typing change would require rewriting them.
+
+The `sourceEditing.emptyTyping` qualification record covers fifteen public saves
+over forty native document-page states: first/final/all cell clearing, explicit
+and unspecified typing, sources whose body and CR have different inherited
+styles, single/multiple/trailing empty paragraphs and visible refill after native
+resave. Independent STSH/formatting/resource decoding verifies effective typing,
+exact retained CR and paragraph bytes, complete stories, cell endpoints and
+frame bounds. Native refill text confirms font, bold/italic and color in the
+target region; native initial/resaved PDFs have identical pixels and spans.
+Eighty-eight earlier saves remain byte-identical. Seventeen native control
+profiles separately establish early-range and fresh whole-cell behavior. Their
+language setter changes field `0x12`; the exact role of body-only `0x3E` remains
+unassessed. Source-built PSWriteOffice converts all fifteen specimens through
+`publisher-pdf` with Unicode fallback settings. Repair-free opening, broader
+producer coverage and exact managed/native rendering parity remain unqualified.
 
 Two independent reading controls cover 17 whole-frame profiles over five pages,
 including indexed arrays with two tabs and left/center/right tabbed lines. The

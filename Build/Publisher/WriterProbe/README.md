@@ -397,3 +397,12 @@ the same publication and re-editing a native resave. Independent checks bind
 relative `TCD ` cell endpoints, native cell text/style/positions and unchanged
 PDF pixels/spans across resave. The package support contract lists native typing
 style, print-layout, rendering and broader table-profile limits.
+
+The `sourceEditing.emptyTyping` record covers empty existing paragraphs/cells
+and trailing empty paragraphs in admitted uniform count changes. Unspecified
+typing retains the source CR; explicit empty runs use its resolved native
+inheritance as the edit baseline. Source/native-resaved refill specimens confirm
+the resulting visible font, style and color. Independent early/fresh-range
+controls distinguish a body's style from its CR's defaults. Zero-paragraph
+stories, cell-count changes and broader native/rendering qualification remain
+separate limits in the package support contract.
