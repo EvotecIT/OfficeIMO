@@ -45,6 +45,11 @@ struct PageCanvas: UIViewRepresentable {
 }
 
 final class PageScrollView: UIScrollView, UIScrollViewDelegate {
+    /// Room under the pages for the keyboard, while a form field is being typed in.
+    var keyboardInset: CGFloat = 0 {
+        didSet { centerContent() }
+    }
+
     let tiles = PageTiles()
     private let session: DocumentSession
     private let content = UIView()
@@ -245,7 +250,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
     private func centerContent() {
         let available = bounds.width - safeAreaInsets.left - safeAreaInsets.right
         let horizontal = max(0, (available - contentSize.width) / 2)
-        let inset = UIEdgeInsets(top: 0, left: horizontal, bottom: 0, right: horizontal)
+        let inset = UIEdgeInsets(top: 0, left: horizontal, bottom: keyboardInset, right: horizontal)
         if contentInset != inset { contentInset = inset }
     }
 
