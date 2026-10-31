@@ -49,6 +49,13 @@
               "notes": "Built-in theme name (Modern default, Classic, Minimal, Boardroom, Dark), theme object or .potx/.pptx path. A template supplies its own masters and layouts."
             },
             {
+              "name": "Template",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Copies an existing presentation or template as starting content; Theme applies visual styling separately."
+            },
+            {
               "name": "Accent",
               "type": "OfficeColor",
               "mandatory": false,
@@ -176,6 +183,13 @@
               "mandatory": false,
               "pipeline": "none",
               "notes": "Built-in theme name (Modern default, Classic, Minimal, Boardroom, Dark), theme object or .potx/.pptx path. A template supplies its own masters and layouts."
+            },
+            {
+              "name": "Template",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Copies an existing presentation or template as starting content; Theme applies visual styling separately."
             },
             {
               "name": "Accent",
@@ -2994,8 +3008,8 @@
         },
         {
           "title": "Build a deck from a corporate template",
-          "description": "Uses a company .potx as the theme and fills the placeholders of its own layouts by type.",
-          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Partner-Update.pptx -Theme .\\Templates\\Contoso-2026.potx {\n    PowerPointSlide -TemplateLayout 'Title Slide' {\n        PowerPointPlaceholder -Type CenteredTitle 'Partner update'\n        PowerPointPlaceholder -Type SubTitle 'Q3 2026'\n    }\n    PowerPointSlide -TemplateLayout 'Title and Content' {\n        PowerPointPlaceholder -Type Title 'Highlights'\n        PowerPointPlaceholder -Type Body {\n            PowerPointParagraph 'Three new regions live'\n            PowerPointParagraph 'Partner portal adoption at 74%'\n        }\n        PowerPointPlaceholder -Type Footer 'Partner confidential' -IgnoreMissing\n    }\n}"
+          "description": "Copies a company .potx template and fills the placeholders of its own layouts by type.",
+          "code": "New-OfficePowerPoint -Path .\\Reports\\Q3-Partner-Update.pptx -Template .\\Templates\\Contoso-2026.potx {\n    PowerPointSlide -TemplateLayout 'Title Slide' {\n        PowerPointPlaceholder -Type CenteredTitle 'Partner update'\n        PowerPointPlaceholder -Type SubTitle 'Q3 2026'\n    }\n    PowerPointSlide -TemplateLayout 'Title and Content' {\n        PowerPointPlaceholder -Type Title 'Highlights'\n        PowerPointPlaceholder -Type Body {\n            PowerPointParagraph 'Three new regions live'\n            PowerPointParagraph 'Partner portal adoption at 74%'\n        }\n        PowerPointPlaceholder -Type Footer 'Partner confidential' -IgnoreMissing\n    }\n}"
         }
       ]
     },

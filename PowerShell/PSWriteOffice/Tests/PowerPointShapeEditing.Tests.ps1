@@ -85,7 +85,7 @@ Describe 'PowerPointShapeEditing workflows' {
         ($shapeInfo | Where-Object Kind -eq 'Table' | Select-Object -First 1).ColumnCount | Should -Be 2
         $placeholder = Get-OfficePowerPointPlaceholder -Slide $slide -Type Title
         $placeholder.Text | Should -Be 'Status Update'
-        $placeholderUpdate = Set-OfficePowerPointPlaceholderText -Slide $slide -PlaceholderType Title -Text 'Status Update v2' -PassThru
+        $placeholderUpdate = Set-OfficePowerPointPlaceholder -Slide $slide -Type Title -Text 'Status Update v2' -PassThru
         $placeholderUpdate.Text | Should -Be 'Status Update v2'
         $layoutPlaceholders = Get-OfficePowerPointLayoutPlaceholder -Slide $slide
         $layoutPlaceholders.Count | Should -BeGreaterThan 0
@@ -284,7 +284,7 @@ Describe 'PowerPointShapeEditing workflows' {
 
         $secondSlide = $presentation.AddSlide(0, 1)
         Set-OfficePowerPointSlide -Slide $secondSlide -Title 'Keep me'
-        Set-OfficePowerPointPlaceholderText -Slide $secondSlide -PlaceholderType Title -Text 'Keep me v2'
+        Set-OfficePowerPointPlaceholder -Slide $secondSlide -Type Title -Text 'Keep me v2'
 
         Save-OfficePowerPoint -Document $presentation
         $presentation.Dispose()
