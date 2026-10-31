@@ -1694,7 +1694,7 @@
       "parameterSets": [
         {
           "name": "InputObject",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Slide",
@@ -1782,7 +1782,7 @@
         },
         {
           "name": "Sample",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Slide",

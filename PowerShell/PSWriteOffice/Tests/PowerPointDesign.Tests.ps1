@@ -283,7 +283,7 @@ Describe 'PowerPointDesign workflows' {
 
             $slide1 = $presentation.AddSlide(0, 1)
             Set-OfficePowerPointSlide -Slide $slide1 -Title 'Column Chart' | Out-Null
-            $columnChart = Add-OfficePowerPointChart -Slide $slide1 -Data $rows -Category Month -Value Sales, Profit -Title 'Sales vs Profit' -X 40 -Y 120 -Width 360 -Height 220 -PassThru
+            $columnChart = Add-OfficePowerPointChart -Slide $slide1 -InputObject $rows -Category Month -Value Sales, Profit -Title 'Sales vs Profit' -X 40 -Y 120 -Width 360 -Height 220 -PassThru
             $columnChart | Should -Not -BeNullOrEmpty
             @($slide1.Charts).Count | Should -Be 1
 
@@ -295,7 +295,7 @@ Describe 'PowerPointDesign workflows' {
 
             $slide3 = $presentation.AddSlide(0, 1)
             Set-OfficePowerPointSlide -Slide $slide3 -Title 'Scatter Chart' | Out-Null
-            $scatterChart = Add-OfficePowerPointChart -Slide $slide3 -Type Scatter -Data $rows -XProperty MonthNumber -YProperty Sales, Profit -Title 'Trend Scatter' -X 40 -Y 120 -Width 360 -Height 220 -PassThru
+            $scatterChart = Add-OfficePowerPointChart -Slide $slide3 -Type Scatter -InputObject $rows -Category MonthNumber -Value Sales, Profit -Title 'Trend Scatter' -X 40 -Y 120 -Width 360 -Height 220 -PassThru
             $scatterChart | Should -Not -BeNullOrEmpty
             @($slide3.Charts).Count | Should -Be 1
 

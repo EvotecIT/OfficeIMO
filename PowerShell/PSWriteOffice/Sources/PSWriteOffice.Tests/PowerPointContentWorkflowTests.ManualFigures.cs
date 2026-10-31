@@ -24,11 +24,11 @@ public sealed partial class PowerPointContentWorkflowTests {
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;
         string figure = image ? "PowerPointImage -Path $png -AlternativeText 'Status marker'" :
-            "PowerPointChart -InputObject @([pscustomobject]@{ Quarter='Q1'; Revenue=10 }, [pscustomobject]@{ Quarter='Q2'; Revenue=20 }) -Category Quarter -Value Revenue -Type ClusteredColumn";
+            "PowerPointChart -InputObject @([pscustomobject]@{ Quarter='Q1'; Revenue=10 }, [pscustomobject]@{ Quarter='Q2'; Revenue=20 }) -Category Quarter -Value Revenue -Type Column";
         shell.AddScript($$"""
             New-OfficePowerPoint -Path $target {
                 PowerPointSlide -Title 'Manual figure' {
-                    {{figure}} -X 60 -Y 140 -Width 200 -Height 120
+                    {{figure}} {{(image ? "-X 60 -Y 140 -Width 200 -Height 120" : "-X 60pt -Y 140pt -Width 200pt -Height 120pt")}}
                     PowerPointShape -Type Rectangle -Name Neighbor -X 300 -Y 140 -Width 80 -Height 80
                 }
             }

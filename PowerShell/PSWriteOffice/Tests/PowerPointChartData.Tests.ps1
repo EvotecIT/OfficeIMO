@@ -38,7 +38,7 @@ Describe 'PowerPoint chart calculated properties' {
         $deck = New-OfficePowerPoint -Path $path
         try {
             $slide = $deck.AddSlide()
-            Add-OfficePowerPointChart -Slide $slide -Type Scatter -InputObject $rows -XProperty Quarter -YProperty Demand -ErrorAction Stop
+            Add-OfficePowerPointChart -Slide $slide -Type Scatter -InputObject $rows -Category Quarter -Value Demand -ErrorAction Stop
             Save-OfficePowerPoint -Document $deck
         } finally { $deck.Dispose() }
         $chart = Read-SavedChart $path
