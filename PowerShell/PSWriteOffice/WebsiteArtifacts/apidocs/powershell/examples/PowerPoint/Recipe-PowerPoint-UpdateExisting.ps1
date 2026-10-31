@@ -2,7 +2,7 @@ $path = '.\PowerPoint-Updated-Existing.pptx'
 PptNew -Path $path {
     PptSlide {
         PptTitle -Title 'FY24 Results'
-        PptTextBox -Text 'FY24 revenue is ready.' -X 80 -Y 150 -Width 500 -Height 60
+        PowerPointTextBox -Text 'FY24 revenue is ready.' -X 80 -Y 150 -Width 500 -Height 60
         PptNotes -Text 'Explain the FY24 result.'
     }
     PptSlide {

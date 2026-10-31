@@ -992,7 +992,7 @@ Gets layout placeholder metadata for a slide.
 Reads speaker notes without creating empty notes parts.
 
 ### [Get-OfficePowerPointPlaceholder](Get-OfficePowerPointPlaceholder.md)
-Gets placeholder text boxes from a slide.
+Gets native slide placeholders or metadata from the selected slide's template layout.
 
 ### [Get-OfficePowerPointSection](Get-OfficePowerPointSection.md)
 Reads sections from a live presentation, optionally matching a PowerShell wildcard pattern.

@@ -43107,23 +43107,35 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:verb>Add</command:verb>
       <command:noun>OfficePowerPointShape</command:noun>
       <maml:description>
-        <maml:para>Adds a basic shape to a slide.</maml:para>
+        <maml:para>Adds a native preset shape at physical coordinates or on the theme grid.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Creates an auto shape at the requested coordinates and applies optional fill and outline styling.</maml:para>
+      <maml:para>Adds a native preset shape at physical coordinates or on the theme grid.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
         <maml:name>Add-OfficePowerPointShape</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Column</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the one-based theme grid column; explicit X overrides its position.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>FillColor</maml:name>
           <maml:description>
-            <maml:para>Fill color (hex or named color).</maml:para>
+            <maml:para>Gets or sets the fill color or theme role.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>OfficeColor</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -43131,11 +43143,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Height</maml:name>
           <maml:description>
-            <maml:para>Shape height in points.</maml:para>
+            <maml:para>Gets or sets the height; omission uses the native default.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -43143,7 +43155,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Name</maml:name>
           <maml:description>
-            <maml:para>Optional name assigned to the shape.</maml:para>
+            <maml:para>Gets or sets the native shape name.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -43155,11 +43167,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>OutlineColor</maml:name>
           <maml:description>
-            <maml:para>Outline color (hex or named color).</maml:para>
+            <maml:para>Gets or sets the outline color or theme role.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>OfficeColor</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -43167,11 +43179,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>OutlineWidth</maml:name>
           <maml:description>
-            <maml:para>Outline width in points.</maml:para>
+            <maml:para>Gets or sets the outline thickness; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -43179,7 +43191,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the object created or changed by the command.</maml:para>
+            <maml:para>Gets or sets whether the live native shape is returned.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -43188,10 +43200,34 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>ShapeType</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Slide</maml:name>
           <maml:description>
-            <maml:para>Shape geometry preset name (e.g., Rectangle, Ellipse, Line).</maml:para>
+            <maml:para>Gets or sets a native slide or one-based position; omission uses the current slide block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointSlideSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Span</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the number of grid columns; the default is twelve, and explicit Width overrides it.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Type</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the native preset geometry.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficePresetShapeType</command:parameterValue>
           <command:parameterValueGroup>
@@ -43389,26 +43425,14 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Slide</maml:name>
-          <maml:description>
-            <maml:para>Target slide that will receive the shape (optional inside DSL).</maml:para>
-          </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
-          <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
-            <maml:uri />
-          </dev:type>
-          <dev:defaultValue>None</dev:defaultValue>
-        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Width</maml:name>
           <maml:description>
-            <maml:para>Shape width in points.</maml:para>
+            <maml:para>Gets or sets the width; omission uses the native default.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -43416,11 +43440,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>X</maml:name>
           <maml:description>
-            <maml:para>Left offset (in points) from the slide origin.</maml:para>
+            <maml:para>Gets or sets the left coordinate; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -43428,11 +43452,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Y</maml:name>
           <maml:description>
-            <maml:para>Top offset (in points) from the slide origin.</maml:para>
+            <maml:para>Gets or sets the top coordinate; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -43441,13 +43465,25 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
     </command:syntax>
     <command:parameters>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Column</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the one-based theme grid column; explicit X overrides its position.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>FillColor</maml:name>
         <maml:description>
-          <maml:para>Fill color (hex or named color).</maml:para>
+          <maml:para>Gets or sets the fill color or theme role.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>OfficeColor</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -43455,11 +43491,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Height</maml:name>
         <maml:description>
-          <maml:para>Shape height in points.</maml:para>
+          <maml:para>Gets or sets the height; omission uses the native default.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -43467,7 +43503,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Name</maml:name>
         <maml:description>
-          <maml:para>Optional name assigned to the shape.</maml:para>
+          <maml:para>Gets or sets the native shape name.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -43479,11 +43515,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>OutlineColor</maml:name>
         <maml:description>
-          <maml:para>Outline color (hex or named color).</maml:para>
+          <maml:para>Gets or sets the outline color or theme role.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeColor</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>OfficeColor</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -43491,11 +43527,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>OutlineWidth</maml:name>
         <maml:description>
-          <maml:para>Outline width in points.</maml:para>
+          <maml:para>Gets or sets the outline thickness; numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -43503,7 +43539,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the object created or changed by the command.</maml:para>
+          <maml:para>Gets or sets whether the live native shape is returned.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -43512,10 +43548,34 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>ShapeType</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Slide</maml:name>
         <maml:description>
-          <maml:para>Shape geometry preset name (e.g., Rectangle, Ellipse, Line).</maml:para>
+          <maml:para>Gets or sets a native slide or one-based position; omission uses the current slide block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
+        <dev:type>
+          <maml:name>PowerPointSlideSelector</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Span</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the number of grid columns; the default is twelve, and explicit Width overrides it.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Type</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the native preset geometry.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficePresetShapeType</command:parameterValue>
         <command:parameterValueGroup>
@@ -43713,26 +43773,14 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Slide</maml:name>
-        <maml:description>
-          <maml:para>Target slide that will receive the shape (optional inside DSL).</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
-        <dev:type>
-          <maml:name>PowerPointSlide</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Width</maml:name>
         <maml:description>
-          <maml:para>Shape width in points.</maml:para>
+          <maml:para>Gets or sets the width; omission uses the native default.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -43740,11 +43788,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>X</maml:name>
         <maml:description>
-          <maml:para>Left offset (in points) from the slide origin.</maml:para>
+          <maml:para>Gets or sets the left coordinate; numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -43752,11 +43800,11 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Y</maml:name>
         <maml:description>
-          <maml:para>Top offset (in points) from the slide origin.</maml:para>
+          <maml:para>Gets or sets the top coordinate; numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -43765,11 +43813,20 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointSlide</maml:name>
+          <maml:name>PSWriteOffice.Foundation.PowerPointSlideSelector</maml:name>
         </dev:type>
+        <maml:description>
+          <maml:para>A live slide or a one-based slide position in a document.</maml:para>
+        </maml:description>
       </command:inputType>
     </command:inputTypes>
-    <command:returnValues />
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.PowerPoint.PowerPointAutoShape</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
     <maml:alertSet>
       <maml:alert>
         <maml:para></maml:para>
@@ -43777,17 +43834,12 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Create a rectangle highlight.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePowerPoint -Path .\Examples\Documents\PowerPointShape.pptx {
-                $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-                Add-OfficePowerPointShape -Slide $slide -ShapeType Rectangle -X 60 -Y 120 -Width 220 -Height 90 -FillColor '#DDEEFF' -OutlineColor '#2563EB' -OutlineWidth 1
-                Add-OfficePowerPointTextBox -Slide $slide -Text 'Highlighted status' -X 80 -Y 145 -Width 180 -Height 32
+        <maml:title>Draw a named status light.</maml:title>
+        <dev:code>PowerPointSlide -Title 'Service health' {
+                PowerPointShape -Type Ellipse -Name 'Healthy' -FillColor Success -X 2cm -Y 4cm -Width 2cm -Height 2cm
             }</dev:code>
         <dev:remarks>
-          <maml:para>Creates a styled rectangle and overlays a text box.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -45981,19 +46033,19 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <command:verb>Add</command:verb>
       <command:noun>OfficePowerPointTextBox</command:noun>
       <maml:description>
-        <maml:para>Adds a text box to a slide.</maml:para>
+        <maml:para>Adds a native text box with deliberate placement and plain or rich content.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Creates a rectangle at the requested coordinates and assigns the supplied text.</maml:para>
+      <maml:para>Adds a native text box with deliberate placement and plain or rich content.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Text">
         <maml:name>Add-OfficePowerPointTextBox</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>Height</maml:name>
+          <maml:name>Column</maml:name>
           <maml:description>
-            <maml:para>Box height in points.</maml:para>
+            <maml:para>Gets or sets the one-based theme grid column; explicit X overrides its position.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -46003,9 +46055,33 @@ table formatting, borders, and style choices are preserved.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Height</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the height; omission uses the native default.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Name</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the native shape name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the object created or changed by the command.</maml:para>
+            <maml:para>Gets or sets whether the live native text box is returned.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -46017,19 +46093,31 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Slide</maml:name>
           <maml:description>
-            <maml:para>Target slide that will receive the text box (optional inside DSL).</maml:para>
+            <maml:para>Gets or sets a native slide or one-based position; omission uses the current slide block.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
+            <maml:name>PowerPointSlideSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Span</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the number of grid columns; the default is twelve, and explicit Width overrides it.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <dev:type>
+            <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
           <maml:name>Text</maml:name>
           <maml:description>
-            <maml:para>Text to render inside the box.</maml:para>
+            <maml:para>Gets or sets plain text; an empty string creates an empty box.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -46041,11 +46129,11 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Width</maml:name>
           <maml:description>
-            <maml:para>Box width in points.</maml:para>
+            <maml:para>Gets or sets the width; omission uses the native default.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Int32</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -46053,11 +46141,11 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>X</maml:name>
           <maml:description>
-            <maml:para>Left offset (in points) from the slide origin.</maml:para>
+            <maml:para>Gets or sets the left coordinate; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Int32</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -46065,7 +46153,22 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Y</maml:name>
           <maml:description>
-            <maml:para>Top offset (in points) from the slide origin.</maml:para>
+            <maml:para>Gets or sets the top coordinate; numbers mean points.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+          <dev:type>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Content">
+        <maml:name>Add-OfficePowerPointTextBox</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Column</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the one-based theme grid column; explicit X overrides its position.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -46074,17 +46177,38 @@ table formatting, borders, and style choices are preserved.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-      </command:syntaxItem>
-      <command:syntaxItem parameterSetName="Run">
-        <maml:name>Add-OfficePowerPointTextBox</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+          <maml:name>Content</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets native paragraph and run content.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">ScriptBlock</command:parameterValue>
+          <dev:type>
+            <maml:name>ScriptBlock</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Height</maml:name>
           <maml:description>
-            <maml:para>Box height in points.</maml:para>
+            <maml:para>Gets or sets the height; omission uses the native default.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Int32</maml:name>
+            <maml:name>OfficeLength</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Name</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the native shape name.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -46092,7 +46216,7 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>PassThru</maml:name>
           <maml:description>
-            <maml:para>Emit the object created or changed by the command.</maml:para>
+            <maml:para>Gets or sets whether the live native text box is returned.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -46101,26 +46225,26 @@ table formatting, borders, and style choices are preserved.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Runs">
-          <maml:name>Run</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Slide</maml:name>
           <maml:description>
-            <maml:para>Rich text runs. Each run can be created with TextRun/PowerPointTextRun or provided as a hashtable/object.</maml:para>
+            <maml:para>Gets or sets a native slide or one-based position; omission uses the current slide block.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
           <dev:type>
-            <maml:name>Object[]</maml:name>
+            <maml:name>PowerPointSlideSelector</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-          <maml:name>Slide</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Span</maml:name>
           <maml:description>
-            <maml:para>Target slide that will receive the text box (optional inside DSL).</maml:para>
+            <maml:para>Gets or sets the number of grid columns; the default is twelve, and explicit Width overrides it.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
+            <maml:name>Int32</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -46128,11 +46252,11 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Width</maml:name>
           <maml:description>
-            <maml:para>Box width in points.</maml:para>
+            <maml:para>Gets or sets the width; omission uses the native default.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Int32</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -46140,11 +46264,11 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>X</maml:name>
           <maml:description>
-            <maml:para>Left offset (in points) from the slide origin.</maml:para>
+            <maml:para>Gets or sets the left coordinate; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Int32</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -46152,11 +46276,11 @@ table formatting, borders, and style choices are preserved.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Y</maml:name>
           <maml:description>
-            <maml:para>Top offset (in points) from the slide origin.</maml:para>
+            <maml:para>Gets or sets the top coordinate; numbers mean points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
           <dev:type>
-            <maml:name>Int32</maml:name>
+            <maml:name>OfficeLength</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -46165,9 +46289,9 @@ table formatting, borders, and style choices are preserved.</maml:para>
     </command:syntax>
     <command:parameters>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>Height</maml:name>
+        <maml:name>Column</maml:name>
         <maml:description>
-          <maml:para>Box height in points.</maml:para>
+          <maml:para>Gets or sets the one-based theme grid column; explicit X overrides its position.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -46176,10 +46300,46 @@ table formatting, borders, and style choices are preserved.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
+        <maml:name>Content</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets native paragraph and run content.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">ScriptBlock</command:parameterValue>
+        <dev:type>
+          <maml:name>ScriptBlock</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Height</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the height; omission uses the native default.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
+        <dev:type>
+          <maml:name>OfficeLength</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Name</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the native shape name.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>PassThru</maml:name>
         <maml:description>
-          <maml:para>Emit the object created or changed by the command.</maml:para>
+          <maml:para>Gets or sets whether the live native text box is returned.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -46188,34 +46348,34 @@ table formatting, borders, and style choices are preserved.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="Runs">
-        <maml:name>Run</maml:name>
-        <maml:description>
-          <maml:para>Rich text runs. Each run can be created with TextRun/PowerPointTextRun or provided as a hashtable/object.</maml:para>
-        </maml:description>
-        <command:parameterValue required="true" variableLength="false">Object[]</command:parameterValue>
-        <dev:type>
-          <maml:name>Object[]</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
         <maml:name>Slide</maml:name>
         <maml:description>
-          <maml:para>Target slide that will receive the text box (optional inside DSL).</maml:para>
+          <maml:para>Gets or sets a native slide or one-based position; omission uses the current slide block.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
         <dev:type>
-          <maml:name>PowerPointSlide</maml:name>
+          <maml:name>PowerPointSlideSelector</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Span</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the number of grid columns; the default is twelve, and explicit Width overrides it.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <dev:type>
+          <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
         <maml:name>Text</maml:name>
         <maml:description>
-          <maml:para>Text to render inside the box.</maml:para>
+          <maml:para>Gets or sets plain text; an empty string creates an empty box.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -46227,11 +46387,11 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Width</maml:name>
         <maml:description>
-          <maml:para>Box width in points.</maml:para>
+          <maml:para>Gets or sets the width; omission uses the native default.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Int32</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -46239,11 +46399,11 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>X</maml:name>
         <maml:description>
-          <maml:para>Left offset (in points) from the slide origin.</maml:para>
+          <maml:para>Gets or sets the left coordinate; numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Int32</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -46251,11 +46411,11 @@ table formatting, borders, and style choices are preserved.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Y</maml:name>
         <maml:description>
-          <maml:para>Top offset (in points) from the slide origin.</maml:para>
+          <maml:para>Gets or sets the top coordinate; numbers mean points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeLength</command:parameterValue>
         <dev:type>
-          <maml:name>Int32</maml:name>
+          <maml:name>OfficeLength</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -46264,11 +46424,20 @@ table formatting, borders, and style choices are preserved.</maml:para>
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointSlide</maml:name>
+          <maml:name>PSWriteOffice.Foundation.PowerPointSlideSelector</maml:name>
         </dev:type>
+        <maml:description>
+          <maml:para>A live slide or a one-based slide position in a document.</maml:para>
+        </maml:description>
       </command:inputType>
     </command:inputTypes>
-    <command:returnValues />
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.PowerPoint.PowerPointTextBox</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
     <maml:alertSet>
       <maml:alert>
         <maml:para></maml:para>
@@ -46276,17 +46445,14 @@ table formatting, borders, and style choices are preserved.</maml:para>
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Insert a caption.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePowerPoint -Path .\Examples\Documents\PowerPointTextBox.pptx {
-                $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-                Add-OfficePowerPointTextBox -Slide $slide -Text 'Quarterly overview' -X 80 -Y 150 -Width 320 -Height 50
-                Add-OfficePowerPointTextBox -Slide $slide -Text 'Generated by PSWriteOffice' -X 80 -Y 210 -Width 320 -Height 35
+        <maml:title>Place rich text at physical coordinates.</maml:title>
+        <dev:code>PowerPointSlide -Title 'Service review' {
+                PowerPointTextBox -X 2cm -Y 4cm -Width 12cm -Height 3cm {
+                    PowerPointParagraph { PowerPointText 'Status: ' -Bold; PowerPointText 'Healthy' }
+                }
             }</dev:code>
         <dev:remarks>
-          <maml:para>Places two text boxes on a generated slide.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
@@ -129395,19 +129561,31 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
       <command:verb>Get</command:verb>
       <command:noun>OfficePowerPointPlaceholder</command:noun>
       <maml:description>
-        <maml:para>Gets placeholder text boxes from a slide.</maml:para>
+        <maml:para>Gets native slide placeholders or metadata from the selected slide's template layout.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Gets placeholder text boxes from a slide.</maml:para>
+      <maml:para>Gets native slide placeholders or metadata from the selected slide's template layout.</maml:para>
     </maml:description>
     <command:syntax>
-      <command:syntaxItem parameterSetName="__AllParameterSets">
+      <command:syntaxItem parameterSetName="Slide">
         <maml:name>Get-OfficePowerPointPlaceholder</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the document for numeric selection or explicit membership checks.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Index</maml:name>
           <maml:description>
-            <maml:para>Optional placeholder index.</maml:para>
+            <maml:para>Gets or sets the native placeholder index to include.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">UInt32</command:parameterValue>
           <dev:type>
@@ -129416,10 +129594,22 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Type">
-          <maml:name>PlaceholderType</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+          <maml:name>Slide</maml:name>
           <maml:description>
-            <maml:para>Placeholder type to filter on.</maml:para>
+            <maml:para>Gets or sets a native slide or one-based position; omission uses the current slide block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointSlideSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Type</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the placeholder type to include.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">PowerPointPlaceholderType</command:parameterValue>
           <command:parameterValueGroup>
@@ -129446,14 +129636,83 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Layout">
+        <maml:name>Get-OfficePowerPointPlaceholder</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the document for numeric selection or explicit membership checks.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>PowerPointDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>FromLayout</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets whether to return layout metadata instead of live text boxes.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Index</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the native placeholder index to include.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">UInt32</command:parameterValue>
+          <dev:type>
+            <maml:name>UInt32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
           <maml:name>Slide</maml:name>
           <maml:description>
-            <maml:para>Slide to inspect (optional inside DSL).</maml:para>
+            <maml:para>Gets or sets a native slide or one-based position; omission uses the current slide block.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
           <dev:type>
-            <maml:name>PowerPointSlide</maml:name>
+            <maml:name>PowerPointSlideSelector</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>Type</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets the placeholder type to include.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PowerPointPlaceholderType</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Title</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Body</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">CenteredTitle</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SubTitle</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">DateAndTime</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SlideNumber</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Footer</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Header</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Object</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Chart</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Table</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">ClipArt</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Diagram</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Media</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">SlideImage</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Picture</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>PowerPointPlaceholderType</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -129462,9 +129721,33 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
     </command:syntax>
     <command:parameters>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the document for numeric selection or explicit membership checks.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">PowerPointDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>PowerPointDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>FromLayout</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets whether to return layout metadata instead of live text boxes.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Index</maml:name>
         <maml:description>
-          <maml:para>Optional placeholder index.</maml:para>
+          <maml:para>Gets or sets the native placeholder index to include.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">UInt32</command:parameterValue>
         <dev:type>
@@ -129473,10 +129756,22 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Type">
-        <maml:name>PlaceholderType</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
+        <maml:name>Slide</maml:name>
         <maml:description>
-          <maml:para>Placeholder type to filter on.</maml:para>
+          <maml:para>Gets or sets a native slide or one-based position; omission uses the current slide block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">PowerPointSlideSelector</command:parameterValue>
+        <dev:type>
+          <maml:name>PowerPointSlideSelector</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>Type</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets the placeholder type to include.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">PowerPointPlaceholderType</command:parameterValue>
         <command:parameterValueGroup>
@@ -129503,30 +129798,26 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="None">
-        <maml:name>Slide</maml:name>
-        <maml:description>
-          <maml:para>Slide to inspect (optional inside DSL).</maml:para>
-        </maml:description>
-        <command:parameterValue required="false" variableLength="false">PowerPointSlide</command:parameterValue>
-        <dev:type>
-          <maml:name>PowerPointSlide</maml:name>
-          <maml:uri />
-        </dev:type>
-        <dev:defaultValue>None</dev:defaultValue>
-      </command:parameter>
     </command:parameters>
     <command:inputTypes>
       <command:inputType>
         <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointSlide</maml:name>
+          <maml:name>PSWriteOffice.Foundation.PowerPointSlideSelector</maml:name>
         </dev:type>
+        <maml:description>
+          <maml:para>A live slide or a one-based slide position in a document.</maml:para>
+        </maml:description>
       </command:inputType>
     </command:inputTypes>
     <command:returnValues>
       <command:returnValue>
         <dev:type>
           <maml:name>OfficeIMO.PowerPoint.PowerPointTextBox</maml:name>
+        </dev:type>
+      </command:returnValue>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.PowerPoint.PowerPointLayoutPlaceholderInfo</maml:name>
         </dev:type>
       </command:returnValue>
     </command:returnValues>
@@ -129537,23 +129828,17 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
     </maml:alertSet>
     <command:examples>
       <command:example>
-        <maml:title>Get the title placeholder.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>Get-OfficePowerPointPlaceholder -Slide $slide -PlaceholderType Title</dev:code>
+        <maml:title>Read the first slide's title placeholder.</maml:title>
+        <dev:code>Get-OfficePowerPointPlaceholder -Document $deck -Slide 1 -Type Title</dev:code>
         <dev:remarks>
-          <maml:para>Returns the title placeholder textbox if present.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
       <command:example>
-        <maml:title>Get placeholders inside a slide DSL block.</maml:title>
-        <maml:introduction>
-          <maml:para>PS&gt; </maml:para>
-        </maml:introduction>
-        <dev:code>New-OfficePowerPoint -Path .\deck.pptx { PptSlide { Get-OfficePowerPointPlaceholder -PlaceholderType Title } }</dev:code>
+        <maml:title>Inspect template positions before filling a slide.</maml:title>
+        <dev:code>$slide | Get-OfficePowerPointPlaceholder -FromLayout</dev:code>
         <dev:remarks>
-          <maml:para>Uses the current slide context.</maml:para>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>

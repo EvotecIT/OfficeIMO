@@ -17,15 +17,15 @@ New-OfficePowerPoint -Path $path {
     Set-OfficePowerPointSlideSize -Preset Screen16x9
 
     $cover = PowerPointSlide -Background '#0F172A' -NoFooter -NoSlideNumber -PassThru
-    Add-OfficePowerPointTextBox -Slide $cover -Run @{ Text = 'NORTHWIND | YEAR-END REVIEW'; Color = '#5EEAD4'; FontSize = 18 } -X 60 -Y 90 -Width 840 -Height 40
-    Add-OfficePowerPointTextBox -Slide $cover -Run @{ Text = 'Quarterly Business Review'; Color = '#FFFFFF'; FontSize = 40; Bold = $true } -X 60 -Y 150 -Width 840 -Height 80
-    Add-OfficePowerPointTextBox -Slide $cover -Run @{ Text = 'Performance, decisions, and next-quarter priorities'; Color = '#CBD5E1'; FontSize = 22 } -X 60 -Y 250 -Width 840 -Height 70
+    Add-OfficePowerPointTextBox -Slide $cover -Content { PowerPointText 'NORTHWIND | YEAR-END REVIEW' -Size 18 -Color '#5EEAD4' } -X 60 -Y 90 -Width 840 -Height 40
+    Add-OfficePowerPointTextBox -Slide $cover -Content { PowerPointText 'Quarterly Business Review' -Size 40 -Color '#FFFFFF' -Bold } -X 60 -Y 150 -Width 840 -Height 80
+    Add-OfficePowerPointTextBox -Slide $cover -Content { PowerPointText 'Performance, decisions, and next-quarter priorities' -Size 22 -Color '#CBD5E1' } -X 60 -Y 250 -Width 840 -Height 70
     PowerPointNotes -Slide $cover -Text 'Open with the outcome: growth continued and the team needs three decisions.'
 
     $performance = PowerPointSlide -Title 'Performance trend' -PassThru
     PowerPointChart -Slide $performance -InputObject $trend -Category Quarter -Value Revenue -Type ClusteredColumn -Title 'Revenue (USD millions)' -X 55 -Y 130 -Width 400 -Height 280
     PowerPointChart -Slide $performance -InputObject $trend -Category Quarter -Value Margin -Type Line -Title 'Operating margin (%)' -X 500 -Y 130 -Width 400 -Height 280
-    Add-OfficePowerPointTextBox -Slide $performance -Run @{ Text = "Revenue grew $revenueGrowth% from Q1; margin improved $marginChange percentage points."; FontSize = 18; Color = '#0F172A' } -X 60 -Y 440 -Width 840 -Height 55
+    Add-OfficePowerPointTextBox -Slide $performance -Content { PowerPointText "Revenue grew $revenueGrowth% from Q1; margin improved $marginChange percentage points." -Size 18 -Color '#0F172A' } -X 60 -Y 440 -Width 840 -Height 55
     PowerPointNotes -Slide $performance -Text 'Explain the margin improvement before discussing revenue.'
 
     PowerPointSlide -Title 'Next-quarter priorities' {

@@ -10,7 +10,7 @@ PptNew -Path $path {
 
     PptSlide {
         PptTitle -Title 'Automation Workshop'
-        PptTextBox -Text 'From repeatable data to reviewable documents' -X 90 -Y 190 -Width 720 -Height 70
+        PowerPointTextBox -Text 'From repeatable data to reviewable documents' -X 90 -Y 190 -Width 720 -Height 70
         PptNotes -Text 'Ask participants to name one document they rebuild manually every week.'
     }
 
@@ -28,8 +28,8 @@ PptNew -Path $path {
 
     PptSlide {
         PptTitle -Title 'Your next step'
-        PptShape -ShapeType RoundRectangle -X 95 -Y 160 -Width 650 -Height 180 -FillColor '#DBEAFE' -OutlineColor '#2563EB'
-        PptTextBox -Text 'Pick one real report, replace the sample data, and review the generated file with its owner.' -X 135 -Y 215 -Width 570 -Height 90
+        PowerPointShape -Type RoundRectangle -X 95 -Y 160 -Width 650 -Height 180 -FillColor '#DBEAFE' -OutlineColor '#2563EB'
+        PowerPointTextBox -Text 'Pick one real report, replace the sample data, and review the generated file with its owner.' -X 135 -Y 215 -Width 570 -Height 90
         PptNotes -Text 'End with a concrete commitment from each participant.'
     }
 }
