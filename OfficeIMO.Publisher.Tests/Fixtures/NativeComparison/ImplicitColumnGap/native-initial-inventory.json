@@ -1,0 +1,131 @@
+{
+  "schema": "officeimo.publisher.native-inventory.v1",
+  "stage": "Full",
+  "observation": "Initial",
+  "status": "Observed",
+  "candidateSha256": "e37793999c3d824780f190978346039c3b4c40fed3fc85df3d7e147b10ddca8e",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "automationSecurity": 3
+  },
+  "qualifiedOperations": [
+    "ReadOnlyOpen",
+    "InitialInventory"
+  ],
+  "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+  "inventory": {
+    "pageCount": 3,
+    "widthPoints": 612.0,
+    "heightPoints": 792.0,
+    "readOnly": true,
+    "pages": [
+      {
+        "index": 1,
+        "pageId": 33554690,
+        "pageIndex": 1,
+        "pageNumber": "1",
+        "pageType": 2,
+        "name": "Page Title",
+        "masterStatus": "Observed",
+        "master": {
+          "pageId": 33554689,
+          "name": "Master Page A"
+        },
+        "masterErrorHResult": null,
+        "shapes": [
+          {
+            "name": "Text Box 1",
+            "type": 17,
+            "left": 72.0,
+            "top": 72.0,
+            "width": 288.0,
+            "height": 108.0,
+            "text": "First page: native authoring\r",
+            "font": "Arial",
+            "nextLink": false,
+            "previousLink": false,
+            "frameLayout": {
+              "columns": 1,
+              "columnSpacing": 3.5999999046325684,
+              "left": 0.0,
+              "top": 0.0,
+              "right": 0.0,
+              "bottom": 0.0,
+              "verticalAlignment": 0
+            },
+            "picture": null,
+            "tableGeometry": null
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "pageId": 33554691,
+        "pageIndex": 2,
+        "pageNumber": "2",
+        "pageType": 1,
+        "name": "Page Title",
+        "masterStatus": "Observed",
+        "master": {
+          "pageId": 33554689,
+          "name": "Master Page A"
+        },
+        "masterErrorHResult": null,
+        "shapes": []
+      },
+      {
+        "index": 3,
+        "pageId": 33554692,
+        "pageIndex": 3,
+        "pageNumber": "3",
+        "pageType": 2,
+        "name": "Page Title",
+        "masterStatus": "Observed",
+        "master": {
+          "pageId": 33554689,
+          "name": "Master Page A"
+        },
+        "masterErrorHResult": null,
+        "shapes": [
+          {
+            "name": "Text Box 2",
+            "type": 17,
+            "left": 108.0,
+            "top": 144.0,
+            "width": 360.0,
+            "height": 90.0,
+            "text": "Last page: native authoring\r",
+            "font": "Arial",
+            "nextLink": false,
+            "previousLink": false,
+            "frameLayout": {
+              "columns": 1,
+              "columnSpacing": 3.5999999046325684,
+              "left": 0.0,
+              "top": 0.0,
+              "right": 0.0,
+              "bottom": 0.0,
+              "verticalAlignment": 0
+            },
+            "picture": null,
+            "tableGeometry": null
+          }
+        ]
+      }
+    ],
+    "masterPages": [
+      {
+        "index": 1,
+        "pageId": 33554689,
+        "pageIndex": 1,
+        "pageType": 4,
+        "name": "Master Page A",
+        "isTwoPageMaster": false,
+        "shapeCount": 0,
+        "shapes": []
+      }
+    ]
+  }
+}

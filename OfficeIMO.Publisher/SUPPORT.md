@@ -377,7 +377,11 @@ grow. Existing bounds and solid paint edits can be combined with layout edits.
 Changed distances must have exact nonnegative signed-EMU representations
 (12,700 EMUs per point). Publisher's automation
 [`ColumnSpacing`](https://learn.microsoft.com/en-us/office/vba/api/publisher.textframe.columnspacing)
-is half the full gap used by this API and the native OfficeArt property. Ambiguous local overrides,
+is half the full gap used by this API and the native OfficeArt property.
+If no local or inherited gap is present, the full native default is 7.2 points;
+explicit zero remains distinct and can be saved when adding columns. The
+`ImplicitColumnGap` fixture retains the omitted-property input and independent
+native inventory used to qualify this boundary. Ambiguous local overrides,
 flagged scalar targets, incomplete complex payloads and unqualified Contents
 relocation headers refuse output, including with `Allow`.
 

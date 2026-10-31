@@ -25,7 +25,9 @@ internal static partial class PublisherModelImporter {
                 && !shape.HasPublicationGroupParent && shape.GroupTransform == OfficeTransform.Identity && shape.LayoutTransform == OfficeTransform.Identity
                 && shape.Transform.RotationDegrees.GetValueOrDefault() == 0 && !shape.Transform.FlipHorizontal && !shape.Transform.FlipVertical;
             uint columns = shape?.Property(0x8C) ?? 1;
-            double gap = (shape?.Property(0x8D) ?? 0) / 12700D;
+            // Native spacing is the full gap: the 0.1-inch default is twice
+            // Publisher automation's 0.05-inch spacing on each column edge.
+            double gap = (shape?.Property(0x8D) ?? 91440) / 12700D;
             var padding = new OfficeTextPadding((shape?.Property(0x81) ?? 36576) / 12700D, (shape?.Property(0x82) ?? 36576) / 12700D,
                 (shape?.Property(0x83) ?? 36576) / 12700D, (shape?.Property(0x84) ?? 36576) / 12700D);
             uint vertical = native.Value(0x35) ?? 0;

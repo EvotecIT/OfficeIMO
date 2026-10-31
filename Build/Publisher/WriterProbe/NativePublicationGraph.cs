@@ -12,7 +12,6 @@ internal static class NativePublicationGraph {
     internal const ushort SpecialPageBoundary = 5;
     internal const uint DrawingId = 1;
     internal const uint RootShapeId = DrawingId << 10;
-    private const int PhysicalPageIndex = 1;
 
     // Native enumeration admits M..N-S inclusive: physical = N-S-M+1.
     internal static ushort GetOrderedPageCount(CandidatePublicationSpec specification) =>
@@ -23,7 +22,6 @@ internal static class NativePublicationGraph {
         uint width = specification.WidthEmu, height = specification.HeightEmu;
         uint firstPageId = documentId + 1;
         uint masterId = firstPageId;
-        uint physicalId = firstPageId + PhysicalPageIndex;
         uint firstObjectId = firstPageId + orderedPageCount;
         var objects = new List<ObjectBinding>();
         var stories = new List<StoryBinding>();
@@ -51,10 +49,10 @@ internal static class NativePublicationGraph {
         var chunks = new List<NativeRecord> { new(0x44, null, document) };
         for (int index = 0; index < orderedPageCount; index++) {
             bool isMaster = index < MasterPageCount;
-            bool containsObjects = index == PhysicalPageIndex;
+            ObjectBinding[] pageObjects = objects.Where(item => MasterPageCount + item.Source.PageIndex == index).ToArray();
             var fields = new List<byte[]> {
-                Scalar(1, 0x20, containsObjects ? (uint)objects.Count : 0U),
-                Variable(2, 0xA0, containsObjects ? objects.Select(item => Scalar(0, 0x70, item.Id)).ToArray() : Array.Empty<byte[]>())
+                Scalar(1, 0x20, (uint)pageObjects.Length),
+                Variable(2, 0xA0, pageObjects.Select(item => Scalar(0, 0x70, item.Id)).ToArray())
             };
             if (isMaster) fields.Add(Scalar(3, 0x70, masterGeometryId));
             if (!isMaster) fields.Add(Scalar(0x0D, 0x68, masterId));
@@ -65,7 +63,8 @@ internal static class NativePublicationGraph {
             fields.Add(Scalar(0x10, 0x20, isMaster ? 3U : 5U));
             chunks.Add(new NativeRecord(0x43, documentId, Chunk(fields.ToArray())));
         }
-        foreach (ObjectBinding item in objects) chunks.Add(new NativeRecord(item.Source.NativeKind, physicalId,
+        foreach (ObjectBinding item in objects) chunks.Add(new NativeRecord(item.Source.NativeKind,
+            firstPageId + MasterPageCount + (uint)item.Source.PageIndex,
             item.Story != null ? Chunk(Scalar(0x27, 0x20, item.Story.Key), Scalar(0x28, 0x20, 0)) : Chunk()));
         // The ordinary native loader obtains its Quill document through field
         // 0x20 and kind 0x5B. Its frame/story catalogs use generated rows for the

@@ -36,8 +36,17 @@ Publisher session. Choose an empty task-owned output directory:
 The minimal cases isolate a blank publication, one text frame, a longer version
 of the same story, a solid rectangle and an embedded synthetic picture. BlankPages
 has two empty physical pages; TextBlank has a text page followed by an empty page.
-They distinguish blank document pages from utility and master definitions. Text and
-TextLong use identical page geometry, frame geometry and Arial formatting; their
+They distinguish blank document pages from utility and master definitions.
+
+TextPages has independent Arial 12/18-point stories on the first and last of
+three pages, with an empty middle page and explicit zero column spacing. It
+qualifies physical-page ownership in template-free native writer specimens.
+ImplicitColumnGap retains a generated three-page input without a local or
+inherited gap property and an independently captured native inventory. Publisher
+reports 3.6 points through its half-gap automation property, corresponding to the
+7.2-point full gap exposed by OfficeIMO; the regression then saves explicit zero
+when adding columns without changing the last frame's gap or stories.
+Text and TextLong use identical page geometry, frame geometry and Arial formatting; their
 only authored difference is the text. TextParagraphs has one Arial 12-point story
 with an empty paragraph between two text paragraphs. Its retained character
 formatting covers that empty paragraph's CR; the final story CR has a separate

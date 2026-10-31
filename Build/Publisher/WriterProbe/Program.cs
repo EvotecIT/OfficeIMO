@@ -28,7 +28,7 @@ internal static class Program {
                 WriteNew(args[2], bytes);
                 Console.WriteLine(JsonSerializer.Serialize(new {
                     schema = "officeimo.publisher.writer-probe.candidate.v1",
-                    profile = specification.PhysicalPageCount == 1 ? "template-free-one-page-probe" : "template-free-blank-pages-probe",
+                    profile = specification.PhysicalPageCount == 1 ? "template-free-one-page-probe" : "template-free-" + args[1] + "-probe",
                     hypothesis = args[0],
                     kind = args[1],
                     rootClassId = CandidateWriter.PublicationClassId,
@@ -58,7 +58,7 @@ internal static class Program {
                 else Console.WriteLine(json);
                 return 0;
             }
-            Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image|combined> <candidate.pub> [text-or-image-path]\ncreate blank-pages <candidate.pub> <page-count>\npreserve <input.pub> <candidate.pub>\nedit <input.pub> <candidate.pub> <object-id> <x> <y> <width> <height> [RRGGBB]\nedit-text <input.pub> <candidate.pub> <story-id> <text>\nedit-story <input.pub> <candidate.pub> <story-id> <runs.json>\nrender <input.pub> <unused-output-directory>");
+            Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image|combined> <candidate.pub> [text-or-image-path]\ncreate <blank-pages|text-pages> <candidate.pub> <page-count>\npreserve <input.pub> <candidate.pub>\nedit <input.pub> <candidate.pub> <object-id> <x> <y> <width> <height> [RRGGBB]\nedit-text <input.pub> <candidate.pub> <story-id> <text>\nedit-story <input.pub> <candidate.pub> <story-id> <runs.json>\nrender <input.pub> <unused-output-directory>");
             Console.Error.WriteLine("edit-paragraphs <input.pub> <candidate.pub> <story-id> <paragraph-run-arrays.json>");
             return 2;
         } catch (Exception exception) {

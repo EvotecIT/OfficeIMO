@@ -1,0 +1,30 @@
+{
+  "schema": "officeimo.publisher.implicit-column-gap-fixture.v1",
+  "source": "Template-free internal writer specimen with no OfficeArt 0x8D column-spacing property; independently opened and inventoried by Microsoft Publisher.",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 3,
+    "firstAndLastPageFrames": true,
+    "columnCount": 1,
+    "property0x8DOmitted": true,
+    "columnSpacingFullGapPoints": 7.2,
+    "nativeAutomationColumnSpacingPoints": 3.6
+  },
+  "files": [
+    {
+      "name": "implicit-column-gap.pub",
+      "sha256": "e37793999c3d824780f190978346039c3b4c40fed3fc85df3d7e147b10ddca8e"
+    },
+    {
+      "name": "native-initial-inventory.json",
+      "sha256": "65f24090dd57abeef6013c0ea7d84a223675ac17dea2a018c677f7d5c2c094d1"
+    }
+  ],
+  "repairFreeOpening": "unassessed",
+  "spacingContract": "Publisher automation returns half the full intercolumn gap stored in OfficeArt and exposed by OfficeIMO: https://learn.microsoft.com/en-us/office/vba/api/publisher.textframe.columnspacing"
+}

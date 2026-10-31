@@ -55,6 +55,8 @@ internal static class CandidateOfficeArt {
             properties[1] = (0x1BF, 0x00100000); // Text frame has no fill.
             properties.Add((0x81, 0)); properties.Add((0x82, 0));
             properties.Add((0x83, 0)); properties.Add((0x84, 0));
+            if (item.Source.ColumnSpacing.HasValue)
+                properties.Add((0x8D, checked((uint)(item.Source.ColumnSpacing.Value * 12700))));
         }
         if (hasImage) properties.Add((0x4104, 1)); // Picture index carries the native BLIP-ID flag.
         byte[] fopt = Bytes(writer => {

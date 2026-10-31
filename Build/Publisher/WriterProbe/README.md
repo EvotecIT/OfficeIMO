@@ -28,6 +28,7 @@ dotnet $probe inventory ./reference.pub ./reference.inventory.json
 dotnet $probe diff ./native-text.pub ./native-textlong.pub ./text-change.diff.json
 dotnet $probe create blank ./candidate-blank.pub
 dotnet $probe create blank-pages ./candidate-two-blank-pages.pub 2
+dotnet $probe create text-pages ./candidate-text-pages.pub 3
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create styled-text ./candidate-styled-text.pub
 dotnet $probe create shape ./candidate-shape.pub
@@ -46,7 +47,8 @@ Output parent directories must exist. Existing outputs are never overwritten.
 Inventory input is bounded to 64 MiB, plain text to 4,096 characters and images
 to 1 MiB. Reports can contain complete recovered text; use synthetic fixtures.
 The `blank-pages` case requires a physical page count from 1 to 16. Other creation
-cases place their objects on a single physical page.
+cases place their objects on a single physical page, except `text-pages`, which
+requires 2 to 16 pages and places independent stories on the first and last pages.
 
 `inventory` records compound metadata and hashes, known Contents fields, Quill
 directories, OfficeArt envelopes and a separate OfficeIMO reader result.
@@ -284,6 +286,7 @@ The current drawing specification supports one picture per publication.
 | --- | --- |
 | `blank` | Empty page. |
 | `blank-pages` | Requested count of empty physical pages, with one shared empty master; count argument required. |
+| `text-pages` | Builds a source-free publication through `PublisherDocument.Create`, `AddPage` and `AddTextFrame`, then projects the first/final frames and stories into the native codecs. Intermediate pages are empty. Arial 12/18 body text, explicit zero column gap; count argument required. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
 | `shape` | Solid red rectangle at `(72,72)`, size `288×108`, with a CR-only story. |
@@ -316,6 +319,9 @@ the generated master. The master alone
 references an `OhMgPage` margin-guide record (`0x4C`) with explicit dimensions,
 four calculated coordinates `0,width,0,height`, two column guides, two row
 guides and zero gutters. Physical pages use the master relation for geometry.
+Each object's page index selects both its native parent and its page's ordered
+object-reference list. Ordinary objects from all physical pages share one
+OfficeArt drawing; page ownership does not allocate separate drawing IDs.
 
 Document field `0x20` references the Quill document (`0x5B`). Its frame catalog
 (`0x61`) binds each story key to its object; its story catalog (`0x65`) binds the
@@ -377,6 +383,24 @@ native-written `BlankPages` reference at 144 dpi; the native resaves also reopen
 through OfficeIMO. Counts 1 and 16 have managed/structural checks in this record.
 All six original one-page creation cases remain byte-identical. This evidence
 does not qualify objects on later pages, additional masters or repair-free opening.
+
+The `textPageCreation` section separately qualifies the closed first/final-page
+text specimen at two and three pages. All ten initial/resaved page renders match
+the independently authored `TextPages` reference at 144 dpi, including the empty
+middle page. Visible non-whitespace character positions and fonts match; the
+producer's implicit CR typing is separate from the generated CR that follows its
+last body run. Sixteen pages has managed/structural coverage. The six original
+one-page specimens and three qualified multiple-blank-page specimens remain
+byte-identical.
+
+This work also qualifies an omitted native column gap and a subsequent explicit
+zero-gap edit. OfficeIMO exposes the full gap: the native automation value is half
+that distance. The generated model's zero gap is serialized explicitly, while an
+omitted native gap imports as 7.2 points. The retained-source two-column edit has
+native field, ownership, text and initial/resaved render-stability evidence; its
+paragraph defaults do not establish layout parity with a fresh native template.
+General wrapping, native repair-free opening and public native creation remain
+unqualified.
 
 Successful native opening, usable text ranges, saving, reopening and PDF export
 are separate observations. Retain the candidate SHA-256, application version,

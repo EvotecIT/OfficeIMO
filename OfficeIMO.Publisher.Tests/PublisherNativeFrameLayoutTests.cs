@@ -5,6 +5,24 @@ using OfficeIMO.Publisher.Internal;
 namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherNativeFrameLayoutTests {
+    [Fact]
+    public void Implicit_native_column_gap_is_read_and_overridden_when_adding_columns() {
+        PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/ImplicitColumnGap/implicit-column-gap.pub"));
+        PublisherTextFrame first = Assert.Single(document.Pages[0].TextFrames);
+        PublisherTextFrame last = Assert.Single(document.Pages[2].TextFrames);
+        Assert.Equal(7.2, first.ColumnSpacing, 6);
+        Assert.Equal(7.2, last.ColumnSpacing, 6);
+
+        document.SetTextFrameLayout(first.Id, 2, 0, first.Padding, first.VerticalAlignment);
+        PublisherDocument reopened = PublisherDocument.Load(document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        PublisherTextFrame actual = Assert.Single(reopened.Pages[0].TextFrames);
+        Assert.Equal(2, actual.ColumnCount);
+        Assert.Equal(0, actual.ColumnSpacing);
+        Assert.Equal(7.2, Assert.Single(reopened.Pages[2].TextFrames).ColumnSpacing, 6);
+        Assert.Empty(reopened.Pages[1].TextFrames);
+        Assert.Equal(document.TextStories.Select(story => (story.Id, story.Text)), reopened.TextStories.Select(story => (story.Id, story.Text)));
+    }
+
     [Theory]
     [InlineData("Text")]
     [InlineData("TextFrameLayout")]

@@ -1,0 +1,168 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TextPages",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 3,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "First page: native authoring",
+      "Last page: native authoring"
+    ],
+    "shapes": [
+      {
+        "name": "FirstPageText",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 288.0,
+        "height": 108.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "LastPageText",
+        "kind": "TextFrame",
+        "left": 108.0,
+        "top": 144.0,
+        "width": 360.0,
+        "height": 90.0,
+        "font": "Arial",
+        "size": 18.0
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "FirstPageText",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 288.0,
+          "height": 108.0,
+          "text": "First page: native authoring\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 0.0,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554725,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": []
+    },
+    {
+      "index": 3,
+      "pageId": 33554728,
+      "pageIndex": 3,
+      "pageNumber": "3",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "LastPageText",
+          "type": 17,
+          "left": 108.0,
+          "top": 144.0,
+          "width": 360.0,
+          "height": 90.0,
+          "text": "Last page: native authoring\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 0.0,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-textpages.pub",
+      "sha256": "00e2c8acc181238cab6a542fd0edc452d100c6e35f14eb4ee0f58be39d40f73f"
+    },
+    "reference": {
+      "name": "native-textpages.pdf",
+      "sha256": "86b7ac705d14590fa3b68cb299489c63421aa0702fa4b34be7d4a7403de96c35"
+    }
+  }
+}

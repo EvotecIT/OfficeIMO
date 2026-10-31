@@ -292,7 +292,10 @@ publication.SetTextFrameLayout(current.Id, 2, 18,
 ```
 
 `PublisherTextFrame` exposes the current `Padding`, `VerticalAlignment`,
-`ColumnCount` and `ColumnSpacing`. `CanEditLayout` and `LayoutEditLimitation`
+`ColumnCount` and `ColumnSpacing`. Spacing is the full intercolumn gap in points.
+If no local or inherited native gap is present, import uses Publisher's
+7.2-point full gap; an explicit zero remains zero. Source-free frames start with
+zero spacing. `CanEditLayout` and `LayoutEditLimitation`
 describe this operation independently of bounds editing. Visible resolved
 untransformed document/master frames are eligible, including text-capable
 artwork. Tables and table-story aliases are excluded. Unassessed native anchor,
