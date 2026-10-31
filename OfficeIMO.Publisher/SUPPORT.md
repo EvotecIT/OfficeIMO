@@ -215,8 +215,8 @@ corresponding nonempty run and agree on complete paragraph/run definitions and
 the destination CR. Unsupported matching source definitions remain ambiguity
 barriers. Equal visible formatting does
 not choose between conflicting opaque native definitions. Count-changing
-edits preserving neither text nor complete formatting and run splitting/merging
-remain outside this profile.
+edits preserving neither complete paragraph text nor complete formatting remain
+outside this profile.
 A newly authored empty final paragraph is refused when its requested typing
 cannot be represented safely. A zero-paragraph story remains unsupported
 for native saving; in-memory clearing and rendering remain available.
@@ -302,6 +302,34 @@ control records Publisher's Greek language auto-assignment around Omega and does
 not qualify mixed-script retained-language mapping. Refilling multiple source
 runs or changing the filled run's formatting, general reflow, broader producers
 and repair-free opening remain outside this refill profile.
+
+The `sourceEditing.retainedTextRunSegmentation` record qualifies run splitting
+and merging with complete paragraph text and preserved fields retained at each
+position. Count-changing correspondence resolves exact references/values,
+ordered run text, complete paragraph text, then unchanged formatting. Ambiguous
+complete-text templates cannot fall back to a different paragraph's style. Their
+complete paragraph definitions and native body endpoints/bytes must agree, with
+qualified interior CR agreement. Each source/requested/native range intersection
+uses the existing character codec, retaining opaque fields at their positions
+and the destination's CR role. Same-count edits use their original ordinal
+bindings; established uniform-source topology and single-run paths retain their
+existing behavior.
+
+Thirty native outputs cover deletion, reorder, duplication, sole-final placement,
+merged and split visible styles, font/color changes, equivalent templates and
+hidden language boundaries in ordinary stories and first/final table cells.
+Twenty-page controls provide independent final states: 60 selected-page
+initial/resaved pixel/span comparisons match, and 1,140 neighboring-page
+comparisons remain unchanged. Complete initial native character records are
+compared at every position apart from the requested supported fields. Native
+resave retains effective styles and language throughout the body and CR.
+
+Native reload may expose different run boundaries with the same text and styling;
+public proof compares complete paragraph formatting and effective run formatting
+at each UTF-16 position. Requests changing complete text and formatting without
+correspondence, unsupported preserved-field changes, labels/list semantics,
+broader producer/mixed-script profiles, general reflow and repair-free opening
+remain outside this qualification.
 
 When ranges no longer fit the original allocation, the codec can append aligned
 formatting pages and directory pages, relocate enlarged BTE indexes and resources,

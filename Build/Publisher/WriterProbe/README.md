@@ -501,6 +501,21 @@ neighboring-page stage comparisons against independent controls. The Unicode
 control is separate mixed-script evidence; broader producer/reflow and repair-free
 acceptance remain unqualified.
 
+The `sourceEditing.retainedTextRunSegmentation` record qualifies split/merge
+edits with complete paragraph text and preserved fields retained at each position.
+Complete native paragraph/body templates must agree; each source/requested/native
+character-range intersection goes through the existing formatting codec. Opaque
+fields stay at their source text positions and destination CR roles remain
+retained. Same-count ordinal bindings and the established uniform single-run
+path keep their respective contracts.
+
+Thirty native outputs cover ordinary stories and first/final table cells, with
+60 selected-page and 1,140 neighboring-page stage comparisons against independent
+controls. Public reload compares complete text and per-position styling because
+native boundaries can split visibly identical runs. Changed full text plus new
+formatting, unsupported preserved fields, labels, broader producer/mixed-script
+profiles and repair-free acceptance remain unqualified.
+
 The `sourceEditing.tableTrackGeometry` record covers saved table endpoints and
 native row-growth controls. The reader recovers laid-out tracks from cumulative
 coordinates, retaining reported nominal fallback for incomplete axes. Independent

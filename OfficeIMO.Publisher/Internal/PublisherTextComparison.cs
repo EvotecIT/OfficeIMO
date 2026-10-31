@@ -9,6 +9,8 @@ internal static class PublisherTextComparison {
     internal static IEqualityComparer<OfficeRichTextParagraph> ParagraphFormats { get; } = new ParagraphComparer(includeText: false);
     /// <summary>Matches retained run text and fields the native formatting codecs cannot rewrite.</summary>
     internal static IEqualityComparer<OfficeRichTextParagraph> ParagraphTexts { get; } = new ParagraphComparer(includeFormatting: false);
+    /// <summary>Matches nonempty paragraph text and preserved fields at each position, independently of run boundaries.</summary>
+    internal static IEqualityComparer<OfficeRichTextParagraph> ParagraphContent { get; } = new ContentComparer();
     internal static bool StoryEqual(PublisherTextStory a, PublisherTextStory b) => ReferenceEquals(a, b)
         || a.Id == b.Id && a.Text == b.Text && a.HasFinalParagraphTerminator == b.HasFinalParagraphTerminator
         && a.Paragraphs.Count == b.Paragraphs.Count && a.Paragraphs.Zip(b.Paragraphs, ParagraphEqual).All(value => value);
@@ -26,6 +28,31 @@ internal static class PublisherTextComparison {
     private static bool LabelEqual(OfficeTextParagraphLabel? a, OfficeTextParagraphLabel? b) => ReferenceEquals(a, b)
         || a != null && b != null && a.Position == b.Position && a.Alignment == b.Alignment && a.MinimumWidth == b.MinimumWidth
         && a.MinimumDistance == b.MinimumDistance && a.FollowedBy == b.FollowedBy && a.TextPosition == b.TextPosition && RunEqual(a.Run, b.Run);
+
+    private sealed class ContentComparer : IEqualityComparer<OfficeRichTextParagraph> {
+        public bool Equals(OfficeRichTextParagraph? a, OfficeRichTextParagraph? b) {
+            if (ReferenceEquals(a, b)) return true;
+            if (a == null || b == null || !LabelEqual(a.Label, b.Label)
+                || a.Runs.Count == 0 || b.Runs.Count == 0 || a.Runs.Any(r => r.Text.Length == 0) || b.Runs.Any(r => r.Text.Length == 0)) return false;
+            int i = 0, j = 0, left = 0, right = 0;
+            while (i < a.Runs.Count && j < b.Runs.Count) {
+                OfficeRichTextRun x = a.Runs[i], y = b.Runs[j];
+                int length = Math.Min(x.Text.Length - left, y.Text.Length - right);
+                if (!RunPreservedFormattingEqual(x, y) || string.CompareOrdinal(x.Text, left, y.Text, right, length) != 0) return false;
+                left += length; right += length;
+                if (left == x.Text.Length) { i++; left = 0; }
+                if (right == y.Text.Length) { j++; right = 0; }
+            }
+            return i == a.Runs.Count && j == b.Runs.Count;
+        }
+
+        public int GetHashCode(OfficeRichTextParagraph paragraph) {
+            int hash = 17;
+            foreach (var run in paragraph.Runs)
+                foreach (char value in run.Text) hash = unchecked(hash * 31 + value);
+            return hash;
+        }
+    }
 
     private sealed class ParagraphComparer : IEqualityComparer<OfficeRichTextParagraph> {
         private readonly bool _includeText, _includeFormatting;

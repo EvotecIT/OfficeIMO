@@ -82,13 +82,17 @@ unambiguous native definitions. Retained empty paragraphs keep their own complet
 native CR typing in interior and final positions. Nonuniform count changes can
 also use retained ordered run text to select a native template for supported
 character and paragraph formatting changes. Exact snapshots and complete values
-resolve first, followed by retained text, then unchanged complete formatting for
-text replacement. An ambiguous retained-text match refuses output even when
-another source paragraph matches the requested style. All matching templates
-must agree on complete native definitions, with one uniform nonempty definition
-per ordered run. A single empty source run can instead supply its complete
+resolve first, followed by retained ordered run text, complete paragraph text
+with preserved fields at each position, then unchanged complete formatting for
+text replacement. A retained-text match can split or merge runs through the
+original native character ranges. Ambiguous text refuses output even when another
+source paragraph matches the requested style. All matching templates must agree
+on complete native definitions; changed-text replacement additionally needs one
+uniform nonempty definition per corresponding ordered run. A single empty source run can instead supply its complete
 native CR typing for a nonempty replacement with unchanged formatting.
-Visible-run formatting leaves destination CR typing intact.
+Visible-run formatting leaves destination CR typing intact. Native reload can
+expose separate runs with identical visible formatting when native source
+boundaries or opaque metadata remain distinct.
 Requests preserving neither text nor complete formatting, empty replacement runs
 and unsupported source definitions refuse output. A changed story
 can use one existing frame or a complete resolved chain of ordinary, visible,
@@ -445,10 +449,11 @@ within a cell without changing their text or formatting. Original paragraph
 snapshots select their exact native definitions; copied values require
 unambiguous definitions within that cell. Retained empty paragraphs keep their
 own complete native CR definition in interior and final positions. Count-changing
-text replacement uses unchanged complete paragraph/run formatting; formatting
-changes use retained ordered run text. Both require a uniform nonempty native
-definition per run and agreement among matching templates, including the
-destination CR role. A single empty source run can supply its complete CR
+text replacement uses unchanged complete paragraph/run formatting with a uniform
+native definition per corresponding run. Formatting and run segmentation changes
+use retained ordered run text or complete paragraph text with preserved fields at
+each position. Matching native templates must agree, including the destination
+CR role. A single empty source run can supply its complete CR
 typing for a nonempty replacement with unchanged formatting. Matching stays
 within the edited cell. Unknown
 native partition records, arbitrary count-changing rewrites of nonuniform cell

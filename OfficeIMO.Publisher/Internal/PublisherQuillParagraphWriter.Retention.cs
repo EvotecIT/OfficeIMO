@@ -32,7 +32,7 @@ internal static partial class PublisherQuillParagraphWriter {
             PublisherQuillStyleUse? cr = At(end);
             if (cr == null) return false;
             templates.Add(new RetainedParagraph(paragraph, paragraphs[i].DirectDefinition, Copy(paragraphs[i].DirectDefinition),
-                body, bodySpans, cr.Value.DirectDefinition, Copy(cr.Value.DirectDefinition), length));
+                body, bodySpans, cr.Value.DirectDefinition, Copy(cr.Value.DirectDefinition), length, position));
             position = checked(end + 1);
         }
         if (position != binding.NativeStart + binding.NativeLength) return false;
@@ -47,6 +47,7 @@ internal static partial class PublisherQuillParagraphWriter {
         var values = new Dictionary<OfficeRichTextParagraph, RetentionCandidates>(PublisherTextComparison.Paragraphs);
         var replacements = new Dictionary<OfficeRichTextParagraph, TextReplacementCandidates>(PublisherTextComparison.ParagraphFormats);
         var formatting = new Dictionary<OfficeRichTextParagraph, TextReplacementCandidates>(PublisherTextComparison.ParagraphTexts);
+        var content = new Dictionary<OfficeRichTextParagraph, RetentionCandidates>(PublisherTextComparison.ParagraphContent);
         for (int i = 0; i < templates.Count; i++) {
             RetainedParagraph template = templates[i];
             template.InteriorTerminator = i + 1 == templates.Count ? movedTerminator : template.Terminator;
@@ -54,6 +55,11 @@ internal static partial class PublisherQuillParagraphWriter {
             if (!values.TryGetValue(template.Paragraph, out RetentionCandidates? candidates))
                 values.Add(template.Paragraph, new RetentionCandidates(template));
             else candidates.Add(template);
+            if (template.Length > 0 && template.Paragraph.Runs.All(r => r.Text.Length > 0)) {
+                if (!content.TryGetValue(template.Paragraph, out RetentionCandidates? matchingContent))
+                    content.Add(template.Paragraph, new RetentionCandidates(template));
+                else matchingContent.Add(template);
+            }
             if (template.Paragraph.Runs.Count > 0) {
                 if (!replacements.TryGetValue(template.Paragraph, out TextReplacementCandidates? matching))
                     replacements.Add(template.Paragraph, new TextReplacementCandidates(template));
@@ -68,7 +74,7 @@ internal static partial class PublisherQuillParagraphWriter {
             token.ThrowIfCancellationRequested();
             OfficeRichTextParagraph paragraph = after.Paragraphs[i];
             bool last = i + 1 == after.Paragraphs.Count;
-            bool replaceText = false, reformat = false;
+            bool replaceText = false, reformat = false, resegment = false;
             if (!references.TryGetValue(paragraph, out RetainedParagraph? template)) {
                 if (values.TryGetValue(paragraph, out RetentionCandidates? candidates)) {
                     if (!candidates.IsUnambiguous(last)) return false;
@@ -80,6 +86,9 @@ internal static partial class PublisherQuillParagraphWriter {
                     if (formatting.TryGetValue(paragraph, out TextReplacementCandidates? retainedText)) {
                         if (!retainedText.IsUnambiguous(last)) return false;
                         template = retainedText.First; reformat = true;
+                    } else if (content.TryGetValue(paragraph, out RetentionCandidates? retainedContent)) {
+                        if (!retainedContent.IsUnambiguous(last)) return false;
+                        template = retainedContent.First; resegment = true;
                     } else {
                         if (!replacements.TryGetValue(paragraph, out TextReplacementCandidates? matching) || !matching.IsUnambiguous(last)) return false;
                         template = matching.First; replaceText = true;
@@ -91,12 +100,16 @@ internal static partial class PublisherQuillParagraphWriter {
             byte[]? terminator = template.Length == 0 ? template.Terminator : last ? final : template.InteriorTerminator;
             if (terminator == null) return false;
             byte[] definition = template.Definition;
-            if (reformat) {
+            if (reformat || resegment) {
                 byte[]? rewritten = PublisherQuillParagraphStyleWriter.Rewrite(data, template.DefinitionSpan, template.Paragraph, paragraph, context);
                 if (rewritten == null) return false;
                 definition = rewritten;
             }
-            if (replaceText || reformat) {
+            if (resegment) {
+                if (!TryPlanContentRanges(data, context, characters, template.NativeStart, template.Paragraph, paragraph, token, resources, out var mapped)) return false;
+                foreach (var range in mapped) AppendRange(pc, checked(position + range.AbsoluteEnd), range.Style);
+                position = checked(position + (template.Length + 1) * 2);
+            } else if (replaceText || reformat) {
                 for (int run = 0; run < paragraph.Runs.Count; run++) {
                     byte[]? style = reformat ? PublisherQuillCharacterStyleWriter.Rewrite(data, template.ReplacementSpans![run],
                         template.Paragraph.Runs[run], paragraph.Runs[run], context, resources) : template.ReplacementBody![run];
@@ -127,9 +140,10 @@ internal static partial class PublisherQuillParagraphWriter {
     private sealed class RetainedParagraph {
         internal RetainedParagraph(OfficeRichTextParagraph paragraph, PublisherQuillSourceSpan definitionSpan, byte[] definition,
             List<PublisherQuillFormattingRange> body, IReadOnlyList<PublisherQuillSourceSpan> bodySpans,
-            PublisherQuillSourceSpan terminatorSpan, byte[] terminator, int length) {
+            PublisherQuillSourceSpan terminatorSpan, byte[] terminator, int length, int nativeStart) {
             Paragraph = paragraph; Definition = definition; Body = body; Terminator = terminator; Length = length;
             DefinitionSpan = definitionSpan;
+            NativeStart = nativeStart;
             ReplacementBody = MapRuns(bodySpans, terminatorSpan, out var mappedSpans); ReplacementSpans = mappedSpans;
         }
         internal OfficeRichTextParagraph Paragraph { get; }
@@ -139,6 +153,7 @@ internal static partial class PublisherQuillParagraphWriter {
         internal byte[] Terminator { get; }
         internal byte[]? InteriorTerminator { get; set; }
         internal int Length { get; }
+        internal int NativeStart { get; }
         internal IReadOnlyList<byte[]>? ReplacementBody { get; }
         internal IReadOnlyList<PublisherQuillSourceSpan>? ReplacementSpans { get; }
 

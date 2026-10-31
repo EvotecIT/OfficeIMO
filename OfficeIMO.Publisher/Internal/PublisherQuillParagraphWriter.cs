@@ -34,6 +34,24 @@ internal static partial class PublisherQuillParagraphWriter {
             int oldLength = oldRuns.Sum(run => run.Text.Length);
             PublisherQuillStyleUse paragraph = paragraphs[paragraphIndex];
             if (paragraph.NativeStart != originalPosition || paragraph.NativeLength != oldLength + 1) return false;
+            OfficeRichTextParagraph oldParagraph = before.Paragraphs[paragraphIndex], newParagraph = after.Paragraphs[paragraphIndex];
+            bool resegment = !PublisherTextComparison.ParagraphTexts.Equals(oldParagraph, newParagraph)
+                && PublisherTextComparison.ParagraphContent.Equals(oldParagraph, newParagraph);
+            // Preserve the established uniform single-run path. New interval
+            // mapping covers merges and native boundaries that it cannot map.
+            if (resegment && (oldRuns.Count > 1 || FindCharacter(originalPosition, Math.Max(1, oldLength)) == null)) {
+                if (!TryPlanContentRanges(data, context, characters, originalPosition, oldParagraph, newParagraph, token, resources, out var mapped)) return false;
+                PublisherQuillStyleUse? originalCr = FindCharacter(checked(originalPosition + oldLength), 1);
+                if (originalCr == null) return false;
+                foreach (var range in mapped) AppendRange(pc, checked(position + range.AbsoluteEnd), range.Style);
+                position = checked(position + (oldLength + 1) * 2);
+                AppendRange(pc, position, Copy(originalCr.Value.DirectDefinition));
+                byte[]? rewrittenParagraph = PublisherQuillParagraphStyleWriter.Rewrite(data, paragraph.DirectDefinition, oldParagraph, newParagraph, context);
+                if (rewrittenParagraph == null) return false;
+                pp.Add(new PublisherQuillFormattingRange(position, rewrittenParagraph));
+                originalPosition = checked(originalPosition + oldLength + 1);
+                continue;
+            }
             var uses = new List<PublisherQuillStyleUse>();
             int oldCursor = originalPosition;
             foreach (OfficeRichTextRun run in oldRuns) {

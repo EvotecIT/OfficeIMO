@@ -107,15 +107,19 @@ internal sealed partial class PublisherNativeWriter {
                 && p.Runs.Count > 0 && (p.Runs.Count == 1 || p.Runs.All(r => r.Text.Length > 0))), PublisherTextComparison.ParagraphFormats);
             var texts = new HashSet<OfficeRichTextParagraph>(before.Paragraphs.Where(p => p.Label == null
                 && p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0)), PublisherTextComparison.ParagraphTexts);
+            var content = new HashSet<OfficeRichTextParagraph>(before.Paragraphs.Where(p => p.Label == null
+                && p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0)), PublisherTextComparison.ParagraphContent);
             extended = true;
             return after.Paragraphs.All(p => p.Label == null && (retained.Contains(p)
-                || p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0) && (texts.Contains(p) || formats.Contains(p))));
+                || p.Runs.Count > 0 && p.Runs.All(r => r.Text.Length > 0) && (texts.Contains(p) || content.Contains(p) || formats.Contains(p))));
         }
         for (int paragraph = 0; paragraph < after.Paragraphs.Count; paragraph++) {
             OfficeRichTextParagraph a = before.Paragraphs[reshape ? 0 : paragraph], b = after.Paragraphs[paragraph];
             bool empty = b.Runs.Count == 0 || b.Runs.Count == 1 && b.Runs[0].Text.Length == 0;
-            if (a.Runs.Count < 1 || !empty && a.Runs.Count != 1 && a.Runs.Count != b.Runs.Count
+            bool content = !empty && !PublisherTextComparison.ParagraphTexts.Equals(a, b) && PublisherTextComparison.ParagraphContent.Equals(a, b);
+            if (a.Runs.Count < 1 || !empty && !content && a.Runs.Count != 1 && a.Runs.Count != b.Runs.Count
                 || a.Label != null || b.Label != null) return false;
+            if (content && a.Runs.Count > 1) { extended = true; continue; }
             extended |= empty || PublisherQuillParagraphStyleWriter.HasChanges(a, b);
             if (empty) {
                 if (b.Runs.Count == 1 && !RunPreservedFormattingEqual(a.Runs[a.Runs.Count - 1], b.Runs[0])) return false;

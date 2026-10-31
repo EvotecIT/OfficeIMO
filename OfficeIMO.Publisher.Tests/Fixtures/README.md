@@ -238,3 +238,12 @@ interior/final CR roles, equivalent templates and hidden language ambiguity;
 the table edits use the first/final cells with unchanged neighbors. Page10's
 Unicode language auto-assignment is separate mixed-script evidence. Each folder's
 provenance identifies the qualified ASCII refill reference pages.
+
+`TextRunSegmentation` and `TableRunSegmentation` contain twenty independently
+authored native source/final-state pages for run splitting and merging with
+retained complete paragraph text. Mixed/uniform visible styles, hidden French
+ranges, equivalent and ambiguous templates, count changes and same-count edits
+separate native character boundaries from visible run boundaries. Table edits
+use the first/final cells with unchanged neighbors. Reload proof compares text
+and effective formatting per position; native records may retain multiple
+visibly identical runs.
