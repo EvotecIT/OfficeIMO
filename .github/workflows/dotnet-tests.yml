@@ -2108,14 +2108,26 @@ jobs:
 
   aot-linux-scenarios:
     needs: changes
-    name: 'NativeAOT Linux / ${{ matrix.group }}'
+    name: 'NativeAOT Linux / ${{ matrix.label }}'
     if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        group: [libraries, iwork, surfaces]
+        include:
+          - group: libraries
+            label: libraries
+            framework: ''
+          - group: iwork
+            label: iwork / net8.0
+            framework: net8.0
+          - group: iwork
+            label: iwork / net10.0
+            framework: net10.0
+          - group: surfaces
+            label: surfaces
+            framework: ''
     env:
       DOTNET_PROCESSOR_COUNT: 2
       MSBUILDDISABLENODEREUSE: 1
@@ -2155,7 +2167,7 @@ jobs:
       - name: Publish and run supported NativeAOT scenarios
         shell: bash
         run: |
-          # Each group starts on a fresh runner, separate from managed analysis.
+          # Each lane starts on a fresh runner; iWork frameworks keep separate native build budgets.
           sample_resources() {
             local sample_sleep_pid=''
             trap 'if [ -n "$sample_sleep_pid" ]; then kill "$sample_sleep_pid" 2>/dev/null || true; wait "$sample_sleep_pid" 2>/dev/null || true; fi; exit 0' TERM
@@ -2171,7 +2183,7 @@ jobs:
           sample_resources & native_sampler_pid=$!
           trap 'kill "$native_sampler_pid" 2>/dev/null || true; wait "$native_sampler_pid" 2>/dev/null || true' EXIT
           pwsh -NoProfile -File ./Build/Test-AotProjectCoverage.ps1 -JsonOutputPath ./artifacts/aot/project-matrix.json
-          pwsh -NoProfile -File ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration '${{ env.BUILD_CONFIGURATION }}' -ScenarioGroup '${{ matrix.group }}' -JsonOutputPath './artifacts/aot/linux-x64-${{ matrix.group }}.json'
+          pwsh -NoProfile -File ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration '${{ env.BUILD_CONFIGURATION }}' -ScenarioGroup '${{ matrix.group }}' -TargetFramework '${{ matrix.framework }}' -JsonOutputPath './artifacts/aot/linux-x64-${{ matrix.group }}${{ matrix.framework }}.json'
 
       - name: Report final Linux native build resources
         if: always()
@@ -2208,7 +2220,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: nativeaot-linux-x64-${{ matrix.group }}
+          name: nativeaot-linux-x64-${{ matrix.group }}${{ matrix.framework }}
           path: artifacts/aot/*.json
 
   aot-trim-analyzers:

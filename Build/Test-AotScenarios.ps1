@@ -6,6 +6,8 @@ param(
     [string] $Configuration = 'Release',
     [string] $JsonOutputPath = '',
     [string[]] $Scenario = @(),
+    [ValidateSet('', 'net8.0', 'net10.0')]
+    [string] $TargetFramework = '',
     [ValidateSet('all', 'libraries', 'iwork', 'surfaces')]
     [string] $ScenarioGroup = 'all'
 )
@@ -67,6 +69,9 @@ if ($Scenario.Count -gt 0) {
 }
 if ($ScenarioGroup -ne 'all') {
     $scenarios = @($scenarios | Where-Object { $_.group -eq $ScenarioGroup })
+}
+if ($TargetFramework) {
+    $scenarios = @($scenarios | Where-Object { $_.targetFramework -eq $TargetFramework })
 }
 if ($scenarios.Count -eq 0) {
     throw 'The requested NativeAOT scenario selection is empty.'
