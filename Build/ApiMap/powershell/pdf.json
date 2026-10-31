@@ -31,7 +31,7 @@
               "type": "OfficeTheme",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Built-in theme name, theme object or template path. Default Modern. The OfficePdfThemePreset values (WordLike, TechnicalDocument, Compact, Report) are retired: replaced by -Theme (OfficeTheme); M6 decides the visual mapping."
+              "notes": "Built-in theme name, theme object or template path. Default Modern. Uses the shared OfficeTheme typography, colors and table defaults; replaces the PDF-only theme presets."
             },
             {
               "name": "Force",
@@ -241,7 +241,7 @@
               "type": "OfficeTheme",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Built-in theme name, theme object or template path. Default Modern. The OfficePdfThemePreset values (WordLike, TechnicalDocument, Compact, Report) are retired: replaced by -Theme (OfficeTheme); M6 decides the visual mapping."
+              "notes": "Built-in theme name, theme object or template path. Default Modern. Uses the shared OfficeTheme typography, colors and table defaults; replaces the PDF-only theme presets."
             },
             {
               "name": "Force",
@@ -19104,7 +19104,7 @@
         "FontFamily": "Font"
       },
       "hint": "New-OfficePdf -Path .\\Report.pdf -Theme Modern { PdfHeading 'Report' }",
-      "reason": "Lifecycle rules: -NoSave removed (leave out the content block to keep the document open), -Force to replace, -Theme takes OfficeTheme, passwords SecureString."
+      "reason": "Without a content block, return a live PdfDocument and retain its optional path without writing. A completed block publishes atomically; use -Force to replace an existing file and -AllowLoss to accept native-save fidelity findings. Theme uses OfficeTheme, passwords use SecureString, Permission uses PdfStandardPermissions, and OpenActionTop stays numeric in the target page /UserUnit space."
     },
     {
       "old": "OfficePdf",
@@ -19609,7 +19609,7 @@
       "action": "parameter",
       "new": "New-OfficePdf",
       "parameterSet": "Content | Document",
-      "hint": "New-OfficePdf -Theme Modern { ... }",
+      "hint": "New-OfficePdf -Path .\\Report.pdf -Theme Modern { ... }",
       "reason": "Theme is a New-OfficePdf parameter."
     },
     {

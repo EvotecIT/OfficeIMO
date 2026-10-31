@@ -1183,7 +1183,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `PdfTableCellField` | `PdfFormField` | Renamed | `PdfFormField -Type Text` |
 | `PdfTableCellImage` | `PdfImage` | Renamed | `PdfImage .\logo.png` |
 | `PdfText` | `PdfText` | Kept |   |
-| `PdfTheme` | `New-OfficePdf` (`Content \| Document` set) | Now a parameter | `New-OfficePdf -Theme Modern { ... }` |
+| `PdfTheme` | `New-OfficePdf` (`Content \| Document` set) | Now a parameter | `New-OfficePdf -Path .\Report.pdf -Theme Modern { ... }` |
 | `PdfVisual` | `PdfImage` | Renamed | `PdfImage -InputObject $visual` |
 | `PdfWatermark` | `PdfWatermark` | Kept |   |
 

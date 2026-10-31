@@ -11,7 +11,7 @@ Saves an OfficeIMO.Pdf document.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Save-OfficePdf [-Document] <PdfDocument> [-Path] <string> [-Open] [-PassThru] [-Password <string>] [-OwnerPassword <string>] [-Permission <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficePdf [-Document] <PdfDocument> [-Path] <string> [-Open] [-PassThru] [-AllowLoss] [-Password <string>] [-OwnerPassword <string>] [-Permission <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -22,13 +22,31 @@ The document is saved through the normal OfficeIMO.Pdf save path.
 
 ### EXAMPLE 1
 ```powershell
-PS> $pdf = New-OfficePdf { PdfHeading 'Queued report'; PdfParagraph 'Generated in memory.' }
+PS> $pdf = New-OfficePdf
+Add-OfficePdfHeading -Document $pdf -Text 'Queued report'
+Add-OfficePdfParagraph -Document $pdf -Text 'Generated in memory.'
 $pdf | Save-OfficePdf -Path .\QueuedReport.pdf
 ```
 
 Creates a PDF document object first, then saves it to disk.
 
 ## PARAMETERS
+
+### -AllowLoss
+Explicitly accept fidelity findings from native PDF serialization.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -Document
 PDF document to save.

@@ -532,6 +532,9 @@ Closes a live Excel workbook without saving pending changes.
 ### [Close-OfficeMarkdown](Close-OfficeMarkdown.md)
 Completes a live Markdown document's lifetime without saving.
 
+### [Close-OfficePdf](Close-OfficePdf.md)
+Completes a live PDF document's lifetime without saving.
+
 ### [Close-OfficePowerPoint](Close-OfficePowerPoint.md)
 Closes a live presentation without saving it.
 
@@ -1274,7 +1277,7 @@ Creates OCR settings without starting a provider or downloading language data.
 Creates an ODT, ODS, ODP or ODG model, returning it live or saving a completed content block.
 
 ### [New-OfficePdf](New-OfficePdf.md)
-Creates a PDF document using the OfficeIMO.Pdf composition engine.
+Creates a live PDF document or atomically saves a completed composition block.
 
 ### [New-OfficePdfExcelImportOptions](New-OfficePdfExcelImportOptions.md)
 Creates discoverable PDF-table-to-Excel reconstruction settings.
