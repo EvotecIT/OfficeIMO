@@ -18115,5 +18115,272 @@
       ],
       "scope": "Compiled PSWriteOffice conversion cmdlet through the canonical in-process Publisher workflow. Package installation, signing, Windows PowerShell5.1 conversion and native writing are separate boundaries."
     }
+  },
+  "blankPageCreation": {
+    "schema": "officeimo.publisher.blank-page-creation.v1",
+    "scope": "Internal template-free modern-generation blank-page synthesis; no public native creation API or repair-free qualification.",
+    "sourceCommit": "6287fe4f334decc503fb455db734c29e7aa532c6",
+    "nativeProducer": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20088",
+      "automationSecurity": 3
+    },
+    "independentReference": {
+      "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/BlankPages/native-blankpages.pub",
+      "sha256": "9b7e8e5c49ea7ce22c8c922f726a53dcee7f95f22e0c47c6f7a2d1f41a7b1547",
+      "pdfSha256": "e156c400bc1f3b387c72e75e08d3f6441bbcd6422dae7a3461f2889c29eb823b"
+    },
+    "pageGraph": {
+      "masterPageCount": 1,
+      "specialPageBoundary": 5,
+      "orderedReferences": "physical page count + 5",
+      "physicalInterval": "1 through ordered references minus 5, inclusive"
+    },
+    "qualifiedOperations": [
+      "ReadOnlyOpen",
+      "InitialInventory",
+      "InitialPdfExport",
+      "NativeSaveAs",
+      "ReadOnlyReopen",
+      "ResavedInventory",
+      "ResavedPdfExport"
+    ],
+    "cases": [
+      {
+        "pageCount": 2,
+        "candidateSha256": "b3777af79c85fe04a9a2a7d32026e55dc94dc437dd038021fec87f26e29f3816",
+        "orderedReferences": 7,
+        "command": [
+          "create",
+          "blank-pages",
+          "candidate-blank-2.pub",
+          "2"
+        ],
+        "sourceUnchanged": true,
+        "initialAndResavedPageCount": 2,
+        "nativeArtifacts": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "b3777af79c85fe04a9a2a7d32026e55dc94dc437dd038021fec87f26e29f3816"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "42f813c4c672f892e5cb6c64d9c666da98651fdac61d6946b3f4b6c71eeede35"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "92789c8ea357971e94983b99199a1f4efcb028a32a7d515da260e84462ba167d"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "d9774138a663e686b1a622b06201d790a71f81c6d12598b1beee75e9bb0a256e"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "272d358294042be1cdf893a3327ed9a8ddaa35c629017770f588831eebc0f406"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "a9358fed7b0d14ab5de1937456757068501e135779a4295071cc4e70939b3954"
+          }
+        ]
+      },
+      {
+        "pageCount": 4,
+        "candidateSha256": "fe0add9d004b77dd9b35ef010a451aa5b4cbcadfdc39980ea8eaafab9e7caf31",
+        "orderedReferences": 9,
+        "command": [
+          "create",
+          "blank-pages",
+          "candidate-blank-4.pub",
+          "4"
+        ],
+        "sourceUnchanged": true,
+        "initialAndResavedPageCount": 4,
+        "nativeArtifacts": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "fe0add9d004b77dd9b35ef010a451aa5b4cbcadfdc39980ea8eaafab9e7caf31"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "ce5a8084cdcda5526ed38287dd06171914725c3e98f6e4abdb7be3c38ad84d6b"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "059a94272906f4422c4ae64313dec8cc6c2dbc6827e042d5f4b0d714ab93d99d"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "57611fa0dab7cbe97efa8e060c2ceef1d38d51aa3c4bd252d04b8d0c8bbb8c23"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "4cf70ec03b6eef2c27a996f4239ab44f08eafa0605cac801fc3d929a38d4bc90"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "5ad9b25dda31ddbb466fcdb89f49e881a1ef202dc09158bf915f2abb0b3fb537"
+          }
+        ]
+      }
+    ],
+    "managedOnlyCases": [
+      {
+        "pageCount": 1,
+        "candidateSha256": "0216f872be7f043a7b7ae6ba042ffea674dc27b93af6083b2676b55f626d5392",
+        "orderedReferences": 6
+      },
+      {
+        "pageCount": 16,
+        "candidateSha256": "a77d8a883923ec388e2e152ed3316e402fe1219fd30c23b1070bb85ea0d2ecaa",
+        "orderedReferences": 21
+      }
+    ],
+    "onePageEquivalence": [
+      {
+        "kind": "blank",
+        "sha256": "0216f872be7f043a7b7ae6ba042ffea674dc27b93af6083b2676b55f626d5392"
+      },
+      {
+        "kind": "text",
+        "sha256": "004bcdf54f03b286bd5a2839bb84f681b9b62b205cc7c5210cb09e0b8cddad99"
+      },
+      {
+        "kind": "styled-text",
+        "sha256": "bfc64c572322cbb3f6cde9de3e1028a7b202e7f4b453dca055a824e10ff93ec9"
+      },
+      {
+        "kind": "shape",
+        "sha256": "6981c0ce241a1cba117e4f194f53f15792d674a44aeb137c06adb804a5bdc482"
+      },
+      {
+        "kind": "image",
+        "sha256": "e1c58f76d774585efbf7f82ff1d91e3a95f67939c18487ab255e4462a2f169e1"
+      },
+      {
+        "kind": "combined",
+        "sha256": "37e0e91a36c900f2b1a7c73fe3cb606b477464787e60a70375d8985ebd520bcf"
+      }
+    ],
+    "sourceFiles": [
+      {
+        "path": "../Get-NativeValidationArtifactNames.ps1",
+        "sha256": "82a8ff6eebb0d847130fd5e2e6230b8d93d51582bdbf32160f04eb0291613949"
+      },
+      {
+        "path": "../Invoke-NativeComparisonCase.ps1",
+        "sha256": "f15830cf59457494ed0f22b3d84de1903023de67fad7390641abcdde3f2afda7"
+      },
+      {
+        "path": "../Invoke-NativePublisherOperation.ps1",
+        "sha256": "38adba68acd94674724dc2436eee93d7d1ff9f805faa4555547257c2381672e9"
+      },
+      {
+        "path": "../Read-NativePublisherReceipt.ps1",
+        "sha256": "4b11f99bbf9b69f5a9ce44df43694b30e21abb025347e4b13a5648db7acbc97a"
+      },
+      {
+        "path": "../Write-NativePublisherPhaseReceipt.ps1",
+        "sha256": "a5d4b472b87760b0c66ced6caa2018a71a8bc8b713ee23754be788ea78e544e5"
+      },
+      {
+        "path": "CandidateCases.cs",
+        "sha256": "0ba8987ced92d82a21c9d544295de72c2d3946746b0091ec004db021db04711d"
+      },
+      {
+        "path": "CandidateColorScheme.cs",
+        "sha256": "42899b57a1649069d9664c56a78ca67097021f0e2229a6db7e9f301c94607648"
+      },
+      {
+        "path": "CandidateMasterGeometry.cs",
+        "sha256": "24f7b291807ab1e6590b0ebf7f8f84bc2d656dfe46ce98160dbcc3bb58d551a2"
+      },
+      {
+        "path": "CandidateOfficeArt.cs",
+        "sha256": "894ccf19c519c195e0e95da72a1ee1172dbeec1be80c2c25f9e10521e2e8b787"
+      },
+      {
+        "path": "CandidatePublicationSpec.cs",
+        "sha256": "06c18f52084f1b63b84af2bb0db968557c73eb29f5a4cc93be53f0b57ad81a09"
+      },
+      {
+        "path": "CandidateStyledText.cs",
+        "sha256": "97794f5314a0a77fc219b1476267ea2284f7139260db5f8b5ffc3298c10593d9"
+      },
+      {
+        "path": "CandidateWriter.cs",
+        "sha256": "75f97a055552812d292d17305b6a7d1ac099c377e16357461d53f57f1d10396f"
+      },
+      {
+        "path": "ManagedComparison.cs",
+        "sha256": "ffdf1934e55de56311114e1f47f110af537cdd7ef79a260abdd10b1a29f3d3cf"
+      },
+      {
+        "path": "NativeDiff.cs",
+        "sha256": "fa6010ae697546150c6518c0d02bbe35cddb71c4d98be56da4371aac7aa44bd1"
+      },
+      {
+        "path": "NativeEncoding.cs",
+        "sha256": "3b57e4dacd9bd06b41f2992e64ee6120b629aebc47e25d72b2a4bb1d88a4362e"
+      },
+      {
+        "path": "NativeInventory.cs",
+        "sha256": "f3cc160845f73712957ce2c594f67faa7455eb165a826e3015a1d7ada401a577"
+      },
+      {
+        "path": "NativePublicationGraph.cs",
+        "sha256": "f093a97f6da46f85d3ddeadb25932dd2419458c970bdb74f26c568cf95254b27"
+      },
+      {
+        "path": "NativeSchemaPrefix.cs",
+        "sha256": "73bf4ca8d189f1d90e27fbbb140fcad2369f1972306d33f2baadd62b97520eda"
+      },
+      {
+        "path": "Program.cs",
+        "sha256": "c11859d26759f7d0a4eb1ae6a7e1af96078a77b5fe261e8893c34221642a8658"
+      },
+      {
+        "path": "QuillCandidate.cs",
+        "sha256": "7f2ff312088e92c0109543f66823612e44985c4f5aa6310f8b816d899b23c790"
+      },
+      {
+        "path": "QuillCharacterFormatting.cs",
+        "sha256": "33f136bb10ca82484da7b6a8bae2b1f507ca8a64f02aef80d82cdfd6c9eb9916"
+      },
+      {
+        "path": "QuillDefaultLibraries.cs",
+        "sha256": "a099a8340688cd359f77da75a71074f8c163c4ac726c1e3d6e2dce195851b491"
+      },
+      {
+        "path": "QuillTextFormatting.cs",
+        "sha256": "4bf8c3979a16a8920fa0ce65abade7894b1febbe8219cea8f3689b9ec64db1c4"
+      },
+      {
+        "path": "../../../OfficeIMO.Publisher/Internal/PublisherQuillFormattingPage.cs",
+        "sha256": "30ef554c1caabb106fad815e250f0527a2ee56a58ef9f2d33df28d23ed838ab2"
+      }
+    ],
+    "observations": {
+      "sourcePublicationsRead": 0,
+      "originalOnePageCasesByteIdentical": 6,
+      "onePageCombinedByteIdenticalToOriginalQualification": true,
+      "allQualifiedPagesHaveNoShapesOrText": true,
+      "oneEmptyMasterPreserved": true,
+      "pageOrderNumbersAndSidePreserved": true,
+      "initialAndResavedPagePixelsMatchIndependentReference": true,
+      "pdfComparisonDpi": 144,
+      "independentPagePixelPairs": 12,
+      "nativeResavesReopenWithOfficeIMO": true,
+      "repairFreeOpening": "Unassessed: successful native operations and static COM declarations do not establish absence of repair."
+    },
+    "limitations": [
+      "Internal opt-in blank-page writer only; no public native creation API.",
+      "Native operation evidence covers counts 2 and 4; counts 1 and 16 have managed/structural evidence here.",
+      "No repair-free opening conclusion, native repair-positive oracle or general opaque preservation qualification.",
+      "Objects on later pages, arbitrary page sizes and additional masters are not qualified by this increment."
+    ],
+    "reproduction": "Build the opt-in probe and run create blank-pages <unused candidate.pub> <count>. For counts 2 and 4 run Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full on isolated copies. Compare native page/master inventories and each initial/resaved PDF page at 144 dpi with the independent BlankPages native reference. Native save metadata and PDF hashes can vary between runs."
   }
 }
